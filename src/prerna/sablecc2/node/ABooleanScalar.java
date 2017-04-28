@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AJavaOpScript extends PScript
+public final class ABooleanScalar extends PScalar
 {
-    private PJavaOp _javaOp_;
+    private TBoolean _boolean_;
 
-    public AJavaOpScript()
+    public ABooleanScalar()
     {
         // Constructor
     }
 
-    public AJavaOpScript(
-        @SuppressWarnings("hiding") PJavaOp _javaOp_)
+    public ABooleanScalar(
+        @SuppressWarnings("hiding") TBoolean _boolean_)
     {
         // Constructor
-        setJavaOp(_javaOp_);
+        setBoolean(_boolean_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AJavaOpScript(
-            cloneNode(this._javaOp_));
+        return new ABooleanScalar(
+            cloneNode(this._boolean_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAJavaOpScript(this);
+        ((Analysis) sw).caseABooleanScalar(this);
     }
 
-    public PJavaOp getJavaOp()
+    public TBoolean getBoolean()
     {
-        return this._javaOp_;
+        return this._boolean_;
     }
 
-    public void setJavaOp(PJavaOp node)
+    public void setBoolean(TBoolean node)
     {
-        if(this._javaOp_ != null)
+        if(this._boolean_ != null)
         {
-            this._javaOp_.parent(null);
+            this._boolean_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AJavaOpScript extends PScript
             node.parent(this);
         }
 
-        this._javaOp_ = node;
+        this._boolean_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._javaOp_);
+            + toString(this._boolean_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._javaOp_ == child)
+        if(this._boolean_ == child)
         {
-            this._javaOp_ = null;
+            this._boolean_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AJavaOpScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._javaOp_ == oldChild)
+        if(this._boolean_ == oldChild)
         {
-            setJavaOp((PJavaOp) newChild);
+            setBoolean((TBoolean) newChild);
             return;
         }
 

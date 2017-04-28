@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AConfiguration extends PConfiguration
 {
-    private final LinkedList<PScriptchain> _scriptchain_ = new LinkedList<PScriptchain>();
+    private final LinkedList<PRoutine> _routine_ = new LinkedList<PRoutine>();
 
     public AConfiguration()
     {
@@ -16,10 +16,10 @@ public final class AConfiguration extends PConfiguration
     }
 
     public AConfiguration(
-        @SuppressWarnings("hiding") List<?> _scriptchain_)
+        @SuppressWarnings("hiding") List<?> _routine_)
     {
         // Constructor
-        setScriptchain(_scriptchain_);
+        setRoutine(_routine_);
 
     }
 
@@ -27,7 +27,7 @@ public final class AConfiguration extends PConfiguration
     public Object clone()
     {
         return new AConfiguration(
-            cloneList(this._scriptchain_));
+            cloneList(this._routine_));
     }
 
     @Override
@@ -36,29 +36,29 @@ public final class AConfiguration extends PConfiguration
         ((Analysis) sw).caseAConfiguration(this);
     }
 
-    public LinkedList<PScriptchain> getScriptchain()
+    public LinkedList<PRoutine> getRoutine()
     {
-        return this._scriptchain_;
+        return this._routine_;
     }
 
-    public void setScriptchain(List<?> list)
+    public void setRoutine(List<?> list)
     {
-        for(PScriptchain e : this._scriptchain_)
+        for(PRoutine e : this._routine_)
         {
             e.parent(null);
         }
-        this._scriptchain_.clear();
+        this._routine_.clear();
 
         for(Object obj_e : list)
         {
-            PScriptchain e = (PScriptchain) obj_e;
+            PRoutine e = (PRoutine) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._scriptchain_.add(e);
+            this._routine_.add(e);
         }
     }
 
@@ -66,14 +66,14 @@ public final class AConfiguration extends PConfiguration
     public String toString()
     {
         return ""
-            + toString(this._scriptchain_);
+            + toString(this._routine_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._scriptchain_.remove(child))
+        if(this._routine_.remove(child))
         {
             return;
         }
@@ -85,13 +85,13 @@ public final class AConfiguration extends PConfiguration
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        for(ListIterator<PScriptchain> i = this._scriptchain_.listIterator(); i.hasNext();)
+        for(ListIterator<PRoutine> i = this._routine_.listIterator(); i.hasNext();)
         {
             if(i.next() == oldChild)
             {
                 if(newChild != null)
                 {
-                    i.set((PScriptchain) newChild);
+                    i.set((PRoutine) newChild);
                     newChild.parent(this);
                     oldChild.parent(null);
                     return;

@@ -81,73 +81,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAOutputScriptchain(AOutputScriptchain node)
+    public void caseAOutputRoutine(AOutputRoutine node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAAssignScriptchain(AAssignScriptchain node)
+    public void caseAAssignRoutine(AAssignRoutine node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseARoutine(ARoutine node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAScriptRoutineOrVar(AScriptRoutineOrVar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAConstantRoutineOrVar(AConstantRoutineOrVar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseABaseFormulaRoutineOrVar(ABaseFormulaRoutineOrVar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAAssignment(AAssignment node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFrameopScript(AFrameopScript node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOpScript(AOpScript node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAJavaOpScript(AJavaOpScript node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAROpScript(AROpScript node)
+    public void caseAScriptchain(AScriptchain node)
     {
         defaultCase(node);
     }
@@ -159,31 +105,127 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAAssignment(AAssignment node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExpressionScript(AExpressionScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAEmbeddedAssignment(AEmbeddedAssignment node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAGenRow(AGenRow node)
+    public void caseATermExpr(ATermExpr node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAPlainRow(APlainRow node)
+    public void caseAPlusExpr(APlusExpr node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAOperationFormula(AOperationFormula node)
+    public void caseAMinusExpr(AMinusExpr node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseARefColDef(ARefColDef node)
+    public void caseAMultExpr(AMultExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADivExpr(ADivExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAModExpr(AModExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAScalarTerm(AScalarTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFormulaTerm(AFormulaTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOpformulaTerm(AOpformulaTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFrameopTerm(AFrameopTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAJavaOpTerm(AJavaOpTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAROpTerm(AROpTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAListTerm(AListTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACsvTerm(ACsvTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFormula(AFormula node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAList(AList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOtherExpr(AOtherExpr node)
     {
         defaultCase(node);
     }
@@ -195,13 +237,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseADotcolColDef(ADotcolColDef node)
+    public void caseARefColDef(ARefColDef node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAFrameopColDef(AFrameopColDef node)
+    public void caseADotcolColDef(ADotcolColDef node)
     {
         defaultCase(node);
     }
@@ -226,6 +268,24 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAOthercol(AOthercol node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAGenRow(AGenRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPlainRow(APlainRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOperationFormula(AOperationFormula node)
     {
         defaultCase(node);
     }
@@ -273,109 +333,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseANumNumberOrString(ANumNumberOrString node)
+    public void caseANumScalar(ANumScalar node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAWordOrIdNumberOrString(AWordOrIdNumberOrString node)
+    public void caseAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABooleanScalar(ABooleanScalar node)
     {
         defaultCase(node);
     }
 
     @Override
     public void caseAProp(AProp node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseANumberOrStringTerm(ANumberOrStringTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFormulaTerm(AFormulaTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOpformulaTerm(AOpformulaTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseABooleanTerm(ABooleanTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseACsvTerm(ACsvTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAListTerm(AListTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseATermExpr(ATermExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPlusExpr(APlusExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMinusExpr(AMinusExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMultExpr(AMultExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseADivExpr(ADivExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAModExpr(AModExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFormula(AFormula node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAList(AList node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOtherExpr(AOtherExpr node)
     {
         defaultCase(node);
     }

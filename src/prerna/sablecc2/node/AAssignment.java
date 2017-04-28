@@ -9,7 +9,7 @@ public final class AAssignment extends PAssignment
 {
     private PWordOrId _wordOrId_;
     private TEqual _equal_;
-    private PRoutineOrVar _routineOrVar_;
+    private PScriptchain _scriptchain_;
 
     public AAssignment()
     {
@@ -19,14 +19,14 @@ public final class AAssignment extends PAssignment
     public AAssignment(
         @SuppressWarnings("hiding") PWordOrId _wordOrId_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PRoutineOrVar _routineOrVar_)
+        @SuppressWarnings("hiding") PScriptchain _scriptchain_)
     {
         // Constructor
         setWordOrId(_wordOrId_);
 
         setEqual(_equal_);
 
-        setRoutineOrVar(_routineOrVar_);
+        setScriptchain(_scriptchain_);
 
     }
 
@@ -36,7 +36,7 @@ public final class AAssignment extends PAssignment
         return new AAssignment(
             cloneNode(this._wordOrId_),
             cloneNode(this._equal_),
-            cloneNode(this._routineOrVar_));
+            cloneNode(this._scriptchain_));
     }
 
     @Override
@@ -95,16 +95,16 @@ public final class AAssignment extends PAssignment
         this._equal_ = node;
     }
 
-    public PRoutineOrVar getRoutineOrVar()
+    public PScriptchain getScriptchain()
     {
-        return this._routineOrVar_;
+        return this._scriptchain_;
     }
 
-    public void setRoutineOrVar(PRoutineOrVar node)
+    public void setScriptchain(PScriptchain node)
     {
-        if(this._routineOrVar_ != null)
+        if(this._scriptchain_ != null)
         {
-            this._routineOrVar_.parent(null);
+            this._scriptchain_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AAssignment extends PAssignment
             node.parent(this);
         }
 
-        this._routineOrVar_ = node;
+        this._scriptchain_ = node;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class AAssignment extends PAssignment
         return ""
             + toString(this._wordOrId_)
             + toString(this._equal_)
-            + toString(this._routineOrVar_);
+            + toString(this._scriptchain_);
     }
 
     @Override
@@ -145,9 +145,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._routineOrVar_ == child)
+        if(this._scriptchain_ == child)
         {
-            this._routineOrVar_ = null;
+            this._scriptchain_ = null;
             return;
         }
 
@@ -170,9 +170,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._routineOrVar_ == oldChild)
+        if(this._scriptchain_ == oldChild)
         {
-            setRoutineOrVar((PRoutineOrVar) newChild);
+            setScriptchain((PScriptchain) newChild);
             return;
         }
 
