@@ -5,22 +5,22 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AAssignScriptchain extends PScriptchain
+public final class AOutputRoutine extends PRoutine
 {
-    private PAssignment _assignment_;
+    private PScriptchain _scriptchain_;
     private TSemicolon _semicolon_;
 
-    public AAssignScriptchain()
+    public AOutputRoutine()
     {
         // Constructor
     }
 
-    public AAssignScriptchain(
-        @SuppressWarnings("hiding") PAssignment _assignment_,
+    public AOutputRoutine(
+        @SuppressWarnings("hiding") PScriptchain _scriptchain_,
         @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
-        setAssignment(_assignment_);
+        setScriptchain(_scriptchain_);
 
         setSemicolon(_semicolon_);
 
@@ -29,27 +29,27 @@ public final class AAssignScriptchain extends PScriptchain
     @Override
     public Object clone()
     {
-        return new AAssignScriptchain(
-            cloneNode(this._assignment_),
+        return new AOutputRoutine(
+            cloneNode(this._scriptchain_),
             cloneNode(this._semicolon_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAAssignScriptchain(this);
+        ((Analysis) sw).caseAOutputRoutine(this);
     }
 
-    public PAssignment getAssignment()
+    public PScriptchain getScriptchain()
     {
-        return this._assignment_;
+        return this._scriptchain_;
     }
 
-    public void setAssignment(PAssignment node)
+    public void setScriptchain(PScriptchain node)
     {
-        if(this._assignment_ != null)
+        if(this._scriptchain_ != null)
         {
-            this._assignment_.parent(null);
+            this._scriptchain_.parent(null);
         }
 
         if(node != null)
@@ -62,7 +62,7 @@ public final class AAssignScriptchain extends PScriptchain
             node.parent(this);
         }
 
-        this._assignment_ = node;
+        this._scriptchain_ = node;
     }
 
     public TSemicolon getSemicolon()
@@ -94,7 +94,7 @@ public final class AAssignScriptchain extends PScriptchain
     public String toString()
     {
         return ""
-            + toString(this._assignment_)
+            + toString(this._scriptchain_)
             + toString(this._semicolon_);
     }
 
@@ -102,9 +102,9 @@ public final class AAssignScriptchain extends PScriptchain
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._assignment_ == child)
+        if(this._scriptchain_ == child)
         {
-            this._assignment_ = null;
+            this._scriptchain_ = null;
             return;
         }
 
@@ -121,9 +121,9 @@ public final class AAssignScriptchain extends PScriptchain
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._assignment_ == oldChild)
+        if(this._scriptchain_ == oldChild)
         {
-            setAssignment((PAssignment) newChild);
+            setScriptchain((PScriptchain) newChild);
             return;
         }
 

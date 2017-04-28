@@ -5,6 +5,7 @@ import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.node.Start;
@@ -27,14 +28,25 @@ public class Compiler
 		//	DIHelper.getInstance().loadCoreProp(propFile);
 
 		TestUtilityMethods.loadDIHelper();
-		/*String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+		
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
-		//TODO: put in correct db name
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-*/
+		
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\test2.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("test2");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("test2", coreEngine);
+
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		
 		try
 		{
 
@@ -54,7 +66,56 @@ public class Compiler
 													//+ "pig(s=[a,b,c], filter=[(s == ['ab', 'cd','ef']), (a > [1])], join=[(a inner.join b)], <c>System.out.println(\"Hello World\");<c>).as([select_a]) |  monkey(s=[select_a], props=[type=\"reduce\"]).as([group_b]) | donkey(a,select_a, group_b);" // | trial(s=[a,b,c],props=[name=\"samiksha\"]);"
 													//+ "sum((2*abc)+product(5,2));"
 													//+ "sum(<c>System.out.println(1);<c>).try(c=['hello']);"
-													+ "a = 5; if( ((2*a)==10), if( (6 > 5), 10, 5), 0);"
+													
+//													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
+//													+ "Frame() | Select(Studio, Sum(Movie_Budget)) | Group(Studio) | Iterate();"
+//													
+//													+ "5;"
+//													+ "Job('job1') | AddFormat(formatName = ['d1'], type = ['table']) | "
+//													+ "AddOptions(optionsName = ['o1'], label = ['Studio'], value = ['Sum_MovieBudget']) | "
+//													+ "Export(target = ['bar'], formatName = ['d1'], optionsName = ['o1']) | Collect(10);"
+
+//													+ "x = 5; y = 7; if( (x*60 > y*8.9), Median(10,3,4,5,6,6), 20.5);"
+													+ "Database(\"test2\") | "
+													+ "Select(UPDATEDINPUTCSV, UPDATEDINPUTCSV__Alias_1, UPDATEDINPUTCSV__Client_ID, UPDATEDINPUTCSV__FieldName, UPDATEDINPUTCSV__FormName, UPDATEDINPUTCSV__Scenario, UPDATEDINPUTCSV__Type_1, UPDATEDINPUTCSV__Value_1, UPDATEDINPUTCSV__Version) | "
+													+ "Iterate() | "
+													+ "(plan = LoadClient(assignment = ['Alias_1'], value = ['Value_1'], separator = ['__']) ); "
+													+ "retData = RunPlan(PLANNER = [plan]); "
+//													+ "UpdatePlan(PLANNER = [plan], store=[retData], pksls=["
+//																		+ "\"ATAX_REFORM_SCENARIOS__SELECTED_LIMITATION_FOR_163J = 1000;\" "
+//																		+ ", \"AFORECASTING_PERCENTAGE__11__TOTAL_INCOME = 37322000;\" "
+//																		+ ", \"A1120_PG_1_MAPPING__24__EMPLOYEE_BENEFIT_PROGRAMS = -45673134;\" "
+//																		+ ", \"ASCH_C_MAPPING__TOTAL_DIVIDENDS__ADD_LINES_1_THROUGH_17__ENTER_HERE_AND_ON_PAGE_1__LINE_4_ = 8797652721;\" "
+//																+ "]) | "
+//													+ "newRet = RetrieveValue(store=['retData'], key=['ASCH_M_3_OTHER_ITEMS_MAPPING_LAB_TESTING_PERMANENT_DIFFERENCE','AFORECASTING_PERCENTAGE_20_DEPRECIATION_FORM_4562_MANUAL']); "
+//													+ "Iterate(store=[newRet]) | AddFormat(formatName = ['d1'], type = ['keyvalue']) | "
+//													+ "Export(target = ['1120_Pg1_Form'], formatName = ['d1']) | Collect(10000); "
+													
+//													+ "Job('job2') | AddFormat(formatName = ['d1'], type = ['keyvalue']) | "
+//													+ "AddOptions(optionsName = ['o1'], label = ['Studio'], value = ['Sum_MovieBudget']) | "
+//													+ "Export(target = ['bar'], formatName = ['d1'], optionsName = ['o1']) | Collect(10000);"
+													
+//													+ "Job('job2') | AddFormat(formatName = ['d1'], type = ['keyvalue']) | "
+//													+ "Export(target = ['1120_Pg1_Form'], formatName = ['d1']) | Collect(10000);"
+
+//													+ "a = 10; b = 5; c = b-a;"
+//													+ "a = 10; b = (a); Sum(a, b, -6); if( (b-a > 10), 6, 8);"
+													
+//													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
+//													+ "a = Sum(Movie_Budget); 
+//													+ "1b = (-6); "
+//													+ "Sum( Sum(Movie_Budget), 1b, 7);"
+//													+ "Database(Clean_Sch_J) | Select(CLEAN_SCHJ_IMPACTRESULTCSV, CLEAN_SCHJ_IMPACTRESULTCSV__FieldName, CLEAN_SCHJ_IMPACTRESULTCSV__FormName, CLEAN_SCHJ_IMPACTRESULTCSV__Type_1, CLEAN_SCHJ_IMPACTRESULTCSV__Value_1) | Iterate() | LoadClient(assignment=['FormName', 'FieldName'], value=['Value_1'], separator=['__']);"
+//													+ "Database(\"clean_1120_page_mapping\") | Select(CLEAN_1120_PAGE_MAPPINGCSV, CLEAN_1120_PAGE_MAPPINGCSV__Client_ID, CLEAN_1120_PAGE_MAPPINGCSV__FieldName, CLEAN_1120_PAGE_MAPPINGCSV__FormName, CLEAN_1120_PAGE_MAPPINGCSV__Scenario, CLEAN_1120_PAGE_MAPPINGCSV__Type_1, CLEAN_1120_PAGE_MAPPINGCSV__Value_1, CLEAN_1120_PAGE_MAPPINGCSV__Version ) | Iterate() | LoadClient(assignment = ['FormName', 'FieldName'], value = ['Value_1'], separator = ['__']);"
+
+													
+//													+"test = MapStore();; StoreValue(store=[test], key=['thiskey'], value=[5000]);RetrieveValue(store=[test], key=['thiskey']);"
+//													+ "if( ( RetrieveValue(store=['test'], key=['thiskey']) > 10 ) , if((2*(3+Sum(Movie_Budget)) > 9), 0, 1) , 6);"
+													
+//													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
+//													+ "a = Sum(Movie_Budget);; "
+//													+ "if( ( (Sum(Revenue_Domestic) + a) > 10000000), if((6 > 5), 10, 5), 0);"
+													
 													//+ "if(((a + 2 *5)==10), if(b, a*2, if(c, k*9+2*3+h, 0)), if(c, b*2, 0));"
 													//+ "sum((2*abc)+5*2);sum(s=[hello, 'hello world', sum(hello, world)], k=[(name != 'gh'), (somethingelse == 5)])|product(s=[demo]) | product2(s=[demo]); sum(2 + 3); sum2(2 + 3); sum3(a,b,c,d) | sum4(a,b,c); sum7(s=[a,b,c, sum6(a,b,c)]); name = 'pk';"
 													//+ "(3 + 4, [c:bp, c:ab]);"
@@ -128,9 +189,9 @@ public class Compiler
 
 
 			// Apply the translation.
-			//PKQLRunner runner = new PKQLRunner();
-			tree.apply(new Translation());
-			//System.out.println(runner.getResults());
+			PKSLRunner runner = new PKSLRunner();
+			tree.apply(new Translation(runner));
+//			System.out.println(runner.getResults());
 		}
 		catch(Exception e)
 		{

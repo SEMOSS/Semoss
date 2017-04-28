@@ -1,6 +1,7 @@
 package prerna.sablecc2;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -19,15 +20,15 @@ import prerna.sablecc2.node.AEmbeddedAssignment;
 import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFrameop;
-import prerna.sablecc2.node.AFrameopScript;
+import prerna.sablecc2.node.AFrameopTerm;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AList;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
-import prerna.sablecc2.node.AOpScript;
 import prerna.sablecc2.node.AOperationFormula;
-import prerna.sablecc2.node.AOutputScriptchain;
+import prerna.sablecc2.node.AOpformulaTerm;
+import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
@@ -133,12 +134,11 @@ public class Translation extends DepthFirstAdapter {
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
 	@Override
-	public void inAOutputScriptchain(AOutputScriptchain node) {
+	public void inAOutputRoutine(AOutputRoutine node) {
 		defaultIn(node);
 	}
 	
-	@Override
-	public void outAOutputScriptchain(AOutputScriptchain node) {
+	public void outAOutputRoutine(AOutputRoutine node) {
 		defaultIn(node);
         // we do this in case someone is dumb and is doing an embedded assignment 
         // instead of just doing a normal assignment...
@@ -146,7 +146,7 @@ public class Translation extends DepthFirstAdapter {
     		postProcess();
     	}
 	}
-    
+	
     // all the operation sits here - these are the script starting points
     // everything from here on is primarily an assimilation
     
@@ -158,37 +158,36 @@ public class Translation extends DepthFirstAdapter {
     // and evaluates 2 things - is this a reduce operation and is this fully sqlable
     // if either one of these, it needs to execute that before we can execute this one
     // not sure how to keep the output in some kind of no named variable
-    public void inAFrameopScript(AFrameopScript node)
-    {
-    	defaultIn(node);
-    	LOGGER.debug("In a script frameop");
+	
+	@Override
+	public void inAFrameopTerm(AFrameopTerm node) {
+		defaultIn(node);
+    	LOGGER.debug("In a frameop term!");
         // once I am in here I am again in the realm of composition
         this.operationType = TypeOfOperation.COMPOSITION;
-    }
-
-    public void outAFrameopScript(AFrameopScript node)
-    {
-    	defaultOut(node);
-    	LOGGER.debug("Out a script frameop");
+	}
+	
+	@Override
+	public void outAFrameopTerm(AFrameopTerm node) {
+		defaultOut(node);
+    	LOGGER.debug("Out a frameop term!");
         this.operationType = TypeOfOperation.PIPELINE;
-    }
-
-    public void inAOpScript(AOpScript node)
-    {
-    	defaultIn(node);
+	}
+	
+	@Override
+	public void inAOpformulaTerm(AOpformulaTerm node) {
+		defaultIn(node);
     	LOGGER.debug("In a operational formula script");
         this.operationType = TypeOfOperation.COMPOSITION;
-    }
-
-    public void outAOpScript(AOpScript node)
-    {
-    	defaultOut(node);
+	}
+	
+	@Override
+	public void outAOpformulaTerm(AOpformulaTerm node) {
+		defaultOut(node);
         LOGGER.debug("Out a operational formula script");
         this.operationType = TypeOfOperation.PIPELINE;
-    }
+	}
 
-    // still need to accomodate for Java operation, assignment, r operation etc. 
-    
     /************************************ SECOND is basically secondary operations ***********************/
     /**** Part 1 - those things that can originate their own genrowstruct ***********/    
     // these things need to check to see if these can extend existing script or should it be its own thing
@@ -498,10 +497,10 @@ public class Translation extends DepthFirstAdapter {
     		isDouble = true;
     		String fraction = (node.getFraction()+"").trim();
     		String value = (node.getWhole()+"").trim() +"." + fraction;
-    		retNum = Double.parseDouble(value);
+    		retNum = new BigDecimal(value);//Double.parseDouble(value);
     	} else {
     		String value = (node.getWhole()+"").trim();
-    		retNum = Integer.parseInt(value);
+    		retNum = new BigInteger(value);//Integer.parseInt(value);
     	}
     	
     	// determine if it is a negative
@@ -579,7 +578,7 @@ public class Translation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	String key = node.getId().toString().trim();
-    	String propValue = node.getNumberOrString().toString().trim();
+    	String propValue = node.getScalar().toString().trim();
         curReactor.setProp(key, propValue);
     }
     
