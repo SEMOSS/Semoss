@@ -437,6 +437,35 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAModExpr(node);
     }
 
+    public void inAPowExpr(APowExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPowExpr(APowExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPowExpr(APowExpr node)
+    {
+        inAPowExpr(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getPow() != null)
+        {
+            node.getPow().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        outAPowExpr(node);
+    }
+
     public void inAScalarTerm(AScalarTerm node)
     {
         defaultIn(node);
