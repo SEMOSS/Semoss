@@ -165,6 +165,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAPowExpr(APowExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAScalarTerm(AScalarTerm node)
     {
         defaultCase(node);
@@ -544,6 +550,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTMod(TMod node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTPow(TPow node)
     {
         defaultCase(node);
     }

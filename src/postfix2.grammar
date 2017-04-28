@@ -24,7 +24,7 @@ Tokens
  plus = '+';
  minus = '-';
  mod = '%';
- //pow = '^';
+ pow = '^';
  quote = ('"' | ''' | '~');
  word = quote not_quote+ quote;
  mult = '*';
@@ -102,7 +102,7 @@ Productions
   | {mult} [left]:term mult [right]:expr 
   | {div} [left]:term div [right]:expr 
   | {mod} [left]:term mod [right]:expr
- // | {pow} [left]:term pow [right]:expr
+  | {pow} [left]:term pow [right]:expr
   ;
   
  term =

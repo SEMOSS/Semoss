@@ -39,6 +39,12 @@ public class AssignmentReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
+	@Override
+	public NounMetadata execute() {
+		// do nothing
+		return null;
+	}
 
 	private boolean checkVariable(String variableName) {
 		//use this method to make sure the variable name doesn't not interfere with frame's headers

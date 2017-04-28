@@ -131,7 +131,7 @@ public interface IReactor {
 
 	void modifySignature(String string, String plainString);
 
-	
+	void modifySignatureFromLambdas();
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor
