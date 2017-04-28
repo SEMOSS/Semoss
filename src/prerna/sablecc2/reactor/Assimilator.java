@@ -32,7 +32,7 @@ public class Assimilator extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		super.execute();
+		modifySignatureFromLambdas();
 		
 		// need to see if we are dealing with any non-integer values
 		if(this.curRow.getNounsOfType(PkslDataTypes.CONST_DECIMAL).size() > 0) {
