@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AScriptRoutineOrVar extends PRoutineOrVar
+public final class ANumScalar extends PScalar
 {
-    private PRoutine _routine_;
+    private PDecimal _decimal_;
 
-    public AScriptRoutineOrVar()
+    public ANumScalar()
     {
         // Constructor
     }
 
-    public AScriptRoutineOrVar(
-        @SuppressWarnings("hiding") PRoutine _routine_)
+    public ANumScalar(
+        @SuppressWarnings("hiding") PDecimal _decimal_)
     {
         // Constructor
-        setRoutine(_routine_);
+        setDecimal(_decimal_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AScriptRoutineOrVar(
-            cloneNode(this._routine_));
+        return new ANumScalar(
+            cloneNode(this._decimal_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAScriptRoutineOrVar(this);
+        ((Analysis) sw).caseANumScalar(this);
     }
 
-    public PRoutine getRoutine()
+    public PDecimal getDecimal()
     {
-        return this._routine_;
+        return this._decimal_;
     }
 
-    public void setRoutine(PRoutine node)
+    public void setDecimal(PDecimal node)
     {
-        if(this._routine_ != null)
+        if(this._decimal_ != null)
         {
-            this._routine_.parent(null);
+            this._decimal_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AScriptRoutineOrVar extends PRoutineOrVar
             node.parent(this);
         }
 
-        this._routine_ = node;
+        this._decimal_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._routine_);
+            + toString(this._decimal_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._routine_ == child)
+        if(this._decimal_ == child)
         {
-            this._routine_ = null;
+            this._decimal_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AScriptRoutineOrVar extends PRoutineOrVar
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._routine_ == oldChild)
+        if(this._decimal_ == oldChild)
         {
-            setRoutine((PRoutine) newChild);
+            setDecimal((PDecimal) newChild);
             return;
         }
 

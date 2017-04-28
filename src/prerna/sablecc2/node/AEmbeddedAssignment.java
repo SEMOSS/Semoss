@@ -10,7 +10,7 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
     private TLPar _lPar_;
     private TId _id_;
     private TEqual _equal_;
-    private PRoutineOrVar _routineOrVar_;
+    private PScript _script_;
     private TRPar _rPar_;
 
     public AEmbeddedAssignment()
@@ -22,7 +22,7 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PRoutineOrVar _routineOrVar_,
+        @SuppressWarnings("hiding") PScript _script_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -32,7 +32,7 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
 
         setEqual(_equal_);
 
-        setRoutineOrVar(_routineOrVar_);
+        setScript(_script_);
 
         setRPar(_rPar_);
 
@@ -45,7 +45,7 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
             cloneNode(this._lPar_),
             cloneNode(this._id_),
             cloneNode(this._equal_),
-            cloneNode(this._routineOrVar_),
+            cloneNode(this._script_),
             cloneNode(this._rPar_));
     }
 
@@ -130,16 +130,16 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
         this._equal_ = node;
     }
 
-    public PRoutineOrVar getRoutineOrVar()
+    public PScript getScript()
     {
-        return this._routineOrVar_;
+        return this._script_;
     }
 
-    public void setRoutineOrVar(PRoutineOrVar node)
+    public void setScript(PScript node)
     {
-        if(this._routineOrVar_ != null)
+        if(this._script_ != null)
         {
-            this._routineOrVar_.parent(null);
+            this._script_.parent(null);
         }
 
         if(node != null)
@@ -152,7 +152,7 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
             node.parent(this);
         }
 
-        this._routineOrVar_ = node;
+        this._script_ = node;
     }
 
     public TRPar getRPar()
@@ -187,7 +187,7 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
             + toString(this._lPar_)
             + toString(this._id_)
             + toString(this._equal_)
-            + toString(this._routineOrVar_)
+            + toString(this._script_)
             + toString(this._rPar_);
     }
 
@@ -213,9 +213,9 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
             return;
         }
 
-        if(this._routineOrVar_ == child)
+        if(this._script_ == child)
         {
-            this._routineOrVar_ = null;
+            this._script_ = null;
             return;
         }
 
@@ -250,9 +250,9 @@ public final class AEmbeddedAssignment extends PEmbeddedAssignment
             return;
         }
 
-        if(this._routineOrVar_ == oldChild)
+        if(this._script_ == oldChild)
         {
-            setRoutineOrVar((PRoutineOrVar) newChild);
+            setScript((PScript) newChild);
             return;
         }
 

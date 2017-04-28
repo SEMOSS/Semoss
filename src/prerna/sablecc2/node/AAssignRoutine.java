@@ -5,22 +5,22 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AOutputScriptchain extends PScriptchain
+public final class AAssignRoutine extends PRoutine
 {
-    private PRoutine _routine_;
+    private PAssignment _assignment_;
     private TSemicolon _semicolon_;
 
-    public AOutputScriptchain()
+    public AAssignRoutine()
     {
         // Constructor
     }
 
-    public AOutputScriptchain(
-        @SuppressWarnings("hiding") PRoutine _routine_,
+    public AAssignRoutine(
+        @SuppressWarnings("hiding") PAssignment _assignment_,
         @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
-        setRoutine(_routine_);
+        setAssignment(_assignment_);
 
         setSemicolon(_semicolon_);
 
@@ -29,27 +29,27 @@ public final class AOutputScriptchain extends PScriptchain
     @Override
     public Object clone()
     {
-        return new AOutputScriptchain(
-            cloneNode(this._routine_),
+        return new AAssignRoutine(
+            cloneNode(this._assignment_),
             cloneNode(this._semicolon_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAOutputScriptchain(this);
+        ((Analysis) sw).caseAAssignRoutine(this);
     }
 
-    public PRoutine getRoutine()
+    public PAssignment getAssignment()
     {
-        return this._routine_;
+        return this._assignment_;
     }
 
-    public void setRoutine(PRoutine node)
+    public void setAssignment(PAssignment node)
     {
-        if(this._routine_ != null)
+        if(this._assignment_ != null)
         {
-            this._routine_.parent(null);
+            this._assignment_.parent(null);
         }
 
         if(node != null)
@@ -62,7 +62,7 @@ public final class AOutputScriptchain extends PScriptchain
             node.parent(this);
         }
 
-        this._routine_ = node;
+        this._assignment_ = node;
     }
 
     public TSemicolon getSemicolon()
@@ -94,7 +94,7 @@ public final class AOutputScriptchain extends PScriptchain
     public String toString()
     {
         return ""
-            + toString(this._routine_)
+            + toString(this._assignment_)
             + toString(this._semicolon_);
     }
 
@@ -102,9 +102,9 @@ public final class AOutputScriptchain extends PScriptchain
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._routine_ == child)
+        if(this._assignment_ == child)
         {
-            this._routine_ = null;
+            this._assignment_ = null;
             return;
         }
 
@@ -121,9 +121,9 @@ public final class AOutputScriptchain extends PScriptchain
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._routine_ == oldChild)
+        if(this._assignment_ == oldChild)
         {
-            setRoutine((PRoutine) newChild);
+            setAssignment((PAssignment) newChild);
             return;
         }
 

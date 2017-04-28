@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ANumberOrStringTerm extends PTerm
+public final class AFrameopTerm extends PTerm
 {
-    private PNumberOrString _numberOrString_;
+    private PFrameop _frameop_;
 
-    public ANumberOrStringTerm()
+    public AFrameopTerm()
     {
         // Constructor
     }
 
-    public ANumberOrStringTerm(
-        @SuppressWarnings("hiding") PNumberOrString _numberOrString_)
+    public AFrameopTerm(
+        @SuppressWarnings("hiding") PFrameop _frameop_)
     {
         // Constructor
-        setNumberOrString(_numberOrString_);
+        setFrameop(_frameop_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ANumberOrStringTerm(
-            cloneNode(this._numberOrString_));
+        return new AFrameopTerm(
+            cloneNode(this._frameop_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseANumberOrStringTerm(this);
+        ((Analysis) sw).caseAFrameopTerm(this);
     }
 
-    public PNumberOrString getNumberOrString()
+    public PFrameop getFrameop()
     {
-        return this._numberOrString_;
+        return this._frameop_;
     }
 
-    public void setNumberOrString(PNumberOrString node)
+    public void setFrameop(PFrameop node)
     {
-        if(this._numberOrString_ != null)
+        if(this._frameop_ != null)
         {
-            this._numberOrString_.parent(null);
+            this._frameop_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ANumberOrStringTerm extends PTerm
             node.parent(this);
         }
 
-        this._numberOrString_ = node;
+        this._frameop_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._numberOrString_);
+            + toString(this._frameop_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._numberOrString_ == child)
+        if(this._frameop_ == child)
         {
-            this._numberOrString_ = null;
+            this._frameop_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ANumberOrStringTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._numberOrString_ == oldChild)
+        if(this._frameop_ == oldChild)
         {
-            setNumberOrString((PNumberOrString) newChild);
+            setFrameop((PFrameop) newChild);
             return;
         }
 

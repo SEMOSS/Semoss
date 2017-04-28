@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AWordOrIdNumberOrString extends PNumberOrString
+public final class AROpTerm extends PTerm
 {
-    private PWordOrId _wordOrId_;
+    private PROp _rOp_;
 
-    public AWordOrIdNumberOrString()
+    public AROpTerm()
     {
         // Constructor
     }
 
-    public AWordOrIdNumberOrString(
-        @SuppressWarnings("hiding") PWordOrId _wordOrId_)
+    public AROpTerm(
+        @SuppressWarnings("hiding") PROp _rOp_)
     {
         // Constructor
-        setWordOrId(_wordOrId_);
+        setROp(_rOp_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AWordOrIdNumberOrString(
-            cloneNode(this._wordOrId_));
+        return new AROpTerm(
+            cloneNode(this._rOp_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAWordOrIdNumberOrString(this);
+        ((Analysis) sw).caseAROpTerm(this);
     }
 
-    public PWordOrId getWordOrId()
+    public PROp getROp()
     {
-        return this._wordOrId_;
+        return this._rOp_;
     }
 
-    public void setWordOrId(PWordOrId node)
+    public void setROp(PROp node)
     {
-        if(this._wordOrId_ != null)
+        if(this._rOp_ != null)
         {
-            this._wordOrId_.parent(null);
+            this._rOp_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AWordOrIdNumberOrString extends PNumberOrString
             node.parent(this);
         }
 
-        this._wordOrId_ = node;
+        this._rOp_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._wordOrId_);
+            + toString(this._rOp_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._wordOrId_ == child)
+        if(this._rOp_ == child)
         {
-            this._wordOrId_ = null;
+            this._rOp_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AWordOrIdNumberOrString extends PNumberOrString
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._wordOrId_ == oldChild)
+        if(this._rOp_ == oldChild)
         {
-            setWordOrId((PWordOrId) newChild);
+            setROp((PROp) newChild);
             return;
         }
 

@@ -6,17 +6,17 @@ import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ARoutine extends PRoutine
+public final class AScriptchain extends PScriptchain
 {
     private PScript _script_;
     private final LinkedList<POtherscript> _otherscript_ = new LinkedList<POtherscript>();
 
-    public ARoutine()
+    public AScriptchain()
     {
         // Constructor
     }
 
-    public ARoutine(
+    public AScriptchain(
         @SuppressWarnings("hiding") PScript _script_,
         @SuppressWarnings("hiding") List<?> _otherscript_)
     {
@@ -30,7 +30,7 @@ public final class ARoutine extends PRoutine
     @Override
     public Object clone()
     {
-        return new ARoutine(
+        return new AScriptchain(
             cloneNode(this._script_),
             cloneList(this._otherscript_));
     }
@@ -38,7 +38,7 @@ public final class ARoutine extends PRoutine
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseARoutine(this);
+        ((Analysis) sw).caseAScriptchain(this);
     }
 
     public PScript getScript()

@@ -9,7 +9,7 @@ public final class AProp extends PProp
 {
     private TId _id_;
     private TEqual _equal_;
-    private PNumberOrString _numberOrString_;
+    private PScalar _scalar_;
 
     public AProp()
     {
@@ -19,14 +19,14 @@ public final class AProp extends PProp
     public AProp(
         @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PNumberOrString _numberOrString_)
+        @SuppressWarnings("hiding") PScalar _scalar_)
     {
         // Constructor
         setId(_id_);
 
         setEqual(_equal_);
 
-        setNumberOrString(_numberOrString_);
+        setScalar(_scalar_);
 
     }
 
@@ -36,7 +36,7 @@ public final class AProp extends PProp
         return new AProp(
             cloneNode(this._id_),
             cloneNode(this._equal_),
-            cloneNode(this._numberOrString_));
+            cloneNode(this._scalar_));
     }
 
     @Override
@@ -95,16 +95,16 @@ public final class AProp extends PProp
         this._equal_ = node;
     }
 
-    public PNumberOrString getNumberOrString()
+    public PScalar getScalar()
     {
-        return this._numberOrString_;
+        return this._scalar_;
     }
 
-    public void setNumberOrString(PNumberOrString node)
+    public void setScalar(PScalar node)
     {
-        if(this._numberOrString_ != null)
+        if(this._scalar_ != null)
         {
-            this._numberOrString_.parent(null);
+            this._scalar_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AProp extends PProp
             node.parent(this);
         }
 
-        this._numberOrString_ = node;
+        this._scalar_ = node;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class AProp extends PProp
         return ""
             + toString(this._id_)
             + toString(this._equal_)
-            + toString(this._numberOrString_);
+            + toString(this._scalar_);
     }
 
     @Override
@@ -145,9 +145,9 @@ public final class AProp extends PProp
             return;
         }
 
-        if(this._numberOrString_ == child)
+        if(this._scalar_ == child)
         {
-            this._numberOrString_ = null;
+            this._scalar_ = null;
             return;
         }
 
@@ -170,9 +170,9 @@ public final class AProp extends PProp
             return;
         }
 
-        if(this._numberOrString_ == oldChild)
+        if(this._scalar_ == oldChild)
         {
-            setNumberOrString((PNumberOrString) newChild);
+            setScalar((PScalar) newChild);
             return;
         }
 
