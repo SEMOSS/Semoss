@@ -30,6 +30,7 @@ import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOpformulaTerm;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusExpr;
+import prerna.sablecc2.node.APowExpr;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
@@ -48,6 +49,7 @@ import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.qs.AsReactor;
@@ -715,19 +717,9 @@ public class Translation extends DepthFirstAdapter {
 
     public void outAFormula(AFormula node) {
         defaultOut(node);
-        
-//        String exprString = node.getExpr().toString().trim();
-//        String formulaString = node.toString().trim();
-        
-//        curReactor.getNounStore().makeNoun(formulaString).add(exprString, PkslDataTypes.NODEKEY);
-        
-//        String expr = node.getExpr().toString().trim();
-//        if(curReactor.hasProp(expr)) {
-//        	curReactor.setProp(node.toString().trim(), curReactor.getProp(expr));
-//        }
-//        LOGGER.debug(curReactor.getProp("LAST_VALUE"));
-        }
+    }
     
+    @Override
     public void inAPlusExpr(APlusExpr node) {
         if(curReactor instanceof Assimilator)
         {
@@ -736,17 +728,7 @@ public class Translation extends DepthFirstAdapter {
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
-		String leftKey = null;
-		if(node.getLeft() == null) {
-			// if no left key is defined
-			// then what we really have is a weird way of defining a
-			// positive number.. weird cause it is obviously that by default
-			// but the rightKey could be something a lot more complex
-			// so for now, we will just pretend the leftKey is 0
-			leftKey = "0.0";
-		} else {
-			leftKey = node.getLeft().toString().trim();
-		}
+		String leftKey = node.getLeft().toString().trim();
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "+");
 		
@@ -754,6 +736,7 @@ public class Translation extends DepthFirstAdapter {
 		initReactor(assm);	
     }
     
+    @Override
     public void outAPlusExpr(APlusExpr node)
     {
     	defaultOut(node);
@@ -762,6 +745,7 @@ public class Translation extends DepthFirstAdapter {
   			deInitReactor();
     }
     
+    @Override
     public void inAMinusExpr(AMinusExpr node) {
         if(curReactor instanceof Assimilator)
         {
@@ -787,6 +771,7 @@ public class Translation extends DepthFirstAdapter {
 		initReactor(assm);
     }
     
+    @Override
     public void outAMinusExpr(AMinusExpr node)
     {
     	defaultOut(node);
@@ -794,6 +779,7 @@ public class Translation extends DepthFirstAdapter {
     	deInitReactor();
     }
     
+    @Override
     public void inADivExpr(ADivExpr node) {
         if(curReactor instanceof Assimilator)
         {
@@ -808,9 +794,9 @@ public class Translation extends DepthFirstAdapter {
 		
 		assm.setPKSL("EXPR", node.toString().trim());
 		initReactor(assm);
-		
     }
     
+    @Override
     public void outADivExpr(ADivExpr node)
     {
     	defaultOut(node);
@@ -818,6 +804,7 @@ public class Translation extends DepthFirstAdapter {
     	deInitReactor();
     }
     
+    @Override
     public void inAMultExpr(AMultExpr node) {
         if(curReactor instanceof Assimilator)
         {
@@ -834,13 +821,35 @@ public class Translation extends DepthFirstAdapter {
 		initReactor(assm);
     }
     
+    @Override
     public void outAMultExpr(AMultExpr node)
     {
     	defaultOut(node);
     	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
     		deInitReactor();
     }
-    
+
+    @Override
+    public void inAPowExpr(APowExpr node) {
+    	// since this is defined via the signature
+    	// which is
+    	// expression ^ expression
+    	defaultIn(node);
+    	PowAssimilator powAssm = new PowAssimilator();
+    	powAssm.setExpressions(node.getLeft().toString().trim(), node.getRight().toString().trim());
+    	powAssm.setPKSL("EXPR", node.toString().trim());
+    	initReactor(powAssm);	
+    }
+
+    @Override
+    public void outAPowExpr(APowExpr node)
+    {
+    	defaultOut(node);
+    	// deinit this only if this is the same node
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
+    		deInitReactor();
+    }
+
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
     	GenRowStruct leftGenRow = reactor.getNounStore().makeNoun("LEFT");
 		leftGenRow.add(left, PkslDataTypes.CONST_STRING);
