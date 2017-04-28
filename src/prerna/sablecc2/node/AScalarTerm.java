@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ANumNumberOrString extends PNumberOrString
+public final class AScalarTerm extends PTerm
 {
-    private PDecimal _decimal_;
+    private PScalar _scalar_;
 
-    public ANumNumberOrString()
+    public AScalarTerm()
     {
         // Constructor
     }
 
-    public ANumNumberOrString(
-        @SuppressWarnings("hiding") PDecimal _decimal_)
+    public AScalarTerm(
+        @SuppressWarnings("hiding") PScalar _scalar_)
     {
         // Constructor
-        setDecimal(_decimal_);
+        setScalar(_scalar_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ANumNumberOrString(
-            cloneNode(this._decimal_));
+        return new AScalarTerm(
+            cloneNode(this._scalar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseANumNumberOrString(this);
+        ((Analysis) sw).caseAScalarTerm(this);
     }
 
-    public PDecimal getDecimal()
+    public PScalar getScalar()
     {
-        return this._decimal_;
+        return this._scalar_;
     }
 
-    public void setDecimal(PDecimal node)
+    public void setScalar(PScalar node)
     {
-        if(this._decimal_ != null)
+        if(this._scalar_ != null)
         {
-            this._decimal_.parent(null);
+            this._scalar_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ANumNumberOrString extends PNumberOrString
             node.parent(this);
         }
 
-        this._decimal_ = node;
+        this._scalar_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._decimal_);
+            + toString(this._scalar_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._decimal_ == child)
+        if(this._scalar_ == child)
         {
-            this._decimal_ = null;
+            this._scalar_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ANumNumberOrString extends PNumberOrString
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._decimal_ == oldChild)
+        if(this._scalar_ == oldChild)
         {
-            setDecimal((PDecimal) newChild);
+            setScalar((PScalar) newChild);
             return;
         }
 

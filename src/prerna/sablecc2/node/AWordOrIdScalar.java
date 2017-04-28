@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFrameopColDef extends PColDef
+public final class AWordOrIdScalar extends PScalar
 {
-    private PFrameop _frameop_;
+    private PWordOrId _wordOrId_;
 
-    public AFrameopColDef()
+    public AWordOrIdScalar()
     {
         // Constructor
     }
 
-    public AFrameopColDef(
-        @SuppressWarnings("hiding") PFrameop _frameop_)
+    public AWordOrIdScalar(
+        @SuppressWarnings("hiding") PWordOrId _wordOrId_)
     {
         // Constructor
-        setFrameop(_frameop_);
+        setWordOrId(_wordOrId_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFrameopColDef(
-            cloneNode(this._frameop_));
+        return new AWordOrIdScalar(
+            cloneNode(this._wordOrId_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFrameopColDef(this);
+        ((Analysis) sw).caseAWordOrIdScalar(this);
     }
 
-    public PFrameop getFrameop()
+    public PWordOrId getWordOrId()
     {
-        return this._frameop_;
+        return this._wordOrId_;
     }
 
-    public void setFrameop(PFrameop node)
+    public void setWordOrId(PWordOrId node)
     {
-        if(this._frameop_ != null)
+        if(this._wordOrId_ != null)
         {
-            this._frameop_.parent(null);
+            this._wordOrId_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AFrameopColDef extends PColDef
             node.parent(this);
         }
 
-        this._frameop_ = node;
+        this._wordOrId_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._frameop_);
+            + toString(this._wordOrId_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._frameop_ == child)
+        if(this._wordOrId_ == child)
         {
-            this._frameop_ = null;
+            this._wordOrId_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AFrameopColDef extends PColDef
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._frameop_ == oldChild)
+        if(this._wordOrId_ == oldChild)
         {
-            setFrameop((PFrameop) newChild);
+            setWordOrId((PWordOrId) newChild);
             return;
         }
 

@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ABaseFormulaRoutineOrVar extends PRoutineOrVar
+public final class AJavaOpTerm extends PTerm
 {
-    private PFormula _formula_;
+    private PJavaOp _javaOp_;
 
-    public ABaseFormulaRoutineOrVar()
+    public AJavaOpTerm()
     {
         // Constructor
     }
 
-    public ABaseFormulaRoutineOrVar(
-        @SuppressWarnings("hiding") PFormula _formula_)
+    public AJavaOpTerm(
+        @SuppressWarnings("hiding") PJavaOp _javaOp_)
     {
         // Constructor
-        setFormula(_formula_);
+        setJavaOp(_javaOp_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ABaseFormulaRoutineOrVar(
-            cloneNode(this._formula_));
+        return new AJavaOpTerm(
+            cloneNode(this._javaOp_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseABaseFormulaRoutineOrVar(this);
+        ((Analysis) sw).caseAJavaOpTerm(this);
     }
 
-    public PFormula getFormula()
+    public PJavaOp getJavaOp()
     {
-        return this._formula_;
+        return this._javaOp_;
     }
 
-    public void setFormula(PFormula node)
+    public void setJavaOp(PJavaOp node)
     {
-        if(this._formula_ != null)
+        if(this._javaOp_ != null)
         {
-            this._formula_.parent(null);
+            this._javaOp_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ABaseFormulaRoutineOrVar extends PRoutineOrVar
             node.parent(this);
         }
 
-        this._formula_ = node;
+        this._javaOp_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._formula_);
+            + toString(this._javaOp_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._formula_ == child)
+        if(this._javaOp_ == child)
         {
-            this._formula_ = null;
+            this._javaOp_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ABaseFormulaRoutineOrVar extends PRoutineOrVar
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._formula_ == oldChild)
+        if(this._javaOp_ == oldChild)
         {
-            setFormula((PFormula) newChild);
+            setJavaOp((PJavaOp) newChild);
             return;
         }
 

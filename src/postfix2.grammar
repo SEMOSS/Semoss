@@ -24,6 +24,7 @@ Tokens
  plus = '+';
  minus = '-';
  mod = '%';
+ //pow = '^';
  quote = ('"' | ''' | '~');
  word = quote not_quote+ quote;
  mult = '*';
@@ -65,45 +66,83 @@ Productions
  // everything is a configuration
  // this should very very rarely change
  
- configuration = scriptchain*;
+ configuration = routine*;
  
- scriptchain = 
-	{output} routine semicolon 
-	| {assign} assignment semicolon;
+ // all routines are a series of scripts
+ // or an assignment from the series of scripts
+ routine = 
+	{output} scriptchain semicolon 
+	| {assign} assignment semicolon
+	;
  
- routine = script otherscript*;
- routine_or_var = {script} routine | {constant} number_or_string | {base_formula} formula;
- 
- assignment = word_or_id equal routine_or_var;
- 
- // scripts are frame operations, opererations, assignments, java operations, or r operations
- // the first 3 are routines that are handled via our translation
- // while the last 2 are scripts are offloaded to other languages
- script = {frameop} frameop | {op} operation_formula | {embedded_assignment} embedded_assignment | {java_op} java_op | {r_op} r_op ;
- 
+ scriptchain = script otherscript*;
  otherscript = custom script;
+
+ // an assignment if a word or number equal to
+ // some kind of evaluation
+ assignment = word_or_id equal scriptchain;
+ 
+ // script is any expression
+ // or an assignment
+ script = {expression} expr 
+		| {embedded_assignment} embedded_assignment 
+		;
+ 
+  // if we have an assignment that is embedded within a script
+ embedded_assignment = l_par id equal script r_par;
+ 
  ///////////////////////////////////////////////////////////////////////
  ///////////////////////// END HIGHEST LEVEL ///////////////////////////
  ///////////////////////////////////////////////////////////////////////
  
- // if we have an assignment that is embedded
- embedded_assignment = l_par id equal routine_or_var r_par;
+ expr =
+  {term} term
+  | {plus} [left]:term plus [right]:expr
+  | {minus} [left]:term minus [right]:expr
+  | {mult} [left]:term mult [right]:expr 
+  | {div} [left]:term div [right]:expr 
+  | {mod} [left]:term mod [right]:expr
+ // | {pow} [left]:term pow [right]:expr
+  ;
+  
+ term =
+    {scalar} scalar
+	| {formula} formula
+	| {opformula} operation_formula
+	| {frameop} frameop
+	| {java_op} java_op 
+	| {r_op} r_op
+	| {list} list
+	| {csv} gen_row
+  //| null <- todo, will need to redefine this
+  	; 
  
- // [col, col, col... ]
+ // need to able to group formulas together
+ // will call this a formula
+ // and allow for list of expressions
+ formula = l_par expr r_par;
+ list = l_par expr other_expr+ r_par;
+ other_expr = comma expr;
+ 
+ // col def is an expression, a reference to a frame header
+ // or a filter/prop/relationship to be used within an operation
+ col_def = {expr} expr 
+		| {ref} rcol
+		| {dotcol} dotcol 
+		| {filter} filter 
+		| {prop} prop 
+		| {relation} relationship
+		; // need to include something for expression
+ 
+ // creating another column
+ othercol =  comma col_def;
+ 
+ // different ways to define col_def within operations
  gen_row = l_brac  col_def othercol* r_brac; // generic row
  plain_row = l_par col_def? othercol* r_par;
  
  // example - output of any operation
- operation_formula = id plain_row asop?; // this is the formula with an operation in it. Although one could argue this could be a frameop - this can also be the output
- 
- // Basic definitions for columns
- // columns can be a reference column / basic literal or just an expression
- // I have a feeling frame_op should not be part of col def
- // mostly because it is difficult to implement *GRIN*
- col_def = {ref} rcol | {expr} expr | {dotcol} dotcol | {frameop} frameop  | {filter} filter | {prop} prop | {relation} relationship; // need to include something for expression
- 
-  // creating another column
- othercol =  comma col_def;
+ operation_formula = id plain_row asop?;
  
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
@@ -115,42 +154,16 @@ Productions
  // word or an id
  word_or_id = {word} word | {id} id;
  // word or id or number
- number_or_string = {num} decimal | {word_or_id} word_or_id;
+ scalar = {num} decimal | {word_or_id} word_or_id | {boolean} boolean;
  
- prop = id equal number_or_string;
- 
- term =
-    {number_or_string} number_or_string
-	| {formula} formula
-	| {opformula} operation_formula
-	| {boolean} boolean
-	| {csv} gen_row
-	| {list} list
-  //| null <- todo, will need to redefine this
-  	;
-  
- expr =
-  {term} term
-  | {plus} [left]:term plus [right]:expr
-  | {minus} [left]:term minus [right]:expr
-  | {mult} [left]:term mult [right]:expr 
-  | {div} [left]:term div [right]:expr 
-  | {mod} [left]:term mod [right]:expr
-  ;
- 
- // formula is typically being used when there are other things within it example
- // (2 *3) - 13
- // EDIT: a formula is now a list of exprs instead of a single expr
- formula = l_par expr r_par;
- list = l_par expr other_expr+ r_par;
- other_expr = comma expr;
+ prop = id equal scalar;
 
  // s=[col, col, col...]
  selectors = selectorid  gen_row;
  projectors = projectid  gen_row;
  labels = labelid  gen_row;
  props = propid gen_row;
- tooltips = tooltipid  gen_row;
+ tooltips = tooltipid gen_row;
  joins = joinid  gen_row;
  generic = id equal gen_row;
  
