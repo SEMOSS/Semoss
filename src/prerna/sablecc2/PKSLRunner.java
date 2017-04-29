@@ -17,6 +17,7 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PKSLPlanner;
@@ -68,6 +69,7 @@ public class PKSLRunner {
 	private IDataMaker dataMaker;
 	private String insightId;
 	private PKSLPlanner planner;
+	private NounMetadata result;
 
 	public static void main(String[] args) throws Exception {
 		String pksl = "A = 10; B = \"Apple\";";
@@ -126,8 +128,6 @@ public class PKSLRunner {
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
-		} finally {
-			translation.postProcess();
 		}
 		return;
 	}
@@ -178,4 +178,15 @@ public class PKSLRunner {
 	public PKSLPlanner getPlanner() {
 		return this.planner;
 	}
+
+	public void setResult(NounMetadata result) {
+		if(result != null) {
+			this.result = result;
+		}
+	}
+	
+	public NounMetadata getLastResult() {
+		return this.result;
+	}
+	
 }
