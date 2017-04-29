@@ -118,6 +118,7 @@ public class Translation extends DepthFirstAdapter {
 			//if it is a frame
 			//then set the frame to the frame result
 			NounMetadata noun = planner.getVariableValue("$RESULT");
+			this.runner.setResult(noun);
 			Object frameNoun = noun.getValue();
 			if(frameNoun instanceof IDataMaker){
 				frame = (IDataMaker) frameNoun;

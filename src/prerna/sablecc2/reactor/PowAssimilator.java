@@ -68,7 +68,7 @@ public class PowAssimilator extends Assimilator {
 		appendVariables(expressionBuilder);
 		// now that the variables are defined
 		// we just want to add the expression as a return
-		expressionBuilder.append("return new Double(Math.pow( 1.0*(" + lSignature + "), 1.0*(" + rSignature + ")));}");
+		expressionBuilder.append("return new Double(Math.pow( 1.0 * " + lSignature + ", 1.0 * " + rSignature + "));}");
 		maker.addMethod(expressionBuilder.toString());
 		// add a super so we have a base method to execute
 		maker.addSuper("prerna.sablecc2.reactor.AssimilatorEvaluator");
@@ -90,7 +90,14 @@ public class PowAssimilator extends Assimilator {
 			}
 			
 			if(this.allIntValue) {
-				noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
+				Number result = (Number) retVal;
+				if(result.doubleValue() == Math.rint(result.doubleValue())) {
+					noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
+				} else {
+					// not a valid integer
+					// return as a double
+					noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
+				}
 			} else {
 				noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
 			}
