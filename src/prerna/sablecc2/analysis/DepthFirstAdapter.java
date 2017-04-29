@@ -1072,20 +1072,62 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPlusPosOrNeg(node);
     }
 
-    public void inADecimal(ADecimal node)
+    public void inAWholeDecimalDecimal(AWholeDecimalDecimal node)
     {
         defaultIn(node);
     }
 
-    public void outADecimal(ADecimal node)
+    public void outAWholeDecimalDecimal(AWholeDecimalDecimal node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseADecimal(ADecimal node)
+    public void caseAWholeDecimalDecimal(AWholeDecimalDecimal node)
     {
-        inADecimal(node);
+        inAWholeDecimalDecimal(node);
+        if(node.getWholeDecimal() != null)
+        {
+            node.getWholeDecimal().apply(this);
+        }
+        outAWholeDecimalDecimal(node);
+    }
+
+    public void inAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        inAFractionDecimalDecimal(node);
+        if(node.getFractionDecimal() != null)
+        {
+            node.getFractionDecimal().apply(this);
+        }
+        outAFractionDecimalDecimal(node);
+    }
+
+    public void inAWholeDecimal(AWholeDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWholeDecimal(AWholeDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWholeDecimal(AWholeDecimal node)
+    {
+        inAWholeDecimal(node);
         if(node.getPosOrNeg() != null)
         {
             node.getPosOrNeg().apply(this);
@@ -1102,7 +1144,36 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getFraction().apply(this);
         }
-        outADecimal(node);
+        outAWholeDecimal(node);
+    }
+
+    public void inAFractionDecimal(AFractionDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFractionDecimal(AFractionDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFractionDecimal(AFractionDecimal node)
+    {
+        inAFractionDecimal(node);
+        if(node.getPosOrNeg() != null)
+        {
+            node.getPosOrNeg().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        if(node.getFraction() != null)
+        {
+            node.getFraction().apply(this);
+        }
+        outAFractionDecimal(node);
     }
 
     public void inAWordWordOrId(AWordWordOrId node)
