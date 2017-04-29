@@ -56,7 +56,14 @@ public class Assimilator extends AbstractReactor {
 		if(newInstance.containsStringValue) {
 			noun = new NounMetadata(retVal.toString(), PkslDataTypes.CONST_STRING);
 		} else if(allIntValue) {
-			noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
+			Number result = (Number) retVal;
+			if(result.doubleValue() == Math.rint(result.doubleValue())) {
+				noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
+			} else {
+				// not a valid integer
+				// return as a double
+				noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
+			}
 		} else {
 			noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
 		}
