@@ -321,7 +321,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseADecimal(ADecimal node)
+    public void caseAWholeDecimalDecimal(AWholeDecimalDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWholeDecimal(AWholeDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFractionDecimal(AFractionDecimal node)
     {
         defaultCase(node);
     }
