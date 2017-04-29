@@ -1,7 +1,6 @@
 package prerna.sablecc2;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -12,13 +11,13 @@ import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ACodeNoun;
-import prerna.sablecc2.node.ADecimal;
 import prerna.sablecc2.node.ADivExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.ADotcolColDef;
 import prerna.sablecc2.node.AEmbeddedAssignment;
 import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFormula;
+import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopTerm;
 import prerna.sablecc2.node.AGeneric;
@@ -36,6 +35,7 @@ import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ATermExpr;
+import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
@@ -488,24 +488,25 @@ public class Translation extends DepthFirstAdapter {
     }
 
     // atomic level stuff goes in here
-    
-    public void inADecimal(ADecimal node)
+    @Override
+    public void inAWholeDecimal(AWholeDecimal node)
     {
     	defaultIn(node);
-    	Number retNum = null;
     	boolean isDouble = false;
-    	// we to separate between
-    	// an integer and a double
+    	String whole = "";
+    	String fraction = "";
+    	// get the whole portion
+    	if(node.getWhole() != null) {
+    		whole = node.getWhole().toString().trim();
+    	}
+    	// get the fraction portion
     	if(node.getFraction() != null) {
     		isDouble = true;
-    		String fraction = (node.getFraction()+"").trim();
-    		String value = (node.getWhole()+"").trim() +"." + fraction;
-    		retNum = new BigDecimal(value);//Double.parseDouble(value);
+    		fraction = (node.getFraction()+"").trim();
     	} else {
-    		String value = (node.getWhole()+"").trim();
-    		retNum = new BigInteger(value);//Integer.parseInt(value);
+    		fraction = "0";
     	}
-    	
+		Number retNum = new BigDecimal(whole + "." + fraction);
     	// determine if it is a negative
     	// in which case, multiply by -1
     	if(node.getPosOrNeg() != null) {
@@ -530,10 +531,39 @@ public class Translation extends DepthFirstAdapter {
     	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
     }
 
-    public void outADecimal(ADecimal node)
+    public void outAWholeDecimal(AWholeDecimal node)
     {
     	defaultOut(node);
     }
+    
+    @Override
+    public void inAFractionDecimal(AFractionDecimal node)
+    {
+    	defaultIn(node);
+    	String fraction = (node.getFraction()+"").trim();
+		Number retNum = new BigDecimal("0." + fraction);
+    	// determine if it is a negative
+    	// in which case, multiply by -1
+    	if(node.getPosOrNeg() != null) {
+    		String posOrNeg = node.getPosOrNeg().toString().trim();
+    		if(posOrNeg.equals("-")) {
+        		retNum = -1.0 * retNum.doubleValue();
+    		}
+    	}
+    	// add the decimal to the cur row
+        curReactor.getCurRow().addDecimal(retNum.doubleValue());
+    	// modify the parent such that the signature has the correct
+    	// value of the numerical without any extra spaces
+    	// plain string will always modify to a integer even if we return double value
+    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+    }
+
+    @Override
+    public void outAFractionDecimal(AFractionDecimal node)
+    {
+    	defaultOut(node);
+    }
+    
     
     public void inADotcol(ADotcol node)
     {
