@@ -149,7 +149,10 @@ Productions
  dotcol = frameid dot [column_name]:id;
  
  pos_or_neg = {minus}minus | {plus}plus;
- decimal = [pos_or_neg]:pos_or_neg? [whole]:number dot? [fraction]:number?;
+ decimal = {whole_decimal} whole_decimal | {fraction_decimal} fraction_decimal;
+ whole_decimal = [pos_or_neg]:pos_or_neg? [whole]:number dot? [fraction]:number?;
+ fraction_decimal = [pos_or_neg]:pos_or_neg? dot [fraction]:number?;
+ 
  
  // word or an id
  word_or_id = {word} word | {id} id;

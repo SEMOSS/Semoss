@@ -53,7 +53,10 @@ public interface Analysis extends Switch
     void caseADotcol(ADotcol node);
     void caseAMinusPosOrNeg(AMinusPosOrNeg node);
     void caseAPlusPosOrNeg(APlusPosOrNeg node);
-    void caseADecimal(ADecimal node);
+    void caseAWholeDecimalDecimal(AWholeDecimalDecimal node);
+    void caseAFractionDecimalDecimal(AFractionDecimalDecimal node);
+    void caseAWholeDecimal(AWholeDecimal node);
+    void caseAFractionDecimal(AFractionDecimal node);
     void caseAWordWordOrId(AWordWordOrId node);
     void caseAIdWordOrId(AIdWordOrId node);
     void caseANumScalar(ANumScalar node);
