@@ -4,9 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -18,11 +15,9 @@ import prerna.util.DIHelper;
 
 public class PkslConsole {
 
-	private static final Logger LOGGER = LogManager.getLogger(PkslConsole.class.getName());
-
 	public static void main(String[] args){
 		TestUtilityMethods.loadDIHelper();
-		loadEngines();
+//		loadEngines();
 
 		PKSLRunner runner = new PKSLRunner();
 		Thread thread = new Thread(){
@@ -63,8 +58,7 @@ public class PkslConsole {
 		}
 	}
 
-	public static NounMetadata run(PKSLRunner runner2, String pksl) {
-		PKSLRunner runner = new PKSLRunner();
+	public static NounMetadata run(PKSLRunner runner, String pksl) {
 		runner.runPKSL(pksl);
 		return runner.getLastResult();
 	}
