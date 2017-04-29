@@ -5,28 +5,24 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADecimal extends PDecimal
+public final class AFractionDecimal extends PFractionDecimal
 {
     private PPosOrNeg _posOrNeg_;
-    private TNumber _whole_;
     private TDot _dot_;
     private TNumber _fraction_;
 
-    public ADecimal()
+    public AFractionDecimal()
     {
         // Constructor
     }
 
-    public ADecimal(
+    public AFractionDecimal(
         @SuppressWarnings("hiding") PPosOrNeg _posOrNeg_,
-        @SuppressWarnings("hiding") TNumber _whole_,
         @SuppressWarnings("hiding") TDot _dot_,
         @SuppressWarnings("hiding") TNumber _fraction_)
     {
         // Constructor
         setPosOrNeg(_posOrNeg_);
-
-        setWhole(_whole_);
 
         setDot(_dot_);
 
@@ -37,9 +33,8 @@ public final class ADecimal extends PDecimal
     @Override
     public Object clone()
     {
-        return new ADecimal(
+        return new AFractionDecimal(
             cloneNode(this._posOrNeg_),
-            cloneNode(this._whole_),
             cloneNode(this._dot_),
             cloneNode(this._fraction_));
     }
@@ -47,7 +42,7 @@ public final class ADecimal extends PDecimal
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADecimal(this);
+        ((Analysis) sw).caseAFractionDecimal(this);
     }
 
     public PPosOrNeg getPosOrNeg()
@@ -73,31 +68,6 @@ public final class ADecimal extends PDecimal
         }
 
         this._posOrNeg_ = node;
-    }
-
-    public TNumber getWhole()
-    {
-        return this._whole_;
-    }
-
-    public void setWhole(TNumber node)
-    {
-        if(this._whole_ != null)
-        {
-            this._whole_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._whole_ = node;
     }
 
     public TDot getDot()
@@ -155,7 +125,6 @@ public final class ADecimal extends PDecimal
     {
         return ""
             + toString(this._posOrNeg_)
-            + toString(this._whole_)
             + toString(this._dot_)
             + toString(this._fraction_);
     }
@@ -167,12 +136,6 @@ public final class ADecimal extends PDecimal
         if(this._posOrNeg_ == child)
         {
             this._posOrNeg_ = null;
-            return;
-        }
-
-        if(this._whole_ == child)
-        {
-            this._whole_ = null;
             return;
         }
 
@@ -198,12 +161,6 @@ public final class ADecimal extends PDecimal
         if(this._posOrNeg_ == oldChild)
         {
             setPosOrNeg((PPosOrNeg) newChild);
-            return;
-        }
-
-        if(this._whole_ == oldChild)
-        {
-            setWhole((TNumber) newChild);
             return;
         }
 
