@@ -29,6 +29,7 @@ import prerna.sablecc2.reactor.planner.LoadClient;
 import prerna.sablecc2.reactor.planner.RunPlannerReactor;
 import prerna.sablecc2.reactor.planner.RunTaxPlannerReactor2;
 import prerna.sablecc2.reactor.planner.UpdatePlannerReactor;
+import prerna.sablecc2.reactor.planner.UpdateTaxPlannerReactor;
 import prerna.sablecc2.reactor.qs.AverageReactor;
 import prerna.sablecc2.reactor.qs.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.FrameReactor;
@@ -131,15 +132,18 @@ public class ReactorFactory {
 		
 		// in mem storage of data
 		reactorHash.put("MapStore", MapStore.class);
-		reactorHash.put("TaxMapStore", TaxMapStore.class);
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
-		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
 		reactorHash.put("LoadClient", LoadClient.class);
 		reactorHash.put("RunPlan", RunPlannerReactor.class);
 		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
+		
+		// tax specific handles
+		reactorHash.put("TaxMapStore", TaxMapStore.class);
+		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
 		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor2.class);
+		reactorHash.put("UpdateTaxPlannerReactor", UpdateTaxPlannerReactor.class);
 	}
 	
 	/**

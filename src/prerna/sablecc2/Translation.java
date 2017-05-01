@@ -333,7 +333,6 @@ public class Translation extends DepthFirstAdapter {
     	if(curReactor.getParentReactor() instanceof IfReactor)
     	{
             curReactor.setPKSLPlanner(planner);
-
     		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
     		curReactor = curReactor.getParentReactor();
     	}
