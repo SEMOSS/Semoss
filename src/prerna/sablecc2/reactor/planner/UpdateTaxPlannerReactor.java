@@ -24,7 +24,7 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
 
-public class UpdatePlannerReactor extends AbstractPlannerReactor {
+public class UpdateTaxPlannerReactor extends AbstractPlannerReactor {
 
 	public static final String PKSL_NOUN = "pksls";
 	public static final String STORE_NOUN = "store";
@@ -131,6 +131,11 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		translation.planner = planner;
 				
 		for(String pkslString : pkslsToRun) {
+			System.out.println(pkslString);
+			if(pkslString.toUpperCase().contains("A1120_PG_1_MAPPING__3_GROSS_PROFIT")){
+				System.out.println("");
+			}
+			
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
@@ -141,6 +146,7 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 				e.printStackTrace();
 			}
 		}
+		System.out.println("done");
 	}
 	
 	private InMemStore getInMemoryStore() {
