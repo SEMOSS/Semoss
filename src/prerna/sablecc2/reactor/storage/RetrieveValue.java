@@ -41,8 +41,7 @@ public class RetrieveValue extends AbstractReactor {
 	@Override
 	public NounMetadata execute()
 	{
-		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);
-		InMemStore storeVariable = (InMemStore) storeNoun.getValue();
+		InMemStore storeVariable = getStore();
 		
 		GenRowStruct grs = this.store.getNoun(KEY_NOUN);
 		int numGrs = grs.size();
@@ -73,6 +72,29 @@ public class RetrieveValue extends AbstractReactor {
 			
 			return new NounMetadata(retStoreVar, PkslDataTypes.IN_MEM_STORE);
 		}
+	}
+	
+	private InMemStore getStore() {
+		// could be passed directly in the method -> as store
+		GenRowStruct storeGrs = this.store.getNoun(STORE_NOUN);
+		if(storeGrs != null) {
+			return (InMemStore) storeGrs.get(0);
+		}
+		
+		// could be passed as a $RESULT -> as STORE
+		storeGrs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+		if(storeGrs != null) {
+			return (InMemStore) storeGrs.get(0);
+		}
+		
+		// see if there is anything in curRow with store
+		List<NounMetadata> passedResults = this.curRow.getNounsOfType(PkslDataTypes.IN_MEM_STORE);
+		if(passedResults != null && !passedResults.isEmpty()) {
+			return (InMemStore) passedResults.get(0).getValue();
+		}
+		
+		// out of options, throw an error
+		throw new IllegalArgumentException("Could not find store to retrieve values from");
 	}
 	
 	@Override
