@@ -18,6 +18,12 @@ public class VarStore {
 	
 	public void addVariable(String varName, NounMetadata variable) {
 		varName = cleanVarName(varName);
+		if(variable.getNounName() == PkslDataTypes.COLUMN) {
+			if(varName.equalsIgnoreCase(variable.getValue().toString())) {
+				System.out.println("Creating a loop here");
+				return;
+			}
+		}
 		varMap.put(varName, variable);
 	}
 	

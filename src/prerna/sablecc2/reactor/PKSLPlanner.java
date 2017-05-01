@@ -13,9 +13,11 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.VarStore;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLPlanner {
@@ -72,7 +74,7 @@ public class PKSLPlanner {
 			else
 				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
 			String edgeID = inputs.get(inputIndex).trim().toUpperCase() + "_" + opName;
-			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");
+			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property(TINKER_ID), "TYPE", "INPUT");
 			
 		}
 		opVertex.property("ALIAS", aliasVector);
@@ -127,21 +129,55 @@ public class PKSLPlanner {
 		varStore.addVariable(variableName, value);
 	}
 	
-	public NounMetadata getVariable(String variableName) {
-		return varStore.getVariable(variableName);
-	}
-	
-	public NounMetadata getVariableValue(String variableName) {
-		return varStore.getVariableValue(variableName);
-	}
-	
-	public boolean hasVariable(String variableName) {
-		return varStore.hasVariable(variableName);
-	}
+//	public NounMetadata getVariable(String variableName) {
+//		return varStore.getVariable(variableName);
+//	}
+//	
+//	public NounMetadata getVariableValue(String variableName) {
+//		return varStore.getVariableValue(variableName);
+//	}
+//	
+//	public boolean hasVariable(String variableName) {
+//		return varStore.hasVariable(variableName);
+//	}
 	
 	public NounMetadata removeVariable(String variableName) {
 		return varStore.removeVariable(variableName);
 	}
+	
+	public NounMetadata getVariable(String variableName) {
+//        NounMetadata noun = varStore.getVariableValue(variableName);
+//        if(noun == null) {
+//                      if(!variableName.startsWith("$"))
+//                                     return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
+//        }
+//        return noun;
+    return varStore.getVariable(variableName);
+}
+
+public NounMetadata getVariableValue(String variableName) {
+        NounMetadata noun = varStore.getVariableValue(variableName);
+        if(noun == null) {
+                      if(!variableName.startsWith("$"))
+                                     return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
+        }
+        return noun;
+//    return varStore.getVariableValue(variableName);
+}
+
+	public boolean hasVariable(String variableName) {
+        boolean hasVar = varStore.hasVariable(variableName);
+        //variable doesn't exist
+        if(!hasVar) {
+                      //variable name doesn't start with $...$Result, $Filter, etc.
+                      if(!variableName.startsWith("$")) {
+                                     return true;
+                      }
+        }
+        return hasVar;
+	//    return varStore.hasVariable(variableName);
+	}
+
 	
 	public Set<String> getVariables() {
 		return varStore.getVariables();
@@ -162,7 +198,7 @@ public class PKSLPlanner {
 			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim().toUpperCase());
 			outpVertex.property("VAR_TYPE", "QUERY"); // by default it is query
 			String edgeID = opName + "_" + outputs.get(outputIndex).trim().toUpperCase();
-			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
+			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property(TINKER_ID), "TYPE", "OUTPUT");
 		}
 	}
 	
@@ -179,7 +215,7 @@ public class PKSLPlanner {
 			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim().toUpperCase());
 			outpVertex.property("VAR_TYPE", outputTypes.get(outputIndex)); // by default it is query
 			String edgeID = opName + "_" + outputs.get(outputIndex).trim().toUpperCase();
-			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property("ID"), "TYPE", "OUTPUT");
+			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property(TINKER_ID), "TYPE", "OUTPUT");
 		}
 	}
 
@@ -211,7 +247,7 @@ public class PKSLPlanner {
 			else
 				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
 			String edgeID = inputs.get(inputIndex).trim().toUpperCase()+ "_" + opName;
-			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property("ID"), "TYPE", "INPUT");			
+			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property(TINKER_ID), "TYPE", "INPUT");			
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}

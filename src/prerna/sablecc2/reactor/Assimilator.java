@@ -140,8 +140,8 @@ public class Assimilator extends AbstractReactor {
 		//otherwise build a new one
 		else {
 			evaluator = buildAssimilatorEvaluator(stringMethod);
-			NounMetadata newEvaluator = new NounMetadata(evaluator, PkslDataTypes.CACHED_CLASS);
-			this.planner.addVariable(classId, newEvaluator);
+//			NounMetadata newEvaluator = new NounMetadata(evaluator, PkslDataTypes.CACHED_CLASS);
+//			this.planner.addVariable(classId, newEvaluator);
 		}
 
 		return evaluator;
