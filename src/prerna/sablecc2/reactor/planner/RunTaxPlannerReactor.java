@@ -9,14 +9,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.PkslUtility;
@@ -34,7 +31,6 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.MyGraphIoRegistry;
 
 public class RunTaxPlannerReactor extends AbstractPlannerReactor {
 
@@ -122,7 +118,8 @@ public class RunTaxPlannerReactor extends AbstractPlannerReactor {
 		// we use this just for debugging
 		// this will get undefined variables and set them to 0
 		// ideally, we should never have to do this...
-		List<String> pksls = getUndefinedVariablesPksls(planner);
+//		List<String> pksls = getUndefinedVariablesPksls(planner);
+		List<String> pksls = new Vector<String>();
 		
 		// get the list of the root vertices
 		// these are the vertices we can run right away
