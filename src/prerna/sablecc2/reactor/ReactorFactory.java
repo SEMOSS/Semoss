@@ -27,6 +27,7 @@ import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
 import prerna.sablecc2.reactor.planner.LoadClient;
 import prerna.sablecc2.reactor.planner.RunPlannerReactor;
+import prerna.sablecc2.reactor.planner.RunTaxPlannerReactor2;
 import prerna.sablecc2.reactor.planner.UpdatePlannerReactor;
 import prerna.sablecc2.reactor.qs.AverageReactor;
 import prerna.sablecc2.reactor.qs.DatabaseReactor;
@@ -134,6 +135,7 @@ public class ReactorFactory {
 		reactorHash.put("RunPlan", RunPlannerReactor.class);
 		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
+		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor2.class);
 	}
 	
 	/**

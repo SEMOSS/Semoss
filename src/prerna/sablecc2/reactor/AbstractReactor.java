@@ -322,10 +322,10 @@ public abstract class AbstractReactor implements IReactor {
 		
 		// if no input or outputs
 		// no need to add this to the plan
-		if(inputs != null || outputs != null) {
-			// store the reactor itself onto the planner
-			this.planner.addProperty(this.signature, PKSLPlanner.REACTOR_CLASS, this);
-		}
+//		if(inputs != null || outputs != null) {
+//			// store the reactor itself onto the planner
+//			this.planner.addProperty(this.signature, PKSLPlanner.REACTOR_CLASS, this);
+//		}
 	}
 	
 	@Override

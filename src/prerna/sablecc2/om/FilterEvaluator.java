@@ -12,12 +12,18 @@ public abstract class FilterEvaluator {
 	 */
 	public Map<String, Object> vars = new HashMap<>();
 	
+	public FilterEvaluator() {
+		
+	}
+	
 	/**
 	 * This method is to be evaluated to execute the filter and determine
 	 * if the result is true or false
 	 * @return
 	 */
-	public abstract boolean evaluate();
+	public boolean evaluate() {
+		return false;
+	}
 	
 	public void setVar(String key, Object value) {
 		this.vars.put(key, value);

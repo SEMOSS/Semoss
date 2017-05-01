@@ -82,8 +82,8 @@ public class Filter {
 		//else create a new one, store it, return
 		else {
 			evaluator = buildFilterEvaluator(stringMethod);
-			NounMetadata newEvaluator = new NounMetadata(evaluator, PkslDataTypes.CACHED_CLASS);
-			this.planner.addVariable(classId, newEvaluator);
+//			NounMetadata newEvaluator = new NounMetadata(evaluator, PkslDataTypes.CACHED_CLASS);
+//			this.planner.addVariable(classId, newEvaluator);
 		}
 		
 		return evaluator;
