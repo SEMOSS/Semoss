@@ -158,11 +158,11 @@ public class IterateReactor extends AbstractReactor {
 
 	private InMemStore getInMemoryStore() {
 		InMemStore inMemStore = null;
-		GenRowStruct grs = getNounStore().getNoun(this.IN_MEM_STORE);
+		GenRowStruct grs = this.store.getNoun(this.IN_MEM_STORE);
 		if(grs != null) {
 			inMemStore = (InMemStore) grs.get(0);
 		} else {
-			grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+			grs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
 			if(grs != null) {
 				inMemStore = (InMemStore) grs.get(0);
 			}
