@@ -5,10 +5,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -85,7 +87,12 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// for that maps specific informaiton
 		InMemStore returnStore = new MapStore();
 
+		Map<String, Integer> errorCounts = new Hashtable<String, Integer>();
+		
 		for(String scenario : scenarioMap.keySet()) {
+			int errorcount = 0;
+			errorCounts.put(scenario, errorcount);
+			
 			LOGGER.info("Start execution for scenario = " + scenario);
 
 			// create a new translation to run through
@@ -93,6 +100,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			// get the planner for the scenario
 			PKSLPlanner nextScenario = scenarioMap.get(scenario);
 			translation.planner = nextScenario;
+			
 			// iterate through to determine execution order for
 			// the scenario
 			List<String> pkslList = getPksls(nextScenario);
@@ -105,17 +113,20 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 				} catch (ParserException | LexerException | IOException e) {
 					e.printStackTrace();
 				} catch(Exception e) {
+					errorcount++;
 					e.printStackTrace();
 				}
 				System.out.println(pkslString);
 			}
 
+			errorCounts.put(scenario, errorcount);
 			LOGGER.info("End execution for scenario = " + scenario);
 			
 			// after execution
 			// we need ot store the information
 			LOGGER.info("Start storing data inside store");
 			InMemStore resultScenarioStore = new MapStore();
+			
 			Set<String> variables = nextScenario.getVariables();
 			for(String variable : variables) {
 				try {
@@ -133,7 +144,11 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			returnStore.put(scenario, new NounMetadata(resultScenarioStore, PkslDataTypes.IN_MEM_STORE));
 			LOGGER.info("End storing data inside store");
 		}
-
+		
+		for(String scenario : errorCounts.keySet()) {
+			System.out.println(">>> " + scenario + " had " + errorCounts.get(scenario) + " errors!!!!");
+		}
+		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    "+(end - start)+"      *************************");
 
@@ -141,10 +156,8 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 	}
 
 	private List<String> getPksls(PKSLPlanner planner) {
-		// we use this just for debugging
-		// this will get undefined variables and set them to 0
-		// ideally, we should never have to do this...
-		List<String> pksls = getUndefinedVariablesPksls(planner);
+		// keep track of all the pksls to execute
+		List<String> pksls = new Vector<String>();
 
 		// get the list of the root vertices
 		// these are the vertices we can run right away
@@ -208,7 +221,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		for(String varName : variables) {
 			NounMetadata varNoun = this.originalPlan.getVariable(varName);
 			if(varNoun.isScalar()) {
-				System.out.println("Orig values ::: " + varName + " > " + this.originalPlan.getVariable(varName));
+//				System.out.println("Orig values ::: " + varName + " > " + this.originalPlan.getVariable(varName));
 				newPlanner.addVariable(varName, varNoun);
 			}
 		}
@@ -269,7 +282,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 
 	private Iterator<IHeadersDataRow> getIterator() {
 		GenRowStruct allNouns = getNounStore().getNoun("PROPOSALS");
-		Iterator iterator = null;
+		Iterator<IHeadersDataRow> iterator = null;
 
 		if(allNouns != null) {
 			Job job = (Job)allNouns.get(0);
