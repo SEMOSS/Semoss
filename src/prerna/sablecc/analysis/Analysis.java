@@ -39,6 +39,7 @@ public interface Analysis extends Switch
     void caseADataFrameColop(ADataFrameColop node);
     void caseADataFrameHeaderColop(ADataFrameHeaderColop node);
     void caseADataFrameChangeTypesColop(ADataFrameChangeTypesColop node);
+    void caseADataFrameSetEdgeHashColop(ADataFrameSetEdgeHashColop node);
     void caseADataFrameDuplicatesColop(ADataFrameDuplicatesColop node);
     void caseAOpenDataColop(AOpenDataColop node);
     void caseARenamecolColop(ARenamecolColop node);
@@ -90,6 +91,7 @@ public interface Analysis extends Switch
     void caseADataFrameHeader(ADataFrameHeader node);
     void caseADataFrameDuplicates(ADataFrameDuplicates node);
     void caseADataFrameChangeTypes(ADataFrameChangeTypes node);
+    void caseADataFrameSetEdgeHash(ADataFrameSetEdgeHash node);
     void caseADashboardConfig(ADashboardConfig node);
     void caseAAddColumn(AAddColumn node);
     void caseARemColumn(ARemColumn node);
@@ -295,6 +297,7 @@ public interface Analysis extends Switch
     void caseTDataframeheader(TDataframeheader node);
     void caseTDataframeduplicates(TDataframeduplicates node);
     void caseTDataframechangetype(TDataframechangetype node);
+    void caseTDataframesetedgehash(TDataframesetedgehash node);
     void caseTFileText(TFileText node);
     void caseTHtmlText(THtmlText node);
     void caseTPanelcommentremove(TPanelcommentremove node);

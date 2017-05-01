@@ -1654,6 +1654,21 @@ public class Translation extends DepthFirstAdapter {
     }
 	
 	@Override
+	public void inADataFrameSetEdgeHash(ADataFrameSetEdgeHash node) {
+		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME_SET_EDGE_HASH)) {
+			initReactor(PKQLEnum.DATA_FRAME_SET_EDGE_HASH);
+			curReactor.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, node.toString());
+		}
+	}
+	
+	@Override
+	public void outADataFrameSetEdgeHash(ADataFrameSetEdgeHash node) {
+		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME_SET_EDGE_HASH)) {
+			deinitReactor(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, node.toString().trim(), node.toString().trim());
+		}
+	}
+	
+	@Override
 	public void inATermExpr(ATermExpr node) {
 		if (reactorNames.containsKey(PKQLEnum.EXPR_TERM)) {
 			// get the appropriate reactor
