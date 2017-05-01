@@ -1463,6 +1463,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2ChangeTypeReactor");
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
 //		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, "prerna.sablecc.FlatTableSetEdgeHash");
 
 		// rdbms connection logic
 		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");

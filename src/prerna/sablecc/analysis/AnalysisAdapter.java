@@ -237,6 +237,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseADataFrameSetEdgeHashColop(ADataFrameSetEdgeHashColop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
     {
         defaultCase(node);
@@ -538,6 +544,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADataFrameChangeTypes(ADataFrameChangeTypes node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADataFrameSetEdgeHash(ADataFrameSetEdgeHash node)
     {
         defaultCase(node);
     }
@@ -1762,6 +1774,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataframechangetype(TDataframechangetype node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTDataframesetedgehash(TDataframesetedgehash node)
     {
         defaultCase(node);
     }

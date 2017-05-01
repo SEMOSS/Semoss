@@ -682,6 +682,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADataFrameChangeTypesColop(node);
     }
 
+    public void inADataFrameSetEdgeHashColop(ADataFrameSetEdgeHashColop node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameSetEdgeHashColop(ADataFrameSetEdgeHashColop node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameSetEdgeHashColop(ADataFrameSetEdgeHashColop node)
+    {
+        inADataFrameSetEdgeHashColop(node);
+        if(node.getDataFrameSetEdgeHash() != null)
+        {
+            node.getDataFrameSetEdgeHash().apply(this);
+        }
+        outADataFrameSetEdgeHashColop(node);
+    }
+
     public void inADataFrameDuplicatesColop(ADataFrameDuplicatesColop node)
     {
         defaultIn(node);
@@ -1999,6 +2020,39 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getRPar().apply(this);
         }
         outADataFrameChangeTypes(node);
+    }
+
+    public void inADataFrameSetEdgeHash(ADataFrameSetEdgeHash node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADataFrameSetEdgeHash(ADataFrameSetEdgeHash node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADataFrameSetEdgeHash(ADataFrameSetEdgeHash node)
+    {
+        inADataFrameSetEdgeHash(node);
+        if(node.getDataframesetedgehash() != null)
+        {
+            node.getDataframesetedgehash().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getWordOrNum() != null)
+        {
+            node.getWordOrNum().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outADataFrameSetEdgeHash(node);
     }
 
     public void inADashboardConfig(ADashboardConfig node)
