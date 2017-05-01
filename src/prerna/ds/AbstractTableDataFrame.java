@@ -33,6 +33,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
@@ -742,6 +743,28 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	public void resetDataId() {
 		this.dataId = BigInteger.valueOf(0);
+	}
+	
+	/**
+	 * Recreate new metadata
+	 * @param newEgdeHash
+	 */
+	public void recreateMetadata(Map<String, Set<String>> newEgdeHash) {
+		Map<String, DATA_TYPES> types = this.metaData.getColumnTypes();
+		// get the types from the existing meta
+		Map<String, String> dataTypeMap = new Hashtable<String, String>();
+		for(String upV : newEgdeHash.keySet()) {
+			dataTypeMap.put(upV, Utility.convertDataTypeToString(types.get(upV)));
+			
+			Set<String> downVSet = newEgdeHash.get(upV);
+			for(String downV : downVSet) {
+				dataTypeMap.put(downV, Utility.convertDataTypeToString(types.get(downV)));
+			}
+		}
+		
+		IMetaData meta = new TinkerMetaData();
+		this.metaData = meta;
+		mergeEdgeHash(newEgdeHash, dataTypeMap);
 	}
 	
 	// TODO

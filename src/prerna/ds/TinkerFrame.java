@@ -2817,6 +2817,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		return new TinkerHeadersDataRowIterator(interpreter.composeIterator(), (TinkerMetaData) this.metaData);
 	}
 	
-	
-
+	@Override
+	public void recreateMetadata(Map<String, Set<String>> newEgdeHash) {
+		throw new IllegalArgumentException("Cannot modify the edge hash in a TinkerFrame");
+	}
 }
