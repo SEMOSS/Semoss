@@ -12,15 +12,17 @@ import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
-import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.Translation;
@@ -33,6 +35,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
@@ -68,9 +71,10 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		
 		//save a copy of the original planner we want to deserialize for each plan
 		PKSLPlanner planner = getPlanner();
+		// remove this stupid thing!!!
+		planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, "OP:FRAME").drop().iterate();
 		saveGraph(planner);
 		
-			
 		Map<String, PKSLPlanner> mapStore = getPlanners(getIterator());
 		InMemStore returnStore = new MapStore();
 		
@@ -150,8 +154,6 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 	}
 	
 	private void saveGraph(PKSLPlanner planner) {
-		
-		
 		Iterator<Vertex> it = planner.g.vertices();
 		while(it.hasNext()) {
 			Vertex v = it.next();
@@ -161,6 +163,9 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 				VertexProperty<Object> property = props.next();
 				System.out.println(property.key());
 				System.out.println(property.value());
+				if(property.value() instanceof H2Frame) {
+					System.out.println(v.value(PKSLPlanner.TINKER_ID) + "");
+				}
 			}
 		}
 		
