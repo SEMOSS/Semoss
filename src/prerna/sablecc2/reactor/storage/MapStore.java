@@ -19,7 +19,7 @@ public class MapStore extends AbstractReactor implements InMemStore {
 
 	private static final Logger LOGGER = LogManager.getLogger(MapStore.class.getName());
 
-	private Map<Object, NounMetadata> thisStore = new Hashtable<Object, NounMetadata>();
+	protected Map<Object, NounMetadata> thisStore = new Hashtable<Object, NounMetadata>();
 	
 	@Override
 	public void In() {
