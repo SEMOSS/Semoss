@@ -35,6 +35,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
+import prerna.sablecc2.reactor.storage.TaxMapStore;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.MyGraphIoRegistry;
 
@@ -85,7 +86,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// this will contain each scenario
 		// pointing to another map
 		// for that maps specific informaiton
-		InMemStore returnStore = new MapStore();
+		InMemStore returnStore = new TaxMapStore();
 
 		Map<String, Integer> errorCounts = new Hashtable<String, Integer>();
 		
