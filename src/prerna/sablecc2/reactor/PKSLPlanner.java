@@ -167,15 +167,15 @@ public class PKSLPlanner {
 	}
 
 	public boolean hasVariable(String variableName) {
-        boolean hasVar = varStore.hasVariable(variableName);
-        //variable doesn't exist
-        if(!hasVar) {
-                      //variable name doesn't start with $...$Result, $Filter, etc.
-                      if(!variableName.startsWith("$")) {
-                                     return true;
-                      }
-        }
-        return hasVar;
+		boolean hasVar = varStore.hasVariable(variableName);
+		//variable doesn't exist
+		if(!hasVar) {
+			//variable name doesn't start with $...$Result, $Filter, etc.
+			if(!variableName.startsWith("$")) {
+				return true;
+			}
+		}
+		return hasVar;
 	//    return varStore.hasVariable(variableName);
 	}
 

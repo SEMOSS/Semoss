@@ -1,13 +1,12 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -49,8 +48,9 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		// we use this just for debugging
 		// this will get undefined variables and set them to 0
 		// ideally, we should never have to do this...
-		List<String> pksls = getUndefinedVariablesPksls(planner);
-		
+//		List<String> pksls = getUndefinedVariablesPksls(planner);
+		List<String> pksls = new Vector<String>();
+
 		// get the list of the root vertices
 		// these are the vertices we can run right away
 		// and are the starting point for the plan execution
@@ -76,7 +76,9 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 //		bw = new BufferedWriter(fw);
 		int count = 0;
 		int total = 0;
-		for(String pkslString : pksls) {
+		int numPksls = pksls.size();
+		for(int pkslIndex = 0; pkslIndex < numPksls; pkslIndex++) {
+			String pkslString = pksls.get(pkslIndex);
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
@@ -84,7 +86,7 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 //				bw.write("COMPLETE::: "+pkslString+"\n");
 			} catch (ParserException | LexerException | IOException e) {
 				count++;
-				e.printStackTrace();
+//				e.printStackTrace();
 //				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 //				System.out.println(pkslString);
 //				try {
@@ -96,9 +98,9 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 			} catch(Exception e) {
 				count++;
 				e.printStackTrace();
-//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//				System.out.println(e.getMessage());
-//				System.out.println(pkslString);
+				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+				System.out.println(e.getMessage());
+				System.out.println(pkslString);
 //				try {
 //					bw.write("EVAL ERROR:::: " + e.getMessage()+"\n");
 //					bw.write("EVAL ERROR:::: "+pkslString+"\n");

@@ -91,10 +91,6 @@ public class LoadClient extends AbstractPlannerReactor {
 			
 			//else we just want to add the value of the constant/decimal directly to the planner
 			else {
-				System.out.println(assignment+"::"+value);
-				if(assignment.equalsIgnoreCase("A1120_PG_1_MAPPING__18_INTEREST")) {
-					System.out.println("abc");
-				}
 				addVariable(plannerT.planner, assignment, value);
 			}
 		}
