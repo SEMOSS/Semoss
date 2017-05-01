@@ -307,34 +307,34 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * This is only added right now since it is a pain to manually add these for tax use case
 	 * Setting these values to 0
 	 */
-	protected List<String> getUndefinedVariablesPksls(PKSLPlanner planner) {
-		// pksls to run will hold all the other operations to execute
-		List<String> pkslsToRun = new Vector<String>();
-
-		GraphTraversal<Vertex, Long> standAloneNounCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN).count(); 
-		if(standAloneNounCount.hasNext()) {
-			System.out.println("FOUND " + standAloneNounCount.next() + " NOUNS VERTICES!");
-		}
-
-		GraphTraversal<Vertex, Vertex> standAloneNoun = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN); 
-		while(standAloneNoun.hasNext()) {
-			Vertex vertNoun = standAloneNoun.next();
-			Iterator<Vertex> inOpsIt = vertNoun.vertices(Direction.IN);
-			if(inOpsIt.hasNext()) {
-				// i dont care about you
-			} else {
-				// you are a noun which is a logical end point or a variable that wasn't defined
-				// you should be a string or a number
-				String w = vertNoun.property(PKSLPlanner.TINKER_ID).value().toString();
-				if(w.startsWith("NOUN:A") && !w.contains(" ")) {
-					String pksl = w.replaceFirst("NOUN:", "");
-					pksl += " = 0;";
-					pkslsToRun.add(pksl);
-				}
-			}
-		}
-		
-		return pkslsToRun;
-	}
+//	protected List<String> getUndefinedVariablesPksls(PKSLPlanner planner) {
+//		// pksls to run will hold all the other operations to execute
+//		List<String> pkslsToRun = new Vector<String>();
+//
+//		GraphTraversal<Vertex, Long> standAloneNounCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN).count(); 
+//		if(standAloneNounCount.hasNext()) {
+//			System.out.println("FOUND " + standAloneNounCount.next() + " NOUNS VERTICES!");
+//		}
+//
+//		GraphTraversal<Vertex, Vertex> standAloneNoun = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN); 
+//		while(standAloneNoun.hasNext()) {
+//			Vertex vertNoun = standAloneNoun.next();
+//			Iterator<Vertex> inOpsIt = vertNoun.vertices(Direction.IN);
+//			if(inOpsIt.hasNext()) {
+//				// i dont care about you
+//			} else {
+//				// you are a noun which is a logical end point or a variable that wasn't defined
+//				// you should be a string or a number
+//				String w = vertNoun.property(PKSLPlanner.TINKER_ID).value().toString();
+//				if(w.startsWith("NOUN:A") && !w.contains(" ")) {
+//					String pksl = w.replaceFirst("NOUN:", "");
+//					pksl += " = 0;";
+//					pkslsToRun.add(pksl);
+//				}
+//			}
+//		}
+//		
+//		return pkslsToRun;
+//	}
 	
 }
