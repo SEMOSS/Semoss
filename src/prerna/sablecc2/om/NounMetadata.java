@@ -43,6 +43,18 @@ public class NounMetadata
 		return this.value;
 	}
 	
+	public boolean isScalar() {
+		// if it is a number or word
+		// it is a scalar
+		if(this.noun == PkslDataTypes.CONST_DECIMAL || 
+			this.noun == PkslDataTypes.CONST_INT ||
+			this.noun == PkslDataTypes.CONST_STRING) {
+			return true;
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * To help w/ debugging
 	 */
