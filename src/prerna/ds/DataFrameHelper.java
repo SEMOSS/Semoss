@@ -477,7 +477,7 @@ public class DataFrameHelper {
 		return upstreamNodes;
 	}
 	
-	private static Map<String, Set<String>> generateEdgeHashFromStr(String edgeHashStr) {
+	public static Map<String, Set<String>> generateEdgeHashFromStr(String edgeHashStr) {
 		Map<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
 		// each path is separated by a semicolon
 		String[] paths = edgeHashStr.split(";");
@@ -508,7 +508,7 @@ public class DataFrameHelper {
 	}
 
 	
-	private static List<Map<String, Set<String>>> generateListOfEdgeHashFromStr(String listEdgeHashStr) {
+	public static List<Map<String, Set<String>>> generateListOfEdgeHashFromStr(String listEdgeHashStr) {
 		List<Map<String, Set<String>>> edgeHashList = new Vector<Map<String, Set<String>>>();
 		// the list of edge hash's is delimited by +++
 		String[] edgeHashArr = listEdgeHashStr.split("\\+\\+\\+");
