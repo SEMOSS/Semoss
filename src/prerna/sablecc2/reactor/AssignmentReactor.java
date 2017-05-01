@@ -70,7 +70,7 @@ public class AssignmentReactor extends AbstractReactor {
 	public List<NounMetadata> getOutputs() {
 		// output is the variable name to be referenced
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(operationName, PkslDataTypes.CONST_STRING);
+		NounMetadata output = new NounMetadata(operationName, PkslDataTypes.COLUMN);
 		outputs.add(output);
 		return outputs;
 	}
