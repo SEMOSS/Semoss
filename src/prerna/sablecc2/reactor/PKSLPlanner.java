@@ -13,7 +13,6 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.VarStore;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.NounMetadata;
@@ -155,15 +154,17 @@ public class PKSLPlanner {
     return varStore.getVariable(variableName);
 }
 
-public NounMetadata getVariableValue(String variableName) {
-        NounMetadata noun = varStore.getVariableValue(variableName);
-        if(noun == null) {
-                      if(!variableName.startsWith("$"))
-                                     return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
-        }
-        return noun;
-//    return varStore.getVariableValue(variableName);
-}
+	public NounMetadata getVariableValue(String variableName) {
+		NounMetadata noun = varStore.getVariableValue(variableName);
+		if(noun == null) {
+			if(!variableName.startsWith("$")) {
+				System.out.println("not defined variable >>> " + variableName);
+				return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
+			}
+		}
+		return noun;
+		//    return varStore.getVariableValue(variableName);
+	}
 
 	public boolean hasVariable(String variableName) {
         boolean hasVar = varStore.hasVariable(variableName);

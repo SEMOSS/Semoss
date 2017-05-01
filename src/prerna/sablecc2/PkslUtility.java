@@ -88,7 +88,6 @@ public class PkslUtility {
 	public static void addPkslToPlanner(PKSLPlanner planner, String pkslString) {
 		PlannerTranslation translation = new PlannerTranslation();
 		translation.planner = planner;
-		System.out.println("reset1");
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 			Start tree = p.parse();
