@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -19,22 +20,58 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 
 	// contains list of headers
 	private String curVertex;
+	private String aliasCurVertex;
 	private Set<String> vertices;
 	private Iterator<String> verticesIterator;
 
 	// contains array of 2 headers designating a relationship
 	// index 0 is source, index 1 is target
 	private String[] curRelationship;
+	private String[] aliasCurRelationship;
 	private Set<String[]> relationships;
 	private Iterator<String[]> relationshipIterator;
 
+	// we need to keep track of which vertices
+	// have an alias that ends up being the same
+	// since this will result in 2 vertices being painted
+	// on the FE
+//	private Map<String, Set<String>> aliasMap;
+	
 	private ResultSet edgeRs;
 	private ResultSet nodeRs;
 
 	public RdbmsGraphExporter(H2Frame frame) {
 		this.frame = frame;
-		parseEdgeHash(frame.getEdgeHash());
+		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
+		parseEdgeHash(edgeHash);
+//		generateDupAliasMap(frame.getColumnHeaders(), frame.getColumnAliasName());
 	}
+
+//	private void generateDupAliasMap(String[] columnHeaders, String[] columnAliasName) {
+//		// loop through and find duplicate headers
+//		this.aliasMap = new Hashtable<String, Set<String>>();
+//		for(int i = 0; i < columnAliasName.length; i++) {
+//			String origHeader = columnHeaders[i];
+//			String alias = columnAliasName[i];
+//			for(int j = i+1; j < columnAliasName.length; j++) {
+//				String otherOrigHeader = columnHeaders[j];
+//				String otherAlias = columnAliasName[j];
+//				
+//				if(alias.equals(otherAlias)) {
+//					// we have a match
+//					Set<String> origHeadersSet = null;
+//					if(aliasMap.containsKey(alias)) {
+//						origHeadersSet = aliasMap.get(alias);
+//					} else {
+//						origHeadersSet = new HashSet<String>();
+//						aliasMap.put(alias, origHeadersSet);
+//					}
+//					aliasMap.get(alias).add(origHeader);
+//					aliasMap.get(alias).add(otherOrigHeader);
+//				}
+//			}
+//		}
+//	}
 
 	/**
 	 * Parse the edge hash to get lists of each individual
@@ -68,6 +105,7 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 		// first time, everything is null
 		if(this.edgeRs == null && relationshipIterator.hasNext()) {
 			this.curRelationship = relationshipIterator.next();
+			this.aliasCurRelationship = getAliasRelationship();
 			this.edgeRs = createEdgeRs(curRelationship);
 			// so we made it, run this again to 
 			// see if this relationship has values to return
@@ -94,6 +132,7 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 				// got to see if there is another relationship to try
 				if(this.relationshipIterator.hasNext()) {
 					this.curRelationship = relationshipIterator.next();
+					this.aliasCurRelationship = getAliasRelationship();
 					this.edgeRs = createEdgeRs(curRelationship);
 					// since we got to try and see if this has a next
 					// do this by recursively calling this method
@@ -120,8 +159,8 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 			e1.printStackTrace();
 		}
 
-		String source = this.curRelationship[0] + "/" + sourceVal;
-		String target = this.curRelationship[1] + "/" + targetVal;
+		String source = this.aliasCurRelationship[0] + "/" + sourceVal;
+		String target = this.aliasCurRelationship[1] + "/" + targetVal;
 
 		Map<String, Object> relationshipMap = new HashMap<String, Object>();
 		relationshipMap.put("source", source);
@@ -140,6 +179,7 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 		// first time, everything is null
 		if(this.nodeRs == null && verticesIterator.hasNext()) {
 			this.curVertex = verticesIterator.next();
+			this.aliasCurVertex = getAliasVertex();
 			this.nodeRs = createNodeRs(curVertex);
 			// so we made it, run this again to 
 			// see if this vertex has values to return
@@ -166,6 +206,7 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 				// got to see if there is another vertex to try
 				if(this.verticesIterator.hasNext()) {
 					this.curVertex = verticesIterator.next();
+					this.aliasCurVertex = getAliasVertex();
 					this.nodeRs = createNodeRs(curVertex);
 					// since we got to try and see if this has a next
 					// do this by recursively calling this method
@@ -190,15 +231,15 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 			e1.printStackTrace();
 		}
 
-		String node = this.curVertex + "/" + nodeVal;
+		String node = this.aliasCurVertex + "/" + nodeVal;
 
 		Map<String, Object> vertexMap = new HashMap<String, Object>();
 		vertexMap.put("uri", node);
 		vertexMap.put(Constants.VERTEX_NAME, nodeVal);
-		vertexMap.put(Constants.VERTEX_TYPE, this.curVertex);
+		vertexMap.put(Constants.VERTEX_TYPE, this.aliasCurVertex);
 
 		// need to add in color
-		Color color = TypeColorShapeTable.getInstance().getColor(this.curVertex, nodeVal.toString());
+		Color color = TypeColorShapeTable.getInstance().getColor(this.aliasCurVertex, nodeVal.toString());
 		vertexMap.put("VERTEX_COLOR_PROPERTY", IGraphExporter.getRgb(color));
 
 		// also push empty vertex properties
@@ -206,7 +247,7 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 		vertexMap.put("propHash", propMap);
 
 		// add to the meta count
-		addVertCount(this.curVertex);
+		addVertCount(this.aliasCurVertex);
 		
 		return vertexMap;
 	}
@@ -234,6 +275,10 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 			sql.append(", ").append(selectors[i]);
 		}
 		sql.append(" FROM ").append(frame.getTableName());
+		String sqlFilter = frame.getSqlFilter();
+		if(sqlFilter != null && !sqlFilter.isEmpty()) {
+			sql.append(" WHERE ").append(frame.getSqlFilter());
+		}
 		return sql.toString();
 	}
 
@@ -256,7 +301,22 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 		StringBuilder sql = new StringBuilder("SELECT DISTINCT ");
 		sql.append(selector).append(" ");
 		sql.append(" FROM ").append(frame.getTableName());
+		String sqlFilter = frame.getSqlFilter();
+		if(sqlFilter != null && !sqlFilter.isEmpty()) {
+			sql.append(" WHERE ").append(frame.getSqlFilter());
+		}
 		return sql.toString();
 	}
+	
+	private String[] getAliasRelationship() {
+		String[] aliasCurRelationship = new String[2];
+		aliasCurRelationship[0] = frame.getAliasForUniqueName(this.curRelationship[0]);
+		aliasCurRelationship[1] = frame.getAliasForUniqueName(this.curRelationship[1]);
+		return aliasCurRelationship;
+	}
 
+	private String getAliasVertex() {
+		return frame.getAliasForUniqueName(this.curVertex);
+	}
+	
 }
