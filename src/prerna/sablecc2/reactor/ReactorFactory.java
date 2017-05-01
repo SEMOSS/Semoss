@@ -43,6 +43,8 @@ import prerna.sablecc2.reactor.qs.SumReactor;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
+import prerna.sablecc2.reactor.storage.TaxMapStore;
+import prerna.sablecc2.reactor.storage.TaxRetrieveValue;
 
 public class ReactorFactory {
 
@@ -129,8 +131,10 @@ public class ReactorFactory {
 		
 		// in mem storage of data
 		reactorHash.put("MapStore", MapStore.class);
+		reactorHash.put("TaxMapStore", TaxMapStore.class);
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
+		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
 		reactorHash.put("LoadClient", LoadClient.class);
 		reactorHash.put("RunPlan", RunPlannerReactor.class);
 		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
