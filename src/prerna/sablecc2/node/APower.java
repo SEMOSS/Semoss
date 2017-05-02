@@ -5,56 +5,56 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APowExpr extends PExpr
+public final class APower extends PPower
 {
-    private PTerm _left_;
+    private PTerm _base_;
     private TPow _pow_;
-    private PExpr _right_;
+    private PTerm _exponent_;
 
-    public APowExpr()
+    public APower()
     {
         // Constructor
     }
 
-    public APowExpr(
-        @SuppressWarnings("hiding") PTerm _left_,
+    public APower(
+        @SuppressWarnings("hiding") PTerm _base_,
         @SuppressWarnings("hiding") TPow _pow_,
-        @SuppressWarnings("hiding") PExpr _right_)
+        @SuppressWarnings("hiding") PTerm _exponent_)
     {
         // Constructor
-        setLeft(_left_);
+        setBase(_base_);
 
         setPow(_pow_);
 
-        setRight(_right_);
+        setExponent(_exponent_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new APowExpr(
-            cloneNode(this._left_),
+        return new APower(
+            cloneNode(this._base_),
             cloneNode(this._pow_),
-            cloneNode(this._right_));
+            cloneNode(this._exponent_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPowExpr(this);
+        ((Analysis) sw).caseAPower(this);
     }
 
-    public PTerm getLeft()
+    public PTerm getBase()
     {
-        return this._left_;
+        return this._base_;
     }
 
-    public void setLeft(PTerm node)
+    public void setBase(PTerm node)
     {
-        if(this._left_ != null)
+        if(this._base_ != null)
         {
-            this._left_.parent(null);
+            this._base_.parent(null);
         }
 
         if(node != null)
@@ -67,7 +67,7 @@ public final class APowExpr extends PExpr
             node.parent(this);
         }
 
-        this._left_ = node;
+        this._base_ = node;
     }
 
     public TPow getPow()
@@ -95,16 +95,16 @@ public final class APowExpr extends PExpr
         this._pow_ = node;
     }
 
-    public PExpr getRight()
+    public PTerm getExponent()
     {
-        return this._right_;
+        return this._exponent_;
     }
 
-    public void setRight(PExpr node)
+    public void setExponent(PTerm node)
     {
-        if(this._right_ != null)
+        if(this._exponent_ != null)
         {
-            this._right_.parent(null);
+            this._exponent_.parent(null);
         }
 
         if(node != null)
@@ -117,25 +117,25 @@ public final class APowExpr extends PExpr
             node.parent(this);
         }
 
-        this._right_ = node;
+        this._exponent_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._left_)
+            + toString(this._base_)
             + toString(this._pow_)
-            + toString(this._right_);
+            + toString(this._exponent_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._left_ == child)
+        if(this._base_ == child)
         {
-            this._left_ = null;
+            this._base_ = null;
             return;
         }
 
@@ -145,9 +145,9 @@ public final class APowExpr extends PExpr
             return;
         }
 
-        if(this._right_ == child)
+        if(this._exponent_ == child)
         {
-            this._right_ = null;
+            this._exponent_ = null;
             return;
         }
 
@@ -158,9 +158,9 @@ public final class APowExpr extends PExpr
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._left_ == oldChild)
+        if(this._base_ == oldChild)
         {
-            setLeft((PTerm) newChild);
+            setBase((PTerm) newChild);
             return;
         }
 
@@ -170,9 +170,9 @@ public final class APowExpr extends PExpr
             return;
         }
 
-        if(this._right_ == oldChild)
+        if(this._exponent_ == oldChild)
         {
-            setRight((PExpr) newChild);
+            setExponent((PTerm) newChild);
             return;
         }
 
