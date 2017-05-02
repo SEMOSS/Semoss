@@ -52,6 +52,15 @@ public class PowAssimilator extends Assimilator {
 	@Override
 	public NounMetadata execute() {
 		modifySignatureFromLambdas();
+		// in order to ensure that we are properly creating the object as a double
+		// we need to remove any wrapping parenthesis such that we can 
+		// properly make it a double by multiplying by 1.0
+		while(lSignature.startsWith("(") && lSignature.endsWith(")")) {
+			lSignature = lSignature.substring(1, lSignature.length()-1).trim();
+		}
+		while(rSignature.startsWith("(") && rSignature.endsWith(")")) {
+			rSignature = rSignature.substring(1, rSignature.length()-1).trim();
+		}
 		
 		// need to see if we are dealing with any non-integer values
 		if(this.curRow.getNounsOfType(PkslDataTypes.CONST_DECIMAL).size() > 0) {
