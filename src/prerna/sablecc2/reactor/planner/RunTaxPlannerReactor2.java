@@ -1,11 +1,7 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -22,16 +18,12 @@ import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.PkslUtility;
+import prerna.sablecc2.PlannerTranslation;
 import prerna.sablecc2.Translation;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
@@ -85,15 +77,10 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// create the master return store
 		// this will contain each scenario
 		// pointing to another map
-		// for that maps specific informaiton
+		// for that maps specific information
 		InMemStore returnStore = new TaxMapStore();
 
-		Map<String, Integer> errorCounts = new Hashtable<String, Integer>();
-		
 		for(String scenario : scenarioMap.keySet()) {
-			int errorcount = 0;
-			errorCounts.put(scenario, errorcount);
-			
 			LOGGER.info("Start execution for scenario = " + scenario);
 
 			// create a new translation to run through
@@ -105,29 +92,15 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			// iterate through to determine execution order for
 			// the scenario
 			List<String> pkslList = getPksls(nextScenario);
-			// run through the scenario pksls
-			for(String pkslString : pkslList) {
-				try {
-					Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
-					Start tree = p.parse();
-					tree.apply(translation);
-				} catch (ParserException | LexerException | IOException e) {
-					e.printStackTrace();
-				} catch(Exception e) {
-					errorcount++;
-					e.printStackTrace();
-				}
-				System.out.println(pkslString);
-			}
-
-			errorCounts.put(scenario, errorcount);
+			
+			PkslUtility.addPkslToTranslation(translation, pkslList);
+			
 			LOGGER.info("End execution for scenario = " + scenario);
-			
 			// after execution
-			// we need ot store the information
+			// we need to	 store the information
 			LOGGER.info("Start storing data inside store");
-			InMemStore resultScenarioStore = new MapStore();
 			
+			InMemStore resultScenarioStore = new MapStore();
 			Set<String> variables = nextScenario.getVariables();
 			for(String variable : variables) {
 				try {
@@ -146,12 +119,8 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			LOGGER.info("End storing data inside store");
 		}
 		
-		for(String scenario : errorCounts.keySet()) {
-			System.out.println(">>> " + scenario + " had " + errorCounts.get(scenario) + " errors!!!!");
-		}
-		
 		long end = System.currentTimeMillis();
-		System.out.println("****************    "+(end - start)+"      *************************");
+		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
 
 		return new NounMetadata(returnStore, PkslDataTypes.IN_MEM_STORE);
 	}
@@ -233,6 +202,10 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 	private Map<String, PKSLPlanner> getScenarioMap(Iterator<IHeadersDataRow> iterator) {
 		// key is scenario, value is the map store for that scenario
 		Map<String, PKSLPlanner> plannerMap = new HashMap<>();
+		// define a central translation
+		// to execute everything with
+		// but substituting with the correct scenario planner
+		PlannerTranslation translation = new PlannerTranslation();
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextData = iterator.next();
 
@@ -264,12 +237,13 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 				scenarioPlanner = getNewPlannerCopy();
 				plannerMap.put(scenario, scenarioPlanner);
 			}
+			translation.planner = scenarioPlanner;
 			// if it is a formula
 			// parse and add to the scenario plan
 			// else, add it as a variable
 			if(isFormula) {
 				String pkslString = PkslUtility.generatePKSLString(alias, value);
-				PkslUtility.addPkslToPlanner(scenarioPlanner, pkslString);
+				PkslUtility.addPkslToTranslation(translation, pkslString);
 			} else {
 				scenarioPlanner.addVariable(alias, PkslUtility.getNoun(value));
 			}
