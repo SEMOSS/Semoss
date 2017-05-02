@@ -53,27 +53,34 @@ public class PkslUtility {
 	 * @param value
 	 * @return
 	 * 
-	 * Get the appropriate noun from the object value from the iterator
+	 * Returns the noun for a STRING or NUMBER ONLY
+	 * if value is an instanceof another object IllegalArgumentException will be thrown
 	 */
-	public static NounMetadata getNoun(Object value) {	
-		//this sucks we have to do this here instead of translation handling it
-		//need to figure out how to use sablecc to create the noun instead of us guessing
+	public static NounMetadata getNoun(Object value) {
 		NounMetadata noun = null;
 		if(value instanceof Number) {
 			noun = new NounMetadata(((Number)value).doubleValue(), PkslDataTypes.CONST_DECIMAL);
 		} else if(value instanceof String) {
-			if(value.toString().trim().startsWith("\"") || value.toString().trim().startsWith("\'")) {
+			
+			if(isLiteral((String)value)) {
 				//we have a literal
-				String literal = value.toString().trim();
-				literal = literal.substring(1, literal.length()-1).trim();
+				String literal = removeSurroundingQuotes((String)value);
 				noun = new NounMetadata(literal, PkslDataTypes.CONST_STRING);
 			} else {
-				//we have a column
-				noun = new NounMetadata(value.toString().trim(),PkslDataTypes.COLUMN);
+				// try to convert to a number
+				try {
+					double doubleValue = Double.parseDouble(value.toString().trim());
+					noun = new NounMetadata(doubleValue, PkslDataTypes.CONST_DECIMAL);
+				} catch(NumberFormatException e) {
+					// confirmed that it is not a double
+					// and that we have a column
+					noun = new NounMetadata(value.toString().trim(),PkslDataTypes.COLUMN);
+				}
 			}
 		} else {
-			//i don't know
+			throw new IllegalArgumentException("Value must be a number or string!");
 		}
+		
 		return noun;
 	}
 	
@@ -85,9 +92,27 @@ public class PkslUtility {
 		return generatePKSLString(assignment, value.toString());	
 	}
 	
+	/**
+	 * 
+	 * @param planner
+	 * @param pkslString
+	 * 
+	 * Adds a pkslString to the planner via lazy translation
+	 */
 	public static void addPkslToPlanner(PKSLPlanner planner, String pkslString) {
 		PlannerTranslation translation = new PlannerTranslation();
 		translation.planner = planner;
+		addPkslToPlanner(translation, pkslString);
+	}
+	
+	/**
+	 * 
+	 * @param planner
+	 * @param pkslString
+	 * 
+	 * Adds a pkslString to the planner via lazy translation
+	 */
+	public static void addPkslToPlanner(PlannerTranslation translation, String pkslString) {
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 			Start tree = p.parse();
@@ -99,5 +124,84 @@ public class PkslUtility {
 			System.out.println(pkslString);
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * 
+	 * @param planner
+	 * @param pkslString
+	 * 
+	 * executes a pkslString to the planner via greedy translation
+	 */
+	public static void executePkslToPlanner(PKSLPlanner planner, String pkslString) {
+		Translation translation = new Translation();
+		translation.planner = planner;
+		executePkslToPlanner(translation, pkslString);
+	}
+	
+	/**
+	 * 
+	 * @param planner
+	 * @param pkslString
+	 * 
+	 * executes a pkslString to the planner via greedy translation
+	 */
+	public static void executePkslToPlanner(Translation translation, String pkslString) {
+		try {
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
+			Start tree = p.parse();
+			tree.apply(translation);
+		} catch (ParserException | LexerException | IOException e) {
+			System.out.println(pkslString);
+			e.printStackTrace();
+		} catch(Exception e) {
+			System.out.println(pkslString);
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * @param literal
+	 * @return
+	 * 
+	 * input: 'literal' OR "literal"
+	 * output: literal
+	 * 
+	 * input: 'literal OR "literal
+	 * output: literal
+	 * 
+	 * input: literal' OR literal"
+	 * output: literal
+	 * 
+	 * input: literal
+	 * output: literal
+	 */
+	public static String removeSurroundingQuotes(String literal) {
+		literal = literal.trim();
+		if(literal.startsWith("\"") || literal.startsWith("'")) {
+			literal = literal.substring(1); //remove the first quote
+		}
+		
+		if(literal.endsWith("\"") || literal.endsWith("'")) {
+			if(literal.length() == 1) {
+				literal = "";
+			} else {
+				literal = literal.substring(0, literal.length()-1); //remove the end quote
+			}
+		}
+		
+		return literal;
+	}
+	
+	/**
+	 * 
+	 * @param literal
+	 * @return
+	 * 
+	 * Determines if the string is a literal
+	 */
+	public static boolean isLiteral(String literal) {
+		literal = literal.trim();
+		return ((literal.startsWith("\"") || literal.startsWith("'")) && (literal.endsWith("\"") || literal.endsWith("'")));
 	}
 }
