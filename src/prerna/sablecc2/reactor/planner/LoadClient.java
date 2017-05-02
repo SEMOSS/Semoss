@@ -1,28 +1,19 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.PlannerTranslation;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.util.ArrayUtilityMethods;
 
@@ -86,7 +77,7 @@ public class LoadClient extends AbstractPlannerReactor {
 			if(isFormula(values, typeIndex)) {
 				String pkslString = generatePKSLString(assignment, value);
 				System.out.println(pkslString);
-				addPkslToPlanner(plannerT, pkslString);
+				PkslUtility.addPkslToPlanner(plannerT, pkslString);
 			} 
 			
 			//else we just want to add the value of the constant/decimal directly to the planner
@@ -118,56 +109,6 @@ public class LoadClient extends AbstractPlannerReactor {
 		return plannerT.planner;
 	}
 	
-	private void addPkslToPlanner(PlannerTranslation plannerT, String pkslString) {
-		// as we iterate through
-		// run the values through the planner
-//		String fileName = "C:\\Workspace\\Semoss_Dev\\failedToAddpksls.txt";
-//		BufferedWriter bw = null;
-//		FileWriter fw = null;
-//		
-//		try {
-//			fw = new FileWriter(fileName);
-//		} catch (IOException e1) {
-//			e1.printStackTrace();
-//		}
-//		bw = new BufferedWriter(fw);
-		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
-			Start tree = p.parse();
-			tree.apply(plannerT);
-		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
-			error++;
-//			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//			System.out.println(pkslString);
-//			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//			try {
-//				bw.write("PARSE ERROR::::   "+pkslString+"\n");
-//			} catch (IOException e1) {
-//				e1.printStackTrace();
-//			}
-		} catch(Exception e) {
-			e.printStackTrace();
-			error++;
-			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-			System.out.println(pkslString);
-			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//			try {
-//				bw.write("EVAL ERROR::::   "+pkslString+"\n");
-//			} catch (IOException e1) {
-//				e1.printStackTrace();
-//			}
-		}
-		total++;
-		
-//		try {
-//		bw.close();
-//		fw.close();
-//	} catch (IOException e) {
-//		e.printStackTrace();
-//	}
-	}
-	
 	/**
 	 * 
 	 * @param planner
@@ -177,33 +118,8 @@ public class LoadClient extends AbstractPlannerReactor {
 	 * This method will directly add the variable to the planner instead of adding an assignment pksl
 	 */
 	private void addVariable(PKSLPlanner planner, String assignment, Object value) {
-		if(value instanceof Number) {
-			NounMetadata noun = new NounMetadata(((Number)value).doubleValue(), PkslDataTypes.CONST_DECIMAL);
-			planner.addVariable(assignment, noun);
-		} else if(value instanceof String) {
-			if(value.toString().trim().startsWith("\"") || value.toString().trim().startsWith("\'")) {
-				//we have a literal
-				String literal = value.toString().trim();
-				literal = literal.substring(1, literal.length()-1).trim();
-				NounMetadata noun = new NounMetadata(literal, PkslDataTypes.CONST_STRING);
-				planner.addVariable(assignment, noun);
-			} else {
-				// try to convert to a number
-				try {
-					double doubleValue = Double.parseDouble(value.toString().trim());
-					NounMetadata noun = new NounMetadata(doubleValue, PkslDataTypes.CONST_DECIMAL);
-					planner.addVariable(assignment, noun);
-				} catch(NumberFormatException e) {
-					// confirmed that it is not a double
-					// and that we have a column
-					NounMetadata noun = new NounMetadata(value.toString().trim(),PkslDataTypes.COLUMN);
-					planner.addVariable(assignment, noun);
-				}
-			}
-		} else {
-			//i don't know
-			System.out.println("Defining a variable that is not a number or string!");
-		}
+		NounMetadata noun = PkslUtility.getNoun(value);
+		planner.addVariable(assignment, noun);
 	}
 	
 	/**
