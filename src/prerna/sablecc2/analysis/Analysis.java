@@ -22,12 +22,14 @@ public interface Analysis extends Switch
     void caseAEmbeddedAssignmentScript(AEmbeddedAssignmentScript node);
     void caseAEmbeddedAssignment(AEmbeddedAssignment node);
     void caseATermExpr(ATermExpr node);
+    void caseAPowerExpr(APowerExpr node);
     void caseAPlusExpr(APlusExpr node);
     void caseAMinusExpr(AMinusExpr node);
     void caseAMultExpr(AMultExpr node);
     void caseADivExpr(ADivExpr node);
     void caseAModExpr(AModExpr node);
-    void caseAPowExpr(APowExpr node);
+    void caseATermExprComponent(ATermExprComponent node);
+    void caseAPowerExprComponent(APowerExprComponent node);
     void caseAScalarTerm(AScalarTerm node);
     void caseAFormulaTerm(AFormulaTerm node);
     void caseAOpformulaTerm(AOpformulaTerm node);
@@ -36,6 +38,7 @@ public interface Analysis extends Switch
     void caseAROpTerm(AROpTerm node);
     void caseAListTerm(AListTerm node);
     void caseACsvTerm(ACsvTerm node);
+    void caseAPower(APower node);
     void caseAFormula(AFormula node);
     void caseAList(AList node);
     void caseAOtherExpr(AOtherExpr node);

@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AMultExpr extends PExpr
 {
-    private PTerm _left_;
+    private PExprComponent _left_;
     private TMult _mult_;
     private PExpr _right_;
 
@@ -17,7 +17,7 @@ public final class AMultExpr extends PExpr
     }
 
     public AMultExpr(
-        @SuppressWarnings("hiding") PTerm _left_,
+        @SuppressWarnings("hiding") PExprComponent _left_,
         @SuppressWarnings("hiding") TMult _mult_,
         @SuppressWarnings("hiding") PExpr _right_)
     {
@@ -45,12 +45,12 @@ public final class AMultExpr extends PExpr
         ((Analysis) sw).caseAMultExpr(this);
     }
 
-    public PTerm getLeft()
+    public PExprComponent getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PTerm node)
+    public void setLeft(PExprComponent node)
     {
         if(this._left_ != null)
         {
@@ -160,7 +160,7 @@ public final class AMultExpr extends PExpr
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PTerm) newChild);
+            setLeft((PExprComponent) newChild);
             return;
         }
 
