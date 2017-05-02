@@ -294,6 +294,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outATermExpr(node);
     }
 
+    public void inAPowerExpr(APowerExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPowerExpr(APowerExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPowerExpr(APowerExpr node)
+    {
+        inAPowerExpr(node);
+        if(node.getPower() != null)
+        {
+            node.getPower().apply(this);
+        }
+        outAPowerExpr(node);
+    }
+
     public void inAPlusExpr(APlusExpr node)
     {
         defaultIn(node);
@@ -439,33 +460,46 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAModExpr(node);
     }
 
-    public void inAPowExpr(APowExpr node)
+    public void inATermExprComponent(ATermExprComponent node)
     {
         defaultIn(node);
     }
 
-    public void outAPowExpr(APowExpr node)
+    public void outATermExprComponent(ATermExprComponent node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAPowExpr(APowExpr node)
+    public void caseATermExprComponent(ATermExprComponent node)
     {
-        inAPowExpr(node);
-        if(node.getRight() != null)
+        inATermExprComponent(node);
+        if(node.getTerm() != null)
         {
-            node.getRight().apply(this);
+            node.getTerm().apply(this);
         }
-        if(node.getPow() != null)
+        outATermExprComponent(node);
+    }
+
+    public void inAPowerExprComponent(APowerExprComponent node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPowerExprComponent(APowerExprComponent node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPowerExprComponent(APowerExprComponent node)
+    {
+        inAPowerExprComponent(node);
+        if(node.getPower() != null)
         {
-            node.getPow().apply(this);
+            node.getPower().apply(this);
         }
-        if(node.getLeft() != null)
-        {
-            node.getLeft().apply(this);
-        }
-        outAPowExpr(node);
+        outAPowerExprComponent(node);
     }
 
     public void inAScalarTerm(AScalarTerm node)
@@ -634,6 +668,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getGenRow().apply(this);
         }
         outACsvTerm(node);
+    }
+
+    public void inAPower(APower node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPower(APower node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPower(APower node)
+    {
+        inAPower(node);
+        if(node.getExponent() != null)
+        {
+            node.getExponent().apply(this);
+        }
+        if(node.getPow() != null)
+        {
+            node.getPow().apply(this);
+        }
+        if(node.getBase() != null)
+        {
+            node.getBase().apply(this);
+        }
+        outAPower(node);
     }
 
     public void inAFormula(AFormula node)

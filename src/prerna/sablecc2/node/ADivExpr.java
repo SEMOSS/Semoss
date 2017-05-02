@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class ADivExpr extends PExpr
 {
-    private PTerm _left_;
+    private PExprComponent _left_;
     private TDiv _div_;
     private PExpr _right_;
 
@@ -17,7 +17,7 @@ public final class ADivExpr extends PExpr
     }
 
     public ADivExpr(
-        @SuppressWarnings("hiding") PTerm _left_,
+        @SuppressWarnings("hiding") PExprComponent _left_,
         @SuppressWarnings("hiding") TDiv _div_,
         @SuppressWarnings("hiding") PExpr _right_)
     {
@@ -45,12 +45,12 @@ public final class ADivExpr extends PExpr
         ((Analysis) sw).caseADivExpr(this);
     }
 
-    public PTerm getLeft()
+    public PExprComponent getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PTerm node)
+    public void setLeft(PExprComponent node)
     {
         if(this._left_ != null)
         {
@@ -160,7 +160,7 @@ public final class ADivExpr extends PExpr
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PTerm) newChild);
+            setLeft((PExprComponent) newChild);
             return;
         }
 
