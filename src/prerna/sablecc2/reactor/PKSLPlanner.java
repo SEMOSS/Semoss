@@ -128,57 +128,24 @@ public class PKSLPlanner {
 		varStore.addVariable(variableName, value);
 	}
 	
-//	public NounMetadata getVariable(String variableName) {
-//		return varStore.getVariable(variableName);
-//	}
-//	
-//	public NounMetadata getVariableValue(String variableName) {
-//		return varStore.getVariableValue(variableName);
-//	}
-//	
-//	public boolean hasVariable(String variableName) {
-//		return varStore.hasVariable(variableName);
-//	}
+	public NounMetadata getVariable(String variableName) {
+		if(!hasVariable(variableName)) {
+			System.out.println("here");
+		}
+		return varStore.getVariable(variableName);
+	}
+	
+	public NounMetadata getVariableValue(String variableName) {
+		return varStore.getVariableValue(variableName);
+	}
+	
+	public boolean hasVariable(String variableName) {
+		return varStore.hasVariable(variableName);
+	}
 	
 	public NounMetadata removeVariable(String variableName) {
 		return varStore.removeVariable(variableName);
 	}
-	
-	public NounMetadata getVariable(String variableName) {
-//        NounMetadata noun = varStore.getVariableValue(variableName);
-//        if(noun == null) {
-//                      if(!variableName.startsWith("$"))
-//                                     return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
-//        }
-//        return noun;
-    return varStore.getVariable(variableName);
-}
-
-	public NounMetadata getVariableValue(String variableName) {
-		NounMetadata noun = varStore.getVariableValue(variableName);
-		if(noun == null) {
-			if(!variableName.startsWith("$")) {
-				System.out.println("not defined variable >>> " + variableName);
-				return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
-			}
-		}
-		return noun;
-		//    return varStore.getVariableValue(variableName);
-	}
-
-	public boolean hasVariable(String variableName) {
-		boolean hasVar = varStore.hasVariable(variableName);
-		//variable doesn't exist
-		if(!hasVar) {
-			//variable name doesn't start with $...$Result, $Filter, etc.
-			if(!variableName.startsWith("$")) {
-				return true;
-			}
-		}
-		return hasVar;
-	//    return varStore.hasVariable(variableName);
-	}
-
 	
 	public Set<String> getVariables() {
 		return varStore.getVariables();
