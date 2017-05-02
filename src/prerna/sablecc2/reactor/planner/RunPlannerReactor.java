@@ -12,6 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.Translation;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -63,6 +64,7 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
 		
 		Translation translation = new Translation();
+		translation.planner = planner;
 		
 //		String fileName = "C:\\Workspace\\Semoss_Dev\\failedpksls.txt";
 //		BufferedWriter bw = null;
@@ -79,60 +81,24 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		int numPksls = pksls.size();
 		for(int pkslIndex = 0; pkslIndex < numPksls; pkslIndex++) {
 			String pkslString = pksls.get(pkslIndex);
-			try {
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
-				Start tree = p.parse();
-				tree.apply(translation);
-//				bw.write("COMPLETE::: "+pkslString+"\n");
-			} catch (ParserException | LexerException | IOException e) {
-				count++;
+			PkslUtility.executePkslToPlanner(translation, pkslString);
+		}
+		
+//		InMemStore mapStore = getInMemoryStore();
+//		Set<String> variables = translation.planner.getVariables();
+//		for(String variable : variables) {
+//			try {
+//				planner.addVariable(variable, translation.planner.getVariable(variable));
+//			} catch(Exception e) {
 //				e.printStackTrace();
-//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//				System.out.println(pkslString);
-//				try {
-//					bw.write("PARSE ERROR::::   "+pkslString+"\n");
-//				} catch (IOException e1) {
-//					e1.printStackTrace();
-//				}
-//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-			} catch(Exception e) {
-				count++;
-				e.printStackTrace();
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-				System.out.println(e.getMessage());
-				System.out.println(pkslString);
-//				try {
-//					bw.write("EVAL ERROR:::: " + e.getMessage()+"\n");
-//					bw.write("EVAL ERROR:::: "+pkslString+"\n");
-//					bw.write("\n");
-//				} catch (IOException e1) {
-//					e1.printStackTrace();
-//				}
-//				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-			}
-			total++;
-		}
-		
-//		try {
-//			bw.close();
-//			fw.close();
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
+//				System.out.println("Error with ::: " + variable);
+//			}
 //		}
-		LOGGER.info("****************    "+total+"      *************************");
-		LOGGER.info("****************    "+count+"      *************************");
-		
-		InMemStore mapStore = getInMemoryStore();
-		Set<String> variables = translation.planner.getVariables();
-		for(String variable : variables) {
-			mapStore.put(variable, translation.planner.getVariableValue(variable));
-		}
 		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    "+(end - start)+"      *************************");
 		
-		return new NounMetadata(mapStore, PkslDataTypes.IN_MEM_STORE);
+		return new NounMetadata(translation.planner, PkslDataTypes.PLANNER);
 	}
 	
 	private InMemStore getInMemoryStore() {

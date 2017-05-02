@@ -49,6 +49,8 @@ public class VarStore {
 				NounMetadata retNoun = ((IReactor) valueNoun.getValue()).execute();
 				return retNoun;
 			}
+		} else if(!varName.equalsIgnoreCase("$RESULT")) {
+			System.out.println("Not Found!!!  "+varName);
 		}
 		// once we are done with the whole recursive
 		// part above, just return the noun
