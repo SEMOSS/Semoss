@@ -58,11 +58,6 @@ public class ReactorFactory {
 	// if it can be run via the frame (i.e. sql/gremlin) or needs to run external
 	private static Map<String, Class> expressionHash;
 	
-	
-	//This holds the list of expressions we have that can be used as operational formulas and reducers
-	//Ex: Sum(), Max(), Min(), etc. 
-//	private static Set<String> expressions;
-	
 	static {
 		reactorHash = new HashMap<>();
 		createReactorHash(reactorHash);
