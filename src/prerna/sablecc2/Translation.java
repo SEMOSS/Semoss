@@ -29,7 +29,7 @@ import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOpformulaTerm;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusExpr;
-import prerna.sablecc2.node.APowExpr;
+import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
@@ -858,22 +858,21 @@ public class Translation extends DepthFirstAdapter {
     	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
     		deInitReactor();
     }
-
+    
     @Override
-    public void inAPowExpr(APowExpr node) {
+    public void inAPower(APower node) {
     	// since this is defined via the signature
     	// which is
     	// expression ^ expression
     	defaultIn(node);
     	PowAssimilator powAssm = new PowAssimilator();
-    	powAssm.setExpressions(node.getLeft().toString().trim(), node.getRight().toString().trim());
+    	powAssm.setExpressions(node.getBase().toString().trim(), node.getExponent().toString().trim());
     	powAssm.setPKSL("EXPR", node.toString().trim());
     	initReactor(powAssm);	
     }
-
+    
     @Override
-    public void outAPowExpr(APowExpr node)
-    {
+    public void outAPower(APower node) {
     	defaultOut(node);
     	// deinit this only if this is the same node
     	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
