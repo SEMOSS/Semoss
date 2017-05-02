@@ -97,13 +97,15 @@ Productions
  
  expr =
   {term} term
-  | {plus} [left]:term plus [right]:expr
-  | {minus} [left]:term minus [right]:expr
-  | {mult} [left]:term mult [right]:expr 
-  | {div} [left]:term div [right]:expr 
-  | {mod} [left]:term mod [right]:expr
-  | {pow} [left]:term pow [right]:expr
+  | {power} power
+  | {plus} [left]:expr_component plus [right]:expr
+  | {minus} [left]:expr_component minus [right]:expr
+  | {mult} [left]:expr_component mult [right]:expr 
+  | {div} [left]:expr_component div [right]:expr 
+  | {mod} [left]:expr_component mod [right]:expr
   ;
+  
+  expr_component = {term} term | {power} power;
   
  term =
     {scalar} scalar
@@ -116,6 +118,9 @@ Productions
 	| {csv} gen_row
   //| null <- todo, will need to redefine this
   	; 
+ 
+ // to handle something raised to a power
+ power = [base]:term pow [exponent]:term;
  
  // need to able to group formulas together
  // will call this a formula
