@@ -6,6 +6,10 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -14,10 +18,11 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.reactor.PKSLPlanner;
 
 public class PkslUtility {
 
+	private static final Logger LOGGER = LogManager.getLogger(PkslUtility.class.getName());
+	
 	/**
 	 * 
 	 * @param pkslExpression
@@ -92,18 +97,6 @@ public class PkslUtility {
 		return generatePKSLString(assignment, value.toString());	
 	}
 	
-	/**
-	 * 
-	 * @param planner
-	 * @param pkslString
-	 * 
-	 * Adds a pkslString to the planner via lazy translation
-	 */
-	public static void addPkslToPlanner(PKSLPlanner planner, String pkslString) {
-		PlannerTranslation translation = new PlannerTranslation();
-		translation.planner = planner;
-		addPkslToPlanner(translation, pkslString);
-	}
 	
 	/**
 	 * 
@@ -112,18 +105,45 @@ public class PkslUtility {
 	 * 
 	 * Adds a pkslString to the planner via lazy translation
 	 */
-	public static void addPkslToPlanner(PlannerTranslation translation, String pkslString) {
-		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
-			Start tree = p.parse();
-			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException e) {
-			System.out.println(pkslString);
-			e.printStackTrace();
-		} catch(Exception e) {
-			System.out.println(pkslString);
-			e.printStackTrace();
+	public static void addPkslToTranslation(Translation translation, List<String> pkslList) {
+		/****** For Debugging *******/
+		int count = 0;
+		int errorCount = 0;
+		List<String> errorList = new Vector<String>();
+		/****** For Debugging *******/
+
+		int numPksls = pkslList.size();
+		for(int i = 0; i < numPksls; i++) {
+			count++;
+			String pkslString = pkslList.get(i);
+			try {
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
+				Start tree = p.parse();
+				tree.apply(translation);
+			} catch (ParserException | LexerException | IOException e) {
+				/****** For Debugging *******/
+				errorCount++;
+				errorList.add(pkslString);
+				LOGGER.error("FAILED ON :::: " + pkslString);
+				e.printStackTrace();
+				/****** For Debugging *******/
+			} catch(Exception e) {
+				/****** For Debugging *******/
+				errorCount++;
+				errorList.add(pkslString);
+				LOGGER.error("FAILED ON :::: " + pkslString);
+				e.printStackTrace();
+				/****** For Debugging *******/
+			}
 		}
+		
+		/****** For Debugging *******/
+		LOGGER.info("*************** TOTAL = " + count + "***************" );
+		LOGGER.info("*************** FAILED = " + errorCount + "***************" );
+		for(int i = 0; i < errorCount; i++) {
+			LOGGER.info("\tFAILED WITH :::: " + errorList.get(i));
+		}
+		/****** For Debugging *******/
 	}
 	
 	/**
@@ -131,31 +151,18 @@ public class PkslUtility {
 	 * @param planner
 	 * @param pkslString
 	 * 
-	 * executes a pkslString to the planner via greedy translation
+	 * Adds a pkslString to the planner via lazy translation
 	 */
-	public static void executePkslToPlanner(PKSLPlanner planner, String pkslString) {
-		Translation translation = new Translation();
-		translation.planner = planner;
-		executePkslToPlanner(translation, pkslString);
-	}
-	
-	/**
-	 * 
-	 * @param planner
-	 * @param pkslString
-	 * 
-	 * executes a pkslString to the planner via greedy translation
-	 */
-	public static void executePkslToPlanner(Translation translation, String pkslString) {
+	public static void addPkslToTranslation(Translation translation, String pkslString) {
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 			Start tree = p.parse();
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			System.out.println(pkslString);
+			LOGGER.error("FAILED ON :::: " + pkslString);
 			e.printStackTrace();
 		} catch(Exception e) {
-			System.out.println(pkslString);
+			LOGGER.error("FAILED ON :::: " + pkslString);
 			e.printStackTrace();
 		}
 	}
