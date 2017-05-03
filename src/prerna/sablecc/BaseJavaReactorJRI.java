@@ -669,6 +669,74 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		return retOutput;
 	}
 	
+	public Object[][] getColumnCount(String frameName, String column, boolean print, boolean top)
+	{
+		// start the R first
+		Rengine engine = (Rengine)startR();
+		Object [][] retOutput = null; // name and the number of items
+		
+		try {
+			String tempName = Utility.getRandomString(6);
+			String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
+			System.out.println("Script is " + script);
+			engine.eval(script);
+			if(top) {
+				engine.eval(tempName + " <- " + tempName + "[order(-rank(N),]");
+			} else {
+				engine.eval(tempName + " <- " + tempName + "[order(rank(N),]");
+			}
+			
+			script = tempName + "$" + column;
+			String [] uniqueColumns = engine.eval(script).asStringArray();
+			if(uniqueColumns == null) {
+				RFactor factors = engine.eval(script).asFactor();
+				int numFactors = factors.size();
+				uniqueColumns = new String[numFactors];
+				for(int i = 0; i < numFactors; i++) {
+					uniqueColumns[i] = factors.at(i);
+				}
+			} 
+			// need to limit this eventually to may be 10-15 and no more
+			script = "matrix(" + tempName + "$N);"; 
+			int [] colCount = engine.eval(script).asIntArray();
+			int total = 0;
+			retOutput = new Object[uniqueColumns.length][2];
+			StringBuilder builder = null;
+			if(print) {
+				builder = new StringBuilder();
+				builder.append(column + "\t Count \n");
+			}
+
+			int counter = 0;
+			for(int outputIndex = 0;outputIndex < uniqueColumns.length && counter < 100; outputIndex++) {
+				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
+				retOutput[outputIndex][1] = colCount[outputIndex];
+				total += colCount[outputIndex];
+				if(print) {
+					builder.append(retOutput[outputIndex][0] + "\t" + retOutput[outputIndex][1] + "\n");
+				}
+				counter++;
+			}
+			
+			if(print) {
+				builder.append("===============\n");
+				builder.append("Total \t " + total);
+				System.out.println("Output : " + builder.toString());
+			} else {
+				// create the weird object the FE needs to paint a bar chart
+				this.returnData = getBarChartInfo(column, "Frequency", retOutput);
+				this.hasReturnData = true;
+			}
+			
+			//variable cleanup
+			engine.eval("rm(" + tempName + "); gc();");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} 
+		return retOutput;
+	}
+	
 	@Override
 	protected int getNumRows(String frameName) {
 		Rengine rcon = (Rengine)startR();
