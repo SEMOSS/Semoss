@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ATermExpr extends PExpr
+public final class APosTermExprComponent extends PExprComponent
 {
-    private PTerm _term_;
+    private PPosTerm _posTerm_;
 
-    public ATermExpr()
+    public APosTermExprComponent()
     {
         // Constructor
     }
 
-    public ATermExpr(
-        @SuppressWarnings("hiding") PTerm _term_)
+    public APosTermExprComponent(
+        @SuppressWarnings("hiding") PPosTerm _posTerm_)
     {
         // Constructor
-        setTerm(_term_);
+        setPosTerm(_posTerm_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ATermExpr(
-            cloneNode(this._term_));
+        return new APosTermExprComponent(
+            cloneNode(this._posTerm_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseATermExpr(this);
+        ((Analysis) sw).caseAPosTermExprComponent(this);
     }
 
-    public PTerm getTerm()
+    public PPosTerm getPosTerm()
     {
-        return this._term_;
+        return this._posTerm_;
     }
 
-    public void setTerm(PTerm node)
+    public void setPosTerm(PPosTerm node)
     {
-        if(this._term_ != null)
+        if(this._posTerm_ != null)
         {
-            this._term_.parent(null);
+            this._posTerm_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ATermExpr extends PExpr
             node.parent(this);
         }
 
-        this._term_ = node;
+        this._posTerm_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._term_);
+            + toString(this._posTerm_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._term_ == child)
+        if(this._posTerm_ == child)
         {
-            this._term_ = null;
+            this._posTerm_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ATermExpr extends PExpr
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._term_ == oldChild)
+        if(this._posTerm_ == oldChild)
         {
-            setTerm((PTerm) newChild);
+            setPosTerm((PPosTerm) newChild);
             return;
         }
 
