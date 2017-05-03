@@ -5,34 +5,39 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AMinusPosOrNeg extends PPosOrNeg
+public final class ANegTerm extends PNegTerm
 {
     private TMinus _minus_;
+    private PTerm _term_;
 
-    public AMinusPosOrNeg()
+    public ANegTerm()
     {
         // Constructor
     }
 
-    public AMinusPosOrNeg(
-        @SuppressWarnings("hiding") TMinus _minus_)
+    public ANegTerm(
+        @SuppressWarnings("hiding") TMinus _minus_,
+        @SuppressWarnings("hiding") PTerm _term_)
     {
         // Constructor
         setMinus(_minus_);
+
+        setTerm(_term_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AMinusPosOrNeg(
-            cloneNode(this._minus_));
+        return new ANegTerm(
+            cloneNode(this._minus_),
+            cloneNode(this._term_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAMinusPosOrNeg(this);
+        ((Analysis) sw).caseANegTerm(this);
     }
 
     public TMinus getMinus()
@@ -60,11 +65,37 @@ public final class AMinusPosOrNeg extends PPosOrNeg
         this._minus_ = node;
     }
 
+    public PTerm getTerm()
+    {
+        return this._term_;
+    }
+
+    public void setTerm(PTerm node)
+    {
+        if(this._term_ != null)
+        {
+            this._term_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._term_ = node;
+    }
+
     @Override
     public String toString()
     {
         return ""
-            + toString(this._minus_);
+            + toString(this._minus_)
+            + toString(this._term_);
     }
 
     @Override
@@ -74,6 +105,12 @@ public final class AMinusPosOrNeg extends PPosOrNeg
         if(this._minus_ == child)
         {
             this._minus_ = null;
+            return;
+        }
+
+        if(this._term_ == child)
+        {
+            this._term_ = null;
             return;
         }
 
@@ -87,6 +124,12 @@ public final class AMinusPosOrNeg extends PPosOrNeg
         if(this._minus_ == oldChild)
         {
             setMinus((TMinus) newChild);
+            return;
+        }
+
+        if(this._term_ == oldChild)
+        {
+            setTerm((PTerm) newChild);
             return;
         }
 

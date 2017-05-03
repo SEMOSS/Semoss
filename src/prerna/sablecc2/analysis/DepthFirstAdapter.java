@@ -271,46 +271,25 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAEmbeddedAssignment(node);
     }
 
-    public void inATermExpr(ATermExpr node)
+    public void inAExprComponentExpr(AExprComponentExpr node)
     {
         defaultIn(node);
     }
 
-    public void outATermExpr(ATermExpr node)
+    public void outAExprComponentExpr(AExprComponentExpr node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseATermExpr(ATermExpr node)
+    public void caseAExprComponentExpr(AExprComponentExpr node)
     {
-        inATermExpr(node);
-        if(node.getTerm() != null)
+        inAExprComponentExpr(node);
+        if(node.getExprComponent() != null)
         {
-            node.getTerm().apply(this);
+            node.getExprComponent().apply(this);
         }
-        outATermExpr(node);
-    }
-
-    public void inAPowerExpr(APowerExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPowerExpr(APowerExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPowerExpr(APowerExpr node)
-    {
-        inAPowerExpr(node);
-        if(node.getPower() != null)
-        {
-            node.getPower().apply(this);
-        }
-        outAPowerExpr(node);
+        outAExprComponentExpr(node);
     }
 
     public void inAPlusExpr(APlusExpr node)
@@ -479,6 +458,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outATermExprComponent(node);
     }
 
+    public void inANegTermExprComponent(ANegTermExprComponent node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANegTermExprComponent(ANegTermExprComponent node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANegTermExprComponent(ANegTermExprComponent node)
+    {
+        inANegTermExprComponent(node);
+        if(node.getNegTerm() != null)
+        {
+            node.getNegTerm().apply(this);
+        }
+        outANegTermExprComponent(node);
+    }
+
+    public void inAPosTermExprComponent(APosTermExprComponent node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPosTermExprComponent(APosTermExprComponent node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPosTermExprComponent(APosTermExprComponent node)
+    {
+        inAPosTermExprComponent(node);
+        if(node.getPosTerm() != null)
+        {
+            node.getPosTerm().apply(this);
+        }
+        outAPosTermExprComponent(node);
+    }
+
     public void inAPowerExprComponent(APowerExprComponent node)
     {
         defaultIn(node);
@@ -498,6 +519,56 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getPower().apply(this);
         }
         outAPowerExprComponent(node);
+    }
+
+    public void inANegTerm(ANegTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANegTerm(ANegTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANegTerm(ANegTerm node)
+    {
+        inANegTerm(node);
+        if(node.getMinus() != null)
+        {
+            node.getMinus().apply(this);
+        }
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+        }
+        outANegTerm(node);
+    }
+
+    public void inAPosTerm(APosTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPosTerm(APosTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPosTerm(APosTerm node)
+    {
+        inAPosTerm(node);
+        if(node.getPlus() != null)
+        {
+            node.getPlus().apply(this);
+        }
+        if(node.getTerm() != null)
+        {
+            node.getTerm().apply(this);
+        }
+        outAPosTerm(node);
     }
 
     public void inAScalarTerm(AScalarTerm node)
@@ -1093,48 +1164,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outADotcol(node);
     }
 
-    public void inAMinusPosOrNeg(AMinusPosOrNeg node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAMinusPosOrNeg(AMinusPosOrNeg node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAMinusPosOrNeg(AMinusPosOrNeg node)
-    {
-        inAMinusPosOrNeg(node);
-        if(node.getMinus() != null)
-        {
-            node.getMinus().apply(this);
-        }
-        outAMinusPosOrNeg(node);
-    }
-
-    public void inAPlusPosOrNeg(APlusPosOrNeg node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPlusPosOrNeg(APlusPosOrNeg node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPlusPosOrNeg(APlusPosOrNeg node)
-    {
-        inAPlusPosOrNeg(node);
-        if(node.getPlus() != null)
-        {
-            node.getPlus().apply(this);
-        }
-        outAPlusPosOrNeg(node);
-    }
-
     public void inAWholeDecimalDecimal(AWholeDecimalDecimal node)
     {
         defaultIn(node);
@@ -1191,10 +1220,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAWholeDecimal(AWholeDecimal node)
     {
         inAWholeDecimal(node);
-        if(node.getPosOrNeg() != null)
-        {
-            node.getPosOrNeg().apply(this);
-        }
         if(node.getWhole() != null)
         {
             node.getWhole().apply(this);
@@ -1224,10 +1249,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAFractionDecimal(AFractionDecimal node)
     {
         inAFractionDecimal(node);
-        if(node.getPosOrNeg() != null)
-        {
-            node.getPosOrNeg().apply(this);
-        }
         if(node.getDot() != null)
         {
             node.getDot().apply(this);

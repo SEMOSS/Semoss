@@ -128,9 +128,6 @@ public class PKSLPlanner {
 	}
 	
 	public NounMetadata getVariable(String variableName) {
-		if(!hasVariable(variableName)) {
-			System.out.println("here");
-		}
 		return varStore.getVariable(variableName);
 	}
 	
