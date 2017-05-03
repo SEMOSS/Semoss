@@ -96,8 +96,7 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  
  expr =
-  {term} term
-  | {power} power
+  {expr_component} expr_component
   | {plus} [left]:expr_component plus [right]:expr
   | {minus} [left]:expr_component minus [right]:expr
   | {mult} [left]:expr_component mult [right]:expr 
@@ -105,8 +104,12 @@ Productions
   | {mod} [left]:expr_component mod [right]:expr
   ;
   
-  expr_component = {term} term | {power} power;
-  
+ expr_component = {term} term | {neg_term} neg_term | {pos_term} pos_term | {power} power;
+ 
+ // to accomodate for -var and +var 
+ neg_term = minus term;
+ pos_term = plus term;
+ 
  term =
     {scalar} scalar
 	| {formula} formula
@@ -153,10 +156,9 @@ Productions
  rcol = frameprefix number; // f$4
  dotcol = frameid dot [column_name]:id;
  
- pos_or_neg = {minus}minus | {plus}plus;
  decimal = {whole_decimal} whole_decimal | {fraction_decimal} fraction_decimal;
- whole_decimal = [pos_or_neg]:pos_or_neg? [whole]:number dot? [fraction]:number?;
- fraction_decimal = [pos_or_neg]:pos_or_neg? dot [fraction]:number?;
+ whole_decimal = [whole]:number dot? [fraction]:number?;
+ fraction_decimal = dot [fraction]:number?;
  
  
  // word or an id

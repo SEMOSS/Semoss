@@ -5,51 +5,51 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFractionDecimal extends PFractionDecimal
+public final class APosTerm extends PPosTerm
 {
-    private TDot _dot_;
-    private TNumber _fraction_;
+    private TPlus _plus_;
+    private PTerm _term_;
 
-    public AFractionDecimal()
+    public APosTerm()
     {
         // Constructor
     }
 
-    public AFractionDecimal(
-        @SuppressWarnings("hiding") TDot _dot_,
-        @SuppressWarnings("hiding") TNumber _fraction_)
+    public APosTerm(
+        @SuppressWarnings("hiding") TPlus _plus_,
+        @SuppressWarnings("hiding") PTerm _term_)
     {
         // Constructor
-        setDot(_dot_);
+        setPlus(_plus_);
 
-        setFraction(_fraction_);
+        setTerm(_term_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFractionDecimal(
-            cloneNode(this._dot_),
-            cloneNode(this._fraction_));
+        return new APosTerm(
+            cloneNode(this._plus_),
+            cloneNode(this._term_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFractionDecimal(this);
+        ((Analysis) sw).caseAPosTerm(this);
     }
 
-    public TDot getDot()
+    public TPlus getPlus()
     {
-        return this._dot_;
+        return this._plus_;
     }
 
-    public void setDot(TDot node)
+    public void setPlus(TPlus node)
     {
-        if(this._dot_ != null)
+        if(this._plus_ != null)
         {
-            this._dot_.parent(null);
+            this._plus_.parent(null);
         }
 
         if(node != null)
@@ -62,19 +62,19 @@ public final class AFractionDecimal extends PFractionDecimal
             node.parent(this);
         }
 
-        this._dot_ = node;
+        this._plus_ = node;
     }
 
-    public TNumber getFraction()
+    public PTerm getTerm()
     {
-        return this._fraction_;
+        return this._term_;
     }
 
-    public void setFraction(TNumber node)
+    public void setTerm(PTerm node)
     {
-        if(this._fraction_ != null)
+        if(this._term_ != null)
         {
-            this._fraction_.parent(null);
+            this._term_.parent(null);
         }
 
         if(node != null)
@@ -87,30 +87,30 @@ public final class AFractionDecimal extends PFractionDecimal
             node.parent(this);
         }
 
-        this._fraction_ = node;
+        this._term_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._dot_)
-            + toString(this._fraction_);
+            + toString(this._plus_)
+            + toString(this._term_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._dot_ == child)
+        if(this._plus_ == child)
         {
-            this._dot_ = null;
+            this._plus_ = null;
             return;
         }
 
-        if(this._fraction_ == child)
+        if(this._term_ == child)
         {
-            this._fraction_ = null;
+            this._term_ = null;
             return;
         }
 
@@ -121,15 +121,15 @@ public final class AFractionDecimal extends PFractionDecimal
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._dot_ == oldChild)
+        if(this._plus_ == oldChild)
         {
-            setDot((TDot) newChild);
+            setPlus((TPlus) newChild);
             return;
         }
 
-        if(this._fraction_ == oldChild)
+        if(this._term_ == oldChild)
         {
-            setFraction((TNumber) newChild);
+            setTerm((PTerm) newChild);
             return;
         }
 
