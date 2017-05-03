@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.planner;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -45,58 +46,69 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 			pkslsToRun.add(pksls.get(i).toString());
 		}
 		
-		PKSLPlanner myPlanner = getPlanner();
+		List<PKSLPlanner> myPlanners = getPlanners();
 		
-		// to properly update
-		// we need to reset the "PROCESSED" property
-		// that are currently set on the planner
-		// when we first executed the plan
-		resetProcessedBoolean(myPlanner);
-		
-		// know we execute these on a new planner
-		// and then we will figure out the roots of these new values
-		PlannerTranslation plannerT = new PlannerTranslation();
-		PkslUtility.addPkslToTranslation(plannerT, pkslsToRun);
-		
-		// using this planner
-		// get the roots
-		Set<Vertex> roots = getRootPksls(plannerT.planner);
-		// now we want to get all the output nouns of these roots
-		// and go downstream to all the ops within the original planner 
-		// that we are updating
-		Set<Vertex> newRoots = getDownstreamEffectsInPlanner(roots, myPlanner);
-		
-		List<String> downstreamVertIds = new Vector<String>();
-		// traverse downstream and get all the other values we need to update
-		getAllDownstreamVertsBasedOnTraverseOrder(newRoots, downstreamVertIds);
-		
-		// since we have the order based on the first execution
-		// use that in order to add these pksls in the correct order
-		// for the execution
-		pkslsToRun.addAll(orderVertsAndGetPksls(myPlanner, downstreamVertIds));
-		
-		// now run through all the pksls and execute
-		// we will use the same planner which has all the assignments
-		// set and have those values automatically updated
-		Translation translation = new Translation();
-		translation.planner = myPlanner;
-		PkslUtility.addPkslToTranslation(translation, pkslsToRun);
+		for(PKSLPlanner myPlanner : myPlanners) {
+			// to properly update
+			// we need to reset the "PROCESSED" property
+			// that are currently set on the planner
+			// when we first executed the plan
+			resetProcessedBoolean(myPlanner);
+			
+			// know we execute these on a new planner
+			// and then we will figure out the roots of these new values
+			PlannerTranslation plannerT = new PlannerTranslation();
+			PkslUtility.addPkslToTranslation(plannerT, pkslsToRun);
+			
+			// using this planner
+			// get the roots
+			Set<Vertex> roots = getRootPksls(plannerT.planner);
+			// now we want to get all the output nouns of these roots
+			// and go downstream to all the ops within the original planner 
+			// that we are updating
+			Set<Vertex> newRoots = getDownstreamEffectsInPlanner(roots, myPlanner);
+			
+			List<String> downstreamVertIds = new Vector<String>();
+			// traverse downstream and get all the other values we need to update
+			getAllDownstreamVertsBasedOnTraverseOrder(newRoots, downstreamVertIds);
+			
+			// since we have the order based on the first execution
+			// use that in order to add these pksls in the correct order
+			// for the execution
+			pkslsToRun.addAll(orderVertsAndGetPksls(myPlanner, downstreamVertIds));
+			
+			// now run through all the pksls and execute
+			// we will use the same planner which has all the assignments
+			// set and have those values automatically updated
+			Translation translation = new Translation();
+			translation.planner = myPlanner;
+			PkslUtility.addPkslToTranslation(translation, pkslsToRun);
+		}
 		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    END UPDATE "+(end - start)+"ms      *************************");
 		
-		return new NounMetadata(myPlanner, PkslDataTypes.PLANNER);
+		return new NounMetadata(myPlanners, PkslDataTypes.PLANNER);
 	}
-
-	private PKSLPlanner getPlanner() {
+	
+	private List<PKSLPlanner> getPlanners() {
 		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+		List<PKSLPlanner> planners = new ArrayList<>(allNouns.size());
 		if(allNouns != null) {
-			planner = (PKSLPlanner) allNouns.get(0);
-		} else {
-			planner = this.planner;
+			
+			for(int i = 0; i < allNouns.size(); i++) {
+				Object nextNoun = allNouns.get(i);
+				if(nextNoun instanceof List) {
+					 List nounList = (List)nextNoun;
+					 for(Object n : nounList) {
+						 planners.add((PKSLPlanner)n);
+					 }
+				} else {
+					planners.add((PKSLPlanner)nextNoun);
+				}
+			}
 		}
-		return planner;
+		
+		return planners;
 	}
-
 }
