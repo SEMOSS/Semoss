@@ -26,6 +26,7 @@ import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AList;
 import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
+import prerna.sablecc2.node.ANegTerm;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOpformulaTerm;
 import prerna.sablecc2.node.AOutputRoutine;
@@ -48,6 +49,7 @@ import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
+import prerna.sablecc2.reactor.NegReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
@@ -208,6 +210,25 @@ public class Translation extends DepthFirstAdapter {
     /**** Part 1 - those things that can originate their own genrowstruct ***********/    
     // these things need to check to see if these can extend existing script or should it be its own thing
     
+	@Override
+	public void inANegTerm(ANegTerm node) {
+		if(curReactor instanceof Assimilator)
+        {
+        	return;
+        }
+		defaultIn(node);
+    	IReactor negReactor = new NegReactor();
+    	negReactor.setPKSL(node.getTerm().toString().trim(), node.toString().trim());
+    	initReactor(negReactor);
+	}
+	
+	@Override
+	public void outANegTerm(ANegTerm node) {
+		if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
+	    	deInitReactor();
+		}
+	}
+	
     // first of which is a frame operation
     public void inAFrameop(AFrameop node)
     {
@@ -538,16 +559,16 @@ public class Translation extends DepthFirstAdapter {
 		Number retNum = new BigDecimal(whole + "." + fraction);
     	// determine if it is a negative
     	// in which case, multiply by -1
-    	if(node.getPosOrNeg() != null) {
-    		String posOrNeg = node.getPosOrNeg().toString().trim();
-    		if(posOrNeg.equals("-")) {
-    			if(isDouble) {
-        			retNum = -1.0 * retNum.doubleValue();
-    			} else {
-        			retNum = -1 * retNum.intValue();
-    			}
-    		}
-    	}
+//    	if(node.getPosOrNeg() != null) {
+//    		String posOrNeg = node.getPosOrNeg().toString().trim();
+//    		if(posOrNeg.equals("-")) {
+//    			if(isDouble) {
+//        			retNum = -1.0 * retNum.doubleValue();
+//    			} else {
+//        			retNum = -1 * retNum.intValue();
+//    			}
+//    		}
+//    	}
     	NounMetadata noun = null;
     	if(isDouble) {
     		noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
@@ -580,12 +601,12 @@ public class Translation extends DepthFirstAdapter {
 		Number retNum = new BigDecimal("0." + fraction);
     	// determine if it is a negative
     	// in which case, multiply by -1
-    	if(node.getPosOrNeg() != null) {
-    		String posOrNeg = node.getPosOrNeg().toString().trim();
-    		if(posOrNeg.equals("-")) {
-        		retNum = -1.0 * retNum.doubleValue();
-    		}
-    	}
+//    	if(node.getPosOrNeg() != null) {
+//    		String posOrNeg = node.getPosOrNeg().toString().trim();
+//    		if(posOrNeg.equals("-")) {
+//        		retNum = -1.0 * retNum.doubleValue();
+//    		}
+//    	}
     	if(curReactor != null) {
 	    	// add the decimal to the cur row
 	        curReactor.getCurRow().addDecimal(retNum.doubleValue());

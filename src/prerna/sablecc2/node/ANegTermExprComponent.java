@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APlusPosOrNeg extends PPosOrNeg
+public final class ANegTermExprComponent extends PExprComponent
 {
-    private TPlus _plus_;
+    private PNegTerm _negTerm_;
 
-    public APlusPosOrNeg()
+    public ANegTermExprComponent()
     {
         // Constructor
     }
 
-    public APlusPosOrNeg(
-        @SuppressWarnings("hiding") TPlus _plus_)
+    public ANegTermExprComponent(
+        @SuppressWarnings("hiding") PNegTerm _negTerm_)
     {
         // Constructor
-        setPlus(_plus_);
+        setNegTerm(_negTerm_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new APlusPosOrNeg(
-            cloneNode(this._plus_));
+        return new ANegTermExprComponent(
+            cloneNode(this._negTerm_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPlusPosOrNeg(this);
+        ((Analysis) sw).caseANegTermExprComponent(this);
     }
 
-    public TPlus getPlus()
+    public PNegTerm getNegTerm()
     {
-        return this._plus_;
+        return this._negTerm_;
     }
 
-    public void setPlus(TPlus node)
+    public void setNegTerm(PNegTerm node)
     {
-        if(this._plus_ != null)
+        if(this._negTerm_ != null)
         {
-            this._plus_.parent(null);
+            this._negTerm_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class APlusPosOrNeg extends PPosOrNeg
             node.parent(this);
         }
 
-        this._plus_ = node;
+        this._negTerm_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._plus_);
+            + toString(this._negTerm_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._plus_ == child)
+        if(this._negTerm_ == child)
         {
-            this._plus_ = null;
+            this._negTerm_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class APlusPosOrNeg extends PPosOrNeg
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._plus_ == oldChild)
+        if(this._negTerm_ == oldChild)
         {
-            setPlus((TPlus) newChild);
+            setNegTerm((PNegTerm) newChild);
             return;
         }
 

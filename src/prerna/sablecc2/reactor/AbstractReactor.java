@@ -57,8 +57,12 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public void setFrame(ITableDataFrame frame)
-	{
+	public Object Out() {
+		return this.parentReactor;
+	}
+	
+	@Override
+	public void setFrame(ITableDataFrame frame) {
 		this.frame = frame;
 	}
 

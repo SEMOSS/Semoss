@@ -156,6 +156,15 @@ public class GenRowStruct {
 		return this.vector.get(i);
 	}
 	
+	public NounMetadata getLastNoun() {
+		return this.vector.get(this.vector.size()-1);
+	}
+	
+	public void replaceNounMetaAtIndex(int index, NounMetadata newNoun) {
+		this.vector.remove(index);
+		this.vector.add(index, newNoun);
+	}
+	
 	public PkslDataTypes getMeta(int i) {
 		return this.vector.get(i).getNounName();
 	}

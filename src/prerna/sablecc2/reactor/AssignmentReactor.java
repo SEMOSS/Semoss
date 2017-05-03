@@ -23,13 +23,8 @@ public class AssignmentReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		NounMetadata result = planner.getVariableValue("$RESULT");
-		if(result != null) {
-			//if we get a lambda, just store the final result
-			if(result.getNounName().equals(PkslDataTypes.LAMBDA)) {
-				result = ((AbstractReactor)result.getValue()).execute();
-			} 
-		} else {
+		NounMetadata result = planner.getVariable("$RESULT");
+		if(result == null) {
 			// if we have a constant value
 			// it is just set within the curRow
 			// this is because it doesn't produce a result
