@@ -18,14 +18,17 @@ public class AssignmentReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
+		return this.parentReactor;
+	}
+	
+	@Override
+	public NounMetadata execute() {
 		NounMetadata result = planner.getVariableValue("$RESULT");
 		if(result != null) {
 			//if we get a lambda, just store the final result
 			if(result.getNounName().equals(PkslDataTypes.LAMBDA)) {
 				result = ((AbstractReactor)result.getValue()).execute();
 			} 
-			planner.addVariable(operationName.toUpperCase(), result);
-			planner.removeVariable("$RESULT");
 		} else {
 			// if we have a constant value
 			// it is just set within the curRow
@@ -35,14 +38,11 @@ public class AssignmentReactor extends AbstractReactor {
 			
 			// we use position 1 because position 0 is a constant 
 			// which is stored in curRow and matches operationName
-			planner.addVariable(operationName.toUpperCase(), this.curRow.getNoun(1));
+			result = this.curRow.getNoun(1);
 		}
-		return null;
-	}
-	
-	@Override
-	public NounMetadata execute() {
-		return new NounMetadata(operationName.toUpperCase(), PkslDataTypes.COLUMN);
+		
+		planner.addVariable(operationName.toUpperCase(), result);
+		return result;
 	}
 
 	private boolean checkVariable(String variableName) {
