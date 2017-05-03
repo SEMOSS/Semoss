@@ -103,6 +103,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract Object[][] getColumnCount(String frameName, String colName, boolean outputString);
 
+	protected abstract Object[][] getColumnCount(String frameName, String colName, boolean outputString, boolean top);
+	
 	protected abstract Object[][] getDescriptiveStats(String frameName, String colName, boolean outputString);
 
 	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print);
