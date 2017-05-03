@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.planner;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -80,6 +81,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// for that maps specific information
 		InMemStore returnStore = new TaxMapStore();
 
+		List<PKSLPlanner> planners = new ArrayList<>();
 		for(String scenario : scenarioMap.keySet()) {
 			LOGGER.info("Start execution for scenario = " + scenario);
 
@@ -87,6 +89,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			Translation translation = new Translation();
 			// get the planner for the scenario
 			PKSLPlanner nextScenario = scenarioMap.get(scenario);
+			nextScenario.addVariable("$Scenario", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
 			translation.planner = nextScenario;
 			
 			// iterate through to determine execution order for
@@ -99,6 +102,8 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			// after execution
 			// we need to	 store the information
 			LOGGER.info("Start storing data inside store");
+			
+			planners.add(translation.planner);
 			
 			InMemStore resultScenarioStore = new MapStore();
 			Set<String> variables = nextScenario.getVariables();
@@ -117,12 +122,14 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			//add the result of the scenario as a inMemStore in our inMemStore we are returning
 			returnStore.put(scenario, new NounMetadata(resultScenarioStore, PkslDataTypes.IN_MEM_STORE));
 			LOGGER.info("End storing data inside store");
+			
 		}
 		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
 
-		return new NounMetadata(returnStore, PkslDataTypes.IN_MEM_STORE);
+		return new NounMetadata(planners, PkslDataTypes.PLANNER);
+//		return new NounMetadata(returnStore, PkslDataTypes.IN_MEM_STORE);
 	}
 
 	private List<String> getPksls(PKSLPlanner planner) {
