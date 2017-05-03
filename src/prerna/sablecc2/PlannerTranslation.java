@@ -23,5 +23,9 @@ public class PlannerTranslation extends Translation {
 			}
 		}
 	}
+	
+	protected void postProcess() {
+		// do nothing
+	}
 
 }
