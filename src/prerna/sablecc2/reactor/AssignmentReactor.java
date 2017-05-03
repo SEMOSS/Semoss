@@ -42,8 +42,7 @@ public class AssignmentReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		// do nothing
-		return null;
+		return new NounMetadata(operationName.toUpperCase(), PkslDataTypes.COLUMN);
 	}
 
 	private boolean checkVariable(String variableName) {
