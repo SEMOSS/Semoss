@@ -454,8 +454,20 @@ public class Translation extends DepthFirstAdapter {
     	//how do we determine the difference between a column and a variable?
     	//something could be a column but not loaded into a frame yet...i.e. select pksl in import
     	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pksls one by one into the graph in any order
-    	curReactor.getCurRow().addColumn(column);
-    	curReactor.setProp(node.toString().trim(), column);
+    	if(curReactor != null) {
+	    	curReactor.getCurRow().addColumn(column);
+	    	curReactor.setProp(node.toString().trim(), column);
+    	} else {
+    		if(this.planner.hasVariable(column)) {
+        		this.planner.addVariable("$RESULT", this.planner.getVariableValue(column));
+    		} else {
+    			// i guess we should return the actual column from the frame?
+    			// TODO: build this out
+    			// for now, will just return the column name again... 
+    			NounMetadata noun = new NounMetadata(column, PkslDataTypes.CONST_STRING);
+        		this.planner.addVariable("$RESULT", noun);
+    		}
+    	}
     }
     
     public void inAWordWordOrId(AWordWordOrId node)
@@ -471,8 +483,13 @@ public class Translation extends DepthFirstAdapter {
         	// return values between the quotes
         	word = trimedWord.substring(1, trimedWord.length()-1).trim();
         }
-        curReactor.getCurRow().addLiteral(word);
-        curReactor.setProp(node.toString().trim(), word);
+        if(curReactor != null) {
+	        curReactor.getCurRow().addLiteral(word);
+	        curReactor.setProp(node.toString().trim(), word);
+        } else {
+        	NounMetadata noun = new NounMetadata(word, PkslDataTypes.CONST_STRING);
+    		this.planner.addVariable("$RESULT", noun);
+        }
     }
 
     // this is a higher level method which is kind of useless
@@ -518,16 +535,23 @@ public class Translation extends DepthFirstAdapter {
     			}
     		}
     	}
-    	// add the decimal to the cur row
+    	NounMetadata noun = null;
     	if(isDouble) {
-        	curReactor.getCurRow().addDecimal(retNum.doubleValue());
+    		noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
     	} else {
-        	curReactor.getCurRow().addInteger(retNum.intValue());
+    		noun = new NounMetadata(retNum.intValue(), PkslDataTypes.CONST_INT);
     	}
-    	// modify the parent such that the signature has the correct
-    	// value of the numerical without any extra spaces
-    	// plain string will always modify to a integer even if we return double value
-    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+    	if(curReactor != null) {
+    		curReactor.getCurRow().add(noun);
+	    	// modify the parent such that the signature has the correct
+	    	// value of the numerical without any extra spaces
+	    	// plain string will always modify to a integer even if we return double value
+	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+    	} else {
+    		// looks like you just have a number...
+    		// i guess i will return this?
+    		this.planner.addVariable("$RESULT", noun);
+    	}
     }
 
     public void outAWholeDecimal(AWholeDecimal node)
@@ -549,12 +573,17 @@ public class Translation extends DepthFirstAdapter {
         		retNum = -1.0 * retNum.doubleValue();
     		}
     	}
-    	// add the decimal to the cur row
-        curReactor.getCurRow().addDecimal(retNum.doubleValue());
-    	// modify the parent such that the signature has the correct
-    	// value of the numerical without any extra spaces
-    	// plain string will always modify to a integer even if we return double value
-    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+    	if(curReactor != null) {
+	    	// add the decimal to the cur row
+	        curReactor.getCurRow().addDecimal(retNum.doubleValue());
+	    	// modify the parent such that the signature has the correct
+	    	// value of the numerical without any extra spaces
+	    	// plain string will always modify to a integer even if we return double value
+	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+    	} else {
+    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+    		this.planner.addVariable("$RESULT", noun);
+    	}
     }
 
     @Override
