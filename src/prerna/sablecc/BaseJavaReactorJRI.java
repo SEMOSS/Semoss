@@ -681,11 +681,12 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 			System.out.println("Script is " + script);
 			engine.eval(script);
 			if(top) {
-				engine.eval(tempName + " <- " + tempName + "[order(-rank(N),]");
+				engine.eval(tempName + " <- " + tempName + "[order(-rank(N)),]");
 			} else {
-				engine.eval(tempName + " <- " + tempName + "[order(rank(N),]");
+				engine.eval(tempName + " <- " + tempName + "[order(rank(N)),]");
 			}
 			
+			// get the column names
 			script = tempName + "$" + column;
 			String [] uniqueColumns = engine.eval(script).asStringArray();
 			if(uniqueColumns == null) {
@@ -695,18 +696,24 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				for(int i = 0; i < numFactors; i++) {
 					uniqueColumns[i] = factors.at(i);
 				}
-			} 
-			// need to limit this eventually to may be 10-15 and no more
-			script = "matrix(" + tempName + "$N);"; 
+			}
+			// get the count for each column
+			script = tempName + "$N";
 			int [] colCount = engine.eval(script).asIntArray();
-			int total = 0;
-			retOutput = new Object[uniqueColumns.length][2];
 			StringBuilder builder = null;
 			if(print) {
 				builder = new StringBuilder();
 				builder.append(column + "\t Count \n");
 			}
+			
+			// create the object with the right size
+			if(uniqueColumns.length > 100) {
+				retOutput = new Object[100][2];
+			} else {
+				retOutput = new Object[uniqueColumns.length][2];
+			}
 
+			int total = 0;
 			int counter = 0;
 			for(int outputIndex = 0;outputIndex < uniqueColumns.length && counter < 100; outputIndex++) {
 				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
