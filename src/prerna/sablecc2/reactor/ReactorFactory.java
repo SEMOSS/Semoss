@@ -24,6 +24,7 @@ import prerna.sablecc2.reactor.expression.OpSmall;
 import prerna.sablecc2.reactor.expression.OpSum;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
+import prerna.sablecc2.reactor.planner.CreateStoreReactor;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
 import prerna.sablecc2.reactor.planner.LoadClient;
 import prerna.sablecc2.reactor.planner.RunPlannerReactor;
@@ -133,6 +134,7 @@ public class ReactorFactory {
 		reactorHash.put("RunPlan", RunPlannerReactor.class);
 		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
+		reactorHash.put("CreateStore", CreateStoreReactor.class);
 		
 		// tax specific handles
 		reactorHash.put("TaxMapStore", TaxMapStore.class);
