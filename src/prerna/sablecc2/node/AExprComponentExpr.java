@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APowerExpr extends PExpr
+public final class AExprComponentExpr extends PExpr
 {
-    private PPower _power_;
+    private PExprComponent _exprComponent_;
 
-    public APowerExpr()
+    public AExprComponentExpr()
     {
         // Constructor
     }
 
-    public APowerExpr(
-        @SuppressWarnings("hiding") PPower _power_)
+    public AExprComponentExpr(
+        @SuppressWarnings("hiding") PExprComponent _exprComponent_)
     {
         // Constructor
-        setPower(_power_);
+        setExprComponent(_exprComponent_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new APowerExpr(
-            cloneNode(this._power_));
+        return new AExprComponentExpr(
+            cloneNode(this._exprComponent_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPowerExpr(this);
+        ((Analysis) sw).caseAExprComponentExpr(this);
     }
 
-    public PPower getPower()
+    public PExprComponent getExprComponent()
     {
-        return this._power_;
+        return this._exprComponent_;
     }
 
-    public void setPower(PPower node)
+    public void setExprComponent(PExprComponent node)
     {
-        if(this._power_ != null)
+        if(this._exprComponent_ != null)
         {
-            this._power_.parent(null);
+            this._exprComponent_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class APowerExpr extends PExpr
             node.parent(this);
         }
 
-        this._power_ = node;
+        this._exprComponent_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._power_);
+            + toString(this._exprComponent_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._power_ == child)
+        if(this._exprComponent_ == child)
         {
-            this._power_ = null;
+            this._exprComponent_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class APowerExpr extends PExpr
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._power_ == oldChild)
+        if(this._exprComponent_ == oldChild)
         {
-            setPower((PPower) newChild);
+            setExprComponent((PExprComponent) newChild);
             return;
         }
 

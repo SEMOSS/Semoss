@@ -7,7 +7,6 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AWholeDecimal extends PWholeDecimal
 {
-    private PPosOrNeg _posOrNeg_;
     private TNumber _whole_;
     private TDot _dot_;
     private TNumber _fraction_;
@@ -18,14 +17,11 @@ public final class AWholeDecimal extends PWholeDecimal
     }
 
     public AWholeDecimal(
-        @SuppressWarnings("hiding") PPosOrNeg _posOrNeg_,
         @SuppressWarnings("hiding") TNumber _whole_,
         @SuppressWarnings("hiding") TDot _dot_,
         @SuppressWarnings("hiding") TNumber _fraction_)
     {
         // Constructor
-        setPosOrNeg(_posOrNeg_);
-
         setWhole(_whole_);
 
         setDot(_dot_);
@@ -38,7 +34,6 @@ public final class AWholeDecimal extends PWholeDecimal
     public Object clone()
     {
         return new AWholeDecimal(
-            cloneNode(this._posOrNeg_),
             cloneNode(this._whole_),
             cloneNode(this._dot_),
             cloneNode(this._fraction_));
@@ -48,31 +43,6 @@ public final class AWholeDecimal extends PWholeDecimal
     public void apply(Switch sw)
     {
         ((Analysis) sw).caseAWholeDecimal(this);
-    }
-
-    public PPosOrNeg getPosOrNeg()
-    {
-        return this._posOrNeg_;
-    }
-
-    public void setPosOrNeg(PPosOrNeg node)
-    {
-        if(this._posOrNeg_ != null)
-        {
-            this._posOrNeg_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._posOrNeg_ = node;
     }
 
     public TNumber getWhole()
@@ -154,7 +124,6 @@ public final class AWholeDecimal extends PWholeDecimal
     public String toString()
     {
         return ""
-            + toString(this._posOrNeg_)
             + toString(this._whole_)
             + toString(this._dot_)
             + toString(this._fraction_);
@@ -164,12 +133,6 @@ public final class AWholeDecimal extends PWholeDecimal
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._posOrNeg_ == child)
-        {
-            this._posOrNeg_ = null;
-            return;
-        }
-
         if(this._whole_ == child)
         {
             this._whole_ = null;
@@ -195,12 +158,6 @@ public final class AWholeDecimal extends PWholeDecimal
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._posOrNeg_ == oldChild)
-        {
-            setPosOrNeg((PPosOrNeg) newChild);
-            return;
-        }
-
         if(this._whole_ == oldChild)
         {
             setWhole((TNumber) newChild);

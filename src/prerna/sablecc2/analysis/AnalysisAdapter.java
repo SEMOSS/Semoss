@@ -129,13 +129,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseATermExpr(ATermExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPowerExpr(APowerExpr node)
+    public void caseAExprComponentExpr(AExprComponentExpr node)
     {
         defaultCase(node);
     }
@@ -177,7 +171,31 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseANegTermExprComponent(ANegTermExprComponent node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPosTermExprComponent(APosTermExprComponent node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAPowerExprComponent(APowerExprComponent node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANegTerm(ANegTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPosTerm(APosTerm node)
     {
         defaultCase(node);
     }
@@ -322,18 +340,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADotcol(ADotcol node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMinusPosOrNeg(AMinusPosOrNeg node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPlusPosOrNeg(APlusPosOrNeg node)
     {
         defaultCase(node);
     }
