@@ -9,6 +9,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
+import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.ADivExpr;
@@ -34,7 +35,6 @@ import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.ASelectNoun;
-import prerna.sablecc2.node.ATermExpr;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
@@ -110,29 +110,28 @@ public class Translation extends DepthFirstAdapter {
 	 * END CONSTRUCTORS
 	 ***************************/
 	
-	void postProcess() {
-		//grab the frame here
-		IDataMaker frame = null;
-		try {
-			//get the noun meta result
-			//if it is a frame
-			//then set the frame to the frame result
-			NounMetadata noun = planner.getVariableValue("$RESULT");
+	protected void postProcess() {
+		// get the noun meta result
+		// set that in the runner for later retrieval
+		// if it is a frame
+		// set it as the frame for the runner
+		NounMetadata noun = planner.getVariableValue("$RESULT");
+		if(noun != null) {
 			this.runner.setResult(noun);
 			Object frameNoun = noun.getValue();
 			if(frameNoun instanceof IDataMaker){
-				frame = (IDataMaker) frameNoun;
+				IDataMaker frame = (IDataMaker) frameNoun;
+				this.runner.setDataFrame(frame);
 			}
-		} catch(Exception e) {
-			
-		}
-		if(frame != null) {
-			runner.setDataFrame(frame);
+			// if there was a previous result
+			// remove it
+			this.planner.removeVariable("$RESULT");
+		} else {
+			this.runner.setResult(null);
 		}
 		curReactor = null;
 		prevReactor = null;
 		lastOperation = null;
-		this.planner.removeVariable("$RESULT");
 	}
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
@@ -141,13 +140,27 @@ public class Translation extends DepthFirstAdapter {
 		defaultIn(node);
 	}
 	
+	@Override
 	public void outAOutputRoutine(AOutputRoutine node) {
 		defaultIn(node);
-        // we do this in case someone is dumb and is doing an embedded assignment 
+        // we do this in case someone is doing an embedded assignment 
         // instead of just doing a normal assignment...
         if(!(curReactor instanceof AssignmentReactor)) {
     		postProcess();
     	}
+	}
+	
+	@Override
+	public void inAAssignRoutine(AAssignRoutine node) {
+		defaultIn(node);
+	}
+	
+	@Override
+	public void outAAssignRoutine(AAssignRoutine node) {
+		defaultIn(node);
+        // we do this in case someone is dumb and is doing an embedded assignment 
+        // instead of just doing a normal assignment...
+    	postProcess();
 	}
 	
     // all the operation sits here - these are the script starting points
@@ -310,9 +323,9 @@ public class Translation extends DepthFirstAdapter {
     		PkslDataTypes nounName = prevResult.getNounName();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
     		genRow.add(prevResult, nounName);
+    		// then we will remove the result from the planner
+        	this.planner.removeVariable("$RESULT");
     	}
-    	// then we will remove the result from the planner
-    	this.planner.removeVariable("$RESULT");
     }
     
     public void outAOperationFormula(AOperationFormula node)
@@ -604,35 +617,6 @@ public class Translation extends DepthFirstAdapter {
     public void outADotcol(ADotcol node)
     {
         defaultOut(node);
-    }
-    
-    public void inATermExpr(ATermExpr node)
-    {
-        defaultIn(node);
-        // seems like I need to see if this is part of a mult expression etc.
-        // else start the assimilator. 
-        // this is a special case where it is jsut coming through as a column || variable
-        if(curReactor instanceof Assimilator)
-        	LOGGER.debug("Ignore this");
-//        else if(node.getTerm() instanceof AColTerm)
-//        {
-//        	// need to see if there are other things to work on
-//    		Assimilator assm = new Assimilator();
-//    		initExpressionToReactor(assm, node.getTerm()+"", 1+"", "*");
-//    		assm.setPKSL("EXPR", node.toString().trim(), node.toString().trim());
-//    		initReactor(assm);
-//        	LOGGER.debug("Capture this");
-//        }
-    }
-
-    public void outATermExpr(ATermExpr node)
-    {
-        defaultOut(node);
-//        if(curReactor instanceof Assimilator && (node.toString()).trim().equalsIgnoreCase(curReactor.getSignature()))
-//        {
-//        	LOGGER.debug("Ignore this Term Expression OUT");
-//    		deInitReactor();
-//        }
     }
     
     public void inAProp(AProp node)
