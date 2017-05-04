@@ -22,6 +22,7 @@ import prerna.sablecc2.reactor.expression.OpPower;
 import prerna.sablecc2.reactor.expression.OpRound;
 import prerna.sablecc2.reactor.expression.OpSmall;
 import prerna.sablecc2.reactor.expression.OpSum;
+import prerna.sablecc2.reactor.expression.OpSumIf;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.planner.CreateStoreReactor;
@@ -83,6 +84,7 @@ public class ReactorFactory {
 		expressionHash.put("ABS", OpAbsolute.class);
 		expressionHash.put("ABSOLUTE", OpAbsolute.class);
 		expressionHash.put("MATCH", OpMatch.class);
+		expressionHash.put("SUMIF", OpSumIf.class);
 	}
 	
 	//populates the frame agnostic reactors used by pixel
