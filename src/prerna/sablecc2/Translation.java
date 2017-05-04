@@ -508,16 +508,8 @@ public class Translation extends DepthFirstAdapter {
     public void inAWordWordOrId(AWordWordOrId node)
     {
         defaultIn(node);
-        String word = null;
-        String trimedWord = node.getWord().toString().trim();
-        if(trimedWord.length() == 2) {
-        	// this is when you have an empty string
-        	// so we will just add an empty string
-        	word = "";
-        } else {
-        	// return values between the quotes
-        	word = trimedWord.substring(1, trimedWord.length()-1).trim();
-        }
+        String trimmedWord = node.getWord().toString().trim();
+        String word = PkslUtility.removeSurroundingQuotes(trimmedWord);
         if(curReactor != null) {
 	        curReactor.getCurRow().addLiteral(word);
 	        curReactor.setProp(node.toString().trim(), word);
