@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AOpformulaTerm extends PTerm
+public final class AScalarRegTerm extends PRegTerm
 {
-    private POperationFormula _operationFormula_;
+    private PScalar _scalar_;
 
-    public AOpformulaTerm()
+    public AScalarRegTerm()
     {
         // Constructor
     }
 
-    public AOpformulaTerm(
-        @SuppressWarnings("hiding") POperationFormula _operationFormula_)
+    public AScalarRegTerm(
+        @SuppressWarnings("hiding") PScalar _scalar_)
     {
         // Constructor
-        setOperationFormula(_operationFormula_);
+        setScalar(_scalar_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AOpformulaTerm(
-            cloneNode(this._operationFormula_));
+        return new AScalarRegTerm(
+            cloneNode(this._scalar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAOpformulaTerm(this);
+        ((Analysis) sw).caseAScalarRegTerm(this);
     }
 
-    public POperationFormula getOperationFormula()
+    public PScalar getScalar()
     {
-        return this._operationFormula_;
+        return this._scalar_;
     }
 
-    public void setOperationFormula(POperationFormula node)
+    public void setScalar(PScalar node)
     {
-        if(this._operationFormula_ != null)
+        if(this._scalar_ != null)
         {
-            this._operationFormula_.parent(null);
+            this._scalar_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AOpformulaTerm extends PTerm
             node.parent(this);
         }
 
-        this._operationFormula_ = node;
+        this._scalar_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._operationFormula_);
+            + toString(this._scalar_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._operationFormula_ == child)
+        if(this._scalar_ == child)
         {
-            this._operationFormula_ = null;
+            this._scalar_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AOpformulaTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._operationFormula_ == oldChild)
+        if(this._scalar_ == oldChild)
         {
-            setOperationFormula((POperationFormula) newChild);
+            setScalar((PScalar) newChild);
             return;
         }
 

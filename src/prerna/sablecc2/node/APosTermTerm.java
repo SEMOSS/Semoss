@@ -5,16 +5,16 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APosTermExprComponent extends PExprComponent
+public final class APosTermTerm extends PTerm
 {
     private PPosTerm _posTerm_;
 
-    public APosTermExprComponent()
+    public APosTermTerm()
     {
         // Constructor
     }
 
-    public APosTermExprComponent(
+    public APosTermTerm(
         @SuppressWarnings("hiding") PPosTerm _posTerm_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class APosTermExprComponent extends PExprComponent
     @Override
     public Object clone()
     {
-        return new APosTermExprComponent(
+        return new APosTermTerm(
             cloneNode(this._posTerm_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPosTermExprComponent(this);
+        ((Analysis) sw).caseAPosTermTerm(this);
     }
 
     public PPosTerm getPosTerm()

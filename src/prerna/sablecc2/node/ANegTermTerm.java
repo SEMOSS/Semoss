@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AROpTerm extends PTerm
+public final class ANegTermTerm extends PTerm
 {
-    private PROp _rOp_;
+    private PNegTerm _negTerm_;
 
-    public AROpTerm()
+    public ANegTermTerm()
     {
         // Constructor
     }
 
-    public AROpTerm(
-        @SuppressWarnings("hiding") PROp _rOp_)
+    public ANegTermTerm(
+        @SuppressWarnings("hiding") PNegTerm _negTerm_)
     {
         // Constructor
-        setROp(_rOp_);
+        setNegTerm(_negTerm_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AROpTerm(
-            cloneNode(this._rOp_));
+        return new ANegTermTerm(
+            cloneNode(this._negTerm_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAROpTerm(this);
+        ((Analysis) sw).caseANegTermTerm(this);
     }
 
-    public PROp getROp()
+    public PNegTerm getNegTerm()
     {
-        return this._rOp_;
+        return this._negTerm_;
     }
 
-    public void setROp(PROp node)
+    public void setNegTerm(PNegTerm node)
     {
-        if(this._rOp_ != null)
+        if(this._negTerm_ != null)
         {
-            this._rOp_.parent(null);
+            this._negTerm_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AROpTerm extends PTerm
             node.parent(this);
         }
 
-        this._rOp_ = node;
+        this._negTerm_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._rOp_);
+            + toString(this._negTerm_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._rOp_ == child)
+        if(this._negTerm_ == child)
         {
-            this._rOp_ = null;
+            this._negTerm_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AROpTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._rOp_ == oldChild)
+        if(this._negTerm_ == oldChild)
         {
-            setROp((PROp) newChild);
+            setNegTerm((PNegTerm) newChild);
             return;
         }
 

@@ -20,7 +20,7 @@ import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AFrameop;
-import prerna.sablecc2.node.AFrameopTerm;
+import prerna.sablecc2.node.AFrameopRegTerm;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AList;
@@ -28,7 +28,7 @@ import prerna.sablecc2.node.AMinusExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.ANegTerm;
 import prerna.sablecc2.node.AOperationFormula;
-import prerna.sablecc2.node.AOpformulaTerm;
+import prerna.sablecc2.node.AOpformulaRegTerm;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusExpr;
 import prerna.sablecc2.node.APower;
@@ -178,7 +178,7 @@ public class Translation extends DepthFirstAdapter {
     // not sure how to keep the output in some kind of no named variable
 	
 	@Override
-	public void inAFrameopTerm(AFrameopTerm node) {
+	 public void inAFrameopRegTerm(AFrameopRegTerm node) {
 		defaultIn(node);
     	LOGGER.debug("In a frameop term!");
         // once I am in here I am again in the realm of composition
@@ -186,21 +186,21 @@ public class Translation extends DepthFirstAdapter {
 	}
 	
 	@Override
-	public void outAFrameopTerm(AFrameopTerm node) {
+	public void outAFrameopRegTerm(AFrameopRegTerm node) {
 		defaultOut(node);
     	LOGGER.debug("Out a frameop term!");
         this.operationType = TypeOfOperation.PIPELINE;
 	}
 	
 	@Override
-	public void inAOpformulaTerm(AOpformulaTerm node) {
+	public void inAOpformulaRegTerm(AOpformulaRegTerm node) {
 		defaultIn(node);
     	LOGGER.debug("In a operational formula script");
         this.operationType = TypeOfOperation.COMPOSITION;
 	}
 	
 	@Override
-	public void outAOpformulaTerm(AOpformulaTerm node) {
+	public void outAOpformulaRegTerm(AOpformulaRegTerm node) {
 		defaultOut(node);
         LOGGER.debug("Out a operational formula script");
         this.operationType = TypeOfOperation.PIPELINE;

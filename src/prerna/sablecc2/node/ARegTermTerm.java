@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AJavaOpTerm extends PTerm
+public final class ARegTermTerm extends PTerm
 {
-    private PJavaOp _javaOp_;
+    private PRegTerm _regTerm_;
 
-    public AJavaOpTerm()
+    public ARegTermTerm()
     {
         // Constructor
     }
 
-    public AJavaOpTerm(
-        @SuppressWarnings("hiding") PJavaOp _javaOp_)
+    public ARegTermTerm(
+        @SuppressWarnings("hiding") PRegTerm _regTerm_)
     {
         // Constructor
-        setJavaOp(_javaOp_);
+        setRegTerm(_regTerm_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AJavaOpTerm(
-            cloneNode(this._javaOp_));
+        return new ARegTermTerm(
+            cloneNode(this._regTerm_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAJavaOpTerm(this);
+        ((Analysis) sw).caseARegTermTerm(this);
     }
 
-    public PJavaOp getJavaOp()
+    public PRegTerm getRegTerm()
     {
-        return this._javaOp_;
+        return this._regTerm_;
     }
 
-    public void setJavaOp(PJavaOp node)
+    public void setRegTerm(PRegTerm node)
     {
-        if(this._javaOp_ != null)
+        if(this._regTerm_ != null)
         {
-            this._javaOp_.parent(null);
+            this._regTerm_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AJavaOpTerm extends PTerm
             node.parent(this);
         }
 
-        this._javaOp_ = node;
+        this._regTerm_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._javaOp_);
+            + toString(this._regTerm_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._javaOp_ == child)
+        if(this._regTerm_ == child)
         {
-            this._javaOp_ = null;
+            this._regTerm_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AJavaOpTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._javaOp_ == oldChild)
+        if(this._regTerm_ == oldChild)
         {
-            setJavaOp((PJavaOp) newChild);
+            setRegTerm((PRegTerm) newChild);
             return;
         }
 
