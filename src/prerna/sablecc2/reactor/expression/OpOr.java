@@ -3,16 +3,16 @@ package prerna.sablecc2.reactor.expression;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class OpAnd extends OpBasic {
+public class OpOr extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-		boolean result = true;
+		boolean result = false;
 		for (Object booleanValue : values) {
-			// need all values to be true
+			// need only 1 value to be true
 			// in order to return true
-			if(! (boolean) booleanValue) {
-				result = false;
+			if((boolean) booleanValue) {
+				result = true;
 				break;
 			}
 		}
