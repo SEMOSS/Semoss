@@ -26,7 +26,7 @@ Tokens
  mod = '%';
  pow = '^';
  quote = ('"' | ''' | '~');
- word = quote not_quote+ quote;
+ word = quote not_quote* quote;
  mult = '*';
  comma = ',';
  div = '/';
@@ -127,7 +127,6 @@ Productions
  // to handle something raised to a power
  power = [base]:term pow [exponent]:term;
  
- 
  // need to able to group formulas together
  // will call this a formula
  // and allow for list of expressions
@@ -162,7 +161,6 @@ Productions
  decimal = {whole_decimal} whole_decimal | {fraction_decimal} fraction_decimal;
  whole_decimal = [whole]:number dot? [fraction]:number?;
  fraction_decimal = dot [fraction]:number?;
- 
  
  // word or an id
  word_or_id = {word} word | {id} id;
