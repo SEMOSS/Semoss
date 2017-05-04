@@ -25,7 +25,8 @@ public enum PkslDataTypes {
 	IN_MEM_STORE("STORE"),
 	PLANNER("PLANNER"), 
 	CACHED_CLASS("CACHED_CLASS"), 
-	VECTOR("VECTOR");
+	VECTOR("VECTOR"),
+	BOOLEAN("BOOLEAN");
 	
 	private final String strValue;
 	
