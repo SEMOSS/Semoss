@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.api.IEngine;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -14,6 +15,7 @@ import prerna.sablecc.PKQLRunner;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
+import prerna.util.Utility;
 
 public class InsightUtility {
 
@@ -112,9 +114,12 @@ public class InsightUtility {
 	 * 
 	 * @return Insight
 	 */
-	public static Insight createInsight() {
-		Insight insight = new Insight(null, "H2Frame", "Grid");
-		insight.setUserID("userid");
+	public static Insight createInsight(String engineName) {
+		IEngine engine = Utility.getEngine(engineName);
+		Insight insight = new Insight(engine, "H2Frame", "Grid");
+		insight.setUserID("myUserId");
+		insight.setRdbmsId("myRdbmsId");
+		insight.setInsightName("myInsightName");
 		String uniqueId = InsightStore.getInstance().put(insight);
 		return InsightStore.getInstance().get(uniqueId);
 	}
