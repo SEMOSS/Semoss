@@ -166,37 +166,37 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTFrameid(@SuppressWarnings("unused") TFrameid node)
+    public void caseTLPar(@SuppressWarnings("unused") TLPar node)
     {
         this.index = 26;
     }
 
     @Override
-    public void caseTLPar(@SuppressWarnings("unused") TLPar node)
+    public void caseTRPar(@SuppressWarnings("unused") TRPar node)
     {
         this.index = 27;
     }
 
     @Override
-    public void caseTRPar(@SuppressWarnings("unused") TRPar node)
+    public void caseTLBrac(@SuppressWarnings("unused") TLBrac node)
     {
         this.index = 28;
     }
 
     @Override
-    public void caseTLBrac(@SuppressWarnings("unused") TLBrac node)
+    public void caseTRBrac(@SuppressWarnings("unused") TRBrac node)
     {
         this.index = 29;
     }
 
     @Override
-    public void caseTRBrac(@SuppressWarnings("unused") TRBrac node)
+    public void caseTFrameprefix(@SuppressWarnings("unused") TFrameprefix node)
     {
         this.index = 30;
     }
 
     @Override
-    public void caseTFrameprefix(@SuppressWarnings("unused") TFrameprefix node)
+    public void caseTFrameid(@SuppressWarnings("unused") TFrameid node)
     {
         this.index = 31;
     }
