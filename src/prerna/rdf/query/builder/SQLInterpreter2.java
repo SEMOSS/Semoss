@@ -18,8 +18,8 @@ import prerna.ds.querystruct.QueryStruct2;
 import prerna.ds.querystruct.QueryStructSelector;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.sablecc2.om.Filter;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.Filter2;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
@@ -410,205 +410,196 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	
 	public void addFilters()
 	{
-		List<Filter> filters = qs.filters.getFilters();
-		for(Filter filter : filters) {
-			GenRowStruct leftComp = filter.getLComparison();
-			GenRowStruct rightComp = filter.getRComparison();
+		List<Filter2> filters = qs.filters.getFilters();
+		for(Filter2 filter : filters) {
+			NounMetadata leftComp = filter.getLComparison();
+			NounMetadata rightComp = filter.getRComparison();
 			String thisComparator = filter.getComparator();
-			
-			// loop through all the values compared to each other
-			int numLeft = leftComp.size();
-			int numRight = rightComp.size();
-			LEFT_COMP_TYPE : for(int leftCount = 0; leftCount < numLeft; leftCount++) {
-				// DIFFERENT PROCESSING BASED ON THE TYPE OF VALUE
-				PkslDataTypes lCompType = leftComp.getMeta(leftCount);
-				
-				if(lCompType == PkslDataTypes.COLUMN) {
-					// ON THE LEFT SIDE, WE HAVE A COLUMN!!!
-					String left_concept_property = leftComp.get(leftCount).toString();
+
+			// DIFFERENT PROCESSING BASED ON THE TYPE OF VALUE
+			PkslDataTypes lCompType = leftComp.getNounName();
+
+			if(lCompType == PkslDataTypes.COLUMN) {
+				// ON THE LEFT SIDE, WE HAVE A COLUMN!!!
+				String left_concept_property = leftComp.getValue().toString();
+				if(engine != null) {
+					List<String> parents = engine.getParentOfProperty2(left_concept_property);
+					if(parents != null) {
+						// since we can have 2 tables that have the same column
+						// we need to pick one with the table that already exists
+						for(String parent : parents) {
+							if(aliases.containsKey(Utility.getInstanceName(parent))) {
+								left_concept_property = Utility.getInstanceName(parent) + "__" + left_concept_property;
+								break;
+							}
+						}
+					}
+				}
+				String[] leftConProp = getConceptProperty(left_concept_property);
+				String leftConcept = leftConProp[0];
+				String leftProperty = leftConProp[1];
+
+				String leftDataType = null;
+				if(engine != null) {
+					leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
+					// ugh, need to try if it is a property
+					if(leftDataType == null) {
+						leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
+					}
+					leftDataType = leftDataType.replace("TYPE:", "");
+				}
+
+				// get the appropriate left hand where portion based on the table/column
+				StringBuilder startFilterBuilder = new StringBuilder();
+				startFilterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+
+				PkslDataTypes rCompType = rightComp.getNounName();
+				if(rCompType == PkslDataTypes.COLUMN) {
+					// WE ARE COMPARING TWO COLUMNS AGAINST EACH OTHER
+					String right_concept_property = rightComp.getValue().toString();
 					if(engine != null) {
-						List<String> parents = engine.getParentOfProperty2(left_concept_property);
+						List<String> parents = engine.getParentOfProperty2(right_concept_property);
 						if(parents != null) {
 							// since we can have 2 tables that have the same column
 							// we need to pick one with the table that already exists
 							for(String parent : parents) {
 								if(aliases.containsKey(Utility.getInstanceName(parent))) {
-									left_concept_property = Utility.getInstanceName(parent) + "__" + left_concept_property;
+									right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
 									break;
 								}
 							}
 						}
 					}
-					String[] leftConProp = getConceptProperty(left_concept_property);
-					String leftConcept = leftConProp[0];
-					String leftProperty = leftConProp[1];
-					
-					String leftDataType = null;
-					if(engine != null) {
-						leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
-						// ugh, need to try if it is a property
-						if(leftDataType == null) {
-							leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
-						}
-						leftDataType = leftDataType.replace("TYPE:", "");
-					}
-					
-					// get the appropriate left hand where portion based on the table/column
-					StringBuilder startFilterBuilder = new StringBuilder();
-					startFilterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+					String[] rightConProp = getConceptProperty(right_concept_property);
+					String rightConcept = rightConProp[0];
+					String rightProperty = rightConProp[1];
 
-					RIGHT_COMP_LOOP : for(int rightCount = 0; rightCount < numRight; rightCount++) {
-						PkslDataTypes rCompType = rightComp.getMeta(rightCount);
-						if(rCompType == PkslDataTypes.COLUMN) {
-							// WE ARE COMPARING TWO COLUMNS AGAINST EACH OTHER
-							String right_concept_property = rightComp.get(rightCount).toString();
-							if(engine != null) {
-								List<String> parents = engine.getParentOfProperty2(right_concept_property);
-								if(parents != null) {
-									// since we can have 2 tables that have the same column
-									// we need to pick one with the table that already exists
-									for(String parent : parents) {
-										if(aliases.containsKey(Utility.getInstanceName(parent))) {
-											right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
-											break;
-										}
-									}
+					StringBuilder filterBuilder = new StringBuilder();
+					filterBuilder.append(startFilterBuilder.toString());
+					if(thisComparator.equals("==")) {
+						filterBuilder.append(" = ");
+					} else {
+						filterBuilder.append(" ").append(thisComparator).append(" ");
+					}
+					filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+
+					this.whereFilters.add(filterBuilder.toString());
+				} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
+					// WE ARE COMPARING A COLUMN AGAINST A LIST OF DECIMALS OR STRINGS
+					List<Object> objects = new Vector<Object>();
+					objects.add(rightComp.getValue());
+					String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
+
+					StringBuilder filterBuilder = new StringBuilder();
+					filterBuilder.append(startFilterBuilder.toString());
+					filterBuilder.append(" ");
+
+					if(thisComparator.trim().equals("==")) {
+						filterBuilder.append(" IN ");
+					} else if(thisComparator.trim().equals("!=")) {
+						filterBuilder.append(" NOT IN ");
+					}
+
+					if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
+						filterBuilder.append(" ( ").append(myFilterFormatted).append(" ) ");
+					} else {
+						filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
+					}
+
+					this.whereFilters.add(filterBuilder.toString());
+				}
+			} else if(lCompType == PkslDataTypes.CONST_DECIMAL || lCompType == PkslDataTypes.CONST_STRING) {
+				// ON THE LEFT SIDE, WE HAVE SOME KIND OF CONSTANT
+				List<Object> leftObjects = new Vector<Object>();
+				leftObjects.add(leftComp.getValue());
+
+				String leftDataType = null;
+				if(lCompType == PkslDataTypes.CONST_DECIMAL) {
+					leftDataType = "NUMBER";
+				} else {
+					leftDataType = "STRING";
+				}
+				//TODO: NEED TO CONSIDER DATES!!!
+				String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, thisComparator);
+
+				PkslDataTypes rCompType = rightComp.getNounName();
+				if(rCompType == PkslDataTypes.COLUMN) {
+					// WE ARE COMPARING A CONSTANT TO A COLUMN
+					String right_concept_property = rightComp.getValue().toString();
+					if(engine != null) {
+						List<String> parents = engine.getParentOfProperty2(right_concept_property);
+						if(parents != null) {
+							// since we can have 2 tables that have the same column
+							// we need to pick one with the table that already exists
+							for(String parent : parents) {
+								if(aliases.containsKey(Utility.getInstanceName(parent))) {
+									right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
+									break;
 								}
 							}
-							String[] rightConProp = getConceptProperty(right_concept_property);
-							String rightConcept = rightConProp[0];
-							String rightProperty = rightConProp[1];
-							
-							StringBuilder filterBuilder = new StringBuilder();
-							filterBuilder.append(startFilterBuilder.toString());
-							if(thisComparator.equals("==")) {
-								filterBuilder.append(" = ");
-							} else {
-								filterBuilder.append(" ").append(thisComparator).append(" ");
-							}
-							filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
-							
-							this.whereFilters.add(filterBuilder.toString());
-						} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
-							// WE ARE COMPARING A COLUMN AGAINST A LIST OF DECIMALS OR STRINGS
-							List<Object> objects = new Vector<Object>();
-							objects.add(rightComp.get(rightCount));
-							String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
-							
-							StringBuilder filterBuilder = new StringBuilder();
-							filterBuilder.append(startFilterBuilder.toString());
-							filterBuilder.append(" ");
-							
-							if(thisComparator.trim().equals("==")) {
-								filterBuilder.append(" IN ");
-							} else if(thisComparator.trim().equals("!=")) {
-								filterBuilder.append(" NOT IN ");
-							}
-							
-							if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
-								filterBuilder.append(" ( ").append(myFilterFormatted).append(" ) ");
-							} else {
-								filterBuilder.append(thisComparator).append(" ").append(myFilterFormatted);
-							}
-							
-							this.whereFilters.add(filterBuilder.toString());
 						}
 					}
-				} else if(lCompType == PkslDataTypes.CONST_DECIMAL || lCompType == PkslDataTypes.CONST_STRING) {
-					// ON THE LEFT SIDE, WE HAVE SOME KIND OF CONSTANT
-					List<Object> leftObjects = new Vector<Object>();
-					leftObjects.add(leftComp.get(leftCount));
-					
-					String leftDataType = null;
-					if(lCompType == PkslDataTypes.CONST_DECIMAL) {
-						leftDataType = "NUMBER";
+					String[] rightConProp = getConceptProperty(right_concept_property);
+					String rightConcept = rightConProp[0];
+					String rightProperty = rightConProp[1];
+
+					StringBuilder filterBuilder = new StringBuilder();
+
+					if(thisComparator.trim().equals("==")) {
+						filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+						filterBuilder.append(" IN ");
+					} else if(thisComparator.trim().equals("!=")) {
+						filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+						filterBuilder.append(" NOT IN ");
+					}
+
+					if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
+						filterBuilder.append(" ( ").append(leftFilterFormatted).append(" ) ");
 					} else {
-						leftDataType = "STRING";
+						filterBuilder.append(leftFilterFormatted).append(" ").append(thisComparator).append(" ");
+						filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
+					}
+
+					this.whereFilters.add(filterBuilder.toString());
+
+				} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
+					// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
+					// ... what is the point of this... this is a dumb thing... you are dumb
+
+					List<Object> rightObjects = new Vector<Object>();
+					rightObjects.add(rightComp.getValue());
+
+					String rightDataType = null;
+					if(rCompType == PkslDataTypes.CONST_DECIMAL) {
+						rightDataType = "NUMBER";
+					} else {
+						rightDataType = "STRING";
 					}
 					//TODO: NEED TO CONSIDER DATES!!!
-					String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, thisComparator);
-					
-					RIGHT_COMP_LOOP : for(int rightCount = 0; rightCount < numRight; rightCount++) {
-						PkslDataTypes rCompType = rightComp.getMeta(rightCount);
-						if(rCompType == PkslDataTypes.COLUMN) {
-							// WE ARE COMPARING A CONSTANT TO A COLUMN
-							String right_concept_property = rightComp.get(rightCount).toString();
-							if(engine != null) {
-								List<String> parents = engine.getParentOfProperty2(right_concept_property);
-								if(parents != null) {
-									// since we can have 2 tables that have the same column
-									// we need to pick one with the table that already exists
-									for(String parent : parents) {
-										if(aliases.containsKey(Utility.getInstanceName(parent))) {
-											right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
-											break;
-										}
-									}
-								}
-							}
-							String[] rightConProp = getConceptProperty(right_concept_property);
-							String rightConcept = rightConProp[0];
-							String rightProperty = rightConProp[1];
-							
-							StringBuilder filterBuilder = new StringBuilder();
-							
-							if(thisComparator.trim().equals("==")) {
-								filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
-								filterBuilder.append(" IN ");
-							} else if(thisComparator.trim().equals("!=")) {
-								filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
-								filterBuilder.append(" NOT IN ");
-							}
-							
-							if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
-								filterBuilder.append(" ( ").append(leftFilterFormatted).append(" ) ");
-							} else {
-								filterBuilder.append(leftFilterFormatted).append(" ").append(thisComparator).append(" ");
-								filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
-							}
-							
-							this.whereFilters.add(filterBuilder.toString());
-							
-						} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
-							// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
-							// ... what is the point of this... this is a dumb thing... you are dumb
-							
-							List<Object> rightObjects = new Vector<Object>();
-							rightObjects.add(rightComp.get(rightCount));
-							
-							String rightDataType = null;
-							if(rCompType == PkslDataTypes.CONST_DECIMAL) {
-								rightDataType = "NUMBER";
-							} else {
-								rightDataType = "STRING";
-							}
-							//TODO: NEED TO CONSIDER DATES!!!
-							String rightFilterFormatted = getFormatedObject(rightDataType, rightObjects, thisComparator);
-							
-							StringBuilder filterBuilder = new StringBuilder();
-							filterBuilder.append(leftFilterFormatted.toString());
-							filterBuilder.append(" ");
-							
-							if(thisComparator.trim().equals("==")) {
-								filterBuilder.append(" IN ");
-							} else if(thisComparator.trim().equals("!=")) {
-								filterBuilder.append(" NOT IN ");
-							}
-							
-							if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
-								filterBuilder.append(" ( ").append(rightFilterFormatted).append(" ) ");
-							} else {
-								filterBuilder.append(thisComparator).append(" ").append(rightFilterFormatted);
-							}
-							
-							this.whereFilters.add(filterBuilder.toString());
-						}
+					String rightFilterFormatted = getFormatedObject(rightDataType, rightObjects, thisComparator);
+
+					StringBuilder filterBuilder = new StringBuilder();
+					filterBuilder.append(leftFilterFormatted.toString());
+					filterBuilder.append(" ");
+
+					if(thisComparator.trim().equals("==")) {
+						filterBuilder.append(" IN ");
+					} else if(thisComparator.trim().equals("!=")) {
+						filterBuilder.append(" NOT IN ");
 					}
+
+					if(thisComparator.trim().equals("==") || thisComparator.trim().equals("!=") || thisComparator.contains(" OR ")) {
+						filterBuilder.append(" ( ").append(rightFilterFormatted).append(" ) ");
+					} else {
+						filterBuilder.append(thisComparator).append(" ").append(rightFilterFormatted);
+					}
+
+					this.whereFilters.add(filterBuilder.toString());
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * This is an optimized version when we know we can get all the objects into 
 	 * the proper sql query string in one go

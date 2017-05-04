@@ -129,43 +129,49 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAExprComponentExpr(AExprComponentExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPlusExpr(APlusExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMinusExpr(AMinusExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMultExpr(AMultExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseADivExpr(ADivExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAModExpr(AModExpr node)
+    public void caseABaseExprExpr(ABaseExprExpr node)
     {
         defaultCase(node);
     }
 
     @Override
     public void caseAComparisonExpr(AComparisonExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExprComponentBaseExpr(AExprComponentBaseExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPlusBaseExpr(APlusBaseExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMinusBaseExpr(AMinusBaseExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMultBaseExpr(AMultBaseExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADivBaseExpr(ADivBaseExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAModBaseExpr(AModBaseExpr node)
     {
         defaultCase(node);
     }
@@ -178,6 +184,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAPowerExprComponent(APowerExprComponent node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPower(APower node)
     {
         defaultCase(node);
     }
@@ -273,19 +285,175 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAPower(APower node)
+    public void caseAFormula(AFormula node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseARcol(ARcol node)
+    public void caseAList(AList node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseADotcol(ADotcol node)
+    public void caseAOtherExpr(AOtherExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOperationFormula(AOperationFormula node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFrameop(AFrameop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAGenRow(AGenRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPlainRow(APlainRow node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExprColDef(AExprColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPropColDef(APropColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARelationColDef(ARelationColDef node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOthercol(AOthercol node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASelectNoun(ASelectNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAProjectNoun(AProjectNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseALabelsNoun(ALabelsNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseATooltipsNoun(ATooltipsNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOthersNoun(AOthersNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPropsNoun(APropsNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACodeNoun(ACodeNoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOthernoun(AOthernoun node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAGeneric(AGeneric node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASelectors(ASelectors node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAProjectors(AProjectors node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseALabels(ALabels node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAProps(AProps node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseATooltips(ATooltips node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAJoins(AJoins node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAProp(AProp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAsop(AAsop node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARelationship(ARelationship node)
     {
         defaultCase(node);
     }
@@ -298,6 +466,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAROp(AROp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARcol(ARcol node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADotcol(ADotcol node)
     {
         defaultCase(node);
     }
@@ -352,180 +532,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAFractionDecimal(AFractionDecimal node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFormula(AFormula node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAList(AList node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOtherExpr(AOtherExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAExprColDef(AExprColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPropColDef(APropColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseARelationColDef(ARelationColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOthercol(AOthercol node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAGenRow(AGenRow node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPlainRow(APlainRow node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOperationFormula(AOperationFormula node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFrameop(AFrameop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProp(AProp node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseASelectors(ASelectors node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProjectors(AProjectors node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseALabels(ALabels node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProps(AProps node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseATooltips(ATooltips node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAJoins(AJoins node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAGeneric(AGeneric node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseASelectNoun(ASelectNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAProjectNoun(AProjectNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseALabelsNoun(ALabelsNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseATooltipsNoun(ATooltipsNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOthersNoun(AOthersNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPropsNoun(APropsNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseACodeNoun(ACodeNoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAOthernoun(AOthernoun node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAAsop(AAsop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseARelationship(ARelationship node)
     {
         defaultCase(node);
     }
