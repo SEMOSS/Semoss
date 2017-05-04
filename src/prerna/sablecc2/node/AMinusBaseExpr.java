@@ -5,26 +5,26 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class APlusExpr extends PExpr
+public final class AMinusBaseExpr extends PBaseExpr
 {
     private PExprComponent _left_;
-    private TPlus _plus_;
-    private PExpr _right_;
+    private TMinus _minus_;
+    private PBaseExpr _right_;
 
-    public APlusExpr()
+    public AMinusBaseExpr()
     {
         // Constructor
     }
 
-    public APlusExpr(
+    public AMinusBaseExpr(
         @SuppressWarnings("hiding") PExprComponent _left_,
-        @SuppressWarnings("hiding") TPlus _plus_,
-        @SuppressWarnings("hiding") PExpr _right_)
+        @SuppressWarnings("hiding") TMinus _minus_,
+        @SuppressWarnings("hiding") PBaseExpr _right_)
     {
         // Constructor
         setLeft(_left_);
 
-        setPlus(_plus_);
+        setMinus(_minus_);
 
         setRight(_right_);
 
@@ -33,16 +33,16 @@ public final class APlusExpr extends PExpr
     @Override
     public Object clone()
     {
-        return new APlusExpr(
+        return new AMinusBaseExpr(
             cloneNode(this._left_),
-            cloneNode(this._plus_),
+            cloneNode(this._minus_),
             cloneNode(this._right_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAPlusExpr(this);
+        ((Analysis) sw).caseAMinusBaseExpr(this);
     }
 
     public PExprComponent getLeft()
@@ -70,16 +70,16 @@ public final class APlusExpr extends PExpr
         this._left_ = node;
     }
 
-    public TPlus getPlus()
+    public TMinus getMinus()
     {
-        return this._plus_;
+        return this._minus_;
     }
 
-    public void setPlus(TPlus node)
+    public void setMinus(TMinus node)
     {
-        if(this._plus_ != null)
+        if(this._minus_ != null)
         {
-            this._plus_.parent(null);
+            this._minus_.parent(null);
         }
 
         if(node != null)
@@ -92,15 +92,15 @@ public final class APlusExpr extends PExpr
             node.parent(this);
         }
 
-        this._plus_ = node;
+        this._minus_ = node;
     }
 
-    public PExpr getRight()
+    public PBaseExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PExpr node)
+    public void setRight(PBaseExpr node)
     {
         if(this._right_ != null)
         {
@@ -125,7 +125,7 @@ public final class APlusExpr extends PExpr
     {
         return ""
             + toString(this._left_)
-            + toString(this._plus_)
+            + toString(this._minus_)
             + toString(this._right_);
     }
 
@@ -139,9 +139,9 @@ public final class APlusExpr extends PExpr
             return;
         }
 
-        if(this._plus_ == child)
+        if(this._minus_ == child)
         {
-            this._plus_ = null;
+            this._minus_ = null;
             return;
         }
 
@@ -164,15 +164,15 @@ public final class APlusExpr extends PExpr
             return;
         }
 
-        if(this._plus_ == oldChild)
+        if(this._minus_ == oldChild)
         {
-            setPlus((TPlus) newChild);
+            setMinus((TMinus) newChild);
             return;
         }
 
         if(this._right_ == oldChild)
         {
-            setRight((PExpr) newChild);
+            setRight((PBaseExpr) newChild);
             return;
         }
 

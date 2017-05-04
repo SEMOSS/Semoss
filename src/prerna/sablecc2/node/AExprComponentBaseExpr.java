@@ -5,16 +5,16 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AExprComponentExpr extends PExpr
+public final class AExprComponentBaseExpr extends PBaseExpr
 {
     private PExprComponent _exprComponent_;
 
-    public AExprComponentExpr()
+    public AExprComponentBaseExpr()
     {
         // Constructor
     }
 
-    public AExprComponentExpr(
+    public AExprComponentBaseExpr(
         @SuppressWarnings("hiding") PExprComponent _exprComponent_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class AExprComponentExpr extends PExpr
     @Override
     public Object clone()
     {
-        return new AExprComponentExpr(
+        return new AExprComponentBaseExpr(
             cloneNode(this._exprComponent_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAExprComponentExpr(this);
+        ((Analysis) sw).caseAExprComponentBaseExpr(this);
     }
 
     public PExprComponent getExprComponent()

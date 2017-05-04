@@ -62,8 +62,6 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  ///////////////////////// START HIGHEST LEVEL /////////////////////////
  ///////////////////////////////////////////////////////////////////////
- // everything is a configuration
- // this should very very rarely change
  
  configuration = routine*;
  
@@ -94,20 +92,38 @@ Productions
  ///////////////////////// END HIGHEST LEVEL ///////////////////////////
  ///////////////////////////////////////////////////////////////////////
  
+ 
+ 
+ ///////////////////////////////////////////////////////////////////////
+ //////////////////////////// COMPOSITES  //////////////////////////////
+ ///////////////////////////////////////////////////////////////////////
+ 
+ // this is the highest level object that the user interacts with
+ // this is a base expression -> which goes all the way down to a basic number/string
+ // and it includes comparisons
  expr =
-  {expr_component} expr_component
-  | {plus} [left]:expr_component plus [right]:expr
-  | {minus} [left]:expr_component minus [right]:expr
-  | {mult} [left]:expr_component mult [right]:expr 
-  | {div} [left]:expr_component div [right]:expr 
-  | {mod} [left]:expr_component mod [right]:expr
-  | {comparison} [left]:expr_component comparator [right]:expr
+  {base_expr} base_expr
+  | {comparison} [left]:base_expr comparator [right]:base_expr
   ;
-  
+ 
+ // expr component goes from a defined reactor all the way down to basic number/string
+ // everything else is just some mathematical operation using expr_component
+ base_expr =  
+	{expr_component} expr_component
+	| {plus} [left]:expr_component plus [right]:base_expr
+	| {minus} [left]:expr_component minus [right]:base_expr
+	| {mult} [left]:expr_component mult [right]:base_expr 
+	| {div} [left]:expr_component div [right]:base_expr 
+	| {mod} [left]:expr_component mod [right]:base_expr
+	;
+ 
+ // base expression component is a term or a power
  expr_component = {term} term | {power} power;
  
- term = {reg_term} reg_term | {neg_term} neg_term | {pos_term} pos_term;
+ // to handle 5 ^ 2
+ power = [base]:term pow [exponent]:term;
  
+ term = {reg_term} reg_term | {neg_term} neg_term | {pos_term} pos_term;
  // to accomodate for -var and +var 
  neg_term = minus term;
  pos_term = plus term;
@@ -126,70 +142,101 @@ Productions
   //| null <- todo, will need to redefine this
   	; 
  
- // to handle something raised to a power
- power = [base]:term pow [exponent]:term;
- 
- // reference - this means the 4th column in the current frame
- rcol = frameprefix number; // f$4
- dotcol = frameid dot [column_name]:id; // f.Title
- 
- // for java and r operations
- java_op = java;
- r_op = r;
- 
- // word or id or number
- scalar = {num} decimal | {word_or_id} word_or_id | {boolean} boolean;
- // word or an id
- word_or_id = {word} word | {id} id;
- // numbers
- decimal = {whole_decimal} whole_decimal | {fraction_decimal} fraction_decimal;
- whole_decimal = [whole]:number dot? [fraction]:number?;
- fraction_decimal = dot [fraction]:number?;
- 
  // need to able to group expressions 
  // will call this a formula
+ // required for correct order of operations
  formula = l_par expr r_par;
  
  // need to allow a list of expressions
  list = l_par expr other_expr+ r_par;
  other_expr = comma expr;
  
- // col def is an expression, a reference to a frame header
- // or a filter/prop/relationship to be used within an operation
+ // operational formula and frameop is how we define PKSL functions (reactors)
+ // both use the same reactor, but they only differ in how data is pushed into the reactor
+ // OPFORMULA ::: SUM(1,2,3)
+ // FRAMEOP ::: Iterate(QUERYSTRUCT=[qs]); ---> where qs is a predefined variable
+ operation_formula = id plain_row asop?;
+ frameop = id l_par noun othernoun* r_par asop?;
+
+ // different ways to define col_def within operations
+ // GENROW ::: [coldef1, coldef2, coldef3]
+ // PLAINROW ::: (coldef1, coldef2, coldef3)
+ gen_row = l_brac col_def othercol* r_brac; 
+ plain_row = l_par col_def? othercol* r_par;
+ 
+ // col def is an expression, a prop, or a relationship
  col_def = {expr} expr 
 		| {prop} prop 
 		| {relation} relationship
 		;
  
- // creating another column
+ // to have multiple cols within the gen_row and plain_row
  othercol =  comma col_def;
  
- // different ways to define col_def within operations
- gen_row = l_brac  col_def othercol* r_brac; // generic row
- plain_row = l_par col_def? othercol* r_par;
+ // NOUN ::: id = [coldef1, coldef2, coldef3...]
+ // generic is the catch all
+ // then we have defined a few specific ones
+ // code alpha is the only noun which differs
+ noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
+ othernoun =  comma noun;
  
- // example - output of any operation
- operation_formula = id plain_row asop?;
- 
- // operations on a frame with explicit parameters
- frameop = id l_par noun othernoun* r_par asop?; // any operation on the frame. we will pick up the name through reflection
- 
- prop = id equal scalar;
-
- // s=[col, col, col...]
+ generic = id equal gen_row;
  selectors = selectorid  gen_row;
  projectors = projectid  gen_row;
  labels = labelid  gen_row;
  props = propid gen_row;
  tooltips = tooltipid gen_row;
  joins = joinid  gen_row;
- generic = id equal gen_row;
- 
- noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
- othernoun =  comma noun;
 
+ // TODO: determine if we still need this
+ prop = id equal scalar;
+ 
  // operation used for aliasing columns
  asop = as_op l_par gen_row r_par;
  
  // relationship is used for joins within a database and table joining when adding new data to existing frame
  relationship = l_par [lcol]:col_def rel_type [rcol]:col_def r_par; 
+ 
+ ///////////////////////////////////////////////////////////////////////
+ ////////////////////////// END COMPOSITES  ////////////////////////////
+ ///////////////////////////////////////////////////////////////////////
+ 
+ 
+ 
+ ///////////////////////////////////////////////////////////////////////
+ ////////////////////////////// OTHER  /////////////////////////////////
+ ///////////////////////////////////////////////////////////////////////
+  
+ // for java and r operations
+ java_op = java;
+ r_op = r;
+
+ // reference - this means the 4th column in the current frame
+ rcol = frameprefix number; // f$4
+ dotcol = frameid dot [column_name]:id; // f.Title
+ 
+ ///////////////////////////////////////////////////////////////////////
+ //////////////////////////// END OTHER  ///////////////////////////////
+ ///////////////////////////////////////////////////////////////////////
+
+ 
+ 
+ ///////////////////////////////////////////////////////////////////////
+ ///////////////////////// LOWEST LEVEL ////////////////////////////////
+ ///////////////////////////////////////////////////////////////////////
+ 
+ // word or id or number
+ scalar = {num} decimal | {word_or_id} word_or_id | {boolean} boolean;
+ 
+ // word or an id
+ word_or_id = {word} word | {id} id;
+ 
+ // numbers
+ decimal = {whole_decimal} whole_decimal | {fraction_decimal} fraction_decimal;
+ whole_decimal = [whole]:number dot? [fraction]:number?;
+ fraction_decimal = dot [fraction]:number;
+ 
+ ///////////////////////////////////////////////////////////////////////
+ /////////////////////// END LOWEST LEVEL //////////////////////////////
+ ///////////////////////////////////////////////////////////////////////
+ 

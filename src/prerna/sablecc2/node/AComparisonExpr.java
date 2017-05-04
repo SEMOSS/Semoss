@@ -7,9 +7,9 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AComparisonExpr extends PExpr
 {
-    private PExprComponent _left_;
+    private PBaseExpr _left_;
     private TComparator _comparator_;
-    private PExpr _right_;
+    private PBaseExpr _right_;
 
     public AComparisonExpr()
     {
@@ -17,9 +17,9 @@ public final class AComparisonExpr extends PExpr
     }
 
     public AComparisonExpr(
-        @SuppressWarnings("hiding") PExprComponent _left_,
+        @SuppressWarnings("hiding") PBaseExpr _left_,
         @SuppressWarnings("hiding") TComparator _comparator_,
-        @SuppressWarnings("hiding") PExpr _right_)
+        @SuppressWarnings("hiding") PBaseExpr _right_)
     {
         // Constructor
         setLeft(_left_);
@@ -45,12 +45,12 @@ public final class AComparisonExpr extends PExpr
         ((Analysis) sw).caseAComparisonExpr(this);
     }
 
-    public PExprComponent getLeft()
+    public PBaseExpr getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PExprComponent node)
+    public void setLeft(PBaseExpr node)
     {
         if(this._left_ != null)
         {
@@ -95,12 +95,12 @@ public final class AComparisonExpr extends PExpr
         this._comparator_ = node;
     }
 
-    public PExpr getRight()
+    public PBaseExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PExpr node)
+    public void setRight(PBaseExpr node)
     {
         if(this._right_ != null)
         {
@@ -160,7 +160,7 @@ public final class AComparisonExpr extends PExpr
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PExprComponent) newChild);
+            setLeft((PBaseExpr) newChild);
             return;
         }
 
@@ -172,7 +172,7 @@ public final class AComparisonExpr extends PExpr
 
         if(this._right_ == oldChild)
         {
-            setRight((PExpr) newChild);
+            setRight((PBaseExpr) newChild);
             return;
         }
 

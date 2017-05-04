@@ -5,26 +5,26 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AModExpr extends PExpr
+public final class AMultBaseExpr extends PBaseExpr
 {
     private PExprComponent _left_;
-    private TMod _mod_;
-    private PExpr _right_;
+    private TMult _mult_;
+    private PBaseExpr _right_;
 
-    public AModExpr()
+    public AMultBaseExpr()
     {
         // Constructor
     }
 
-    public AModExpr(
+    public AMultBaseExpr(
         @SuppressWarnings("hiding") PExprComponent _left_,
-        @SuppressWarnings("hiding") TMod _mod_,
-        @SuppressWarnings("hiding") PExpr _right_)
+        @SuppressWarnings("hiding") TMult _mult_,
+        @SuppressWarnings("hiding") PBaseExpr _right_)
     {
         // Constructor
         setLeft(_left_);
 
-        setMod(_mod_);
+        setMult(_mult_);
 
         setRight(_right_);
 
@@ -33,16 +33,16 @@ public final class AModExpr extends PExpr
     @Override
     public Object clone()
     {
-        return new AModExpr(
+        return new AMultBaseExpr(
             cloneNode(this._left_),
-            cloneNode(this._mod_),
+            cloneNode(this._mult_),
             cloneNode(this._right_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAModExpr(this);
+        ((Analysis) sw).caseAMultBaseExpr(this);
     }
 
     public PExprComponent getLeft()
@@ -70,16 +70,16 @@ public final class AModExpr extends PExpr
         this._left_ = node;
     }
 
-    public TMod getMod()
+    public TMult getMult()
     {
-        return this._mod_;
+        return this._mult_;
     }
 
-    public void setMod(TMod node)
+    public void setMult(TMult node)
     {
-        if(this._mod_ != null)
+        if(this._mult_ != null)
         {
-            this._mod_.parent(null);
+            this._mult_.parent(null);
         }
 
         if(node != null)
@@ -92,15 +92,15 @@ public final class AModExpr extends PExpr
             node.parent(this);
         }
 
-        this._mod_ = node;
+        this._mult_ = node;
     }
 
-    public PExpr getRight()
+    public PBaseExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PExpr node)
+    public void setRight(PBaseExpr node)
     {
         if(this._right_ != null)
         {
@@ -125,7 +125,7 @@ public final class AModExpr extends PExpr
     {
         return ""
             + toString(this._left_)
-            + toString(this._mod_)
+            + toString(this._mult_)
             + toString(this._right_);
     }
 
@@ -139,9 +139,9 @@ public final class AModExpr extends PExpr
             return;
         }
 
-        if(this._mod_ == child)
+        if(this._mult_ == child)
         {
-            this._mod_ = null;
+            this._mult_ = null;
             return;
         }
 
@@ -164,15 +164,15 @@ public final class AModExpr extends PExpr
             return;
         }
 
-        if(this._mod_ == oldChild)
+        if(this._mult_ == oldChild)
         {
-            setMod((TMod) newChild);
+            setMult((TMult) newChild);
             return;
         }
 
         if(this._right_ == oldChild)
         {
-            setRight((PExpr) newChild);
+            setRight((PBaseExpr) newChild);
             return;
         }
 
