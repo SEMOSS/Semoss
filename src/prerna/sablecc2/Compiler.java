@@ -35,17 +35,23 @@ public class Compiler
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\test2.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Input.smss";
 		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("test2");
+		coreEngine.setEngineName("Input");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("test2", coreEngine);
+		DIHelper.getInstance().setLocalProperty("Input", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Proposal.smss";
 		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.setEngineName("Proposal");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
+		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName("Movie_RDBMS");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 		
 		try
 		{
@@ -67,6 +73,20 @@ public class Compiler
 													//+ "sum((2*abc)+product(5,2));"
 													//+ "sum(<c>System.out.println(1);<c>).try(c=['hello']);"
 													
+													
+													+ "plan = Database(\"Input\") "
+													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
+													+ "| Iterate() "
+													+ "| LoadClient(assignment = ['Alias_1'], value = ['Value_1']);"
+													+ "proposals = Database(\"Proposal\") "
+													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version) "
+													+ "| Iterate();"
+													+ "executedPlan = RunPlan(PLANNER = [plan]);"
+//													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]);"
+//													+ "planData = RunTaxPlan(PLANNER = [plan], PROPOSALS = [proposals]); "
+
+													
+													
 //													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
 //													+ "Frame() | Select(Studio, Sum(Movie_Budget)) | Group(Studio) | Iterate();"
 //													
@@ -74,13 +94,13 @@ public class Compiler
 //													+ "Job('job1') | AddFormat(formatName = ['d1'], type = ['table']) | "
 //													+ "AddOptions(optionsName = ['o1'], label = ['Studio'], value = ['Sum_MovieBudget']) | "
 //													+ "Export(target = ['bar'], formatName = ['d1'], optionsName = ['o1']) | Collect(10);"
-
+//													+ " ( Sum(Movie_Budget) / 10000000 + (2*5/3) ) ^ 7;"
 //													+ "x = 5; y = 7; if( (x*60 > y*8.9), Median(10,3,4,5,6,6), 20.5);"
-													+ "Database(\"test2\") | "
-													+ "Select(UPDATEDINPUTCSV, UPDATEDINPUTCSV__Alias_1, UPDATEDINPUTCSV__Client_ID, UPDATEDINPUTCSV__FieldName, UPDATEDINPUTCSV__FormName, UPDATEDINPUTCSV__Scenario, UPDATEDINPUTCSV__Type_1, UPDATEDINPUTCSV__Value_1, UPDATEDINPUTCSV__Version) | "
-													+ "Iterate() | "
-													+ "(plan = LoadClient(assignment = ['Alias_1'], value = ['Value_1'], separator = ['__']) ); "
-													+ "retData = RunPlan(PLANNER = [plan]); "
+//													+ "Database(\"test2\") | "
+//													+ "Select(UPDATEDINPUTCSV, UPDATEDINPUTCSV__Alias_1, UPDATEDINPUTCSV__Client_ID, UPDATEDINPUTCSV__FieldName, UPDATEDINPUTCSV__FormName, UPDATEDINPUTCSV__Scenario, UPDATEDINPUTCSV__Type_1, UPDATEDINPUTCSV__Value_1, UPDATEDINPUTCSV__Version) | "
+//													+ "Iterate() | "
+//													+ "(plan = LoadClient(assignment = ['Alias_1'], value = ['Value_1'], separator = ['__']) ); "
+//													+ "retData = RunPlan(PLANNER = [plan]); "
 //													+ "UpdatePlan(PLANNER = [plan], store=[retData], pksls=["
 //																		+ "\"ATAX_REFORM_SCENARIOS__SELECTED_LIMITATION_FOR_163J = 1000;\" "
 //																		+ ", \"AFORECASTING_PERCENTAGE__11__TOTAL_INCOME = 37322000;\" "

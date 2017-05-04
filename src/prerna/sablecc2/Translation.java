@@ -12,11 +12,10 @@ import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ACodeNoun;
+import prerna.sablecc2.node.AComparisonExpr;
 import prerna.sablecc2.node.ADivExpr;
 import prerna.sablecc2.node.ADotcol;
-import prerna.sablecc2.node.ADotcolColDef;
 import prerna.sablecc2.node.AEmbeddedAssignment;
-import prerna.sablecc2.node.AFilter;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AFrameop;
@@ -519,17 +518,6 @@ public class Translation extends DepthFirstAdapter {
         }
     }
 
-    // this is a higher level method which is kind of useless
-    public void inADotcolColDef(ADotcolColDef node)
-    {
-        defaultIn(node);
-    }
-
-    public void outADotcolColDef(ADotcolColDef node)
-    {
-        defaultOut(node);
-    }
-
     // atomic level stuff goes in here
     @Override
     public void inAWholeDecimal(AWholeDecimal node)
@@ -734,9 +722,9 @@ public class Translation extends DepthFirstAdapter {
         defaultOut(node);
     }
 
-    public void inAFilter(AFilter node)
-    {
-        defaultIn(node);
+    @Override
+    public void inAComparisonExpr(AComparisonExpr node) {
+    	defaultIn(node);
         IReactor opReactor = new FilterReactor();
         opReactor.setName("Filter");
         opReactor.setPKSL("Filter", node.toString().trim());
@@ -746,27 +734,28 @@ public class Translation extends DepthFirstAdapter {
         // Need some way to track the state to say all the other things are interim
         // so I can interpret the dot notation etc for frame columns
     }
-
-    public void outAFilter(AFilter node) {
-        defaultOut(node);
-        deInitReactor();
+    
+    @Override
+    public void outAComparisonExpr(AComparisonExpr node) {
+    	 defaultOut(node);
+         deInitReactor();
     }
     
     @Override
-    public void caseAFilter(AFilter node)
+    public void caseAComparisonExpr(AComparisonExpr node)
     {
-        inAFilter(node);
+    	inAComparisonExpr(node);
 //        if(node.getLPar() != null)
 //        {
 //            node.getLPar().apply(this);
 //        }
-        if(node.getLcol() != null)
+        if(node.getLeft() != null)
         {
         	// we will change the curNoun here
         	// so when we hit a literal
         	// it will be cast to the appropriate type
         	curReactor.curNoun("LCOL");
-        	node.getLcol().apply(this);
+        	node.getLeft().apply(this);
             // we need to account for various expressions being evaluated within a filter
             // if there is a result, grab the result and set it as a lcol in the filter reactor
             NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
@@ -782,13 +771,13 @@ public class Translation extends DepthFirstAdapter {
 //        {
 //            node.getComparator().apply(this);
 //        }
-        if(node.getRcol() != null)
+        if(node.getRight() != null)
         {
             // we will change the curNoun here
         	// so when we hit a literal
         	// it will be cast to the appropriate type
         	curReactor.curNoun("RCOL");
-        	node.getRcol().apply(this);
+        	node.getRight().apply(this);
             // we need to account for various expressions being evaluated within a filter
             // if there is a result, grab the result and set it as a lcol in the filter reactor
             NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
@@ -802,7 +791,7 @@ public class Translation extends DepthFirstAdapter {
 //        {
 //            node.getRPar().apply(this);
 //        }
-        outAFilter(node);
+        outAComparisonExpr(node);
     }
     
     /**************************************************
