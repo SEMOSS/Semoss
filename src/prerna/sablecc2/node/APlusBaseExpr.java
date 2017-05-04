@@ -5,26 +5,26 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADivExpr extends PExpr
+public final class APlusBaseExpr extends PBaseExpr
 {
     private PExprComponent _left_;
-    private TDiv _div_;
-    private PExpr _right_;
+    private TPlus _plus_;
+    private PBaseExpr _right_;
 
-    public ADivExpr()
+    public APlusBaseExpr()
     {
         // Constructor
     }
 
-    public ADivExpr(
+    public APlusBaseExpr(
         @SuppressWarnings("hiding") PExprComponent _left_,
-        @SuppressWarnings("hiding") TDiv _div_,
-        @SuppressWarnings("hiding") PExpr _right_)
+        @SuppressWarnings("hiding") TPlus _plus_,
+        @SuppressWarnings("hiding") PBaseExpr _right_)
     {
         // Constructor
         setLeft(_left_);
 
-        setDiv(_div_);
+        setPlus(_plus_);
 
         setRight(_right_);
 
@@ -33,16 +33,16 @@ public final class ADivExpr extends PExpr
     @Override
     public Object clone()
     {
-        return new ADivExpr(
+        return new APlusBaseExpr(
             cloneNode(this._left_),
-            cloneNode(this._div_),
+            cloneNode(this._plus_),
             cloneNode(this._right_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADivExpr(this);
+        ((Analysis) sw).caseAPlusBaseExpr(this);
     }
 
     public PExprComponent getLeft()
@@ -70,16 +70,16 @@ public final class ADivExpr extends PExpr
         this._left_ = node;
     }
 
-    public TDiv getDiv()
+    public TPlus getPlus()
     {
-        return this._div_;
+        return this._plus_;
     }
 
-    public void setDiv(TDiv node)
+    public void setPlus(TPlus node)
     {
-        if(this._div_ != null)
+        if(this._plus_ != null)
         {
-            this._div_.parent(null);
+            this._plus_.parent(null);
         }
 
         if(node != null)
@@ -92,15 +92,15 @@ public final class ADivExpr extends PExpr
             node.parent(this);
         }
 
-        this._div_ = node;
+        this._plus_ = node;
     }
 
-    public PExpr getRight()
+    public PBaseExpr getRight()
     {
         return this._right_;
     }
 
-    public void setRight(PExpr node)
+    public void setRight(PBaseExpr node)
     {
         if(this._right_ != null)
         {
@@ -125,7 +125,7 @@ public final class ADivExpr extends PExpr
     {
         return ""
             + toString(this._left_)
-            + toString(this._div_)
+            + toString(this._plus_)
             + toString(this._right_);
     }
 
@@ -139,9 +139,9 @@ public final class ADivExpr extends PExpr
             return;
         }
 
-        if(this._div_ == child)
+        if(this._plus_ == child)
         {
-            this._div_ = null;
+            this._plus_ = null;
             return;
         }
 
@@ -164,15 +164,15 @@ public final class ADivExpr extends PExpr
             return;
         }
 
-        if(this._div_ == oldChild)
+        if(this._plus_ == oldChild)
         {
-            setDiv((TDiv) newChild);
+            setPlus((TPlus) newChild);
             return;
         }
 
         if(this._right_ == oldChild)
         {
-            setRight((PExpr) newChild);
+            setRight((PBaseExpr) newChild);
             return;
         }
 

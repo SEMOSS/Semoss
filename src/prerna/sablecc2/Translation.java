@@ -13,7 +13,7 @@ import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AComparisonExpr;
-import prerna.sablecc2.node.ADivExpr;
+import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.AEmbeddedAssignment;
 import prerna.sablecc2.node.AFormula;
@@ -23,14 +23,14 @@ import prerna.sablecc2.node.AFrameopRegTerm;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AList;
-import prerna.sablecc2.node.AMinusExpr;
-import prerna.sablecc2.node.AModExpr;
-import prerna.sablecc2.node.AMultExpr;
+import prerna.sablecc2.node.AMinusBaseExpr;
+import prerna.sablecc2.node.AModBaseExpr;
+import prerna.sablecc2.node.AMultBaseExpr;
 import prerna.sablecc2.node.ANegTerm;
 import prerna.sablecc2.node.AOperationFormula;
 import prerna.sablecc2.node.AOpformulaRegTerm;
 import prerna.sablecc2.node.AOutputRoutine;
-import prerna.sablecc2.node.APlusExpr;
+import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
@@ -45,7 +45,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
-import prerna.sablecc2.reactor.FilterReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
@@ -54,6 +53,7 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
+import prerna.sablecc2.reactor.expression.OpFilter;
 import prerna.sablecc2.reactor.qs.AsReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -725,74 +725,100 @@ public class Translation extends DepthFirstAdapter {
     @Override
     public void inAComparisonExpr(AComparisonExpr node) {
     	defaultIn(node);
-        IReactor opReactor = new FilterReactor();
-        opReactor.setName("Filter");
-        opReactor.setPKSL("Filter", node.toString().trim());
-        initReactor(opReactor);
-        GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
-        genRow.add(node.getComparator().toString().trim(), PkslDataTypes.COMPARATOR);
+    	// I feel like mostly it would be this and not frame op
+    	// I almost feel I should remove the frame op col def
+    	IReactor opReactor = new OpFilter();
+    	initReactor(opReactor);
+    	syncResult();
+
+//    	defaultIn(node);
+//        IReactor opReactor = new FilterReactor();
+//        opReactor.setName("Filter");
+//        opReactor.setPKSL("Filter", node.toString().trim());
+//        initReactor(opReactor);
+//        GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
+//        genRow.add(node.getComparator().toString().trim(), PkslDataTypes.COMPARATOR);
         // Need some way to track the state to say all the other things are interim
         // so I can interpret the dot notation etc for frame columns
     }
-    
+
     @Override
     public void outAComparisonExpr(AComparisonExpr node) {
-    	 defaultOut(node);
-         deInitReactor();
+    	defaultOut(node);
+    	deInitReactor();
     }
-    
-    @Override
+
     public void caseAComparisonExpr(AComparisonExpr node)
     {
-    	inAComparisonExpr(node);
-//        if(node.getLPar() != null)
-//        {
-//            node.getLPar().apply(this);
-//        }
+        inAComparisonExpr(node);
         if(node.getLeft() != null)
         {
-        	// we will change the curNoun here
-        	// so when we hit a literal
-        	// it will be cast to the appropriate type
-        	curReactor.curNoun("LCOL");
-        	node.getLeft().apply(this);
-            // we need to account for various expressions being evaluated within a filter
-            // if there is a result, grab the result and set it as a lcol in the filter reactor
-            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
-        	if(prevResult != null) {
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("LCOL");
-        		genRow.add(prevResult, prevResult.getNounName());
-        		this.planner.removeVariable("$RESULT");
-        	}
+            node.getLeft().apply(this);
         }
-        // we put the comparator into the noun store of the filter
-        // during the init of the filter reactor
-//        if(node.getComparator() != null)
-//        {
+        if(node.getComparator() != null)
+        {
 //            node.getComparator().apply(this);
-//        }
+        	curReactor.getCurRow().addLiteral(node.getComparator().toString().trim());
+        }
         if(node.getRight() != null)
         {
-            // we will change the curNoun here
-        	// so when we hit a literal
-        	// it will be cast to the appropriate type
-        	curReactor.curNoun("RCOL");
-        	node.getRight().apply(this);
-            // we need to account for various expressions being evaluated within a filter
-            // if there is a result, grab the result and set it as a lcol in the filter reactor
-            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
-        	if(prevResult != null) {
-        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("RCOL");
-        		genRow.add(prevResult, prevResult.getNounName());
-        		this.planner.removeVariable("$RESULT");
-        	}
+            node.getRight().apply(this);
         }
-//        if(node.getRPar() != null)
-//        {
-//            node.getRPar().apply(this);
-//        }
         outAComparisonExpr(node);
     }
+    
+//    @Override
+//    public void caseAComparisonExpr(AComparisonExpr node)
+//    {
+//    	inAComparisonExpr(node);
+////        if(node.getLPar() != null)
+////        {
+////            node.getLPar().apply(this);
+////        }
+//        if(node.getLeft() != null)
+//        {
+//        	// we will change the curNoun here
+//        	// so when we hit a literal
+//        	// it will be cast to the appropriate type
+//        	curReactor.curNoun("LCOL");
+//        	node.getLeft().apply(this);
+//            // we need to account for various expressions being evaluated within a filter
+//            // if there is a result, grab the result and set it as a lcol in the filter reactor
+//            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
+//        	if(prevResult != null) {
+//        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("LCOL");
+//        		genRow.add(prevResult, prevResult.getNounName());
+//        		this.planner.removeVariable("$RESULT");
+//        	}
+//        }
+//        // we put the comparator into the noun store of the filter
+//        // during the init of the filter reactor
+////        if(node.getComparator() != null)
+////        {
+////            node.getComparator().apply(this);
+////        }
+//        if(node.getRight() != null)
+//        {
+//            // we will change the curNoun here
+//        	// so when we hit a literal
+//        	// it will be cast to the appropriate type
+//        	curReactor.curNoun("RCOL");
+//        	node.getRight().apply(this);
+//            // we need to account for various expressions being evaluated within a filter
+//            // if there is a result, grab the result and set it as a lcol in the filter reactor
+//            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
+//        	if(prevResult != null) {
+//        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("RCOL");
+//        		genRow.add(prevResult, prevResult.getNounName());
+//        		this.planner.removeVariable("$RESULT");
+//        	}
+//        }
+////        if(node.getRPar() != null)
+////        {
+////            node.getRPar().apply(this);
+////        }
+//        outAComparisonExpr(node);
+//    }
     
     /**************************************************
      *	Expression Methods
@@ -823,7 +849,7 @@ public class Translation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAPlusExpr(APlusExpr node) {
+    public void inAPlusBaseExpr(APlusBaseExpr node) {
         if(curReactor instanceof Assimilator)
         {
         	return;
@@ -840,16 +866,17 @@ public class Translation extends DepthFirstAdapter {
     }
     
     @Override
-    public void outAPlusExpr(APlusExpr node)
+    public void outAPlusBaseExpr(APlusBaseExpr node)
     {
     	defaultOut(node);
     	// deinit this only if this is the same node
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
   			deInitReactor();
+    	}
     }
     
     @Override
-    public void inAMinusExpr(AMinusExpr node) {
+    public void inAMinusBaseExpr(AMinusBaseExpr node) {
         if(curReactor instanceof Assimilator)
         {
         	return;
@@ -875,15 +902,16 @@ public class Translation extends DepthFirstAdapter {
     }
     
     @Override
-    public void outAMinusExpr(AMinusExpr node)
+    public void outAMinusBaseExpr(AMinusBaseExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
-    	deInitReactor();
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
+    		deInitReactor();
+    	}
     }
     
     @Override
-    public void inADivExpr(ADivExpr node) {
+    public void inADivBaseExpr(ADivBaseExpr node) {
         if(curReactor instanceof Assimilator)
         {
         	return;
@@ -900,15 +928,16 @@ public class Translation extends DepthFirstAdapter {
     }
     
     @Override
-    public void outADivExpr(ADivExpr node)
+    public void outADivBaseExpr(ADivBaseExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
-    	deInitReactor();
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
+    		deInitReactor();
+    	}
     }
     
     @Override
-    public void inAMultExpr(AMultExpr node) {
+    public void inAMultBaseExpr(AMultBaseExpr node) {
         if(curReactor instanceof Assimilator)
         {
         	return;
@@ -925,11 +954,12 @@ public class Translation extends DepthFirstAdapter {
     }
     
     @Override
-    public void outAMultExpr(AMultExpr node)
+    public void outAMultBaseExpr(AMultBaseExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
     		deInitReactor();
+    	}
     }
     
     @Override
@@ -948,12 +978,13 @@ public class Translation extends DepthFirstAdapter {
     public void outAPower(APower node) {
     	defaultOut(node);
     	// deinit this only if this is the same node
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
     		deInitReactor();
+    	}
     }
     
     @Override
-    public void inAModExpr(AModExpr node) {
+    public void inAModBaseExpr(AModBaseExpr node) {
         if(curReactor instanceof Assimilator)
         {
         	return;
@@ -979,11 +1010,12 @@ public class Translation extends DepthFirstAdapter {
     }
     
     @Override
-    public void outAModExpr(AModExpr node)
+    public void outAModBaseExpr(AModBaseExpr node)
     {
     	defaultOut(node);
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
-    	deInitReactor();
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
+    		deInitReactor();
+    	}
     }
 
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
