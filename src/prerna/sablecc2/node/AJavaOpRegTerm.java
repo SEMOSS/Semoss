@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AListTerm extends PTerm
+public final class AJavaOpRegTerm extends PRegTerm
 {
-    private PList _list_;
+    private PJavaOp _javaOp_;
 
-    public AListTerm()
+    public AJavaOpRegTerm()
     {
         // Constructor
     }
 
-    public AListTerm(
-        @SuppressWarnings("hiding") PList _list_)
+    public AJavaOpRegTerm(
+        @SuppressWarnings("hiding") PJavaOp _javaOp_)
     {
         // Constructor
-        setList(_list_);
+        setJavaOp(_javaOp_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AListTerm(
-            cloneNode(this._list_));
+        return new AJavaOpRegTerm(
+            cloneNode(this._javaOp_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAListTerm(this);
+        ((Analysis) sw).caseAJavaOpRegTerm(this);
     }
 
-    public PList getList()
+    public PJavaOp getJavaOp()
     {
-        return this._list_;
+        return this._javaOp_;
     }
 
-    public void setList(PList node)
+    public void setJavaOp(PJavaOp node)
     {
-        if(this._list_ != null)
+        if(this._javaOp_ != null)
         {
-            this._list_.parent(null);
+            this._javaOp_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AListTerm extends PTerm
             node.parent(this);
         }
 
-        this._list_ = node;
+        this._javaOp_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._list_);
+            + toString(this._javaOp_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._list_ == child)
+        if(this._javaOp_ == child)
         {
-            this._list_ = null;
+            this._javaOp_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AListTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._list_ == oldChild)
+        if(this._javaOp_ == oldChild)
         {
-            setList((PList) newChild);
+            setJavaOp((PJavaOp) newChild);
             return;
         }
 
