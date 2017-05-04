@@ -165,6 +165,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAComparisonExpr(AComparisonExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseATermExprComponent(ATermExprComponent node)
     {
         defaultCase(node);
@@ -231,6 +237,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARefRegTerm(ARefRegTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADotcolRegTerm(ADotcolRegTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAJavaOpRegTerm(AJavaOpRegTerm node)
     {
         defaultCase(node);
@@ -261,6 +279,84 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseARcol(ARcol node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseADotcol(ADotcol node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAJavaOp(AJavaOp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAROp(AROp node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANumScalar(ANumScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABooleanScalar(ABooleanScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordWordOrId(AWordWordOrId node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAIdWordOrId(AIdWordOrId node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWholeDecimalDecimal(AWholeDecimalDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWholeDecimal(AWholeDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFractionDecimal(AFractionDecimal node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAFormula(AFormula node)
     {
         defaultCase(node);
@@ -280,24 +376,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAExprColDef(AExprColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseARefColDef(ARefColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseADotcolColDef(ADotcolColDef node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFilterColDef(AFilterColDef node)
     {
         defaultCase(node);
     }
@@ -339,67 +417,7 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseARcol(ARcol node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseADotcol(ADotcol node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAWholeDecimalDecimal(AWholeDecimalDecimal node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFractionDecimalDecimal(AFractionDecimalDecimal node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAWholeDecimal(AWholeDecimal node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAFractionDecimal(AFractionDecimal node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAWordWordOrId(AWordWordOrId node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAIdWordOrId(AIdWordOrId node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseANumScalar(ANumScalar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseABooleanScalar(ABooleanScalar node)
+    public void caseAFrameop(AFrameop node)
     {
         defaultCase(node);
     }
@@ -501,37 +519,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAFrameop(AFrameop node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAAsop(AAsop node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAFilter(AFilter node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseARelationship(ARelationship node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAJavaOp(AJavaOp node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAROp(AROp node)
     {
         defaultCase(node);
     }
@@ -693,12 +687,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTFrameid(TFrameid node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTLPar(TLPar node)
     {
         defaultCase(node);
@@ -724,6 +712,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTFrameprefix(TFrameprefix node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTFrameid(TFrameid node)
     {
         defaultCase(node);
     }

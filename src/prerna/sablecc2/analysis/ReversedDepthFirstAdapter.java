@@ -439,6 +439,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAModExpr(node);
     }
 
+    public void inAComparisonExpr(AComparisonExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAComparisonExpr(AComparisonExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAComparisonExpr(AComparisonExpr node)
+    {
+        inAComparisonExpr(node);
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        if(node.getComparator() != null)
+        {
+            node.getComparator().apply(this);
+        }
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        outAComparisonExpr(node);
+    }
+
     public void inATermExprComponent(ATermExprComponent node)
     {
         defaultIn(node);
@@ -678,6 +707,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAFrameopRegTerm(node);
     }
 
+    public void inARefRegTerm(ARefRegTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARefRegTerm(ARefRegTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARefRegTerm(ARefRegTerm node)
+    {
+        inARefRegTerm(node);
+        if(node.getRcol() != null)
+        {
+            node.getRcol().apply(this);
+        }
+        outARefRegTerm(node);
+    }
+
+    public void inADotcolRegTerm(ADotcolRegTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADotcolRegTerm(ADotcolRegTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADotcolRegTerm(ADotcolRegTerm node)
+    {
+        inADotcolRegTerm(node);
+        if(node.getDotcol() != null)
+        {
+            node.getDotcol().apply(this);
+        }
+        outADotcolRegTerm(node);
+    }
+
     public void inAJavaOpRegTerm(AJavaOpRegTerm node)
     {
         defaultIn(node);
@@ -791,6 +862,303 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAPower(node);
     }
 
+    public void inARcol(ARcol node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARcol(ARcol node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARcol(ARcol node)
+    {
+        inARcol(node);
+        if(node.getNumber() != null)
+        {
+            node.getNumber().apply(this);
+        }
+        if(node.getFrameprefix() != null)
+        {
+            node.getFrameprefix().apply(this);
+        }
+        outARcol(node);
+    }
+
+    public void inADotcol(ADotcol node)
+    {
+        defaultIn(node);
+    }
+
+    public void outADotcol(ADotcol node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseADotcol(ADotcol node)
+    {
+        inADotcol(node);
+        if(node.getColumnName() != null)
+        {
+            node.getColumnName().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        if(node.getFrameid() != null)
+        {
+            node.getFrameid().apply(this);
+        }
+        outADotcol(node);
+    }
+
+    public void inAJavaOp(AJavaOp node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAJavaOp(AJavaOp node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAJavaOp(AJavaOp node)
+    {
+        inAJavaOp(node);
+        if(node.getJava() != null)
+        {
+            node.getJava().apply(this);
+        }
+        outAJavaOp(node);
+    }
+
+    public void inAROp(AROp node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAROp(AROp node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAROp(AROp node)
+    {
+        inAROp(node);
+        if(node.getR() != null)
+        {
+            node.getR().apply(this);
+        }
+        outAROp(node);
+    }
+
+    public void inANumScalar(ANumScalar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANumScalar(ANumScalar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANumScalar(ANumScalar node)
+    {
+        inANumScalar(node);
+        if(node.getDecimal() != null)
+        {
+            node.getDecimal().apply(this);
+        }
+        outANumScalar(node);
+    }
+
+    public void inAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordOrIdScalar(AWordOrIdScalar node)
+    {
+        inAWordOrIdScalar(node);
+        if(node.getWordOrId() != null)
+        {
+            node.getWordOrId().apply(this);
+        }
+        outAWordOrIdScalar(node);
+    }
+
+    public void inABooleanScalar(ABooleanScalar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABooleanScalar(ABooleanScalar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABooleanScalar(ABooleanScalar node)
+    {
+        inABooleanScalar(node);
+        if(node.getBoolean() != null)
+        {
+            node.getBoolean().apply(this);
+        }
+        outABooleanScalar(node);
+    }
+
+    public void inAWordWordOrId(AWordWordOrId node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordWordOrId(AWordWordOrId node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordWordOrId(AWordWordOrId node)
+    {
+        inAWordWordOrId(node);
+        if(node.getWord() != null)
+        {
+            node.getWord().apply(this);
+        }
+        outAWordWordOrId(node);
+    }
+
+    public void inAIdWordOrId(AIdWordOrId node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAIdWordOrId(AIdWordOrId node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAIdWordOrId(AIdWordOrId node)
+    {
+        inAIdWordOrId(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
+        outAIdWordOrId(node);
+    }
+
+    public void inAWholeDecimalDecimal(AWholeDecimalDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWholeDecimalDecimal(AWholeDecimalDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWholeDecimalDecimal(AWholeDecimalDecimal node)
+    {
+        inAWholeDecimalDecimal(node);
+        if(node.getWholeDecimal() != null)
+        {
+            node.getWholeDecimal().apply(this);
+        }
+        outAWholeDecimalDecimal(node);
+    }
+
+    public void inAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFractionDecimalDecimal(AFractionDecimalDecimal node)
+    {
+        inAFractionDecimalDecimal(node);
+        if(node.getFractionDecimal() != null)
+        {
+            node.getFractionDecimal().apply(this);
+        }
+        outAFractionDecimalDecimal(node);
+    }
+
+    public void inAWholeDecimal(AWholeDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWholeDecimal(AWholeDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWholeDecimal(AWholeDecimal node)
+    {
+        inAWholeDecimal(node);
+        if(node.getFraction() != null)
+        {
+            node.getFraction().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        if(node.getWhole() != null)
+        {
+            node.getWhole().apply(this);
+        }
+        outAWholeDecimal(node);
+    }
+
+    public void inAFractionDecimal(AFractionDecimal node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFractionDecimal(AFractionDecimal node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFractionDecimal(AFractionDecimal node)
+    {
+        inAFractionDecimal(node);
+        if(node.getFraction() != null)
+        {
+            node.getFraction().apply(this);
+        }
+        if(node.getDot() != null)
+        {
+            node.getDot().apply(this);
+        }
+        outAFractionDecimal(node);
+    }
+
     public void inAFormula(AFormula node)
     {
         defaultIn(node);
@@ -901,69 +1269,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getExpr().apply(this);
         }
         outAExprColDef(node);
-    }
-
-    public void inARefColDef(ARefColDef node)
-    {
-        defaultIn(node);
-    }
-
-    public void outARefColDef(ARefColDef node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseARefColDef(ARefColDef node)
-    {
-        inARefColDef(node);
-        if(node.getRcol() != null)
-        {
-            node.getRcol().apply(this);
-        }
-        outARefColDef(node);
-    }
-
-    public void inADotcolColDef(ADotcolColDef node)
-    {
-        defaultIn(node);
-    }
-
-    public void outADotcolColDef(ADotcolColDef node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseADotcolColDef(ADotcolColDef node)
-    {
-        inADotcolColDef(node);
-        if(node.getDotcol() != null)
-        {
-            node.getDotcol().apply(this);
-        }
-        outADotcolColDef(node);
-    }
-
-    public void inAFilterColDef(AFilterColDef node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFilterColDef(AFilterColDef node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFilterColDef(AFilterColDef node)
-    {
-        inAFilterColDef(node);
-        if(node.getFilter() != null)
-        {
-            node.getFilter().apply(this);
-        }
-        outAFilterColDef(node);
     }
 
     public void inAPropColDef(APropColDef node)
@@ -1136,259 +1441,49 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOperationFormula(node);
     }
 
-    public void inARcol(ARcol node)
+    public void inAFrameop(AFrameop node)
     {
         defaultIn(node);
     }
 
-    public void outARcol(ARcol node)
+    public void outAFrameop(AFrameop node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseARcol(ARcol node)
+    public void caseAFrameop(AFrameop node)
     {
-        inARcol(node);
-        if(node.getNumber() != null)
+        inAFrameop(node);
+        if(node.getAsop() != null)
         {
-            node.getNumber().apply(this);
+            node.getAsop().apply(this);
         }
-        if(node.getFrameprefix() != null)
+        if(node.getRPar() != null)
         {
-            node.getFrameprefix().apply(this);
+            node.getRPar().apply(this);
         }
-        outARcol(node);
-    }
-
-    public void inADotcol(ADotcol node)
-    {
-        defaultIn(node);
-    }
-
-    public void outADotcol(ADotcol node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseADotcol(ADotcol node)
-    {
-        inADotcol(node);
-        if(node.getColumnName() != null)
         {
-            node.getColumnName().apply(this);
+            List<POthernoun> copy = new ArrayList<POthernoun>(node.getOthernoun());
+            Collections.reverse(copy);
+            for(POthernoun e : copy)
+            {
+                e.apply(this);
+            }
         }
-        if(node.getDot() != null)
+        if(node.getNoun() != null)
         {
-            node.getDot().apply(this);
+            node.getNoun().apply(this);
         }
-        if(node.getFrameid() != null)
+        if(node.getLPar() != null)
         {
-            node.getFrameid().apply(this);
+            node.getLPar().apply(this);
         }
-        outADotcol(node);
-    }
-
-    public void inAWholeDecimalDecimal(AWholeDecimalDecimal node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWholeDecimalDecimal(AWholeDecimalDecimal node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWholeDecimalDecimal(AWholeDecimalDecimal node)
-    {
-        inAWholeDecimalDecimal(node);
-        if(node.getWholeDecimal() != null)
-        {
-            node.getWholeDecimal().apply(this);
-        }
-        outAWholeDecimalDecimal(node);
-    }
-
-    public void inAFractionDecimalDecimal(AFractionDecimalDecimal node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFractionDecimalDecimal(AFractionDecimalDecimal node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFractionDecimalDecimal(AFractionDecimalDecimal node)
-    {
-        inAFractionDecimalDecimal(node);
-        if(node.getFractionDecimal() != null)
-        {
-            node.getFractionDecimal().apply(this);
-        }
-        outAFractionDecimalDecimal(node);
-    }
-
-    public void inAWholeDecimal(AWholeDecimal node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWholeDecimal(AWholeDecimal node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWholeDecimal(AWholeDecimal node)
-    {
-        inAWholeDecimal(node);
-        if(node.getFraction() != null)
-        {
-            node.getFraction().apply(this);
-        }
-        if(node.getDot() != null)
-        {
-            node.getDot().apply(this);
-        }
-        if(node.getWhole() != null)
-        {
-            node.getWhole().apply(this);
-        }
-        outAWholeDecimal(node);
-    }
-
-    public void inAFractionDecimal(AFractionDecimal node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFractionDecimal(AFractionDecimal node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFractionDecimal(AFractionDecimal node)
-    {
-        inAFractionDecimal(node);
-        if(node.getFraction() != null)
-        {
-            node.getFraction().apply(this);
-        }
-        if(node.getDot() != null)
-        {
-            node.getDot().apply(this);
-        }
-        outAFractionDecimal(node);
-    }
-
-    public void inAWordWordOrId(AWordWordOrId node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWordWordOrId(AWordWordOrId node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWordWordOrId(AWordWordOrId node)
-    {
-        inAWordWordOrId(node);
-        if(node.getWord() != null)
-        {
-            node.getWord().apply(this);
-        }
-        outAWordWordOrId(node);
-    }
-
-    public void inAIdWordOrId(AIdWordOrId node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAIdWordOrId(AIdWordOrId node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAIdWordOrId(AIdWordOrId node)
-    {
-        inAIdWordOrId(node);
         if(node.getId() != null)
         {
             node.getId().apply(this);
         }
-        outAIdWordOrId(node);
-    }
-
-    public void inANumScalar(ANumScalar node)
-    {
-        defaultIn(node);
-    }
-
-    public void outANumScalar(ANumScalar node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseANumScalar(ANumScalar node)
-    {
-        inANumScalar(node);
-        if(node.getDecimal() != null)
-        {
-            node.getDecimal().apply(this);
-        }
-        outANumScalar(node);
-    }
-
-    public void inAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAWordOrIdScalar(AWordOrIdScalar node)
-    {
-        inAWordOrIdScalar(node);
-        if(node.getWordOrId() != null)
-        {
-            node.getWordOrId().apply(this);
-        }
-        outAWordOrIdScalar(node);
-    }
-
-    public void inABooleanScalar(ABooleanScalar node)
-    {
-        defaultIn(node);
-    }
-
-    public void outABooleanScalar(ABooleanScalar node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseABooleanScalar(ABooleanScalar node)
-    {
-        inABooleanScalar(node);
-        if(node.getBoolean() != null)
-        {
-            node.getBoolean().apply(this);
-        }
-        outABooleanScalar(node);
+        outAFrameop(node);
     }
 
     public void inAProp(AProp node)
@@ -1771,51 +1866,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAOthernoun(node);
     }
 
-    public void inAFrameop(AFrameop node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFrameop(AFrameop node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFrameop(AFrameop node)
-    {
-        inAFrameop(node);
-        if(node.getAsop() != null)
-        {
-            node.getAsop().apply(this);
-        }
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        {
-            List<POthernoun> copy = new ArrayList<POthernoun>(node.getOthernoun());
-            Collections.reverse(copy);
-            for(POthernoun e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getNoun() != null)
-        {
-            node.getNoun().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
-        }
-        outAFrameop(node);
-    }
-
     public void inAAsop(AAsop node)
     {
         defaultIn(node);
@@ -1847,43 +1897,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getAsOp().apply(this);
         }
         outAAsop(node);
-    }
-
-    public void inAFilter(AFilter node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAFilter(AFilter node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAFilter(AFilter node)
-    {
-        inAFilter(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        if(node.getRcol() != null)
-        {
-            node.getRcol().apply(this);
-        }
-        if(node.getComparator() != null)
-        {
-            node.getComparator().apply(this);
-        }
-        if(node.getLcol() != null)
-        {
-            node.getLcol().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        outAFilter(node);
     }
 
     public void inARelationship(ARelationship node)
@@ -1921,47 +1934,5 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getLPar().apply(this);
         }
         outARelationship(node);
-    }
-
-    public void inAJavaOp(AJavaOp node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAJavaOp(AJavaOp node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAJavaOp(AJavaOp node)
-    {
-        inAJavaOp(node);
-        if(node.getJava() != null)
-        {
-            node.getJava().apply(this);
-        }
-        outAJavaOp(node);
-    }
-
-    public void inAROp(AROp node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAROp(AROp node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAROp(AROp node)
-    {
-        inAROp(node);
-        if(node.getR() != null)
-        {
-            node.getR().apply(this);
-        }
-        outAROp(node);
     }
 }
