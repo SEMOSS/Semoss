@@ -9,7 +9,7 @@ public abstract class OpBasic extends OpReactor {
 
 	protected String operation;
 	protected boolean allIntValue = true;
-	
+	protected NounMetadata[] nouns;
 	/*
 	 * This class is to be extended for basic math operations
 	 * To deal with string inputs that need to be evaluated
@@ -22,8 +22,8 @@ public abstract class OpBasic extends OpReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		NounMetadata[] nouns = getValues();
-		Object[] values = evaluateNouns(nouns);
+		this.nouns = getValues();
+		Object[] values = evaluateNouns(this.nouns);
 		NounMetadata result = evaluate(values);
 		return result;
 	}

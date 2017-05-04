@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.sablecc2.om.Filter;
+import prerna.sablecc2.om.Filter2;
 
 public class GenRowFilters {
 
 	// keep the list of filter objects to execute
-	private List<Filter> filterVec = new Vector<Filter>();
+	private List<Filter2> filterVec = new Vector<Filter2>();
 	
 	// keep the list of filtered columns instead of iterating through
 	private Set<String> filteredColumns = new HashSet<String>();
@@ -19,11 +19,11 @@ public class GenRowFilters {
 		
 	}
 
-	public List<Filter> getFilters() {
+	public List<Filter2> getFilters() {
 		return this.filterVec;
 	}
 	
-	public void addFilters(Filter newFilter) {
+	public void addFilters(Filter2 newFilter) {
 		//TODO : add the validation portion
 		//TODO : add the validation portion
 		//TODO : add the validation portion
