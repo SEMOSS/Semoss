@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AScalarTerm extends PTerm
+public final class AFrameopRegTerm extends PRegTerm
 {
-    private PScalar _scalar_;
+    private PFrameop _frameop_;
 
-    public AScalarTerm()
+    public AFrameopRegTerm()
     {
         // Constructor
     }
 
-    public AScalarTerm(
-        @SuppressWarnings("hiding") PScalar _scalar_)
+    public AFrameopRegTerm(
+        @SuppressWarnings("hiding") PFrameop _frameop_)
     {
         // Constructor
-        setScalar(_scalar_);
+        setFrameop(_frameop_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AScalarTerm(
-            cloneNode(this._scalar_));
+        return new AFrameopRegTerm(
+            cloneNode(this._frameop_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAScalarTerm(this);
+        ((Analysis) sw).caseAFrameopRegTerm(this);
     }
 
-    public PScalar getScalar()
+    public PFrameop getFrameop()
     {
-        return this._scalar_;
+        return this._frameop_;
     }
 
-    public void setScalar(PScalar node)
+    public void setFrameop(PFrameop node)
     {
-        if(this._scalar_ != null)
+        if(this._frameop_ != null)
         {
-            this._scalar_.parent(null);
+            this._frameop_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AScalarTerm extends PTerm
             node.parent(this);
         }
 
-        this._scalar_ = node;
+        this._frameop_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._scalar_);
+            + toString(this._frameop_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._scalar_ == child)
+        if(this._frameop_ == child)
         {
-            this._scalar_ = null;
+            this._frameop_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AScalarTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._scalar_ == oldChild)
+        if(this._frameop_ == oldChild)
         {
-            setScalar((PScalar) newChild);
+            setFrameop((PFrameop) newChild);
             return;
         }
 

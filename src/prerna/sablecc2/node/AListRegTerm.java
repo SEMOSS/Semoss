@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFormulaTerm extends PTerm
+public final class AListRegTerm extends PRegTerm
 {
-    private PFormula _formula_;
+    private PList _list_;
 
-    public AFormulaTerm()
+    public AListRegTerm()
     {
         // Constructor
     }
 
-    public AFormulaTerm(
-        @SuppressWarnings("hiding") PFormula _formula_)
+    public AListRegTerm(
+        @SuppressWarnings("hiding") PList _list_)
     {
         // Constructor
-        setFormula(_formula_);
+        setList(_list_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFormulaTerm(
-            cloneNode(this._formula_));
+        return new AListRegTerm(
+            cloneNode(this._list_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFormulaTerm(this);
+        ((Analysis) sw).caseAListRegTerm(this);
     }
 
-    public PFormula getFormula()
+    public PList getList()
     {
-        return this._formula_;
+        return this._list_;
     }
 
-    public void setFormula(PFormula node)
+    public void setList(PList node)
     {
-        if(this._formula_ != null)
+        if(this._list_ != null)
         {
-            this._formula_.parent(null);
+            this._list_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AFormulaTerm extends PTerm
             node.parent(this);
         }
 
-        this._formula_ = node;
+        this._list_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._formula_);
+            + toString(this._list_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._formula_ == child)
+        if(this._list_ == child)
         {
-            this._formula_ = null;
+            this._list_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AFormulaTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._formula_ == oldChild)
+        if(this._list_ == oldChild)
         {
-            setFormula((PFormula) newChild);
+            setList((PList) newChild);
             return;
         }
 

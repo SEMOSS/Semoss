@@ -171,19 +171,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseANegTermExprComponent(ANegTermExprComponent node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAPosTermExprComponent(APosTermExprComponent node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAPowerExprComponent(APowerExprComponent node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARegTermTerm(ARegTermTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANegTermTerm(ANegTermTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAPosTermTerm(APosTermTerm node)
     {
         defaultCase(node);
     }
@@ -201,49 +207,49 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAScalarTerm(AScalarTerm node)
+    public void caseAScalarRegTerm(AScalarRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAFormulaTerm(AFormulaTerm node)
+    public void caseAFormulaRegTerm(AFormulaRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAOpformulaTerm(AOpformulaTerm node)
+    public void caseAOpformulaRegTerm(AOpformulaRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAFrameopTerm(AFrameopTerm node)
+    public void caseAFrameopRegTerm(AFrameopRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAJavaOpTerm(AJavaOpTerm node)
+    public void caseAJavaOpRegTerm(AJavaOpRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAROpTerm(AROpTerm node)
+    public void caseAROpRegTerm(AROpRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAListTerm(AListTerm node)
+    public void caseAListRegTerm(AListRegTerm node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseACsvTerm(ACsvTerm node)
+    public void caseACsvRegTerm(ACsvRegTerm node)
     {
         defaultCase(node);
     }

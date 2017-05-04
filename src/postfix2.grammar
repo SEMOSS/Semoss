@@ -104,13 +104,15 @@ Productions
   | {mod} [left]:expr_component mod [right]:expr
   ;
   
- expr_component = {term} term | {neg_term} neg_term | {pos_term} pos_term | {power} power;
+ expr_component = {term} term | {power} power;
+ 
+ term = {reg_term} reg_term | {neg_term} neg_term | {pos_term} pos_term;
  
  // to accomodate for -var and +var 
  neg_term = minus term;
  pos_term = plus term;
  
- term =
+ reg_term =
     {scalar} scalar
 	| {formula} formula
 	| {opformula} operation_formula
@@ -124,6 +126,7 @@ Productions
  
  // to handle something raised to a power
  power = [base]:term pow [exponent]:term;
+ 
  
  // need to able to group formulas together
  // will call this a formula
