@@ -12,6 +12,8 @@ import prerna.sablecc2.reactor.export.job.JobReactor;
 import prerna.sablecc2.reactor.export.job.SetFormatReactor;
 import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
+import prerna.sablecc2.reactor.expression.OpAnd;
+import prerna.sablecc2.reactor.expression.OpFilter;
 import prerna.sablecc2.reactor.expression.OpLarge;
 import prerna.sablecc2.reactor.expression.OpMatch;
 import prerna.sablecc2.reactor.expression.OpMax;
@@ -24,7 +26,6 @@ import prerna.sablecc2.reactor.expression.OpSmall;
 import prerna.sablecc2.reactor.expression.OpSum;
 import prerna.sablecc2.reactor.expression.OpSumIf;
 import prerna.sablecc2.reactor.expression.OpSumProduct;
-import prerna.sablecc2.reactor.expression.OpAnd;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.planner.CreateStoreReactor;
@@ -101,7 +102,7 @@ public class ReactorFactory {
 		reactorHash.put("Select", SelectReactor.class); //builds the select portion of the QS
 		reactorHash.put("Average", AverageReactor.class);
 		reactorHash.put("Sum", SumReactor.class);
-		
+
 		reactorHash.put("Group", GroupByReactor.class);
 		reactorHash.put("Limit", LimitReactor.class);
 		reactorHash.put("Offset", OffsetReactor.class);

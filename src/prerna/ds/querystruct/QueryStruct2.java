@@ -17,8 +17,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.ds.QueryStruct;
-import prerna.ds.util.H2FilterHash;
-import prerna.sablecc2.om.Filter;
+import prerna.sablecc2.om.Filter2;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -113,8 +112,7 @@ public class QueryStruct2 {
 		this.selectors.add(selector);
 	}
 	
-	
-	public void addFilter(Filter newFilter) {		
+	public void addFilter(Filter2 newFilter) {		
 		this.filters.addFilters(newFilter);
 	}
 	
