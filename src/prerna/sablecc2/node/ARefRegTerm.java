@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFilterColDef extends PColDef
+public final class ARefRegTerm extends PRegTerm
 {
-    private PFilter _filter_;
+    private PRcol _rcol_;
 
-    public AFilterColDef()
+    public ARefRegTerm()
     {
         // Constructor
     }
 
-    public AFilterColDef(
-        @SuppressWarnings("hiding") PFilter _filter_)
+    public ARefRegTerm(
+        @SuppressWarnings("hiding") PRcol _rcol_)
     {
         // Constructor
-        setFilter(_filter_);
+        setRcol(_rcol_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFilterColDef(
-            cloneNode(this._filter_));
+        return new ARefRegTerm(
+            cloneNode(this._rcol_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFilterColDef(this);
+        ((Analysis) sw).caseARefRegTerm(this);
     }
 
-    public PFilter getFilter()
+    public PRcol getRcol()
     {
-        return this._filter_;
+        return this._rcol_;
     }
 
-    public void setFilter(PFilter node)
+    public void setRcol(PRcol node)
     {
-        if(this._filter_ != null)
+        if(this._rcol_ != null)
         {
-            this._filter_.parent(null);
+            this._rcol_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AFilterColDef extends PColDef
             node.parent(this);
         }
 
-        this._filter_ = node;
+        this._rcol_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._filter_);
+            + toString(this._rcol_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._filter_ == child)
+        if(this._rcol_ == child)
         {
-            this._filter_ = null;
+            this._rcol_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AFilterColDef extends PColDef
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._filter_ == oldChild)
+        if(this._rcol_ == oldChild)
         {
-            setFilter((PFilter) newChild);
+            setRcol((PRcol) newChild);
             return;
         }
 

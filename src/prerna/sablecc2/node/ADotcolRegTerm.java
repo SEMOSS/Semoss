@@ -5,16 +5,16 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ADotcolColDef extends PColDef
+public final class ADotcolRegTerm extends PRegTerm
 {
     private PDotcol _dotcol_;
 
-    public ADotcolColDef()
+    public ADotcolRegTerm()
     {
         // Constructor
     }
 
-    public ADotcolColDef(
+    public ADotcolRegTerm(
         @SuppressWarnings("hiding") PDotcol _dotcol_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class ADotcolColDef extends PColDef
     @Override
     public Object clone()
     {
-        return new ADotcolColDef(
+        return new ADotcolRegTerm(
             cloneNode(this._dotcol_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseADotcolColDef(this);
+        ((Analysis) sw).caseADotcolRegTerm(this);
     }
 
     public PDotcol getDotcol()
