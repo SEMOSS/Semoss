@@ -25,7 +25,11 @@ public class Filter {
 	{
 		this.lComparison = lComparison;
 		this.rComparison = rComparison;
-		this.comparator = comparator;
+		if("<>".equals(comparator)) {
+			this.comparator = "!=";
+		} else {
+			this.comparator = comparator;
+		}
 	}
 
 	public GenRowStruct getLComparison() {
