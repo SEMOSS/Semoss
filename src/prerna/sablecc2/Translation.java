@@ -25,6 +25,7 @@ import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AList;
 import prerna.sablecc2.node.AMinusExpr;
+import prerna.sablecc2.node.AModExpr;
 import prerna.sablecc2.node.AMultExpr;
 import prerna.sablecc2.node.ANegTerm;
 import prerna.sablecc2.node.AOperationFormula;
@@ -588,11 +589,6 @@ public class Translation extends DepthFirstAdapter {
     	}
     }
 
-    public void outAWholeDecimal(AWholeDecimal node)
-    {
-    	defaultOut(node);
-    }
-    
     @Override
     public void inAFractionDecimal(AFractionDecimal node)
     {
@@ -619,12 +615,74 @@ public class Translation extends DepthFirstAdapter {
     		this.planner.addVariable("$RESULT", noun);
     	}
     }
-
-    @Override
-    public void outAFractionDecimal(AFractionDecimal node)
-    {
-    	defaultOut(node);
-    }
+    
+//    @Override
+//    public void inAPercentageWholeDecimal(APercentageWholeDecimal node) {
+//    	defaultIn(node);
+//    	String whole = "";
+//    	String fraction = "";
+//    	// get the whole portion
+//    	if(node.getWhole() != null) {
+//    		whole = node.getWhole().toString().trim();
+//    	}
+//    	// get the fraction portion
+//    	if(node.getFraction() != null) {
+//    		fraction = (node.getFraction()+"").trim();
+//    	} else {
+//    		fraction = "0";
+//    	}
+//		Number retNum = new BigDecimal(whole + "." + fraction).divide(new BigDecimal(100));
+//    	// determine if it is a negative
+//    	// in which case, multiply by -1
+////    	if(node.getPosOrNeg() != null) {
+////    		String posOrNeg = node.getPosOrNeg().toString().trim();
+////    		if(posOrNeg.equals("-")) {
+////    			if(isDouble) {
+////        			retNum = -1.0 * retNum.doubleValue();
+////    			} else {
+////        			retNum = -1 * retNum.intValue();
+////    			}
+////    		}
+////    	}
+//    	NounMetadata noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+//    	if(curReactor != null) {
+//    		curReactor.getCurRow().add(noun);
+//	    	// modify the parent such that the signature has the correct
+//	    	// value of the numerical without any extra spaces
+//	    	// plain string will always modify to a integer even if we return double value
+//	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+//    	} else {
+//    		// looks like you just have a number...
+//    		// i guess i will return this?
+//    		this.planner.addVariable("$RESULT", noun);
+//    	}
+//    }
+//    
+//    @Override
+//    public void inAPercentageFractionDecimal(APercentageFractionDecimal node) {
+//    	defaultIn(node);
+//    	String fraction = (node.getFraction()+"").trim();
+//		Number retNum = new BigDecimal("0.00" + fraction);
+//    	// determine if it is a negative
+//    	// in which case, multiply by -1
+////    	if(node.getPosOrNeg() != null) {
+////    		String posOrNeg = node.getPosOrNeg().toString().trim();
+////    		if(posOrNeg.equals("-")) {
+////        		retNum = -1.0 * retNum.doubleValue();
+////    		}
+////    	}
+//    	if(curReactor != null) {
+//	    	// add the decimal to the cur row
+//	        curReactor.getCurRow().addDecimal(retNum.doubleValue());
+//	    	// modify the parent such that the signature has the correct
+//	    	// value of the numerical without any extra spaces
+//	    	// plain string will always modify to a integer even if we return double value
+//	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
+//    	} else {
+//    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+//    		this.planner.addVariable("$RESULT", noun);
+//    	}
+//    }
     
     
     public void inADotcol(ADotcol node)
@@ -911,6 +969,40 @@ public class Translation extends DepthFirstAdapter {
     	// deinit this only if this is the same node
     	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
     		deInitReactor();
+    }
+    
+    @Override
+    public void inAModExpr(AModExpr node) {
+        if(curReactor instanceof Assimilator)
+        {
+        	return;
+        }
+    	defaultIn(node);
+		Assimilator assm = new Assimilator();
+		
+		String leftKey = null;
+		if(node.getLeft() == null) {
+			// if no left key is defined
+			// then what we really have is a negative number
+			// but the rightKey could be something a lot more complex
+			// so for now, we will just pretend the leftKey is 0
+			leftKey = "0.0";
+		} else {
+			leftKey = node.getLeft().toString().trim();
+		}
+		String rightKey = node.getRight().toString().trim();
+		initExpressionToReactor(assm, leftKey, rightKey, "-");
+		
+		assm.setPKSL("EXPR", node.toString().trim());
+		initReactor(assm);
+    }
+    
+    @Override
+    public void outAModExpr(AModExpr node)
+    {
+    	defaultOut(node);
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature()))
+    	deInitReactor();
     }
 
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
