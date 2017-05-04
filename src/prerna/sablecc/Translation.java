@@ -529,12 +529,17 @@ public class Translation extends DepthFirstAdapter {
 		runner.setResponse(previousReactor.getValue(nodeStr));
 		runner.setStatus((STATUS)previousReactor.getValue("STATUS"));
 		
-		Map<String, List> searchData = new HashMap<>(1);
+		Map<String, Object> searchData = new HashMap<>(1);
 		String source = (String)previousReactor.getValue("source");
+		List searchDataValues = (List) previousReactor.getValue("searchData");
 		if("engine".equals(source)) {
-			searchData.put("list", convertListToListMaps((List)previousReactor.getValue("searchData")));
+			if(searchDataValues.get(0) instanceof Map) {
+				searchData.put("list", searchDataValues);
+			} else {
+				searchData.put("list", convertListToListMaps(searchDataValues));
+			}
 		} else {
-			searchData.put("list", (List)previousReactor.getValue("searchData"));
+			searchData.put("list", searchDataValues);
 		}
 		runner.setReturnData(searchData);
 		this.frame = (IDataMaker) previousReactor.getValue(PKQLEnum.G);
