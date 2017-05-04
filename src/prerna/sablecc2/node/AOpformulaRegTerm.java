@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ANegTermExprComponent extends PExprComponent
+public final class AOpformulaRegTerm extends PRegTerm
 {
-    private PNegTerm _negTerm_;
+    private POperationFormula _operationFormula_;
 
-    public ANegTermExprComponent()
+    public AOpformulaRegTerm()
     {
         // Constructor
     }
 
-    public ANegTermExprComponent(
-        @SuppressWarnings("hiding") PNegTerm _negTerm_)
+    public AOpformulaRegTerm(
+        @SuppressWarnings("hiding") POperationFormula _operationFormula_)
     {
         // Constructor
-        setNegTerm(_negTerm_);
+        setOperationFormula(_operationFormula_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ANegTermExprComponent(
-            cloneNode(this._negTerm_));
+        return new AOpformulaRegTerm(
+            cloneNode(this._operationFormula_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseANegTermExprComponent(this);
+        ((Analysis) sw).caseAOpformulaRegTerm(this);
     }
 
-    public PNegTerm getNegTerm()
+    public POperationFormula getOperationFormula()
     {
-        return this._negTerm_;
+        return this._operationFormula_;
     }
 
-    public void setNegTerm(PNegTerm node)
+    public void setOperationFormula(POperationFormula node)
     {
-        if(this._negTerm_ != null)
+        if(this._operationFormula_ != null)
         {
-            this._negTerm_.parent(null);
+            this._operationFormula_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ANegTermExprComponent extends PExprComponent
             node.parent(this);
         }
 
-        this._negTerm_ = node;
+        this._operationFormula_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._negTerm_);
+            + toString(this._operationFormula_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._negTerm_ == child)
+        if(this._operationFormula_ == child)
         {
-            this._negTerm_ = null;
+            this._operationFormula_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ANegTermExprComponent extends PExprComponent
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._negTerm_ == oldChild)
+        if(this._operationFormula_ == oldChild)
         {
-            setNegTerm((PNegTerm) newChild);
+            setOperationFormula((POperationFormula) newChild);
             return;
         }
 

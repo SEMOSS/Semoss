@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ACsvTerm extends PTerm
+public final class AROpRegTerm extends PRegTerm
 {
-    private PGenRow _genRow_;
+    private PROp _rOp_;
 
-    public ACsvTerm()
+    public AROpRegTerm()
     {
         // Constructor
     }
 
-    public ACsvTerm(
-        @SuppressWarnings("hiding") PGenRow _genRow_)
+    public AROpRegTerm(
+        @SuppressWarnings("hiding") PROp _rOp_)
     {
         // Constructor
-        setGenRow(_genRow_);
+        setROp(_rOp_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new ACsvTerm(
-            cloneNode(this._genRow_));
+        return new AROpRegTerm(
+            cloneNode(this._rOp_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseACsvTerm(this);
+        ((Analysis) sw).caseAROpRegTerm(this);
     }
 
-    public PGenRow getGenRow()
+    public PROp getROp()
     {
-        return this._genRow_;
+        return this._rOp_;
     }
 
-    public void setGenRow(PGenRow node)
+    public void setROp(PROp node)
     {
-        if(this._genRow_ != null)
+        if(this._rOp_ != null)
         {
-            this._genRow_.parent(null);
+            this._rOp_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class ACsvTerm extends PTerm
             node.parent(this);
         }
 
-        this._genRow_ = node;
+        this._rOp_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._genRow_);
+            + toString(this._rOp_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._genRow_ == child)
+        if(this._rOp_ == child)
         {
-            this._genRow_ = null;
+            this._rOp_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class ACsvTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._genRow_ == oldChild)
+        if(this._rOp_ == oldChild)
         {
-            setGenRow((PGenRow) newChild);
+            setROp((PROp) newChild);
             return;
         }
 

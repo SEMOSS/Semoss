@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AFrameopTerm extends PTerm
+public final class ACsvRegTerm extends PRegTerm
 {
-    private PFrameop _frameop_;
+    private PGenRow _genRow_;
 
-    public AFrameopTerm()
+    public ACsvRegTerm()
     {
         // Constructor
     }
 
-    public AFrameopTerm(
-        @SuppressWarnings("hiding") PFrameop _frameop_)
+    public ACsvRegTerm(
+        @SuppressWarnings("hiding") PGenRow _genRow_)
     {
         // Constructor
-        setFrameop(_frameop_);
+        setGenRow(_genRow_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AFrameopTerm(
-            cloneNode(this._frameop_));
+        return new ACsvRegTerm(
+            cloneNode(this._genRow_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAFrameopTerm(this);
+        ((Analysis) sw).caseACsvRegTerm(this);
     }
 
-    public PFrameop getFrameop()
+    public PGenRow getGenRow()
     {
-        return this._frameop_;
+        return this._genRow_;
     }
 
-    public void setFrameop(PFrameop node)
+    public void setGenRow(PGenRow node)
     {
-        if(this._frameop_ != null)
+        if(this._genRow_ != null)
         {
-            this._frameop_.parent(null);
+            this._genRow_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AFrameopTerm extends PTerm
             node.parent(this);
         }
 
-        this._frameop_ = node;
+        this._genRow_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._frameop_);
+            + toString(this._genRow_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._frameop_ == child)
+        if(this._genRow_ == child)
         {
-            this._frameop_ = null;
+            this._genRow_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AFrameopTerm extends PTerm
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._frameop_ == oldChild)
+        if(this._genRow_ == oldChild)
         {
-            setFrameop((PFrameop) newChild);
+            setGenRow((PGenRow) newChild);
             return;
         }
 
