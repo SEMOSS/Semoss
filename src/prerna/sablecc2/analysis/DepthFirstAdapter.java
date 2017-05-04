@@ -458,48 +458,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outATermExprComponent(node);
     }
 
-    public void inANegTermExprComponent(ANegTermExprComponent node)
-    {
-        defaultIn(node);
-    }
-
-    public void outANegTermExprComponent(ANegTermExprComponent node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseANegTermExprComponent(ANegTermExprComponent node)
-    {
-        inANegTermExprComponent(node);
-        if(node.getNegTerm() != null)
-        {
-            node.getNegTerm().apply(this);
-        }
-        outANegTermExprComponent(node);
-    }
-
-    public void inAPosTermExprComponent(APosTermExprComponent node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAPosTermExprComponent(APosTermExprComponent node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAPosTermExprComponent(APosTermExprComponent node)
-    {
-        inAPosTermExprComponent(node);
-        if(node.getPosTerm() != null)
-        {
-            node.getPosTerm().apply(this);
-        }
-        outAPosTermExprComponent(node);
-    }
-
     public void inAPowerExprComponent(APowerExprComponent node)
     {
         defaultIn(node);
@@ -519,6 +477,69 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getPower().apply(this);
         }
         outAPowerExprComponent(node);
+    }
+
+    public void inARegTermTerm(ARegTermTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARegTermTerm(ARegTermTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARegTermTerm(ARegTermTerm node)
+    {
+        inARegTermTerm(node);
+        if(node.getRegTerm() != null)
+        {
+            node.getRegTerm().apply(this);
+        }
+        outARegTermTerm(node);
+    }
+
+    public void inANegTermTerm(ANegTermTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANegTermTerm(ANegTermTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANegTermTerm(ANegTermTerm node)
+    {
+        inANegTermTerm(node);
+        if(node.getNegTerm() != null)
+        {
+            node.getNegTerm().apply(this);
+        }
+        outANegTermTerm(node);
+    }
+
+    public void inAPosTermTerm(APosTermTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAPosTermTerm(APosTermTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAPosTermTerm(APosTermTerm node)
+    {
+        inAPosTermTerm(node);
+        if(node.getPosTerm() != null)
+        {
+            node.getPosTerm().apply(this);
+        }
+        outAPosTermTerm(node);
     }
 
     public void inANegTerm(ANegTerm node)
@@ -571,172 +592,172 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAPosTerm(node);
     }
 
-    public void inAScalarTerm(AScalarTerm node)
+    public void inAScalarRegTerm(AScalarRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAScalarTerm(AScalarTerm node)
+    public void outAScalarRegTerm(AScalarRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAScalarTerm(AScalarTerm node)
+    public void caseAScalarRegTerm(AScalarRegTerm node)
     {
-        inAScalarTerm(node);
+        inAScalarRegTerm(node);
         if(node.getScalar() != null)
         {
             node.getScalar().apply(this);
         }
-        outAScalarTerm(node);
+        outAScalarRegTerm(node);
     }
 
-    public void inAFormulaTerm(AFormulaTerm node)
+    public void inAFormulaRegTerm(AFormulaRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAFormulaTerm(AFormulaTerm node)
+    public void outAFormulaRegTerm(AFormulaRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAFormulaTerm(AFormulaTerm node)
+    public void caseAFormulaRegTerm(AFormulaRegTerm node)
     {
-        inAFormulaTerm(node);
+        inAFormulaRegTerm(node);
         if(node.getFormula() != null)
         {
             node.getFormula().apply(this);
         }
-        outAFormulaTerm(node);
+        outAFormulaRegTerm(node);
     }
 
-    public void inAOpformulaTerm(AOpformulaTerm node)
+    public void inAOpformulaRegTerm(AOpformulaRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAOpformulaTerm(AOpformulaTerm node)
+    public void outAOpformulaRegTerm(AOpformulaRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAOpformulaTerm(AOpformulaTerm node)
+    public void caseAOpformulaRegTerm(AOpformulaRegTerm node)
     {
-        inAOpformulaTerm(node);
+        inAOpformulaRegTerm(node);
         if(node.getOperationFormula() != null)
         {
             node.getOperationFormula().apply(this);
         }
-        outAOpformulaTerm(node);
+        outAOpformulaRegTerm(node);
     }
 
-    public void inAFrameopTerm(AFrameopTerm node)
+    public void inAFrameopRegTerm(AFrameopRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAFrameopTerm(AFrameopTerm node)
+    public void outAFrameopRegTerm(AFrameopRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAFrameopTerm(AFrameopTerm node)
+    public void caseAFrameopRegTerm(AFrameopRegTerm node)
     {
-        inAFrameopTerm(node);
+        inAFrameopRegTerm(node);
         if(node.getFrameop() != null)
         {
             node.getFrameop().apply(this);
         }
-        outAFrameopTerm(node);
+        outAFrameopRegTerm(node);
     }
 
-    public void inAJavaOpTerm(AJavaOpTerm node)
+    public void inAJavaOpRegTerm(AJavaOpRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAJavaOpTerm(AJavaOpTerm node)
+    public void outAJavaOpRegTerm(AJavaOpRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAJavaOpTerm(AJavaOpTerm node)
+    public void caseAJavaOpRegTerm(AJavaOpRegTerm node)
     {
-        inAJavaOpTerm(node);
+        inAJavaOpRegTerm(node);
         if(node.getJavaOp() != null)
         {
             node.getJavaOp().apply(this);
         }
-        outAJavaOpTerm(node);
+        outAJavaOpRegTerm(node);
     }
 
-    public void inAROpTerm(AROpTerm node)
+    public void inAROpRegTerm(AROpRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAROpTerm(AROpTerm node)
+    public void outAROpRegTerm(AROpRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAROpTerm(AROpTerm node)
+    public void caseAROpRegTerm(AROpRegTerm node)
     {
-        inAROpTerm(node);
+        inAROpRegTerm(node);
         if(node.getROp() != null)
         {
             node.getROp().apply(this);
         }
-        outAROpTerm(node);
+        outAROpRegTerm(node);
     }
 
-    public void inAListTerm(AListTerm node)
+    public void inAListRegTerm(AListRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outAListTerm(AListTerm node)
+    public void outAListRegTerm(AListRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAListTerm(AListTerm node)
+    public void caseAListRegTerm(AListRegTerm node)
     {
-        inAListTerm(node);
+        inAListRegTerm(node);
         if(node.getList() != null)
         {
             node.getList().apply(this);
         }
-        outAListTerm(node);
+        outAListRegTerm(node);
     }
 
-    public void inACsvTerm(ACsvTerm node)
+    public void inACsvRegTerm(ACsvRegTerm node)
     {
         defaultIn(node);
     }
 
-    public void outACsvTerm(ACsvTerm node)
+    public void outACsvRegTerm(ACsvRegTerm node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseACsvTerm(ACsvTerm node)
+    public void caseACsvRegTerm(ACsvRegTerm node)
     {
-        inACsvTerm(node);
+        inACsvRegTerm(node);
         if(node.getGenRow() != null)
         {
             node.getGenRow().apply(this);
         }
-        outACsvTerm(node);
+        outACsvRegTerm(node);
     }
 
     public void inAPower(APower node)
