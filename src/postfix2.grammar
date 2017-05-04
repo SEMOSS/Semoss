@@ -30,7 +30,7 @@ Tokens
  mult = '*';
  comma = ',';
  div = '/';
- comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '==');
+ comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '==' | '<>');
  equal = '=';
  selectorid = ('s='| 's');
  optionid = 'o=';
