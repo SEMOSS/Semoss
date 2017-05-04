@@ -27,15 +27,15 @@ public class QueryDataReactor extends AbstractReactor {
 	Hashtable <String, String[]> values2SyncHash = new Hashtable <String, String[]>();
 	
 	public QueryDataReactor() {
-		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS};
+		String [] thisReacts = {PKQLEnum.API, PKQLEnum.JOINS, PKQLEnum.MAP_OBJ};
 		super.whatIReactTo = thisReacts;
 		super.whoAmI = PKQLEnum.QUERY_DATA;
 
 		// when the data is coming from an API (i.e. an engine or a file)
-		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH"};
+		String [] dataFromApi = {PKQLEnum.COL_CSV, "ENGINE", "EDGE_HASH", PKQLEnum.MAP_OBJ};
 		values2SyncHash.put(PKQLEnum.API, dataFromApi);
 		
-		String [] dataFromRawApi = {PKQLEnum.RAW_API, "ENGINE"};
+		String [] dataFromRawApi = {PKQLEnum.RAW_API, "ENGINE", PKQLEnum.MAP_OBJ};
 		values2SyncHash.put(PKQLEnum.RAW_API, dataFromRawApi);
 	}
 	
@@ -44,15 +44,26 @@ public class QueryDataReactor extends AbstractReactor {
 		modExpression();
 		System.out.println("My Store on IMPORT DATA REACTOR: " + myStore);
 		
+		Map<Object, Object> optionsMap = (Map<Object, Object>) myStore.get(PKQLEnum.API + "_" + PKQLEnum.MAP_OBJ);
+		if(optionsMap == null) {
+			optionsMap = (Map<Object, Object>) myStore.get(PKQLEnum.RAW_API + "_" + PKQLEnum.MAP_OBJ);
+		}
+		boolean grabAll = false;
+		if(optionsMap != null) {
+			if(optionsMap.containsKey("grabAll")) {
+				grabAll = Boolean.parseBoolean(optionsMap.get("grabAll").toString());
+			}
+		}
+		
 		QueryStruct qs = (QueryStruct) this.getValue(PKQLEnum.API);
 		if(qs != null) {
-			return processApi(qs);
+			return processApi(qs, grabAll);
 		} else {
 			return processRawApi();
 		}
 	}
 	
-	public Iterator processApi(QueryStruct qs) {
+	public Iterator processApi(QueryStruct qs, boolean grabAll) {
 		// 2) format and process the join information
 		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
 		if(joins != null && !joins.isEmpty()){
@@ -92,8 +103,21 @@ public class QueryDataReactor extends AbstractReactor {
 			}
 			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
 			List searchData = new ArrayList();
-			while(thisIterator.hasNext()) {
-				searchData.add(thisIterator.next().getValues()[0]);
+			if(!grabAll) {
+				while(thisIterator.hasNext()) {
+					searchData.add(thisIterator.next().getValues()[0]);
+				}
+			} else {
+				while(thisIterator.hasNext()) {
+					IHeadersDataRow nextRow = thisIterator.next();
+					String[] headers = nextRow.getHeaders();
+					Object[] values = nextRow.getValues();
+					Map<String, Object> rowMap = new HashMap<>(headers.length);
+					for(int i = 0; i < headers.length; i++) {
+						rowMap.put(headers[i], values[i]);
+					}
+					searchData.add(rowMap);
+				}
 			}
 			myStore.put("searchData", searchData);
 			myStore.put("source", "engine");
@@ -145,8 +169,6 @@ public class QueryDataReactor extends AbstractReactor {
 	 * @return					String returning the response
 	 */
 	protected void createResponseString(Iterator it){
-		
-		
 		String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
 
 		if(it instanceof IEngineWrapper) {
