@@ -11,8 +11,8 @@ import prerna.algorithm.learning.r.RRoutine.Builder.RRoutineType;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
-import prerna.ds.util.FileIterator;
-import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
+import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.CsvFileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc.PKQLRunner;
 import prerna.util.Constants;
@@ -60,7 +60,7 @@ public class RRoutineTest {
 		frame.mergeEdgeHash(edgeHash, dataTypeMapStr);
 
 		// Iterate through file and insert values
-		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, fileName, ',', qs,
+		CsvFileIterator dataIterator = CsvFileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, fileName, ',', qs,
 				dataTypeMap);
 		frame.addRowsViaIterator(dataIterator, dataTypeMap);
 

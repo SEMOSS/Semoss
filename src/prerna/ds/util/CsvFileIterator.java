@@ -16,7 +16,7 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
-public class FileIterator implements Iterator<IHeadersDataRow>{
+public class CsvFileIterator implements Iterator<IHeadersDataRow>{
 
 	private CSVFileHelper helper;
 	private String[] headers;
@@ -30,7 +30,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	
 	public enum FILE_DATA_TYPE {STRING, META_DATA_ENUM}
 	
-	private FileIterator() {
+	private CsvFileIterator() {
 		
 	}
 	
@@ -46,7 +46,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	 * @param dataTypeMap
 	 * @return
 	 */
-	public static FileIterator createInstance(FILE_DATA_TYPE type, String fileLoc, char delimiter, QueryStruct qs, Map<String, ?> dataTypeMap) {
+	public static CsvFileIterator createInstance(FILE_DATA_TYPE type, String fileLoc, char delimiter, QueryStruct qs, Map<String, ?> dataTypeMap) {
 		if(type == FILE_DATA_TYPE.STRING) {
 			return createStringFileIterator(fileLoc, delimiter, qs, (Map<String, String>) dataTypeMap);
 		} else if(type == FILE_DATA_TYPE.META_DATA_ENUM) {
@@ -56,8 +56,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		}
 	}
 	
-	private static FileIterator createStringFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
-		FileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
+	private static CsvFileIterator createStringFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
+		CsvFileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			fileIterator.dataTypeMap = dataTypeMap;
@@ -79,8 +79,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 		return fileIterator;
 	}
 	
-	private static FileIterator createEnumFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
-		FileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
+	private static CsvFileIterator createEnumFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
+		CsvFileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
 
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			fileIterator.types = new String[fileIterator.headers.length];
@@ -110,8 +110,8 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	 * @param delimiter
 	 * @return
 	 */
-	private static FileIterator createDefualtFileIteratorParameters(String fileLoc, QueryStruct qs, char delimiter) {
-		FileIterator fileIterator = new FileIterator();
+	private static CsvFileIterator createDefualtFileIteratorParameters(String fileLoc, QueryStruct qs, char delimiter) {
+		CsvFileIterator fileIterator = new CsvFileIterator();
 
 		fileIterator.helper = new CSVFileHelper();
 		fileIterator.filters = new HashMap<String, Set<Object>>();
@@ -130,7 +130,7 @@ public class FileIterator implements Iterator<IHeadersDataRow>{
 	 * Determine the data types by parsing through the file
 	 * @param fileIterator
 	 */
-	private static void setUnknownTypes(FileIterator fileIterator) {
+	private static void setUnknownTypes(CsvFileIterator fileIterator) {
 		fileIterator.dataTypeMap = new HashMap<String, String>();
 		String[] allHeaders = fileIterator.helper.getAllCSVHeaders();
 		fileIterator.types = fileIterator.helper.predictTypes();

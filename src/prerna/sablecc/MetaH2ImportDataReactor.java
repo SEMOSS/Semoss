@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import prerna.ds.h2.H2Frame;
-import prerna.ds.util.FileIterator;
+import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.ArrayUtilityMethods;
@@ -28,14 +28,14 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 		int numNewRecords = -1;
 
 		if(frame.isInMem()) {
-			if(this.dataIterator instanceof FileIterator) {
+			if(this.dataIterator instanceof CsvFileIterator) {
 				// get if the frame is over the limit of acceptable values
-				overLimit = ((FileIterator) this.dataIterator).numberRowsOverLimit(LIMIT_SIZE);
+				overLimit = ((CsvFileIterator) this.dataIterator).numberRowsOverLimit(LIMIT_SIZE);
 				// this value will be -1 if the overLimit is true
 				// if we are already over limit, we do not need to continue
 				// iterating through the file to get the number of records
 				// we know we are going to switch to in-memory
-				numNewRecords = ((FileIterator) this.dataIterator).getNumRecords();
+				numNewRecords = ((CsvFileIterator) this.dataIterator).getNumRecords();
 			} else if(this.dataIterator instanceof IRawSelectWrapper && myStore.containsKey(PKQLEnum.API)) {
 				// get if the frame is over the limit of acceptable values
 				numNewRecords = ((Double) this.getValue(PKQLEnum.API + "_QUERY_NUM_CELLS")).intValue();
