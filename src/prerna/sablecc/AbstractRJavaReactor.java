@@ -34,8 +34,8 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
-import prerna.ds.util.FileIterator;
-import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
+import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.CsvFileIterator.FILE_DATA_TYPE;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
 import prerna.poi.main.HeadersException;
@@ -446,7 +446,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
-		FileIterator dataIterator = FileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',',
+		CsvFileIterator dataIterator = CsvFileIterator.createInstance(FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',',
 				qs, dataTypeMap);
 
 		// keep track of in-mem vs on-disk frames
