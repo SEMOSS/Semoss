@@ -17,7 +17,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2HeadersDataRowIterator;
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.ds.util.FileIterator;
+import prerna.ds.util.CsvFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
@@ -248,14 +248,14 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				}
 			}
 			// this is the second possibility when it is a file
-			else if(myStore.get(PKQLEnum.API) instanceof FileIterator) {
+			else if(myStore.get(PKQLEnum.API) instanceof CsvFileIterator) {
 				// grab the iterator to use for importing
-				dataIterator  = (FileIterator) myStore.get(PKQLEnum.API);
+				dataIterator  = (CsvFileIterator) myStore.get(PKQLEnum.API);
 				
 				LOGGER.info(" >>> FRAME IS LOADING FROM A FILE!!!!");
 				
-				String[] types = ((FileIterator) dataIterator).getTypes();
-				String[] headers = ((FileIterator) dataIterator).getHeaders();
+				String[] types = ((CsvFileIterator) dataIterator).getTypes();
+				String[] headers = ((CsvFileIterator) dataIterator).getHeaders();
 				Map<String, String> dataTypes = new HashMap<>();
 				for(int i = 0; i < types.length; i++) {
 					dataTypes.put(headers[i], types[i]);
@@ -312,10 +312,10 @@ public abstract class ImportDataReactor extends AbstractReactor {
 			LOGGER.info(" >>> FRAME IS LOADING FROM PASTED TEXT!!!!");
 
 			// grab the iterator to use for importing
-			dataIterator  = (FileIterator) myStore.get(PKQLEnum.PASTED_DATA);
+			dataIterator  = (CsvFileIterator) myStore.get(PKQLEnum.PASTED_DATA);
 			
-			String[] types = ((FileIterator) dataIterator).getTypes();
-			String[] headers = ((FileIterator) dataIterator).getHeaders();
+			String[] types = ((CsvFileIterator) dataIterator).getTypes();
+			String[] headers = ((CsvFileIterator) dataIterator).getHeaders();
 			Map<String, String> dataTypes = new HashMap<>();
 			for(int i = 0; i < types.length; i++) {
 				dataTypes.put(headers[i], types[i]);
