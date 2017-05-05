@@ -1099,7 +1099,12 @@ public class Translation extends DepthFirstAdapter {
 	    		return;
 	    	}
 	    	
-	    	NounMetadata output = curReactor.execute();
+	    	NounMetadata output = null;
+	    	try {
+	    		output = curReactor.execute();
+	    	} catch(Exception e) {
+	    		//should we make an error noun?
+	    	}
 	    	this.planner = ((AbstractReactor)curReactor).planner;
 	    	
 	    	//set the curReactor
