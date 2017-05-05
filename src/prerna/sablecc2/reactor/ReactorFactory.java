@@ -11,6 +11,7 @@ import prerna.sablecc2.reactor.export.job.ExportReactor;
 import prerna.sablecc2.reactor.export.job.JobReactor;
 import prerna.sablecc2.reactor.export.job.SetFormatReactor;
 import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
+import prerna.sablecc2.reactor.expression.DefaultOpReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
 import prerna.sablecc2.reactor.expression.OpAnd;
@@ -196,7 +197,8 @@ public class ReactorFactory {
 			e.printStackTrace();
 		}
     	
-		reactor = new SampleReactor();
+//		reactor = new SamplReactor();
+		reactor = new DefaultOpReactor();
 		reactor.setPKSL(reactorId, nodeString);
 		return reactor;
     }
