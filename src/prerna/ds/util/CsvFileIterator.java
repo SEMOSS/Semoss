@@ -3,7 +3,6 @@ package prerna.ds.util;
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +15,7 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
-public class CsvFileIterator implements Iterator<IHeadersDataRow>{
+public class CsvFileIterator implements IFileIterator{
 
 	private CSVFileHelper helper;
 	private String[] headers;
@@ -27,8 +26,6 @@ public class CsvFileIterator implements Iterator<IHeadersDataRow>{
 	private Map<String, String> dataTypeMap;
 	
 	private int numRecords = -1;
-	
-	public enum FILE_DATA_TYPE {STRING, META_DATA_ENUM}
 	
 	private CsvFileIterator() {
 		
