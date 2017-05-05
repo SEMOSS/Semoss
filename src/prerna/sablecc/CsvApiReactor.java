@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.util.FileIterator;
-import prerna.ds.util.FileIterator.FILE_DATA_TYPE;
+import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.CsvFileIterator.FILE_DATA_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
@@ -42,7 +42,7 @@ public class CsvApiReactor extends AbstractApiReactor {
 		// to determine what selectors to send
 		
 		// the qs is passed from AbstractApiReactor
-		this.put((String) getValue(PKQLEnum.API), FileIterator.createInstance(FILE_DATA_TYPE.STRING, fileName, ',', this.qs, this.dataTypeMap));
+		this.put((String) getValue(PKQLEnum.API), CsvFileIterator.createInstance(FILE_DATA_TYPE.STRING, fileName, ',', this.qs, this.dataTypeMap));
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		

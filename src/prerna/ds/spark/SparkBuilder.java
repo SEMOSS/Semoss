@@ -23,7 +23,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import prerna.ds.TinkerFrame;
-import prerna.ds.util.FileIterator;
+import prerna.ds.util.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.ArrayUtilityMethods;
 
@@ -86,8 +86,8 @@ public class SparkBuilder {
 	
 	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, String joinType) {
 		
-		if(iterator instanceof FileIterator) {
-			processIterator((FileIterator) iterator, oldHeaders, newHeaders, types, joinType);
+		if(iterator instanceof CsvFileIterator) {
+			processIterator((CsvFileIterator) iterator, oldHeaders, newHeaders, types, joinType);
 			return;
 		}
 		// Generate the schema based on the string of schema
@@ -161,7 +161,7 @@ public class SparkBuilder {
 		}
 	}
 	
-	public void processIterator(FileIterator iterator, String[] oldHeaders, String[] newHeaders, String[] types, String joinType) {
+	public void processIterator(CsvFileIterator iterator, String[] oldHeaders, String[] newHeaders, String[] types, String joinType) {
 		// Generate the schema based on the string of schema
 
 		org.apache.spark.deploy.SparkHadoopUtil.get().conf().set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
