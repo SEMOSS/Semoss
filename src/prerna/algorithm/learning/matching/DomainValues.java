@@ -29,43 +29,10 @@ import prerna.util.Utility;
  */
 public class DomainValues {
 
-	private String baseFolder;
-	private String outputFolder;
-	private String[] engineNames;
-	private boolean compareProperties;
-
 	// Used for separating engine from concept or property names
 	public static final String ENGINE_CONCEPT_PROPERTY_DELIMETER = ";";
 
-	/**
-	 * @param engineNames
-	 *            The engines to extract unique values from
-	 * @param compareProperties
-	 *            Whether to extract for properties as well as concepts
-	 */
-	public DomainValues(String[] engineNames, boolean compareProperties) {
-		this.baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		this.outputFolder = baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\" + Constants.R_MATCHING_REPO_FOLDER;
-		this.engineNames = engineNames;
-		this.compareProperties = compareProperties;
-	}
 
-	/**
-	 * Export domain values as text files.
-	 * 
-	 * @throws IOException
-	 */
-	public void exportDomainValues() throws IOException {
-
-		// Wipe out the old files
-		FileUtils.cleanDirectory(new File(outputFolder));
-
-		// Refresh the corpus
-		for (String engineName : engineNames) {
-			IEngine engine = (IEngine) Utility.getEngine(engineName);
-			process(engine);
-		}
-	}
 	/**
 	 * This method gets the list of concepts uri 
 	 * @param engine
@@ -107,7 +74,7 @@ public class DomainValues {
 	}
 	
 	/**
-	 * This method gets the list of properties for a concept
+	 * Gets the list of properties for a concept
 	 * @param engine
 	 * @param concept uri
 	 * @return properties
@@ -116,12 +83,22 @@ public class DomainValues {
 		return engine.getProperties4Concept(concept, false);
 	}
 	
-	private void process(IEngine engineToAdd) {
-		String engineName = engineToAdd.getEngineName();
+	/**
+	 * Export concept/concept property instance values from an engine to the
+	 * specified output folder as engine;concept;property.txt for each concept
+	 * or property
+	 * 
+	 * @param engine
+	 * @parm outputFolder
+	 * @param compareProperties
+	 *            add or remove concept properties
+	 */
+	public void exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty) {
+		String engineName = engine.getEngineName();
 
 		// Grab all the concepts that exist in the database
 		// Process each concept
-		List<String> concepts = getConceptList(engineToAdd);
+		List<String> concepts = getConceptList(engine);
 		for (String concept : concepts) {
 
 			// Ignore the default concept node...
@@ -130,7 +107,7 @@ public class DomainValues {
 			}
 
 			// Grab the unique values for the concept
-			HashSet<String> uniqueConceptValues = retrieveConceptUniqueValues(concept, engineToAdd);
+			HashSet<String> uniqueConceptValues = retrieveConceptUniqueValues(concept, engine);
 
 			// Sometimes this list is empty when users create databases with
 			// empty fields that are meant to filled in via forms
@@ -138,20 +115,19 @@ public class DomainValues {
 				continue;
 			}
 
-			System.out.println("test");
 			// Write the unique instances to a file
-			String cleanConcept = determineCleanConceptName(concept, engineToAdd);
+			String cleanConcept = determineCleanConceptName(concept, engine);
 			String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
 					+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
 			writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
 
 			// If the user wants to compare properties,
 			// then proceed to the concept's properties
-			if (compareProperties) {
+			if (exportProperty) {
 
 				// Grab all the properties that exist for the concept
 
-				List<String> properties = getPropertyList(engineToAdd, concept);
+				List<String> properties = getPropertyList(engine, concept);
 
 				// If there are no properties, go onto the next concept
 				if (properties.isEmpty()) {
@@ -160,9 +136,9 @@ public class DomainValues {
 
 				// Process each property uri
 				for (String property : properties) {
-					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engineToAdd);
+					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engine);
 					if (!uniquePropertyValues.isEmpty()) {
-						String cleanProperty = determineCleanPropertyName(property, engineToAdd);
+						String cleanProperty = determineCleanPropertyName(property, engine);
 						String propertyId = conceptId + cleanProperty;
 						writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
 					}
@@ -267,7 +243,6 @@ public class DomainValues {
 
 		// Get all the instances for the concept
 		List<Object> allValues = engine.getEntityOfType(type);
-		System.out.println("test");
 		// Push all the instances into a set,
 		// because we are only interested in unique values
 		HashSet<String> uniqueValues = new HashSet<String>();
@@ -336,14 +311,14 @@ public class DomainValues {
 		}
 
 		// For debugging, use both an RDF and a RDBMS
-		DomainValues dv = new DomainValues(new String[] { "TAP_Core_Data", "Movie_DB" }, true);
+		DomainValues dv = new DomainValues();
 
 		// Test out the export
-		try {
-			dv.exportDomainValues();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			dv.exportDomainValues();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 
 	}
 }
