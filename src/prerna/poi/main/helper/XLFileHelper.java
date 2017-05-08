@@ -523,6 +523,10 @@ public class XLFileHelper {
 		
 		return orderedHeaders.toArray(new String[]{});
 	}
+
+	public String getFileLocation() {
+		return this.fileLocation;
+	}
 	
 	
 	///// TESTING CODE STARTS HERE /////
