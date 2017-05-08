@@ -18,6 +18,7 @@ import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2HeadersDataRowIterator;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
@@ -248,14 +249,14 @@ public abstract class ImportDataReactor extends AbstractReactor {
 				}
 			}
 			// this is the second possibility when it is a file
-			else if(myStore.get(PKQLEnum.API) instanceof CsvFileIterator) {
+			else if(myStore.get(PKQLEnum.API) instanceof IFileIterator) {
 				// grab the iterator to use for importing
-				dataIterator  = (CsvFileIterator) myStore.get(PKQLEnum.API);
+				dataIterator  = (IFileIterator) myStore.get(PKQLEnum.API);
 				
 				LOGGER.info(" >>> FRAME IS LOADING FROM A FILE!!!!");
 				
-				String[] types = ((CsvFileIterator) dataIterator).getTypes();
-				String[] headers = ((CsvFileIterator) dataIterator).getHeaders();
+				String[] types = ((IFileIterator) dataIterator).getTypes();
+				String[] headers = ((IFileIterator) dataIterator).getHeaders();
 				Map<String, String> dataTypes = new HashMap<>();
 				for(int i = 0; i < types.length; i++) {
 					dataTypes.put(headers[i], types[i]);
