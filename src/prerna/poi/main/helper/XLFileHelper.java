@@ -122,7 +122,8 @@ public class XLFileHelper {
 		}
 		
 		// get the headers
-		String[] sheetHeaders = getCells(headerRow);
+		int colLength = headerRow.getLastCellNum();
+		String[] sheetHeaders = getCells(headerRow, colLength);
 		// set the new start for the getNextRow for this sheet
 		sheetCounter.put(sheet.getSheetName(), counter);
 		
@@ -141,7 +142,7 @@ public class XLFileHelper {
 		
 		String [] thisRow = null;
 		while(thisRow == null && counter < thisSheet.getLastRowNum()) {
-			thisRow = getCells(thisSheet.getRow(counter));
+			thisRow = getCells(thisSheet.getRow(counter), getHeaders(sheetName).length);
 			counter++;		
 		}
 		
@@ -159,13 +160,13 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-	private String[] getCells(XSSFRow row) {
-		if(row == null) {
-			return null;
-		}
-		int colLength = row.getLastCellNum();
-		return getCells(row, colLength);
-	}
+//	private String[] getCells(XSSFRow row) {
+//		if(row == null) {
+//			return null;
+//		}
+//		int colLength = row.getLastCellNum();
+//		return getCells(row, colLength);
+//	}
 	
 	private String[] getCells(XSSFRow row, int totalCol)
 	{
@@ -279,7 +280,7 @@ public class XLFileHelper {
 		int numCols = headerIndicesToGet.length;
 		List<String> cols = new Vector<String>();
 		for(int colIndex = colStarter; colIndex < numCols; colIndex++) {
-			XSSFCell thisCell = row.getCell(colIndex);
+			XSSFCell thisCell = row.getCell(headerIndicesToGet[colIndex]);
 			cols.add(getCell(thisCell));
 		}
 		return cols.toArray(new String[]{});
@@ -356,6 +357,69 @@ public class XLFileHelper {
 				types[i] = "VARCHAR(255)";
 			} else {
 				types[i] = type;
+			}
+		}
+
+		// need to reset all the parses
+		reset();
+		return types;
+	}
+	
+	public String[] predictRowTypes(String sheetName, int[] headersToSelect) {
+		XSSFSheet lSheet = sheetNames.get(sheetName);
+		int numRows = lSheet.getLastRowNum();
+		
+		int numCells = headersToSelect.length;
+		String [] types = new String[numCells];
+		// Loop through cols, and up to 1000 rows
+		for(int loopIndex = 0; loopIndex < numCells; loopIndex++) {
+			int cellIndex = headersToSelect[loopIndex];
+			String type = null;
+			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
+				XSSFRow row = lSheet.getRow(j);
+				if(row != null) {
+					XSSFCell cell = row.getCell(cellIndex);
+					if(cell != null) {
+						String val = getCell(cell);
+						if(val.isEmpty()) {
+							continue ROW_LOOP;
+						}
+						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
+						if(newTypePred.contains("VARCHAR")) {
+							type = newTypePred;
+							break ROW_LOOP;
+						}
+						
+						// need to also add the type null check for the first row
+						if(!newTypePred.equals(type) && type != null) {
+							// this means there are multiple types in one column
+							// assume it is a string 
+							if( (type.equals("INT") || type.equals("DOUBLE")) && (newTypePred.equals("INT") || 
+									newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ) {
+								// for simplicity, make it a double and call it a day
+								// TODO: see if we want to impl the logic to choose the greater of the newest
+								// this would require more checks though
+								type = "DOUBLE";
+							} else {
+								// should only enter here when there are numbers and dates
+								// TODO: need to figure out what to handle this case
+								// for now, making assumption to put it as a string
+								type = "VARCHAR(800)";
+								break ROW_LOOP;
+							}
+						} else {
+							// type is the same as the new predicated type
+							// or type is null on first iteration
+							type = newTypePred;
+						}
+					}
+				}
+			}
+			if(type == null) {
+				// no data for column....
+				types[loopIndex] = "VARCHAR(255)";
+			} else {
+				types[loopIndex] = type;
 			}
 		}
 
