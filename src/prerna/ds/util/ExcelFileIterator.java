@@ -2,6 +2,7 @@ package prerna.ds.util;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,15 +44,24 @@ public class ExcelFileIterator implements IFileIterator {
 				this.types[j] = dataTypeMap.get(this.headers[j]);
 			}
 		}
-//		else {
-//			setUnknownTypes(fileIterator);
-//			fileIterator.setSelectors(qs.getSelectors());
-//		}
+		else {
+			setUnknownTypes();
+		}
 		
 		// need to grab the first row upon initialization 
 		getNextRow();
 	}
 	
+	private void setUnknownTypes() {
+		this.types = this.helper.predictRowTypes(this.sheetToLoad);
+		
+		this.dataTypeMap = new Hashtable<String, String>();
+		int numHeaders = this.headers.length;
+		for(int i = 0; i < numHeaders; i++) {
+			this.dataTypeMap.put(this.headers[i], types[i]);
+		}
+	}
+
 	@Override
 	public boolean hasNext() {
 		if(this.nextRow == null) {
