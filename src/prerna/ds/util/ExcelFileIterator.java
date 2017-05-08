@@ -20,6 +20,7 @@ public class ExcelFileIterator implements IFileIterator {
 	private String[] headers;
 	private String[] types;
 	private String[] nextRow;
+	private int[] headerIndices;
 	
 	private Map<String, Set<Object>> filters;
 	private Map<String, String> dataTypeMap;
@@ -36,8 +37,6 @@ public class ExcelFileIterator implements IFileIterator {
 		setSelectors(qs.selectors);
 		setFilters(qs.andfilters);
 		
-		this.headers = this.helper.getHeaders(this.sheetToLoad);
-		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			this.types = new String[this.headers.length];
 			for(int j = 0; j < this.headers.length; j++) {
@@ -53,10 +52,10 @@ public class ExcelFileIterator implements IFileIterator {
 	}
 	
 	private void setUnknownTypes() {
-		this.types = this.helper.predictRowTypes(this.sheetToLoad);
-		
-		this.dataTypeMap = new Hashtable<String, String>();
+		this.types = this.helper.predictRowTypes(this.sheetToLoad, this.headerIndices);
 		int numHeaders = this.headers.length;
+
+		this.dataTypeMap = new Hashtable<String, String>();
 		for(int i = 0; i < numHeaders; i++) {
 			this.dataTypeMap.put(this.headers[i], types[i]);
 		}
@@ -88,7 +87,7 @@ public class ExcelFileIterator implements IFileIterator {
 					int mult = 1;
 					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
 						mult = -1;
-					val = val.replaceAll("[^0-9\\.]", "");
+					val = val.replaceAll("[^0-9\\.E]", "");
 					cleanRow[i] = mult * Double.parseDouble(val.trim());
 				} catch(NumberFormatException ex) {
 					//do nothing
@@ -105,7 +104,7 @@ public class ExcelFileIterator implements IFileIterator {
 	}
 	
 	public void getNextRow() {
-		String[] row = this.helper.getNextRow(this.sheetToLoad);
+		String[] row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
 		if(this.filters == null || this.filters.isEmpty()) {
 			this.nextRow = row;
 			return;
@@ -133,7 +132,7 @@ public class ExcelFileIterator implements IFileIterator {
 				}
 			}
 			if(newRow == null) {
-				row = this.helper.getNextRow(this.sheetToLoad);
+				row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
 			}
 		}
 		
@@ -171,8 +170,15 @@ public class ExcelFileIterator implements IFileIterator {
 				}
 			}
 			
-//			this.helper.parseColumns(orderedSelectors);
-			this.helper.getNextRow(this.sheetToLoad); // after redoing the selectors, we need to skip the headers 
+			this.headers = orderedSelectors;
+			this.headerIndices = this.helper.getHeaderIndicies(this.sheetToLoad, orderedSelectors);
+			this.helper.getNextRow(this.sheetToLoad, this.headerIndices); // after redoing the selectors, we need to skip the headers 
+		} else {
+			this.headers = allHeaders;
+			this.headerIndices = new int[this.headers.length];
+			for(int i = 0; i < this.headers.length; i++) {
+				this.headerIndices[i] = i;
+			}
 		}
 	}
 	
