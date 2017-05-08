@@ -2746,6 +2746,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.TinkerChangeTypeReactor");
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReader");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
 		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 		

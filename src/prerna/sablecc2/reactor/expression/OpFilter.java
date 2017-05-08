@@ -25,10 +25,22 @@ public class OpFilter extends OpBasic {
 		String comparator = values[1].toString().trim();
 		boolean evaluation = false;
 		if(comparator.equals("==")) {
-			evaluation = left == right;
+			if(left instanceof Number && right instanceof Number) {
+				evaluation = ((Number)left).doubleValue() == ((Number)right).doubleValue();
+			} else if(left instanceof String && right instanceof String){
+				evaluation = left.toString().equals(right.toString());
+			} else {
+				evaluation = left == right;
+			}
 		} else if(comparator.equals("!=") || comparator.equals("<>")) {
-			evaluation = left != right;
-		} 
+			if(left instanceof Number && right instanceof Number) {
+				evaluation = ((Number)left).doubleValue() != ((Number)right).doubleValue();
+			} else if(left instanceof String && right instanceof String){
+				evaluation = !left.toString().equals(right.toString());
+			} else {
+				evaluation = left != right;
+			}
+		}
 		// we have some numerical stuff
 		// everything needs to be a valid number
 		else if(comparator.equals(">=")) {
