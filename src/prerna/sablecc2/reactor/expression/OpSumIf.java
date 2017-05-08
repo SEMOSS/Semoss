@@ -18,9 +18,6 @@ public class OpSumIf extends OpBasic {
 		boolean isInteger = false;
 		boolean isExpression = false;
 		String expressionType = null;
-		/*
-		 * String[] strArr ; int num;
-		 */
 		boolean isEquals = false; // verify and remove if not needed
 
 		List<Object> rangeList = new ArrayList<Object>();
@@ -35,13 +32,6 @@ public class OpSumIf extends OpBasic {
 				isInteger = false;
 			}
 		}
-		/*
-		 * if(criteria.contains("<") || criteria.contains(">") ||
-		 * criteria.contains(">=") || criteria.contains("<=")){ isInteger =
-		 * true; isExpression = true; isEquals = true;
-		 * 
-		 * }
-		 */
 
 		if (criteria.contains(">=")) {
 			criteria = criteria.replace(">=", "").trim();
@@ -144,8 +134,10 @@ public class OpSumIf extends OpBasic {
 					.map(object -> (Integer.parseInt(Objects.toString(object, null)))).collect(Collectors.toList());
 
 			for (int i = 0; i < intArrlist.size(); i++) {
-				if ((intArrlist.get(i).equals(Integer.valueOf(criteria)))) {
+				if (!isExpression && (intArrlist.get(i).equals(Integer.valueOf(criteria)))) {
 					sumIfVal += ((Number) intArrlist2.get(i)).doubleValue();
+				}else if (isExpression){
+					sumIfVal = expressionEval(expressionType, intArrlist.get(i), Integer.valueOf(criteria), sumIfVal, intArrlist2.get(i), 3);
 				}
 			}
 		}
