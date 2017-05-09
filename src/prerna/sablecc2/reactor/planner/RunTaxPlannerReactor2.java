@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.planner;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -128,6 +129,8 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		long end = System.currentTimeMillis();
 		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
 
+		File file = new File(this.fileName);
+		file.delete();
 		return new NounMetadata(planners, PkslDataTypes.PLANNER);
 //		return new NounMetadata(returnStore, PkslDataTypes.IN_MEM_STORE);
 	}
@@ -168,6 +171,8 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			yes.writeGraph(fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			System.out.println("FINISHED WRITING GRAPH");
 		}
 	}
 
