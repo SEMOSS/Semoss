@@ -4,7 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,17 +30,26 @@ import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.TablePKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
 import prerna.util.ArrayUtilityMethods;
 
-public class RunTaxPlannerReactor extends AbstractPlannerReactor {
+public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(LoadClient.class.getName());
 	private static int fileCount = 0;
 	String scenarioHeader = "Proposal"; //header of column containing Trump, House, etc
 	String aliasHeader = "Alias"; //header for value containing our column name
 	String valueHeader = "Value"; //header for value containing the value assigned to column name
+	
+	
+	String OPERATION_COLUMN = "OP";
+	String NOUN_COLUMN = "NOUN";
+	String DIRECTION_COLUMN = "DIRECTION";
+	
+	String inDirection = "IN";
+	String outDirection = "OUT";
 	
 	@Override
 	public void In() {
@@ -114,23 +125,8 @@ public class RunTaxPlannerReactor extends AbstractPlannerReactor {
 	}
 	
 	private List<String> getPksls() {
-		PKSLPlanner planner = getPlanner();
-		// we use this just for debugging
-		// this will get undefined variables and set them to 0
-		// ideally, we should never have to do this...
-//		List<String> pksls = getUndefinedVariablesPksls(planner);
-		List<String> pksls = new Vector<String>();
-		
-		// get the list of the root vertices
-		// these are the vertices we can run right away
-		// and are the starting point for the plan execution
-		Set<Vertex> rootVertices = getRootPksls(planner);
-		// using the root vertices
-		// iterate down all the other vertices and add the signatures
-		// for the desired travels in the appropriate order
-		// note: this is adding to the list of undefined variables
-		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
+		TablePKSLPlanner planner = getPlanner();
+		List<String> pksls = collectPksls(planner);
 		return pksls;
 	}
 	
@@ -148,14 +144,14 @@ public class RunTaxPlannerReactor extends AbstractPlannerReactor {
 		return inMemStore;
 	}
 	
-	private PKSLPlanner getPlanner() {
+	private TablePKSLPlanner getPlanner() {
 		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+		TablePKSLPlanner planner = null;
 		if(allNouns != null) {
-			planner = (PKSLPlanner) allNouns.get(0);
+			planner = (TablePKSLPlanner) allNouns.get(0);
 			return planner;
 		} else {
-			return this.planner;
+			return (TablePKSLPlanner)this.planner;
 		}
 	}
 	
@@ -205,5 +201,5 @@ public class RunTaxPlannerReactor extends AbstractPlannerReactor {
 			
 		}
 		return memStoreMap;
-	}
+	}	
 }
