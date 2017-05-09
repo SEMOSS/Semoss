@@ -69,11 +69,11 @@ public class InsightFilesToDatabaseReader {
 		if(engine == null) {
 			// no csv files were needed to create an engine
 			// look for excel files to create a new engine
-			engine = processExcelFiles(filesMeta, engineName, baseDirectory, false);
+			engine = processExcelFiles(filesMeta, engineName, baseDirectory, engine);
 		} else {
 			// there were csv files used in this insight
 			// now look towards saving any excel files in the same engine
-			engine = processExcelFiles(filesMeta, engineName, baseDirectory, true);
+			engine = processExcelFiles(filesMeta, engineName, baseDirectory, engine);
 		}
 		
 		return engine;
@@ -83,7 +83,7 @@ public class InsightFilesToDatabaseReader {
 			List<FilePkqlMetadata> filesMeta, 
 			String engineName, 
 			String baseDirectory, 
-			boolean existingEngine) 
+			IEngine engine) 
 			throws IOException
 	{
 		String fileLocation = "";
@@ -135,64 +135,84 @@ public class InsightFilesToDatabaseReader {
 		}
 		
 		boolean error = false;
-		IEngine engine = null;
 		File tempPropFile = null;
 		File newSmssProp = null;
 		try {
-			// first write the prop file for the new engine
-			PropFileWriter propWriter = new PropFileWriter();
-			propWriter.setBaseDir(baseDirectory);
-			propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
-			propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
-
-			// need to go back and clean the prop writer
-			String smssLocation = propWriter.propFileName;
-			String owlPath = baseDirectory + "/" + propWriter.owlFile;
-
-			// need to create the .temp file object before we upload so we can delete the file if an error occurs
-			tempPropFile = new File(smssLocation);
-			
-			ImportOptions options = new ImportOptions();
-			options.setSMSSLocation(smssLocation);
-			options.setDbName(engineName);
-			options.setFileLocation(fileLocation);
-			options.setBaseUrl("");
-			options.setOwlFileLocation(owlPath);
-			options.setRDBMSDriverType(SQLQueryUtil.DB_TYPE.H2_DB);
-			options.setAllowDuplicates(true);			
-
+			// define the uploader
 			RDBMSFlatExcelUploader uploader = new RDBMSFlatExcelUploader();
 			uploader.setAutoLoad(false);
 			uploader.setDataTypeMapList(dataTypeMapList);
-			//engine = uploader.importFileWithOutConnection(smssLocation, engineName, fileLocation, "", owlPath, SQLQueryUtil.DB_TYPE.H2_DB, true);
-			engine = uploader.importFileWithOutConnection(options);
 			
+			// define the options for the uploader
+			ImportOptions options = new ImportOptions();
+			options.setRDBMSDriverType(SQLQueryUtil.DB_TYPE.H2_DB);
+			options.setAllowDuplicates(true);	
+			options.setDbName(engineName);
+			options.setFileLocation(fileLocation);
+			options.setBaseUrl("");
+
+			String smssLocation = null;
+			// if engine doesn't exist
+			// create necessary files
+			// and add file without connection
+			if(engine == null) {
+				// first write the prop file for the new engine
+				PropFileWriter propWriter = new PropFileWriter();
+				propWriter.setBaseDir(baseDirectory);
+				propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
+				propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
+	
+				// need to go back and clean the prop writer
+				smssLocation = propWriter.propFileName;
+				String owlPath = baseDirectory + "/" + propWriter.owlFile;
+	
+				// need to create the .temp file object before we upload so we can delete the file if an error occurs
+				tempPropFile = new File(smssLocation);
+				
+				// set the necessary options
+				options.setSMSSLocation(smssLocation);
+				options.setOwlFileLocation(owlPath);
+				engine = uploader.importFileWithOutConnection(options);
+				// after upload, set the owl
+				// make the insights database
+				engine.setOWL(owlPath);
+				((AbstractEngine) engine).setPropFile(propWriter.propFileName);
+				((AbstractEngine) engine).createInsights(baseDirectory);
+				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
+			} 
+			// if the engine exists
+			// add file with connection
+			else {
+				options.setOwlFileLocation(engine.getOWL());
+				uploader.importFileWithConnection(options);
+			}
+
 			// need to store the new tables so we know which columns came from where
 			// when we update the data.import cvs file pkql to be data.import from the new
 			// engine that was created
 			this.newTables = uploader.getNewTables();
 			
-			engine.setOWL(owlPath);
-			((AbstractEngine) engine).setPropFile(propWriter.propFileName);
-			((AbstractEngine) engine).createInsights(baseDirectory);
-			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
-			Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
+			// update the engine metadata within the local master and solr
+			Utility.synchronizeEngineMetadata(engineName); 
 			SolrUtility.addToSolrInsightCore(engineName);
-
-			// only after all of this is good, should we add it to DIHelper
-			DIHelper.getInstance().setLocalProperty(engineName, engine);
-			String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-			engineNames = engineNames + ";" + engineName;
-			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
-
-			// convert the .temp to .smss file
-			newSmssProp = new File(smssLocation.replace("temp", "smss"));
-			// we just copy over the the .temp file contents into the .smss
-			FileUtils.copyFile(tempPropFile, newSmssProp);
-			newSmssProp.setReadable(true);
-			tempPropFile.delete();
-			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation.replace("temp", "smss"));
-
+			
+			// smss location is not null when we are making a new engine
+			// if it is null, there is no temp file or anything that we need to deal with
+			if(smssLocation != null) {
+				// only after all of this is good, should we add it to DIHelper
+				DIHelper.getInstance().setLocalProperty(engineName, engine);
+				String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+				engineNames = engineNames + ";" + engineName;
+				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+	
+				// convert the .temp to .smss file
+				newSmssProp = new File(smssLocation.replace("temp", "smss"));
+				// we just copy over the the .temp file contents into the .smss
+				FileUtils.copyFile(tempPropFile, newSmssProp);
+				newSmssProp.setReadable(true);
+				tempPropFile.delete();
+				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation.replace("temp", "smss"));
+			}
 		} catch (IllegalArgumentException e) {
 			error = true;
 			e.printStackTrace();
