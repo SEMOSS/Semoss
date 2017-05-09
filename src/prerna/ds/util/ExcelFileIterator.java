@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.ds.QueryStruct;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -61,7 +62,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 			for(int i = 0; i < row.length; i++) {
 				Set<Object> nextSet = this.filters.get(headers[i]);
 				if(nextSet != null ){
-					if(this.dataTypeMap.get(headers[i]).toUpperCase().startsWith("VARCHAR")) {
+					if(Utility.convertStringToDataType(this.dataTypeMap.get(headers[i])) == DATA_TYPES.STRING) {
 						if(nextSet.contains(Utility.cleanString(row[i], true))) {
 							newRow = row;
 						} else {
