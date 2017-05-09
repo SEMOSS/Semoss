@@ -46,14 +46,14 @@ public class InsightScreenshot {
 	private Timer timer = new java.util.Timer();
 	private boolean complete = false;
 
-	@SuppressWarnings("restriction")
 	/**
+	 * Loads the url to the javafx browser
 	 * 
 	 * @param url
-	 * @param imageName
+	 * @param imagePath
 	 *            add png extension
 	 */
-	public void showWindow(String url, String imagePath) throws IOException {
+	public void showUrl(String url, String imagePath) {
 		// JavaFX stuff needs to be done on JavaFX thread
 		Platform.setImplicitExit(false);
 		Platform.runLater(new Runnable() {
@@ -66,8 +66,8 @@ public class InsightScreenshot {
 				Stage window = new Stage();
 				window.setTitle(url);
 
+				// load url to broswer and wait til visualization is loaded
 				browser = new Browser(url);
-
 				monitorPageStatus(imagePath, window);
 
 				VBox layout = new VBox();
@@ -75,50 +75,60 @@ public class InsightScreenshot {
 				Scene scene = new Scene(layout);
 				window.setScene(scene);
 				window.setOnCloseRequest(we -> System.exit(0));
+				// window.setOpacity(0);
 				window.show();
 			}
 		});
 	}
 
-	private void monitorPageStatus(String imageName, Stage window) {
+	private void monitorPageStatus(String imagePath, Stage window) {
 
 		timer.schedule(new TimerTask() {
 			@SuppressWarnings("restriction")
 			public void run() {
 				Platform.runLater(() -> {
 					if (browser.isPageLoaded()) {
-						System.out.println("Page now loaded, taking screenshot...");
-						saveAsPng(imageName);
+						// System.out.println("Page now loaded, taking
+						// screenshot...");
+						saveAsPng(imagePath);
 						window.close();
 						cancel();
 						complete = true;
-					} else
-						System.out.println("Loading page...");
+					}
 				});
 			}
 		}, 1000, 1000);
 	}
 
-	private void saveAsPng(String imageName) {
+	/**
+	 * Take a screenshot of the browser and save as png
+	 * 
+	 * @param imagePath
+	 */
+	private void saveAsPng(String imagePath) {
 		WritableImage image = browser.snapshot(new SnapshotParameters(), null);
-		// TODO change file path?
-		File file = new File(imageName);
+		File file = new File(imagePath);
 		try {
 			ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
-			System.out.println("Screenshot saved as " + imageName);
+			// System.out.println("Screenshot saved as " + imagePath);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Checks if the browser has taken a screenshot
+	 * 
+	 * @return
+	 */
 	public boolean getComplete() {
 		boolean complete = false;
 		while (!complete) {
 			if (this.complete) {
 				complete = true;
-			} else {
-				System.out.println("waiting");
 			}
+
+//			System.out.println("waiting");
 
 		}
 		return complete;
@@ -129,13 +139,13 @@ public class InsightScreenshot {
 
 		InsightScreenshot pic = new InsightScreenshot();
 		System.out.println("Taking photo...");
-		pic.showWindow("http://localhost:8080/SemossWeb/embed/#/embed?engine=movie&questionId=1&settings=false",
-				"C:\\Users\\rramirezjimenez\\workspace\\Semoss\\images\\insight1.png");
+		pic.showUrl("http://localhost:8080/SemossWebBranch/embed/#/embed?engine=movieMay5&questionId=18&settings=false",
+				"C:\\workspace\\Semoss\\images\\insight1.png");
 		pic.getComplete();
-		String serialized_image = InsightScreenshot.imageToString("C:\\Users\\rramirezjimenez\\workspace\\Semoss\\images\\insight1.png");	
+		String serialized_image = InsightScreenshot.imageToString("C:\\workspace\\Semoss\\images\\insight1.png");
 		System.out.println(serialized_image);
-		System.out.println("Final End");
-		
+		System.exit(0);
+
 	}
 
 	private static String imgToBase64String(final RenderedImage img, final String formatName) {
@@ -148,20 +158,25 @@ public class InsightScreenshot {
 		}
 	}
 
+	/**
+	 * Return the based 64 serialized string
+	 * 
+	 * @param path
+	 * @return
+	 */
 	public static String imageToString(String path) {
 
 		RenderedImage bi;
 		String base64String = "";
 		try {
-			bi = javax.imageio.ImageIO.read(new File(path));
+			File imageFile = new File(path);
+			bi = javax.imageio.ImageIO.read(imageFile);
 			base64String = imgToBase64String(bi, "png");
-
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-		return "data:image/png;base64," + base64String;
+		return base64String;
 	}
 
 }
