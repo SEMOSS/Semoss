@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
@@ -41,8 +42,8 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	// these keys are used within the return of the parse excel data to get the
 	// headers and data types from a given excel file
 	private XLFileHelper xlHelper;
-	private final String XL_HEADERS = "headers";
-	private final String XL_DATA_TYPES = "dataTypes";
+	public static final String XL_HEADERS = "headers";
+	public static final String XL_DATA_TYPES = "dataTypes";
 	
 	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
@@ -689,7 +690,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 							int mult = 1;
 							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
 								mult = -1;
-							val = val.replaceAll("[^0-9\\.]", "");
+							val = val.replaceAll("[^0-9\\.E]", "");
 							value = mult * Double.parseDouble(val.trim());
 						} catch(NumberFormatException ex) {
 							//do nothing
@@ -889,6 +890,10 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		this.userHeaderNames = newExcelHeaders;
 	}
 	
+	public Set<String> getNewTables() {
+		return this.newTables.keySet();
+	}
+	
 	//////////////////////////////// end utility methods //////////////////////////////
 	
 
@@ -922,7 +927,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
 		String owlFile = baseFolder + "/" + propWriter.owlFile;
 		
-ImportOptions options = new ImportOptions();
+		ImportOptions options = new ImportOptions();
 		
 		options.setSMSSLocation(propWriter.propFileName);
 		options.setDbName(engineName);

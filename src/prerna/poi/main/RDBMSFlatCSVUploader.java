@@ -41,8 +41,8 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	
 	// these keys are used within the return of the parseCSVData to get the
 	// headers and data types from a given csv file
-	public final static String CSV_HEADERS = "headers";
-	public final static String CSV_DATA_TYPES = "dataTypes";
+	public static final String CSV_HEADERS = "headers";
+	public static final String CSV_DATA_TYPES = "dataTypes";
 	
 	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
@@ -624,7 +624,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							int mult = 1;
 							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
 								mult = -1;
-							val = val.replaceAll("[^0-9\\.]", "");
+							val = val.replaceAll("[^0-9\\.E]", "");
 							value = mult * Double.parseDouble(val.trim());
 						} catch(NumberFormatException ex) {
 							//do nothing

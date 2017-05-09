@@ -56,6 +56,7 @@ public class CsvApiReactor extends AbstractApiReactor {
 		fileData.setSelectors((Vector<String>) getValue(PKQLEnum.COL_CSV));
 		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
 		fileData.setPkqlStr((String) getValue(PKQLEnum.API));
+		fileData.setType(FilePkqlMetadata.FILE_TYPE.CSV);
 		
 		return fileData;
 	}
