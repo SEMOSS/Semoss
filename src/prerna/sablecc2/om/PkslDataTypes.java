@@ -26,7 +26,8 @@ public enum PkslDataTypes {
 	PLANNER("PLANNER"), 
 	CACHED_CLASS("CACHED_CLASS"), 
 	VECTOR("VECTOR"),
-	BOOLEAN("BOOLEAN");
+	BOOLEAN("BOOLEAN"),
+	ERROR("ERROR");
 	
 	private final String strValue;
 	
