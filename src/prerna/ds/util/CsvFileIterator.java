@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.ds.QueryStruct;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -142,7 +143,7 @@ public class CsvFileIterator extends AbstractFileIterator{
 			for(int i = 0; i < row.length; i++) {
 				Set<Object> nextSet = filters.get(headers[i]);
 				if(nextSet != null ){
-					if(dataTypeMap.get(headers[i]).toUpperCase().startsWith("VARCHAR")) {
+					if(Utility.convertStringToDataType(this.dataTypeMap.get(headers[i])) == DATA_TYPES.STRING) {
 						if(nextSet.contains(Utility.cleanString(row[i], true))) {
 							newRow = row;
 						} else {

@@ -2,6 +2,7 @@ package prerna.ds.util;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -145,6 +146,7 @@ public abstract class AbstractFileIterator implements IFileIterator{
 	}
 	
 	protected void setFilters(Map<String, Map<String, List>> andfilters) {
+		filters = new Hashtable<String, Set<Object>>();
 		for(String column : andfilters.keySet()) {
 			Map<String, List> filterValues = andfilters.get(column);
 			Set<Object> values = new HashSet<>();
