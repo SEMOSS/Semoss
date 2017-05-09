@@ -16,6 +16,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.sablecc2.VarStore;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLPlanner {
@@ -54,35 +55,6 @@ public class PKSLPlanner {
 		return (IDataMaker)getProperty("FRAME", "FRAME");
 	}
 	
-	// adds an operation with necessary inputs
-	public void addInputs(String opName, List <String> inputs, List <String> asInputs, IReactor.TYPE opType)
-	{
-		// find the vertex for each of the input
-		// wonder if this should be a full fledged block of java ?
-		Vertex opVertex = upsertVertex(OPERATION, opName);
-		opVertex.property("OP_TYPE", opType);
-		opVertex.property("CODE", "NONE");
-		opVertex.property("INPUT_ORDER", inputs);
-		Vector <String> aliasVector = new Vector<String>();
-		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
-		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim().toUpperCase());
-			if(asInputs != null && inputIndex < asInputs.size())
-				aliasVector.add(asInputs.get(inputIndex));
-			else
-				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
-			String edgeID = inputs.get(inputIndex).trim().toUpperCase() + "_" + opName;
-			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property(TINKER_ID), "TYPE", "INPUT");
-			
-		}
-		opVertex.property("ALIAS", aliasVector);
-	}
-
-	public void addInputs(String opName, List <String> inputs, IReactor.TYPE opType)
-	{
-		addInputs(opName, inputs, null, opType);
-	}
-
 	//**********************PROPERTY METHODS*******************************//
 	
 	public void addProperty(String opName, String propertyName, Object value)
@@ -147,6 +119,41 @@ public class PKSLPlanner {
 		return varStore.getVariables();
 	}
 	
+	
+//	public NounMetadata getVariable(String variableName) {
+//        NounMetadata noun = varStore.getVariableValue(variableName);
+//        if(noun == null) {
+//                      if(!variableName.startsWith("$"))
+//                                     return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
+//        }
+//        return noun;
+//	//    return varStore.getVariable(variableName);
+//	}
+//
+//	public NounMetadata getVariableValue(String variableName) {
+//        NounMetadata noun = varStore.getVariableValue(variableName);
+//        if(noun == null) {
+//        	if(!variableName.startsWith("$")) {
+//        		return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
+//        	}
+//        }
+//        return noun;
+//	//    return varStore.getVariableValue(variableName);
+//	}
+//
+//	public boolean hasVariable(String variableName) {
+//        boolean hasVar = varStore.hasVariable(variableName);
+//        //variable doesn't exist
+//        if(!hasVar) {
+//	          //variable name doesn't start with $...$Result, $Filter, etc.
+//	          if(!variableName.startsWith("$")) {
+//	                         return true;
+//	          }
+//        }
+//        return hasVar;
+//	//    return varStore.hasVariable(variableName);
+//	}
+	
 	//**********************END VARIABLE METHODS*******************************//
 	
 	
@@ -183,6 +190,34 @@ public class PKSLPlanner {
 		}
 	}
 
+	// adds an operation with necessary inputs
+	public void addInputs(String opName, List <String> inputs, List <String> asInputs, IReactor.TYPE opType)
+	{
+		// find the vertex for each of the input
+		// wonder if this should be a full fledged block of java ?
+		Vertex opVertex = upsertVertex(OPERATION, opName);
+		opVertex.property("OP_TYPE", opType);
+		opVertex.property("CODE", "NONE");
+		opVertex.property("INPUT_ORDER", inputs);
+		Vector <String> aliasVector = new Vector<String>();
+		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
+		{
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim().toUpperCase());
+			if(asInputs != null && inputIndex < asInputs.size())
+				aliasVector.add(asInputs.get(inputIndex));
+			else
+				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
+			String edgeID = inputs.get(inputIndex).trim().toUpperCase() + "_" + opName;
+			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property(TINKER_ID), "TYPE", "INPUT");
+			
+		}
+		opVertex.property("ALIAS", aliasVector);
+	}
+	
+	public void addInputs(String opName, List <String> inputs, IReactor.TYPE opType)
+	{
+		addInputs(opName, inputs, null, opType);
+	}
 	
 	// adds a java operation string as input
 	// this should be more of outputs and not inputs
