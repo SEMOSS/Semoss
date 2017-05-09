@@ -148,8 +148,31 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 								// TODO: need to expose this for other things aside from engine
 								IEngine engine = Utility.getEngine(this.engine);
 								if(engine != null) {
-									String physicalUri = engine.getPhysicalUriFromConceptualUri(toColumn);
-									String eType = engine.getDataTypes(physicalUri);
+									// we need to make sure we add this correclty
+									// is this a concept, or a property
+									String eType = null;
+									if(selectors.contains(toColumn)) {
+										// we have a concept
+										String physicalUri = engine.getPhysicalUriFromConceptualUri(toColumn);
+										eType = engine.getDataTypes(physicalUri);
+									} else {
+										// we have a property
+										// find the correct conceptual info
+										for(String selector : selectors) {
+											if(selector.contains("__")) {
+												String[] selectorComp = selector.split("__");
+												if(selectorComp[1].equals(toColumn)) {
+													// add the filter as the parent__child
+													// so the interpreter adds it correctly
+													toColumn = selector;
+													String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + selectorComp[1] + "/" + selectorComp[0]);
+													eType = engine.getDataTypes(physicalUri);
+													break;
+												}
+											}
+										}
+									}
+									
 									
 									// for really old db's, they do not have conceptual names
 									// so the above logic is not valid....
