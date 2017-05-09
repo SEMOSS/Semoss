@@ -93,7 +93,8 @@ public class PastedDataReactor extends AbstractReactor {
 		fileData.setSelectors((List<String>) getValue(PKQLEnum.COL_CSV));
 		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
 		fileData.setPkqlStr((String) getValue(PKQLEnum.PASTED_DATA));
-		
+		fileData.setType(FilePkqlMetadata.FILE_TYPE.CSV);
+
 		return fileData;
 	}
 }
