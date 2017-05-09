@@ -102,7 +102,9 @@ public class ReactorFactory {
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("LoadClient", LoadClient.class);
+//		reactorHash.put("LoadClient", LoadClient2.class);
 		reactorHash.put("RunPlan", RunPlannerReactor.class);
+//		reactorHash.put("RunPlan", RunTablePlannerReactor.class);
 		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 		reactorHash.put("CreateStore", CreateStoreReactor.class);
@@ -111,6 +113,7 @@ public class ReactorFactory {
 		reactorHash.put("TaxMapStore", TaxMapStore.class);
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
 		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor2.class);
+//		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor.class);
 		reactorHash.put("UpdateTaxPlannerReactor", UpdateTaxPlannerReactor.class);
 	}
 	
