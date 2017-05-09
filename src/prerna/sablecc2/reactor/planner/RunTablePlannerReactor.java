@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.LogManager;
@@ -33,13 +32,18 @@ public class RunTablePlannerReactor extends AbstractTablePlannerReactor {
 		long start = System.currentTimeMillis();
 		
 		TablePKSLPlanner planner = getPlanner();
-		List<String> pksls = collectPksls(planner);		
+		
+		List<String> pksls = collectRootPksls(planner);		
 		Translation translation = new Translation();
 		translation.planner = planner;
-		try {
-			PkslUtility.addPkslToTranslation(translation, new ArrayList<String>(pksls));
-		} catch(Exception e) {
-			e.printStackTrace();
+		while(!pksls.isEmpty()) {
+			try {
+				PkslUtility.addPkslToTranslation(translation, pksls);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+			updateTable(planner, pksls);
+			pksls = collectNextPksls(planner);
 		}
 		
 		long end = System.currentTimeMillis();
