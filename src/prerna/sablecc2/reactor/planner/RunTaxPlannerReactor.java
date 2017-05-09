@@ -126,7 +126,7 @@ public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 	
 	private List<String> getPksls() {
 		TablePKSLPlanner planner = getPlanner();
-		List<String> pksls = collectPksls(planner);
+		List<String> pksls = collectNextPksls(planner);
 		return pksls;
 	}
 	
