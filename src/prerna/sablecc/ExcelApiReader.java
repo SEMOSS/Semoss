@@ -1,14 +1,11 @@
 package prerna.sablecc;
 
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
-import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
@@ -60,6 +57,8 @@ public class ExcelApiReader extends AbstractApiReactor {
 		fileData.setSelectors((Vector<String>) getValue(PKQLEnum.COL_CSV));
 		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
 		fileData.setPkqlStr((String) getValue(PKQLEnum.API));
+		fileData.setType(FilePkqlMetadata.FILE_TYPE.EXCEL);
+		fileData.setSheetName(this.sheetName);
 		
 		return fileData;
 	}
