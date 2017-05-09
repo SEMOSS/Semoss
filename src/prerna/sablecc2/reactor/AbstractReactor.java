@@ -309,7 +309,12 @@ public abstract class AbstractReactor implements IReactor {
 		if(inputs != null) {
 			List<String> strInputs = new Vector<String>();
 			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
-				strInputs.add(inputs.get(inputIndex).getValue() + "");
+				
+				NounMetadata noun = inputs.get(inputIndex);
+				PkslDataTypes type = noun.getNounName();
+				if(type == PkslDataTypes.COLUMN) {
+					strInputs.add(noun.getValue() + "");
+				}
 			}
 			
 			this.planner.addInputs(this.signature, strInputs, TYPE.FLATMAP);
@@ -318,7 +323,11 @@ public abstract class AbstractReactor implements IReactor {
 		if(outputs != null) {
 			List<String> strOutputs = new Vector<String>();
 			for(int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
-				strOutputs.add(outputs.get(outputIndex).getValue() + "");
+				NounMetadata noun = outputs.get(outputIndex);
+				PkslDataTypes type = noun.getNounName();
+				if(type == PkslDataTypes.COLUMN) {
+					strOutputs.add(noun.getValue() + "");
+				}
 			}
 			
 			this.planner.addOutputs(this.signature, strOutputs, TYPE.FLATMAP);
