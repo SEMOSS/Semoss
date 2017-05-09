@@ -29,12 +29,11 @@ public class CsvApiReactor extends AbstractApiReactor {
 
 		// the mapOptions stores all the information being passed from the user
 		// this will contain the fileName and the data types from each column
-		dataTypeMap = new Hashtable<String, String>();
 		for(Object key : this.mapOptions.keySet()) {
 			if(key.equals(FILE_KEY)) {
 				fileName = (String)this.mapOptions.get(FILE_KEY);
-			} else {
-				dataTypeMap.put(key.toString(), (String)this.mapOptions.get(key));
+			} else if(key.equals(DATA_TYPE_MAP)) {
+				this.dataTypeMap = (Map<String, String>) this.mapOptions.get(key);
 			}
 		}
 		
