@@ -8,16 +8,20 @@ import prerna.sablecc.PKQLEnum;
 
 public class FilePkqlMetadata extends AbstractPkqlMetadata {
 
+	public enum FILE_TYPE {CSV, EXCEL};
+	
+	// location of the file
 	private String fileLoc;
+	// the selectors used from the file
 	private List<String> selectors;
+	// the data types that the user defined for the file
 	private Map<String, String> dataMap;
-	private List<Map<String, Object>> tableJoin;	
-	
-	public FilePkqlMetadata() {
-		
-	}
-	
-	// start required methods
+	// any table joins used
+	private List<Map<String, Object>> tableJoin;
+	// the type of the file
+	private FILE_TYPE type;
+	// sheet name is only needed for excel
+	private String sheetName;
 	
 	@Override
 	public Map<String, Object> getMetadata() {
@@ -119,5 +123,21 @@ public class FilePkqlMetadata extends AbstractPkqlMetadata {
 	
 	public List<String> getSelectors() {
 		return this.selectors;
+	}
+	
+	public FILE_TYPE getType() {
+		return this.type;
+	}
+	
+	public void setType(FILE_TYPE type) {
+		this.type = type;
+	}
+
+	public void setSheetName(String sheetName) {
+		this.sheetName = sheetName;
+	}
+	
+	public String getSheetName() {
+		return this.sheetName;
 	}
 }
