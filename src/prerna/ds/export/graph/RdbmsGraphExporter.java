@@ -5,7 +5,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +41,9 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 
 	public RdbmsGraphExporter(H2Frame frame) {
 		this.frame = frame;
+		if(this.frame.hasPrimKey()) {
+			throw new IllegalArgumentException("Please use PKQL routine 'data.frame.setEdgeHash()' to properly define how to export the data as a graph");
+		}
 		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
 		parseEdgeHash(edgeHash);
 //		generateDupAliasMap(frame.getColumnHeaders(), frame.getColumnAliasName());

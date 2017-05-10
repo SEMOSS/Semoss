@@ -745,6 +745,10 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		this.dataId = BigInteger.valueOf(0);
 	}
 	
+	public boolean hasPrimKey() {
+		return this.metaData.getPrimKeys().size() > 0;
+	}
+	
 	/**
 	 * Recreate new metadata
 	 * @param newEgdeHash
