@@ -22,7 +22,7 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 	 * INSERT INTO TESTING (OP, NOUN, DIRECTION, PROCESSED) VALUES ('C=A+B', 'C','OUT',FALSE);
 	 * 
 	 * -- GET ROOTS --
-	 * SELECT OP, NOUN FROM TESTING WHERE DIRECTION = 'IN' AND NOUN NOT IN (SELECT NOUN FROM TESTING WHERE DIRECTION = 'OUT');
+	 * SELECT DISTINCT OP FROM TESTING WHERE DIRECTION = 'IN' AND NOUN NOT IN (SELECT NOUN FROM TESTING WHERE DIRECTION = 'OUT');
 	 * 
 	 * -- UPDATE FOR THOSE OPS --
 	 * UPDATE TESTING SET PROCESSED=TRUE WHERE OP IN ('A=0');
@@ -37,16 +37,16 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 	 * SELECT OP FROM TESTING WHERE PROCESSED=FALSE AND NOUN IN(SELECT NOUN FROM TESTING WHERE DIRECTION='OUT' AND PROCESSED='TRUE') MINUS SELECT OP FROM TESTING WHERE DIRECTION='IN' AND NOUN IN(SELECT NOUN FROM TESTING WHERE DIRECTION='OUT' AND PROCESSED=FALSE)
 	 */
 	
-	String OPERATION_COLUMN = "OP";
-	String NOUN_COLUMN = "NOUN";
-	String DIRECTION_COLUMN = "DIRECTION";
-	String PROCESSED_COLUMN = "PROCESSED";
+	static final String OPERATION_COLUMN = "OP";
+	static final String NOUN_COLUMN = "NOUN";
+	static final String DIRECTION_COLUMN = "DIRECTION";
+	static final String PROCESSED_COLUMN = "PROCESSED";
 	
-	String inDirection = "IN";
-	String outDirection = "OUT";
+	static final String inDirection = "IN";
+	static final String outDirection = "OUT";
 	
-	String falseProcessed = "FALSE";
-	String trueProcessed = "TRUE";
+	static final String falseProcessed = "FALSE";
+	static final String trueProcessed = "TRUE";
 	
 	String tempTableName = "TEMP_TABLE";
 	
@@ -71,6 +71,7 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 			}
 		}
 		
+		updateTable(planner, rootsQuery);
 		return pksls;
 	}
 	
@@ -94,19 +95,32 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 			}
 		}
 		
+		updateTable(planner, rootsQuery);
 		return pksls;
 	} 
 	
-	public void updateTable(TablePKSLPlanner planner, List<String> pksls) {
+//	public void updateTable(TablePKSLPlanner planner, List<String> pksls) {
+//		StringBuilder updateQuery = new StringBuilder();
+//		updateQuery.append("UPDATE ").append(planner.getSimpleTable().getTableName()).append(" SET PROCESSED=TRUE WHERE OP IN(");
+//		int size = pksls.size();
+//		for(int i = 0; i < size; i++) {
+//			updateQuery.append("'").append(pksls.get(i)).append("'");
+//			if(i +1 != size) {
+//				updateQuery.append(",");
+//			}
+//		}
+//		updateQuery.append(")");
+//		try {
+//			planner.getSimpleTable().runQuery(updateQuery.toString());
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+	
+	public void updateTable(TablePKSLPlanner planner, String subQuery) {
 		StringBuilder updateQuery = new StringBuilder();
 		updateQuery.append("UPDATE ").append(planner.getSimpleTable().getTableName()).append(" SET PROCESSED=TRUE WHERE OP IN(");
-		int size = pksls.size();
-		for(int i = 0; i < size; i++) {
-			updateQuery.append("'").append(pksls.get(i)).append("'");
-			if(i +1 != size) {
-				updateQuery.append(",");
-			}
-		}
+		updateQuery.append(subQuery);
 		updateQuery.append(")");
 		try {
 			planner.getSimpleTable().runQuery(updateQuery.toString());
@@ -126,7 +140,12 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 		}
 	}
 	
-	
+	public static void indexTable(TablePKSLPlanner planner) {
+		SimpleTable table = planner.getSimpleTable();
+		table.addColumnIndex(table.getTableName(), OPERATION_COLUMN);
+		table.addColumnIndex(table.getTableName(), NOUN_COLUMN);
+		table.addColumnIndex(table.getTableName(), DIRECTION_COLUMN);
+	}
 	
 	private String getNextQuery(String tableName) {
 //		StringBuilder rootsQuery = new StringBuilder();
@@ -145,7 +164,7 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 //		rootsQuery.append(" WHERE ").append(PROCESSED_COLUMN).append("=").append(falseProcessed); //WHERE PROCESSED=FALSE
 //		rootsQuery.append(" AND ");
 //		rootsQuery.append(NOUN_COLUMN).append("IN(");
-		return "SELECT DISTINCT OP, NOUN FROM "+tableName+" WHERE DIRECTION = 'IN' AND NOUN NOT IN (SELECT NOUN FROM "+tableName+" WHERE DIRECTION = 'OUT')";
+		return "SELECT DISTINCT OP FROM "+tableName+" WHERE DIRECTION = 'IN' AND NOUN NOT IN (SELECT NOUN FROM "+tableName+" WHERE DIRECTION = 'OUT')";
 	}
 	
 }
