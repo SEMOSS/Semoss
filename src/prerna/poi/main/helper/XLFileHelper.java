@@ -76,7 +76,7 @@ public class XLFileHelper {
 				
 				String[] sheetHeaders = getSheetHeaders(sheet);
 				if(sheetHeaders == null) {
-					sheetHeaders = new String[]{};
+					continue;
 				}
 				original_headers.put(nameOfSheet, sheetHeaders);
 				
@@ -121,6 +121,11 @@ public class XLFileHelper {
 			counter++;
 		}
 		
+		// at this point, the sheet is empty and can't do anything
+		if(headerRow == null) {
+			sheetNames.remove(sheet.getSheetName());
+			return null;
+		}
 		// get the headers
 		int colLength = headerRow.getLastCellNum();
 		String[] sheetHeaders = getCells(headerRow, colLength);
