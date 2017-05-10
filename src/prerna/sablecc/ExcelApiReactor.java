@@ -11,7 +11,7 @@ import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
-public class ExcelApiReader extends AbstractApiReactor {
+public class ExcelApiReactor extends AbstractApiReactor {
 
 	// TODO: should modify this to be a bit more of a unique name so it does not
 	// relate to a column name
