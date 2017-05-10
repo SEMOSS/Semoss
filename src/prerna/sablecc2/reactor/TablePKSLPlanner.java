@@ -6,7 +6,6 @@ import prerna.sablecc2.SimpleTable;
 
 public class TablePKSLPlanner extends PKSLPlanner {
 
-	private SimpleTable table = null;
 	public static final String OPERATION_COLUMN = "OP";
 	public static final String NOUN_COLUMN = "NOUN";
 	public static final String DIRECTION_COLUMN = "DIRECTION";
@@ -23,11 +22,14 @@ public class TablePKSLPlanner extends PKSLPlanner {
 	public static final String TRUE_PROCESSED = "TRUE";
 	public static final String FALSE_PROCESSED = "FALSE";
 	
+	private SimpleTable table = null;
+	
 	public TablePKSLPlanner() {
+		// TODO: WHY ARE WE CALLING SUPER AND MAKING AN EMPTY TINKER???
 		super();
-		table = new SimpleTable();
-		table.convertFromInMemToPhysical(null);
-		table.createTable(table.getTableName(), getHeaders(), getTypes());
+		this.table = new SimpleTable();
+		this.table.convertFromInMemToPhysical(null);
+		this.table.createTable(this.table.getTableName(), getHeaders(), getTypes());
 	}
 	
 	@Override
@@ -42,7 +44,7 @@ public class TablePKSLPlanner extends PKSLPlanner {
 			values[1] = output;
 			values[2] = outDirection;
 			values[3] = FALSE_PROCESSED;
-			table.addRow(values, headers, types);
+			this.table.addRow(values, headers, types);
 		}
 	}
 	
@@ -58,12 +60,16 @@ public class TablePKSLPlanner extends PKSLPlanner {
 			values[1] = input;
 			values[2] = inDirection;
 			values[3] = FALSE_PROCESSED;
-			table.addRow(values, headers, types);
+			this.table.addRow(values, headers, types);
 		}
 	}
 	
 	public SimpleTable getSimpleTable() {
 		return this.table;
+	}
+	
+	public void setSimpleTable(SimpleTable table) {
+		this.table = table;
 	}
 	
 	private String[] getHeaders() {
