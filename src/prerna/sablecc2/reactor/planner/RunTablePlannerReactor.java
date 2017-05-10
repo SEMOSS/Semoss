@@ -42,7 +42,7 @@ public class RunTablePlannerReactor extends AbstractTablePlannerReactor {
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
-			updateTable(planner, pksls);
+//			updateTable(planner, pksls);
 			pksls = collectNextPksls(planner);
 		}
 		resetTable(planner);
