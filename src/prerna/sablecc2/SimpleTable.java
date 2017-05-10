@@ -1,6 +1,9 @@
 package prerna.sablecc2;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -17,16 +20,17 @@ import java.util.UUID;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.tools.Server;
 
-import prerna.ds.h2.H2Builder;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class SimpleTable {
 
-	private static final Logger LOGGER = LogManager.getLogger(H2Builder.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(SimpleTable.class.getName());
 
 	private Connection conn = null;
 	protected String schema = "test"; // assign a default schema which is test
@@ -38,6 +42,9 @@ public class SimpleTable {
 	protected int LIMIT_SIZE;
 	private String tableName;
 	private int varCharSize;
+	
+	protected Server server = null;
+	protected String serverURL = null;
 	
 	public SimpleTable() {
 		setDefaults();
@@ -68,6 +75,33 @@ public class SimpleTable {
 	
 	public void setCharacterLimit(int charLimit) {
 		this.varCharSize = charLimit;
+	}
+	
+//	public SimpleTable copy() {
+//		SimpleTable copy = new SimpleTable();
+//		copy.varCharSize = this.varCharSize;
+//		copy.LIMIT_SIZE = this.LIMIT_SIZE;
+//		try {
+//			copyTable(getConnection(), getTableName(), copy.getConnection(), copy.getTableName());
+//		} catch (Exception e1) {
+//			e1.printStackTrace();
+//		}
+//		return copy;
+//	}
+	
+	public SimpleTable copy() {
+		SimpleTable copy = new SimpleTable();
+		copy.varCharSize = this.varCharSize;
+		copy.LIMIT_SIZE = this.LIMIT_SIZE;
+		String copyTableName = copy.getTableName();
+		StringBuilder query = new StringBuilder();
+		query.append("INSERT INTO ").append(copyTableName).append(" SELECT * FROM ").append(this.tableName);
+		try {
+			copy.runQuery(query.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return copy;
 	}
 	
 	/******************************************************************
@@ -272,7 +306,7 @@ public class SimpleTable {
 	 * INDEXING METHODS
 	 ******************************************************************/
 
-	protected void addColumnIndex(String tableName, String colName) {
+	public void addColumnIndex(String tableName, String colName) {
 		if (!columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			long start = System.currentTimeMillis();
 	
@@ -294,7 +328,7 @@ public class SimpleTable {
 		}
 	}
 	
-	protected void removeColumnIndex(String tableName, String colName) {
+	public void removeColumnIndex(String tableName, String colName) {
 		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			LOGGER.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
@@ -367,6 +401,8 @@ public class SimpleTable {
 						insertStatement.setDouble(i+1, resultSet.getDouble(i+1));
 					} else if(type.equals("DATE")) {
 						insertStatement.setDate(i+1, resultSet.getDate(i+1));
+					} else if(type.equals("BOOLEAN")) {
+						insertStatement.setBoolean(i+1, resultSet.getBoolean(i+1));
 					}
 					
 				}
@@ -429,18 +465,51 @@ public class SimpleTable {
 		return uuid.toUpperCase();
 	}
 	
-	public SimpleTable copy() {
-		SimpleTable table = new SimpleTable();
-		String copyTableName = table.getTableName();
-		StringBuilder query = new StringBuilder();
-		query.append("INSERT INTO ").append(copyTableName).append(" SELECT * FROM ").append(this.tableName);
-		try {
-			table.runQuery(query.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
+	// Connects the frame
+	public String connectFrame() {
+		if (server == null) {
+			try {
+				String port = Utility.findOpenPort();
+				// create a random user and password
+				// get the connection object and start up the frame
+				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
+				// server = Server.createPgServer("-baseDir", "~",
+				// "-pgAllowOthers"); //("-tcpPort", "9999");
+				if(isInMem) {
+					serverURL = "jdbc:h2:" + server.getURL() + "/mem:" + this.schema + options;
+				} else {
+					serverURL = "jdbc:h2:" + server.getURL() + "/nio:" + this.schema;
+				}
+				server.start();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		return table;
+//			printSchemaTables();
+		System.out.println("URL... " + serverURL);
+		return serverURL;
 	}
+	
+	public static void openTableServer(SimpleTable table)
+	{
+		table.connectFrame();
+		String end = "";
+		while(!end.equalsIgnoreCase("end"))
+		{
+			try {
+				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+				System.out.println("type 'end' to exit");
+				end = reader.readLine();   
+				
+			} catch(RuntimeException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	/******************************************************************
 	 * END UTILITY METHODS
 	 ******************************************************************/

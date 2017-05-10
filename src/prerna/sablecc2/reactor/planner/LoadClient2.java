@@ -10,6 +10,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.PlannerTranslation;
+import prerna.sablecc2.SimpleTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
@@ -44,19 +45,21 @@ public class LoadClient2 extends AbstractTablePlannerReactor {
 	{
 		// run through all the results in the iterator
 		// and append them into a new plan
-		PKSLPlanner newPlan = createPlanner();
+		TablePKSLPlanner newPlan = createPlanner();
+		//SimpleTable.openTableServer(newPlan.getSimpleTable());
 		return new NounMetadata(newPlan, PkslDataTypes.PLANNER);
 	}
 	
 	
-	private PKSLPlanner createPlanner() {
+	private TablePKSLPlanner createPlanner() {
 		long start = System.currentTimeMillis();
 
 		// generate our lazy translation
 		// which only ingests the routines
 		// without executing
 		PlannerTranslation plannerT = new PlannerTranslation();
-		plannerT.planner = new TablePKSLPlanner();
+		TablePKSLPlanner tplanner = new TablePKSLPlanner();
+		plannerT.planner = tplanner;
 		
 		// get the iterator we are loading
 		IRawSelectWrapper iterator = (IRawSelectWrapper) getIterator();
@@ -88,6 +91,10 @@ public class LoadClient2 extends AbstractTablePlannerReactor {
 			}
 		}
 		
+//		SimpleTable table = tplanner.getSimpleTable();
+//		table.addcolumnIndex(table.getTableName(), );
+		indexTable((TablePKSLPlanner)plannerT.planner);
+		
 		// grab the planner from the new translation
 		LOGGER.info("****************    "+total+"      *************************");
 		LOGGER.info("****************    "+error+"      *************************");
@@ -95,7 +102,7 @@ public class LoadClient2 extends AbstractTablePlannerReactor {
 		long end = System.currentTimeMillis();
 		System.out.println("****************    END LOAD CLIENT "+(end - start)+"ms      *************************");
 
-		return plannerT.planner;
+		return (TablePKSLPlanner)plannerT.planner;
 	}
 	
 	/**
