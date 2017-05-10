@@ -1,56 +1,41 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.PkslUtility;
+import prerna.sablecc2.PlannerTranslation;
 import prerna.sablecc2.Translation;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.TablePKSLPlanner;
 import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.sablecc2.reactor.storage.MapStore;
+import prerna.sablecc2.reactor.storage.TaxMapStore;
 import prerna.util.ArrayUtilityMethods;
 
 public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(LoadClient.class.getName());
-	private static int fileCount = 0;
-	String scenarioHeader = "Proposal"; //header of column containing Trump, House, etc
-	String aliasHeader = "Alias"; //header for value containing our column name
-	String valueHeader = "Value"; //header for value containing the value assigned to column name
+	private static final Logger LOGGER = LogManager.getLogger(RunTaxPlannerReactor.class.getName());
 	
-	
-	String OPERATION_COLUMN = "OP";
-	String NOUN_COLUMN = "NOUN";
-	String DIRECTION_COLUMN = "DIRECTION";
-	
-	String inDirection = "IN";
-	String outDirection = "OUT";
-	
+	private String scenarioHeader = "ProposalName"; //header of column containing Trump, House, etc
+	private String aliasHeader = "Alias_1"; //header for value containing our column name
+	private String valueHeader = "Value_1"; //header for value containing the value assigned to column name
+	private String typeHeader = "Type_1";
+
+	private TablePKSLPlanner originalPlan = null;
+
 	@Override
 	public void In() {
 		curNoun("all");
@@ -60,41 +45,59 @@ public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 	public Object Out() {
 		return parentReactor;
 	}
-	
+
 	@Override
 	public NounMetadata execute()
 	{
 		long start = System.currentTimeMillis();
-		
-		Translation translation = new Translation();
-		
-		List<String> pksls = getPksls(); 
-		Map<String, InMemStore> mapStore = getMemStores(getIterator());
-		InMemStore returnStore = new MapStore();
-		
-		for(String scenario : mapStore.keySet()) {
-			
-			//grab the scenario and set the vars to the planner before excecuting
-			InMemStore nextScenario = mapStore.get(scenario);
-			
-			//should i use a new translation every time or the same one?
-			setVarsToPlanner(translation.planner, nextScenario);
-			
-			for(String pkslString : pksls) {
-				try {
-					Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
-					Start tree = p.parse();
-					tree.apply(translation);
-				} catch (ParserException | LexerException | IOException e) {
-					e.printStackTrace();
-				} catch(Exception e) {
-					e.printStackTrace();
-				}
-			}
-		
 
+		// get the original version of the plan we want to save
+		this.originalPlan = getPlanner();
+
+		// now loop through and store all the necessary information
+		// around each proposal
+		Iterator<IHeadersDataRow> scenarioIterator = getIterator();
+		// iterate through the scenario information
+		// and generate a pksl planner for each scenario
+		Map<String, TablePKSLPlanner> scenarioMap = getScenarioMap(scenarioIterator);
+		
+		// create the master return store
+		// this will contain each scenario
+		// pointing to another map
+		// for that maps specific information
+		InMemStore returnStore = new TaxMapStore();
+
+		List<PKSLPlanner> planners = new ArrayList<>();
+		for(String scenario : scenarioMap.keySet()) {
+			LOGGER.info("Start execution for scenario = " + scenario);
+
+			// create a new translation to run through
+			Translation translation = new Translation();
+			// get the planner for the scenario
+			TablePKSLPlanner nextScenario = scenarioMap.get(scenario);
+			nextScenario.addVariable("$Scenario", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
+			translation.planner = nextScenario;
+			
+			// iterate through to determine execution order for
+			// the scenario
+			List<String> pkslList = collectRootPksls(nextScenario);
+			while(!pkslList.isEmpty()) {
+				PkslUtility.addPkslToTranslation(translation, pkslList);
+				updateTable(nextScenario, pkslList);
+				pkslList = collectNextPksls(nextScenario);
+			}
+			
+			resetTable(nextScenario);
+			
+			LOGGER.info("End execution for scenario = " + scenario);
+			// after execution
+			// we need to	 store the information
+			LOGGER.info("Start storing data inside store");
+			
+			planners.add(translation.planner);
+			
 			InMemStore resultScenarioStore = new MapStore();
-			Set<String> variables = translation.planner.getVariables();
+			Set<String> variables = nextScenario.getVariables();
 			for(String variable : variables) {
 				try {
 					NounMetadata noun = translation.planner.getVariableValue(variable);
@@ -106,44 +109,111 @@ public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 					System.out.println("Error with ::: " + variable);
 				}
 			}
-			
+
 			//add the result of the scenario as a inMemStore in our inMemStore we are returning
 			returnStore.put(scenario, new NounMetadata(resultScenarioStore, PkslDataTypes.IN_MEM_STORE));
+			LOGGER.info("End storing data inside store");
+			
 		}
 		
 		long end = System.currentTimeMillis();
-		System.out.println("****************    "+(end - start)+"      *************************");
+		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
+
+		return new NounMetadata(planners, PkslDataTypes.PLANNER);
+//		return new NounMetadata(returnStore, PkslDataTypes.IN_MEM_STORE);
+	}
+
+	/**
+	 * Read the cached version of the planner 
+	 * into a new planner for use within a scenario
+	 * @return
+	 */
+	private TablePKSLPlanner getNewPlannerCopy() {
 		
-		return new NounMetadata(returnStore, PkslDataTypes.IN_MEM_STORE);
-	}
-	
-	private void setVarsToPlanner(PKSLPlanner planner, InMemStore memStore) {
-		Set<Object> keys = memStore.getStoredKeys();
-		for(Object key : keys) {
-			planner.addVariable(key.toString(), memStore.get(key));
+		TablePKSLPlanner newPlanner = new TablePKSLPlanner();
+		newPlanner.setSimpleTable(this.originalPlan.getSimpleTable().copy());
+		// now loop through the original planner
+		// and set all the variables that are defined
+		// into the new planner
+		Set<String> variables = this.originalPlan.getVariables();
+		for(String varName : variables) {
+			NounMetadata varNoun = this.originalPlan.getVariable(varName);
+			if(varNoun.isScalar()) {
+//				System.out.println("Orig values ::: " + varName + " > " + this.originalPlan.getVariable(varName));
+				newPlanner.addVariable(varName, varNoun);
+			}
 		}
+
+		return newPlanner;
 	}
-	
-	private List<String> getPksls() {
-		TablePKSLPlanner planner = getPlanner();
-		List<String> pksls = collectNextPksls(planner);
-		return pksls;
-	}
-	
-	
-	private InMemStore getInMemoryStore() {
-		InMemStore inMemStore = null;
-		GenRowStruct grs = getNounStore().getNoun(PkslDataTypes.IN_MEM_STORE.toString());
-		if(grs != null) {
-			inMemStore = (InMemStore) grs.get(0);
+
+	private Map<String, TablePKSLPlanner> getScenarioMap(Iterator<IHeadersDataRow> iterator) {
+		// key is scenario, value is the map store for that scenario
+		Map<String, TablePKSLPlanner> plannerMap = new HashMap<>();
+		// define a central translation
+		// to execute everything with
+		// but substituting with the correct scenario planner
+		PlannerTranslation translation = new PlannerTranslation();
+		while(iterator.hasNext()) {
+			IHeadersDataRow nextData = iterator.next();
+
+			//TODO: move this outside so we don't calculate every time
+			String[] headers = nextData.getHeaders();
+			int scenarioHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, scenarioHeader);
+			int aliasHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
+			int valueHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, valueHeader);
+			int typeHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, typeHeader);
+
+			//grab each row
+			Object[] values = nextData.getValues();
+
+			//identify which scenario this is
+			String scenario = values[scenarioHeaderIndex].toString();
+
+			//grab alias and value (value should be literal, number, or column?)
+			String alias = values[aliasHeaderIndex].toString();
+			Object value = values[valueHeaderIndex];
+
+			String type = values[typeHeaderIndex].toString();
+			boolean isFormula = "formula".equalsIgnoreCase(type);
+
+			//add to its specific scenario map store
+			TablePKSLPlanner scenarioPlanner = null;
+			if(plannerMap.containsKey(scenario)) {
+				scenarioPlanner = plannerMap.get(scenario);
+			} else {
+				scenarioPlanner = getNewPlannerCopy();
+				plannerMap.put(scenario, scenarioPlanner);
+			}
+			translation.planner = scenarioPlanner;
+			// if it is a formula
+			// parse and add to the scenario plan
+			// else, add it as a variable
+			if(isFormula) {
+				String pkslString = PkslUtility.generatePKSLString(alias, value);
+				PkslUtility.addPkslToTranslation(translation, pkslString);
+			} else {
+				scenarioPlanner.addVariable(alias, PkslUtility.getNoun(value));
+			}
 		}
-		
-		if(inMemStore == null) {
-			return new MapStore();
-		}
-		return inMemStore;
+		return plannerMap;
 	}
-	
+
+	/****************************************************
+	 * METHODS TO GRAB VALUES FROM REACTOR
+	 ***************************************************/
+
+	private Iterator<IHeadersDataRow> getIterator() {
+		GenRowStruct allNouns = getNounStore().getNoun("PROPOSALS");
+		Iterator<IHeadersDataRow> iterator = null;
+
+		if(allNouns != null) {
+			Job job = (Job)allNouns.get(0);
+			iterator = job.getIterator();
+		}
+		return iterator;
+	}
+
 	private TablePKSLPlanner getPlanner() {
 		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
 		TablePKSLPlanner planner = null;
@@ -154,52 +224,4 @@ public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 			return (TablePKSLPlanner)this.planner;
 		}
 	}
-	
-	private Iterator<IHeadersDataRow> getIterator() {
-		GenRowStruct allNouns = getNounStore().getNoun("SCENARIOS");
-		Iterator iterator = null;
-		
-		if(allNouns != null) {
-			Job job = (Job)allNouns.get(0);
-			iterator = job.getIterator();
-		}
-		return iterator;
-	}
-	
-	private Map<String, InMemStore> getMemStores(Iterator<IHeadersDataRow> iterator) {
-		
-		//key is scenario, value is the map store for that scenario
-		Map<String, InMemStore> memStoreMap = new HashMap<>();
-		
-		while(iterator.hasNext()) {
-			IHeadersDataRow nextData = iterator.next();
-			
-			//TODO: move this outside so we don't calculate every time
-			String[] headers = nextData.getHeaders();
-			int scenarioHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, scenarioHeader);
-			int aliasHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, aliasHeader);
-			int valueHeaderIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(headers, valueHeader);
-			
-			//grab each row
-			Object[] values = nextData.getValues();
-			
-			//identify which scenario this is
-			String scenario = values[scenarioHeaderIndex].toString();
-			
-			//grab alias and value (value should be literal, number, or column?)
-			String alias = values[aliasHeaderIndex].toString();
-			Object value = values[valueHeaderIndex];
-			
-			//add to its specific scenario map store
-			if(memStoreMap.containsKey(scenario)) {
-				memStoreMap.get(scenario).put(alias, PkslUtility.getNoun(value));
-			} else {
-				MapStore newMap = new MapStore();
-				newMap.put(alias, null);
-				memStoreMap.put(scenario, newMap);
-			}
-			
-		}
-		return memStoreMap;
-	}	
 }
