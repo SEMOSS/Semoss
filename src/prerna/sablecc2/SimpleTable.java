@@ -23,7 +23,6 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class SimpleTable {
 
@@ -429,8 +428,20 @@ public class SimpleTable {
 		// information schema
 		return uuid.toUpperCase();
 	}
+	
+	public SimpleTable copy() {
+		SimpleTable table = new SimpleTable();
+		String copyTableName = table.getTableName();
+		StringBuilder query = new StringBuilder();
+		query.append("INSERT INTO ").append(copyTableName).append(" SELECT * FROM ").append(this.tableName);
+		try {
+			table.runQuery(query.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return table;
+	}
 	/******************************************************************
 	 * END UTILITY METHODS
 	 ******************************************************************/
-	
 }
