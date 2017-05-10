@@ -115,6 +115,17 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 		}
 	}
 	
+	public void resetTable(TablePKSLPlanner planner) {
+		StringBuilder updateQuery = new StringBuilder();
+		updateQuery.append("UPDATE ").append(planner.getSimpleTable().getNewTableName()).append(" SET PROCESSED=FALSE");
+		try {
+			planner.getSimpleTable().runQuery(updateQuery.toString());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	
 	
 	private String getNextQuery(String tableName) {
