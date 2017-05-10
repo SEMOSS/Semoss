@@ -83,7 +83,7 @@ public class RunTaxPlannerReactor extends AbstractTablePlannerReactor {
 			List<String> pkslList = collectRootPksls(nextScenario);
 			while(!pkslList.isEmpty()) {
 				PkslUtility.addPkslToTranslation(translation, pkslList);
-				updateTable(nextScenario, pkslList);
+//				updateTable(nextScenario, pkslList);
 				pkslList = collectNextPksls(nextScenario);
 			}
 			
