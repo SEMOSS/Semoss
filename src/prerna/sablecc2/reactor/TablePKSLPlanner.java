@@ -11,8 +11,8 @@ public class TablePKSLPlanner extends PKSLPlanner {
 	public static final String DIRECTION_COLUMN = "DIRECTION";
 	public static final String PROCESSED_COLUMN = "PROCESSED";
 
-	public static final String OP_TYPE = "Varchar(16000)";
-	public static final String NOUN_TYPE = "Varchar(250)";
+	public static final String OP_TYPE = "Varchar(3000)";
+	public static final String NOUN_TYPE = "Varchar(10)";
 	public static final String DIRECTION_TYPE = "Varchar(3)"; //either 'IN' or 'OUT'
 	public static final String PROCESSED_TYPE = "BOOLEAN";
 
@@ -28,7 +28,7 @@ public class TablePKSLPlanner extends PKSLPlanner {
 		// TODO: WHY ARE WE CALLING SUPER AND MAKING AN EMPTY TINKER???
 		super();
 		this.table = new SimpleTable();
-		this.table.convertFromInMemToPhysical(null);
+//		this.table.convertFromInMemToPhysical(null);
 		this.table.createTable(this.table.getTableName(), getHeaders(), getTypes());
 	}
 	
