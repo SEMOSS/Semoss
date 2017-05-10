@@ -45,6 +45,7 @@ public class RunTablePlannerReactor extends AbstractTablePlannerReactor {
 			updateTable(planner, pksls);
 			pksls = collectNextPksls(planner);
 		}
+		resetTable(planner);
 		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
