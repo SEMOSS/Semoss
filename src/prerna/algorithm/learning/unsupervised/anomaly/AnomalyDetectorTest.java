@@ -69,7 +69,7 @@ public class AnomalyDetectorTest {
 
 		// Iterate through file and insert values
 		CsvFileIterator dataIterator = CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.META_DATA_ENUM, fileName, ',', qs,
-				dataTypeMap);
+				dataTypeMap, null);
 		frame.addRowsViaIterator(dataIterator, dataTypeMap);
 
 		// Update the user id to match the new schema
@@ -130,7 +130,7 @@ public class AnomalyDetectorTest {
 
 		// Iterate through file and insert values
 		CsvFileIterator dataIterator = CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.META_DATA_ENUM, fileName, ',', qs,
-				dataTypeMap);
+				dataTypeMap, null);
 		frame.addRowsViaIterator(dataIterator, dataTypeMap);
 
 		// Update the user id to match the new schema
