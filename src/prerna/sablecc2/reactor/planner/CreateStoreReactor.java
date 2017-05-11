@@ -42,7 +42,7 @@ public class CreateStoreReactor extends AbstractReactor {
 						resultScenarioStore.put(variable, noun);
 					}
 				} catch(Exception e) {
-					e.printStackTrace();
+//					e.printStackTrace();
 					System.out.println("Error with ::: " + variable);
 				}
 			}
