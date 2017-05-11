@@ -33,6 +33,10 @@ import prerna.util.sql.SQLQueryUtil;
 
 public class InsightFilesToDatabaseReader {
 
+	// keep track of base dir for engine persisting
+	private String baseDirectory;
+	
+	// keep track of the list of new tables created
 	private Set<String> newTables;
 	
 	public InsightFilesToDatabaseReader() {
@@ -57,7 +61,7 @@ public class InsightFilesToDatabaseReader {
 		}
 
 		// get the base folder to create the engine db in
-		String baseDirectory = DIHelper.getInstance().getProperty("BaseFolder");
+		this.baseDirectory = DIHelper.getInstance().getProperty("BaseFolder");
 		
 		// get the data frame object
 		List<FilePkqlMetadata> filesMeta = in.getFilesUsedInInsight();
@@ -65,15 +69,15 @@ public class InsightFilesToDatabaseReader {
 		// we need to collect 2 groups of information
 		// one is for csv files
 		// the other is for excel files
-		IEngine engine = processCsvFiles(filesMeta, engineName, baseDirectory);
+		IEngine engine = processCsvFiles(filesMeta, engineName);
 		if(engine == null) {
 			// no csv files were needed to create an engine
 			// look for excel files to create a new engine
-			engine = processExcelFiles(filesMeta, engineName, baseDirectory, engine);
+			engine = processExcelFiles(filesMeta, engineName, engine);
 		} else {
 			// there were csv files used in this insight
 			// now look towards saving any excel files in the same engine
-			engine = processExcelFiles(filesMeta, engineName, baseDirectory, engine);
+			engine = processExcelFiles(filesMeta, engineName, engine);
 		}
 		
 		return engine;
@@ -82,12 +86,12 @@ public class InsightFilesToDatabaseReader {
 	private IEngine processExcelFiles(
 			List<FilePkqlMetadata> filesMeta, 
 			String engineName, 
-			String baseDirectory, 
 			IEngine engine) 
 			throws IOException
 	{
 		String fileLocation = "";
 		List<Map<String, Map<String, String[]>>> dataTypeMapList = new Vector<Map<String, Map<String, String[]>>>();
+		List<Map<String, Map<String, String>>> userDefinedHeadersList = new Vector<Map<String, Map<String, String>>>();
 		for(FilePkqlMetadata meta : filesMeta) {
 			// this processing will only work for excel files
 			if(meta.getType() != FilePkqlMetadata.FILE_TYPE.EXCEL) {
@@ -128,6 +132,13 @@ public class InsightFilesToDatabaseReader {
 			} else {
 				dataTypeMapList.add(null);
 			}
+			
+			Map<String, String> userDefinedHeaders = meta.getNewHeaders();
+			if(userDefinedHeaders != null && !userDefinedHeaders.isEmpty()) {
+				Map<String, Map<String, String>> sheetUserDefinedErrorsMap = new Hashtable<String, Map<String, String>>();
+				sheetUserDefinedErrorsMap.put(sheetName, userDefinedHeaders);
+				userDefinedHeadersList.add(sheetUserDefinedErrorsMap);
+			}
 		}
 		
 		if(fileLocation.isEmpty()) {
@@ -142,6 +153,7 @@ public class InsightFilesToDatabaseReader {
 			RDBMSFlatExcelUploader uploader = new RDBMSFlatExcelUploader();
 			uploader.setAutoLoad(false);
 			uploader.setDataTypeMapList(dataTypeMapList);
+			uploader.setNewExcelHeaders(userDefinedHeadersList);
 			
 			// define the options for the uploader
 			ImportOptions options = new ImportOptions();
@@ -234,51 +246,17 @@ public class InsightFilesToDatabaseReader {
 		} finally {
 			// something messed up
 			if(error) {
-				if(engine != null) {
-					engine.closeDB();
-				}
-				// delete the engine folder and all its contents
-				String engineFolderPath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName;
-				File engineFolderDir = new File(engineFolderPath);
-				if(engineFolderDir.exists()) {
-					File[] engineFiles = engineFolderDir.listFiles();
-					if(engineFiles != null) { //some JVMs return null for empty dirs
-						for(File f: engineFiles) {
-							try {
-								FileUtils.forceDelete(f);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
-					try {
-						FileUtils.forceDelete(engineFolderDir);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-				
-				// delete the .temp file if it is still there
-				if(tempPropFile != null) {
-					tempPropFile.delete();
-				}
-				// delete the .smss file if it is there
-				if(newSmssProp != null) {
-					newSmssProp.delete();
-				}
-				// remove from engine from solr in case it was added
-				SolrUtility.deleteFromSolr(engineName);
-				
-				throw new IOException("Error loading files from insight into database");
+				cleanUpErrors(engine, engineName, tempPropFile, newSmssProp);
 			}
 		}
 		
 		return engine;
 	}
 
-	private IEngine processCsvFiles(List<FilePkqlMetadata> filesMeta, String engineName, String baseDirectory) throws IOException {
+	private IEngine processCsvFiles(List<FilePkqlMetadata> filesMeta, String engineName) throws IOException {
 		String fileLocation = "";
 		List<Map<String, String[]>> dataTypeMapList = new Vector<Map<String, String[]>>();
+		Map<String, Map<String, String>> userDefinedHeadersMap = new Hashtable<String, Map<String, String>>();
 		for(FilePkqlMetadata meta : filesMeta) {
 			// this processing will only work for csv files
 			if(meta.getType() != FilePkqlMetadata.FILE_TYPE.CSV) {
@@ -311,6 +289,11 @@ public class InsightFilesToDatabaseReader {
 				dataTypeMapList.add(dataTypes);
 			} else {
 				dataTypeMapList.add(null);
+			}
+			
+			Map<String, String> userDefinedHeaders = meta.getNewHeaders();
+			if(userDefinedHeadersMap != null && !userDefinedHeadersMap.isEmpty()) {
+				userDefinedHeadersMap.put(meta.getFileLoc(), userDefinedHeaders);
 			}
 		}
 		
@@ -348,7 +331,7 @@ public class InsightFilesToDatabaseReader {
 			RDBMSFlatCSVUploader uploader = new RDBMSFlatCSVUploader();
 			uploader.setAutoLoad(false);
 			uploader.setDataTypeMapList(dataTypeMapList);
-			//engine = uploader.importFileWithOutConnection(smssLocation, engineName, fileLocation, "", owlPath, SQLQueryUtil.DB_TYPE.H2_DB, true);
+			uploader.setNewCsvHeaders(userDefinedHeadersMap);
 			engine = uploader.importFileWithOutConnection(options);
 			
 			// need to store the new tables so we know which columns came from where
@@ -398,50 +381,66 @@ public class InsightFilesToDatabaseReader {
 		} finally {
 			// something messed up
 			if(error) {
-				if(engine != null) {
-					engine.closeDB();
-				}
-				// delete the engine folder and all its contents
-				String engineFolderPath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName;
-				File engineFolderDir = new File(engineFolderPath);
-				if(engineFolderDir.exists()) {
-					File[] engineFiles = engineFolderDir.listFiles();
-					if(engineFiles != null) { //some JVMs return null for empty dirs
-						for(File f: engineFiles) {
-							try {
-								FileUtils.forceDelete(f);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
-					try {
-						FileUtils.forceDelete(engineFolderDir);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-				
-				// delete the .temp file if it is still there
-				if(tempPropFile != null) {
-					tempPropFile.delete();
-				}
-				// delete the .smss file if it is there
-				if(newSmssProp != null) {
-					newSmssProp.delete();
-				}
-				// remove from engine from solr in case it was added
-				SolrUtility.deleteFromSolr(engineName);
-				
-				throw new IOException("Error loading files from insight into database");
+				cleanUpErrors(engine, engineName, tempPropFile, newSmssProp);
 			}
 		}
 		
 		return engine;
 	}
+	
+	/**
+	 * Delete the engine and any other files that were created during the process
+	 * @param engine
+	 * @param engineName
+	 * @param tempPropFile
+	 * @param newSmssProp
+	 * @throws IOException
+	 */
+	public void cleanUpErrors(IEngine engine, String engineName, File tempPropFile, File newSmssProp) throws IOException {
+		if(engine != null) {
+			engine.closeDB();
+		}
+		// delete the engine folder and all its contents
+		String engineFolderPath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName;
+		File engineFolderDir = new File(engineFolderPath);
+		if(engineFolderDir.exists()) {
+			File[] engineFiles = engineFolderDir.listFiles();
+			if(engineFiles != null) { //some JVMs return null for empty dirs
+				for(File f: engineFiles) {
+					try {
+						FileUtils.forceDelete(f);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			try {
+				FileUtils.forceDelete(engineFolderDir);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// delete the .temp file if it is still there
+		if(tempPropFile != null) {
+			tempPropFile.delete();
+		}
+		// delete the .smss file if it is there
+		if(newSmssProp != null) {
+			newSmssProp.delete();
+		}
+		// remove from engine from solr in case it was added
+		SolrUtility.deleteFromSolr(engineName);
+		
+		throw new IOException("Error loading files from insight into database");
+	}
 
 	public Set<String> getNewTables() {
 		return this.newTables;
+	}
+	
+	public void setUpEngine() {
+		
 	}
 	
 	public static void main(String[] args) throws IOException {

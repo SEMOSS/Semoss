@@ -30,6 +30,7 @@ public abstract class AbstractFileIterator implements IFileIterator{
 	
 	protected Map<String, Set<Object>> filters;
 	protected Map<String, String> dataTypeMap;
+	protected Map<String, String> newHeaders;
 	protected int numRecords = -1;
 	
 	public abstract void getNextRow();
