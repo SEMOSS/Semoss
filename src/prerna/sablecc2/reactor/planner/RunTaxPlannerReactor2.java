@@ -39,7 +39,8 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 	
 	private static int fileCount = 0;
 	private String scenarioHeader = "ProposalName"; //header of column containing Trump, House, etc
-	private String aliasHeader = "Alias_1"; //header for value containing our column name
+//	private String aliasHeader = "Alias_1"; //header for value containing our column name
+	private String aliasHeader = "Hashcode"; //header for value containing our column name
 	private String valueHeader = "Value_1"; //header for value containing the value assigned to column name
 	private String typeHeader = "Type_1";
 
