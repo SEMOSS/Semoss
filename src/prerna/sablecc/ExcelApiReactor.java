@@ -17,33 +17,46 @@ public class ExcelApiReactor extends AbstractApiReactor {
 	// relate to a column name
 	public final static String FILE_KEY = "file";
 	public final static String SHEET_KEY = "sheetName";
-	public final static String DATA_TYPE_MAP = "dataTypeMap";
+	public final static String DATA_TYPE_MAP_KEY = "dataTypeMap";
+	public final static String NEW_HEADERS_KEY = "newHeaders";
 
 	private String fileName;
 	private String sheetName;
 	private Map<String, String> dataTypeMap;
+	private Map<String, String> newHeaders;
 	
 	@Override
 	public Iterator<IHeadersDataRow> process() {
 		super.process();
 
 		// the mapOptions stores all the information being passed from the user
-		// this will contain the fileName and the data types from each column
-		for(Object key : this.mapOptions.keySet()) {
-			if(key.equals(FILE_KEY)) {
-				fileName = (String)this.mapOptions.get(FILE_KEY);
-			} else if(key.equals(SHEET_KEY)) {
-				sheetName = (String)this.mapOptions.get(SHEET_KEY);
-			} else if(key.equals(DATA_TYPE_MAP)) {
-				this.dataTypeMap = (Map<String, String>) this.mapOptions.get(key);
-			}
+		
+		// get the file location
+		if(this.mapOptions.containsKey(FILE_KEY)) {
+			this.fileName = (String)this.mapOptions.get(FILE_KEY);
+		} else {
+			throw new IllegalArgumentException("Must define the file in the map options to load the excel file");
 		}
 		
-		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
-		// to determine what selectors to send
+		// get the sheet name
+		if(this.mapOptions.containsKey(SHEET_KEY)) {
+			this.sheetName = (String)this.mapOptions.get(SHEET_KEY);
+		} else {
+			throw new IllegalArgumentException("Must define the sheet in the excel file to load");
+		}
+		
+		// get the data types
+		if(this.mapOptions.containsKey(DATA_TYPE_MAP_KEY)) {
+			this.dataTypeMap = (Map<String, String>) this.mapOptions.get(DATA_TYPE_MAP_KEY);
+		}
+		
+		// get any modified headers
+		if(this.mapOptions.containsKey(NEW_HEADERS_KEY)) {
+			this.newHeaders = (Map<String, String>) this.mapOptions.get(NEW_HEADERS_KEY);
+		}
 		
 		// the qs is passed from AbstractApiReactor
-		this.put((String) getValue(PKQLEnum.API), new ExcelFileIterator(this.fileName, this.sheetName, this.qs, this.dataTypeMap));
+		this.put((String) getValue(PKQLEnum.API), new ExcelFileIterator(this.fileName, this.sheetName, this.qs, this.dataTypeMap, this.newHeaders));
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
 		
@@ -59,7 +72,7 @@ public class ExcelApiReactor extends AbstractApiReactor {
 		fileData.setPkqlStr((String) getValue(PKQLEnum.API));
 		fileData.setType(FilePkqlMetadata.FILE_TYPE.EXCEL);
 		fileData.setSheetName(this.sheetName);
-		
+		fileData.setNewHeaders(this.newHeaders);
 		return fileData;
 	}
 }

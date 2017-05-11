@@ -78,7 +78,7 @@ public class PastedDataReactor extends AbstractReactor {
 		for(String header : headers) {
 			qs.addSelector(header, null);
 		}
-		Iterator it = CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.STRING, fileName, delimiter.charAt(0), qs, null);
+		Iterator it = CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.STRING, fileName, delimiter.charAt(0), qs, null, null);
 		
 		String nodeStr = (String) myStore.get(whoAmI);
 		myStore.put(nodeStr, it);
