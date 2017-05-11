@@ -206,7 +206,6 @@ public class Assimilator extends AbstractReactor {
 		// so need to account for this
 		// ... just add them to a set and call it a day
 		Set<String> uniqueInputs = new HashSet<String>();
-		System.out.println("reset");
 		uniqueInputs.addAll(inputColumns);
 		for(String input : uniqueInputs) {
 			NounMetadata data = planner.getVariableValue(input);
