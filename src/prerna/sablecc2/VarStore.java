@@ -20,7 +20,7 @@ public class VarStore {
 		varName = cleanVarName(varName);
 		if(variable.getNounName() == PkslDataTypes.COLUMN) {
 			if(varName.equalsIgnoreCase(variable.getValue().toString())) {
-				System.out.println("Creating a loop here");
+//				System.out.println("Creating a loop here");
 				return;
 			}
 		}
@@ -50,7 +50,9 @@ public class VarStore {
 				return retNoun;
 			}
 		} else if(!varName.equalsIgnoreCase("$RESULT")) {
-			System.out.println("Not Found!!!  "+varName);
+			
+//			System.out.println("Not Found!!!  "+varName.split("__")[0]);
+//			valueNoun = new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
 		}
 		// once we are done with the whole recursive
 		// part above, just return the noun
