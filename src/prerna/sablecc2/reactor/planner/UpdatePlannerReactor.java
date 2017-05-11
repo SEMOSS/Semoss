@@ -40,10 +40,10 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		
 		// store them in a list
 		// and also keep a builder with all the executions
-		List<String> pkslsToRun = new Vector<String>();
+		List<String> pkslsToAdd = new Vector<String>();
 		int numPksls = pksls.size();
 		for(int i = 0; i < numPksls; i++) {
-			pkslsToRun.add(pksls.get(i).toString());
+			pkslsToAdd.add(pksls.get(i).toString());
 		}
 		
 		List<PKSLPlanner> myPlanners = getPlanners();
@@ -62,7 +62,7 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 			// know we execute these on a new planner
 			// and then we will figure out the roots of these new values
 			PlannerTranslation plannerT = new PlannerTranslation();
-			PkslUtility.addPkslToTranslation(plannerT, pkslsToRun);
+			PkslUtility.addPkslToTranslation(plannerT, pkslsToAdd);
 			
 			// using this planner
 			// get the roots
@@ -79,6 +79,8 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 			// since we have the order based on the first execution
 			// use that in order to add these pksls in the correct order
 			// for the execution
+			List<String> pkslsToRun = new ArrayList<>();
+			pkslsToRun.addAll(pkslsToAdd);
 			pkslsToRun.addAll(orderVertsAndGetPksls(myPlanner, downstreamVertIds));
 			
 			// now run through all the pksls and execute
