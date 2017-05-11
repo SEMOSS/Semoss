@@ -16,6 +16,8 @@ public class FilePkqlMetadata extends AbstractPkqlMetadata {
 	private List<String> selectors;
 	// the data types that the user defined for the file
 	private Map<String, String> dataMap;
+	// any modified headers from the original file
+	private Map<String, String> newHeaders;
 	// any table joins used
 	private List<Map<String, Object>> tableJoin;
 	// the type of the file
@@ -139,5 +141,13 @@ public class FilePkqlMetadata extends AbstractPkqlMetadata {
 	
 	public String getSheetName() {
 		return this.sheetName;
+	}
+	
+	public void setNewHeaders(Map<String, String> newHeaders) {
+		this.newHeaders = newHeaders;
+	}
+	
+	public Map<String, String> getNewHeaders() {
+		return this.newHeaders;
 	}
 }

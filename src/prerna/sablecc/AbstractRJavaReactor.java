@@ -27,7 +27,6 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.matching.DomainValues;
-import prerna.algorithm.learning.matching.JawsSemanticMatching;
 import prerna.algorithm.learning.matching.MatchingDB;
 import prerna.cache.ICache;
 import prerna.ds.QueryStruct;
@@ -448,7 +447,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// iterate through file and insert values
 		CsvFileIterator dataIterator = CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.META_DATA_ENUM, tempFileLocation, ',',
-				qs, dataTypeMap);
+				qs, dataTypeMap, null);
 
 		// keep track of in-mem vs on-disk frames
 		int limitSizeInt = RdbmsFrameUtility.getLimitSize();

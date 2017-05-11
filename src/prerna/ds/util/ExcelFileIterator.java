@@ -17,11 +17,17 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	private int[] headerIndices;
 	private String sheetToLoad;
 	
-	public ExcelFileIterator(String fileLocation, String sheetToLoad, QueryStruct qs, Map<String, String> dataTypeMap) {
+	public ExcelFileIterator(String fileLocation, String sheetToLoad, QueryStruct qs, Map<String, String> dataTypeMap, Map<String, String> newHeaders) {
 		this.helper = new XLFileHelper();
 		this.helper.parse(fileLocation);	
 		this.sheetToLoad = sheetToLoad;
 		this.dataTypeMap = dataTypeMap;
+		if(newHeaders != null && !newHeaders.isEmpty()) {
+			this.newHeaders = newHeaders;
+			Map<String, Map<String, String>> excelHeaderNames = new Hashtable<String, Map<String, String>>();
+			excelHeaderNames.put(this.sheetToLoad, this.newHeaders);
+			this.helper.modifyCleanedHeaders(excelHeaderNames);
+		}
 		
 		setSelectors(qs.selectors);
 		setFilters(qs.andfilters);
