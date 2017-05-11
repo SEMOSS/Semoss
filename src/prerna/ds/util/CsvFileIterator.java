@@ -30,20 +30,21 @@ public class CsvFileIterator extends AbstractFileIterator{
 	 * @param delimiter
 	 * @param qs
 	 * @param dataTypeMap
+	 * @param newHeaders 
 	 * @return
 	 */
-	public static CsvFileIterator createInstance(FILE_DATA_TYPE type, String fileLoc, char delimiter, QueryStruct qs, Map<String, ?> dataTypeMap) {
+	public static CsvFileIterator createInstance(FILE_DATA_TYPE type, String fileLoc, char delimiter, QueryStruct qs, Map<String, ?> dataTypeMap, Map<String, String> newHeaders) {
 		if(type == FILE_DATA_TYPE.STRING) {
-			return createStringFileIterator(fileLoc, delimiter, qs, (Map<String, String>) dataTypeMap);
+			return createStringFileIterator(fileLoc, delimiter, qs, (Map<String, String>) dataTypeMap, newHeaders);
 		} else if(type == FILE_DATA_TYPE.META_DATA_ENUM) {
-			return createEnumFileIterator(fileLoc, delimiter, qs, (Map<String, IMetaData.DATA_TYPES>) dataTypeMap);
+			return createEnumFileIterator(fileLoc, delimiter, qs, (Map<String, IMetaData.DATA_TYPES>) dataTypeMap, newHeaders);
 		} else {
 			throw new IllegalArgumentException("Unknown FileIterator type to generate");
 		}
 	}
 	
-	private static CsvFileIterator createStringFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap) {
-		CsvFileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
+	private static CsvFileIterator createStringFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, String> dataTypeMap, Map<String, String> newHeaders) {
+		CsvFileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter, newHeaders);
 		
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			fileIterator.dataTypeMap = dataTypeMap;
@@ -65,8 +66,8 @@ public class CsvFileIterator extends AbstractFileIterator{
 		return fileIterator;
 	}
 	
-	private static CsvFileIterator createEnumFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
-		CsvFileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter);
+	private static CsvFileIterator createEnumFileIterator(String fileLoc, char delimiter, QueryStruct qs, Map<String, IMetaData.DATA_TYPES> dataTypeMap, Map<String, String> newHeaders) {
+		CsvFileIterator fileIterator = createDefualtFileIteratorParameters(fileLoc, qs, delimiter, newHeaders);
 
 		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
 			fileIterator.types = new String[fileIterator.headers.length];
@@ -94,15 +95,22 @@ public class CsvFileIterator extends AbstractFileIterator{
 	 * @param fileLoc
 	 * @param qs
 	 * @param delimiter
+	 * @param newHeaders 
 	 * @return
 	 */
-	private static CsvFileIterator createDefualtFileIteratorParameters(String fileLoc, QueryStruct qs, char delimiter) {
+	private static CsvFileIterator createDefualtFileIteratorParameters(String fileLoc, QueryStruct qs, char delimiter, Map<String, String> newHeaders) {
 		CsvFileIterator fileIterator = new CsvFileIterator();
 
 		fileIterator.helper = new CSVFileHelper();
 		fileIterator.filters = new HashMap<String, Set<Object>>();
 		fileIterator.helper.setDelimiter(delimiter);
 		fileIterator.helper.parse(fileLoc);
+		
+		// set the user defined headers
+		if(newHeaders != null && !newHeaders.isEmpty()) {
+			fileIterator.newHeaders = newHeaders;
+			fileIterator.helper.modifyCleanedHeaders(newHeaders);
+		}
 		
 		fileIterator.setSelectors(qs.getSelectors());
 		fileIterator.setFilters(qs.andfilters);
