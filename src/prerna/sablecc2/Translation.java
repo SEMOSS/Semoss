@@ -1103,6 +1103,7 @@ public class Translation extends DepthFirstAdapter {
 	    	try {
 	    		output = curReactor.execute();
 	    	} catch(Exception e) {
+//	    		e.printStackTrace();
 	    		//should we make an error noun?
 	    	}
 	    	this.planner = ((AbstractReactor)curReactor).planner;
@@ -1130,6 +1131,8 @@ public class Translation extends DepthFirstAdapter {
 		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
 		    		this.planner.addVariable("$RESULT", output);
 		    	}
+	    	} else {
+	    		this.planner.removeVariable("$RESULT");
 	    	}
     	}
     }
