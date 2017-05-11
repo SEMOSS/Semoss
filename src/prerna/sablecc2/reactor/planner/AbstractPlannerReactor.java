@@ -92,6 +92,17 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		
 		return returnPksls;
 	}
+	
+	/**
+	 * For errors
+	 */
+	protected void addOrderToNonExistentVerts(PKSLPlanner planner) {
+		GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().hasNot(PKSLPlanner.ORDER);		
+		while(newRootsTraversal.hasNext()) {
+			Vertex vert = newRootsTraversal.next();
+			vert.property(PKSLPlanner.ORDER, 999999);
+		}
+	}
 
 	/**
 	 * Runs through and sees if it is possible to execute a set of vertices
@@ -126,9 +137,6 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		
 		// we want to iterate through all the vertices we have defined
 		VERTEX_LOOP : for(Vertex nextVert : vertsToRun) {
-			// get the pksl operation
-			String pkslOperation = nextVert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
-			
 			// grab all the in nouns for this operation
 			Iterator<Vertex> inputNouns = nextVert.vertices(Direction.IN);
 			while(inputNouns.hasNext()) {
@@ -155,6 +163,10 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 					}
 				}
 			}
+			
+			// get the pksl operation
+			String pkslOperation = nextVert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+			
 			// if you reached this point
 			// the above loop was able to determine that every single
 			// input has been executed

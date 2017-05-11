@@ -49,10 +49,14 @@ public class UpdatePlannerReactor extends AbstractPlannerReactor {
 		List<PKSLPlanner> myPlanners = getPlanners();
 		
 		for(PKSLPlanner myPlanner : myPlanners) {
+			// bs
+			addOrderToNonExistentVerts(myPlanner);
+			
 			// to properly update
 			// we need to reset the "PROCESSED" property
 			// that are currently set on the planner
 			// when we first executed the plan
+			
 			resetProcessedBoolean(myPlanner);
 			
 			// know we execute these on a new planner
