@@ -81,12 +81,22 @@ public class MapStore extends AbstractReactor implements InMemStore {
 			return;
 		}
 		LOGGER.debug("Storing ::: " + key + " with value ( " + value + " )");
-		thisStore.put(key, value);
+		if(key instanceof String) {
+			thisStore.put(((String) key).toUpperCase(), value);
+		} else {
+			thisStore.put(key, value);
+		}
 	}
 
 	@Override
 	public NounMetadata get(Object key) {
-		NounMetadata retNoun = thisStore.get(key);
+		NounMetadata retNoun = null;
+		if(key instanceof String) {
+			retNoun = thisStore.get(key.toString().toUpperCase());
+		} else {
+			retNoun = thisStore.get(key);
+		}
+		
 		LOGGER.debug("Retrieving ::: " + key + " with value ( " + retNoun + " )");
 		return retNoun;
 	}

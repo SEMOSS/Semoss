@@ -107,23 +107,23 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 			
 			planners.add(translation.planner);
 			
-			InMemStore resultScenarioStore = new MapStore();
-			Set<String> variables = nextScenario.getVariables();
-			for(String variable : variables) {
-				try {
-					NounMetadata noun = translation.planner.getVariableValue(variable);
-					if(noun.getNounName() != PkslDataTypes.CACHED_CLASS) {
-						resultScenarioStore.put(variable, noun);
-					}
-				} catch(Exception e) {
-					e.printStackTrace();
-					System.out.println("Error with ::: " + variable);
-				}
-			}
-
-			//add the result of the scenario as a inMemStore in our inMemStore we are returning
-			returnStore.put(scenario, new NounMetadata(resultScenarioStore, PkslDataTypes.IN_MEM_STORE));
-			LOGGER.info("End storing data inside store");
+//			InMemStore resultScenarioStore = new MapStore();
+//			Set<String> variables = nextScenario.getVariables();
+//			for(String variable : variables) {
+//				try {
+//					NounMetadata noun = translation.planner.getVariableValue(variable);
+//					if(noun.getNounName() != PkslDataTypes.CACHED_CLASS) {
+//						resultScenarioStore.put(variable, noun);
+//					}
+//				} catch(Exception e) {
+//					e.printStackTrace();
+//					System.out.println("Error with ::: " + variable);
+//				}
+//			}
+//
+//			//add the result of the scenario as a inMemStore in our inMemStore we are returning
+//			returnStore.put(scenario, new NounMetadata(resultScenarioStore, PkslDataTypes.IN_MEM_STORE));
+//			LOGGER.info("End storing data inside store");
 			
 		}
 		
@@ -196,6 +196,9 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		newPlanner.g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
+		newPlanner.g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
 
 		// now loop through the original planner
 		// and set all the variables that are defined
