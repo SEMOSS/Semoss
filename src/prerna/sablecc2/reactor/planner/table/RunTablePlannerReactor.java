@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.planner;
+package prerna.sablecc2.reactor.planner.table;
 
 import java.util.List;
 
@@ -11,10 +11,11 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.TablePKSLPlanner;
+import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
 
 public class RunTablePlannerReactor extends AbstractTablePlannerReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(LoadClient.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(LoadGraphClient.class.getName());
 
 	@Override
 	public void In() {
