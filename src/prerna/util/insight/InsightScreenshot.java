@@ -22,8 +22,8 @@ import java.util.TimerTask;
 import javafx.scene.image.WritableImage;
 import javafx.scene.SnapshotParameters;
 import javax.imageio.ImageIO;
+import org.apache.log4j.Logger;
 
-//import org.apache.commons.net.util.Base64;
 import java.util.Base64;
 import org.apache.commons.vfs2.FileNotFoundException;
 
@@ -42,9 +42,12 @@ public class InsightScreenshot {
 		JFXPanel fxPanel = new JFXPanel();
 	}
 	private Browser browser;
-	public Stage stage;
 	private Timer timer = new java.util.Timer();
 	private boolean complete = false;
+	private boolean validStage = false;
+	private Stage window;
+	Logger LOGGER = Logger.getLogger(InsightScreenshot.class.getName());
+	private String url;
 
 	/**
 	 * Loads the url to the javafx browser
@@ -54,17 +57,16 @@ public class InsightScreenshot {
 	 *            add png extension
 	 */
 	@SuppressWarnings("restriction")
-	public void showUrl(String url, String imagePath) {
+	public void showUrl(String url2, String imagePath) {
 		// JavaFX stuff needs to be done on JavaFX thread
 		Platform.setImplicitExit(false);
 		Platform.runLater(new Runnable() {
-			private Stage window;
 
 			@SuppressWarnings("restriction")
 			@Override
 			public void run() {
-
-				Stage window = new Stage();
+				window = new Stage();
+				url = url2;
 				window.setTitle(url);
 
 				// load url to broswer and wait til visualization is loaded
@@ -76,21 +78,19 @@ public class InsightScreenshot {
 				Scene scene = new Scene(layout);
 				window.setScene(scene);
 				window.setOnCloseRequest(we -> System.exit(0));
-				// window.setOpacity(0);
+				window.setOpacity(0);
 				window.show();
+				validStage = true;
 			}
 		});
 	}
 
 	private void monitorPageStatus(String imagePath, Stage window) {
-
 		timer.schedule(new TimerTask() {
 			@SuppressWarnings("restriction")
 			public void run() {
 				Platform.runLater(() -> {
 					if (browser.isPageLoaded()) {
-						// System.out.println("Page now loaded, taking
-						// screenshot...");
 						saveAsPng(imagePath);
 						window.close();
 						cancel();
@@ -98,7 +98,8 @@ public class InsightScreenshot {
 					}
 				});
 			}
-		}, 1000, 1000);
+		}, 0, 1000);
+
 	}
 
 	/**
@@ -111,7 +112,6 @@ public class InsightScreenshot {
 		File file = new File(imagePath);
 		try {
 			ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
-			//System.out.println("Screenshot saved as " + imagePath);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -122,16 +122,32 @@ public class InsightScreenshot {
 	 * 
 	 * @return
 	 */
+	@SuppressWarnings("restriction")
 	public boolean getComplete() {
 		boolean complete = false;
 		int i = 0;
+		int count = 0;
 		while (!complete) {
 			if (this.complete) {
 				complete = true;
 			}
 			if (i % 1000000000 == 0) {
-				System.out.println("saving insight image");
+				LOGGER.info("saving insight image");
+				if (validStage) {
+					// TODO change this threshold to wait on image capture
+					if (count == 180) {
+						Platform.runLater(() -> {
+							window.close();
+						});
+						LOGGER.info("Unable to capture image from " + url);
+						complete = true;
+						timer.cancel();
+					}
+
+					count++;
+				}
 			}
+
 			i++;
 
 		}
@@ -143,9 +159,14 @@ public class InsightScreenshot {
 
 		InsightScreenshot pic = new InsightScreenshot();
 		System.out.println("Taking photo...");
-		pic.showUrl("http://localhost:8080/SemossWeb/embed/#/embed?engine=movieMay5&questionId=18&settings=false",
+		pic.showUrl("http://localhost:8080/SemossWeb/embed/#/embed?engine=movie&questionId=80&settings=false",
 				"C:\\workspace\\Semoss\\images\\insight1.png");
-		pic.getComplete();
+		try {
+			pic.getComplete();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		String serialized_image = InsightScreenshot.imageToString("C:\\workspace\\Semoss\\images\\insight1.png");
 		System.out.println(serialized_image);
 		System.exit(0);
@@ -167,18 +188,16 @@ public class InsightScreenshot {
 	 * 
 	 * @param path
 	 * @return
+	 * @throws IOException
 	 */
-	public static String imageToString(String path) {
+	public static String imageToString(String path) throws IOException {
 
 		RenderedImage bi;
 		String base64String = "";
-		try {
-			File imageFile = new File(path);
-			bi = javax.imageio.ImageIO.read(imageFile);
-			base64String = imgToBase64String(bi, "png");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+
+		File imageFile = new File(path);
+		bi = javax.imageio.ImageIO.read(imageFile);
+		base64String = imgToBase64String(bi, "png");
 
 		return base64String;
 	}
