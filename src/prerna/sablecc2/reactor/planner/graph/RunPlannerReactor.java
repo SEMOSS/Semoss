@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.planner;
+package prerna.sablecc2.reactor.planner.graph;
 
 import java.util.List;
 import java.util.Set;
@@ -17,7 +17,7 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 
 public class RunPlannerReactor extends AbstractPlannerReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(LoadClient.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(LoadGraphClient.class.getName());
 
 	@Override
 	public void In() {
