@@ -125,17 +125,24 @@ public class InsightScreenshot {
 	@SuppressWarnings("restriction")
 	public boolean getComplete() {
 		boolean complete = false;
-		int i = 0;
 		int count = 0;
+		int secondDelay = 0;
 		while (!complete) {
 			if (this.complete) {
 				complete = true;
 			}
-			if (i % 1000000000 == 0) {
-				LOGGER.info("saving insight image");
+			long millis = System.currentTimeMillis();
+			try {
+				Thread.sleep(1000 - millis % 1000);
+				secondDelay++;
+				// print every 30 seconds if image thread is active
+				if (secondDelay % 30 == 0) {
+					LOGGER.info("saving insight image");
+				}
 				if (validStage) {
 					// TODO change this threshold to wait on image capture
 					if (count == 180) {
+						System.out.println(secondDelay);
 						Platform.runLater(() -> {
 							window.close();
 						});
@@ -146,9 +153,10 @@ public class InsightScreenshot {
 
 					count++;
 				}
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-
-			i++;
 
 		}
 		return complete;
