@@ -6,6 +6,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 
+@SuppressWarnings("restriction")
 class Browser extends Region {
 
 	private final WebView browser = new WebView();
@@ -17,8 +18,13 @@ class Browser extends Region {
 	}
 
 	Boolean isPageLoaded() {
+		try {
 		if (((Boolean) browser.getEngine().executeScript("window.visualLoaded;")) == true) {
 			return true;
+		}
+		}
+		catch (ClassCastException cce) {
+			
 		}
 		
 		return false;
