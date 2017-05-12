@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.planner;
+package prerna.sablecc2.reactor.planner.table;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -98,24 +98,6 @@ public abstract class AbstractTablePlannerReactor extends AbstractReactor {
 		updateTable(planner, rootsQuery);
 		return pksls;
 	} 
-	
-//	public void updateTable(TablePKSLPlanner planner, List<String> pksls) {
-//		StringBuilder updateQuery = new StringBuilder();
-//		updateQuery.append("UPDATE ").append(planner.getSimpleTable().getTableName()).append(" SET PROCESSED=TRUE WHERE OP IN(");
-//		int size = pksls.size();
-//		for(int i = 0; i < size; i++) {
-//			updateQuery.append("'").append(pksls.get(i)).append("'");
-//			if(i +1 != size) {
-//				updateQuery.append(",");
-//			}
-//		}
-//		updateQuery.append(")");
-//		try {
-//			planner.getSimpleTable().runQuery(updateQuery.toString());
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
 	
 	public void updateTable(TablePKSLPlanner planner, String subQuery) {
 		StringBuilder updateQuery = new StringBuilder();

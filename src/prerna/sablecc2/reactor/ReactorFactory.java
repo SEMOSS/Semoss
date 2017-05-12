@@ -8,6 +8,7 @@ import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.job.*;
 import prerna.sablecc2.reactor.expression.*;
 import prerna.sablecc2.reactor.planner.*;
+import prerna.sablecc2.reactor.planner.graph.*;
 import prerna.sablecc2.reactor.qs.*;
 import prerna.sablecc2.reactor.storage.*;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
@@ -101,10 +102,7 @@ public class ReactorFactory {
 		reactorHash.put("MapStore", MapStore.class);
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
-		reactorHash.put("LoadClient", LoadClient.class);
-//		reactorHash.put("LoadClient", LoadClient2.class);
-		reactorHash.put("RunPlan", RunPlannerReactor.class);
-//		reactorHash.put("RunPlan", RunTablePlannerReactor.class);
+		
 		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 		reactorHash.put("CreateStore", CreateStoreReactor.class);
@@ -112,9 +110,17 @@ public class ReactorFactory {
 		// tax specific handles
 		reactorHash.put("TaxMapStore", TaxMapStore.class);
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
+		
+		
+		//Tinker Specfic Tax Reactors
 		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor2.class);
+		reactorHash.put("RunPlan", RunPlannerReactor.class);
+		reactorHash.put("LoadClient", LoadGraphClient.class);
+		
+//		//H2 Specific Tax Reactors
 //		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor.class);
-		reactorHash.put("UpdateTaxPlannerReactor", UpdateTaxPlannerReactor.class);
+//		reactorHash.put("LoadClient", LoadClient2.class);
+//		reactorHash.put("RunPlan", RunTablePlannerReactor.class);
 	}
 	
 	/**
