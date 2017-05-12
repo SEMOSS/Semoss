@@ -375,6 +375,37 @@ public class RBuilder extends AbstractRBuilder {
 		return retArr;
 	}
 
+	protected Object[] getBulkSingleColumn(String rScript) {
+		REXP rs = executeR(rScript);
+		try {
+			// need to break this out into individual componenets
+			Object result = rs.asNativeJavaObject();
+			if(result instanceof Object[]) {
+				return (Object[]) result;
+			} else if(result instanceof double[]) {
+				double[] value = (double[]) result;
+				Object[] retObj = new Object[value.length];
+				for(int i = 0; i < value.length; i++) {
+					retObj[i] = value[i];
+				}
+				return retObj;
+			} else if( result instanceof int[]) {
+				int[] value = (int[]) result;
+				Object[] retObj = new Object[value.length];
+				for(int i = 0; i < value.length; i++) {
+					retObj[i] = value[i];
+				}
+				return retObj;
+			} else {
+				LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+			}
+		} catch(Exception e) {
+			
+		}
+		
+		return null;
+	}
+
 	@Override
 	public Object getScalarReturn(String rScript) {
 		REXP rs = executeR(rScript);

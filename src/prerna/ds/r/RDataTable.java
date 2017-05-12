@@ -392,6 +392,14 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	public Object[] getUniqueColumn(String column) {
+		StringBuilder rScript = new StringBuilder();
+		rScript.append("unique(").append(this.getTableName()).append("[")
+			.append(this.getFilterString()).append(",").append(column).append("])");
+		
+		return this.builder.getBulkSingleColumn(rScript.toString());
+	}
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
