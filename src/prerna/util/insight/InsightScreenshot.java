@@ -53,6 +53,7 @@ public class InsightScreenshot {
 	 * @param imagePath
 	 *            add png extension
 	 */
+	@SuppressWarnings("restriction")
 	public void showUrl(String url, String imagePath) {
 		// JavaFX stuff needs to be done on JavaFX thread
 		Platform.setImplicitExit(false);
@@ -110,7 +111,7 @@ public class InsightScreenshot {
 		File file = new File(imagePath);
 		try {
 			ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
-			// System.out.println("Screenshot saved as " + imagePath);
+			//System.out.println("Screenshot saved as " + imagePath);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -123,12 +124,15 @@ public class InsightScreenshot {
 	 */
 	public boolean getComplete() {
 		boolean complete = false;
+		int i = 0;
 		while (!complete) {
 			if (this.complete) {
 				complete = true;
 			}
-
-//			System.out.println("waiting");
+			if (i % 1000000000 == 0) {
+				System.out.println("saving insight image");
+			}
+			i++;
 
 		}
 		return complete;
@@ -139,7 +143,7 @@ public class InsightScreenshot {
 
 		InsightScreenshot pic = new InsightScreenshot();
 		System.out.println("Taking photo...");
-		pic.showUrl("http://localhost:8080/SemossWebBranch/embed/#/embed?engine=movieMay5&questionId=18&settings=false",
+		pic.showUrl("http://localhost:8080/SemossWeb/embed/#/embed?engine=movieMay5&questionId=18&settings=false",
 				"C:\\workspace\\Semoss\\images\\insight1.png");
 		pic.getComplete();
 		String serialized_image = InsightScreenshot.imageToString("C:\\workspace\\Semoss\\images\\insight1.png");
