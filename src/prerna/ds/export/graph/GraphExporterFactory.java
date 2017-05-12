@@ -24,7 +24,7 @@ public class GraphExporterFactory {
 		} else if(frame instanceof H2Frame) {
 			graphExporter = new RdbmsGraphExporter((H2Frame) frame);
 		} else if(frame instanceof RDataTable) {
-//			graphExporter = new RGraphExporter((RDataTable) frame);
+			graphExporter = new RGraphExporter((RDataTable) frame);
 		} else if(frame instanceof NativeFrame) {
 			
 		}

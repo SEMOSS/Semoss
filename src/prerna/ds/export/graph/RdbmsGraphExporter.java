@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,22 +11,9 @@ import prerna.ds.h2.H2Frame;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
-public class RdbmsGraphExporter extends AbstractGraphExporter {
+public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 
 	private H2Frame frame;
-
-	// contains list of headers
-	private String curVertex;
-	private String aliasCurVertex;
-	private Set<String> vertices;
-	private Iterator<String> verticesIterator;
-
-	// contains array of 2 headers designating a relationship
-	// index 0 is source, index 1 is target
-	private String[] curRelationship;
-	private String[] aliasCurRelationship;
-	private Set<String[]> relationships;
-	private Iterator<String[]> relationshipIterator;
 
 	// we need to keep track of which vertices
 	// have an alias that ends up being the same
@@ -44,6 +29,8 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 		if(this.frame.hasPrimKey()) {
 			throw new IllegalArgumentException("Please use PKQL routine 'data.frame.setEdgeHash()' to properly define how to export the data as a graph");
 		}
+		// parent class handles the abstraction of the edge hash and determining
+		// which single vertex and relationship to push into the nodeRs and edgeRs
 		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
 		parseEdgeHash(edgeHash);
 //		generateDupAliasMap(frame.getColumnHeaders(), frame.getColumnAliasName());
@@ -75,33 +62,6 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 //		}
 //	}
 
-	/**
-	 * Parse the edge hash to get lists of each individual
-	 * node and relationship that we need to create an iterator for
-	 * @param edgeHash
-	 */
-	private void parseEdgeHash(Map<String, Set<String>> edgeHash) {
-		this.vertices = new HashSet<String>();
-		this.relationships = new HashSet<String[]>();
-
-		for(String startNode : edgeHash.keySet()) {
-			// add each start node to the vertex set
-			this.vertices.add(startNode);
-
-			// get the set of end nodes for this start node
-			Set<String> endNodes = edgeHash.get(startNode);
-			for(String endNode : endNodes) {
-				// add each end node to the vertex set
-				this.vertices.add(endNode);
-				// and add each relationship to the relationship set
-				this.relationships.add(new String[]{startNode, endNode});
-			}
-		}
-
-		this.verticesIterator = this.vertices.iterator();
-		this.relationshipIterator = this.relationships.iterator();
-	}
-
 	@Override
 	public boolean hasNextEdge() {
 		// first time, everything is null
@@ -113,6 +73,12 @@ public class RdbmsGraphExporter extends AbstractGraphExporter {
 			// see if this relationship has values to return
 			return hasNextEdge();
 		} else {
+			// if we are here and the edge rs is still null
+			// that means there are no relationships
+			// ... seems like a dumb graph
+			if(this.edgeRs == null) {
+				return false;
+			}
 			// next time, need to check if this iterator still
 			// has things we need to output
 			boolean hasNext = false;
