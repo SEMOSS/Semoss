@@ -302,7 +302,41 @@ public class RBuilderJRI extends AbstractRBuilder {
 		
 		return retArr;
 	}
-	
+
+	protected Object[] getBulkSingleColumn(String rScript) {
+		REXP rs = executeR(rScript);
+		int typeInt = rs.getType();
+		if(typeInt == REXP.XT_ARRAY_DOUBLE) {
+			double[] data = rs.asDoubleArray();
+			Object[] retObj = new Object[data.length];
+			for(int i = 0; i < data.length; i++) {
+				retObj[i] = data[i];
+			}
+			return retObj;
+		} else if(typeInt == REXP.XT_ARRAY_INT) {
+			int[] data = rs.asIntArray();
+			Object[] retObj = new Object[data.length];
+			for(int i = 0; i < data.length; i++) {
+				retObj[i] = data[i];
+			}
+			return retObj;
+		} else if(typeInt == REXP.XT_ARRAY_STR) {
+			return rs.asStringArray();
+		} else if(typeInt == REXP.XT_FACTOR) {
+			RFactor data = rs.asFactor();
+			int size = data.size();
+			Object[] retObj = new Object[size];
+			for(int i = 0; i < size; i++) {
+				retObj[i] = data.at(i);
+			}
+			return retObj;
+		} else {
+			LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+		}
+
+		return null;
+	}
+
 	@Override
 	public Object getScalarReturn(String rScript) {
 		REXP rs = executeR(rScript);

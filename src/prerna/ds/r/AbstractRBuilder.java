@@ -69,6 +69,8 @@ public abstract class AbstractRBuilder {
 	
 	protected abstract List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering);
 	
+	protected abstract Object[] getBulkSingleColumn(String rScript);
+	
 	protected abstract Object getScalarReturn(String rScript);
 
 	protected abstract String[] getColumnNames();
