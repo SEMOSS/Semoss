@@ -23,21 +23,23 @@ import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.PlannerTranslation;
 import prerna.sablecc2.Translation;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.sablecc2.reactor.storage.InMemStore;
-import prerna.sablecc2.reactor.storage.MapStore;
-import prerna.sablecc2.reactor.storage.TaxMapStore;
+import prerna.sablecc2.reactor.storage.StoreReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.MyGraphIoRegistry;
 
-public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
+public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(RunTaxPlannerReactor2.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(RunGraphTaxPlannerReactor.class.getName());
 	
 	private static int fileCount = 0;
+	
+	private static final String PROPOSAL_NOUN = "PROPOSALS";
 	private String scenarioHeader;
 	private String aliasHeader;
 	private String valueHeader;
@@ -46,7 +48,7 @@ public class RunTaxPlannerReactor2 extends AbstractPlannerReactor {
 	private PKSLPlanner originalPlan = null;
 	private String fileName;
 	
-	public RunTaxPlannerReactor2() {
+	public RunGraphTaxPlannerReactor() {
 		setDefaults();
 	}
 	

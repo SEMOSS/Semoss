@@ -16,11 +16,11 @@ import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.reactor.storage.InMemStore;
 import prerna.util.Utility;
 
 public class IterateReactor extends AbstractReactor {

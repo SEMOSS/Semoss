@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.storage;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -8,9 +9,12 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.PKSLPlanner;
 
 public class TaxRetrieveValue extends AbstractReactor {
 
@@ -28,22 +32,12 @@ public class TaxRetrieveValue extends AbstractReactor {
 	 * 
 	 * key ->	the key that the value is stored under
 	 */
-	
-	@Override
-	public void In() {
-        curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
 	@Override
 	public NounMetadata execute()
 	{
 		InMemStore storeVariable = getStore();
-		Set<Object> scenarioKeys = storeVariable.getStoredKeys();
+		List<PKSLPlanner> planners = getPlanners();
+		Set<String> scenarioKeys = storeVariable.getKeys();
 		
 		// need to make a new InMemStore
 		// that will contain a reference to each scenario
@@ -55,7 +49,10 @@ public class TaxRetrieveValue extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		for(Object scenarioName : scenarioKeys) {
+		for(PKSLPlanner planner : planners) {
+			
+			String scenarioName = planner.getVariable("$SCENARIO").getValue().toString();
+			
 			// need to make a new InMemStore
 			// for each scenario to hold the subportion
 			// of data to send back
@@ -68,12 +65,18 @@ public class TaxRetrieveValue extends AbstractReactor {
 			
 			GenRowStruct grs = this.store.getNoun(KEY_NOUN);
 			int numGrs = grs.size();
-			InMemStore existingScenarioStore = (InMemStore) storeVariable.get(scenarioName).getValue();
 
 			for(int i = 0; i < numGrs; i++) {
-				Object key = grs.get(i);
+				String key = grs.get(i).toString();
 				// we will append the subset of info into it
-				newScenarioStore.put(key, existingScenarioStore.get(key));
+				try {
+					NounMetadata noun = planner.getVariableValue(key);
+					if(noun.getNounName() != PkslDataTypes.CACHED_CLASS) {
+						newScenarioStore.put(key, noun);
+					}
+				} catch(Exception e) {
+					
+				}
 			}
 			
 			retStoreVar.put(scenarioName.toString(), new NounMetadata(newScenarioStore, PkslDataTypes.IN_MEM_STORE));
@@ -101,8 +104,27 @@ public class TaxRetrieveValue extends AbstractReactor {
 			return (InMemStore) passedResults.get(0).getValue();
 		}
 		
-		// out of options, throw an error
-		throw new IllegalArgumentException("Could not find store to retrieve values from");
+		else return new TaxMapStore();
+	}
+	
+	private List<PKSLPlanner> getPlanners() {
+		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
+		List<PKSLPlanner> planners = new ArrayList<>(allNouns.size());
+		if(allNouns != null) {
+			
+			for(int i = 0; i < allNouns.size(); i++) {
+				Object nextNoun = allNouns.get(i);
+				if(nextNoun instanceof List) {
+					 List nounList = (List)nextNoun;
+					 for(Object n : nounList) {
+						 planners.add((PKSLPlanner)n);
+					 }
+				} else {
+					planners.add((PKSLPlanner)nextNoun);
+				}
+			}
+		}	
+		return planners;
 	}
 	
 	@Override
