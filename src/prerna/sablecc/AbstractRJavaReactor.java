@@ -2699,5 +2699,320 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
 	}
+	
+	/**
+	 * 
+	 * @param match
+	 *            The match id in the format
+	 *            (sourceProperty~)sourceConcept~sourceEngine%(targetProperty~)
+	 *            targetConcept~targetEngine
+	 * @param join
+	 *            join type inner, outer...
+	 * @param method
+	 *            matching method
+	 * @param maxdist
+	 * @param gramsize
+	 * @param penalty
+	 */
+	public void runFuzzyJoin2(String match, String join, String method, String maxdist, String gramsize,
+			String penalty) {
+
+		// Initialize
+		String engineSource = "";
+		String engineTarget = "";
+		String conceptSource = "";
+		String conceptTarget = "";
+		String propertySource = "";
+		String propertyTarget = "";
+		
+		// clean method for r script
+		if (method.equals("Levenshtein")) {
+			method = "lv";
+		}
+		if (method.equals("Damerau-Levenshtein")) {
+			method = "dl";
+		}
+		if (method.equals("q-gram")) {
+			method = "qgram";
+		}
+		if (method.equals("Cosine q-gram")) {
+			method = "cosine";
+		}
+		if (method.equals("Optimal String Alignment")) {
+			method = "osa";
+		}
+		if (method.equals("Jaro-Winker")) {
+			method = "jw";
+		}
+		if (method.equals("Longest common substring")) {
+			method = "lcs";
+		}
+		if (method.equals("Jaccard q-gram")) {
+			method = "jaccard";
+		}
+		if (method.equals("Soundex")) {
+			method = "soundex";
+		}
+
+		boolean sourceIsProperty = false;
+		boolean targetIsProperty = false;
+
+		// Parse input string
+		String[] parts = match.split("%");
+		String[] source = parts[0].split("~");
+		String[] target = parts[1].split("~");
+
+		// Change order of the string to get engine-concept-property
+		// first create a list from String array
+
+		List<String> list = Arrays.asList(source);
+		List<String> list2 = Arrays.asList(target);
+
+		// next, reverse the list using Collections.reverse method
+		Collections.reverse(list2);
+		Collections.reverse(list);
+
+		source = (String[]) list.toArray();
+		target = (String[]) list2.toArray();
+
+		engineSource = source[0];
+		conceptSource = source[1];
+		if (source.length > 2) {
+			propertySource = source[2];
+			if (!propertySource.equals("none") && propertySource.length() > 0) {
+				sourceIsProperty = true;
+			}
+		}
+
+		engineTarget = target[0];
+		conceptTarget = target[1];
+		if (target.length > 2) {
+			propertyTarget = target[2];
+			if (!propertyTarget.equals("none") && propertyTarget.length() > 0) {
+				targetIsProperty = true;
+			}
+		}
+
+		// Initialize Engines
+		IEngine iEngineSource = Utility.getEngine(engineSource.replaceAll(" ", "_"));
+		IEngine iEngineTarget = Utility.getEngine(engineTarget.replaceAll(" ", "_"));
+
+		// Get the source and target values
+
+		// Source
+		Vector<Object> sourceValues = new Vector<Object>();
+		List<String> sourceProperties = new ArrayList<>();
+		//Array contains concepts and properties
+		ArrayList<Vector<Object>> allSourceInstances = new ArrayList<Vector<Object>>();
+		int[] sourceColumnSize;
+
+		String conceptUriSource = DomainValues.getConceptURI(conceptSource, iEngineSource, false);
+		if (sourceIsProperty) {
+			String propertyUriSource = DomainValues.getPropertyURI(propertySource, conceptSource, iEngineSource, false);
+			sourceValues = (Vector<Object>) DomainValues.retrievePropertyValues(conceptUriSource, propertyUriSource,
+					iEngineSource);
+			sourceColumnSize = new int[] { sourceValues.size() };
+			allSourceInstances.add((Vector<Object>) sourceValues);
+
+		} else {
+			//retrieve concept values
+			sourceValues = DomainValues.retrieveCleanConceptValues(conceptUriSource, iEngineSource);
+			allSourceInstances.add((Vector<Object>) sourceValues);
+			sourceProperties = iEngineSource.getProperties4Concept(conceptUriSource, false);
+			sourceColumnSize = new int[sourceProperties.size() + 1];
+			sourceColumnSize[0] = sourceValues.size();
+			for (int i = 0; i < sourceProperties.size(); i++) {
+
+				List<Object> sourcePropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriSource,
+						(String) sourceProperties.get(i), iEngineSource);
+				sourceColumnSize[i + 1] = sourcePropertyInstances.size();
+				allSourceInstances.add((Vector<Object>) sourcePropertyInstances);
+			}
+
+		}
+
+		// Target
+		List<Object> targetValues = new ArrayList<Object>();
+		List<String> targetProperties = new ArrayList<>();
+		ArrayList<Vector<Object>> allTargetInstances = new ArrayList<Vector<Object>>();
+		int[] targetColumnSize;
+
+		String conceptUriTarget = DomainValues.getConceptURI(conceptTarget, iEngineTarget, false);
+		if (targetIsProperty) {
+			String propertyUriTarget = DomainValues.getPropertyURI(propertyTarget, conceptTarget, iEngineTarget, false);
+			targetValues = DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget, iEngineTarget);
+			targetColumnSize = new int[] { targetValues.size() };
+			allTargetInstances.add((Vector<Object>) targetValues);
+		} else {
+			// targetValues =
+			// DomainValues.retrieveConceptValues(conceptUriTarget,
+			// iEngineTarget);
+			targetValues = DomainValues.retrieveCleanConceptValues(conceptUriTarget, iEngineTarget);
+			allTargetInstances.add((Vector<Object>) targetValues);
+			targetProperties = iEngineTarget.getProperties4Concept(conceptUriTarget, false);
+			targetColumnSize = new int[targetProperties.size() + 1];
+			targetColumnSize[0] = sourceValues.size();
+			for (int i = 0; i < targetProperties.size(); i++) {
+				List<Object> targetPropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriTarget,
+						(String) targetProperties.get(i), iEngineTarget);
+				targetColumnSize[i + 1] = targetPropertyInstances.size();
+				allTargetInstances.add((Vector<Object>) targetPropertyInstances);
+			}
+		}
+
+		String filePathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "FuzzyJoin\\Temp\\sourceDataFrame.csv";
+		filePathSource = filePathSource.replace("\\", "/");
+
+		String filePathTarget = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "FuzzyJoin\\Temp\\targetDataFrame.csv";
+		filePathTarget = filePathTarget.replace("\\", "/");
+
+		// Construct headers based on existence of properties
+
+		// Source
+		String sourceHeader = "";
+		if (sourceIsProperty) {
+			sourceHeader = propertySource + "_" + conceptSource + "_" + engineSource.replace(" ", "_");
+		} else {
+			sourceHeader = conceptSource + "_" + engineSource.replace(" ", "_");
+		}
+
+		// Target
+		String targetHeader = "";
+		if (targetIsProperty) {
+			targetHeader = propertyTarget + "_" + conceptTarget + "_" + engineTarget.replace(" ", "_");
+		} else {
+			targetHeader = conceptTarget + "_" + engineTarget.replace(" ", "_");
+		}
+
+		// Push to an array list for now
+		// TODO refactor below to use set
+		Object[] sourceArray = sourceValues.toArray();
+		Object[] targetArray = targetValues.toArray();
+
+		try {
+			// TODO test this csv writer change for target after or add new method in domain values
+			// write source values to csv
+			PrintWriter sv = new PrintWriter(new File(filePathSource));
+			StringBuilder ssb = new StringBuilder();
+			// csv headers
+			ssb.append(sourceHeader);
+			// property headers
+			for (int i = 0; i < sourceProperties.size(); i++) {
+				ssb.append("," + DomainValues.determineCleanPropertyName((sourceProperties.get(i)), iEngineSource));
+			}
+			ssb.append("\n");
+
+			List b = Arrays.asList(ArrayUtils.toObject(sourceColumnSize));
+			int maxRow = (int) Collections.max(b);
+			for (int row = 0; row < maxRow; row++) {
+				int columnIndex = -1;
+				for (int i = 0; i < allSourceInstances.size(); i++) {
+					columnIndex++;
+					Vector<Object> col = allSourceInstances.get(i);
+					String sourceInstance = "";
+					if (row < col.size()) {
+
+						sourceInstance = col.get(row).toString();
+					}
+					ssb.append(sourceInstance);
+					if (columnIndex < sourceColumnSize.length - 1) {
+						ssb.append(",");
+					}
+				}
+				if(row < maxRow -1) {
+				ssb.append("\n");
+				}
+			}
+			sv.write(ssb.toString());
+			sv.close();
+
+			// write target values to csv
+			PrintWriter tv = new PrintWriter(new File(filePathTarget));
+			StringBuilder tsb = new StringBuilder();
+			// csv headers
+			tsb.append(targetHeader);
+			// property headers
+			for (int i = 0; i < targetProperties.size(); i++) {
+				tsb.append(" \t " + DomainValues.determineCleanPropertyName((targetProperties.get(i)), iEngineTarget));
+			}
+			tsb.append("\n");
+
+			List c = Arrays.asList(ArrayUtils.toObject(targetColumnSize));
+			int maxRowTarget = (int) Collections.max(c);
+			for (int row = 0; row < maxRowTarget; row++) {
+				int columnIndex = -1;
+				for (int i = 0; i < allTargetInstances.size(); i++) {
+					columnIndex++;
+					Vector<Object> col = allTargetInstances.get(i);
+					String targetInstance = "";
+					if (row < col.size()) {
+						// TODO clean?????
+						targetInstance = col.get(row).toString();
+					}
+					tsb.append(targetInstance);
+					if (columnIndex < targetColumnSize.length - 1) {
+						tsb.append(" \t");
+					}
+				}
+				tsb.append("\n");
+			}
+			tv.write(tsb.toString());
+			tv.close();
+
+			/*
+			 * for source and target, change csv -> txt, change delimiter to
+			 * tab, change r script to read table
+			 */
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		// Run Fuzzy Matching in R
+//		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_join.r";
+//		utilityScriptPath = utilityScriptPath.replace("\\", "/");
+//
+//		runR("library(fuzzyjoin)");
+//		runR("source(\"" + utilityScriptPath + "\");");
+//
+//		String df1 = "this.df.name.is.reserved.for.fuzzy.join.source";
+//		String df2 = "this.df.name.is.reserved.for.fuzzy.join.target";
+//
+//		StringBuilder sourceRead = new StringBuilder();
+//		sourceRead.append(df1 + "<-read.table(\"" + filePathSource + "\"");
+//		sourceRead.append(", header = TRUE, sep = \"\\t\", quote = \"\", na.strings = \"\", "
+//				+ "check.names = FALSE, strip.white = TRUE, comment.char = \"\", fill = TRUE)");
+//
+//		StringBuilder targetRead = new StringBuilder();
+//		targetRead.append(df2 + "<-read.table(\"" + filePathTarget + "\"");
+//		targetRead.append(", header = TRUE, sep = \"\\t\", quote = \"\", na.strings = \"\", "
+//				+ "check.names = FALSE, strip.white = TRUE, comment.char = \"\", fill = TRUE)");
+//
+//		String df = "this.df.name.is.reserved.for.fuzzy.join.output";
+//		runR(sourceRead.toString());
+//		runR(targetRead.toString());
+//
+//		// build the R command
+//		StringBuilder rCommand = new StringBuilder();
+//		rCommand.append(df);
+//		rCommand.append("<-fuzzy_join(");
+//		rCommand.append(df1 + ",");
+//		rCommand.append(df2 + ",");
+//		// TODO: expand this to select on any column, right now assumes the first column
+//		rCommand.append("\"" + sourceHeader + "\"" + ",");
+//		rCommand.append("\"" + targetHeader + "\"" + ",");
+//		rCommand.append("\"" + join + "\"" + ",");
+//		rCommand.append(maxdist + ",");
+//		rCommand.append("method=" + "\"" + method + "\"" + ",");
+//		rCommand.append("q=" + gramsize + ",");
+//		rCommand.append("p=" + penalty + ")");
+//		System.out.println(rCommand.toString());
+//		runR(rCommand.toString());
+//		runR(df);
+//		storeVariable("GRID_NAME", df);
+//		synchronizeFromR();
+	}
 
 }
