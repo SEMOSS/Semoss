@@ -17,11 +17,15 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +37,7 @@ import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.AbstractFileWatcher;
@@ -86,8 +91,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	private static final String ERROR_KEY_FIRST_DATE_MAP_NAME = "errorKeyFirstDate";
 	private static final String ERROR_KEY_LAST_DATE_MAP_NAME = "errorKeyLastDate";
 
-	protected static final String HEADER_KEY = "header";
-
 	private final static char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
 
 	protected static final Logger LOGGER = LogManager.getLogger(AbstractKickoutWebWatcher.class.getName());
@@ -139,6 +142,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 		currentDbName = props.getProperty("database.name");
 		archiveDbName = props.getProperty("archive.database.name");
+
 		propFilePath = props.getProperty("prop.file.path");
 
 		// Determine the database type
@@ -234,7 +238,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	}
 
 	// TODO need to wipe the insight cache!
-	// TODO also need to figure out how to keep the insights db!
 	// TODO do this is a job so that it doesn't get wiped in the middle of the
 	// day!
 	private void refreshCurrentView() {
@@ -250,28 +253,59 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		mvStore.commit();
 		String tempCsvFilePath = tempDirectory + System.getProperty("file.separator") + "current_"
 				+ Utility.getRandomString(10) + ".csv";
+
+		ImportOptions options = generateImportOptions(tempCsvFilePath, propFilePath, currentDbName);
 		try {
 			File tempCsv = writeToCsv(tempCsvFilePath, giveFullHeaderString(), currentViewMap);
-
-			// Delete the old one
 			File smssFile = new File(baseDirectory + System.getProperty("file.separator") + Constants.DATABASE_FOLDER
 					+ System.getProperty("file.separator") + currentDbName + Constants.SEMOSS_EXTENSION);
 			if (smssFile.exists()) {
 				waitForEngineToLoad(currentDbName);
+				IEngine currentDb = Utility.getEngine(currentDbName);
 
-				IEngine currentEngine = Utility.getEngine(currentDbName);
-				currentEngine.deleteDB();
-			}
+				// Truncate all the tables in the current db
+				// Since a significant proportion of records need the last date
+				// updated anyway
+				String tablesQuery = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC';";
+				@SuppressWarnings("unchecked")
+				Map<String, Object> result = (Map<String, Object>) currentDb.execQuery(tablesQuery);
+				try (Statement statement = (Statement) result.get(RDBMSNativeEngine.STATEMENT_OBJECT)) {
+					try (ResultSet rs = (ResultSet) result.get(RDBMSNativeEngine.RESULTSET_OBJECT)) {
+						Set<String> tables = new HashSet<String>();
+						while (rs.next()) {
+							tables.add(rs.getString(1));
+						}
+						statement.execute("SET REFERENTIAL_INTEGRITY FALSE;");
+						for (String table : tables) {
+							statement.executeUpdate("TRUNCATE TABLE " + table + ";");
+						}
+						statement.execute("SET REFERENTIAL_INTEGRITY TRUE;");
+					}
+				} catch (SQLException e) {
+					LOGGER.error("Failed to truncate tables in " + currentDbName);
+					e.printStackTrace();
+				}
 
-			// Create new db
-			ImportOptions options = generateImportOptions(tempCsvFilePath, propFilePath, currentDbName);
-			options.setImportMethod(ImportOptions.IMPORT_METHOD.CREATE_NEW);
-			ImportDataProcessor importer = new ImportDataProcessor();
-			try {
-				importer.runProcessor(options);
-			} catch (Exception e) {
-				LOGGER.error("Failed to import data into " + currentDbName);
-				e.printStackTrace();
+				// Add to existing db
+				options.setImportMethod(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING);
+				ImportDataProcessor importer = new ImportDataProcessor();
+				try {
+					importer.runProcessor(options);
+				} catch (Exception e) {
+					LOGGER.error("Failed to import data into " + currentDbName);
+					e.printStackTrace();
+				}
+			} else {
+
+				// Create new db
+				options.setImportMethod(ImportOptions.IMPORT_METHOD.CREATE_NEW);
+				ImportDataProcessor importer = new ImportDataProcessor();
+				try {
+					importer.runProcessor(options);
+				} catch (Exception e) {
+					LOGGER.error("Failed to import data into " + currentDbName);
+					e.printStackTrace();
+				}
 			}
 
 			// Delete the temporary csv unless running in debug mode
@@ -303,8 +337,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		options.setDbType(ImportOptions.DB_TYPE.RDBMS);
 		options.setBaseFolder(baseDirectory);
 		options.setAutoLoad(false); // TODO what does this mean?
-		options.setAllowDuplicates(true); // Because I'm already de-duplicating
-											// here
+		options.setAllowDuplicates(true); // Already de-duplicated
 		options.setFileLocation(tempCsvFilePath);
 		options.setPropertyFiles(propFilePath);
 		options.setCreateIndexes(true);
