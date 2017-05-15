@@ -1,14 +1,15 @@
-package prerna.sablecc2;
+package prerna.sablecc2.om;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.ds.querystruct.QueryStruct2;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.reactor.IReactor;
 
-public class VarStore {
+public class VarStore implements InMemStore<String, NounMetadata> {
 
 	private Map<String, NounMetadata> varMap;
 	
@@ -16,23 +17,25 @@ public class VarStore {
 		varMap = new HashMap<>();
 	}
 	
-	public void addVariable(String varName, NounMetadata variable) {
+	@Override
+	public void put(String varName, NounMetadata variable) {
 		varName = cleanVarName(varName);
 		if(variable.getNounName() == PkslDataTypes.COLUMN) {
 			if(varName.equalsIgnoreCase(variable.getValue().toString())) {
-//				System.out.println("Creating a loop here");
 				return;
 			}
 		}
 		varMap.put(varName, variable);
 	}
 	
-	public NounMetadata getVariable(String varName) {
+	@Override
+	public NounMetadata get(String varName) {
 		varName = cleanVarName(varName);
 		return varMap.get(varName);
 	}
 	
-	public NounMetadata getVariableValue(String varName) {
+	@Override
+	public NounMetadata getEvaluatedValue(String varName) {
 		varName = cleanVarName(varName);
 		NounMetadata valueNoun = varMap.get(varName);
 		if(valueNoun != null) {
@@ -41,8 +44,8 @@ public class VarStore {
 				String valName = valueNoun.getValue().toString();
 				// got to make sure it is not a variable
 				// pointing to another variable
-				if(hasVariable(valName)) {
-					return getVariableValue(valName);
+				if(containsKey(valName)) {
+					return getEvaluatedValue(valName);
 				}
 			}
 			else if(valType == PkslDataTypes.LAMBDA) {
@@ -51,33 +54,45 @@ public class VarStore {
 			}
 		} else if(!varName.equalsIgnoreCase("$RESULT")) {
 			
-//			System.out.println("Not Found!!!  "+varName.split("__")[0]);
-//			valueNoun = new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
 		}
 		// once we are done with the whole recursive
 		// part above, just return the noun
 		return valueNoun;
 	}
 	
-	public boolean hasVariable(String varName) {
+	@Override
+	public boolean containsKey(String varName) {
 		varName = cleanVarName(varName);
 		return varMap.containsKey(varName);
 	}
 	
-	public NounMetadata removeVariable(String varName) {
+	@Override
+	public NounMetadata remove(String varName) {
 		varName = cleanVarName(varName);
 		return varMap.remove(varName);
 	}
 	
-	public void clearVarMap() {
+	@Override
+	public void clear() {
 		this.varMap.clear();
+	}
+	
+	@Override
+	public Iterator<IHeadersDataRow> getIterator() {
+		return null;
+	}
+
+	@Override
+	public Iterator<IHeadersDataRow> getIterator(QueryStruct2 qs) {
+		return null;
+	}
+
+	@Override
+	public Set<String> getKeys() {
+		return varMap.keySet();
 	}
 	
 	private String cleanVarName(String varName) {
 		return varName.trim().toUpperCase();
-	}
-	
-	public Set<String> getVariables() {
-		return varMap.keySet();
 	}
 }

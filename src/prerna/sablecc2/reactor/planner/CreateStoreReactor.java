@@ -5,16 +5,19 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.sablecc2.reactor.storage.InMemStore;
-import prerna.sablecc2.reactor.storage.MapStore;
-import prerna.sablecc2.reactor.storage.TaxMapStore;
+import prerna.sablecc2.reactor.storage.StoreReactor;
 
 public class CreateStoreReactor extends AbstractReactor {
 
+	private static final String STORE_NOUN = "store";
+	private static final String KEY_NOUN = "key";
+	
 	@Override
 	public void In() {
 		curNoun("all");
@@ -28,11 +31,11 @@ public class CreateStoreReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 
-		InMemStore returnStore = new TaxMapStore();
+		InMemStore returnStore = getStore();
 		List<PKSLPlanner> planners = getPlanners();
 		
 		for(PKSLPlanner nextScenario : planners) {
-			InMemStore resultScenarioStore = new MapStore();
+			InMemStore resultScenarioStore = getStore();
 			String scenario = nextScenario.getVariable("$Scenario").getValue().toString();
 			Set<String> variables = nextScenario.getVariables();
 			for(String variable : variables) {
@@ -42,8 +45,7 @@ public class CreateStoreReactor extends AbstractReactor {
 						resultScenarioStore.put(variable, noun);
 					}
 				} catch(Exception e) {
-//					e.printStackTrace();
-					System.out.println("Error with ::: " + variable);
+//					System.out.println("Error with ::: " + variable);
 				}
 			}
 	
@@ -69,9 +71,29 @@ public class CreateStoreReactor extends AbstractReactor {
 					planners.add((PKSLPlanner)nextNoun);
 				}
 			}
-		}
-		
+		}	
 		return planners;
 	}
-
+	
+	private InMemStore getStore() {
+		// could be passed directly in the method -> as store
+		GenRowStruct storeGrs = this.store.getNoun(STORE_NOUN);
+		if(storeGrs != null) {
+			return (InMemStore) storeGrs.get(0);
+		}
+		
+		// could be passed as a $RESULT -> as STORE
+		storeGrs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+		if(storeGrs != null) {
+			return (InMemStore) storeGrs.get(0);
+		}
+		
+		// see if there is anything in curRow with store
+		List<NounMetadata> passedResults = this.curRow.getNounsOfType(PkslDataTypes.IN_MEM_STORE);
+		if(passedResults != null && !passedResults.isEmpty()) {
+			return (InMemStore) passedResults.get(0).getValue();
+		}
+		
+		else return new TaxMapStore();
+	}
 }
