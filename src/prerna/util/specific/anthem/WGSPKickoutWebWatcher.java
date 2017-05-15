@@ -32,6 +32,8 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	private String lastDateColName;
 	private String errorCodeColName;
 
+	private String fullHeaderString;
+
 	private String timeseriesPropFilePath;
 	private String timeseriesDbName;
 
@@ -64,6 +66,20 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		firstDateColName = props.getProperty("first.date.column.name");
 		lastDateColName = props.getProperty("last.date.column.name");
 		errorCodeColName = props.getProperty("error.code.column.name");
+
+		StringBuilder headerString = new StringBuilder();
+		headerString.append(QT);
+		headerString.append(keyColName);
+		headerString.append(DLMTR);
+		headerString.append(firstDateColName);
+		headerString.append(DLMTR);
+		headerString.append(lastDateColName);
+		headerString.append(DLMTR);
+		headerString.append(String.join(DLMTR, headerAlias));
+		headerString.append(DLMTR);
+		headerString.append(errorCodeColName);
+		headerString.append(NWLN);
+		fullHeaderString = headerString.toString();
 
 		timeseriesPropFilePath = props.getProperty("time.series.prop.file.path");
 		timeseriesDbName = props.getProperty("time.series.database.name");
@@ -130,28 +146,9 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		int nCritical = 0;
 		try {
 
-			// Start by writing the header to the csv
+			// Read in the header first
 			String line = reader.readLine();
-			String[] header = line.split("\t");
-			int nCol = header.length;
-			for (int i = 0; i < nCol; i++) {
-				header[i] = header[i].trim();
-			}
-
-			// Write the header
-			StringBuilder headerString = new StringBuilder();
-			headerString.append(QT);
-			headerString.append(keyColName);
-			headerString.append(DLMTR);
-			headerString.append(firstDateColName);
-			headerString.append(DLMTR);
-			headerString.append(lastDateColName);
-			headerString.append(DLMTR);
-			headerString.append(String.join(DLMTR, header));
-			headerString.append(DLMTR);
-			headerString.append(errorCodeColName);
-			headerString.append(NWLN);
-			metaMap.put(HEADER_KEY, headerString.toString());
+			int nCol = headerAlias.length;
 
 			// Read the file and publish
 			while ((line = reader.readLine()) != null) {
@@ -234,6 +231,11 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	protected Date determineKickoutDate(String fileName) throws ParseException {
 		DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
 		return dateFormatter.parse(fileName.substring(12, 22));
+	}
+
+	@Override
+	protected String giveFullHeaderString() {
+		return fullHeaderString;
 	}
 
 	@Override

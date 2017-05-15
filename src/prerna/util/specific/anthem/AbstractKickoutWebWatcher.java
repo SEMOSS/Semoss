@@ -60,12 +60,13 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	protected MVMap<String, Date> rawKeyLastDateMap;
 	protected MVMap<String, Date> errorKeyFirstDateMap;
 	protected MVMap<String, Date> errorKeyLastDateMap;
-	protected MVMap<String, String> metaMap;
 
 	protected int considerNewThresholdDays;
 	protected int currentViewDays;
 
 	protected Date ignoreBeforeDate;
+
+	protected String[] headerAlias;
 
 	private String currentDbName;
 	private String archiveDbName;
@@ -84,7 +85,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	private static final String RAW_KEY_LAST_DATE_MAP_NAME = "rawKeyLastDate";
 	private static final String ERROR_KEY_FIRST_DATE_MAP_NAME = "errorKeyFirstDate";
 	private static final String ERROR_KEY_LAST_DATE_MAP_NAME = "errorKeyLastDate";
-	private static final String META_MAP_NAME = "metaMap";
 
 	protected static final String HEADER_KEY = "header";
 
@@ -124,7 +124,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		rawKeyLastDateMap = mvStore.openMap(RAW_KEY_LAST_DATE_MAP_NAME);
 		errorKeyFirstDateMap = mvStore.openMap(ERROR_KEY_FIRST_DATE_MAP_NAME);
 		errorKeyLastDateMap = mvStore.openMap(ERROR_KEY_LAST_DATE_MAP_NAME);
-		metaMap = mvStore.openMap(META_MAP_NAME);
 
 		considerNewThresholdDays = Integer.parseInt(props.getProperty("consider.new.threshold.days", "7"));
 		currentViewDays = Integer.parseInt(props.getProperty("current.view.days", "7"));
@@ -135,6 +134,8 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			LOGGER.error("Failed to parse the ignore before date");
 			e.printStackTrace();
 		}
+
+		headerAlias = props.getProperty("header.alias").split(";");
 
 		currentDbName = props.getProperty("database.name");
 		archiveDbName = props.getProperty("archive.database.name");
@@ -176,7 +177,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		}
 		addToArchive();
 		refreshCurrentView();
-		addOther();
+		// addOther();
 	}
 
 	private void addToArchive() {
@@ -188,9 +189,8 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 		String tempCsvFilePath = tempDirectory + System.getProperty("file.separator") + "archive_"
 				+ Utility.getRandomString(10) + ".csv";
-		String header = metaMap.get(HEADER_KEY);
 		try {
-			File tempCsv = writeToCsv(tempCsvFilePath, header, addToArchiveMap);
+			File tempCsv = writeToCsv(tempCsvFilePath, giveFullHeaderString(), addToArchiveMap);
 			ImportOptions options = generateImportOptions(tempCsvFilePath, propFilePath, archiveDbName);
 
 			// Create new if the database does not yet exist, otherwise add to
@@ -250,9 +250,8 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		mvStore.commit();
 		String tempCsvFilePath = tempDirectory + System.getProperty("file.separator") + "current_"
 				+ Utility.getRandomString(10) + ".csv";
-		String header = metaMap.get(HEADER_KEY);
 		try {
-			File tempCsv = writeToCsv(tempCsvFilePath, header, currentViewMap);
+			File tempCsv = writeToCsv(tempCsvFilePath, giveFullHeaderString(), currentViewMap);
 
 			// Delete the old one
 			File smssFile = new File(baseDirectory + System.getProperty("file.separator") + Constants.DATABASE_FOLDER
@@ -286,6 +285,9 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	}
 
 	// Implementation specific methods
+
+	protected abstract String giveFullHeaderString();
+
 	protected abstract void addOther();
 
 	protected abstract boolean needToProcess(String fileName);
@@ -450,7 +452,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 									// the day
 									addToArchive();
 									refreshCurrentView();
-									addOther();
+									// addOther();
 								}
 
 							} catch (RuntimeException ex) {
