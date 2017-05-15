@@ -523,5 +523,8 @@ public class Constants {
 	// Composite key constants
 	public static final String COMPOSITE_KEY_SEPARATOR = "_COMPOSITE_";
 	public static final String COMPOSITE_KEY_TYPE = "COMPOSITE";
-	public static final String META_KEY = "URI:KEY";	
+	public static final String META_KEY = "URI:KEY";
+	
+	public static final String DATABASE_FOLDER = "db";
+	public static final String SEMOSS_EXTENSION = ".smss";
 }
