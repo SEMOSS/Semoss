@@ -6,15 +6,18 @@ import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.sablecc2.om.InMemStore;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.TaxMapStore;
 
 public class TaxMapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 
-	private MapStore store = null;
-	private Iterator<Object> keysIterator = null;
+	private TaxMapStore store = null;
+	private Iterator<String> keysIterator = null;
 	
-	public TaxMapHeaderDataRowIterator(MapStore store) {
+	public TaxMapHeaderDataRowIterator(TaxMapStore store) {
 		this.store = store;
-		this.keysIterator = store.getStoredKeys().iterator();
+		this.keysIterator = store.getKeys().iterator();
 	}
 
 	@Override
@@ -25,15 +28,15 @@ public class TaxMapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 	@Override
 	public IHeadersDataRow next() {
 		// scenario name
-		Object key = keysIterator.next();
+		String key = keysIterator.next();
 		// scenario in-mem map
-		InMemStore scenarioMap = (InMemStore) store.get(key).getValue();
+		InMemStore<String, NounMetadata> scenarioMap = (InMemStore<String, NounMetadata>)store.get(key).getValue();
 		
 		// loop through the scenario keys and flush out to map
 		Map<Object, Object> scenarioValues = new Hashtable<Object, Object>();
-		Iterator<Object> scenarioKeysIt = scenarioMap.getStoredKeys().iterator();
+		Iterator<String> scenarioKeysIt = scenarioMap.getKeys().iterator();
 		while(scenarioKeysIt.hasNext()) {
-			Object scenarioKey = scenarioKeysIt.next();
+			String scenarioKey = scenarioKeysIt.next();
 			scenarioValues.put(scenarioKey, scenarioMap.get(scenarioKey).getValue());
 		}
 		

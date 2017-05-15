@@ -57,6 +57,11 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
+	public void In() {
+        curNoun("all");
+	}
+	
+	@Override
 	public Object Out() {
 		return this.parentReactor;
 	}
