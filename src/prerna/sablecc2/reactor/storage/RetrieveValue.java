@@ -7,6 +7,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -49,7 +50,7 @@ public class RetrieveValue extends AbstractReactor {
 		// we send back the actual value
 		if(numGrs == 1) {
 			Object key = grs.get(0);
-			NounMetadata valueData = storeVariable.get(key);
+			NounMetadata valueData = (NounMetadata)storeVariable.get(key);
 			return valueData;
 		} 
 		// if there are multiple returns

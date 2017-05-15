@@ -13,10 +13,11 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import prerna.sablecc2.VarStore;
 import prerna.sablecc2.om.CodeBlock;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.VarStore;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLPlanner {
@@ -27,7 +28,8 @@ public class PKSLPlanner {
 	// I need some way to have roots
 	Vector roots = new Vector();
 	
-	VarStore varStore = new VarStore();
+	InMemStore<String, NounMetadata> varStore = new VarStore();
+	
 	public static final String NOUN = "NOUN";
 	public static final String OPERATION = "OP";
 	public static final String REACTOR_CLASS = "REACTOR";
@@ -96,29 +98,36 @@ public class PKSLPlanner {
 	//**********************VARIABLE METHODS*******************************//
 	
 	public void addVariable(String variableName, NounMetadata value) {
-		varStore.addVariable(variableName, value);
+		varStore.put(variableName, value);
 	}
 	
 	public NounMetadata getVariable(String variableName) {
-		return varStore.getVariable(variableName);
+		return varStore.get(variableName);
 	}
 	
 	public NounMetadata getVariableValue(String variableName) {
-		return varStore.getVariableValue(variableName);
+		return varStore.getEvaluatedValue(variableName);
 	}
 	
 	public boolean hasVariable(String variableName) {
-		return varStore.hasVariable(variableName);
+		return varStore.containsKey(variableName);
 	}
 	
 	public NounMetadata removeVariable(String variableName) {
-		return varStore.removeVariable(variableName);
+		return varStore.remove(variableName);
 	}
 	
 	public Set<String> getVariables() {
-		return varStore.getVariables();
+		return varStore.getKeys();
 	}
 	
+	public void setVarStore(InMemStore<String, NounMetadata> varStore) {
+		this.varStore = varStore;
+	}
+	
+	public InMemStore<String, NounMetadata> getVarStore() {
+		return this.varStore;
+	}
 	
 //	public NounMetadata getVariable(String variableName) {
 //        NounMetadata noun = varStore.getVariableValue(variableName);

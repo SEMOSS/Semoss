@@ -1,21 +1,19 @@
-package prerna.sablecc2.reactor.planner.graph;
+package prerna.sablecc2.reactor.planner.table;
 
 import java.util.List;
-import java.util.Set;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.Translation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.TablePKSLPlanner;
+import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
 
-public class RunPlannerReactor extends AbstractPlannerReactor {
+public class ExecuteTablePlannerReactor extends AbstractTablePlannerReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(LoadGraphClient.class.getName());
 
@@ -34,23 +32,21 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 	{
 		long start = System.currentTimeMillis();
 		
-		PKSLPlanner planner = getPlanner();
-		List<String> pksls = new Vector<String>();
-
-		// get the list of the root vertices
-		// these are the vertices we can run right away
-		// and are the starting point for the plan execution
-		Set<Vertex> rootVertices = getRootPksls(planner);
-		// using the root vertices
-		// iterate down all the other vertices and add the signatures
-		// for the desired travels in the appropriate order
-		// note: this is adding to the list of undefined variables
-		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
+		TablePKSLPlanner planner = getPlanner();
 		
+		List<String> pksls = collectRootPksls(planner);		
 		Translation translation = new Translation();
 		translation.planner = planner;
-		PkslUtility.addPkslToTranslation(translation, pksls);
+		while(!pksls.isEmpty()) {
+			try {
+				PkslUtility.addPkslToTranslation(translation, pksls);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+//			updateTable(planner, pksls);
+			pksls = collectNextPksls(planner);
+		}
+		resetTable(planner);
 		
 		long end = System.currentTimeMillis();
 		System.out.println("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
@@ -58,14 +54,14 @@ public class RunPlannerReactor extends AbstractPlannerReactor {
 		return new NounMetadata(translation.planner, PkslDataTypes.PLANNER);
 	}
 	
-	private PKSLPlanner getPlanner() {
+	private TablePKSLPlanner getPlanner() {
 		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+		TablePKSLPlanner planner = null;
 		if(allNouns != null) {
-			planner = (PKSLPlanner) allNouns.get(0);
+			planner = (TablePKSLPlanner) allNouns.get(0);
 			return planner;
 		} else {
-			return this.planner;
+			return (TablePKSLPlanner)this.planner;
 		}
 	}
 }

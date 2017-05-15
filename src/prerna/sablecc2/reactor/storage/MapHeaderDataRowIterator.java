@@ -4,16 +4,17 @@ import java.util.Iterator;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 
 public class MapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 
-	private MapStore store = null;
-	private Iterator<Object> keysIterator = null;
+	private InMemStore<String, NounMetadata> store = null;
+	private Iterator<String> keysIterator = null;
 	
-	public MapHeaderDataRowIterator(MapStore store) {
+	public MapHeaderDataRowIterator(InMemStore store) {
 		this.store = store;
-		this.keysIterator = store.getStoredKeys().iterator();
+		this.keysIterator = store.getKeys().iterator();
 	}
 
 	@Override
@@ -23,7 +24,7 @@ public class MapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 
 	@Override
 	public IHeadersDataRow next() {
-		Object key = keysIterator.next();
+		String key = keysIterator.next();
 		NounMetadata value = store.get(key);
 		
 		String[] header = new String[]{key.toString()};

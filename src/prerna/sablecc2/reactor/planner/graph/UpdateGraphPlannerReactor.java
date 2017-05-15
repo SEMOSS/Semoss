@@ -15,7 +15,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.PKSLPlanner;
 
-public class UpdatePlannerReactor extends AbstractPlannerReactor {
+public class UpdateGraphPlannerReactor extends AbstractPlannerReactor {
 
 	public static final String PKSL_NOUN = "pksls";
 	public static final String STORE_NOUN = "store";
