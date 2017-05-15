@@ -4,19 +4,21 @@ import java.util.Iterator;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.sablecc2.om.InMemStore;
+import prerna.sablecc2.om.NounMetadata;
 
 public class TransposeMapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 
 	private boolean hasNext = true;
-	private MapStore store = null;
+	private InMemStore<String, NounMetadata> store = null;
 	private String[] headers;
 	
-	public TransposeMapHeaderDataRowIterator(MapStore store) {
+	public TransposeMapHeaderDataRowIterator(InMemStore store) {
 		this.store = store;
-		headers = store.getStoredKeys().toArray(new String[0]);
+		headers = this.store.getKeys().toArray(new String[0]);
 	}
 	
-	public TransposeMapHeaderDataRowIterator(MapStore store, String[] headers) {
+	public TransposeMapHeaderDataRowIterator(InMemStore store, String[] headers) {
 		this.store = store;
 		this.headers = headers;
 	}

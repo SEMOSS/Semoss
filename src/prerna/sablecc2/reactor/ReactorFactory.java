@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.job.*;
 import prerna.sablecc2.reactor.expression.*;
@@ -99,11 +100,11 @@ public class ReactorFactory {
 		reactorHash.put("if", IfReactor.class);
 		
 		// in mem storage of data
-		reactorHash.put("MapStore", MapStore.class);
+		reactorHash.put("MapStore", StoreReactor.class);
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		
-		reactorHash.put("UpdatePlan", UpdatePlannerReactor.class);
+		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 		reactorHash.put("CreateStore", CreateStoreReactor.class);
 		
@@ -113,8 +114,8 @@ public class ReactorFactory {
 		
 		
 		//Tinker Specfic Tax Reactors
-		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor2.class);
-		reactorHash.put("RunPlan", RunPlannerReactor.class);
+		reactorHash.put("RunTaxPlan", RunGraphTaxPlannerReactor.class);
+		reactorHash.put("RunPlan", ExecuteGraphPlannerReactor.class);
 		reactorHash.put("LoadClient", LoadGraphClient.class);
 		
 //		//H2 Specific Tax Reactors
