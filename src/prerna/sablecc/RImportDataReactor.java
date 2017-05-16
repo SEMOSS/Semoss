@@ -7,7 +7,7 @@ import java.util.Map;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RFileWrapper;
+import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class RImportDataReactor extends ImportDataReactor {
@@ -34,7 +34,7 @@ public class RImportDataReactor extends ImportDataReactor {
 		RDataTable frame = (RDataTable) myStore.get("G");
 		if(dataIterator == null) {
 			if(myStore.get(PKQLEnum.API) != null) {
-				RFileWrapper rFileWrap = (RFileWrapper) myStore.get(PKQLEnum.API);
+				RCsvFileWrapper rFileWrap = (RCsvFileWrapper) myStore.get(PKQLEnum.API);
 				Map<String, String> dataTypes = new HashMap<>();
 	
 				this.newHeaders = rFileWrap.getHeaders();

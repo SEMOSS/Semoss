@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RFileWrapper;
+import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -45,7 +45,7 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
 		// to determine what selectors to send
 		
-		RFileWrapper fileWrapper = new RFileWrapper(this.fileName);
+		RCsvFileWrapper fileWrapper = new RCsvFileWrapper(this.fileName);
 		fileWrapper.composeRChangeHeaderNamesScript();
 		fileWrapper.composeRScript(this.qs, this.dataTypeMap, headerNames);
 		

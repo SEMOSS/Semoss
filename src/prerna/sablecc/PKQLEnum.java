@@ -126,7 +126,6 @@ public class PKQLEnum {
 	public static final String TINKER_QUERY_API = "TINKER_QUERY_API";
 	public static final String CSV_API = "CSV_API";
 	public static final String EXCEL_API = "EXCEL_API";
-	public static final String R_API = "R_API";
 	public static final String WEB_API = "WEB_API";
 	public static final String FRAME_API = "FRAME_API";
 	public static final String NATIVE_QUERY_API = "NATIVE_QUERY_API";
