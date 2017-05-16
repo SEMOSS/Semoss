@@ -9,11 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import cern.colt.Arrays;
 import prerna.poi.main.HeadersException;
@@ -27,12 +29,12 @@ public class XLFileHelper {
 	
 	private static final int NUM_ROWS_TO_PREDICT_TYPES = 1000;
 
-	private	XSSFWorkbook workbook = null;
+	private	Workbook workbook = null;
 	private FileInputStream sourceFile = null;
 	private String fileLocation = null;
 
 	// contains the string to the excel sheet object
-	private Map <String, XSSFSheet> sheetNames = new Hashtable<String, XSSFSheet>();
+	private Map <String, Sheet> sheetNames = new Hashtable<String, Sheet>();
 	// gets the sheet name -> headers for sheet
 	private Map <String, String[]> original_headers = new Hashtable<String, String[]>();
 	// gets the sheet name -> headers for sheet
@@ -63,14 +65,19 @@ public class XLFileHelper {
 	{
 		try {
 			sourceFile = new FileInputStream(fileLocation);
-			workbook = new XSSFWorkbook(sourceFile);
-
+			try {
+				workbook = WorkbookFactory.create(sourceFile);
+			} catch (EncryptedDocumentException e) {
+				e.printStackTrace();
+			} catch (InvalidFormatException e) {
+				e.printStackTrace();
+			}
 			// get all the sheets
 			int totalSheets = workbook.getNumberOfSheets();
 
 			// store all the sheets
 			for(int sheetIndex = 0;sheetIndex < totalSheets; sheetIndex++) {
-				XSSFSheet sheet = workbook.getSheetAt(sheetIndex);
+				Sheet sheet = workbook.getSheetAt(sheetIndex);
 				String nameOfSheet = sheet.getSheetName();
 				sheetNames.put(nameOfSheet, sheet);
 				
@@ -113,9 +120,9 @@ public class XLFileHelper {
 	// this is in case the user has a dumb excel
 	// where the top row is completely empty/null
 	// find the first non-null row
-	public String[] getSheetHeaders(XSSFSheet sheet) {
+	public String[] getSheetHeaders(Sheet sheet) {
 		int counter = 0;
-		XSSFRow headerRow = null;
+		Row headerRow = null;
 		while(headerRow == null && counter < sheet.getLastRowNum()) {
 			headerRow = sheet.getRow(counter);
 			counter++;
@@ -138,7 +145,7 @@ public class XLFileHelper {
 	/////////////////// START ALL NEXT ROWS ///////////////////
 	
 	public String[] getNextRow(String sheetName) {
-		XSSFSheet thisSheet = sheetNames.get(sheetName);
+		Sheet thisSheet = sheetNames.get(sheetName);
 		
 		int counter = 1;
 		if(sheetCounter.containsKey(sheetName)) {
@@ -165,20 +172,12 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-//	private String[] getCells(XSSFRow row) {
-//		if(row == null) {
-//			return null;
-//		}
-//		int colLength = row.getLastCellNum();
-//		return getCells(row, colLength);
-//	}
-	
-	private String[] getCells(XSSFRow row, int totalCol)
+	private String[] getCells(Row row, int totalCol)
 	{
 		int colLength = totalCol;
 		String [] cols = new String[colLength];
 		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
-			XSSFCell thisCell = row.getCell(colIndex);
+			Cell thisCell = row.getCell(colIndex);
 			cols[colIndex] = getCell(thisCell);
 		}	
 
@@ -195,7 +194,7 @@ public class XLFileHelper {
 			return getNextRow(sheetName);
 		}
 		
-		XSSFSheet thisSheet = sheetNames.get(sheetName);
+		Sheet thisSheet = sheetNames.get(sheetName);
 		
 		int counter = 1;
 		if(sheetCounter.containsKey(sheetName)) {
@@ -222,17 +221,17 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-	private String[] getCells(XSSFRow row, String[] sheetHeaders, String[] headersToGet) {
+	private String[] getCells(Row row, String[] sheetHeaders, String[] headersToGet) {
 		int colLength = row.getLastCellNum();
 		return getCells(row, sheetHeaders, headersToGet, colLength);
 	}
 	
-	private String[] getCells(XSSFRow row, String[] sheetHeaders, String[] headersToGet, int colLength) {
+	private String[] getCells(Row row, String[] sheetHeaders, String[] headersToGet, int colLength) {
 		List<String> cols = new Vector<String>();
 		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
 			String header = sheetHeaders[colIndex];
 			if(ArrayUtilityMethods.arrayContainsValue(headersToGet, header)) {
-				XSSFCell thisCell = row.getCell(colIndex);
+				Cell thisCell = row.getCell(colIndex);
 				cols.add(getCell(thisCell));
 			}
 		}
@@ -254,7 +253,7 @@ public class XLFileHelper {
 	}
 	
 	public String[] getNextRow(String sheetName, int[] headerIndicesToGet) {
-		XSSFSheet thisSheet = sheetNames.get(sheetName);
+		Sheet thisSheet = sheetNames.get(sheetName);
 		
 		int counter = 1;
 		if(sheetCounter.containsKey(sheetName)) {
@@ -281,11 +280,11 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-	private String[] getCells(XSSFRow row, int[] headerIndicesToGet) {
+	private String[] getCells(Row row, int[] headerIndicesToGet) {
 		int numCols = headerIndicesToGet.length;
 		List<String> cols = new Vector<String>();
 		for(int colIndex = colStarter; colIndex < numCols; colIndex++) {
-			XSSFCell thisCell = row.getCell(headerIndicesToGet[colIndex]);
+			Cell thisCell = row.getCell(headerIndicesToGet[colIndex]);
 			cols.add(getCell(thisCell));
 		}
 		return cols.toArray(new String[]{});
@@ -293,7 +292,7 @@ public class XLFileHelper {
 	
 	/////////////////// END SPECIFIC HEADERS NEXT ROWS ///////////////////
 
-	private String getCell(XSSFCell thisCell) {
+	private String getCell(Cell thisCell) {
 		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK) {
 			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
 				return thisCell.getStringCellValue();
@@ -307,10 +306,10 @@ public class XLFileHelper {
 	}
 	
 	public String[] predictRowTypes(String sheetName) {
-		XSSFSheet lSheet = sheetNames.get(sheetName);
+		Sheet lSheet = sheetNames.get(sheetName);
 		int numRows = lSheet.getLastRowNum();
 		
-		XSSFRow header = lSheet.getRow(0);
+		Row header = lSheet.getRow(0);
 		int numCells = header.getLastCellNum();
 		
 		String [] types = new String[numCells];
@@ -318,9 +317,9 @@ public class XLFileHelper {
 		for(int i = colStarter; i < numCells; i++) {
 			String type = null;
 			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
-				XSSFRow row = lSheet.getRow(j);
+				Row row = lSheet.getRow(j);
 				if(row != null) {
-					XSSFCell cell = row.getCell(i);
+					Cell cell = row.getCell(i);
 					if(cell != null) {
 						String val = getCell(cell);
 						if(val.isEmpty()) {
@@ -371,7 +370,7 @@ public class XLFileHelper {
 	}
 	
 	public String[] predictRowTypes(String sheetName, int[] headersToSelect) {
-		XSSFSheet lSheet = sheetNames.get(sheetName);
+		Sheet lSheet = sheetNames.get(sheetName);
 		int numRows = lSheet.getLastRowNum();
 		
 		int numCells = headersToSelect.length;
@@ -381,9 +380,9 @@ public class XLFileHelper {
 			int cellIndex = headersToSelect[loopIndex];
 			String type = null;
 			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
-				XSSFRow row = lSheet.getRow(j);
+				Row row = lSheet.getRow(j);
 				if(row != null) {
-					XSSFCell cell = row.getCell(cellIndex);
+					Cell cell = row.getCell(cellIndex);
 					if(cell != null) {
 						String val = getCell(cell);
 						if(val.isEmpty()) {
