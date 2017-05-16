@@ -38,11 +38,13 @@ import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
+import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
@@ -2117,8 +2119,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param gramsize
 	 * @param penalty
 	 */
-	public void runFuzzyJoin(String match, String join, String method, String maxdist, String gramsize,
-			String penalty) {
+	public void runFuzzyJoin(String match, String join, String method, String maxdist, String gramsize, String penalty)
+			throws FileNotFoundException {
 
 		System.out.println(">>>Executing fuzzy join...");
 		// Initialize
@@ -2128,7 +2130,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String conceptTarget = "";
 		String propertySource = "";
 		String propertyTarget = "";
-		
+
 		// clean method for r script
 		if (method.equals("Levenshtein")) {
 			method = "lv";
@@ -2206,63 +2208,129 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Source
 		Vector<Object> sourceValues = new Vector<Object>();
 		List<String> sourceProperties = new ArrayList<>();
-		ArrayList<Vector<Object>> allSourceInstances = new ArrayList<Vector<Object>>();
-		int[] sourceColumnSize;
-
+		List<Object[]> allSourceInstances = null;
+		Object[] sourceHeaders = null;
 		String conceptUriSource = DomainValues.getConceptURI(conceptSource, iEngineSource, false);
 		if (sourceIsProperty) {
+
 			String propertyUriSource = DomainValues.getPropertyURI(propertySource, conceptSource, iEngineSource, false);
 			sourceValues = (Vector<Object>) DomainValues.retrievePropertyValues(conceptUriSource, propertyUriSource,
 					iEngineSource);
-			sourceColumnSize = new int[] { sourceValues.size() };
-			allSourceInstances.add((Vector<Object>) sourceValues);
+			allSourceInstances = new Vector<Object[]>();
+			for (Object s : sourceValues) {
+				Object[] row = new Object[1];
+				row[0] = s;
+				allSourceInstances.add(row);
+
+			}
+			sourceHeaders = new Object[1];
+			sourceHeaders[0] = propertyUriSource;
 
 		} else {
-			// sourceValues =
-			// DomainValues.retrieveConceptValues(conceptUriSource,
-			// iEngineSource);
-			sourceValues = DomainValues.retrieveCleanConceptValues(conceptUriSource, iEngineSource);
-			allSourceInstances.add((Vector<Object>) sourceValues);
 			sourceProperties = iEngineSource.getProperties4Concept(conceptUriSource, false);
-			sourceColumnSize = new int[sourceProperties.size() + 1];
-			sourceColumnSize[0] = sourceValues.size();
-			for (int i = 0; i < sourceProperties.size(); i++) {
+			Vector<String> cleanPropertiesSource = new Vector<String>();
+			for (String propVal : sourceProperties) {
+				cleanPropertiesSource.add(DomainValues.determineCleanPropertyName(propVal, iEngineSource));
 
-				List<Object> sourcePropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriSource,
-						(String) sourceProperties.get(i), iEngineSource);
-				sourceColumnSize[i + 1] = sourcePropertyInstances.size();
-				allSourceInstances.add((Vector<Object>) sourcePropertyInstances);
 			}
+			StringBuilder pkqlCommandSource = new StringBuilder();
+			pkqlCommandSource.append("data.frame('grid');");
+			pkqlCommandSource.append("data.import ");
+			pkqlCommandSource.append("( api:");
+			pkqlCommandSource.append(" " + engineSource + " ");
+			pkqlCommandSource.append(". query ( [ c:");
+			pkqlCommandSource.append(" " + conceptSource + " , ");
+			for (int i = 0; i < cleanPropertiesSource.size(); i++) {
+				if (i != cleanPropertiesSource.size() - 1) {
+					pkqlCommandSource.append("c:" + " " + conceptSource + "__" + cleanPropertiesSource.get(i) + " , ");
+				} else {
+					pkqlCommandSource.append("c:" + " " + conceptSource + "__" + cleanPropertiesSource.get(i));
+				}
+			}
+			pkqlCommandSource.append(" ] ) ) ;");
+			pkqlCommandSource.append("panel[0].viz ( Grid, [ ");
+			for (int i = 0; i < cleanPropertiesSource.size(); i++) {
+				if (i != cleanPropertiesSource.size() - 1) {
+					pkqlCommandSource.append("value= c:" + " " + cleanPropertiesSource.get(i) + " , ");
+				} else {
+					pkqlCommandSource.append("value= c:" + " " + cleanPropertiesSource.get(i));
+				}
+			}
+			pkqlCommandSource.append(" ] )  ;");
+			System.out.println(pkqlCommandSource.toString());
+			System.out.println("Running PKQL...");
+
+			Insight insightSource = InsightUtility.createInsight(engineSource);
+			InsightUtility.runPkql(insightSource, pkqlCommandSource.toString());
+			ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
+			allSourceInstances = data.getData();
+			sourceHeaders = data.getColumnHeaders();
+			System.out.println("RESULTS SUCCESS");
 
 		}
 
 		// Target
-		List<Object> targetValues = new ArrayList<Object>();
+		Vector<Object> targetValues = new Vector<Object>();
 		List<String> targetProperties = new ArrayList<>();
-		ArrayList<Vector<Object>> allTargetInstances = new ArrayList<Vector<Object>>();
-		int[] targetColumnSize;
-
+		List<Object[]> allTargetInstances = null;
+		Object[] targetHeaders = null;
 		String conceptUriTarget = DomainValues.getConceptURI(conceptTarget, iEngineTarget, false);
 		if (targetIsProperty) {
+
 			String propertyUriTarget = DomainValues.getPropertyURI(propertyTarget, conceptTarget, iEngineTarget, false);
-			targetValues = DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget, iEngineTarget);
-			targetColumnSize = new int[] { targetValues.size() };
-			allTargetInstances.add((Vector<Object>) targetValues);
-		} else {
-			// targetValues =
-			// DomainValues.retrieveConceptValues(conceptUriTarget,
-			// iEngineTarget);
-			targetValues = DomainValues.retrieveCleanConceptValues(conceptUriTarget, iEngineTarget);
-			allTargetInstances.add((Vector<Object>) targetValues);
-			targetProperties = iEngineTarget.getProperties4Concept(conceptUriTarget, false);
-			targetColumnSize = new int[targetProperties.size() + 1];
-			targetColumnSize[0] = sourceValues.size();
-			for (int i = 0; i < targetProperties.size(); i++) {
-				List<Object> targetPropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriTarget,
-						(String) targetProperties.get(i), iEngineTarget);
-				targetColumnSize[i + 1] = targetPropertyInstances.size();
-				allTargetInstances.add((Vector<Object>) targetPropertyInstances);
+			targetValues = (Vector<Object>) DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget,
+					iEngineTarget);
+			allTargetInstances = new Vector<Object[]>();
+			for (Object s : targetValues) {
+				Object[] row = new Object[1];
+				row[0] = s;
+				allTargetInstances.add(row);
+
 			}
+			targetHeaders = new Object[1];
+			targetHeaders[0] = propertyUriTarget;
+
+		} else {
+			targetProperties = iEngineTarget.getProperties4Concept(conceptUriTarget, false);
+			Vector<String> cleanPropertiesTarget = new Vector<String>();
+			for (String propVal : targetProperties) {
+				cleanPropertiesTarget.add(DomainValues.determineCleanPropertyName(propVal, iEngineTarget));
+
+			}
+			StringBuilder pkqlCommandTarget = new StringBuilder();
+			pkqlCommandTarget.append("data.frame('grid');");
+			pkqlCommandTarget.append("data.import ");
+			pkqlCommandTarget.append("( api:");
+			pkqlCommandTarget.append(" " + engineTarget + " ");
+			pkqlCommandTarget.append(". query ( [ c:");
+			pkqlCommandTarget.append(" " + conceptTarget + " , ");
+			for (int i = 0; i < cleanPropertiesTarget.size(); i++) {
+				if (i != cleanPropertiesTarget.size() - 1) {
+					pkqlCommandTarget.append("c:" + " " + conceptTarget + "__" + cleanPropertiesTarget.get(i) + " , ");
+				} else {
+					pkqlCommandTarget.append("c:" + " " + conceptTarget + "__" + cleanPropertiesTarget.get(i));
+				}
+			}
+			pkqlCommandTarget.append(" ] ) ) ;");
+			pkqlCommandTarget.append("panel[0].viz ( Grid, [ ");
+			for (int i = 0; i < cleanPropertiesTarget.size(); i++) {
+				if (i != cleanPropertiesTarget.size() - 1) {
+					pkqlCommandTarget.append("value= c:" + " " + cleanPropertiesTarget.get(i) + " , ");
+				} else {
+					pkqlCommandTarget.append("value= c:" + " " + cleanPropertiesTarget.get(i));
+				}
+			}
+			pkqlCommandTarget.append(" ] )  ;");
+			System.out.println(pkqlCommandTarget.toString());
+			System.out.println("Running PKQL...");
+
+			Insight insightTarget = InsightUtility.createInsight(engineTarget);
+			InsightUtility.runPkql(insightTarget, pkqlCommandTarget.toString());
+			ITableDataFrame data = (ITableDataFrame) insightTarget.getDataMaker();
+			allTargetInstances = data.getData();
+			targetHeaders = data.getColumnHeaders();
+			System.out.println("RESULTS SUCCESS");
+
 		}
 
 		String filePathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
@@ -2273,104 +2341,67 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				+ "FuzzyJoin\\Temp\\targetDataFrame.txt";
 		filePathTarget = filePathTarget.replace("\\", "/");
 
-		// Construct headers based on existence of properties
+		// write source to file
+		StringBuilder sv = new StringBuilder();
+		for (int i = 0; i < sourceHeaders.length; i++) {
+			sv.append(sourceHeaders[i].toString() + "_" + engineSource);
+			if (i < sourceHeaders.length - 1) {
+				sv.append("\t");
 
-		// Source
-		String sourceHeader = "";
-		if (sourceIsProperty) {
-			sourceHeader = propertySource + "_" + conceptSource + "_" + engineSource.replace(" ", "_");
-		} else {
-			sourceHeader = conceptSource + "_" + engineSource.replace(" ", "_");
-		}
-
-		// Target
-		String targetHeader = "";
-		if (targetIsProperty) {
-			targetHeader = propertyTarget + "_" + conceptTarget + "_" + engineTarget.replace(" ", "_");
-		} else {
-			targetHeader = conceptTarget + "_" + engineTarget.replace(" ", "_");
-		}
-
-		// Push to an array list for now
-		// TODO refactor below to use set
-		Object[] sourceArray = sourceValues.toArray();
-		Object[] targetArray = targetValues.toArray();
-
-		try {
-			// write source values to csv
-			PrintWriter sv = new PrintWriter(new File(filePathSource));
-			StringBuilder ssb = new StringBuilder();
-			// csv headers
-			ssb.append(sourceHeader);
-			// property headers
-			for (int i = 0; i < sourceProperties.size(); i++) {
-				ssb.append(" \t " + DomainValues.determineCleanPropertyName((sourceProperties.get(i)), iEngineSource));
 			}
-			ssb.append(" \n");
 
-			List b = Arrays.asList(ArrayUtils.toObject(sourceColumnSize));
-			int maxRow = (int) Collections.max(b);
-			for (int row = 0; row < maxRow; row++) {
-				int columnIndex = -1;
-				for (int i = 0; i < allSourceInstances.size(); i++) {
-					columnIndex++;
-					Vector<Object> col = allSourceInstances.get(i);
-					String sourceInstance = "";
-					if (row < col.size()) {
+		}
+		sv.append("\n");
 
-						sourceInstance = col.get(row).toString();
-					}
-					ssb.append(sourceInstance);
-					if (columnIndex < sourceColumnSize.length - 1) {
-						ssb.append(" \t");
-					}
+		for (int j = 0; j < allSourceInstances.size(); j++) {
+			Object[] rowValue = allSourceInstances.get(j);
+			for (int i = 0; i < rowValue.length; i++) {
+				sv.append(rowValue[i].toString());
+				if (i < rowValue.length - 1) {
+					sv.append("\t");
 				}
-				ssb.append("\n");
 			}
-			sv.write(ssb.toString());
-			sv.close();
-
-			// write target values to csv
-			PrintWriter tv = new PrintWriter(new File(filePathTarget));
-			StringBuilder tsb = new StringBuilder();
-			// csv headers
-			tsb.append(targetHeader);
-			// property headers
-			for (int i = 0; i < targetProperties.size(); i++) {
-				tsb.append(" \t " + DomainValues.determineCleanPropertyName((targetProperties.get(i)), iEngineTarget));
+			if (j < allSourceInstances.size() - 1) {
+				sv.append("\n");
 			}
-			tsb.append("\n");
-
-			List c = Arrays.asList(ArrayUtils.toObject(targetColumnSize));
-			int maxRowTarget = (int) Collections.max(c);
-			for (int row = 0; row < maxRowTarget; row++) {
-				int columnIndex = -1;
-				for (int i = 0; i < allTargetInstances.size(); i++) {
-					columnIndex++;
-					Vector<Object> col = allTargetInstances.get(i);
-					String targetInstance = "";
-					if (row < col.size()) {
-						// TODO clean?????
-						targetInstance = col.get(row).toString();
-					}
-					tsb.append(targetInstance);
-					if (columnIndex < targetColumnSize.length - 1) {
-						tsb.append(" \t");
-					}
-				}
-				tsb.append("\n");
-			}
-			tv.write(tsb.toString());
-			tv.close();
-
-			/*
-			 * for source and target, change csv -> txt, change delimiter to
-			 * tab, change r script to read table
-			 */
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		}
+
+		PrintWriter printSource = new PrintWriter(new File(filePathSource));
+		System.out.println(sv.toString());
+		printSource.write(sv.toString());
+		printSource.close();
+		System.out.println(">>>SOURCE FILE PRINTED");
+
+		// write target instances to file
+		StringBuilder tv = new StringBuilder();
+		for (int i = 0; i < targetHeaders.length; i++) {
+			tv.append(targetHeaders[i].toString() + "_" + engineTarget);
+			if (i < targetHeaders.length - 1) {
+				tv.append("\t");
+
+			}
+
+		}
+		tv.append("\n");
+
+		for (int j = 0; j < allTargetInstances.size(); j++) {
+			Object[] rowValue = allTargetInstances.get(j);
+			for (int i = 0; i < rowValue.length; i++) {
+				tv.append(rowValue[i].toString());
+				if (i < rowValue.length - 1) {
+					tv.append("\t");
+				}
+			}
+			if (j < allTargetInstances.size() - 1) {
+				tv.append("\n");
+			}
+		}
+
+		PrintWriter printTarget = new PrintWriter(new File(filePathTarget));
+		System.out.println(tv.toString());
+		printTarget.write(tv.toString());
+		printTarget.close();
+		System.out.println(">>>TARGET FILE PRINTED");
 
 		// Run Fuzzy Matching in R
 		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_join.r";
@@ -2396,13 +2427,29 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(sourceRead.toString());
 		runR(targetRead.toString());
 
+		String sourceHeader = "";
+		if (sourceIsProperty) {
+			sourceHeader = propertySource + "_" + conceptSource + "_" + engineSource.replace(" ", "_");
+		} else {
+			sourceHeader = conceptSource + "_" + engineSource.replace(" ", "_");
+		}
+
+		// Target
+		String targetHeader = "";
+		if (targetIsProperty) {
+			targetHeader = propertyTarget + "_" + conceptTarget + "_" + engineTarget.replace(" ", "_");
+		} else {
+			targetHeader = conceptTarget + "_" + engineTarget.replace(" ", "_");
+		}
+
 		// build the R command
 		StringBuilder rCommand = new StringBuilder();
 		rCommand.append(df);
 		rCommand.append("<-fuzzy_join(");
 		rCommand.append(df1 + ",");
 		rCommand.append(df2 + ",");
-		// TODO: expand this to select on any column, right now assumes the first column
+		// TODO: expand this to select on any column, right now assumes the
+		// first column
 		rCommand.append("\"" + sourceHeader + "\"" + ",");
 		rCommand.append("\"" + targetHeader + "\"" + ",");
 		rCommand.append("\"" + join + "\"" + ",");
@@ -2415,7 +2462,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(df);
 		storeVariable("GRID_NAME", df);
 		synchronizeFromR();
+
 	}
+
 	
 	/**
 	 * This method is used 
@@ -2427,9 +2476,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param gramsize
 	 * @param penalty
 	 */
-	public void runFuzzyJoinTest(String[] sourceInstances, String match, String join, double maxdist, String gramsize,
-			String penalty) {
+	public void runFuzzyJoinTest(String[] sourceInstances, String match, String join, Double maxdist,int gramsize,
+			double penalty) {
 
+		System.out.println(">>>Executing fuzzy join...");
 		// Initialize
 		String engineSource = "";
 		String engineTarget = "";
@@ -2484,58 +2534,67 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Get the source and target values
 
 		// Source
-		Vector<Object> sourceValues = new Vector<Object>();
 		List<String> sourceProperties = new ArrayList<>();
-		ArrayList<Vector<Object>> allSourceInstances = new ArrayList<Vector<Object>>();
-		int[] sourceColumnSize;
-
+		List<Object[]> allSourceInstances = new Vector<Object[]>();;
+		Object[] sourceHeaders = null;
 		String conceptUriSource = DomainValues.getConceptURI(conceptSource, iEngineSource, false);
 		if (sourceIsProperty) {
-			String propertyUriSource = DomainValues.getPropertyURI(propertySource, conceptSource, iEngineSource, false);
-			sourceValues = new Vector<Object>(Arrays.asList(sourceInstances));
-			sourceColumnSize = new int[] { sourceValues.size() };
-			allSourceInstances.add((Vector<Object>) sourceValues);
+			for (int i = 0; i < sourceInstances.length; i++) {
+				Object[] row = new Object[1];
+				row[0] = sourceInstances[0];
+				allSourceInstances.add(row);
+			}
+			sourceHeaders = new Object[1];
+			sourceHeaders[0] = propertySource;
 
 		} else {
-			sourceValues = new Vector<Object>(Arrays.asList(sourceInstances));
-			allSourceInstances.add((Vector<Object>) sourceValues);
 			sourceProperties = iEngineSource.getProperties4Concept(conceptUriSource, false);
-			sourceColumnSize = new int[sourceProperties.size() + 1];
-			sourceColumnSize[0] = sourceValues.size();
-			for (int i = 0; i < sourceProperties.size(); i++) {
-				List<Object> sourcePropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriSource,
-						(String) sourceProperties.get(i), iEngineSource);
-				sourceColumnSize[i + 1] = sourcePropertyInstances.size();
-				allSourceInstances.add((Vector<Object>) sourcePropertyInstances);
-			}
+			Vector<String> cleanPropertiesSource = new Vector<String>();
+			for (String propVal : sourceProperties) {
+				cleanPropertiesSource.add(DomainValues.determineCleanPropertyName(propVal, iEngineSource));
 
+			}
+			sourceHeaders = new Object[1];
+			sourceHeaders[0] = conceptSource;
+			int col = 0;
+			for (int i = 0; i < sourceInstances.length; i++) {
+				Object[] row = new Object[1];
+				row[0] = sourceInstances[col];
+				allSourceInstances.add(row);
+				col++;
+			}
 		}
 
 		// Target
-		List<Object> targetValues = new ArrayList<Object>();
-		List<String> targetProperties = new ArrayList<>();
-		ArrayList<Vector<Object>> allTargetInstances = new ArrayList<Vector<Object>>();
-		int[] targetColumnSize;
-
+		Vector<Object> targetValues = new Vector<Object>();
+		List<Object[]> allTargetInstances =  new Vector<Object[]>();
+		Object[] targetHeaders = null;
 		String conceptUriTarget = DomainValues.getConceptURI(conceptTarget, iEngineTarget, false);
 		if (targetIsProperty) {
 			String propertyUriTarget = DomainValues.getPropertyURI(propertyTarget, conceptTarget, iEngineTarget, false);
-			targetValues = DomainValues.retrievePropertyValues(conceptUriTarget, propertyUriTarget, iEngineTarget);
-			targetColumnSize = new int[] { targetValues.size() };
-			allTargetInstances.add((Vector<Object>) targetValues);
-		} else {
+			targetValues = (Vector<Object>) DomainValues.retrieveCleanPropertyValues(conceptUriTarget, propertyUriTarget,
+					iEngineTarget);
+			for (Object s : targetValues) {
+				Object[] row = new Object[1];
+				row[0] = s;
+				allTargetInstances.add(row);
 
-			targetValues = DomainValues.retrieveCleanConceptValues(conceptUriTarget, iEngineTarget);
-			allTargetInstances.add((Vector<Object>) targetValues);
-			targetProperties = iEngineTarget.getProperties4Concept(conceptUriTarget, false);
-			targetColumnSize = new int[targetProperties.size() + 1];
-			targetColumnSize[0] = sourceValues.size();
-			for (int i = 0; i < targetProperties.size(); i++) {
-				List<Object> targetPropertyInstances = DomainValues.retrieveCleanPropertyValues(conceptUriTarget,
-						(String) targetProperties.get(i), iEngineTarget);
-				targetColumnSize[i + 1] = targetPropertyInstances.size();
-				allTargetInstances.add((Vector<Object>) targetPropertyInstances);
 			}
+			targetHeaders = new Object[1];
+			targetHeaders[0] = propertyTarget;
+
+		} else {
+			targetValues = (Vector<Object>) DomainValues.retrieveCleanConceptValues(conceptUriTarget, iEngineTarget);
+			for (Object s : targetValues) {
+				Object[] row = new Object[1];
+				row[0] = s;
+				allTargetInstances.add(row);
+
+			}
+			targetHeaders = new Object[1];
+			targetHeaders[0] = conceptTarget;
+			
+
 		}
 
 		String filePathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
@@ -2546,9 +2605,82 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				+ "FuzzyJoin\\Temp\\targetDataFrame.txt";
 		filePathTarget = filePathTarget.replace("\\", "/");
 
-		// Construct headers based on existence of properties
+		// write source to file
+		StringBuilder sv = new StringBuilder();
+		for (int i = 0; i < sourceHeaders.length; i++) {
+			sv.append(sourceHeaders[i].toString() + "_" + engineSource);
+			if (i < sourceHeaders.length - 1) {
+				sv.append("\t");
 
-		// Source
+			}
+
+		}
+		sv.append("\n");
+
+		for (int j = 0; j < allSourceInstances.size(); j++) {
+			Object[] rowValue = allSourceInstances.get(j);
+			for (int i = 0; i < rowValue.length; i++) {
+				sv.append(rowValue[i].toString());
+				if (i < rowValue.length - 1) {
+					sv.append("\t");
+				}
+			}
+			if (j < allSourceInstances.size() - 1) {
+				sv.append("\n");
+			}
+		}
+
+		PrintWriter printSource;
+		try {
+			printSource = new PrintWriter(new File(filePathSource));
+			System.out.println(sv.toString());
+			printSource.write(sv.toString());
+			printSource.close();
+			System.out.println(">>>SOURCE FILE PRINTED");
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+
+		// write target instances to file
+		StringBuilder tv = new StringBuilder();
+		for (int i = 0; i < targetHeaders.length; i++) {
+			tv.append(targetHeaders[i].toString() + "_" + engineTarget);
+			if (i < targetHeaders.length - 1) {
+				tv.append("\t");
+
+			}
+
+		}
+		tv.append("\n");
+
+		for (int j = 0; j < allTargetInstances.size(); j++) {
+			Object[] rowValue = allTargetInstances.get(j);
+			for (int i = 0; i < rowValue.length; i++) {
+				tv.append(rowValue[i].toString());
+				if (i < rowValue.length - 1) {
+					tv.append("\t");
+				}
+			}
+			if (j < allTargetInstances.size() - 1) {
+				tv.append("\n");
+			}
+		}
+
+		PrintWriter printTarget;
+		try {
+			printTarget = new PrintWriter(new File(filePathTarget));
+			System.out.println(tv.toString());
+			printTarget.write(tv.toString());
+			printTarget.close();
+			System.out.println(">>>TARGET FILE PRINTED");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+
 		String sourceHeader = "";
 		if (sourceIsProperty) {
 			sourceHeader = propertySource + "_" + conceptSource + "_" + engineSource.replace(" ", "_");
@@ -2564,88 +2696,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			targetHeader = conceptTarget + "_" + engineTarget.replace(" ", "_");
 		}
 
-		// Push to an array list for now
-		// TODO refactor below to use set
-		Object[] sourceArray = sourceValues.toArray();
-		Object[] targetArray = targetValues.toArray();
-
-		try {
-			// write source values to csv
-			PrintWriter sv = new PrintWriter(new File(filePathSource));
-			StringBuilder ssb = new StringBuilder();
-			// csv headers
-			ssb.append(sourceHeader);
-			ssb.append("\n");
-			// property headers
-			for (int i = 0; i < sourceProperties.size(); i++) {
-				ssb.append(" \t " + DomainValues.determineCleanPropertyName((sourceProperties.get(i)), iEngineSource));
-			}
-//			ssb.append(" \n");
-
-			List b = Arrays.asList(ArrayUtils.toObject(sourceColumnSize));
-			int maxRow = (int) Collections.max(b);
-			for (int row = 0; row < maxRow; row++) {
-				int columnIndex = -1;
-				for (int i = 0; i < allSourceInstances.size(); i++) {
-					columnIndex++;
-					Vector<Object> col = allSourceInstances.get(i);
-					String sourceInstance = "";
-					if (row < col.size()) {
-
-						sourceInstance = col.get(row).toString();
-					}
-					ssb.append(sourceInstance);
-//					if (columnIndex < sourceColumnSize.length - 1) {
-//						ssb.append(" \t");
-//					}
-					ssb.append("\n");
-				}
-			}
-			sv.write(ssb.toString());
-			sv.close();
-
-			// write target values to csv
-			PrintWriter tv = new PrintWriter(new File(filePathTarget));
-			StringBuilder tsb = new StringBuilder();
-			// csv headers
-			tsb.append(targetHeader);
-			// property headers
-			for (int i = 0; i < targetProperties.size(); i++) {
-				tsb.append(" \t " + DomainValues.determineCleanPropertyName((targetProperties.get(i)), iEngineTarget));
-			}
-			tsb.append("\n");
-
-			List c = Arrays.asList(ArrayUtils.toObject(targetColumnSize));
-			int maxRowTarget = (int) Collections.max(c);
-			for (int row = 0; row < maxRowTarget; row++) {
-				int columnIndex = -1;
-				for (int i = 0; i < allTargetInstances.size(); i++) {
-					columnIndex++;
-					Vector<Object> col = allTargetInstances.get(i);
-					String targetInstance = "";
-					if (row < col.size()) {
-						// TODO clean?????
-						targetInstance = col.get(row).toString();
-					}
-					tsb.append(targetInstance);
-					if (columnIndex < targetColumnSize.length - 1) {
-						tsb.append(" \t");
-					}
-				}
-				tsb.append("\n");
-			}
-			tv.write(tsb.toString());
-			tv.close();
-
-			/*
-			 * for source and target, change csv -> txt, change delimiter to
-			 * tab, change r script to read table
-			 */
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-
+		
 		// Run Fuzzy Matching in R
 		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_single_join.r";
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
@@ -2673,10 +2724,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		String method = "jw";
 		maxdist = 1 - maxdist;
-		String maxDistString = "" + maxdist;
 		join = "left";
-		gramsize = "0";
-		penalty = "0";
+//		gramsize = "0";
+//		penalty = "0";
 		
 		// build the R command
 		StringBuilder rCommand = new StringBuilder();
@@ -2921,8 +2971,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 						ssb.append(",");
 					}
 				}
-				if(row < maxRow -1) {
-				ssb.append("\n");
+				if (row < maxRow - 1) {
+					ssb.append("\n");
 				}
 			}
 			sv.write(ssb.toString());
