@@ -35,23 +35,35 @@ public class Compiler
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Input.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Input");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Input", coreEngine);
-
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Proposal.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Proposal");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
-		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Input.smss";
 //		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("Movie_RDBMS");
+//		coreEngine.setEngineName("Input");
 //		coreEngine.openDB(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+//		DIHelper.getInstance().setLocalProperty("Input", coreEngine);
+//
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Proposal.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName("Proposal");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
+		
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("MinInput");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
+		
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinProposal.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("MinProposal");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("MinProposal", coreEngine);
 		
 		try
 		{
@@ -74,18 +86,33 @@ public class Compiler
 													//+ "sum(<c>System.out.println(1);<c>).try(c=['hello']);"
 													
 													
-													+ "plan = Database(\"Input\") "
-													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
-													+ "| Iterate() "
-													+ "| LoadClient(assignment = ['Alias_1'], value = ['Value_1']);"
-													+ "proposals = Database(\"Proposal\") "
-													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version) "
-													+ "| Iterate();"
-													+ "executedPlan = RunPlan(PLANNER = [plan]);"
+//													+ "plan = Database(\"Input\") "
+//													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
+//													+ "| Iterate() "
+//													+ "| LoadClient(assignment = ['Alias_1'], value = ['Value_1']);"
+//													+ "proposals = Database(\"Proposal\") "
+//													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version) "
+//													+ "| Iterate();"
+//													+ "executedPlan = RunPlan(PLANNER = [plan]);"
 //													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]);"
 //													+ "planData = RunTaxPlan(PLANNER = [plan], PROPOSALS = [proposals]); "
 
-													
+													+ "plan = Database(\"MinInput\") "
+													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version, INPUTCSV__Hashcode) "
+													//+ "| Select(UPDATEDINPUTCSV ,  UPDATEDINPUTCSV__Alias_1 ,  UPDATEDINPUTCSV__Client_ID ,  UPDATEDINPUTCSV__FieldName ,  UPDATEDINPUTCSV__FormName ,  UPDATEDINPUTCSV__Scenario ,  UPDATEDINPUTCSV__Type_1 ,  UPDATEDINPUTCSV__Value_1 ,  UPDATEDINPUTCSV__Version) "
+													+ "| Iterate() "
+													+ "| LoadClient(assignment = ['Hashcode'], value = ['Value_1']);"
+													+ "proposals = Database(\"MinProposal\") "
+													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version, PROPOSALCSV__Hashcode) "
+													+ "| Iterate();"
+													+ "executedPlan = RunPlan(PLANNER = [plan]);"
+//													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]); "
+//													+ "UpdatePlan(PLANNER = [plan], store=[retData], pksls=["
+//													+ "\"ATAX_REFORM_SCENARIOS__SELECTED_LIMITATION_FOR_163J = 1000;\" "
+//													+ ", \"AFORECASTING_PERCENTAGE__11__TOTAL_INCOME = 37322000;\" "
+//													+ ", \"A1120_PG_1_MAPPING__24__EMPLOYEE_BENEFIT_PROGRAMS = -45673134;\" "
+//													+ ", \"ASCH_C_MAPPING__TOTAL_DIVIDENDS__ADD_LINES_1_THROUGH_17__ENTER_HERE_AND_ON_PAGE_1__LINE_4_ = 8797652721;\" "
+//													+ "]);"
 													
 //													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
 //													+ "Frame() | Select(Studio, Sum(Movie_Budget)) | Group(Studio) | Iterate();"
