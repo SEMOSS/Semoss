@@ -2748,7 +2748,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
 		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
 		
 //		switch(reactorType) {
 //			case IMPORT_DATA : return new TinkerImportDataReactor();
