@@ -153,7 +153,7 @@ public class XLFileHelper {
 		}
 		
 		String [] thisRow = null;
-		while(thisRow == null && counter < thisSheet.getLastRowNum()) {
+		while(thisRow == null && counter <= thisSheet.getLastRowNum()) {
 			thisRow = getCells(thisSheet.getRow(counter), getHeaders(sheetName).length);
 			counter++;		
 		}
@@ -202,7 +202,7 @@ public class XLFileHelper {
 		}
 		
 		String [] thisRow = null;
-		while(thisRow == null && counter < thisSheet.getLastRowNum()) {
+		while(thisRow == null && counter <= thisSheet.getLastRowNum()) {
 			thisRow = getCells(thisSheet.getRow(counter), allHeaders, headersToGet);
 			counter++;		
 		}
@@ -261,7 +261,7 @@ public class XLFileHelper {
 		}
 		
 		String [] thisRow = null;
-		while(thisRow == null && counter < thisSheet.getLastRowNum()) {			
+		while(thisRow == null && counter <= thisSheet.getLastRowNum()) {			
 			thisRow = getCells(thisSheet.getRow(counter), headerIndicesToGet);
 			counter++;
 		}
@@ -307,7 +307,7 @@ public class XLFileHelper {
 	
 	public String[] predictRowTypes(String sheetName) {
 		Sheet lSheet = sheetNames.get(sheetName);
-		int numRows = lSheet.getLastRowNum();
+		int numRows = lSheet.getLastRowNum() + 1;
 		
 		Row header = lSheet.getRow(0);
 		int numCells = header.getLastCellNum();
@@ -371,7 +371,7 @@ public class XLFileHelper {
 	
 	public String[] predictRowTypes(String sheetName, int[] headersToSelect) {
 		Sheet lSheet = sheetNames.get(sheetName);
-		int numRows = lSheet.getLastRowNum();
+		int numRows = lSheet.getLastRowNum() + 1;
 		
 		int numCells = headersToSelect.length;
 		String [] types = new String[numCells];
