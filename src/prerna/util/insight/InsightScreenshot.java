@@ -7,7 +7,6 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import prerna.util.insight.Browser;
 import javafx.scene.layout.VBox;
@@ -93,12 +92,12 @@ public class InsightScreenshot {
 					if (browser.isPageLoaded()) {
 						saveAsPng(imagePath);
 						window.close();
-						cancel();
 						complete = true;
+						cancel();
 					}
 				});
 			}
-		}, 0, 1000);
+		}, 0, 5000);
 
 	}
 
@@ -107,14 +106,29 @@ public class InsightScreenshot {
 	 * 
 	 * @param imagePath
 	 */
-	private void saveAsPng(String imagePath) {
+	private boolean saveAsPng(String imagePath) {
 		WritableImage image = browser.snapshot(new SnapshotParameters(), null);
 		File file = new File(imagePath);
+		boolean imageTaken = false;
 		try {
-			ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
+			long startTime = file.lastModified();
+			imageTaken = ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
+			// wait for output file to print
+			if (imageTaken) {
+				boolean newFile = false;
+				while (!newFile) {
+					File imageFile = new File(imagePath);
+					long endTime = imageFile.lastModified();
+					if (endTime > startTime) {
+						// System.out.println("SAVED IMAGE TO FILE");
+						newFile = true;
+					}
+				}
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return imageTaken;
 	}
 
 	/**
