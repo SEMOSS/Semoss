@@ -1,5 +1,15 @@
 package prerna.util.insight;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.*;
+
+
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.layout.Region;
@@ -12,9 +22,72 @@ class Browser extends Region {
 	private final WebView browser = new WebView();
 
 	Browser(String url) {
-		WebEngine webEngine = browser.getEngine();
-		webEngine.load(url);
+		// Create a trust manager that does not validate certificate chains
+//		TrustManager[] trustAllCerts = new TrustManager[] { 
+//		    new TrustManager() {     
+//		        public java.security.cert.X509Certificate[] getAcceptedIssuers() { 
+//		            return null;
+//		        } 
+//		        public void checkClientTrusted( 
+//		            java.security.cert.X509Certificate[] certs, String authType) {
+//		            } 
+//		        public void checkServerTrusted( 
+//		            java.security.cert.X509Certificate[] certs, String authType) {
+//		        }
+//		    } 
+//		}; 
+//
+//		// Install the all-trusting trust manager
+//		try {
+//		    SSLContext sc = SSLContext.getInstance("SSL"); 
+//		    sc.init(null, trustAllCerts, new java.security.SecureRandom()); 
+//		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+//		} catch (GeneralSecurityException e) {
+//		} 
+		
+		// Create a trust manager that does not validate certificate chains
+		TrustManager[] trustAllCerts = new TrustManager[] { 
+		    new X509TrustManager() {     
+		        public java.security.cert.X509Certificate[] getAcceptedIssuers() { 
+		            return null;
+		        } 
+		        public void checkClientTrusted( 
+		            java.security.cert.X509Certificate[] certs, String authType) {
+		            } 
+		        public void checkServerTrusted( 
+		            java.security.cert.X509Certificate[] certs, String authType) {
+		        }
+		    } 
+		}; 
+
+		// Install the all-trusting trust manager
+		try {
+		    SSLContext sc = SSLContext.getInstance("SSL"); 
+		    sc.init(null, trustAllCerts, new java.security.SecureRandom()); 
+		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+		} catch (GeneralSecurityException e) {
+		}
+		// Now you can access an https URL without having the certificate in the truststore
+		try { 
+		    URL url2 = new URL(url); 
+			WebEngine webEngine = browser.getEngine();
+			webEngine.load(url2.toString());
+			
+			   webEngine.getLoadWorker().stateProperty()
+	            .addListener((ov, oldState, newState) -> {
+	                System.err.println(webEngine.getLoadWorker()
+	                         .exceptionProperty());
+	            });
+			
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} 
+		
+
+		
+
 		getChildren().add(browser);
+
 	}
 
 	Boolean isPageLoaded() {
