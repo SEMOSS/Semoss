@@ -105,6 +105,7 @@ public class CsvFileIterator extends AbstractFileIterator{
 		fileIterator.filters = new HashMap<String, Set<Object>>();
 		fileIterator.helper.setDelimiter(delimiter);
 		fileIterator.helper.parse(fileLoc);
+		fileIterator.fileLocation = fileLoc;
 		
 		// set the user defined headers
 		if(newHeaders != null && !newHeaders.isEmpty()) {
