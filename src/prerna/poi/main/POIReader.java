@@ -43,10 +43,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
@@ -319,11 +319,11 @@ public class POIReader extends AbstractFileReader {
 	 * @throws EngineException
 	 * @throws SailException
 	 */
-	private void createSubClassing(XSSFSheet subclassSheet) throws IOException {
+	private void createSubClassing(Sheet subclassSheet) throws IOException {
 		// URI for subclass
 		String pred = Constants.SUBCLASS_URI;
 		// check parent and child nodes in correct position
-		XSSFRow row = subclassSheet.getRow(0);
+		Row row = subclassSheet.getRow(0);
 		String parentNode = row.getCell(0).toString().trim().toLowerCase();
 		String childNode = row.getCell(1).toString().trim().toLowerCase();
 		// check to make sure parent column is in the correct column
@@ -364,19 +364,18 @@ public class POIReader extends AbstractFileReader {
 	 * @throws IOException
 	 */
 	public void importFile(String fileName) throws FileNotFoundException, IOException {
-
-		XSSFWorkbook workbook = null;
+		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
 			poiReader = new FileInputStream(fileName);
-			workbook = new XSSFWorkbook(poiReader);
+			workbook = WorkbookFactory.create(poiReader);
 			// load the Loader tab to determine which sheets to load
-			XSSFSheet lSheet = workbook.getSheet("Loader");
+			Sheet lSheet = workbook.getSheet("Loader");
 			if (lSheet == null) {
 				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
 			}
 			// check if user is loading subclassing relationships
-			XSSFSheet subclassSheet = workbook.getSheet("Subclass");
+			Sheet subclassSheet = workbook.getSheet("Subclass");
 			if (subclassSheet != null) {
 				createSubClassing(subclassSheet);
 			}
@@ -384,11 +383,11 @@ public class POIReader extends AbstractFileReader {
 			int lastRow = lSheet.getLastRowNum();
 			// first sheet name in second row
 			for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
-				XSSFRow row = lSheet.getRow(rIndex);
+				Row row = lSheet.getRow(rIndex);
 				// check to make sure cell is not null
 				if (row != null) {
-					XSSFCell sheetNameCell = row.getCell(0);
-					XSSFCell sheetTypeCell = row.getCell(1);
+					Cell sheetNameCell = row.getCell(0);
+					Cell sheetTypeCell = row.getCell(1);
 					if (sheetNameCell != null && sheetTypeCell != null) {
 						// get the name of the sheet
 						String sheetToLoad = sheetNameCell.getStringCellValue();
@@ -410,17 +409,17 @@ public class POIReader extends AbstractFileReader {
 			}
 
 			//display names next
-			XSSFSheet displayNamesSheet = workbook.getSheet("DisplayNames");
+			Sheet displayNamesSheet = workbook.getSheet("DisplayNames");
 			if (displayNamesSheet != null) {
 				lastRow = displayNamesSheet.getLastRowNum();
 				for (int rIndex = 0; rIndex <= lastRow; rIndex++) {
-					XSSFRow row = displayNamesSheet.getRow(rIndex);
+					Row row = displayNamesSheet.getRow(rIndex);
 					// check to make sure cell is not null
 					if (row != null) {
-						XSSFCell type = row.getCell(0);
-						XSSFCell node = row.getCell(1);
+						Cell type = row.getCell(0);
+						Cell node = row.getCell(1);
 						String displayName = null;
-						XSSFCell property = null;
+						Cell property = null;
 						String subject = "";
 						if(type.getStringCellValue().equalsIgnoreCase("Node")){
 							displayName = Utility.cleanString(row.getCell(2).toString(),true);
@@ -473,14 +472,14 @@ public class POIReader extends AbstractFileReader {
 	}
 
 
-	private void assimilateSheet(String sheetName, XSSFWorkbook workbook)
+	private void assimilateSheet(String sheetName, Workbook workbook)
 	{
 		// really simple job here
 		// load the sheet
 		// if you find it
 		// get the first row
 		// if the row is present 
-		XSSFSheet lSheet = workbook.getSheet(sheetName);
+		Sheet lSheet = workbook.getSheet(sheetName);
 
 		System.err.println("Processing Sheet..  " + sheetName);
 
@@ -491,9 +490,9 @@ public class POIReader extends AbstractFileReader {
 
 		if(lSheet != null)
 		{
-			XSSFRow header = lSheet.getRow(0);
+			Row header = lSheet.getRow(0);
 			// I will come to you shortly
-			XSSFRow colPredictor = lSheet.getRow(1);
+			Row colPredictor = lSheet.getRow(1);
 			int colLength = header.getLastCellNum();	
 			int colcolLength = colPredictor.getLastCellNum();
 
@@ -603,19 +602,19 @@ public class POIReader extends AbstractFileReader {
 		}
 	}
 
-	public String[] getCells(XSSFRow row)
+	public String[] getCells(Row row)
 	{
 		int colLength = row.getLastCellNum();
 		return getCells(row, colLength);
 	}
 
-	public String[] getCells(XSSFRow row, int totalCol)
+	public String[] getCells(Row row, int totalCol)
 	{
 		int colLength = totalCol;
 		String [] cols = new String[colLength];
 		for(int colIndex = 1;colIndex < colLength;colIndex++)
 		{
-			XSSFCell thisCell = row.getCell(colIndex);
+			Cell thisCell = row.getCell(colIndex);
 			// get all of this into a string
 			if(thisCell != null && row.getCell(colIndex).getCellType() != Cell.CELL_TYPE_BLANK)
 			{
@@ -636,7 +635,7 @@ public class POIReader extends AbstractFileReader {
 		return cols;
 	}
 
-	public String getCell(XSSFCell thisCell) {
+	public String getCell(Cell thisCell) {
 		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK)
 		{
 			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
@@ -649,11 +648,11 @@ public class POIReader extends AbstractFileReader {
 		return "";
 	}
 
-	public String[] predictRowTypes(XSSFSheet lSheet)
+	public String[] predictRowTypes(Sheet lSheet)
 	{
 		int numRows = lSheet.getLastRowNum();
 
-		XSSFRow header = lSheet.getRow(0);
+		Row header = lSheet.getRow(0);
 		int numCells = header.getLastCellNum();
 
 		String [] types = new String[numCells];
@@ -663,9 +662,9 @@ public class POIReader extends AbstractFileReader {
 		for(int i = 1; i < numCells; i++) {
 			String type = null;
 			ROW_LOOP : for(int j = 1; j < numRows; j++) {
-				XSSFRow row = lSheet.getRow(j);
+				Row row = lSheet.getRow(j);
 				if(row != null) {
-					XSSFCell cell = row.getCell(i);
+					Cell cell = row.getCell(i);
 					if(cell != null) {
 						String val = getCell(cell);
 						if(val.isEmpty()) {
@@ -746,14 +745,13 @@ public class POIReader extends AbstractFileReader {
 	 * @throws IOException
 	 */
 	public void importFileRDBMS(String fileName) throws FileNotFoundException, IOException {
-
-		XSSFWorkbook workbook = null;
+		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
 			poiReader = new FileInputStream(fileName);
-			workbook = new XSSFWorkbook(poiReader);
+			workbook = WorkbookFactory.create(poiReader);
 			// load the Loader tab to determine which sheets to load
-			XSSFSheet lSheet = workbook.getSheet("Loader");
+			Sheet lSheet = workbook.getSheet("Loader");
 			if (lSheet == null) {
 				throw new IOException("Could not find Loader Sheet in Excel file " + fileName);
 			}
@@ -765,11 +763,11 @@ public class POIReader extends AbstractFileReader {
 
 			for(int sIndex = 1;sIndex <= lastRow;sIndex++)
 			{
-				XSSFRow row = lSheet.getRow(sIndex);
+				Row row = lSheet.getRow(sIndex);
 				// check to make sure cell is not null
 				if (row != null) {
 					int sheetCounter = 0;
-					XSSFCell sheetNameCell = row.getCell(0);
+					Cell sheetNameCell = row.getCell(0);
 					// unlike rdf, we do not have multiple load types for sheets
 					//					XSSFCell sheetTypeCell = row.getCell(1);				
 					if (sheetNameCell != null) {
@@ -950,14 +948,14 @@ public class POIReader extends AbstractFileReader {
 
 	}
 
-	private void processTable(String conceptName, XSSFWorkbook workbook)
+	private void processTable(String conceptName, Workbook workbook)
 	{
 		// this is where the stuff kicks in
 		String sheetName = sheets.get(conceptName);
 		if(sheetName != null)
 		{
-			XSSFSheet lSheet = workbook.getSheet(sheetName);
-			XSSFRow thisRow = lSheet.getRow(0);
+			Sheet lSheet = workbook.getSheet(sheetName);
+			Row thisRow = lSheet.getRow(0);
 
 			String [] cells = getCells(thisRow);
 			int totalCols = cells.length;
@@ -1010,7 +1008,7 @@ public class POIReader extends AbstractFileReader {
 		}			
 	}
 
-	private void createRelations(String fromName, List<String> toNameList, XSSFWorkbook workbook)
+	private void createRelations(String fromName, List<String> toNameList, Workbook workbook)
 	{
 		int size = toNameList.size();
 		List<String> relsAdded = new ArrayList<String>();
@@ -1019,10 +1017,10 @@ public class POIReader extends AbstractFileReader {
 			String toName = toNameList.get(i);
 
 			String sheetName = sheets.get(fromName + "-" + toName);
-			XSSFSheet lSheet = workbook.getSheet(sheetName);
+			Sheet lSheet = workbook.getSheet(sheetName);
 
 			int lastRow = lSheet.getLastRowNum();
-			XSSFRow thisRow = lSheet.getRow(0);
+			Row thisRow = lSheet.getRow(0);
 			String [] headers = getCells(thisRow);
 			// realistically it is only second and third
 			headers[1] = Utility.cleanString(headers[1], true);
@@ -1289,9 +1287,8 @@ public class POIReader extends AbstractFileReader {
 	 *            XSSFWorkbook containing the sheet to load
 	 * @throws IOException
 	 */
-	public void loadSheet(String sheetToLoad, XSSFWorkbook workbook) throws IOException {
-
-		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
+	public void loadSheet(String sheetToLoad, Workbook workbook) throws IOException {
+		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		if (lSheet == null) {
 			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
 		}
@@ -1300,7 +1297,7 @@ public class POIReader extends AbstractFileReader {
 		int lastRow = lSheet.getLastRowNum() + 1;
 
 		// Get the first row to get column names
-		XSSFRow row = lSheet.getRow(0);
+		Row row = lSheet.getRow(0);
 
 		// initialize variables
 		String objectNode = "";
@@ -1333,7 +1330,7 @@ public class POIReader extends AbstractFileReader {
 		logger.info("Number of Rows: " + lastRow);
 		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
 			// first cell is the name of relationship
-			XSSFRow nextRow = lSheet.getRow(rowIndex);
+			Row nextRow = lSheet.getRow(rowIndex);
 
 			if (nextRow == null) {
 				continue;
@@ -1341,7 +1338,7 @@ public class POIReader extends AbstractFileReader {
 
 			// get the name of the relationship
 			if (rowIndex == 1) {
-				XSSFCell relCell = nextRow.getCell(0);
+				Cell relCell = nextRow.getCell(0);
 				if(relCell != null && !relCell.getStringCellValue().isEmpty()) {
 					relName = nextRow.getCell(0).getStringCellValue();
 				} else {
@@ -1353,14 +1350,14 @@ public class POIReader extends AbstractFileReader {
 			}
 
 			// set the name of the subject instance node to be a string
-			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK) {
-				nextRow.getCell(1).setCellType(XSSFCell.CELL_TYPE_STRING);
+			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != Cell.CELL_TYPE_BLANK) {
+				nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
 			}
 
 			// to prevent errors when java thinks there is a row of data when the row is empty
-			XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
+			Cell instanceSubjectNodeCell = nextRow.getCell(1);
 			String instanceSubjectNode = "";
-			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK
+			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
 					&& !instanceSubjectNodeCell.toString().isEmpty()) {
 				instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 			} else {
@@ -1373,9 +1370,9 @@ public class POIReader extends AbstractFileReader {
 			int offset = 1;
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if(nextRow.getCell(2) != null) {
-					nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
-					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
-					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK
+					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
+					Cell instanceObjectNodeCell = nextRow.getCell(2);
+					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
 							&& !instanceObjectNodeCell.toString().isEmpty()) {
 						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 					} else {
@@ -1394,11 +1391,11 @@ public class POIReader extends AbstractFileReader {
 				}
 				String propName = propNames.elementAt(colIndex - offset).toString();
 				String propValue = "";
-				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK
+				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == Cell.CELL_TYPE_BLANK
 						|| nextRow.getCell(colIndex).toString().isEmpty()) {
 					continue;
 				}
-				if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
+				if (nextRow.getCell(colIndex).getCellType() == Cell.CELL_TYPE_NUMERIC) {
 					if (DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))) {
 						Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
 						propHash.put(propName, date);
@@ -1407,7 +1404,7 @@ public class POIReader extends AbstractFileReader {
 						propHash.put(propName, dbl);
 					}
 				} else {
-					nextRow.getCell(colIndex).setCellType(XSSFCell.CELL_TYPE_STRING);
+					nextRow.getCell(colIndex).setCellType(Cell.CELL_TYPE_STRING);
 					propValue = nextRow.getCell(colIndex).getStringCellValue();
 					propHash.put(propName, propValue);
 				}
@@ -1435,13 +1432,13 @@ public class POIReader extends AbstractFileReader {
 	 *            XSSFWorkbook containing the name of the excel workbook
 	 * @throws EngineException
 	 */
-	public void loadMatrixSheet(String sheetToLoad, XSSFWorkbook workbook) {
-		XSSFSheet lSheet = workbook.getSheet(sheetToLoad);
+	public void loadMatrixSheet(String sheetToLoad, Workbook workbook) {
+		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
 		logger.info("Number of Rows: " + lastRow);
 
 		// Get the first row to get column names
-		XSSFRow row = lSheet.getRow(0);
+		Row row = lSheet.getRow(0);
 		// initialize variables
 		String objectNodeType = "";
 		String relName = "";
@@ -1483,7 +1480,7 @@ public class POIReader extends AbstractFileReader {
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				// boolean to determine if a mapping exists
 				boolean mapExists = false;
-				XSSFRow nextRow = lSheet.getRow(rowIndex);
+				Row nextRow = lSheet.getRow(rowIndex);
 				// get the name subject instance
 				String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
 				// see what relationships are mapped between subject instances and object instances
@@ -1491,11 +1488,11 @@ public class POIReader extends AbstractFileReader {
 					String instanceObjectName = objectInstanceArray.get(colIndex - 2);
 					Hashtable<String, Object> propHash = new Hashtable<String, Object>();
 					// store value in cell between instance subject and object in current iteration of loop
-					XSSFCell matrixContent = nextRow.getCell(colIndex);
+					Cell matrixContent = nextRow.getCell(colIndex);
 					// if any value in cell, there should be a mapping
 					if (matrixContent != null) {
 						if (propExists) {
-							if (matrixContent.getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
+							if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
 								if (DateUtil.isCellDateFormatted(matrixContent)) {
 									propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
 									mapExists = true;
