@@ -124,15 +124,15 @@ public class PkslUtility {
 				/****** For Debugging *******/
 				errorCount++;
 				errorList.add(pkslString);
-				LOGGER.error("FAILED ON :::: " + pkslString);
-				e.printStackTrace();
+//				LOGGER.error("FAILED ON :::: " + pkslString);
+//				e.printStackTrace();
 				/****** For Debugging *******/
 			} catch(Exception e) {
 				/****** For Debugging *******/
 				errorCount++;
 				errorList.add(pkslString);
-				LOGGER.error("FAILED ON :::: " + pkslString);
-				e.printStackTrace();
+//				LOGGER.error("FAILED ON :::: " + pkslString);
+//				e.printStackTrace();
 				/****** For Debugging *******/
 			}
 		}
@@ -159,11 +159,11 @@ public class PkslUtility {
 			Start tree = p.parse();
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			LOGGER.error("FAILED ON :::: " + pkslString);
-			e.printStackTrace();
+//			LOGGER.error("FAILED ON :::: " + pkslString);
+//			e.printStackTrace();
 		} catch(Exception e) {
-			LOGGER.error("FAILED ON :::: " + pkslString);
-			e.printStackTrace();
+//			LOGGER.error("FAILED ON :::: " + pkslString);
+//			e.printStackTrace();
 		}
 	}
 	
