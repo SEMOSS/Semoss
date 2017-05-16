@@ -16,7 +16,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RFileWrapper;
+import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -142,7 +142,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.createTableViaIterator(it, typesMap);
 	}
 	
-	public void createTableViaCsvFile(RFileWrapper fileWrapper) {
+	public void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
 		this.builder.createTableViaCsvFile(fileWrapper);
 	}
 	

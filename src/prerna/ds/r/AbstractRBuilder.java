@@ -14,7 +14,7 @@ import prerna.algorithm.api.IMetaData;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RFileWrapper;
+import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -117,7 +117,7 @@ public abstract class AbstractRBuilder {
 	 * Loads a file as the data table
 	 * @param fileWrapper			RFileWrapper used to contain the required information for the load
 	 */
-	protected void createTableViaCsvFile(RFileWrapper fileWrapper) {
+	protected void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, fileWrapper.getFilePath());
 		evalR(loadFileRScript);
 		
