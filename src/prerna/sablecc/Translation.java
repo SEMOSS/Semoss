@@ -609,10 +609,12 @@ public class Translation extends DepthFirstAdapter {
 		} else if (engine.equalsIgnoreCase("excelFile")) {
 			// we have a csv api
 			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.EXCEL_API));
-		} else if (engine.equalsIgnoreCase("R")) {
-			// we have an R api to connect
-			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
-		} else if(engine.equalsIgnoreCase("frame")) {
+		}
+//		else if (engine.equalsIgnoreCase("R")) {
+//			// we have an R api to connect
+//			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.R_API));
+//		} 
+		else if(engine.equalsIgnoreCase("frame")) {
 			//we are querying the frame
 			this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.FRAME_API));
 		} else if(this.reactorNames.get(PKQLEnum.API) == null){
