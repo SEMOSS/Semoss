@@ -12,6 +12,7 @@ import prerna.sablecc2.reactor.planner.*;
 import prerna.sablecc2.reactor.planner.graph.*;
 import prerna.sablecc2.reactor.qs.*;
 import prerna.sablecc2.reactor.storage.*;
+import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 
@@ -118,6 +119,7 @@ public class ReactorFactory {
 		reactorHash.put("RunPlan", ExecuteGraphPlannerReactor.class);
 		reactorHash.put("LoadClient", LoadGraphClient.class);
 		
+		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
 //		//H2 Specific Tax Reactors
 //		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor.class);
 //		reactorHash.put("LoadClient", LoadClient2.class);
