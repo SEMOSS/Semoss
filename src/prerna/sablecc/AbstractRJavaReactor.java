@@ -2632,11 +2632,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 		String filePathSource = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ "FuzzyJoin\\Temp\\sourceDataFrame.txt";
+				+ "FuzzyJoinTest\\Temp\\sourceDataFrame.txt";
 		filePathSource = filePathSource.replace("\\", "/");
 
 		String filePathTarget = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ "FuzzyJoin\\Temp\\targetDataFrame.txt";
+				+ "FuzzyJoinTest\\Temp\\targetDataFrame.txt";
 		filePathTarget = filePathTarget.replace("\\", "/");
 
 		// write source to file
@@ -2732,7 +2732,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		
 		// Run Fuzzy Matching in R
-		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoin\\fuzzy_single_join.r";
+		String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "FuzzyJoinTest\\fuzzy_single_join.r";
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
 
 		runR("library(fuzzyjoin)");
