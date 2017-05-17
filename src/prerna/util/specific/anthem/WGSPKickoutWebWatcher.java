@@ -9,10 +9,13 @@ import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.storm.shade.com.google.common.io.ByteStreams;
 import org.h2.mvstore.MVMap;
@@ -36,8 +39,10 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 	private String timeseriesPropFilePath;
 	private String timeseriesDbName;
+	private String timeseriesDateColName;
 
 	private String[] systems;
+	private Set<String> ignoreSystems;
 
 	private MVMap<Date, String> allTimeseriesMap;
 	private MVMap<Date, String> addToTimeseriesMap;
@@ -83,8 +88,10 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 		timeseriesPropFilePath = props.getProperty("time.series.prop.file.path");
 		timeseriesDbName = props.getProperty("time.series.database.name");
+		timeseriesDateColName = props.getProperty("time.series.date.column.name");
 
 		systems = props.getProperty("time.series.systems").split(";");
+		ignoreSystems = new HashSet<String>(Arrays.asList(props.getProperty("ignore.systems", "NONE").split(";")));
 
 		allTimeseriesMap = mvStore.openMap(ALL_TIMESERIES_MAP_NAME);
 		addToTimeseriesMap = mvStore.openMap(ADD_TO_TIMESERIES_MAP_NAME);
@@ -104,22 +111,31 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 			@SuppressWarnings("unchecked")
 			List<FileHeader> fileHeaders = zipFile.getFileHeaders();
 			for (FileHeader fileHeader : fileHeaders) {
-
-				// Only process delta reports
 				String reportFileName = fileHeader.getFileName();
+
+				// Determine if the report needs to be processed
 				int extensionIndex = reportFileName.lastIndexOf(".");
+				String delta = reportFileName.substring(extensionIndex - 3, extensionIndex);
 				String system = reportFileName.substring(extensionIndex - 9, extensionIndex - 7);
-				if (reportFileName.substring(extensionIndex - 3, extensionIndex).equals(REPORT_DELTA)) {
+				boolean needToProcess = false;
+				if (ignoreSystems.contains(system)) {
+					LOGGER.info("Will not process " + reportFileName + ": The file's source system, " + system
+							+ ", is set to be ignored");
+				} else if (!delta.equals(REPORT_DELTA)) {
+					LOGGER.info("Will not process " + reportFileName + ": The file is not a delta report");
+				} else {
+					LOGGER.info("Processing " + reportFileName);
+					needToProcess = true;
+				}
+				if (needToProcess) {
 
 					// Get a reader for the file
 					InputStream stream = zipFile.getInputStream(fileHeader);
 					byte[] data = ByteStreams.toByteArray(stream);
 					InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(data));
 					BufferedReader bufferedReader = new BufferedReader(reader);
-					int nCritical = saveToStore(bufferedReader, kickoutDate);
-					nCriticalBySystem.put(system, nCritical);
-				} else {
-					LOGGER.info("Will not process " + reportFileName + ": The file is not a delta report");
+					int nNewCritical = saveToStore(bufferedReader, kickoutDate);
+					nCriticalBySystem.put(system, nNewCritical);
 				}
 			}
 			putArchivableData(kickoutDate);
@@ -143,7 +159,7 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	protected int saveToStore(BufferedReader reader, Date kickoutDate) throws IOException {
 
 		// Keep track of the number of critical errors as we loop through
-		int nCritical = 0;
+		int nNewCritical = 0;
 		try {
 
 			// Read in the header first
@@ -172,11 +188,12 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 				// Determine the error code
 				String errorCode;
+				boolean critical = false;
 				if (!rawRecord[nCol - 4].trim().isEmpty()) {
 
 					// Critical
 					errorCode = rawRecord[nCol - 4];
-					nCritical += 1;
+					critical = true;
 				} else if (!rawRecord[nCol - 3].trim().isEmpty()) {
 
 					// Review
@@ -216,6 +233,12 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				fullRecordString.append(errorCode);
 				fullRecordString.append(NWLN);
 				putRecordData(rawKey, errorKey, firstDate, lastDate, fullRecordString.toString());
+
+				// If the error is critical and this is the first time observing
+				// this error, then count it as a new critical error
+				if (critical && firstDate.equals(kickoutDate)) {
+					nNewCritical += 1;
+				}
 			}
 		} finally {
 			reader.close();
@@ -225,7 +248,7 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		mvStore.commit();
 
 		// Return the number of critical errors for this file
-		return nCritical;
+		return nNewCritical;
 	}
 
 	protected Date determineKickoutDate(String fileName) throws ParseException {
@@ -236,6 +259,11 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	@Override
 	protected String giveFullHeaderString() {
 		return fullHeaderString;
+	}
+
+	@Override
+	protected void addOther() {
+		addToTimeseries();
 	}
 
 	@Override
@@ -264,11 +292,6 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		}
 	}
 
-	@Override
-	protected void addOther() {
-		addToTimeseries();
-	}
-
 	private void addToTimeseries() {
 
 		// If there is nothing to add, then return
@@ -280,6 +303,8 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				+ Utility.getRandomString(10) + ".csv";
 		StringBuilder headerString = new StringBuilder();
 		headerString.append(QT);
+		headerString.append(timeseriesDateColName);
+		headerString.append(DLMTR);
 		headerString.append(String.join(DLMTR, systems));
 		headerString.append(DLMTR);
 		headerString.append("Total");
@@ -343,6 +368,8 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		}
 		StringBuilder timeseriesRowString = new StringBuilder();
 		timeseriesRowString.append(QT);
+		timeseriesRowString.append(dateFormatter.format(kickoutDate));
+		timeseriesRowString.append(DLMTR);
 		timeseriesRowString.append(String.join(DLMTR, nCriticalArray));
 		timeseriesRowString.append(DLMTR);
 		timeseriesRowString.append(Integer.toString(total));
