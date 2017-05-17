@@ -15,6 +15,7 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RCsvFileWrapper;
+import prerna.engine.impl.r.RExcelFileWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -119,6 +120,25 @@ public abstract class AbstractRBuilder {
 	 */
 	protected void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, fileWrapper.getFilePath());
+		evalR(loadFileRScript);
+		
+		// since we clean headers
+		// we need to fix the headers from the csv file to match those which are good
+		// thankfully the index is the same
+		evalR("setnames(" + this.dataTableName + ", " + fileWrapper.getModHeadersRVec() + ")");
+		
+		// this will modify the csv to contain the specified columns and rows based on selectors and filters
+		String filterScript = fileWrapper.getRScript();
+		if(!filterScript.isEmpty()) {
+			String modifyTableScript = this.dataTableName + "<- " + filterScript;
+			evalR(modifyTableScript);
+		}
+		// now modify column types to ensure they are all good
+		alterColumnsToNumeric(fileWrapper.getDataTypes());
+	}
+	
+	protected void createTableViaExcelFile(RExcelFileWrapper fileWrapper) {
+		String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(this.dataTableName, fileWrapper.getFilePath(), fileWrapper.getSheetName());
 		evalR(loadFileRScript);
 		
 		// since we clean headers

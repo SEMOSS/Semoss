@@ -94,6 +94,12 @@ public class RSyntaxHelper {
 		return builder.toString();
 	}
 	
+	public static String getExcelReadSheetSyntax(String tableName, String absolutePath, String sheetName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append(" <- as.data.table(read.xlsx2(\"").append(absolutePath.replace("\\", "/")).append("\", sheetName=\"").append(sheetName).append("\"))");
+		return builder.toString();
+	}
+	
 	/**
 	 * Convert a java object[] into a r column vector
 	 * @param row				The object[] to convert

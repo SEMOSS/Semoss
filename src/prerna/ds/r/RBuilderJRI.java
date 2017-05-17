@@ -69,7 +69,15 @@ public class RBuilderJRI extends AbstractRBuilder {
 			LOGGER.info(">>> FAILURE!");
 		} else {
 			LOGGER.info("SUCCESS!");
-		}		
+		}
+		// xlsx
+		LOGGER.info("TRYING TO LOAD PACAKGE: xlsx");
+		retObj = this.retCon.eval("library(xlsx);");
+		if(retObj == null) {
+			LOGGER.info(">>> FAILURE!");
+		} else {
+			LOGGER.info("SUCCESS!");
+		}	
 		// reshape2
 		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
 		retObj = this.retCon.eval("library(reshape2);");
