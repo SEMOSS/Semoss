@@ -2119,7 +2119,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param gramsize
 	 * @param penalty
 	 */
-	public void runFuzzyJoin(String match, String join, String method, String maxdist, String gramsize, String penalty)
+	public void runFuzzyJoin(String match, String join, String method, double maxdist, String gramsize, String penalty)
 			throws FileNotFoundException {
 
 		System.out.println(">>>Executing fuzzy join...");
@@ -2181,7 +2181,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		source = (String[]) list.toArray();
 		target = (String[]) list2.toArray();
 
-		engineSource = source[0];
+		engineSource = source[0].replaceAll(" ", "_");
 		conceptSource = source[1];
 		if (source.length > 2) {
 			propertySource = source[2];
@@ -2190,7 +2190,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		}
 
-		engineTarget = target[0];
+		engineTarget = target[0].replaceAll(" ", "_");
 		conceptTarget = target[1];
 		if (target.length > 2) {
 			propertyTarget = target[2];
@@ -2200,8 +2200,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 		// Initialize Engines
-		IEngine iEngineSource = Utility.getEngine(engineSource.replaceAll(" ", "_"));
-		IEngine iEngineTarget = Utility.getEngine(engineTarget.replaceAll(" ", "_"));
+		IEngine iEngineSource = Utility.getEngine(engineSource);
+		IEngine iEngineTarget = Utility.getEngine(engineTarget);
 
 		// Get the source and target values
 
@@ -2303,7 +2303,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			pkqlCommandTarget.append("( api:");
 			pkqlCommandTarget.append(" " + engineTarget + " ");
 			pkqlCommandTarget.append(". query ( [ c:");
-			pkqlCommandTarget.append(" " + conceptTarget + " , ");
+			pkqlCommandTarget.append(" " + conceptTarget);
+			if (cleanPropertiesTarget.size() != 0) {
+				pkqlCommandTarget.append(" , ");
+			}
 			for (int i = 0; i < cleanPropertiesTarget.size(); i++) {
 				if (i != cleanPropertiesTarget.size() - 1) {
 					pkqlCommandTarget.append("c:" + " " + conceptTarget + "__" + cleanPropertiesTarget.get(i) + " , ");
@@ -2441,6 +2444,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else {
 			targetHeader = conceptTarget + "_" + engineTarget.replace(" ", "_");
 		}
+		
+		gramsize = "0";
+		penalty = "0";
 
 		// build the R command
 		StringBuilder rCommand = new StringBuilder();
@@ -2476,8 +2482,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param gramsize
 	 * @param penalty
 	 */
-	public void runFuzzyJoinTest(String[] sourceInstances, String match, String join, Double maxdist,int gramsize,
-			double penalty) {
+	public void runFuzzyJoinTest(String[] sourceInstances, String match, String join, String method, double maxdist,String gramsize,
+			String penalty) {
 
 		System.out.println(">>>Executing fuzzy join...");
 		// Initialize
@@ -2487,6 +2493,34 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String conceptTarget = "";
 		String propertySource = "";
 		String propertyTarget = "";
+		
+		if (method.equals("Levenshtein")) {
+			method = "lv";
+		}
+		if (method.equals("Damerau-Levenshtein")) {
+			method = "dl";
+		}
+		if (method.equals("q-gram")) {
+			method = "qgram";
+		}
+		if (method.equals("Cosine q-gram")) {
+			method = "cosine";
+		}
+		if (method.equals("Optimal String Alignment")) {
+			method = "osa";
+		}
+		if (method.equals("Jaro-Winker")) {
+			method = "jw";
+		}
+		if (method.equals("Longest common substring")) {
+			method = "lcs";
+		}
+		if (method.equals("Jaccard q-gram")) {
+			method = "jaccard";
+		}
+		if (method.equals("Soundex")) {
+			method = "soundex";
+		}
 
 		boolean sourceIsProperty = false;
 		boolean targetIsProperty = false;
@@ -2509,7 +2543,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		source = (String[]) list.toArray();
 		target = (String[]) list2.toArray();
 
-		engineSource = source[0];
+		engineSource = source[0].replaceAll(" ", "_");
 		conceptSource = source[1];
 		if (source.length > 2) {
 			propertySource = source[2];
@@ -2518,7 +2552,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		}
 
-		engineTarget = target[0];
+		engineTarget = target[0].replaceAll(" ", "_");
 		conceptTarget = target[1];
 		if (target.length > 2) {
 			propertyTarget = target[2];
@@ -2528,8 +2562,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 		// Initialize Engines
-		IEngine iEngineSource = Utility.getEngine(engineSource.replaceAll(" ", "_"));
-		IEngine iEngineTarget = Utility.getEngine(engineTarget.replaceAll(" ", "_"));
+		IEngine iEngineSource = Utility.getEngine(engineSource);
+		IEngine iEngineTarget = Utility.getEngine(engineTarget);
 
 		// Get the source and target values
 
@@ -2722,11 +2756,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(sourceRead.toString());
 		runR(targetRead.toString());
 
-		String method = "jw";
+		method = "jw";
 		maxdist = 1 - maxdist;
+		String maxDistStr = "" + maxdist;
 		join = "left";
-//		gramsize = "0";
-//		penalty = "0";
+		gramsize = "0";
+		penalty = "0";
 		
 		// build the R command
 		StringBuilder rCommand = new StringBuilder();
@@ -2739,7 +2774,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		rCommand.append("\"" + targetHeader + "\"" + ",");
 		rCommand.append("TRUE,");
 		rCommand.append("\"" + join + "\"" + ",");
-		rCommand.append(maxdist + ",");
+		rCommand.append(maxDistStr + ",");
 		rCommand.append("method=" + "\"" + method + "\"" + ",");
 		rCommand.append("q=" + gramsize + ",");
 		rCommand.append("p=" + penalty + ")");
