@@ -78,6 +78,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	private String propFilePath;
 	private SQLQueryUtil.DB_TYPE dbType;
 	private MessageDigest hasher;
+	private int hashTruncateLength;
 	private String encoding;
 	private int processDelay;
 
@@ -160,12 +161,13 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		}
 
 		try {
-			hasher = MessageDigest.getInstance(props.getProperty("hashing.algorithm", "SHA-1"));
+			hasher = MessageDigest.getInstance(props.getProperty("hashing.algorithm", "SHA-256"));
 		} catch (NoSuchAlgorithmException e) {
 			LOGGER.error("Failed to instantiate the hasher for key generation");
 			e.printStackTrace();
 		}
 
+		hashTruncateLength = Integer.parseInt(props.getProperty("hash.truncate.length.bytes", "8"));
 		encoding = props.getProperty("encoding", "UTF-8");
 
 		processDelay = Integer.parseInt(props.getProperty("process.delay.seconds", "30"));
@@ -181,7 +183,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		}
 		addToArchive();
 		refreshCurrentView();
-		// addOther();
+		addOther();
 	}
 
 	private void addToArchive() {
@@ -396,7 +398,18 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 	protected String generateKey(String text) throws UnsupportedEncodingException {
 		byte[] hash = hasher.digest(text.getBytes(encoding));
-		return bytesToHexString(hash);
+
+		// Truncate if the hash length is greater than the desired truncated
+		// length
+		if (hash.length > hashTruncateLength) {
+			byte[] truncatedHash = new byte[hashTruncateLength];
+			for (int i = 0; i < hashTruncateLength; i++) {
+				truncatedHash[i] = hash[i];
+			}
+			return bytesToHexString(truncatedHash);
+		} else {
+			return bytesToHexString(hash);
+		}
 	}
 
 	// Static helper methods
@@ -444,6 +457,35 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		return new String(hexChars);
 	}
 
+	// Test code for the hashing algorithm for key generation
+	public static void main(String[] args) throws Exception {
+		String text = "eorgjoisrepgosireg";
+		String[] algs = new String[] { "MD2", "MD5", "SHA-1", "SHA-256", "SHA-384", "SHA-512" };
+		int hashTruncateLength = 8;
+		for (String alg : algs) {
+			MessageDigest hasher = MessageDigest.getInstance(alg);
+			byte[] hash = hasher.digest(text.getBytes("UTF-8"));
+			String key;
+
+			// Truncate if the hash length is greater than the desired truncated
+			// length
+			if (hash.length > hashTruncateLength) {
+				byte[] truncatedHash = new byte[hashTruncateLength];
+				for (int i = 0; i < hashTruncateLength; i++) {
+					truncatedHash[i] = hash[i];
+				}
+				System.out.println(truncatedHash.length + " byte hash");
+				key = bytesToHexString(truncatedHash);
+			} else {
+				System.out.println(hash.length + " byte hash");
+				key = bytesToHexString(hash);
+			}
+			System.out.println(key);
+			System.out.println(key.length() + " char string");
+			System.out.println();
+		}
+	}
+
 	// TODO clean up this code take from AbstractFileWatcher
 	@SuppressWarnings({ "unused", "rawtypes" })
 	@Override
@@ -485,7 +527,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 									// the day
 									addToArchive();
 									refreshCurrentView();
-									// addOther();
+									addOther();
 								}
 
 							} catch (RuntimeException ex) {
