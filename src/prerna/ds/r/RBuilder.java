@@ -85,6 +85,10 @@ public class RBuilder extends AbstractRBuilder {
 		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
 		this.retCon.eval("library(data.table);");
 		LOGGER.info("SUCCESS!");
+		// xlsx
+		LOGGER.info("TRYING TO LOAD PACAKGE: xlsx");
+		this.retCon.eval("library(xlsx);");
+		LOGGER.info("SUCCESS!");
 		// reshape2
 		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
 		this.retCon.eval("library(reshape2);");

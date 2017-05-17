@@ -67,12 +67,13 @@ public class ExcelApiReactor extends AbstractApiReactor {
 		FilePkqlMetadata fileData = new FilePkqlMetadata();
 		fileData.setFileLoc(this.fileName);
 		fileData.setDataMap(this.dataTypeMap);
+		fileData.setSheetName(this.sheetName);
+		fileData.setNewHeaders(this.newHeaders);
 		fileData.setSelectors((Vector<String>) getValue(PKQLEnum.COL_CSV));
 		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
 		fileData.setPkqlStr((String) getValue(PKQLEnum.API));
 		fileData.setType(FilePkqlMetadata.FILE_TYPE.EXCEL);
-		fileData.setSheetName(this.sheetName);
-		fileData.setNewHeaders(this.newHeaders);
+
 		return fileData;
 	}
 }

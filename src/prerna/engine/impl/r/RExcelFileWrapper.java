@@ -7,8 +7,9 @@ import java.util.Map;
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.poi.main.helper.XLFileHelper;
 
-public class RCsvFileWrapper {
+public class RExcelFileWrapper {
 
 	// set the filepath for the csv file
 	private String filePath;
@@ -17,7 +18,9 @@ public class RCsvFileWrapper {
 	private String[] headersArr;
 	// store the data types for each header
 	private String[] dataTypesArr;
-	// store the user defined headers if modified
+	// store the sheet name
+	private String sheetName;
+	// store the user defined headers
 	private Map<String, String> newHeaders;
 	
 	// store map of headers to data types
@@ -30,15 +33,16 @@ public class RCsvFileWrapper {
 	// store the script to modify the header names
 	private String modHeadersRVec;
 	
-	public RCsvFileWrapper(String filePath) {
+	public RExcelFileWrapper(String filePath) {
 		this.filePath = filePath;
 	}
 	
-	public void composeRScript(QueryStruct qs, Map<String, String> dataTypeMap, List<String> headerNames, Map<String, String> newHeaders) {
+	public void composeRScript(QueryStruct qs, Map<String, String> dataTypeMap, List<String> headerNames, String sheetName, Map<String, String> newHeaders) {
 		int size = dataTypeMap.keySet().size();
 		this.headersArr = headerNames.toArray(new String[]{});
 		this.dataTypesArr = new String[size];
 		this.dataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
+		this.sheetName = sheetName;
 		this.newHeaders = newHeaders;
 		
 		int counter = 0;
@@ -60,10 +64,10 @@ public class RCsvFileWrapper {
 	 * Need to take into consideration that our loading modifies the excels
 	 * AND the user can modify those modifications
 	 */
-	public void composeRChangeHeaderNamesScript(Map<String, String> newHeaders) {
-		CSVFileHelper helper = new CSVFileHelper();
+	public void composeRChangeHeaderNamesScript(Map<String, String> newHeaders, String sheetName) {
+		XLFileHelper helper = new XLFileHelper();
 		helper.parse(this.filePath);
-		String[] autoCleanHeaders = helper.getAllCSVHeaders();
+		String[] autoCleanHeaders = helper.getHeaders(sheetName);
 		
 		StringBuilder changeHeaderNames = new StringBuilder();
 		changeHeaderNames.append("c(");
@@ -108,6 +112,10 @@ public class RCsvFileWrapper {
 	
 	public Map<String, IMetaData.DATA_TYPES> getDataTypes() {
 		return this.dataTypes;
+	}
+	
+	public String getSheetName() {
+		return this.sheetName;
 	}
 
 }

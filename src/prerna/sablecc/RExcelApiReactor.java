@@ -6,20 +6,22 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RCsvFileWrapper;
+import prerna.engine.impl.r.RExcelFileWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
-public class RCsvApiReactor extends AbstractApiReactor {
+public class RExcelApiReactor extends AbstractApiReactor {
 
 	// TODO: should modify this to be a bit more of a unique name so it does not
 	// relate to a column name
 	public final static String FILE_KEY = "file";
+	public final static String SHEET_KEY = "sheetName";
 	public final static String DATA_TYPE_MAP_KEY = "dataTypeMap";
 	public final static String NEW_HEADERS_KEY = "newHeaders";
-	
+
 	private String fileName;
+	private String sheetName;
 	private Map<String, String> dataTypeMap;
 	private Map<String, String> newHeaders;
 	
@@ -29,12 +31,19 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		super.process();
 		
 		List<String> headerNames = (List<String>)myStore.get(PKQLEnum.COL_CSV);
-
+		
 		// get the file location
 		if(this.mapOptions.containsKey(FILE_KEY)) {
 			this.fileName = (String)this.mapOptions.get(FILE_KEY);
 		} else {
 			throw new IllegalArgumentException("Must define the file in the map options to load the excel file");
+		}
+		
+		// get the sheet name
+		if(this.mapOptions.containsKey(SHEET_KEY)) {
+			this.sheetName = (String)this.mapOptions.get(SHEET_KEY);
+		} else {
+			throw new IllegalArgumentException("Must define the sheet in the excel file to load");
 		}
 		
 		// get the data types
@@ -47,13 +56,10 @@ public class RCsvApiReactor extends AbstractApiReactor {
 			this.newHeaders = (Map<String, String>) this.mapOptions.get(NEW_HEADERS_KEY);
 		}
 		
-		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
-		// to determine what selectors to send
+		RExcelFileWrapper fileWrapper = new RExcelFileWrapper(this.fileName);
+		fileWrapper.composeRChangeHeaderNamesScript(this.newHeaders, this.sheetName);
+		fileWrapper.composeRScript(this.qs, this.dataTypeMap, headerNames, this.sheetName, this.newHeaders);
 		
-		RCsvFileWrapper fileWrapper = new RCsvFileWrapper(this.fileName);
-		fileWrapper.composeRScript(this.qs, this.dataTypeMap, headerNames, this.newHeaders);
-		fileWrapper.composeRChangeHeaderNamesScript(this.newHeaders);
-
 		this.put((String) getValue(PKQLEnum.API), fileWrapper);
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
@@ -65,12 +71,13 @@ public class RCsvApiReactor extends AbstractApiReactor {
 		FilePkqlMetadata fileData = new FilePkqlMetadata();
 		fileData.setFileLoc(this.fileName);
 		fileData.setDataMap(this.dataTypeMap);
+		fileData.setSheetName(this.sheetName);
 		fileData.setNewHeaders(this.newHeaders);
 		fileData.setSelectors((Vector<String>) getValue(PKQLEnum.COL_CSV));
 		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
 		fileData.setPkqlStr((String) getValue(PKQLEnum.API));
-		fileData.setType(FilePkqlMetadata.FILE_TYPE.CSV);
-		
+		fileData.setType(FilePkqlMetadata.FILE_TYPE.EXCEL);
+
 		return fileData;
 	}
 	

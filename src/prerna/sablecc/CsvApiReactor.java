@@ -60,6 +60,7 @@ public class CsvApiReactor extends AbstractApiReactor {
 		FilePkqlMetadata fileData = new FilePkqlMetadata();
 		fileData.setFileLoc(this.fileName);
 		fileData.setDataMap(this.dataTypeMap);
+		fileData.setNewHeaders(this.newHeaders);
 		fileData.setSelectors((Vector<String>) getValue(PKQLEnum.COL_CSV));
 		fileData.setTableJoin((List<Map<String, Object>>) getValue(PKQLEnum.TABLE_JOINS));
 		fileData.setPkqlStr((String) getValue(PKQLEnum.API));
