@@ -17,6 +17,7 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RCsvFileWrapper;
+import prerna.engine.impl.r.RExcelFileWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -125,6 +126,7 @@ public class RDataTable extends AbstractTableDataFrame {
 
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
 		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");
+		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.RExcelApiReactor");
 		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
 
 		return reactorNames;
@@ -144,6 +146,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	public void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
 		this.builder.createTableViaCsvFile(fileWrapper);
+	}
+	
+	public void createTableViaExcelFile(RExcelFileWrapper fileWrapper) {
+		this.builder.createTableViaExcelFile(fileWrapper);
 	}
 	
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
@@ -479,5 +485,4 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-
 }
