@@ -254,6 +254,39 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   match.property <- rbindlist(list(match.property, list(c.p, t.p.id)))
   match.property <- rbindlist(list(match.property, list(p.p, t.p.id)))
   
+  has.property.item <- NA
+  #print(dt$item_property_id)
+  
+  property.ids.item <- dt$item_property_id
+  #print(property_ids)
+  for (i in seq_along(property.ids.item)) {
+	if(is.na(property.ids.item[i])) {
+		has.property.item[i] = 0
+	} else {
+		has.property.item[i] =1}
+	}
+	
+	dt<-cbind(dt, has.property.item)
+	
+	has.property.match <- NA
+  #print(dt$item_property_id)
+  
+  property.ids.match <- dt$match_property_id
+  #print(property_ids)
+  for (i in seq_along(property.ids.match)) {
+	if(is.na(property.ids.match[i])) {
+		has.property.match[i] = 0
+	} else {
+		has.property.match[i] =1}
+	}
+	
+	dt<-cbind(dt, has.property.match)
+	
+	
+	
+	
+	
+  
   
   ##################################################
   # Write all the tables
