@@ -1,7 +1,6 @@
 package prerna.util.specific.anthem;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.storm.shade.com.google.common.io.ByteStreams;
 import org.h2.mvstore.MVMap;
 
 import net.lingala.zip4j.core.ZipFile;
@@ -92,10 +90,6 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 		systems = props.getProperty("time.series.systems").split(";");
 		ignoreSystems = new HashSet<String>(Arrays.asList(props.getProperty("ignore.systems", "NONE").split(";")));
-
-		allTimeseriesMap = mvStore.openMap(ALL_TIMESERIES_MAP_NAME);
-		addToTimeseriesMap = mvStore.openMap(ADD_TO_TIMESERIES_MAP_NAME);
-		addedToTimeseriesMap = mvStore.openMap(ADDED_TO_TIMESERIES_MAP_NAME);
 	}
 
 	@Override
@@ -131,8 +125,7 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 					// Get a reader for the file
 					InputStream stream = zipFile.getInputStream(fileHeader);
-					byte[] data = ByteStreams.toByteArray(stream);
-					InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(data));
+					InputStreamReader reader = new InputStreamReader(stream);
 					BufferedReader bufferedReader = new BufferedReader(reader);
 					int nNewCritical = saveToStore(bufferedReader, kickoutDate);
 					nCriticalBySystem.put(system, nNewCritical);
@@ -292,6 +285,13 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		}
 	}
 
+	@Override
+	protected void openOtherMaps() {
+		allTimeseriesMap = mvStore.openMap(ALL_TIMESERIES_MAP_NAME);
+		addToTimeseriesMap = mvStore.openMap(ADD_TO_TIMESERIES_MAP_NAME);
+		addedToTimeseriesMap = mvStore.openMap(ADDED_TO_TIMESERIES_MAP_NAME);
+	}
+
 	private void addToTimeseries() {
 
 		// If there is nothing to add, then return
@@ -334,7 +334,10 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				}
 
 				// Store the records as added
-				addedToTimeseriesMap.putAll(addToTimeseriesMap);
+				// No need to keep the value at this point
+				for (Date key : addToTimeseriesMap.keySet()) {
+					addedToTimeseriesMap.put(key, "");
+				}
 
 				// Clear the add to archive map so that records are not re-added
 				addToTimeseriesMap.clear();

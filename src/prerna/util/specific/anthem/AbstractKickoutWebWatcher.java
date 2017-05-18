@@ -81,6 +81,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	private int hashTruncateLength;
 	private String encoding;
 	private int processDelay;
+	private String mvStoreFilePath;
 
 	private static final String PROCESSED_MAP_NAME = "processed";
 	private static final String ALL_RECORDS_MAP_NAME = "allRecords";
@@ -114,20 +115,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		}
 		tempDirectory = props.getProperty("temp.directory", baseDirectory);
 		dateFormatter = new SimpleDateFormat(props.getProperty("date.format", "yyyy-MM-dd"));
-
-		// Don't auto commit
-		mvStore = new MVStore.Builder().fileName(props.getProperty("mv.store")).autoCommitDisabled().open();
-
-		// Open all the maps
-		processedMap = mvStore.openMap(PROCESSED_MAP_NAME);
-		allRecordsMap = mvStore.openMap(ALL_RECORDS_MAP_NAME);
-		currentViewMap = mvStore.openMap(CURRENT_VIEW_MAP_NAME);
-		addToArchiveMap = mvStore.openMap(ADD_TO_ARCHIVE_MAP_NAME);
-		addedToArchiveMap = mvStore.openMap(ADDED_TO_ARCHIVE_MAP_NAME);
-		rawKeyFirstDateMap = mvStore.openMap(RAW_KEY_FIRST_DATE_MAP_NAME);
-		rawKeyLastDateMap = mvStore.openMap(RAW_KEY_LAST_DATE_MAP_NAME);
-		errorKeyFirstDateMap = mvStore.openMap(ERROR_KEY_FIRST_DATE_MAP_NAME);
-		errorKeyLastDateMap = mvStore.openMap(ERROR_KEY_LAST_DATE_MAP_NAME);
 
 		considerNewThresholdDays = Integer.parseInt(props.getProperty("consider.new.threshold.days", "7"));
 		currentViewDays = Integer.parseInt(props.getProperty("current.view.days", "7"));
@@ -171,10 +158,19 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		encoding = props.getProperty("encoding", "UTF-8");
 
 		processDelay = Integer.parseInt(props.getProperty("process.delay.seconds", "30"));
+
+		mvStoreFilePath = props.getProperty("mv.store.file.path");
 	}
 
 	@Override
 	public void loadFirst() {
+
+		// Open the store and maps
+		openStore();
+		openMaps();
+		openOtherMaps();
+
+		// Loop through and process each of the files
 		String[] fileNames = new File(folderToWatch).list();
 		for (String fileName : fileNames) {
 			if (needToProcess(fileName)) {
@@ -184,6 +180,9 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		addToArchive();
 		refreshCurrentView();
 		addOther();
+
+		// Close the maps
+		mvStore.close();
 	}
 
 	private void addToArchive() {
@@ -219,7 +218,10 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 				}
 
 				// Store the records as added
-				addedToArchiveMap.putAll(addToArchiveMap);
+				// No need to keep the value at this point
+				for (String key : addToArchiveMap.keySet()) {
+					addedToArchiveMap.put(key, "");
+				}
 
 				// Clear the add to archive map so that records are not re-added
 				addToArchiveMap.clear();
@@ -328,7 +330,25 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 	protected abstract boolean needToProcess(String fileName);
 
+	protected abstract void openOtherMaps();
+
 	// Helper methods
+
+	private void openStore() {
+		mvStore = new MVStore.Builder().fileName(mvStoreFilePath).autoCommitDisabled().open();
+	}
+
+	private void openMaps() {
+		processedMap = mvStore.openMap(PROCESSED_MAP_NAME);
+		allRecordsMap = mvStore.openMap(ALL_RECORDS_MAP_NAME);
+		currentViewMap = mvStore.openMap(CURRENT_VIEW_MAP_NAME);
+		addToArchiveMap = mvStore.openMap(ADD_TO_ARCHIVE_MAP_NAME);
+		addedToArchiveMap = mvStore.openMap(ADDED_TO_ARCHIVE_MAP_NAME);
+		rawKeyFirstDateMap = mvStore.openMap(RAW_KEY_FIRST_DATE_MAP_NAME);
+		rawKeyLastDateMap = mvStore.openMap(RAW_KEY_LAST_DATE_MAP_NAME);
+		errorKeyFirstDateMap = mvStore.openMap(ERROR_KEY_FIRST_DATE_MAP_NAME);
+		errorKeyLastDateMap = mvStore.openMap(ERROR_KEY_LAST_DATE_MAP_NAME);
+	}
 
 	// Specify the options necessary to load data from the csv file into SEMOSS
 	protected ImportOptions generateImportOptions(String tempCsvFilePath, String propFilePath, String engineName) {
@@ -518,6 +538,12 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 							Thread.sleep(processDelay * 1000);
 							try {
 								if (needToProcess(newFile)) {
+
+									// Open the store and maps
+									openStore();
+									openMaps();
+									openOtherMaps();
+
 									process(newFile);
 
 									// TODO
@@ -528,6 +554,9 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 									addToArchive();
 									refreshCurrentView();
 									addOther();
+
+									// Close the maps
+									mvStore.close();
 								}
 
 							} catch (RuntimeException ex) {
