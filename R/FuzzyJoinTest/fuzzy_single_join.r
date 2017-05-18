@@ -1,4 +1,4 @@
-fuzzy_single_join <- function(df1,df2,col1,col2,istest,mode,max_dist,method, q, p){
+fuzzy_join <- function(df1,df2,col1,col2,mode,max_dist,method, q, p){
 # df1 the dataframe of the first concept
 # df2 the dataframe of the first concept
 # col1 column name from df1 to join
@@ -13,26 +13,25 @@ library(fuzzyjoin)
 #write.csv(df1,"C:\\Users\\rramirezjimenez\\workspace\\Semoss\\R\\FuzzyJoinTest\\Temp\\sourceDataFrame.csv")
 #write.csv(df2,"C:\\Users\\rramirezjimenez\\workspace\\Semoss\\R\\FuzzyJoinTest\\Temp\\targetDataFrame.csv")
 a<-paste(col1,"=","\"",col2,"\")",sep="")
-b<-paste(",mode=\"",mode,"\",max_dist=",max_dist,",method=\"",method,"\",q=",q,",p=",p,",weight=c(d=1,i=0.95,s=0.9,t=0.85))",sep="")
+b<-paste(",mode=\"",mode,"\",max_dist=",max_dist,",method=\"",method,"\",q=",q,",p=",p,")",sep="")
 c<-paste("r<-","stringdist_join(df1,df2,by=c(",a,b,sep="")
 eval(parse(text=c))
-#write.csv(r,"C:\\Users\\rramirezjimenez\\workspace\\Semoss\\R\\FuzzyJoinTest\\Temp\\final.csv")
+r<-as.data.frame(r)
 if(ncol(df1) == 1){
 r<-as.data.frame(r)
 names(r)[1]<-col1
 }
-if(istest){
-	r<-r[,c(col1,col2)]
-}
+#write.csv(r,"C:\\Users\\rramirezjimenez\\workspace\\Semoss\\R\\FuzzyJoinTest\\Temp\\final.csv")
 return(r)
 }
 
-#df1<-read.csv("C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\sourceDataFrame.csv")
-#df2<-read.csv("C:\\workspace\\Semoss\\R\\FuzzyJoin\\Temp\\targetDataFrame.csv")
+#df1<-read.csv("C:/fuzzy1.csv")
+#df2<-read.csv("C:/fuzzy2.csv")
+
 # Jaro - Winkler
 #df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",0.1,method="jw",q=1,p=0.1)
 # Damirau - Levenshtein
-#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",1,method="dl",q=1,p=0.1)
+#df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",1,method="dl",q=1,p=0)
 # qgram
 #df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",2,method="qgram",q=2,p=0)
 # cosine
@@ -40,4 +39,3 @@ return(r)
 # osa
 #df<-fuzzy_join(df1,df2,"t1c1","t2c1","inner",2,method="osa",q=1,p=0)
 
-fuzzy_join(df1,df2,"t1c1","t2c1",TRUE,"inner",0.1,method="jw",q=1,p=0.1)
