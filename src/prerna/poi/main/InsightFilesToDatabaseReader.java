@@ -70,16 +70,11 @@ public class InsightFilesToDatabaseReader {
 		// one is for csv files
 		// the other is for excel files
 		IEngine engine = processCsvFiles(filesMeta, engineName);
-		if(engine == null) {
-			// no csv files were needed to create an engine
-			// look for excel files to create a new engine
-			engine = processExcelFiles(filesMeta, engineName, engine);
-		} else {
-			// there were csv files used in this insight
-			// now look towards saving any excel files in the same engine
-			engine = processExcelFiles(filesMeta, engineName, engine);
-		}
-		
+		// look for excel files 
+		// if there are none, it will return the same engine being passed
+		engine = processExcelFiles(filesMeta, engineName, engine);
+
+		// return the engine
 		return engine;
 	}
 	
@@ -142,7 +137,7 @@ public class InsightFilesToDatabaseReader {
 		}
 		
 		if(fileLocation.isEmpty()) {
-			return null;
+			return engine;
 		}
 		
 		boolean error = false;
