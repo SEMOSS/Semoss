@@ -36,7 +36,6 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
-import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.AbstractTableDataFrame.Comparator;
 import prerna.ds.DataFrameJoiner;
@@ -2422,51 +2421,36 @@ public class H2Builder {
 			String dateStr = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
 
 			String folderToUse = null;
-			String inMemScript = null;
 			// this is the case where i do not care where the on-disk is created
 			// so just create some random stuff
 			if (dbLocation == null) {
 				folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
 						+ RDBMSEngineCreationHelper.cleanTableName(this.schema) + dateStr + "\\";
-				inMemScript = folderToUse + "_" + dateStr;
 				physicalDbLocation = folderToUse.replace('/', '\\') + "_" + dateStr + "_database";
 			} else {
 				// this is the case when we have a specific schema we want to move the frame into
 				// this is set when the physicalDbLocation parameter is not null or empty
 				folderToUse = dbLocation.getParent();
-				inMemScript = folderToUse + "_" + dateStr;
 			}
 
 			// if there is a current frame that we need to push to on disk
 			// we need to save that data and then move it over
 			boolean existingTable = tableExists(this.tableName);
 			if (existingTable) {
-//				String saveScript = "SCRIPT TO '" + inMemScript + "' COMPRESSION GZIP TABLE " + this.tableName;
-//				runQuery(saveScript);
-				
 				Connection newConnection = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
 				copyTable(this.conn, this.tableName, newConnection, this.tableName);
 				
 				// drop the current table from in-memory or from old physical db
 				runQuery(RdbmsQueryBuilder.makeDropTable(this.tableName));
 				this.conn = newConnection;
+			} else {
+				// just create a new connection
+				this.conn = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
 			}
 
-			// create the new conneciton
-//			this.conn = DriverManager.getConnection("jdbc:h2:nio:" + physicalDbLocation, "sa", "");
-
-//			// if previous table existed
-//			// we need to load it
-//			if (existingTable) {
-//				// we run the script
-//				runQuery("RUNSCRIPT FROM '" + inMemScript + "' COMPRESSION GZIP ");
-//
-//				// clean up and remove the script file
-//				ICache.deleteFile(inMemScript);
-//			}
-			
 			this.schema = physicalDbLocation;
 			this.isInMem = false;
+			this.conn.commit();
 			// close the existing connection if it was a previous on disk
 			// connection
 			// so we can clean up the file
