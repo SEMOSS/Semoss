@@ -177,7 +177,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 					continue;
 				}
 				// get the user defined headers if present
-				if(userHeaderNames != null) {
+				if(userHeaderNames != null && !userHeaderNames.isEmpty()) {
 					excelHeaderNames = userHeaderNames.get(i);
 				}
 				// similar to other csv reading
@@ -314,7 +314,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 				// need to update to get the rdbms structure to determine how the new files should be added
 				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
 				// get the user defined headers if present
-				if(userHeaderNames != null) {
+				if(userHeaderNames != null && !userHeaderNames.isEmpty()) {
 					excelHeaderNames = userHeaderNames.get(i);
 				}
 				// similar to other csv reading
