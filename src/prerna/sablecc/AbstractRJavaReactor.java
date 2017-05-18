@@ -2241,19 +2241,17 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			pkqlCommandSource.append(". query ( [ c:");
 			pkqlCommandSource.append(" " + conceptSource + " , ");
 			for (int i = 0; i < cleanPropertiesSource.size(); i++) {
+				pkqlCommandSource.append("c:" + " " + conceptSource + "__" + cleanPropertiesSource.get(i));
 				if (i != cleanPropertiesSource.size() - 1) {
-					pkqlCommandSource.append("c:" + " " + conceptSource + "__" + cleanPropertiesSource.get(i) + " , ");
-				} else {
-					pkqlCommandSource.append("c:" + " " + conceptSource + "__" + cleanPropertiesSource.get(i));
+					pkqlCommandSource.append(" , ");
 				}
 			}
 			pkqlCommandSource.append(" ] ) ) ;");
 			pkqlCommandSource.append("panel[0].viz ( Grid, [ ");
 			for (int i = 0; i < cleanPropertiesSource.size(); i++) {
-				if (i != cleanPropertiesSource.size() - 1) {
-					pkqlCommandSource.append("value= c:" + " " + cleanPropertiesSource.get(i) + " , ");
-				} else {
-					pkqlCommandSource.append("value= c:" + " " + cleanPropertiesSource.get(i));
+				pkqlCommandSource.append("value= c:" + " " + cleanPropertiesSource.get(i));
+				if (i < cleanPropertiesSource.size() - 1) {
+					 pkqlCommandSource.append(" , ");
 				}
 			}
 			pkqlCommandSource.append(" ] )  ;");
@@ -2484,8 +2482,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	public void runFuzzyJoinTest(String[] sourceInstances, String match, String join, String method, double maxdist,String gramsize,
 			String penalty) {
-
-		System.out.println(">>>Executing fuzzy join...");
+		
 		// Initialize
 		String engineSource = "";
 		String engineTarget = "";
@@ -2667,10 +2664,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		PrintWriter printSource;
 		try {
 			printSource = new PrintWriter(new File(filePathSource));
-			System.out.println(sv.toString());
 			printSource.write(sv.toString());
 			printSource.close();
-			System.out.println(">>>SOURCE FILE PRINTED");
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -2705,10 +2700,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		PrintWriter printTarget;
 		try {
 			printTarget = new PrintWriter(new File(filePathTarget));
-			System.out.println(tv.toString());
 			printTarget.write(tv.toString());
 			printTarget.close();
-			System.out.println(">>>TARGET FILE PRINTED");
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -2752,33 +2745,31 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				+ "check.names = FALSE, strip.white = TRUE, comment.char = \"\", fill = TRUE)");
 
 		String df = "this.df.name.is.reserved.for.fuzzy.join.output";
-		System.out.println(sourceRead.toString());
 		runR(sourceRead.toString());
 		runR(targetRead.toString());
+
 
 		method = "jw";
 		maxdist = 1 - maxdist;
 		String maxDistStr = "" + maxdist;
-		join = "left";
+//		join = "left";
 		gramsize = "0";
 		penalty = "0";
 		
 		// build the R command
 		StringBuilder rCommand = new StringBuilder();
 		rCommand.append(df);
-		rCommand.append("<-fuzzy_single_join(");
+		rCommand.append("<-fuzzy_join(");
 		rCommand.append(df1 + ",");
 		rCommand.append(df2 + ",");
-		// TODO: expand this to select on any column, right now assumes the first column
 		rCommand.append("\"" + sourceHeader + "\"" + ",");
 		rCommand.append("\"" + targetHeader + "\"" + ",");
-		rCommand.append("TRUE,");
 		rCommand.append("\"" + join + "\"" + ",");
 		rCommand.append(maxDistStr + ",");
 		rCommand.append("method=" + "\"" + method + "\"" + ",");
 		rCommand.append("q=" + gramsize + ",");
 		rCommand.append("p=" + penalty + ")");
-		System.out.println(rCommand.toString());
+//		System.out.println(rCommand.toString());
 		runR(rCommand.toString());
 		runR(df);
 		storeVariable("GRID_NAME", df);
