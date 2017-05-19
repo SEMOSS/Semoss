@@ -29,7 +29,6 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.sablecc2.reactor.storage.StoreReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.MyGraphIoRegistry;
 
@@ -104,7 +103,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 			Translation translation = new Translation();
 			// get the planner for the scenario
 			PKSLPlanner nextScenario = scenarioMap.get(scenario);
-			nextScenario.addVariable("$Scenario", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
+			nextScenario.addVariable("$SCENARIO", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
 			translation.planner = nextScenario;
 			
 			// iterate through to determine execution order for
@@ -149,7 +148,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 	}
 
 	private String getFileName() {
-		return "planner"+fileCount++ +".tg";
+		return "planner"+fileCount++ +".gio";
 	}
 
 	/**
@@ -158,6 +157,8 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 	 * @param fileName
 	 */
 	private void saveGraph(PKSLPlanner originalPlanner, String fileName) {
+		// try the default
+		long start = System.currentTimeMillis();
 		Builder<GryoIo> builder = IoCore.gryo();
 		builder.graph(originalPlanner.g);
 		IoRegistry kryo = new MyGraphIoRegistry();
@@ -167,9 +168,10 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 			yes.writeGraph(fileName);
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			System.out.println("FINISHED WRITING GRAPH");
-		}
+		} 
+		
+		long end = System.currentTimeMillis();
+		System.out.println("FINISHED WRITING GRAPH : " + (end-start));
 	}
 
 	/**
@@ -178,6 +180,8 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 	 * @return
 	 */
 	private PKSLPlanner getNewPlannerCopy() {
+		long start = System.currentTimeMillis();
+
 		PKSLPlanner newPlanner = new PKSLPlanner();
 		// using the flushed out original planner
 		// read it back into a new graph
@@ -191,6 +195,9 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		long end = System.currentTimeMillis();
+		System.out.println("FINISHED READING GRAPH : " + (end-start));
 		
 		newPlanner.g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
 		newPlanner.g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
@@ -206,7 +213,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 				newPlanner.addVariable(varName, varNoun);
 			}
 		}
-
+		
 		return newPlanner;
 	}
 
