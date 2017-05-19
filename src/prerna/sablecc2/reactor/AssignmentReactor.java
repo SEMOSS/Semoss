@@ -36,7 +36,7 @@ public class AssignmentReactor extends AbstractReactor {
 			result = this.curRow.getNoun(1);
 		}
 		
-		planner.addVariable(operationName.toUpperCase(), result);
+		planner.addVariable(operationName, result);
 		return result;
 	}
 
