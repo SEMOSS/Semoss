@@ -1103,7 +1103,7 @@ public class Translation extends DepthFirstAdapter {
 	    	try {
 	    		output = curReactor.execute();
 	    	} catch(Exception e) {
-//	    		e.printStackTrace();
+	    		System.out.println(e.getMessage());
 	    		//should we make an error noun?
 	    	}
 	    	this.planner = ((AbstractReactor)curReactor).planner;

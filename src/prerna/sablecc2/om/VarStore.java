@@ -19,7 +19,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	@Override
 	public void put(String varName, NounMetadata variable) {
-		varName = cleanVarName(varName);
+//		varName = cleanVarName(varName);
 		if(variable.getNounName() == PkslDataTypes.COLUMN) {
 			if(varName.equalsIgnoreCase(variable.getValue().toString())) {
 				return;
@@ -30,13 +30,13 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	@Override
 	public NounMetadata get(String varName) {
-		varName = cleanVarName(varName);
+//		varName = cleanVarName(varName);
 		return varMap.get(varName);
 	}
 	
 	@Override
 	public NounMetadata getEvaluatedValue(String varName) {
-		varName = cleanVarName(varName);
+//		varName = cleanVarName(varName);
 		NounMetadata valueNoun = varMap.get(varName);
 		if(valueNoun != null) {
 			PkslDataTypes valType = valueNoun.getNounName();
@@ -62,13 +62,13 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	@Override
 	public boolean containsKey(String varName) {
-		varName = cleanVarName(varName);
+//		varName = cleanVarName(varName);
 		return varMap.containsKey(varName);
 	}
 	
 	@Override
 	public NounMetadata remove(String varName) {
-		varName = cleanVarName(varName);
+//		varName = cleanVarName(varName);
 		return varMap.remove(varName);
 	}
 	
@@ -92,7 +92,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return varMap.keySet();
 	}
 	
-	private String cleanVarName(String varName) {
-		return varName.trim().toUpperCase();
-	}
+//	private String cleanVarName(String varName) {
+//		return varName.trim().toUpperCase();
+//	}
 }

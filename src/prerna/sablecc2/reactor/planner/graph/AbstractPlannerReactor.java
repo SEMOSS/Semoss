@@ -45,9 +45,6 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			// add this operation to the pkslToRun
 			downstreamVertIds.add(vertId);
 			
-			// store the list so we can order them together
-			List<String> downstreamNodeIds = new Vector<String>();
-
 			// for this root
 			// find all the out nouns
 			Iterator<Vertex> outNounsIt = nextVert.vertices(Direction.OUT);
@@ -60,7 +57,6 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 					Vertex outOp = outOpsIt.next();
 					boolean processed = (boolean) outOp.value(PKSLPlanner.PROCESSED);
 					if(!processed) {
-						downstreamNodeIds.add(outOp.value(TinkerFrame.TINKER_ID).toString());
 						// modify the PROCESSED key to be true so we dont get this vert again
 						outOp.property(PKSLPlanner.PROCESSED, true);
 						
