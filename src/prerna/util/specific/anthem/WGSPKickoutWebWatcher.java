@@ -1,10 +1,14 @@
 package prerna.util.specific.anthem;
 
+import static org.quartz.JobBuilder.newJob;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -17,11 +21,18 @@ import java.util.Map;
 import java.util.Set;
 
 import org.h2.mvstore.MVMap;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.SchedulerException;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
+import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector;
+import prerna.notifications.TSAnomalyNotification;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.quartz.JobChain;
+import prerna.quartz.SendEmailJob;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -38,9 +49,15 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	private String timeseriesPropFilePath;
 	private String timeseriesDbName;
 	private String timeseriesDateColName;
+	private String timeseriesTotalColName;
 
 	private String[] systems;
+	private String[] systemAliases;
 	private Set<String> ignoreSystems;
+
+	private boolean notify;
+
+	private JobDataMap tsAnomNotifJobDataMap;
 
 	private MVMap<Date, String> allTimeseriesMap;
 	private MVMap<Date, String> addToTimeseriesMap;
@@ -62,6 +79,11 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	private static final String QT = "\"";
 	private static final String DLMTR = "\",\"";
 	private static final String NWLN = "\"\r\n";
+
+	// For TS anomaly email notification
+	private static final String TS_ANOM_NOTIF_JOB_GROUP = "tsAnomalyNotificationGroup";
+	private static final String EMAIL_JOB_NAME = "emailJob";
+	private static final String TS_ANOM_NOTIF_JOB_NAME = "tsAnomalyNotificationJob";
 
 	public WGSPKickoutWebWatcher() {
 		super(PROP_KEY_IN_RDF_MAP);
@@ -87,9 +109,77 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		timeseriesPropFilePath = props.getProperty("time.series.prop.file.path");
 		timeseriesDbName = props.getProperty("time.series.database.name");
 		timeseriesDateColName = props.getProperty("time.series.date.column.name");
+		timeseriesTotalColName = props.getProperty("time.series.total.column.name");
 
 		systems = props.getProperty("time.series.systems").split(";");
+		systemAliases = props.getProperty("time.series.system.aliases").split(";");
 		ignoreSystems = new HashSet<String>(Arrays.asList(props.getProperty("ignore.systems", "NONE").split(";")));
+
+		// TS anomaly notification setup
+		notify = Boolean.parseBoolean(props.getProperty("notify", "false"));
+
+		// No need to setup notifications if turned off
+		if (notify) {
+			// Create the import recipe for ts anomaly detection
+			StringBuilder importRecipeString = new StringBuilder();
+			importRecipeString.append("data.import ( api: ");
+			importRecipeString.append(timeseriesDbName);
+			importRecipeString.append(" . query ( [ c: ");
+			importRecipeString.append(timeseriesDateColName);
+			for (String systemAlias : systemAliases) {
+				importRecipeString.append(" , c: Kickout_Date__" + systemAlias);
+			}
+			importRecipeString.append(" ] ) ) ; ");
+
+			// Email params
+			String smtpServer = props.getProperty("smtp.server");
+			int smtpPort = Integer.parseInt(props.getProperty("smtp.port", "25"));
+			String from = props.getProperty("from");
+			String[] to = props.getProperty("to").split(";");
+			String subject = props.getProperty("subject");
+			String body;
+			try {
+				body = new String(Files.readAllBytes(Paths.get(props.getProperty("body.file"))),
+						props.getProperty("body.file.encoding", "UTF-8"));
+			} catch (IOException e) {
+				body = "";
+				e.printStackTrace();
+			}
+			boolean bodyIsHtml = Boolean.parseBoolean(props.getProperty("body.is.html"));
+
+			// Create the email job
+			JobDataMap emailDataMap = TSAnomalyNotification.generateEmailJobDataMap(smtpServer, smtpPort, from, to,
+					subject, body, bodyIsHtml);
+			JobDetail emailJob = newJob(SendEmailJob.class).withIdentity(EMAIL_JOB_NAME, TS_ANOM_NOTIF_JOB_GROUP)
+					.usingJobData(emailDataMap).build();
+
+			// Initialize the anomaly detector
+			TSAnomalyNotification.Builder tsAnomalyBuilder = new TSAnomalyNotification.Builder(timeseriesDbName,
+					importRecipeString.toString(), timeseriesDateColName, timeseriesTotalColName, emailJob);
+
+			// Add optional params if present
+			if (props.containsKey("aggregate.function")) {
+				tsAnomalyBuilder.aggregateFunction(props.getProperty("aggregate.function"));
+			}
+			if (props.containsKey("max.anoms")) {
+				tsAnomalyBuilder.maxAnoms(Double.parseDouble(props.getProperty("max.anoms")));
+			}
+			if (props.containsKey("direction")) {
+				tsAnomalyBuilder.direction(
+						AnomalyDetector.determineAnomDirectionFromStringDirection(props.getProperty("direction")));
+			}
+			if (props.containsKey("alpha")) {
+				tsAnomalyBuilder.alpha(Double.parseDouble(props.getProperty("alpha")));
+			}
+			if (props.containsKey("period")) {
+				tsAnomalyBuilder.period(Integer.parseInt(props.getProperty("period")));
+			}
+			if (props.containsKey("keep.existing.columns")) {
+				tsAnomalyBuilder.keepExistingColumns(Boolean.parseBoolean(props.getProperty("keep.existing.columns")));
+			}
+			TSAnomalyNotification generator = tsAnomalyBuilder.build();
+			tsAnomNotifJobDataMap = generator.generateJobDataMap();
+		}
 	}
 
 	@Override
@@ -292,6 +382,18 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		addedToTimeseriesMap = mvStore.openMap(ADDED_TO_TIMESERIES_MAP_NAME);
 	}
 
+	@Override
+	protected void scheduleJobs() throws SchedulerException {
+		// Nothing to schedule as of now
+	}
+
+	@Override
+	protected void triggerJobs() throws SchedulerException {
+		if (notify) {
+			triggerTsAnomNotifJob();
+		}
+	}
+
 	private void addToTimeseries() {
 
 		// If there is nothing to add, then return
@@ -305,9 +407,9 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		headerString.append(QT);
 		headerString.append(timeseriesDateColName);
 		headerString.append(DLMTR);
-		headerString.append(String.join(DLMTR, systems));
+		headerString.append(String.join(DLMTR, systemAliases));
 		headerString.append(DLMTR);
-		headerString.append("Total");
+		headerString.append(timeseriesTotalColName);
 		headerString.append(NWLN);
 		try {
 			File tempCsv = writeToCsv(tempCsvFilePath, headerString.toString(), addToTimeseriesMap);
@@ -355,6 +457,13 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 			LOGGER.error("Failed to write timeseries data to " + tempCsvFilePath);
 			e.printStackTrace();
 		}
+	}
+
+	private void triggerTsAnomNotifJob() throws SchedulerException {
+		JobDetail tsAnomNotifJob = newJob(JobChain.class).withIdentity(TS_ANOM_NOTIF_JOB_NAME, TS_ANOM_NOTIF_JOB_GROUP)
+				.usingJobData(tsAnomNotifJobDataMap).build();
+		scheduler.addJob(tsAnomNotifJob, true, true);
+		scheduler.triggerJob(tsAnomNotifJob.getKey());
 	}
 
 	private void putTimeseriesData(Date kickoutDate, Map<String, Integer> nCriticalBySystem) {
