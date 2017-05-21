@@ -35,6 +35,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.impl.StdSchedulerFactory;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -54,6 +57,8 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	protected String tempDirectory;
 
 	protected DateFormat dateFormatter;
+
+	protected Scheduler scheduler;
 
 	protected MVStore mvStore;
 	protected MVMap<String, Date> processedMap;
@@ -115,6 +120,14 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		}
 		tempDirectory = props.getProperty("temp.directory", baseDirectory);
 		dateFormatter = new SimpleDateFormat(props.getProperty("date.format", "yyyy-MM-dd"));
+
+		// Shared by subclasses for scheduling jobs
+		try {
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
+		} catch (SchedulerException e) {
+			LOGGER.error("Failed to initialize the scheduler");
+			e.printStackTrace();
+		}
 
 		considerNewThresholdDays = Integer.parseInt(props.getProperty("consider.new.threshold.days", "7"));
 		currentViewDays = Integer.parseInt(props.getProperty("current.view.days", "7"));
@@ -332,6 +345,10 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 	protected abstract void openOtherMaps();
 
+	protected abstract void scheduleJobs() throws SchedulerException;
+
+	protected abstract void triggerJobs() throws SchedulerException;
+
 	// Helper methods
 
 	private void openStore() {
@@ -513,6 +530,22 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 		loadFirst();
 
+		// Fire up the scheduler
+		try {
+			scheduler.start();
+		} catch (SchedulerException e) {
+			LOGGER.error("Failed to start scheduler");
+			e.printStackTrace();
+		}
+
+		// Allow subclasses to schedule jobs now if they have any
+		try {
+			scheduleJobs();
+		} catch (SchedulerException e) {
+			LOGGER.error("Failed to schedule jobs");
+			e.printStackTrace();
+		}
+
 		// Code taken from AbstractFileWatcher
 		try {
 			WatchService watcher = FileSystems.getDefault().newWatchService();
@@ -554,6 +587,12 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 									addToArchive();
 									refreshCurrentView();
 									addOther();
+									try {
+										triggerJobs();
+									} catch (SchedulerException e) {
+										LOGGER.error("Failed to trigger jobs after processing " + newFile);
+										e.printStackTrace();
+									}
 
 									// Close the maps
 									mvStore.close();
