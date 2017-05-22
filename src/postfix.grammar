@@ -277,7 +277,7 @@ data_frame = // e.g. panel.setBuilder('graph');
 		dataframe l_par [builder]:word_or_num r_par
 		;
 data_frame_header = // e.g. data.frame.getHeaders();
-		dataframeheader l_par boolean? r_par
+		dataframeheader l_par map_obj? r_par
 		;
 data_frame_duplicates = // e.g. data.frame.hasDuplicates(c:Col,); 
 		dataframeduplicates l_par col_csv r_par
