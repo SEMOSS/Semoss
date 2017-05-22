@@ -41,6 +41,9 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 	@Override
 	protected Object startR() {
 		Rengine retEngine = Rengine.getMainEngine();
+		if(retEngine == null) {
+			retEngine = (Rengine) retrieveVariable(R_ENGINE);
+		}
 		LOGGER.info("Connection right now is set to.. " + retEngine);
 		if(retEngine == null) {
 			try {
