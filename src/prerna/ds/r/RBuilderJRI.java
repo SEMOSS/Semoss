@@ -38,17 +38,17 @@ public class RBuilderJRI extends AbstractRBuilder {
 	}
 
 	private void loadDefaultLibraries() {
-		// load in the data.table package
-		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
-		REXP retObj = this.retCon.eval("library(data.table)");
-		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
-		} else {
-			LOGGER.info("SUCCESS!");
-		}
+//		// load in the data.table package
+//		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
+//		REXP retObj = this.retCon.eval("library(data.table)");
+//		if(retObj == null) {
+//			LOGGER.info(">>> FAILURE!");
+//		} else {
+//			LOGGER.info("SUCCESS!");
+//		}
 		// load in the sqldf package to run sql queries
 		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
-		retObj = this.retCon.eval("library(sqldf)");
+		REXP retObj = this.retCon.eval("library(sqldf)");
 		if(retObj == null) {
 			LOGGER.info(">>> FAILURE!");
 		} else {

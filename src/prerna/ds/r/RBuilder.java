@@ -70,9 +70,9 @@ public class RBuilder extends AbstractRBuilder {
 
 	private void loadDefaultLibraries() throws RserveException {
 		// load in the data.table package
-		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
-		this.retCon.eval("library(data.table)");
-		LOGGER.info("SUCCESS!");
+//		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
+//		this.retCon.eval("library(data.table)");
+//		LOGGER.info("SUCCESS!");
 		// load in the sqldf package to run sql queries
 		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
 		this.retCon.eval("library(sqldf)");
