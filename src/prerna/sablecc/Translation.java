@@ -1609,14 +1609,6 @@ public class Translation extends DepthFirstAdapter {
 	public void inADataFrameHeader(ADataFrameHeader node) {
 		if (reactorNames.containsKey(PKQLEnum.DATA_FRAME_HEADER)) {
 			initReactor(PKQLEnum.DATA_FRAME_HEADER);
-			if(node.getBoolean() != null) {
-				try {
-					boolean includeAdditionalInfo = Boolean.parseBoolean(node.getBoolean().toString().trim());
-					curReactor.put(DataFrameHeaderReactor.ADDITIONAL_INFO_BOOL, includeAdditionalInfo);
-				} catch(ClassCastException e) {
-					// do nothing
-				}
-			}
 			curReactor.put(PKQLEnum.DATA_FRAME_HEADER, node.toString());
 		}
 	}

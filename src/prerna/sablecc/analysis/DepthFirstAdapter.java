@@ -1937,9 +1937,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getBoolean() != null)
+        if(node.getMapObj() != null)
         {
-            node.getBoolean().apply(this);
+            node.getMapObj().apply(this);
         }
         if(node.getRPar() != null)
         {
