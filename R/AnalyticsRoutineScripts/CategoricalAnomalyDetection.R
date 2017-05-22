@@ -32,6 +32,8 @@ direction <- args[[6]]
 alpha <- args[[7]]
 period <- args[[8]]
 
+dt <- setDT(this.dt.is.reserved.for.anomaly.detection)
+
 # Make sure group is a factor, because the levels of group must be accessed later
 dt[, toString(group.col):=as.factor(get(group.col))]
 
@@ -134,7 +136,7 @@ if (group.col == time.col) {
 } else {
   result <- DetectWithGroups(dt, time.col, event.col, group.col, agg, agg.string, max.anoms, direction, alpha, period)
 }
-dt <- result$dt
+this.dt.is.reserved.for.anomaly.detection <- result$dt
 unique.times <- result$unique.times
 anom.levels <- result$anom.levels
 
