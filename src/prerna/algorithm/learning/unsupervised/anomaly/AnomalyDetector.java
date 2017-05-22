@@ -22,7 +22,7 @@ public class AnomalyDetector {
 
 	private static final String SCRIPT_NAME = "AnomalyDetection.R";
 	private static final String CATEGORICAL_SCRIPT_NAME = "CategoricalAnomalyDetection.R";
-	private static final String R_SYNC_FRAME_NAME = "dt";
+	private static final String R_SYNC_FRAME_NAME = "this.dt.is.reserved.for.anomaly.detection";
 
 	// If the user chooses to keep existing columns, then the data frame with
 	// the same name as R_SYNC_FRAME_NAME will be returned
