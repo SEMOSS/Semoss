@@ -9,7 +9,7 @@ public final class ADataFrameHeader extends PDataFrameHeader
 {
     private TDataframeheader _dataframeheader_;
     private TLPar _lPar_;
-    private TBoolean _boolean_;
+    private PMapObj _mapObj_;
     private TRPar _rPar_;
 
     public ADataFrameHeader()
@@ -20,7 +20,7 @@ public final class ADataFrameHeader extends PDataFrameHeader
     public ADataFrameHeader(
         @SuppressWarnings("hiding") TDataframeheader _dataframeheader_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") TBoolean _boolean_,
+        @SuppressWarnings("hiding") PMapObj _mapObj_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -28,7 +28,7 @@ public final class ADataFrameHeader extends PDataFrameHeader
 
         setLPar(_lPar_);
 
-        setBoolean(_boolean_);
+        setMapObj(_mapObj_);
 
         setRPar(_rPar_);
 
@@ -40,7 +40,7 @@ public final class ADataFrameHeader extends PDataFrameHeader
         return new ADataFrameHeader(
             cloneNode(this._dataframeheader_),
             cloneNode(this._lPar_),
-            cloneNode(this._boolean_),
+            cloneNode(this._mapObj_),
             cloneNode(this._rPar_));
     }
 
@@ -100,16 +100,16 @@ public final class ADataFrameHeader extends PDataFrameHeader
         this._lPar_ = node;
     }
 
-    public TBoolean getBoolean()
+    public PMapObj getMapObj()
     {
-        return this._boolean_;
+        return this._mapObj_;
     }
 
-    public void setBoolean(TBoolean node)
+    public void setMapObj(PMapObj node)
     {
-        if(this._boolean_ != null)
+        if(this._mapObj_ != null)
         {
-            this._boolean_.parent(null);
+            this._mapObj_.parent(null);
         }
 
         if(node != null)
@@ -122,7 +122,7 @@ public final class ADataFrameHeader extends PDataFrameHeader
             node.parent(this);
         }
 
-        this._boolean_ = node;
+        this._mapObj_ = node;
     }
 
     public TRPar getRPar()
@@ -156,7 +156,7 @@ public final class ADataFrameHeader extends PDataFrameHeader
         return ""
             + toString(this._dataframeheader_)
             + toString(this._lPar_)
-            + toString(this._boolean_)
+            + toString(this._mapObj_)
             + toString(this._rPar_);
     }
 
@@ -176,9 +176,9 @@ public final class ADataFrameHeader extends PDataFrameHeader
             return;
         }
 
-        if(this._boolean_ == child)
+        if(this._mapObj_ == child)
         {
-            this._boolean_ = null;
+            this._mapObj_ = null;
             return;
         }
 
@@ -207,9 +207,9 @@ public final class ADataFrameHeader extends PDataFrameHeader
             return;
         }
 
-        if(this._boolean_ == oldChild)
+        if(this._mapObj_ == oldChild)
         {
-            setBoolean((TBoolean) newChild);
+            setMapObj((PMapObj) newChild);
             return;
         }
 
