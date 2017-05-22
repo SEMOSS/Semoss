@@ -742,8 +742,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 * @param comparator
 	 * @param values
 	 */
-	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator,
-			Object values) {
+	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, Object values) {
 		// to account for misunderstandings between = and == for normal users
 		if (comparator.trim().equals("=")) {
 			comparator = " == ";
@@ -769,7 +768,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
 					script.append("is.na(").append(frameExpression).append(") ");
 				} else {
-					script.append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+					if(comparator.equals("like")) {
+						script.append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
+					} else {
+						script.append(frameExpression).append(comparator).append("\"").append(val).append("\"");
+					}
 				}
 			} else {
 				script.append(comparator).append(val);
@@ -780,8 +783,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
 						script.append(" | is.na(").append(frameExpression).append(") ");
 					} else {
-						script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val)
-								.append("\"");
+						if(comparator.equals("like")) {
+							script.append(" | ").append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
+						} else {
+							script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");						}
 					}
 				} else {
 					script.append(" | ").append(frameExpression).append(comparator).append(val);
@@ -824,7 +829,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				if (values.toString().equalsIgnoreCase("NULL") || values.toString().equalsIgnoreCase("NA")) {
 					script.append("is.na(").append(frameExpression).append(") ");
 				} else {
-					script.append(frameExpression).append(comparator).append("\"").append(values).append("\"");
+					if(comparator.equals("like")) {
+						script.append("like(").append(frameExpression).append(",").append("\"").append(values).append("\")");
+					} else {
+						script.append(frameExpression).append(comparator).append("\"").append(values).append("\"");
+					}
 				}
 			} else {
 				script.append(frameExpression).append(comparator).append(values);
