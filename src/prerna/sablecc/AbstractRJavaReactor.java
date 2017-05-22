@@ -111,8 +111,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print);
 
-	protected abstract void performSplitColumn(String frameName, String columnName, String separator,
-			boolean dropColumn, boolean frameReplace);
+	protected abstract void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace);
 
 	protected abstract void performJoinColumns(String frameName, String newColumnName, String separator, String cols);
 
@@ -1058,7 +1057,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 			String updateDataType = getColType(updateColName);
 			String updateQuote = "";
-			if (updateDataType.contains("character")) {
+			if (updateDataType.contains("character") || updateDataType.contains("factor")) {
 				updateQuote = "\"";
 			}
 
@@ -1101,7 +1100,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			String script = colScript + " = ";
 			String dataType = getColType(columnName);
 			String quote = "";
-			if (dataType.contains("character")) {
+			if (dataType.contains("character") || dataType.contains("factor")) {
 				quote = "\"";
 			}
 			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ")";
@@ -1123,8 +1122,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		splitColumn(frameName, columnName, separator, false, true);
 	}
 
-	protected void splitColumn(String frameName, String columnName, String separator, boolean dropColumn,
-			boolean frameReplace) {
+	protected void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace) {
 		performSplitColumn(frameName, columnName, separator, false, true);
 		if (checkRTableModified(frameName)) {
 			recreateMetadata(frameName);
