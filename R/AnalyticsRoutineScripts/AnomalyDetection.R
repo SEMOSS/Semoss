@@ -32,6 +32,8 @@ direction <- args[[5]]
 alpha <- args[[6]]
 period <- args[[7]]
 
+dt <- setDT(this.dt.is.reserved.for.anomaly.detection)
+
 # Set the time column as the key
 setkeyv(dt, time.col)
 
@@ -58,6 +60,8 @@ unique.times[res$anoms$index, toString(anom.col) := res$anoms$anoms]
 
 # Perfom the inner join on the original data table
 dt <- merge(dt, unique.times[, c(time.col, anom.col), with=FALSE], by=time.col, all=FALSE)
+
+this.dt.is.reserved.for.anomaly.detection <- dt
 
 # Return whether an anomaly occured at the most recent time
 GetResult <- function() {
