@@ -934,14 +934,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 
 	protected void toLowerCase(String frameName, String colName) {
-		String[] colSplit = colName.split(",");
-		for(String col : colSplit) {
-			if(col == null || col.isEmpty()) {
-				continue;
-			}
-			String script = frameName + "$" + col + " <- tolower(" + frameName + "$" + col + ")";
+//		String[] colSplit = colName.split(",");
+//		for(String col : colSplit) {
+//			if(col == null || col.isEmpty()) {
+//				continue;
+//			}
+			String script = frameName + "$" + colName + " <- tolower(" + frameName + "$" + colName + ")";
 			eval(script);
-		}
+//		}
 		checkRTableModified(frameName);
 	}
 
@@ -956,14 +956,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 
 	protected void toUpperCase(String frameName, String colName) {
-		String[] colSplit = colName.split(",");
-		for(String col : colSplit) {
-			if(col == null || col.isEmpty()) {
-				continue;
-			}
-			String script = frameName + "$" + col + " <- toupper(" + frameName + "$" + col + ")";
+//		String[] colSplit = colName.split(",");
+//		for(String col : colSplit) {
+//			if(col == null || col.isEmpty()) {
+//				continue;
+//			}
+			String script = frameName + "$" + colName + " <- toupper(" + frameName + "$" + colName + ")";
 			eval(script);
-		}
+//		}
 		checkRTableModified(frameName);
 	}
 
@@ -978,14 +978,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 
 	protected void trim(String frameName, String colName) {
-		String[] colSplit = colName.split(",");
-		for(String col : colSplit) {
-			if(col == null || col.isEmpty()) {
-				continue;
-			}
-			String script = frameName + "$" + col + " <- str_trim(" + frameName + "$" + col + ")";
+//		String[] colSplit = colName.split(",");
+//		for(String col : colSplit) {
+//			if(col == null || col.isEmpty()) {
+//				continue;
+//			}
+			String script = frameName + "$" + colName + " <- str_trim(" + frameName + "$" + colName + ")";
 			eval(script);
-		}
+//		}
 		checkRTableModified(frameName);
 	}
 
