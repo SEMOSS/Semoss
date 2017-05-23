@@ -1252,11 +1252,27 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String keepString = "";
 		if (cols != null && cols.length() > 0) {
 			String[] columnsToKeep = cols.split(";");
+			// with the portion of code to ignore if the user passes in the 
+			// col to pivot or value to pivot in the selected columns
+			// we need to account for this so we dont end the keepString with " + "
+			int size = columnsToKeep.length;
 			keepString = ", formula = ";
-			for (int colIndex = 0; colIndex < columnsToKeep.length; colIndex++) {
-				keepString = keepString + columnsToKeep[colIndex];
-				if (colIndex + 1 < columnsToKeep.length)
+			for (int colIndex = 0; colIndex < size; colIndex++) {
+				String newKeepString = columnsToKeep[colIndex];
+				if(newKeepString.equals(columnToPivot) || newKeepString.equals(valueToPivot)) {
+					continue;
+				}
+				keepString = keepString + newKeepString;
+				if (colIndex + 1 < size) {
 					keepString = keepString + " + ";
+				}
+			}
+			
+			// with the portion of code to ignore if the user passes in the 
+			// col to pivot or value to pivot in the selected columns
+			// we need to account for this so we dont end the keepString with " + "
+			if(keepString.endsWith(" + ")) {
+				keepString = keepString.substring(0, keepString.length() - 3);
 			}
 			keepString = keepString + " ~ " + columnToPivot + ", value.var=\"" + valueToPivot + "\"";
 		}
