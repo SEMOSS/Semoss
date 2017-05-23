@@ -111,7 +111,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks, boolean print);
 
-	protected abstract void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace);
+	protected abstract void performSplitColumn(String frameName, String columnName, String separator, String direction, boolean dropColumn, boolean frameReplace);
 
 	protected abstract void performJoinColumns(String frameName, String newColumnName, String separator, String cols);
 
@@ -1142,15 +1142,19 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected void splitColumn(String columnName, String separator) {
 		String frameName = (String) retrieveVariable("GRID_NAME");
-		splitColumn(frameName, columnName, separator, false, true);
+		splitColumn(frameName, columnName, separator, "wide", false, true);
 	}
 
 	protected void splitColumn(String frameName, String columnName, String separator) {
-		splitColumn(frameName, columnName, separator, false, true);
+		splitColumn(frameName, columnName, separator, "wide", false, true);
+	}
+	
+	protected void splitColumn(String frameName, String columnName, String separator, String direction) {
+		splitColumn(frameName, columnName, separator, direction, false, true);
 	}
 
-	protected void splitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace) {
-		performSplitColumn(frameName, columnName, separator, false, true);
+	protected void splitColumn(String frameName, String columnName, String separator, String direction, boolean dropColumn, boolean frameReplace) {
+		performSplitColumn(frameName, columnName, separator, direction, false, true);
 		if (checkRTableModified(frameName)) {
 			recreateMetadata(frameName);
 		}
@@ -1238,8 +1242,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		pivot(frameName, true, columnToPivot, cols, null);
 	}
 
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String cols,
-			String aggregateFunction) {
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String cols, String aggregateFunction) {
 		// makes the columns and converts them into rows
 		// dcast(molten, formula = subject~ variable)
 		// I need columns to keep and columns to pivot
