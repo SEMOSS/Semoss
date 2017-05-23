@@ -1233,16 +1233,16 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		System.out.println("Done unpivoting...");
 	}
 
-	protected void pivot(String columnToPivot, String cols) {
+	protected void pivot(String columnToPivot, String valueToPivot, String cols) {
 		String frameName = (String) retrieveVariable("GRID_NAME");
-		pivot(frameName, true, columnToPivot, cols, null);
+		pivot(frameName, true, columnToPivot, valueToPivot, cols, null);
 	}
 
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String cols) {
-		pivot(frameName, true, columnToPivot, cols, null);
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String cols) {
+		pivot(frameName, true, columnToPivot, valueToPivot, cols, null);
 	}
 
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String cols, String aggregateFunction) {
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String cols, String aggregateFunction) {
 		// makes the columns and converts them into rows
 		// dcast(molten, formula = subject~ variable)
 		// I need columns to keep and columns to pivot
@@ -1258,7 +1258,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				if (colIndex + 1 < columnsToKeep.length)
 					keepString = keepString + " + ";
 			}
-			keepString = keepString + " ~ " + columnToPivot;
+			keepString = keepString + " ~ " + columnToPivot + ", value.var=\"" + valueToPivot + "\"";
 		}
 
 		String aggregateString = "";
