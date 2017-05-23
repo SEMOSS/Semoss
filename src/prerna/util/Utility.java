@@ -811,24 +811,24 @@ public class Utility {
 		while (retString.contains("  ")){
 			retString = retString.replace("  ", " ");
 		}
-		retString = retString.replaceAll("\\{", "(");
-		retString = retString.replaceAll("\\}", ")");
-		retString = retString.replaceAll("'", "");//remove apostrophe
-		if(replaceForRDF){
-			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
-		}
+//		retString = retString.replaceAll("\\{", "(");
+//		retString = retString.replaceAll("\\}", ")");
+//		retString = retString.replaceAll("'", "");//remove apostrophe
+//		if(replaceForRDF){
+//			retString = retString.replaceAll("\"", "'");//replace double quotes with single quotes
+//		}
 		retString = retString.replaceAll(" ", "_");//replace spaces with underscores
-		if(!property) {
-			if(replaceForwardSlash) {
-				retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
-			}
-			retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
-		}
-
-		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
-		retString = retString.replaceAll("\n", " ");
-		retString = retString.replaceAll("<", "(");
-		retString = retString.replaceAll(">", ")");
+//		if(!property) {
+//			if(replaceForwardSlash) {
+//				retString = retString.replaceAll("/", "-");//replace forward slashes with dashes
+//			}
+//			retString = retString.replaceAll("\\\\", "-");//replace backslashes with dashes
+//		}
+//
+//		retString = retString.replaceAll("\\|", "-");//replace vertical lines with dashes
+//		retString = retString.replaceAll("\n", " ");
+//		retString = retString.replaceAll("<", "(");
+//		retString = retString.replaceAll(">", ")");
 
 		return retString;
 	}
@@ -2972,7 +2972,7 @@ public class Utility {
 		ResultSet rs = (ResultSet) mapRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 		try {
 			if (rs.next()) {
-				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
+//				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
 				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
 				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
 				insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
