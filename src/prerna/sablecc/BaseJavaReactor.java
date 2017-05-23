@@ -368,7 +368,7 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 	}
 
 	// split a column based on a value
-	public void performSplitColumn(String frameName, String columnName, String separator, boolean dropColumn, boolean frameReplace)
+	public void performSplitColumn(String frameName, String columnName, String separator, String direction, boolean dropColumn, boolean frameReplace)
 	{
 		//  cSplit(dt, "PREFIX", "_")
 		RConnection rcon = (RConnection) startR();
@@ -377,15 +377,22 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 			String tempName = Utility.getRandomString(8);
 			
 			String frameReplaceScript = frameName + " <- " + tempName + ";";
-			if(!frameReplace)
+			if(!frameReplace) {
 				frameReplaceScript = "";
+			}
 			String columnReplaceScript = "TRUE";
-			if(!dropColumn)
+			if(!dropColumn) {
 				columnReplaceScript = "FALSE";
-			String script = tempName + " <- cSplit(" + frameName + ", \"" + columnName + "\", \"" + separator + "\", drop = " + columnReplaceScript+ ");" 
-				//+ tempName +" <- " + tempName + "[,lapply(.SD, as.character)];"  // this ends up converting numeric to factors too
-				//+ frameReplaceScript
-				;
+			}
+			if(direction==null || direction.isEmpty()) {
+				direction = "wide";
+			}
+			String script = tempName + " <- cSplit(" + frameName + ", "
+					+ "\"" + columnName 
+					+ "\", \"" + separator
+					+ "\", direction = \"" + direction
+					+ "\", drop = " + columnReplaceScript+ ");" 
+					;
 			rcon.eval(script);
 			System.out.println("Script " + script);
 			// get all the columns that are factors
