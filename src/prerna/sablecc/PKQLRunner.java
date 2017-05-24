@@ -6,7 +6,6 @@ import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -15,6 +14,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
+
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -39,6 +39,7 @@ import prerna.sablecc.parser.Parser;
 import prerna.sablecc.parser.ParserException;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class PKQLRunner {
 	
@@ -295,7 +296,7 @@ public class PKQLRunner {
 //		else {
 //			result.put("label", currentString);
 //		}
-		result.put("label", this.explain);
+		result.put("label", Utility.unescapeHTML(this.explain));
 		
 		// this is additional info passed to front-end for further processing.
 		result.put("additionalInfo", additionalInfoString);
