@@ -180,6 +180,19 @@ public class Utility {
 	}
 
 	/**
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static String unescapeHTML(String s) {
+		s = s.replaceAll("&gt;", ">");
+	    s = s.replaceAll("&lt;", ">");
+	    s = s.replaceAll("&#61;", "=");
+	    s = s.replaceAll("&#33;", "!" );
+	    return s;
+	}
+	
+	/**
 	 * Matches the given query against a specified pattern.
 	 * While the next substring of the query matches a part of the pattern, set substring as the key with EMPTY constants (@@) as the value
 	 * @param 	Query.

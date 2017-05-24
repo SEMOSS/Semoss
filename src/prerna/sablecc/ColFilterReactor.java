@@ -163,7 +163,7 @@ public class ColFilterReactor extends AbstractReactor {
 		Vector filters = (Vector) myStore.get(PKQLEnum.FILTER);
 		Hashtable filterHT = (Hashtable) filters.get(0);
 		String filterStr = (String) filterHT.get(PKQLEnum.FROM_COL);
-		filterStr += (String) filterHT.get(PKQLEnum.COMPARATOR);
+		filterStr += " " + (String) filterHT.get(PKQLEnum.COMPARATOR) + " ";
 		filterStr += (String) filterHT.get("TO_DATA").toString();
 		ColFilterMetadata metadata = new ColFilterMetadata(filterStr);
 		metadata.setPkqlStr((String) myStore.get(PKQLEnum.FILTER_DATA));
