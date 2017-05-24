@@ -186,7 +186,7 @@ public class Utility {
 	 */
 	public static String unescapeHTML(String s) {
 		s = s.replaceAll("&gt;", ">");
-	    s = s.replaceAll("&lt;", ">");
+	    s = s.replaceAll("&lt;", "<");
 	    s = s.replaceAll("&#61;", "=");
 	    s = s.replaceAll("&#33;", "!" );
 	    return s;
