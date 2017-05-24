@@ -1,36 +1,27 @@
 package prerna.util.insight;
 
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.stage.Stage;
-import prerna.util.insight.Browser;
-import javafx.scene.layout.VBox;
-import javafx.embed.swing.SwingFXUtils;
-
 import java.awt.image.RenderedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.util.Timer;
-import java.util.TimerTask;
-import javafx.scene.image.WritableImage;
-import javafx.scene.SnapshotParameters;
-import javax.imageio.ImageIO;
-import org.apache.log4j.Logger;
-
-import java.util.Base64;
-import org.apache.commons.vfs2.FileNotFoundException;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import javafx.concurrent.Task;
+import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
+
+import javafx.application.Platform;
+import javafx.embed.swing.JFXPanel;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.WritableImage;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 /**
  * @author ericjbruno
@@ -151,16 +142,15 @@ public class InsightScreenshot {
 				secondDelay++;
 				// print every 30 seconds if image thread is active
 				if (secondDelay % 30 == 0) {
-					LOGGER.info("saving insight image");
+					LOGGER.info("saving insight image in progress...");
 				}
 				if (validStage) {
 					// TODO change this threshold to wait on image capture
 					if (count == 180) {
-						System.out.println(secondDelay);
 						Platform.runLater(() -> {
 							window.close();
 						});
-						LOGGER.info("Unable to capture image from " + url);
+						LOGGER.error("Unable to capture image from " + url);
 						complete = true;
 						timer.cancel();
 					}
@@ -186,7 +176,6 @@ public class InsightScreenshot {
 		try {
 			pic.getComplete();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String serialized_image = InsightScreenshot.imageToString("C:\\workspace\\Semoss\\images\\insight1.png");
