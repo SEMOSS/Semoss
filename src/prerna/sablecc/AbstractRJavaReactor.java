@@ -2647,13 +2647,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			// source instances
 			StringBuilder pkqlSource = new StringBuilder();
 			for (int i = 0; i < sourceInstances.length; i++) {
+				if (frameProperties) {
 				pkqlSource.append("data.frame ( 'grid' ) ;");
 				pkqlSource.append("data.import ");
 				pkqlSource.append("( api:");
 				pkqlSource.append(" " + engineSource + " ");
 				pkqlSource.append(". query ( [ c:");
 				pkqlSource.append(" " + conceptSource);
-				if (frameProperties) {
+			
 					if (cleanPropertiesSource.size() != 0) {
 						pkqlSource.append(" , ");
 					}
@@ -2665,7 +2666,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 							pkqlSource.append("c:" + " " + sourceHeaders[j + 1]);
 						}
 					}
-				}
+				
 				pkqlSource.append(" ] , ( c: ");
 				pkqlSource.append(conceptSource + " " + "=" + " " + "[ ");
 				pkqlSource.append("\"" + sourceInstances[i] + "\" ");
@@ -2680,6 +2681,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				} else {
 					allSourceInstances.add(new Object[] { sourceInstances[i] });
 				}
+			}
+			else {
+				allSourceInstances.add(new Object[] { sourceInstances[i] });
+			}
 
 			}
 
@@ -2740,6 +2745,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 			pkqlCommandTarget.append(" ] ) ) ;");
 			pkqlCommandTarget.append("panel[0].viz ( Grid, [ ");
+			pkqlCommandTarget.append("value= c: " + conceptTarget + ", ");
 			for (int i = 0; i < cleanPropertiesTarget.size(); i++) {
 				if (i != cleanPropertiesTarget.size() - 1) {
 					pkqlCommandTarget.append("value= c:" + " " + cleanPropertiesTarget.get(i) + " , ");
@@ -2783,7 +2789,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		for (int j = 0; j < allSourceInstances.size(); j++) {
 			Object[] rowValue = allSourceInstances.get(j);
 			for (int i = 0; i < rowValue.length; i++) {
-				sv.append(rowValue[i].toString());
+				Object value = rowValue[i];
+				if (value != null) {
+					sv.append(rowValue[i].toString());
+				} else {
+					sv.append("");
+				}
 				if (i < rowValue.length - 1) {
 					sv.append("\t");
 				}
@@ -2818,7 +2829,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		for (int j = 0; j < allTargetInstances.size(); j++) {
 			Object[] rowValue = allTargetInstances.get(j);
 			for (int i = 0; i < rowValue.length; i++) {
+				Object value = rowValue[i];
+				if(value != null) {
 				tv.append(rowValue[i].toString());
+				}
+				else {
+					tv.append("");
+
+				}
 				if (i < rowValue.length - 1) {
 					tv.append("\t");
 				}
