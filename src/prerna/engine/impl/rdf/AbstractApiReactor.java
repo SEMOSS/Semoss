@@ -19,6 +19,7 @@ import prerna.engine.api.IEngine;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -112,6 +113,14 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				Map<String, String> filtersMapObj = (Map<String, String>) mapOptions.get(ADD_TABLE_FITLERS);
 				for(String fromColumn : filtersMapObj.keySet()) {
 					String toColumn = filtersMapObj.get(fromColumn);
+					// ugh... since FE is annoying and passes this incorrectly sometimes
+					if(frame.isEmpty()) {
+						continue;
+					}
+					String[] headers = frame.getColumnHeaders();
+					if(!ArrayUtilityMethods.arrayContainsValue(headers, fromColumn)) {
+						continue;
+					}
 					addTableValuesAsFilter(frame, filters, fromColumn, toColumn);
 				}
 			}
