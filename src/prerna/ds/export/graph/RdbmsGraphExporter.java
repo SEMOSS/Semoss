@@ -257,7 +257,7 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		sql.append(" FROM ").append(frame.getTableName());
 		String sqlFilter = frame.getSqlFilter();
 		if(sqlFilter != null && !sqlFilter.isEmpty()) {
-			sql.append(" WHERE ").append(frame.getSqlFilter());
+			sql.append(frame.getSqlFilter());
 		}
 		return sql.toString();
 	}
@@ -283,7 +283,7 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		sql.append(" FROM ").append(frame.getTableName());
 		String sqlFilter = frame.getSqlFilter();
 		if(sqlFilter != null && !sqlFilter.isEmpty()) {
-			sql.append(" WHERE ").append(frame.getSqlFilter());
+			sql.append(frame.getSqlFilter());
 		}
 		return sql.toString();
 	}
