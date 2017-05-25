@@ -193,11 +193,22 @@ public class SEMOSSQuery {
 		String wherePatternString;
 		if(customQueryStructure.equals(""))
 		{
-			Enumeration clauseKeys = clauseHash.keys();
 			wherePatternString= "";
+			// first add the main
+			boolean addedMain = false;
+			if(clauseHash.containsKey(main)) {
+				addedMain = true;
+				SPARQLPatternClause clause = (SPARQLPatternClause) clauseHash.get(main);
+				wherePatternString = wherePatternString + clause.getClauseString();
+			}
+			
+			Enumeration clauseKeys = clauseHash.keys();
 			while (clauseKeys.hasMoreElements())
 			{
 				String key = (String) clauseKeys.nextElement();
+				if(addedMain && key.equals(main)) {
+					continue;
+				}
 				SPARQLPatternClause clause = (SPARQLPatternClause) clauseHash.get(key);
 				wherePatternString = wherePatternString + clause.getClauseString();
 			}

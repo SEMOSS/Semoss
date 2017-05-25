@@ -60,8 +60,8 @@ public class SPARQLPatternClause{
 	public String getClauseString()
 	{
 		clauseString ="";
-		addAllParametersToClause();
 		addAllBindsToClause();
+		addAllParametersToClause();
 		addAllTriplesToClause();
 		addAllFiltersToClause();
 		if(optional){
