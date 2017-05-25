@@ -126,6 +126,13 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		// if we still have a null
+		if(sourceVal == null) {
+			sourceVal = "EMPTY";
+		}
+		if(targetVal == null) {
+			targetVal = "EMPTY";
+		}
 
 		String source = this.aliasCurRelationship[0] + "/" + sourceVal;
 		String target = this.aliasCurRelationship[1] + "/" + targetVal;
@@ -197,6 +204,11 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		} catch (SQLException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
+		}
+		
+		// if we still have a null
+		if(nodeVal == null) {
+			nodeVal = "EMPTY";
 		}
 
 		String node = this.aliasCurVertex + "/" + nodeVal;
