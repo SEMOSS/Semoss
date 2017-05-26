@@ -208,10 +208,10 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		// of roots and so forth
 		Set<Vertex> vertsToRun = new HashSet<Vertex>();
 		
-		GraphTraversal<Vertex, Long> getAllRootOpsCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION).count(); 
-		if(getAllRootOpsCount.hasNext()) {
-			System.out.println("FOUND " + getAllRootOpsCount.next() + " OP VERTICES!");
-		}
+//		GraphTraversal<Vertex, Long> getAllRootOpsCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION).count(); 
+//		if(getAllRootOpsCount.hasNext()) {
+//			System.out.println("FOUND " + getAllRootOpsCount.next() + " OP VERTICES!");
+//		}
 		
 		// get all the operations
 		// and need to figure out which ones are roots

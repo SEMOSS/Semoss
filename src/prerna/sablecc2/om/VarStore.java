@@ -21,7 +21,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	public void put(String varName, NounMetadata variable) {
 //		varName = cleanVarName(varName);
 		if(variable.getNounName() == PkslDataTypes.COLUMN) {
-			if(varName.equalsIgnoreCase(variable.getValue().toString())) {
+			if(varName.equals(variable.getValue().toString())) {
 				return;
 			}
 		}
@@ -52,7 +52,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 				NounMetadata retNoun = ((IReactor) valueNoun.getValue()).execute();
 				return retNoun;
 			}
-		} else if(!varName.equalsIgnoreCase("$RESULT")) {
+		} else if(!varName.equals("$RESULT")) {
 			
 		}
 		// once we are done with the whole recursive
