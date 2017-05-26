@@ -1465,9 +1465,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	protected void sortData(String frameName, String colName, String orderDirection) {
 		String script = null;
-		if (orderDirection == null || orderDirection.equalsIgnoreCase("desc")) {
+		if (orderDirection == null || orderDirection.equalsIgnoreCase("asc")) {
 			script = frameName + " <- " + frameName + "[order(rank(" + colName + "))]";
-		} else if (orderDirection.equalsIgnoreCase("asc")) {
+		} else if (orderDirection.equalsIgnoreCase("desc")) {
 			script = frameName + " <- " + frameName + "[order(-rank(" + colName + "))]";
 		}
 		System.out.println("Running script " + script);
