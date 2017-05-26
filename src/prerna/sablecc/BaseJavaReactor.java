@@ -75,6 +75,14 @@ public class BaseJavaReactor extends AbstractRJavaReactor{
 						+ "6)stringr\n\n"
 						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 				e.printStackTrace();
+				throw new IllegalArgumentException("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+						+ "1)Rserve\n"
+						+ "2)splitstackshape\n"
+						+ "3)data.table\n"
+						+ "4)reshape2\n"
+						+ "5)RJDBC*\n"
+						+ "6)stringr\n\n"
+						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 			}
 		}
 		storeVariable(AbstractRJavaReactor.R_CONN, retCon);
