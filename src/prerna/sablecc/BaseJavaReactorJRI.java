@@ -76,6 +76,10 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				if(ret == null) {
 					throw new ClassNotFoundException("Package stringr could not be found!");
 				}
+			} catch(NullPointerException e) {
+				e.printStackTrace();
+				System.out.println("Could not connect to R JRI.  Please make sure paths are accurate");
+				throw new IllegalArgumentException("Could not connect to R JRI.  Please make sure paths are accurate");
 			} catch(ClassNotFoundException e) {
 				System.out.println("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
 						+ "1)splitstackshape\n"
@@ -85,6 +89,13 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 						+ "5)stringr\n\n"
 						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 				e.printStackTrace();
+				throw new IllegalArgumentException("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
+						+ "1)splitstackshape\n"
+						+ "2)data.table\n"
+						+ "3)reshape2\n"
+						+ "4)RJDBC*\n"
+						+ "5)stringr\n\n"
+						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
 			}
 		}
 		storeVariable(AbstractRJavaReactor.R_ENGINE, retEngine);
