@@ -39,7 +39,7 @@ public class AssignmentReactor extends AbstractReactor {
 		planner.addVariable(operationName, result);
 		return result;
 	}
-
+	
 	private boolean checkVariable(String variableName) {
 		//use this method to make sure the variable name doesn't not interfere with frame's headers
 		return true;
@@ -64,8 +64,27 @@ public class AssignmentReactor extends AbstractReactor {
 	public List<NounMetadata> getOutputs() {
 		// output is the variable name to be referenced
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(operationName, PkslDataTypes.COLUMN);
+		NounMetadata output = new NounMetadata(this.operationName, PkslDataTypes.COLUMN);
 		outputs.add(output);
 		return outputs;
+	}
+	
+
+	@Override
+	public void updatePlan() {
+		List<NounMetadata> inputs = getInputs();
+		if(inputs != null) {
+			if(inputs.size() == 1) {
+				// ignore
+				// this is like x = x... not really useful
+			} else if(inputs.contains(this.operationName)) {
+				// we cannot have a cycle in the plan.. must be a DAG
+				throw new IllegalArgumentException("Cannot add cycle dependencies in plan.");
+			} else {
+				super.updatePlan();
+			}
+		} else {
+			super.updatePlan();
+		}
 	}
 }
