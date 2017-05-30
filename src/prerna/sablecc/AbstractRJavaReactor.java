@@ -3468,9 +3468,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         String df1 = "this.df.name.is.reserved.for.compatibility.source";
         String df2 = "this.df.name.is.reserved.for.compatibility.target";
         
-
-        
-        
         StringBuilder sourceRead = new StringBuilder();
         sourceRead.append(df1 + "<-read.table(\"" + filePathSource + "\"");
         sourceRead.append(", header = TRUE, sep = \"\\t\", quote = \"\", na.strings = \"\", "
@@ -3506,10 +3503,142 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         storeVariable("GRID_NAME", df);
         synchronizeFromR();
 
-        
-        
-
   }
+    
+	public void runXraySearch(String[] engines, double candidateThreshold, double similarityThreshold,
+			int instancesThreshold, boolean compareProperties, boolean refresh) {
 
+		if (engines.length < 2) {
+			engines = new String[] { engines[0], engines[0] };
+		}
+		// Refresh the corpus
+		if (refresh) {
+			DomainValues dv = new DomainValues();
+			try {
+				String outputFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+						+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\"
+						+ Constants.R_MATCHING_REPO_FOLDER;
+
+				// Wipe out the old files
+				FileUtils.cleanDirectory(new File(outputFolder));
+
+				for (String engineName : engines) {
+					IEngine engine = (IEngine) Utility.getEngine(engineName);
+					dv.exportInstanceValues(engine, outputFolder, compareProperties);
+					dv.exportRelationInstanceValues(engine, outputFolder);
+				}
+
+			} catch (IOException e) {
+				LOGGER.error("Failed to refresh corpus");
+				e.printStackTrace();
+			}
+		}
+
+		// base folder Semoss/R/Matching
+		String baseMatchingFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_FOLDER;
+		baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
+
+		// Grab the corpus directory
+		String corpusDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\"
+				+ Constants.R_MATCHING_REPO_FOLDER;
+		corpusDirectory = corpusDirectory.replace("\\", "/");
+
+		// Grab the csv directory Semoss/R/Matching/Temp/rdf
+		String baseRDFDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdf";
+		baseRDFDirectory = baseRDFDirectory.replace("\\", "/");
+
+		// Semoss/R/Matching/Temp/rdf/MatchingCsvs
+		String rdfCsvDirectory = baseRDFDirectory + "\\" + Constants.R_MATCHING_CSVS_FOLDER;
+		rdfCsvDirectory = rdfCsvDirectory.replace("\\", "/");
+
+		// Grab the prop directory Semoss/R/Matching/Temp/rdf/MatchingProp
+		String rdfPropDirectory = baseRDFDirectory + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_PROP_FOLDER;
+		rdfPropDirectory = rdfPropDirectory.replace("\\", "/");
+
+		// Semoss/R/Matching/Temp/rdbms
+		String rdbmsDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdbms";
+		rdbmsDirectory = rdbmsDirectory.replace("\\", "/");
+
+		// Set the number of minhash functions and the number of bands
+		// nMinhash should be divisible by nBands, and the greater the nBands
+		// the slower the performance of the algorithm
+		// These values are meant to optimize the balance between speed and the
+		// probability of a match
+		int nMinhash;
+		int nBands;
+		if (candidateThreshold <= 0.03) {
+			nMinhash = 3640;
+			nBands = 1820;
+		} else if (candidateThreshold <= 0.05) {
+			nMinhash = 1340;
+			nBands = 670;
+		} else if (candidateThreshold <= 0.1) {
+			nMinhash = 400;
+			nBands = 200;
+		} else if (candidateThreshold <= 0.2) {
+			nMinhash = 200;
+			nBands = 100;
+		} else if (candidateThreshold <= 0.4) {
+			nMinhash = 210;
+			nBands = 70;
+		} else if (candidateThreshold <= 0.5) {
+			nMinhash = 200;
+			nBands = 50;
+		} else {
+			nMinhash = 200;
+			nBands = 40;
+		}
+
+		// Parameters for R script
+		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
+
+		// Grab the utility script
+		String utilityScriptPath = baseMatchingFolder + "\\" + Constants.R_MATCHING_SCRIPT;
+		utilityScriptPath = utilityScriptPath.replace("\\", "/");
+
+		// TODO add this library to the list when starting R
+		// This is also called in the function,
+		// but by calling it here we can see if the user doesn't have the
+		// package
+		runR("library(textreuse)");
+
+		// Source the LSH function from the utility script
+		runR("source(\"" + utilityScriptPath + "\");");
+
+		// Run locality sensitive hashing to generate matches
+		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
+				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
+				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \""
+				+ rdbmsDirectory + "\" )");
+
+		// Synchronize from R
+		storeVariable("GRID_NAME", rFrameName);
+		synchronizeFromR();
+
+		// Persist the data into a database
+		String matchingDbName = "MatchingRDBMSDatabase";
+		IEngine engine = Utility.getEngine(matchingDbName);
+
+		// Only add to the engine if it is null
+		// TODO gracefully refresh the entire db
+		if (engine == null) {
+			MatchingDB db = new MatchingDB(getBaseFolder());
+			// creates rdf and rdbms dbs
+			// TODO specify dbType if desired
+			String matchingDBType = "";
+			db.saveDB(matchingDBType);
+			// Clean directory
+			// TODO clean the directory even when there is an error
+			// try {
+			// FileUtils.cleanDirectory(new File(corpusDirectory));
+			// } catch (IOException e) {
+			// System.out.println("Unable to clean directory");
+			// e.printStackTrace();
+			// }
+		}
+
+	}
 
 }
