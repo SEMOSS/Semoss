@@ -8,20 +8,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.openrdf.model.vocabulary.RDF;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 /**
  * This class is used to print out the unique instance values of every
@@ -320,5 +325,47 @@ public class DomainValues {
 //			e.printStackTrace();
 //		}
 
+	}
+
+
+	public void exportRelationInstanceValues(IEngine engine, String outputFolder) {
+		String engineName = engine.getEngineName();
+		QueryStruct engineQS = engine.getDatabaseQueryStruct();
+		Map<String, Map<String, List>> relations = engineQS.getRelations();
+		
+		for(String fromConcept: relations.keySet()) {
+			Map<String, List> joins = relations.get(fromConcept);
+			for(String join: joins.keySet()) {
+				Vector<String> concepts = (Vector) joins.get(join); 
+				for(String endConcept: concepts) {
+					HashSet<String> uniqueConceptValues = new HashSet<String>();
+			        List<Object[]> allSourceInstances = null;
+					System.out.println("Start concept " + fromConcept + " relation " + join + " endConcept " + endConcept);
+					
+					Insight insightSource = InsightUtility.createInsight(engineName);
+					 StringBuilder pkqlCommand = new StringBuilder();
+					 pkqlCommand.append("data.frame('grid'); ");
+					 pkqlCommand.append("data.import ( api: "+ engineName + " ");
+					 pkqlCommand.append(". query ( [ c: "+ fromConcept + " , c:" + endConcept + "], " );
+					 pkqlCommand.append("([ c: " + fromConcept + " , " + join + " , c:" + endConcept + " ])));");
+			        InsightUtility.runPkql(insightSource, pkqlCommand.toString());
+			        ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
+			        allSourceInstances = data.getData();
+			        for(int i = 0; i < allSourceInstances.size(); i++) {
+			        	Object[] rowValues = allSourceInstances.get(i);
+			        	String rowOutput = rowValues[0] + " " + rowValues[1];
+			        	uniqueConceptValues.add(rowOutput);
+			        }
+					
+					
+					String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept
+							+ "%%%" + endConcept;
+					
+					
+					
+					writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
+				}
+			}
+		}
 	}
 }
