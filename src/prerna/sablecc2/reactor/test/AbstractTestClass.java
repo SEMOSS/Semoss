@@ -15,10 +15,6 @@ public abstract class AbstractTestClass {
 
 	Map<String, Object> variables = new HashMap<>();
 	
-	public AbstractTestClass() {
-		
-	}
-	
 	/**
 	 * Method that return the evaluation of 
 	 * the signature
@@ -36,7 +32,7 @@ public abstract class AbstractTestClass {
 		variables.put(var, 1);
 	}
 	
-	public void addVariable(String var, Integer value) {
+	public void addVariable(String var, int value) {
 		variables.put(var, value);
 	}
 	
