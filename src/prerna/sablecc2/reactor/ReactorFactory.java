@@ -6,15 +6,58 @@ import java.util.Map;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.export.CollectReactor;
-import prerna.sablecc2.reactor.export.job.*;
-import prerna.sablecc2.reactor.expression.*;
-import prerna.sablecc2.reactor.planner.*;
-import prerna.sablecc2.reactor.planner.graph.*;
-import prerna.sablecc2.reactor.qs.*;
-import prerna.sablecc2.reactor.storage.*;
-import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
+import prerna.sablecc2.reactor.export.job.AddFormatReactor;
+import prerna.sablecc2.reactor.export.job.AddOptionsReactor;
+import prerna.sablecc2.reactor.export.job.ExportReactor;
+import prerna.sablecc2.reactor.export.job.SetFormatReactor;
+import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
+import prerna.sablecc2.reactor.expression.DefaultOpReactor;
+import prerna.sablecc2.reactor.expression.IfError;
+import prerna.sablecc2.reactor.expression.OpAbsolute;
+import prerna.sablecc2.reactor.expression.OpAnd;
+import prerna.sablecc2.reactor.expression.OpLarge;
+import prerna.sablecc2.reactor.expression.OpMatch;
+import prerna.sablecc2.reactor.expression.OpMax;
+import prerna.sablecc2.reactor.expression.OpMean;
+import prerna.sablecc2.reactor.expression.OpMedian;
+import prerna.sablecc2.reactor.expression.OpMin;
+import prerna.sablecc2.reactor.expression.OpOr;
+import prerna.sablecc2.reactor.expression.OpPower;
+import prerna.sablecc2.reactor.expression.OpRound;
+import prerna.sablecc2.reactor.expression.OpSmall;
+import prerna.sablecc2.reactor.expression.OpSum;
+import prerna.sablecc2.reactor.expression.OpSumIf;
+import prerna.sablecc2.reactor.expression.OpSumIfs;
+import prerna.sablecc2.reactor.expression.OpSumProduct;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
+import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.planner.CreateStoreReactor;
+import prerna.sablecc2.reactor.planner.GraphPlanReactor;
+import prerna.sablecc2.reactor.planner.graph.ExecuteGraphPlannerReactor;
+import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
+import prerna.sablecc2.reactor.planner.graph.RunGraphTaxPlannerReactor;
+import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor;
+import prerna.sablecc2.reactor.qs.AverageReactor;
+import prerna.sablecc2.reactor.qs.DatabaseReactor;
+import prerna.sablecc2.reactor.qs.FrameReactor;
+import prerna.sablecc2.reactor.qs.GroupByReactor;
+import prerna.sablecc2.reactor.qs.JoinReactor;
+import prerna.sablecc2.reactor.qs.LimitReactor;
+import prerna.sablecc2.reactor.qs.OffsetReactor;
+import prerna.sablecc2.reactor.qs.QueryFilterReactor;
+import prerna.sablecc2.reactor.qs.QueryReactor;
+import prerna.sablecc2.reactor.qs.SelectReactor;
+import prerna.sablecc2.reactor.qs.SumReactor;
+import prerna.sablecc2.reactor.storage.RetrieveValue;
+import prerna.sablecc2.reactor.storage.StoreReactor;
+import prerna.sablecc2.reactor.storage.StoreValue;
+import prerna.sablecc2.reactor.storage.TaxRetrieveValue;
+import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 
 public class ReactorFactory {
 
@@ -100,7 +143,7 @@ public class ReactorFactory {
 		//If is in its own category
 		reactorHash.put("if", IfReactor.class);
 		
-		// in mem storage of data
+		//In mem storage of data
 		reactorHash.put("MapStore", StoreReactor.class);
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
@@ -114,7 +157,7 @@ public class ReactorFactory {
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
 		
 		
-		//Tinker Specfic Tax Reactors
+		//Tinker Specific Tax Reactors
 		reactorHash.put("RunTaxPlan", RunGraphTaxPlannerReactor.class);
 		reactorHash.put("RunPlan", ExecuteGraphPlannerReactor.class);
 		reactorHash.put("LoadClient", LoadGraphClient.class);
@@ -124,6 +167,13 @@ public class ReactorFactory {
 //		reactorHash.put("RunTaxPlan", RunTaxPlannerReactor.class);
 //		reactorHash.put("LoadClient", LoadClient2.class);
 //		reactorHash.put("RunPlan", RunTablePlannerReactor.class);
+		
+		//Local Master Reactors
+		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
+		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
+		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
+		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
+		reactorHash.put("GetEngineMetamodel", DatabaseMetamodelReactor.class);
 	}
 	
 	/**
