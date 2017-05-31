@@ -1,4 +1,4 @@
-NUM_COLUMNS	16
+NUM_COLUMNS	18
 1	NUMBER
 2	NUMBER
 3	NUMBER
@@ -15,8 +15,10 @@ NUM_COLUMNS	16
 14	STRING
 15	NUMBER
 16	NUMBER
+17	NUMBER
+18	NUMBER
 START_ROW	2
-END_ROW	297
+END_ROW	8
 RELATION	
-NODE_PROP	match_id%score;match_id%item_instances;match_id%match_instances;match_id%item_engine;match_id%item_concept_id;match_id%item_property_id;match_id%match_engine;match_id%match_concept_id;match_id%match_property_id;match_id%item_concept;match_id%match_concept;match_id%item_property;match_id%match_property;match_id%has_property_item;match_id%has_property_match;
+NODE_PROP	match_id%match_property;match_id%item_property;match_id%is_concept_item;match_id%is_concept_match;match_id%is_relation_item;match_id%is_relation_match;match_id%match_concept;match_id%item_concept;match_id%match_property_id;match_id%match_concept_id;match_id%match_engine;match_id%item_property_id;match_id%item_concept_id;match_id%item_engine;match_id%match_instances;match_id%item_instances;match_id%score;
 RELATION_PROP	 
