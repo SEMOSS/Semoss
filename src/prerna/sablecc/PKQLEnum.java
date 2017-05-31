@@ -123,6 +123,7 @@ public class PKQLEnum {
 	public static final String HISTOGRAM = "HISTOGRAM";
 	public static final String COL_FILTER_MODEL = "COL_FILTER_MODEL";
 	public static final String QUERY_API = "QUERY_API";
+	public static final String REMOTE_RDBMS_QUERY_API = "REMOTE_RDBMS_QUERY_API";
 	public static final String TINKER_QUERY_API = "TINKER_QUERY_API";
 	public static final String CSV_API = "CSV_API";
 	public static final String EXCEL_API = "EXCEL_API";
