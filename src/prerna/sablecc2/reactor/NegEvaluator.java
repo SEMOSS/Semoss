@@ -6,15 +6,9 @@ import prerna.sablecc2.om.PkslDataTypes;
 public class NegEvaluator extends AbstractReactor {
 
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
 	public NounMetadata execute() {
 		NounMetadata noun = this.curRow.getNoun(0);
 		return evalAdditiveInverseNoun(noun);
-		
 	}
 	
 	/**

@@ -11,23 +11,12 @@ import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.sablecc2.reactor.storage.StoreReactor;
 
 public class CreateStoreReactor extends AbstractReactor {
 
 	private static final String STORE_NOUN = "store";
 	private static final String KEY_NOUN = "key";
 	
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
 	@Override
 	public NounMetadata execute() {
 

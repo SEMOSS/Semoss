@@ -22,7 +22,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.om.TaxMapStore;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.TablePKSLPlanner;
-import prerna.sablecc2.reactor.storage.StoreReactor;
 import prerna.util.ArrayUtilityMethods;
 
 public class RunTableTaxPlannerReactor extends AbstractTablePlannerReactor {
@@ -35,16 +34,6 @@ public class RunTableTaxPlannerReactor extends AbstractTablePlannerReactor {
 	private String typeHeader = "Type_1";
 
 	private TablePKSLPlanner originalPlan = null;
-
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
 
 	@Override
 	public NounMetadata execute()

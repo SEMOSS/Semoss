@@ -9,11 +9,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public class AsReactor extends AbstractReactor {
 	
-	@Override
-	public void In() {
-		curNoun("all");	
-	}
-	
 	public Object Out()
 	{
 		updatePlan();

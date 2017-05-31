@@ -18,16 +18,6 @@ public class ExecuteTablePlannerReactor extends AbstractTablePlannerReactor {
 	private static final Logger LOGGER = LogManager.getLogger(LoadGraphClient.class.getName());
 
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-	
-	@Override
 	public NounMetadata execute()
 	{
 		long start = System.currentTimeMillis();

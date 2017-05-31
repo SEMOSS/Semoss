@@ -58,16 +58,6 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 		valueHeader = "Value_1"; //header for value containing the value assigned to column name
 		typeHeader = "Type_1";
 	}
-	
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
 
 	@Override
 	public NounMetadata execute()

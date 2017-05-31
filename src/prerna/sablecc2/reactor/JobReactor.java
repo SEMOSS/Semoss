@@ -7,17 +7,8 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
 public class JobReactor extends AbstractReactor {
-
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
 	
+	@Override
 	public NounMetadata execute() {
 		// this just returns the job id
 		String jobId = (String)curRow.get(0);
