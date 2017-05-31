@@ -65,7 +65,8 @@ if(length(list1) == 0 | length(list2) == 0) {
 			df1$test<-as.factor(df1$test)
 			df<-df1
 		} else{
-			return(data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric()))
+			# return(data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric()))
+			return(empty_dataframe())
 		}
 		
 }
@@ -90,9 +91,20 @@ if(nrow(dft) > 0) {
 		r = data.frame(rule=labels(rules.pruned@lhs),support=rules.pruned@quality$support,confidence=rules.pruned@quality$confidence,lift=rules.pruned@quality$lift)
 		return(r[order(r$support,r$confidence,r$lift,decreasing=c(T,T,T)),])
 	} else {
-		return(data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric()))
+		#return(data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric()))
+		return(empty_dataframe())
 	}
 } else {
-	return(data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric()))
+	#return(data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric()))
+	return(empty_dataframe())
 }
+}
+
+empty_dataframe <- function(){
+	dft<-data.frame(rule=character(),support=numeric(),confidence=numeric(),lift=numeric())
+	temprow <- matrix(c(rep.int("",length(dft))),nrow=1,ncol=length(dft))
+	newrow <- data.frame(temprow)
+	colnames(newrow) <- colnames(dft)
+	dft <- rbind(dft,newrow)
+	return(dft)
 }
