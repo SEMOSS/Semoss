@@ -13,8 +13,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.HeadersDataRow;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
-import prerna.util.sql.SQLQueryUtil;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
@@ -30,24 +28,37 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	// this is used so we do not close the engine connection
 	private boolean useEngineConnection = false;
 
+	public void directExecutionViaConnection(Connection conn, String query) {
+		try {
+			this.conn = conn;
+			this.stmt = this.conn.createStatement();
+			this.rs = this.stmt.executeQuery(query);
+			setVariables();
+		} catch(Exception e) {
+			e.printStackTrace();
+			ConnectionUtils.closeAllConnections(conn, rs, stmt);
+			throw new IllegalArgumentException(e.getMessage());
+		}
+	}
+	
 	@Override
 	public void execute() {
 		try{
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
-			stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+			this.stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
 			Object connObj = map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
 			if(connObj == null){
-				useEngineConnection = true;
+				this.useEngineConnection = true;
 				connObj = map.get(RDBMSNativeEngine.ENGINE_CONNECTION_OBJECT);
 			}
-			conn = (Connection) connObj;
-			rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			this.conn = (Connection) connObj;
+			this.rs = (ResultSet) map.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 
 			// go through and collect the metadata around the query
 			setVariables();
 		} catch (Exception e){
 			e.printStackTrace();
-			if(useEngineConnection) {
+			if(this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, rs, stmt);
 			} else {
 				ConnectionUtils.closeAllConnections(conn, rs, stmt);
@@ -129,14 +140,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	private void setVariables(){
 		try {
-			// get the correct rdbms type
-			// default to h2
-			SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-			String dbTypeString = engine.getProperty(Constants.RDBMS_TYPE);
-			if (dbTypeString != null) {
-				dbType = (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString));
-			}
-
 			// get the result set metadata
 			ResultSetMetaData rsmd = rs.getMetaData();
 			numColumns = rsmd.getColumnCount();

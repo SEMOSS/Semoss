@@ -13,6 +13,8 @@ public final class ARawApiBlock extends PRawApiBlock
     private TId _insight_;
     private TLPar _lPar_;
     private TQueryblock _queryblock_;
+    private TComma _comma1_;
+    private PMapObj _properties_;
     private TRPar _rPar_;
 
     public ARawApiBlock()
@@ -27,6 +29,8 @@ public final class ARawApiBlock extends PRawApiBlock
         @SuppressWarnings("hiding") TId _insight_,
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") TQueryblock _queryblock_,
+        @SuppressWarnings("hiding") TComma _comma1_,
+        @SuppressWarnings("hiding") PMapObj _properties_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -42,6 +46,10 @@ public final class ARawApiBlock extends PRawApiBlock
 
         setQueryblock(_queryblock_);
 
+        setComma1(_comma1_);
+
+        setProperties(_properties_);
+
         setRPar(_rPar_);
 
     }
@@ -56,6 +64,8 @@ public final class ARawApiBlock extends PRawApiBlock
             cloneNode(this._insight_),
             cloneNode(this._lPar_),
             cloneNode(this._queryblock_),
+            cloneNode(this._comma1_),
+            cloneNode(this._properties_),
             cloneNode(this._rPar_));
     }
 
@@ -215,6 +225,56 @@ public final class ARawApiBlock extends PRawApiBlock
         this._queryblock_ = node;
     }
 
+    public TComma getComma1()
+    {
+        return this._comma1_;
+    }
+
+    public void setComma1(TComma node)
+    {
+        if(this._comma1_ != null)
+        {
+            this._comma1_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma1_ = node;
+    }
+
+    public PMapObj getProperties()
+    {
+        return this._properties_;
+    }
+
+    public void setProperties(PMapObj node)
+    {
+        if(this._properties_ != null)
+        {
+            this._properties_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._properties_ = node;
+    }
+
     public TRPar getRPar()
     {
         return this._rPar_;
@@ -250,6 +310,8 @@ public final class ARawApiBlock extends PRawApiBlock
             + toString(this._insight_)
             + toString(this._lPar_)
             + toString(this._queryblock_)
+            + toString(this._comma1_)
+            + toString(this._properties_)
             + toString(this._rPar_);
     }
 
@@ -290,6 +352,18 @@ public final class ARawApiBlock extends PRawApiBlock
         if(this._queryblock_ == child)
         {
             this._queryblock_ = null;
+            return;
+        }
+
+        if(this._comma1_ == child)
+        {
+            this._comma1_ = null;
+            return;
+        }
+
+        if(this._properties_ == child)
+        {
+            this._properties_ = null;
             return;
         }
 
@@ -339,6 +413,18 @@ public final class ARawApiBlock extends PRawApiBlock
         if(this._queryblock_ == oldChild)
         {
             setQueryblock((TQueryblock) newChild);
+            return;
+        }
+
+        if(this._comma1_ == oldChild)
+        {
+            setComma1((TComma) newChild);
+            return;
+        }
+
+        if(this._properties_ == oldChild)
+        {
+            setProperties((PMapObj) newChild);
             return;
         }
 
