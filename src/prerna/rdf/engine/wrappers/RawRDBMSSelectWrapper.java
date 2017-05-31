@@ -28,6 +28,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	// this is used so we do not close the engine connection
 	private boolean useEngineConnection = false;
 
+	// use this if we want to close the connection once the iterator is done
+	private boolean closeConnectionAfterExecution = false;
+	
 	public void directExecutionViaConnection(Connection conn, String query) {
 		try {
 			this.conn = conn;
@@ -128,8 +131,11 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// return the header row
 			return new HeadersDataRow(displayVar, row, row);
 		} else {
-			rs.close();
-			stmt.close();
+			this.rs.close();
+			this.stmt.close();
+			if(this.closeConnectionAfterExecution) {
+				this.conn.close();
+			}
 		}
 
 		// no more results
@@ -172,5 +178,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	public ResultSetMetaData getMetaData() throws SQLException {
 		return this.rs.getMetaData();
+	}
+	
+	public void setCloseConenctionAfterExecution(boolean closeConnectionAfterExecution) {
+		this.closeConnectionAfterExecution = closeConnectionAfterExecution;
 	}
 }
