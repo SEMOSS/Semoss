@@ -14,16 +14,6 @@ public class GenericReactor extends AbstractReactor {
 	}
 	
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute() {
 		// THIS IS A SPECIAL CASE
 		// we want to merge up into the parent

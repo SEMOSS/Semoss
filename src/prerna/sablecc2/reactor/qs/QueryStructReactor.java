@@ -31,13 +31,6 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	// method to override in the specific qs classes
 	abstract QueryStruct2 createQueryStruct();
 
-	
-	@Override
-	public void In() {
-		curNoun("all");
-		
-	}
-
 	@Override
 	public Object Out() {
 		init();

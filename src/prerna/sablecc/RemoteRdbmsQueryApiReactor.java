@@ -21,6 +21,7 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 	public static final String USERNAME_KEY = "userName";
 	public static final String PASSWORD_KEY = "password";
 
+	//TODO: need this and connect to existing constants to be in a shared location
 	private static final String MYSQL = "MySQL";
 	private static final String MYSQL_DRIVER = "com.mysql.jdbc.Driver";
 	private static final String ORACLE = "Oracle";

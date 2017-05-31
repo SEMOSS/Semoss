@@ -16,7 +16,6 @@ public class LoadGraphClient extends AbstractLoadClient {
 
 	private int total = 0;
 	private int error = 0;
-	
 
 	protected PKSLPlanner createPlanner() {
 		long start = System.currentTimeMillis();

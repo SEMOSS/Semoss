@@ -28,16 +28,6 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	protected abstract PKSLPlanner createPlanner();
 	
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return this.parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute()
 	{
 		// run through all the results in the iterator

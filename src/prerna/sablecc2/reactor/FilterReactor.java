@@ -9,22 +9,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public class FilterReactor extends AbstractReactor{
 
-	@Override
-	public void In()
-	{
-        curNoun("all");
-	}
-	
-	@Override
-	public Object Out()
-	{
-		// just return the parent
-		// in the deinit flow
-		// execute will push the filter
-		// to the parent
-		return parentReactor;
-	}
-	
 	public NounMetadata execute() {
 		// the translation will set each component 
 		// under a different noun
