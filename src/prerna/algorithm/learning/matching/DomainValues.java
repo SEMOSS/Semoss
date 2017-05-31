@@ -322,47 +322,48 @@ public class DomainValues {
 //		try {
 //			dv.exportDomainValues();
 //		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+		// e.printStackTrace();
+		// }
 
 	}
 
-
+	/**
+	 * 
+	 * @param engine
+	 * @param outputFolder
+	 */
 	public void exportRelationInstanceValues(IEngine engine, String outputFolder) {
 		String engineName = engine.getEngineName();
 		QueryStruct engineQS = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = engineQS.getRelations();
-		
-		for(String fromConcept: relations.keySet()) {
+
+		for (String fromConcept : relations.keySet()) {
 			Map<String, List> joins = relations.get(fromConcept);
-			for(String join: joins.keySet()) {
-				Vector<String> concepts = (Vector) joins.get(join); 
-				for(String endConcept: concepts) {
+			for (String join : joins.keySet()) {
+				Vector<String> concepts = (Vector) joins.get(join);
+				for (String endConcept : concepts) {
 					HashSet<String> uniqueConceptValues = new HashSet<String>();
-			        List<Object[]> allSourceInstances = null;
-					System.out.println("Start concept " + fromConcept + " relation " + join + " endConcept " + endConcept);
-					
+					List<Object[]> allSourceInstances = null;
 					Insight insightSource = InsightUtility.createInsight(engineName);
-					 StringBuilder pkqlCommand = new StringBuilder();
-					 pkqlCommand.append("data.frame('grid'); ");
-					 pkqlCommand.append("data.import ( api: "+ engineName + " ");
-					 pkqlCommand.append(". query ( [ c: "+ fromConcept + " , c:" + endConcept + "], " );
-					 pkqlCommand.append("([ c: " + fromConcept + " , " + join + " , c:" + endConcept + " ])));");
-			        InsightUtility.runPkql(insightSource, pkqlCommand.toString());
-			        ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
-			        allSourceInstances = data.getData();
-			        for(int i = 0; i < allSourceInstances.size(); i++) {
-			        	Object[] rowValues = allSourceInstances.get(i);
-			        	String rowOutput = rowValues[0] + " " + rowValues[1];
-			        	uniqueConceptValues.add(rowOutput);
-			        }
-					
-					
-					String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept
-							+ "%%%" + endConcept;
-					
-					
-					
+					StringBuilder pkqlCommand = new StringBuilder();
+					pkqlCommand.append("data.frame('grid'); ");
+					pkqlCommand.append("data.import ( api: " + engineName + " ");
+					// pkqlCommand.append(". query ( [ c: "+ fromConcept + " ,
+					// c:" + endConcept + "], " );
+					pkqlCommand.append(". query ( [ c:" + endConcept + "], ");
+					pkqlCommand.append("([ c: " + fromConcept + " , " + join + " , c:" + endConcept + " ])));");
+					InsightUtility.runPkql(insightSource, pkqlCommand.toString());
+					ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
+					allSourceInstances = data.getData();
+					for (int i = 0; i < allSourceInstances.size(); i++) {
+						Object[] rowValues = allSourceInstances.get(i);
+						String rowOutput = rowValues[0] + " ";
+						uniqueConceptValues.add(rowOutput);
+					}
+
+					String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept + "%%%"
+							+ endConcept;
+
 					writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
 				}
 			}
