@@ -8,16 +8,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public class VectorReactor extends AbstractReactor {
 
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-	
 	public NounMetadata execute() {
 		List<NounMetadata> list = new ArrayList<>();
 		for(int i = 0; i < curRow.size(); i++) {

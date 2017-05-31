@@ -11,16 +11,6 @@ import prerna.sablecc2.reactor.storage.StoreValue;
 
 public class IfReactor extends AbstractReactor {
 
-	@Override
-	public void In() {
-        curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
 	// execute it
 	// once again this would be abstract
 	public NounMetadata execute()

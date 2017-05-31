@@ -18,19 +18,6 @@ public class Assimilator extends AbstractReactor {
 	private boolean allIntValue = true;
 
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		// in the translation flow
-		// execute will run and send back
-		// the data to set into the parent
-		return parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute() {
 		modifySignatureFromLambdas();
 		

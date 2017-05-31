@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.planner;
 
+import static prerna.sablecc2.reactor.PKSLPlanner.TINKER_NAME;
+import static prerna.sablecc2.reactor.PKSLPlanner.TINKER_TYPE;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -8,7 +11,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -17,22 +19,10 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
-import static prerna.sablecc2.reactor.PKSLPlanner.*;
 import prerna.util.Utility;
-
 
 public class GraphPlanReactor extends AbstractReactor {
 
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return null;
-	}
-	
 	@Override
 	public NounMetadata execute() {
 		Map map = createVertStores2(getPlanner());

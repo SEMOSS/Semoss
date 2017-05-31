@@ -17,16 +17,6 @@ public abstract class OpReactor extends AbstractReactor {
 	 * what the execute function does
 	 */
 	
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
 	/**
 	 * Merge the curRow from the expr reactor
 	 * which generated this operation

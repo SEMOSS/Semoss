@@ -28,16 +28,6 @@ public class IterateReactor extends AbstractReactor {
 	private Job output;
 	private String IN_MEM_STORE = "store";
 	
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-	
 	public NounMetadata execute() {
 		return createJob();
 	}

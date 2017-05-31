@@ -28,16 +28,6 @@ public class RetrieveValue extends AbstractReactor {
 	 * 
 	 * key ->	the key that the value is stored under
 	 */
-	
-	@Override
-	public void In() {
-        curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
 
 	@Override
 	public NounMetadata execute()

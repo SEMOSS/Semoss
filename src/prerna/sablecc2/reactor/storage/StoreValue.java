@@ -32,16 +32,6 @@ public class StoreValue extends AbstractReactor {
 	 */
 
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute()
 	{
 		NounMetadata storeNoun = (NounMetadata) this.store.getNoun(STORE_NOUN).getNoun(0);

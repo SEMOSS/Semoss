@@ -6,16 +6,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 public class NegReactor extends AbstractReactor {
 
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return this.parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute() {
 		NounMetadata inverseNoun = null;
 		// grab the noun to inverse
