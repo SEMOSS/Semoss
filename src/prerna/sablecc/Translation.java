@@ -24,6 +24,8 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IScriptReactor;
+import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.nameserver.utility.MetamodelVertex;
 import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -35,8 +37,6 @@ import prerna.sablecc.meta.DataInsightMetaData;
 import prerna.sablecc.meta.GenericMetaData;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.node.*;
-import prerna.sablecc.services.DatabasePkqlService;
-import prerna.sablecc.services.MetamodelVertex;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -2629,7 +2629,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outADatabaseList(ADatabaseList node) {
 		// just get the list of engines
-		List<String> dbList = DatabasePkqlService.getDatabaseList();
+		List<String> dbList = MasterDatabaseUtility.getDatabaseList();
 		// put it in a map so the FE knows what it is looking at
 		Map returnData = new HashMap();
 		returnData.put("list", convertListToListMaps(dbList));
@@ -2641,7 +2641,7 @@ public class Translation extends DepthFirstAdapter {
 	public void outADatabaseConcepts(ADatabaseConcepts node) {
 		// get the engine
 		String engineName = node.getEngineName().toString().trim();
-		Set<String> concepts = DatabasePkqlService.getConceptsWithinEngine(engineName);
+		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngine(engineName);
 
 		// put it in a map so the FE knows what it is looking at
 		Map returnData = new HashMap();
@@ -2660,7 +2660,7 @@ public class Translation extends DepthFirstAdapter {
 		List<String> logicalNames = new Vector<String>();
 		logicalNames.add(conceptLogicalName);
 		
-		Map connectedConceptsData = DatabasePkqlService.getConnectedConcepts(logicalNames);
+		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConcepts(logicalNames);
 
 		runner.setReturnData(connectedConceptsData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
@@ -2671,7 +2671,7 @@ public class Translation extends DepthFirstAdapter {
 		// get the engine
 		String engineName = node.getEngineName().toString().trim();
 		// get the metamodel for the engine
-		runner.setReturnData(DatabasePkqlService.getMetamodel(engineName));
+		runner.setReturnData(MasterDatabaseUtility.getMetamodel(engineName));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
@@ -2690,7 +2690,7 @@ public class Translation extends DepthFirstAdapter {
 		String engineName = null;
 		if(hasEngine) {
 			engineName = node.getEngineName().toString().trim();
-			Map<String, Object[]> retData = DatabasePkqlService.getConceptProperties(logicalNames, engineName);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptProperties(logicalNames, engineName);
 			//iterate through cause not sure if engine key will get reformatted
 			for(String engineKey : retData.keySet()) {
 				Object[] props = retData.get(engineKey);
@@ -2706,7 +2706,7 @@ public class Translation extends DepthFirstAdapter {
 				break;
 			}
 		} else {
-			Map<String, Object[]> retData = DatabasePkqlService.getConceptProperties(logicalNames, null);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptProperties(logicalNames, null);
 			runner.setReturnData(retData);
 		}
 		
