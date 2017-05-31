@@ -125,7 +125,6 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 			throw new IllegalArgumentException("ERROR WITH EXECUTION OF SQL QUERY");
 		}
 
-
 		this.put((String) getValue(PKQLEnum.RAW_API), it);
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);

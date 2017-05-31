@@ -1,4 +1,4 @@
-package prerna.sablecc.services;
+package prerna.nameserver.utility;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +25,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class DatabasePkqlService {
+public class MasterDatabaseUtility {
 
 	private static enum DIRECTION_KEYS {
 		UPSTREAM ("upstream"), 

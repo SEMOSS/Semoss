@@ -44,8 +44,8 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.SEMOSSVertex;
-import prerna.sablecc.services.DatabasePkqlService;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -104,7 +104,7 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 			
 			List<String> traverseFromList = new Vector<String>();
 			traverseFromList.add(type);
-			Map<String, Map<String, Object>> connectedConcepts = DatabasePkqlService.getConnectedConcepts(traverseFromList);
+			Map<String, Map<String, Object>> connectedConcepts = MasterDatabaseUtility.getConnectedConcepts(traverseFromList);
 			
 			logger.debug("Found the engine for repository   " + repo);
 			// for now we'll just show the values in this specific db
