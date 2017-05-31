@@ -60,16 +60,6 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 	}
 	
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
-	@Override
 	public NounMetadata execute()
 	{
 		long start = System.currentTimeMillis();

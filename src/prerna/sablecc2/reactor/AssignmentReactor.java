@@ -12,16 +12,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 public class AssignmentReactor extends AbstractReactor {
 
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return this.parentReactor;
-	}
-	
-	@Override
 	public NounMetadata execute() {
 		NounMetadata result = planner.getVariable("$RESULT");
 		if(result == null) {

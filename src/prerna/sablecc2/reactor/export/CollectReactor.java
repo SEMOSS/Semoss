@@ -15,16 +15,6 @@ import prerna.sablecc2.reactor.AbstractReactor;
  */
 public class CollectReactor extends AbstractReactor{
 
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
 	public NounMetadata execute() {
 		Job job = getJob();
 		int collectThisMany = getTotalToCollect();

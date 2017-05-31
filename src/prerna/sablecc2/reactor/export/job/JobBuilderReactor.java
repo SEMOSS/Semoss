@@ -16,16 +16,6 @@ public abstract class JobBuilderReactor extends AbstractReactor {
 	//This method is implemented by child classes, each class is responsible for building different pieces of the job
 	protected abstract void buildJob();
 	
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-	
 	public NounMetadata execute() {
 		init(); //initialize the job
 		buildJob(); //build the job

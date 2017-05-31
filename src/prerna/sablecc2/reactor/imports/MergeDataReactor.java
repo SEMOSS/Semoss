@@ -22,17 +22,6 @@ import prerna.util.Utility;
 
 public class MergeDataReactor extends AbstractReactor {
 
-
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-
 	@Override
 	public NounMetadata execute()  {
 		// greedy exectuion
