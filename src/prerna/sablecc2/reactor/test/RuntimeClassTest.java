@@ -119,7 +119,7 @@ public class RuntimeClassTest extends AbstractReactor {
 			Object var = variables.get(varName);
 			String varDef = "";
 			if(var instanceof Number) {
-				varDef = "Integer "+varName+" = "+((Number)var).intValue();
+				varDef = "int "+varName+" = "+((Number)var).intValue();
 			} 
 			
 			else if(var instanceof String) {
@@ -141,7 +141,7 @@ public class RuntimeClassTest extends AbstractReactor {
 	private static void addVariables(RuntimeClassTest test) {
 		Random rand = new Random();
 		for(int i = 0; i < 26; i++) {
-			String varName = ((char)('A'+i))+"";
+			String varName = ((char)('a'+i))+"";
 			test.addVariable(varName, rand.nextInt(100)+1);
 		}
 	}
@@ -149,10 +149,10 @@ public class RuntimeClassTest extends AbstractReactor {
 	private static void addEquations(RuntimeClassTest test) {
 		EquationGenerator eg = new EquationGenerator();
 		
-		String[] equations = eg.getRandomEquations(1);
+		String[] equations = eg.getRandomEquations(1000);
 		
 		for(String equation : equations) {
-			System.out.println(equation);
+//			System.out.println(equation);
 			test.addEquation(equation);
 		}
 	}

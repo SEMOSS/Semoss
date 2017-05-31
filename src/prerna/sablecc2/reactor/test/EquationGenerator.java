@@ -26,7 +26,7 @@ public class EquationGenerator {
 //		}
 		varNames = new String[26];
 		for(int i = 0; i < varNames.length; i++) {
-			varNames[i] = ((char)('A' + i))+"";
+			varNames[i] = ((char)('a' + i))+"";
 		}
 	}
 	
