@@ -625,44 +625,37 @@ public class Translation extends DepthFirstAdapter {
 				this.reactorNames.put(PKQLEnum.API, this.reactorNames.get(PKQLEnum.QUERY_API));
 			}
 		}
-//		if (reactorNames.containsKey(PKQLEnum.API)) {
-			// this is here because we are overriding the data.import order of
-			// execution to process the joins
-			// before we process the iterator
-			// curReactor at this point is still an ImportDataReactor
-			List tableJoins = null;
-			if (curReactor.getValue(PKQLEnum.JOINS) != null) {
-				tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
+		// this is here because we are overriding the data.import order of
+		// execution to process the joins
+		// before we process the iterator
+		// curReactor at this point is still an ImportDataReactor
+		if (curReactor.getValue(PKQLEnum.JOINS) != null) {
+			List tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
+			curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
+		}
+
+		// make the api type
+		// set in the values
+		initReactor(PKQLEnum.API);
+
+		String nodeStr = node.toString().trim();
+		curReactor.put(PKQLEnum.API, nodeStr);
+		curReactor.put("ENGINE", engine);
+
+		// something to do with parameters... need to look into this at some
+		// point...
+		curReactor.put("INSIGHT", node.getInsight().toString());
+		Map<String, Map<String, Object>> varMap = runner.getVarMap();
+		Map<String, Map<String, Object>> varMapForReactor = new HashMap<String, Map<String, Object>>();
+		// Grab any param data for the current engine so API reactor grabs
+		// those values as needed
+		for (String var : varMap.keySet()) {
+			Map<String, Object> paramValues = varMap.get(var);
+			if (engine.equals(paramValues.get(Constants.ENGINE))) {
+				varMapForReactor.put(var, varMap.get(var));
 			}
-
-			// make the api type
-			// set in the values
-			initReactor(PKQLEnum.API);
-
-			String nodeStr = node.toString().trim();
-			curReactor.put(PKQLEnum.API, nodeStr);
-			curReactor.put("ENGINE", engine);
-
-			// something to do with parameters... need to look into this at some
-			// point...
-			curReactor.put("INSIGHT", node.getInsight().toString());
-			Map<String, Map<String, Object>> varMap = runner.getVarMap();
-			Map<String, Map<String, Object>> varMapForReactor = new HashMap<String, Map<String, Object>>();
-			// Grab any param data for the current engine so API reactor grabs
-			// those values as needed
-			for (String var : varMap.keySet()) {
-				Map<String, Object> paramValues = varMap.get(var);
-				if (engine.equals(paramValues.get(Constants.ENGINE))) {
-					varMapForReactor.put(var, varMap.get(var));
-				}
-			}
-			curReactor.put("VARMAP", varMapForReactor);
-
-			// add in the table joins if present
-			if (tableJoins != null) {
-				curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
-			}
-//		}
+		}
+		curReactor.put("VARMAP", varMapForReactor);
 	}
 
 	@Override
@@ -701,7 +694,11 @@ public class Translation extends DepthFirstAdapter {
 			//we are querying the frame
 			this.reactorNames.put(PKQLEnum.RAW_API, this.reactorNames.get(PKQLEnum.FRAME_RAW_API));
 			initReactor(PKQLEnum.RAW_API);
+		} else if (engineName.equalsIgnoreCase("remoteConnection")) {
+			this.reactorNames.put(PKQLEnum.RAW_API, this.reactorNames.get(PKQLEnum.REMOTE_RDBMS_QUERY_API));
+			initReactor(PKQLEnum.RAW_API);
 		} else {
+			this.reactorNames.put(PKQLEnum.RAW_API, "prerna.sablecc.RawQueryApiReactor");
 			initReactor(PKQLEnum.RAW_API);
 		}
 		// set the engine
