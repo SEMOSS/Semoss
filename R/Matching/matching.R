@@ -254,36 +254,58 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   match.property <- rbindlist(list(match.property, list(c.p, t.p.id)))
   match.property <- rbindlist(list(match.property, list(p.p, t.p.id)))
   
-  has.property.item <- NA
-  #print(dt$item_property_id)
+  #check if item id is for concept or property
+  is.concept.item <- NA
   
   property.ids.item <- dt$item_property_id
-  #print(property_ids)
   for (i in seq_along(property.ids.item)) {
 	if(is.na(property.ids.item[i])) {
-		has.property.item[i] = 0
+		is.concept.item[i] = 0
 	} else {
-		has.property.item[i] =1}
+		is.concept.item[i] =1}
 	}
 	
-	dt<-cbind(dt, has.property.item)
+	dt<-cbind(dt, is.concept.item)
 	
-	has.property.match <- NA
-  #print(dt$item_property_id)
+	#check if match id is for concept or property
+
+	is.concept.match <- NA
   
   property.ids.match <- dt$match_property_id
-  #print(property_ids)
   for (i in seq_along(property.ids.match)) {
 	if(is.na(property.ids.match[i])) {
-		has.property.match[i] = 0
+		is.concept.match[i] = 0
 	} else {
-		has.property.match[i] =1}
+		is.concept.match[i] =1}
 	}
 	
-	dt<-cbind(dt, has.property.match)
+	dt<-cbind(dt, is.concept.match)
 	
+	#check if item id if for relation
+	is.relation.item <- NA
+  
+	relation.ids.item <- dt$item_concept_id
+	for (i in seq_along(relation.ids.item)) {
+	if(grepl('%%%', relation.ids.item[i])) {
+		is.relation.item[i] = 1
+	} else {
+		is.relation.item[i] =0}
+	}
 	
+	dt<-cbind(dt, is.relation.item)
 	
+	#check if item id if for relation
+	is.relation.match <- NA
+  
+	relation.ids.match <- dt$match_concept_id
+	for (i in seq_along(relation.ids.match)) {
+	if(grepl('%%%',relation.ids.match[i])) {
+		is.relation.match[i] = 1
+	} else {
+		is.relation.match[i] =0}
+	}
+	
+	dt<-cbind(dt, is.relation.match)
 	
 	
   
@@ -301,6 +323,8 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   write.csv(match.property, paste0(rdfPath, "\\", "6_match_property.csv"), row.names = FALSE, na = "")
   
   # Finally return the data frame
+  write.csv(df, paste0(rdbmsPath, "\\", "final.csv"), row.names = FALSE, na = "")
+
   return(df)
 }
 
