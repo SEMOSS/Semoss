@@ -3,6 +3,7 @@ package prerna.sablecc;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -1850,6 +1851,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		if(engines.length < 2) {
 			engines = new String[]{engines[0], engines[0]};
 		}
+		String instanceCountFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
 		// Refresh the corpus
 		if (refresh) {
 			DomainValues dv = new DomainValues();
@@ -1863,7 +1866,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 				for (String engineName : engines) {
 					IEngine engine = (IEngine) Utility.getEngine(engineName);
-					dv.exportInstanceValues(engine, outputFolder, compareProperties);
+					dv.exportInstanceValues(engine, outputFolder, compareProperties, instanceCountFile);
 				}
 
 			} catch (IOException e) {
@@ -3459,7 +3462,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         
         /** START R PROCESSING **/
         
-        String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "BusinessRules\\etl_rules.r";
+        String utilityScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "BusinessRules\\etl _rules.r";
         utilityScriptPath = utilityScriptPath.replace("\\", "/");
 
         runR("library(arules)");
@@ -3507,7 +3510,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
     
 	public void runXraySearch(String[] engines, double candidateThreshold, double similarityThreshold,
 			int instancesThreshold, boolean compareProperties, boolean refresh) {
-
+		String instanceCountFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
 		if (engines.length < 2) {
 			engines = new String[] { engines[0], engines[0] };
 		}
@@ -3518,14 +3522,34 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				String outputFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 						+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\"
 						+ Constants.R_MATCHING_REPO_FOLDER;
+				
+				 try {
+						FileWriter fw = new FileWriter(instanceCountFile,false);
+						//headers
+						fw.write("concept, count");
+						fw.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} //the true will append the new data
 
 				// Wipe out the old files
 				FileUtils.cleanDirectory(new File(outputFolder));
 
 				for (String engineName : engines) {
 					IEngine engine = (IEngine) Utility.getEngine(engineName);
-					dv.exportInstanceValues(engine, outputFolder, compareProperties);
+					try {
+						FileWriter fw = new FileWriter(instanceCountFile,true);
+						//headers
+						fw.write("\n");
+						fw.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} //the true will append the new data
+					dv.exportInstanceValues(engine, outputFolder, compareProperties, instanceCountFile);
 					dv.exportRelationInstanceValues(engine, outputFolder);
+
 				}
 
 			} catch (IOException e) {
