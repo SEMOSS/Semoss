@@ -9,16 +9,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 
 public class CreateFrame extends AbstractReactor {
 
-	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		return parentReactor;
-	}
-	
 	public NounMetadata execute() {
 		// get the name of the frame type
 		String frameType = this.curRow.get(0).toString();

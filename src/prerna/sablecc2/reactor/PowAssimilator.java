@@ -22,19 +22,6 @@ public class PowAssimilator extends Assimilator {
 	private String rSignature;
 	
 	@Override
-	public void In() {
-		curNoun("all");
-	}
-
-	@Override
-	public Object Out() {
-		// in the translation flow
-		// execute will run and send back
-		// the data to set into the parent
-		return parentReactor;
-	}
-	
-	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
 		// for this special reactor
 		// we need to run this on both the 
