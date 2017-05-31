@@ -384,7 +384,7 @@ api_block = api [engine_name]:id dot [insight]:id l_par [selectors]:col_csv? [wh
 // selector sibling selector comes from the same table
 // selector equal_or_compare selector
 
-raw_api_block = api [engine_name]:id dot [insight]:id l_par queryblock r_par;
+raw_api_block = api [engine_name]:id dot [insight]:id l_par queryblock [comma1]:comma? [properties]:map_obj? r_par;
 
 selector = l_bracket col_csv r_bracket;
 
