@@ -98,12 +98,15 @@ public class DomainValues {
 	 * @param compareProperties
 	 *            add or remove concept properties
 	 */
-	public void exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty) {
+	public void exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty, String instanceCountFile) {
 		String engineName = engine.getEngineName();
-
+		
 		// Grab all the concepts that exist in the database
 		// Process each concept
 		List<String> concepts = getConceptList(engine);
+		
+		//Used to write out instance count to instanceCountFile
+		ArrayList<String> instanceCount = new ArrayList<String>();
 		for (String concept : concepts) {
 
 			// Ignore the default concept node...
@@ -113,7 +116,8 @@ public class DomainValues {
 
 			// Grab the unique values for the concept
 			HashSet<String> uniqueConceptValues = retrieveConceptUniqueValues(concept, engine);
-
+			List<Object> conceptValues = retrieveConceptValues(concept, engine);
+			
 			// Sometimes this list is empty when users create databases with
 			// empty fields that are meant to filled in via forms
 			if (uniqueConceptValues.isEmpty()) {
@@ -125,6 +129,9 @@ public class DomainValues {
 			String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
 					+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
 			writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
+			
+			//build instanceCountFile
+			instanceCount.add(conceptId + ".txt," + conceptValues.size());
 
 			// If the user wants to compare properties,
 			// then proceed to the concept's properties
@@ -150,6 +157,23 @@ public class DomainValues {
 				}
 			}
 		}
+		
+		//write out instance countFile
+
+	    try {
+			FileWriter fw = new FileWriter(instanceCountFile,true);
+			for(int i =0; i < instanceCount.size(); i++) {
+				fw.write(instanceCount.get(i));
+				if(i < instanceCount.size() - 1) {
+					fw.write("\n");
+				}
+			}
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 
 	private static void writeToFile(String filePath, HashSet<String> domainValues) {
