@@ -3201,6 +3201,14 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
+        if(node.getProperties() != null)
+        {
+            node.getProperties().apply(this);
+        }
+        if(node.getComma1() != null)
+        {
+            node.getComma1().apply(this);
+        }
         if(node.getQueryblock() != null)
         {
             node.getQueryblock().apply(this);
