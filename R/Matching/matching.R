@@ -1,5 +1,5 @@
 # Function to run locality sensitive hashing match
-run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold, delimiter, rdfPath, rdbmsPath){
+run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold, delimiter, rdfPath, rdbmsPath, metadataPath){
   
   # Library the necessary packages
   library(textreuse)
@@ -54,10 +54,54 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   # Add in the word count
   wordcounts <- wordcount(corpus)
   df$item_instances <- NA
+  
+  # Used to get total instance count
+  df$item_total_count <- NA
+  df$match_total_count <- NA
+  metadata<-read.csv(metadataPath, header = TRUE, sep = ",")
+  df$item_has_properties <- NA
+  df$match_has_properties <- NA
+
+
   df$match_instances <- NA
   for (r in 1:nrow(df)) {
-    df$item_instances[r] <- wordcounts[df[r, 1][[1]]][[1]]
-    df$match_instances[r] <- wordcounts[df[r, 2][[1]]][[1]]
+	item.file.name <- df[r, 1][[1]]
+	match.file.name <- df[r, 2][[1]]
+    df$item_instances[r] <- wordcounts[item.file.name][[1]]
+    df$match_instances[r] <- wordcounts[match.file.name][[1]]
+	
+	# Get total instance count for item and match based on metadata file
+	item.total.count <- metadata[metadata$sourceFileName == item.file.name,][[2]]
+	match.total.count <- metadata[metadata$sourceFileName == match.file.name,][[2]]
+	if(length(item.total.count) == 0) {
+		df$item_total_count[r] = 0
+	} 
+	else {
+	    df$item_total_count[r] = item.total.count
+	}
+	
+	if(length(match.total.count) == 0) {
+		df$match_total_count[r] = 0
+	} 
+	else {
+	    df$match_total_count[r] = match.total.count
+	}
+	
+	item.has.properties <- metadata[metadata$sourceFileName == item.file.name,][[3]]
+	if(length(item.has.properties) == 0) {
+		df$item_has_properties[r] = 0
+	}
+	else {
+	df$item_has_properties[r] = item.has.properties
+	}
+	
+	match.has.properties <- metadata[metadata$sourceFileName == match.file.name,][[3]]
+	if(length(match.has.properties) == 0) {
+		df$match_has_properties[r] = 0
+	}
+	else {
+	df$match_has_properties[r] = match.has.properties
+	}
   }
   
   # Only return records above the thresholds
@@ -172,22 +216,22 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   match.property <- dt[m.p, c("match", "match_property")]
   colnames(match.property) <- c("match_id", "property_id")
   
-  
+
   ##################################################
   # Create a table for the unique engines, concepts, and properties
   ##################################################
   
   # Start with the item engine/concepts
-  unique.ecp <- dt[, c("item_engine", "item_concept", "item_concept_original", "item_property", "item_property_original", "item_instances")]
+  unique.ecp <- dt[, c("item_engine", "item_concept", "item_concept_original", "item_property", "item_property_original", "item_instances", "item_total_count", "item_has_properties")]
   
   # Temporarily change the column names to match
-  colnames(unique.ecp) <- c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances")
+  colnames(unique.ecp) <- c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances", "match_total_count", "match_has_properties")
   
   # Append match engine and concpets
-  unique.ecp <- rbind(unique.ecp, dt[, c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances")])
+  unique.ecp <- rbind(unique.ecp, dt[, c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances", "match_total_count", "match_has_properties")])
   
   # Change the names to just engine and concept
-  colnames(unique.ecp) <- c("engine", "concept_id", "concept", "property_id", "property", "instances")
+  colnames(unique.ecp) <- c("engine", "concept_id", "concept", "property_id", "property", "instances", "total_count", "has_properties")
   
   # Remove duplicated values
   setkeyv(unique.ecp, c("engine", "concept_id", "property_id"))
@@ -199,8 +243,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ##################################################
   match <- dt[, c("match", "score")]
   colnames(match) <- c("match_id", "score")
-  
-  colnames(dt) <- c("score","item_instances","match_instances","item_engine","item_concept_id","item_property_id","match_engine","match_concept_id","match_property_id","item_concept","match_concept","item_property","match_property","match_id")
+  colnames(dt) <- c("score","item_instances", "item_total_count", "match_total_count", "item_has_properties", "match_has_properties", "match_instances","item_engine","item_concept_id","item_property_id","match_engine","match_concept_id","match_property_id","item_concept","match_concept","item_property","match_property","match_id")
 
   ##################################################
   # Add dummy nodes to make sure there is data to generate the metamodel properly
@@ -221,11 +264,11 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   p.p <- paste0(s.p.id, match.separator, s.p.id)
   
   # unique.ecp
-  # ("engine", "concept_id", "concept", "property_id", "property", "instances")
-  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, NA, NA, 0)))
-  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, NA, NA, 0)))
-  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, s.p.id, s.p, 0)))
-  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, t.p.id, t.p, 0)))
+  # ("engine", "concept_id", "concept", "property_id", "property", "instances", "total_count", "has_properties")
+  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, NA, NA, 0, 0, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, NA, NA, 0, 0, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, s.p.id, s.p, 0, 0, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, t.p.id, t.p, 0, 0, 0)))
   
   # match
   # ("match_id", "score")
