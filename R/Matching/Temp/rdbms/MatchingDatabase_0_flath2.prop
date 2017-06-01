@@ -1,11 +1,11 @@
-NUM_COLUMNS	18
+NUM_COLUMNS	22
 1	NUMBER
 2	NUMBER
 3	NUMBER
-4	STRING
-5	STRING
-6	STRING
-7	STRING
+4	NUMBER
+5	NUMBER
+6	NUMBER
+7	NUMBER
 8	STRING
 9	STRING
 10	STRING
@@ -13,12 +13,16 @@ NUM_COLUMNS	18
 12	STRING
 13	STRING
 14	STRING
-15	NUMBER
-16	NUMBER
-17	NUMBER
-18	NUMBER
+15	STRING
+16	STRING
+17	STRING
+18	STRING
+19	NUMBER
+20	NUMBER
+21	NUMBER
+22	NUMBER
 START_ROW	2
-END_ROW	8
+END_ROW	43
 RELATION	
-NODE_PROP	match_id%match_property;match_id%item_property;match_id%is_concept_item;match_id%is_concept_match;match_id%is_relation_item;match_id%is_relation_match;match_id%match_concept;match_id%item_concept;match_id%match_property_id;match_id%match_concept_id;match_id%match_engine;match_id%item_property_id;match_id%item_concept_id;match_id%item_engine;match_id%match_instances;match_id%item_instances;match_id%score;
+NODE_PROP	match_id%match_property;match_id%item_property;match_id%is_concept_item;match_id%is_concept_match;match_id%is_relation_item;match_id%is_relation_match;match_id%match_concept;match_id%item_concept;match_id%match_property_id;match_id%match_concept_id;match_id%match_engine;match_id%item_property_id;match_id%item_concept_id;match_id%item_engine;match_id%match_instances;match_id%match_has_properties;match_id%item_has_properties;match_id%match_total_count;match_id%item_total_count;match_id%item_instances;match_id%score;
 RELATION_PROP	 
