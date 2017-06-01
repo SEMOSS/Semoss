@@ -46,7 +46,7 @@ public abstract class AbstractCSVFileReader extends AbstractFileReader {
 	
 	protected int count = 0;
 	protected int startRow = 2;
-	protected int maxRows = 10000000;
+	protected int maxRows = 2_000_000_000;
 
 	/**
 	 * Specifies which rows in the CSV to load based on user input in the prop file
