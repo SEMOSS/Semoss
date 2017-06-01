@@ -2,8 +2,10 @@ package prerna.algorithm.learning.matching;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -131,7 +133,8 @@ public class DomainValues {
 			writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
 			
 			//build instanceCountFile
-			instanceCount.add(conceptId + ".txt," + conceptValues.size());
+			String metadataRow = conceptId + "," + conceptValues.size(); 
+			boolean hasProperties = false;
 
 			// If the user wants to compare properties,
 			// then proceed to the concept's properties
@@ -143,6 +146,8 @@ public class DomainValues {
 
 				// If there are no properties, go onto the next concept
 				if (properties.isEmpty()) {
+					metadataRow += "," + 0;
+					instanceCount.add(metadataRow);
 					continue;
 				}
 
@@ -150,12 +155,19 @@ public class DomainValues {
 				for (String property : properties) {
 					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engine);
 					if (!uniquePropertyValues.isEmpty()) {
+						hasProperties = true;
 						String cleanProperty = determineCleanPropertyName(property, engine);
 						String propertyId = conceptId + cleanProperty;
 						writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
 					}
 				}
 			}
+			if(hasProperties) {
+				metadataRow += "," + 1;
+			}
+			instanceCount.add(metadataRow);
+
+
 		}
 		
 		//write out instance countFile
@@ -176,6 +188,47 @@ public class DomainValues {
 
 	}
 
+	public static void writeToCSV(String path, Object[] headers, ArrayList<Object[]> data) {
+		// write source to file
+		StringBuilder sv = new StringBuilder();
+		for (int i = 0; i < headers.length; i++) {
+			sv.append(headers[i].toString());
+			if (i < headers.length - 1) {
+				sv.append(",");
+
+			}
+
+		}
+		sv.append("\n");
+
+		for (int j = 0; j < data.size(); j++) {
+			Object[] rowValue = data.get(j);
+			for (int i = 0; i < rowValue.length; i++) {
+				Object value = rowValue[i];
+				if (value != null) {
+					sv.append(rowValue[i].toString());
+				} else {
+					sv.append("");
+				}
+				if (i < rowValue.length - 1) {
+					sv.append(",");
+				}
+			}
+			if (j < data.size() - 1) {
+				sv.append("\n");
+			}
+		}
+
+		PrintWriter printSource;
+		try {
+			printSource = new PrintWriter(new File(path));
+			printSource.write(sv.toString());
+			printSource.close();
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
 	private static void writeToFile(String filePath, HashSet<String> domainValues) {
 		try {
 			FileWriter fileWriter = new FileWriter(filePath);
