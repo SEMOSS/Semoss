@@ -629,11 +629,11 @@ public class Translation extends DepthFirstAdapter {
 		// execution to process the joins
 		// before we process the iterator
 		// curReactor at this point is still an ImportDataReactor
+		List tableJoins = null;
 		if (curReactor.getValue(PKQLEnum.JOINS) != null) {
-			List tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
-			curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
+			tableJoins = (List) curReactor.getValue(PKQLEnum.JOINS);
 		}
-
+				
 		// make the api type
 		// set in the values
 		initReactor(PKQLEnum.API);
@@ -641,7 +641,13 @@ public class Translation extends DepthFirstAdapter {
 		String nodeStr = node.toString().trim();
 		curReactor.put(PKQLEnum.API, nodeStr);
 		curReactor.put("ENGINE", engine);
-
+		
+		// add the table joins if present
+		if(tableJoins != null) {
+			curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
+		}
+		
+		
 		// something to do with parameters... need to look into this at some
 		// point...
 		curReactor.put("INSIGHT", node.getInsight().toString());
