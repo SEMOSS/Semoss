@@ -240,7 +240,9 @@ public class RDataTable extends AbstractTableDataFrame {
 				newHeaderIdx ++;
 			}
 		}
+		
 		this.headerNames = newHeaders;
+		this.updateDataId();
 	}
 	
 	/**
