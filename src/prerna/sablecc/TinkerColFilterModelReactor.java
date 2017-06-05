@@ -71,7 +71,7 @@ public class TinkerColFilterModelReactor extends ColFilterModelReactor {
 		while (unFilterIt.hasNext()) {
 			Object[] row = unFilterIt.next();
 			String rowValue = (String) row[0].toString();
-			System.out.println(rowValue);
+//			System.out.println(rowValue);
 			unfilterSet.add(rowValue);
 
 		}
