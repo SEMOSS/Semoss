@@ -83,7 +83,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().has(PKSLPlanner.TINKER_ID, P.within(downstreamVertIds)).order().by(PKSLPlanner.ORDER, Order.incr);
 		while(newRootsTraversal.hasNext()) {
 			Vertex vert = newRootsTraversal.next();
-			returnPksls.add(vert.value(TinkerFrame.TINKER_ID).toString().substring(3) + ";");
+			returnPksls.add(getPksl(vert));
 		}
 		
 		return returnPksls;
@@ -161,7 +161,8 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			}
 			
 			// get the pksl operation
-			String pkslOperation = nextVert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+//			String pkslOperation = nextVert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+			String pkslOperation = getPksl(nextVert);
 			
 			// if you reached this point
 			// the above loop was able to determine that every single
@@ -179,7 +180,9 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			}
 			
 			// add this operation to the pkslToRun
-			pkslsToRun.add(pkslOperation);
+			if(!pkslOperation.isEmpty()) {
+				pkslsToRun.add(pkslOperation);
+			}
 			
 			// add all the outOps to now go through and try adding
 			Iterator<Vertex> outputNouns = nextVert.vertices(Direction.OUT);
@@ -221,7 +224,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		while(getAllRootOps.hasNext()) {
 			Vertex nextOp = getAllRootOps.next();
 			// the actual operation can be grab via substring of the pkslOperation
-			String pkslOperation = nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+			String pkslOperation = getPksl(nextOp);
 
 			// grab all the in nouns
 			// these nouns are what this operation depends on
@@ -244,7 +247,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			if(isRoot) {
 				// set a property "PROCESSED" to be false
 				nextOp.property(PKSLPlanner.PROCESSED, false);
-				pkslOperation = nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+				pkslOperation = getPksl(nextOp);//nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
 				
 				// we ignore this stupid thing....
 				if(!pkslOperation.equals("FRAME")) {
@@ -309,6 +312,10 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		}
 	}
 	
+	protected String getPksl(Vertex vert) {
+		String pkslOperation = vert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+		return pkslOperation;
+	}
 	
 	/*
 	 * For debugging purposes, will also create new pksls to define variables that should be defined
