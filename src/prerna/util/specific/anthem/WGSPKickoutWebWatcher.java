@@ -13,6 +13,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
 import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector;
+import prerna.engine.api.IEngine;
 import prerna.notifications.TSAnomalyNotification;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.quartz.JobChain;
@@ -130,7 +132,9 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				importRecipeString.append(" , c: Kickout_Date__" + systemAlias);
 			}
 			importRecipeString.append(" ] ) ) ; ");
-
+			// TODO is there a better way - like pulling from the R script directly?
+//			importRecipeString.append("panel[0].viz ( Grid , [ value= c: ACES , value= c: CS90 , value= c: EPDS1 , value= c: EPDS2 , value= c: EPDSV2 , value= c: FACETS , value= c: FHCCN , value= c: MSTR_TAX , value= c: PHCS , value= c: QCARE , value= c: Total , value= c: VIRGINIA , value= c: W1 , value= c: WG , value= c: Kickout_Date ] , { \"offset\" : 0 , \"limit\" : 1000 , \"sortVar\" : \"c: Kickout_Date\" , \"sortDir\" : \"asc\" } ) ;");
+			
 			// Email params
 			String smtpServer = props.getProperty("smtp.server");
 			int smtpPort = Integer.parseInt(props.getProperty("smtp.port", "25"));
@@ -198,18 +202,25 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				String reportFileName = fileHeader.getFileName();
 
 				// Determine if the report needs to be processed
-				int extensionIndex = reportFileName.lastIndexOf(".");
-				String delta = reportFileName.substring(extensionIndex - 3, extensionIndex);
-				String system = reportFileName.substring(extensionIndex - 9, extensionIndex - 7);
+				// TODO clean up/parameterize .xls check
 				boolean needToProcess = false;
-				if (ignoreSystems.contains(system)) {
-					LOGGER.info("Will not process " + reportFileName + ": The file's source system, " + system
-							+ ", is set to be ignored");
-				} else if (!delta.equals(REPORT_DELTA)) {
-					LOGGER.info("Will not process " + reportFileName + ": The file is not a delta report");
+				String delta = "";
+				String system = "";
+				if (reportFileName.endsWith(".XLS")) {
+					int extensionIndex = reportFileName.lastIndexOf(".");
+					delta = reportFileName.substring(extensionIndex - 3, extensionIndex);
+					system = reportFileName.substring(extensionIndex - 9, extensionIndex - 7);
+					if (ignoreSystems.contains(system)) {
+						LOGGER.info("Will not process " + reportFileName + ": The file's source system, " + system
+								+ ", is set to be ignored");
+					} else if (!delta.equals(REPORT_DELTA)) {
+						LOGGER.info("Will not process " + reportFileName + ": The file is not a delta report");
+					} else {
+						LOGGER.info("Processing " + reportFileName);
+						needToProcess = true;
+					}
 				} else {
-					LOGGER.info("Processing " + reportFileName);
-					needToProcess = true;
+					LOGGER.info("Will not process " + reportFileName + ": The file is not a .XLS file");
 				}
 				if (needToProcess) {
 
@@ -347,6 +358,8 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	@Override
 	protected void addOther() {
 		addToTimeseries();
+		System.out.println("-------------------------------------");
+		deleteFromTimeseries();
 	}
 
 	@Override
@@ -459,6 +472,24 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		}
 	}
 
+	private void deleteFromTimeseries() {
+		File smssFile = new File(baseDirectory + System.getProperty("file.separator") + Constants.DATABASE_FOLDER
+				+ System.getProperty("file.separator") + timeseriesDbName + Constants.SEMOSS_EXTENSION);
+		if (smssFile.exists()) {
+			waitForEngineToLoad(timeseriesDbName);
+			IEngine timeseriesDb = Utility.getEngine(timeseriesDbName);
+
+			// Delete records that are older than one year old
+			// TODO parameterize
+			Calendar calendar = Calendar.getInstance();
+			calendar.add(Calendar.YEAR, -1);
+			Date yearAgoDate = calendar.getTime();
+			String yearAgoDateString = dateFormatter.format(yearAgoDate);
+			String deleteQuery = "DELETE FROM " + timeseriesDateColName + " WHERE " + timeseriesDateColName + " < '" + yearAgoDateString + "';";
+			timeseriesDb.removeData(deleteQuery);
+		}
+	}
+	
 	private void triggerTsAnomNotifJob() throws SchedulerException {
 		JobDetail tsAnomNotifJob = newJob(JobChain.class).withIdentity(TS_ANOM_NOTIF_JOB_NAME, TS_ANOM_NOTIF_JOB_GROUP)
 				.usingJobData(tsAnomNotifJobDataMap).build();
