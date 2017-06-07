@@ -133,6 +133,14 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		
 		// we want to iterate through all the vertices we have defined
 		VERTEX_LOOP : for(Vertex nextVert : vertsToRun) {
+			// make sure we dont add a vertex that is already processed
+			if(nextVert.property(PKSLPlanner.PROCESSED).isPresent()) {
+				Boolean isProcessed = nextVert.value(PKSLPlanner.PROCESSED);
+				if(isProcessed) {
+					// we already gotcha
+					continue VERTEX_LOOP;
+				}
+			}
 			// grab all the in nouns for this operation
 			Iterator<Vertex> inputNouns = nextVert.vertices(Direction.IN);
 			while(inputNouns.hasNext()) {
