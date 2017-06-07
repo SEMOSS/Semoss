@@ -177,7 +177,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 	@Override
 	public void loadFirst() {
-
+		
 		// Open the store and maps
 		openStore();
 		openMaps();
@@ -352,7 +352,8 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	// Helper methods
 
 	private void openStore() {
-		mvStore = new MVStore.Builder().fileName(mvStoreFilePath).autoCommitDisabled().open();
+//		mvStore = new MVStore.Builder().fileName(mvStoreFilePath).autoCommitDisabled().open();
+		mvStore = new MVStore.Builder().fileName(mvStoreFilePath).open();
 	}
 
 	private void openMaps() {
@@ -544,6 +545,12 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		} catch (SchedulerException e) {
 			LOGGER.error("Failed to schedule jobs");
 			e.printStackTrace();
+		}
+		try {
+			triggerJobs();
+		} catch (SchedulerException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 
 		// Code taken from AbstractFileWatcher

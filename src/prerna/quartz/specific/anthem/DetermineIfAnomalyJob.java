@@ -1,5 +1,7 @@
 package prerna.quartz.specific.anthem;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.quartz.JobDataMap;
@@ -7,6 +9,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.quartz.LinkedDataKeys;
 
 public class DetermineIfAnomalyJob implements org.quartz.Job {
@@ -24,7 +27,14 @@ public class DetermineIfAnomalyJob implements org.quartz.Job {
 
 		// Do work
 		// Print out the results
-		List<Object[]> resultsList = results.getData();
+//		List<Object[]> resultsList = results.getData();
+		List<Object[]> resultsList = new ArrayList<Object[]>();
+		// TODO Parameterize
+		Iterator<IHeadersDataRow> iteratorResults = results.query("SELECT * FROM " + results.getTableName() + " ORDER BY Kickout_Date ASC");
+		while (iteratorResults.hasNext()) {
+			resultsList.add(iteratorResults.next().getRawValues());
+		}
+		
 		int length = 30;
 		String[] headers = results.getColumnHeaders();
 		System.out.print("|");
@@ -49,6 +59,7 @@ public class DetermineIfAnomalyJob implements org.quartz.Job {
 		} else {
 			System.out.println("An anomaly was not observed");
 		}
+//		isAnomaly = true;
 
 		// Store outputs
 		dataMap.put(OUT_IS_ANOMALY_KEY, isAnomaly);
