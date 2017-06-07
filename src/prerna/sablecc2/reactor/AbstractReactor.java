@@ -196,9 +196,18 @@ public abstract class AbstractReactor implements IReactor {
 		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++) {
 			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
 			IReactor thisReactor = (IReactor)thisLambdaMeta.getValue();
-			String rSignature = thisReactor.getSignature();
+			String rSignature = thisReactor.getOriginalSignature();
+//			String rSignature = thisReactor.getSignature();
 			NounMetadata result = thisReactor.execute();// this might further trigger other things
 
+			//The result of a reactor could be a var, if we are doing string replacing we should just replace with the value of that var instead of the var itself
+			//reason being the variable is not initialized in the java runtime class through this flow
+			if(result.getNounName() == PkslDataTypes.COLUMN) {
+				NounMetadata resultValue = planner.getVariableValue(result.getValue().toString());
+				if(resultValue != null) {
+					result = resultValue;
+				}
+			}
 			// for compilation reasons
 			// if we have a double
 			// we dont want it to print with the exponential
