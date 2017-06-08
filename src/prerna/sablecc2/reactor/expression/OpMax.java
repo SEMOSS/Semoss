@@ -8,6 +8,10 @@ public class OpMax extends OpBasicMath {
 	
 	@Override
 	protected double evaluate(Object[] values) {
+		return eval(values);
+	}	
+	
+	public static double eval(Object...values) {
 		double max = -1.0 * Double.MAX_VALUE;
 		
 		for(Object val : values) {
@@ -15,5 +19,15 @@ public class OpMax extends OpBasicMath {
 			max = max < nextDouble ? nextDouble : max;
 		}
 		return max;
-	}	
+	}
+	
+	public static double eval(double[] values) {
+		double max = -1.0 * Double.MAX_VALUE;
+		
+		for(Object val : values) {
+			Double nextDouble = ((Number) val).doubleValue();
+			max = max < nextDouble ? nextDouble : max;
+		}
+		return max;
+	}
 }

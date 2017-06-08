@@ -1,9 +1,12 @@
 package prerna.sablecc2.reactor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class NegReactor extends AbstractReactor {
+public class NegReactor extends AbstractReactor implements JavaExecutable {
 
 	@Override
 	public NounMetadata execute() {
@@ -47,6 +50,30 @@ public class NegReactor extends AbstractReactor {
 		}
 
 		return noun;
+	}
+
+	@Override
+	public String getJavaSignature() {
+		NounMetadata noun = getInputs().get(0);
+		Object obj = noun.getValue();
+		if(obj instanceof JavaExecutable) {
+			return "-("+((JavaExecutable)obj).getJavaSignature()+")";
+		} else {
+			return "-"+obj.toString();
+		}
+	}
+
+	@Override
+	public List<NounMetadata> getJavaInputs() {
+		List<NounMetadata> noun = new ArrayList<>(1);
+		noun.add(this.curRow.getNoun(0));
+		return noun;
+	}
+
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "double";
 	}
 
 }

@@ -148,7 +148,7 @@ public class RuntimeClassTestSingle extends AbstractReactor {
 	
 	private static String[] getEquations() {
 		EquationGenerator eg = new EquationGenerator();
-		String[] equations = eg.getRandomEquations(2500);
+		String[] equations = eg.getRandomEquations(100000);
 		return equations;
 	}
 }

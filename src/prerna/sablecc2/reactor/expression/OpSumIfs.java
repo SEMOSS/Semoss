@@ -1,8 +1,10 @@
 package prerna.sablecc2.reactor.expression;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -23,101 +25,110 @@ public class OpSumIfs extends OpBasic {
 		List<Object> criteriaObjList = new ArrayList<Object>();
 		List<Object[]> criteriaRangeObjLists = new ArrayList<Object[]>();
 		String criteria = values[2].toString(); // Single criteria
+		boolean isValidInput = true;
 
-		if (rowSize >= 3 && rowSize <= 255) {
+		if (rowSize >= 3) {
 			for (Object obj : (Object[]) values[0]) {
 				sumRangeList.add(obj);
 			}
-		}
-		for (int j = 0; j < rowSize; j++) {
-			if (rowSize >= 3 && (j > 1) && (j % 2) == 0) {
-				criteriaObjList.add(values[j]);
-				criteriaRangeObjLists.add((Object[]) (values[j - 1]));
-			}
-		}
-		// This list contain indices that satisfy each criteria
-		List<Integer> indexMatchList = new ArrayList<Integer>();
-		// This list contain matching indices that satisfy each criteria
-		List<Integer> indexMatchListFinal = new ArrayList<Integer>();
-
-		// get index list for each criteria
-		for (int i = 0; i < criteriaObjList.size(); i++) {
-			if (((Object) criteriaObjList.get(i)) != null) {
-				if (((Object) criteriaObjList.get(i)) instanceof Integer) {
-					isInteger = true;
-				} else if (((Object) criteriaObjList.get(i)) instanceof String) {
-					isInteger = false;
+			for (int j = 0; j < rowSize; j++) {
+				if (rowSize >= 3 && (j > 1) && (j % 2) == 0) {
+					criteriaObjList.add(values[j]);
+					if (((Object[]) (values[j - 1])).length != ((Object[]) (values[0])).length) {
+						isValidInput = false;
+						sumIfsVal = 0;
+						break;
+					} else {
+						criteriaRangeObjLists.add((Object[]) (values[j - 1]));
+					}
 				}
 			}
-			criteria = ((Object) criteriaObjList.get(i)).toString();
+		} else {
+			isValidInput = false;
+		}
+		if (isValidInput) {
+			// This list contain indices that satisfy each criteria
+			List<Integer> indexMatchList = new ArrayList<Integer>();
+			// This list contain matching indices that satisfy each criteria
+			List<Integer> indexMatchListFinal = new ArrayList<Integer>();
 
-			if (criteria.contains(">=")) {
-				criteria = criteria.replace(">=", "").trim();
-				expressionType = ">=";
-				isInteger = true;
-				isExpression = true;
+			// get index list for each criteria
+			for (int i = 0; i < criteriaObjList.size(); i++) {
+				if (((Object) criteriaObjList.get(i)) != null) {
+					if (((Object) criteriaObjList.get(i)) instanceof Integer) {
+						isInteger = true;
+					} else if (((Object) criteriaObjList.get(i)) instanceof String) {
+						isInteger = false;
+					}
+				}
+				criteria = ((Object) criteriaObjList.get(i)).toString();
 
-			} else if (criteria.contains(">")) {
-				criteria = criteria.replace(">", "").trim();
-				expressionType = ">";
-				isInteger = true;
-				isExpression = true;
+				if (criteria.contains(">=")) {
+					criteria = criteria.replace(">=", "").trim();
+					expressionType = ">=";
+					isInteger = true;
+					isExpression = true;
 
-			} else if (criteria.contains("<=")) {
-				criteria = criteria.replace("<=", "").trim();
-				expressionType = "<=";
-				isInteger = true;
-				isExpression = true;
+				} else if (criteria.contains(">")) {
+					criteria = criteria.replace(">", "").trim();
+					expressionType = ">";
+					isInteger = true;
+					isExpression = true;
 
-			} else if (criteria.contains("<")) {
-				criteria = criteria.replace("<", "").trim();
-				expressionType = "<";
-				isInteger = true;
-				isExpression = true;
+				} else if (criteria.contains("<=")) {
+					criteria = criteria.replace("<=", "").trim();
+					expressionType = "<=";
+					isInteger = true;
+					isExpression = true;
 
-			} else if (criteria.contains("<>")) {
-				criteria = criteria.replace("<>", "").trim();
-				expressionType = "<>";
-				isInteger = true;
-				isExpression = true;
+				} else if (criteria.contains("<")) {
+					criteria = criteria.replace("<", "").trim();
+					expressionType = "<";
+					isInteger = true;
+					isExpression = true;
 
-			} else {
-				isExpression = false;
+				} else if (criteria.contains("<>")) {
+					criteria = criteria.replace("<>", "").trim();
+					expressionType = "<>";
+					isInteger = true;
+					isExpression = true;
+
+				} else {
+					isExpression = false;
+				}
+
+				List<Object> criteriaRangeList = new ArrayList<Object>();
+
+				for (Object obj : (Object[]) criteriaRangeObjLists.get(i)) {
+					criteriaRangeList.add(obj);
+				}
+				// Integer criteria
+				if (isInteger) {
+					indexMatchListFinal = getIndexListForIntegers(criteriaRangeList, criteria.replace("=", " ").trim(),
+							indexMatchList, indexMatchListFinal, isExpression, expressionType);
+				}
+				// String criteria
+				if (rowSize >= 3 && !isInteger) {
+					indexMatchListFinal = getIndexListForString(criteriaRangeList, criteria.replace("=", " ").trim(),
+							indexMatchList, indexMatchListFinal);
+				}
 			}
 
-			List<Object> criteriaRangeList = new ArrayList<Object>();
+			Map<Object, Long> finalIndicesMap = indexMatchListFinal.stream()
+					.collect(Collectors.groupingBy(obj -> obj, Collectors.counting()));
 
-			for (Object obj : (Object[]) criteriaRangeObjLists.get(i)) {
-				criteriaRangeList.add(obj);
-			}
-			// Integer criteria
-			if (isInteger) {
-				indexMatchListFinal = getIndexListForIntegers(criteriaRangeList, criteria.replace("=", " ").trim(),
-						indexMatchList, indexMatchListFinal, isExpression, expressionType);
+			List<Entry<Object, Long>> finalIndicesList = finalIndicesMap.entrySet().stream()
+					.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).collect(Collectors.toList());
 
-			}
-			// String criteria
-			if (rowSize >= 3 && !isInteger) {
-				indexMatchListFinal = getIndexListForString(criteriaRangeList, criteria.replace("=", " ").trim(),
-						indexMatchList, indexMatchListFinal);
+			// Find maximum occurrence of elements in list that are equal to
+			// criteria size.
+			for (int i = 0; i < finalIndicesList.size(); i++) {
+				if (finalIndicesList.get(i).getValue() == criteriaObjList.size()) {
+					sumIfsVal += ((Number) sumRangeList.get(((Number) finalIndicesList.get(i).getKey()).intValue()))
+							.doubleValue();
+				}
 			}
 		}
-		// Find duplicates in list logic.No need to do this for if there is only
-		// one criteria range and criteria
-		if (!criteriaObjList.isEmpty() && criteriaObjList.size() > 1) {
-			HashSet<Integer> finalMatchSet = new HashSet<Integer>();
-			finalMatchSet = findDuplicateElements(indexMatchList);
-			indexMatchListFinal = new ArrayList<Integer>(finalMatchSet);
-		}
-		// System.out.println("indexMatchListFinal.size()...." +
-		// indexMatchListFinal.size());
-
-		if (!indexMatchListFinal.isEmpty() && indexMatchListFinal.size() > 0) {
-			for (int k = 0; k < indexMatchListFinal.size(); k++) {
-				sumIfsVal += ((Number) sumRangeList.get(indexMatchListFinal.get(k))).doubleValue();
-			}
-		}
-
 		NounMetadata sumIfsValue = new NounMetadata(sumIfsVal, PkslDataTypes.CONST_DECIMAL);
 		System.out.println("sumIfsValue..." + sumIfsVal);
 		return sumIfsValue;
@@ -133,11 +144,7 @@ public class OpSumIfs extends OpBasic {
 		for (int j = 0; j < intArrlist2.size(); j++) {
 			if (!isExpression && !indexMatchListFinal.isEmpty()
 					&& (intArrlist2.get(j).equals(Integer.valueOf(criteria)))) {
-				if (indexMatchListFinal.contains(j)) {
-					indexMatchListFinal.remove(indexMatchListFinal.indexOf(j));
-				} else if (intArrlist2.get(j).equals(Integer.valueOf(criteria))) {
-					indexMatchList.add(j);
-				}
+				indexMatchList.add(j);
 			} else if (isExpression) {
 				indexMatchList = getIndexListForExpressions(intArrlist2.get(j), Integer.valueOf(criteria),
 						indexMatchList, isExpression, expressionType, j);
@@ -154,11 +161,7 @@ public class OpSumIfs extends OpBasic {
 				.collect(Collectors.toList());
 		criteria = criteria.replaceAll("\\*", "\\\\w*").replaceAll("\\?", "\\\\w?");
 		for (int j = 0; j < strArrlist.size(); j++) {
-			if (!indexMatchListFinal.isEmpty() && strArrlist.get(j).matches(criteria)) {
-				if (indexMatchListFinal.contains(j)) {
-					indexMatchListFinal.remove(indexMatchListFinal.indexOf(j));
-				}
-			} else if (strArrlist.get(j).matches(criteria)) {
+			if (strArrlist.get(j).matches(criteria) || strArrlist.get(j).equalsIgnoreCase(criteria)) {
 				indexMatchList.add(j);
 			}
 		}
@@ -203,17 +206,10 @@ public class OpSumIfs extends OpBasic {
 		return indexMatchList;
 	}
 
-	public HashSet<Integer> findDuplicateElements(List<Integer> indexMatchList) {
-
-		HashSet<Integer> finalSet = new HashSet<Integer>();
-		HashSet<Integer> inputSet = new HashSet<Integer>();
-
-		for (Integer str : indexMatchList) {
-			if (!inputSet.add(str)) {
-				finalSet.add(str);
-			}
-		}
-		return finalSet;
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "double";
 	}
 
 }
