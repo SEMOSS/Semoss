@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -18,6 +20,8 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 
 public abstract class AbstractPlannerReactor extends AbstractReactor {
 
+	private static final Logger LOGGER = LogManager.getLogger(AbstractPlannerReactor.class.getName());
+	
 	/**
 	 * Runs through and get all downstream vertices based on the execution order
 	 * and will continue to traverse down and get downstream vertices that it can execute
@@ -257,7 +261,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 
 		GraphTraversal<Vertex, Long> getAllRootOpsCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION).count(); 
 		if(getAllRootOpsCount.hasNext()) {
-			System.out.println("FOUND " + getAllRootOpsCount.next() + " OP VERTICES!");
+			LOGGER.info("FOUND " + getAllRootOpsCount.next() + " OP VERTICES!");
 		}
 
 		// get all the operations

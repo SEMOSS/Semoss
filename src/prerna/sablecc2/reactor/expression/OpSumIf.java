@@ -1,215 +1,227 @@
 package prerna.sablecc2.reactor.expression;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.math.BigDecimal;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
 public class OpSumIf extends OpBasic {
-
+	
+	private static final Logger LOGGER = LogManager.getLogger(OpSumIf.class.getName());
+	
+	public OpSumIf() {
+		this.operation = "sumif";
+	}
+	
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-
-		int rowSize = this.curRow.size();
-		double sumIfVal = 0;
-		boolean isInteger = false;
-		boolean isExpression = false;
-		String expressionType = null;
-		boolean isEquals = false; // verify and remove if not needed
-
-		List<Object> rangeList = new ArrayList<Object>();
-		List<Object> sumRangeList = new ArrayList<Object>();
-
-		Object criteriaObj = values[1];
-		String criteria = values[1].toString();
-		if (criteriaObj != null) {
-			if (criteriaObj instanceof Integer) {
-				isInteger = true;
-			} else if (criteriaObj instanceof String) {
-				isInteger = false;
+		/*
+		 * The first input is the range of values to be evaluated by the criteria
+		 * The second input is the criteria - this is a number, expression, or string,
+		 * 		if this is a string, it can also be regex!
+		 * The third input is an optional sum range, if this is empty, it will add the first input
+		 */
+		int numInputs = values.length;
+		
+		Object[] range = (Object[]) values[0];
+		Object criteriaVal = values[1];
+		// instead of doing a bunch of null checks later on
+		// just determine right now what the sum range will be
+		// just set it to range and if optionalSumRange is there
+		// change the reference
+		Object[] sumRange = range;
+		Object[] optionalSumRange = null;
+		if(numInputs == 3) {
+			optionalSumRange = (Object[]) values[2];
+			if(optionalSumRange != null && optionalSumRange.length > 0) {
+				sumRange = optionalSumRange;
 			}
 		}
+		
+		BigDecimal sum = new BigDecimal(0);
+		
+		// first, lets get the criteria type
+		PkslDataTypes criteriaType = this.curRow.getMeta(1);
+		if(criteriaType == PkslDataTypes.CONST_STRING) {
+			LOGGER.debug("Sumif evaluating for string input");
+			
+			// so this is a string input
+			// but string can be passed in as ">number"
+			// so we need to account for this
+			String criteriaExpression = criteriaVal.toString();
+			
+			boolean isNumFilter = false;
+			String filterPrefix = "";
+			Number filterNum = null;
+			String[] possibleFilters = new String[]{">",">=","<","<=","!=","<>","=", "=="};
+			FILTER_TEST : for(int i = 0; i < possibleFilters.length; i++) {
+				String filterToTest = possibleFilters[i];
+				if(criteriaExpression.startsWith(filterToTest)) {
+					// also test that the second portion is a valid number
+					try {
+						// make sure the rest of the string is a valid number
+						filterNum = new BigDecimal(criteriaExpression.substring(filterToTest.length()-1, filterToTest.length()));
+						filterPrefix = filterToTest;
+						isNumFilter = true;
+						break FILTER_TEST ;
+					} catch(NumberFormatException e) {
+						// do nothing
+					}
+				}
+			}
+			
+			if(isNumFilter) {
+				LOGGER.debug("... but this is actually a number comparison");
+				// this is the simple case
+				// just do it where the values match
+				int arrLength = sumRange.length;
+				for(int i = 0; i < arrLength; i++) {
+					Number rangeVal = (Number) range[i];
+					Number sumVal = (Number) sumRange[i];
+					sum.add(evalNumericalExpression(rangeVal, filterPrefix, filterNum, sumVal));
+				}
+				
+			} else {
+				// we have an actual string check
+				if(criteriaExpression.matches(".*(?<!~)\\*.*") || criteriaExpression.contains(".*(?<!~)\\\\?.*")) {
+					LOGGER.debug("... but this is actually a regex match");
+					
+					// modify the expression so we can just do a 
+					// match while we look through
+					criteriaExpression = criteriaExpression.replaceAll("(?<!~)\\*", ".*");
+					criteriaExpression = criteriaExpression.replaceAll("(?<!~)\\?", ".");
 
-		if (criteria.contains(">=")) {
-			criteria = criteria.replace(">=", "").trim();
-			expressionType = ">=";
-			isInteger = true;
-			isExpression = true;
-			isEquals = true;
-		} else if (criteria.contains(">")) {
-			criteria = criteria.replace(">", "").trim();
-			expressionType = ">";
-			isInteger = true;
-			isExpression = true;
-			isEquals = true;
-		} else if (criteria.contains("<=")) {
-			criteria = criteria.replace("<=", "").trim();
-			expressionType = "<=";
-			isInteger = true;
-			isExpression = true;
-			isEquals = true;
-		} else if (criteria.contains("<")) {
-			criteria = criteria.replace("<", "").trim();
-			expressionType = "<";
-			isInteger = true;
-			isExpression = true;
-			isEquals = true;
-		} else if (criteria.contains("<>")) {
-			criteria = criteria.replace("<>", "").trim();
-			expressionType = "<>";
-			isInteger = true;
-			isExpression = true;
-			isEquals = true;
+					// need to account for a literal ? or *
+					criteriaExpression = criteriaExpression.replace("~*", "\\*");
+					criteriaExpression = criteriaExpression.replace("~?", "\\?");
+
+					int arrLength = sumRange.length;
+					for(int i = 0; i < arrLength; i++) {
+						// just do a numbers equal and call it a day
+						String rangeVal = range[i].toString();
+						Number sumVal = (Number) sumRange[i];
+						if(rangeVal.matches(criteriaExpression)) {
+							sum = sum.add(new BigDecimal(sumVal.doubleValue()));
+						}
+					}
+					
+				} else {
+					// need to account for a literal ? or *
+					criteriaExpression = criteriaExpression.replace("~*", "*");
+					criteriaExpression = criteriaExpression.replace("~?", "?");
+					
+					// easy, just loop through
+					int arrLength = sumRange.length;
+					for(int i = 0; i < arrLength; i++) {
+						// just do a numbers equal and call it a day
+						String rangeVal = range[i].toString();
+						Number sumVal = (Number) sumRange[i];
+						if(rangeVal.equals(criteriaExpression)) {
+							sum = sum.add(new BigDecimal(sumVal.doubleValue()));
+						}
+					}
+				}
+			}
+		} else if(criteriaType == PkslDataTypes.CONST_INT || criteriaType == PkslDataTypes.CONST_DECIMAL) {
+			LOGGER.debug("Sumif evaluating for exact number");
+			
+			double criteriaDouble = ((Number) criteriaVal).doubleValue();
+			
+			// this is the simple case
+			// just do it where the values match
+			int arrLength = sumRange.length;
+			for(int i = 0; i < arrLength; i++) {
+				// just do a numbers equal and call it a day
+				Number rangeVal = (Number) range[i];
+				Number sumVal = (Number) sumRange[i];
+				if(rangeVal.equals(criteriaDouble)) {
+					sum = sum.add(new BigDecimal(sumVal.doubleValue()));
+				}
+			}
+		}
+		
+		NounMetadata retNoun = null;
+		double result = sum.doubleValue();
+		if(result == Math.rint(result)) {
+			retNoun = new NounMetadata((int) result, PkslDataTypes.CONST_INT);
 		} else {
-			isExpression = false;
+			// not a valid integer
+			// return as a double
+			retNoun = new NounMetadata(result, PkslDataTypes.CONST_DECIMAL);
 		}
-
-		for (Object obj : (Object[]) values[0]) {
-			rangeList.add(obj);
-		}
-		if (rowSize == 3) {
-			for (Object obj : (Object[]) values[2]) {
-				sumRangeList.add(obj);
-			}
-		}
-		if (isInteger) {
-			sumIfVal = sumOfIntCriteria(rangeList, sumRangeList, criteria, sumIfVal, isExpression, expressionType,
-					rowSize);
-		}
-
-		if (rowSize == 3 && !isInteger) { // String criteria
-			sumIfVal = sumIfStrCriteria(rangeList, sumRangeList, criteria, sumIfVal);
-		}
-
-		NounMetadata sumIfValue = new NounMetadata(sumIfVal, PkslDataTypes.CONST_DECIMAL);
-		System.out.println("sumIfValue..." + sumIfVal);
-		return sumIfValue;
+		
+		return retNoun;
 	}
 
-	public double sumIfStrCriteria(List<Object> rangeList, List<Object> sumRangeList, String criteria,
-			double sumIfVal) {
-
-		List<String> strArrlist = rangeList.stream().map(object -> Objects.toString(object, null))
-				.collect(Collectors.toList());
-		List<Integer> intArrlist = sumRangeList.stream()
-				.map(object -> (Integer.parseInt(Objects.toString(object, null)))).collect(Collectors.toList());
-		criteria = criteria.replaceAll("\\*", "\\\\w*").replaceAll("\\?", "\\\\w?");
-
-		for (int i = 0; i < strArrlist.size(); i++) {
-			if (strArrlist.get(i).matches(criteria)) {
-				sumIfVal += ((Number) intArrlist.get(i)).doubleValue();
+	/**
+	 * Evaluate the numerical filter on the range value
+	 * @param rangeVal
+	 * @param filterPrefix
+	 * @param filterNum
+	 * @param sumVal
+	 * @return
+	 */
+	private static BigDecimal evalNumericalExpression(Number rangeVal, String filterPrefix, Number filterNum, Number sumVal) {
+		
+		// this is really annoying
+		// need to catch which one it is
+		// and just do the test
+		
+		BigDecimal ret = null;
+		
+		if(filterPrefix.equals(">")) {
+			if(rangeVal.doubleValue() > filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals(">=")) {
+			if(rangeVal.doubleValue() >= filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals("<")) {
+			if(rangeVal.doubleValue() < filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals("<=")) {
+			if(rangeVal.doubleValue() <= filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals("!=")) {
+			if(rangeVal.doubleValue() != filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals("<>")) {
+			if(rangeVal.doubleValue() != filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals("=")) {
+			if(rangeVal.doubleValue() == filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
+			}
+		} else if(filterPrefix.equals("==")) {
+			if(rangeVal.doubleValue() == filterNum.doubleValue()) {
+				ret = new BigDecimal(sumVal.doubleValue());
+			} else {
+				ret = new BigDecimal(0);
 			}
 		}
-		System.out.println("+++++" + sumIfVal);
-		return sumIfVal;
+		
+		return ret;
 	}
-
-	public double sumOfIntCriteria(List<Object> rangeList, List<Object> sumRangeList, String criteria, double sumIfVal,
-			boolean isExpression, String expressionType, int rowSize) {
-
-		if (rowSize == 2) { // integer only
-			System.out.println("rangeList=====" + rangeList.size());
-
-			List<Integer> intArrlist = rangeList.stream()
-					.map(object -> (Integer.parseInt(Objects.toString(object, null)))).collect(Collectors.toList());
-			for (int i = 0; i < intArrlist.size(); i++) {
-
-				if (!isExpression && (intArrlist.get(i).equals(Integer.valueOf(criteria)))) {
-					sumIfVal += intArrlist.get(i);
-				} else if (isExpression) {
-					sumIfVal = expressionEval(expressionType, intArrlist.get(i), Integer.valueOf(criteria), sumIfVal, 0,
-							2);
-				}
-			}
-		}
-
-		if (rowSize == 3) { // integer only
-			List<Integer> intArrlist = rangeList.stream()
-					.map(object -> (Integer.parseInt(Objects.toString(object, null)))).collect(Collectors.toList());
-
-			List<Integer> intArrlist2 = sumRangeList.stream()
-					.map(object -> (Integer.parseInt(Objects.toString(object, null)))).collect(Collectors.toList());
-
-			for (int i = 0; i < intArrlist.size(); i++) {
-				if (!isExpression && (intArrlist.get(i).equals(Integer.valueOf(criteria)))) {
-					sumIfVal += ((Number) intArrlist2.get(i)).doubleValue();
-				}else if (isExpression){
-					sumIfVal = expressionEval(expressionType, intArrlist.get(i), Integer.valueOf(criteria), sumIfVal, intArrlist2.get(i), 3);
-				}
-			}
-		}
-		return sumIfVal;
-	}
-
-	public double expressionEval(String expressionType, int intFromList, int intCriteria, double totalSum,
-			int intFromList2, int rowSize) {
-
-		switch (expressionType) {
-
-		case ">":
-			if ((intFromList > intCriteria)) {
-				if (rowSize == 2) {
-					totalSum += intFromList;
-				} else {
-					totalSum += intFromList2;
-				}
-			}
-			break;
-		case "<":
-			if ((intFromList < intCriteria)) {
-				if (rowSize == 2) {
-					totalSum += intFromList;
-				} else {
-					totalSum += intFromList2;
-				}
-			}
-			break;
-		case ">=":
-			if ((intFromList >= intCriteria)) {
-				if (rowSize == 2) {
-					totalSum += intFromList;
-				} else {
-					totalSum += intFromList2;
-				}
-			}
-			break;
-		case "<=":
-			if ((intFromList <= intCriteria)) {
-				if (rowSize == 2) {
-					totalSum += intFromList;
-				} else {
-					totalSum += intFromList2;
-				}
-			}
-			expressionType = ">=";
-			break;
-		case "<>":
-			if ((intFromList != intCriteria)) {
-				if (rowSize == 2) {
-					totalSum += intFromList;
-				} else {
-					totalSum += intFromList2;
-				}
-			}
-			expressionType = "<>";
-			break;
-		default:
-
-			break;
-		}
-		return totalSum;
-	}
-
 }
-
-// verify below code, use it if needed or elsedelete it..(Not needed)
-/*
- * if(isExpression){ strArr = criteria.split(">"); for(int i=0 ; i<strArr.length
- * ; i++){ try{ num = Integer.parseInt(strArr[i].trim()); }catch (Exception e) {
- * continue; } }
- * 
- * }
- */
