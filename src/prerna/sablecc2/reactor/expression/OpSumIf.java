@@ -224,4 +224,9 @@ public class OpSumIf extends OpBasic {
 		
 		return ret;
 	}
+
+	@Override
+	public String getReturnType() {
+		return "double";
+	}
 }

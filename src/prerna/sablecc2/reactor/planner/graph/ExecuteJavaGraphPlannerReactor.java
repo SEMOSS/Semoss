@@ -29,16 +29,12 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		PKSLPlanner planner = getPlanner();
 		List<String> pksls = new Vector<String>();
 
-		// get the list of the root vertices
-		// these are the vertices we can run right away
-		// and are the starting point for the plan execution
-		Set<Vertex> rootVertices = getRootPksls(planner);
 		// using the root vertices
 		// iterate down all the other vertices and add the signatures
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(planner, rootVertices, pksls);
+		traverseDownstreamVertsProcessor(planner, pksls);
 		
 		//now we can the pksls
 		
