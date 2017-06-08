@@ -15,6 +15,35 @@ public class IfReactor extends AbstractReactor {
 	// once again this would be abstract
 	public NounMetadata execute()
 	{
+//		boolean caseEvaluation = getBooleanEvaluation();
+		
+		// on the translation
+		// we already push which result is the true/false case
+		// so all we need to do is grab the only thing in the curRow
+		// and push it up
+		Object trueObj = this.curRow.get(1);
+		PkslDataTypes trueObjMeta = this.curRow.getMeta(1);
+		// evaluate the true statement
+		return evaluateStatement(trueObj, trueObjMeta);
+		
+//		// the if will always have 2 values in its curRow
+//		// the first value is the true object
+//		// the second value is the false object
+//		// based on the case evaluation, we will know which one to evaluate
+//		if(caseEvaluation == true) {
+//			Object trueObj = this.curRow.get(1);
+//			PkslDataTypes trueObjMeta = this.curRow.getMeta(1);
+//			// evaluate the true statement
+//			return evaluateStatement(trueObj, trueObjMeta);
+//		} else {
+//			Object falseObj = this.curRow.get(2);
+//			PkslDataTypes falseObjMeta = this.curRow.getMeta(2);
+//			// evaluate the false statement
+//			return evaluateStatement(falseObj, falseObjMeta);
+//		}
+	}
+	
+	public boolean getBooleanEvaluation() {
 		Object ifEvaluatorObject = this.curRow.get(0);
 		PkslDataTypes ifEvaluatorType = this.curRow.getMeta(0);
 		
@@ -22,7 +51,9 @@ public class IfReactor extends AbstractReactor {
 		// grab it and evalute based on its type
 		boolean caseEvaluation = false;
 		
-		if(ifEvaluatorType == PkslDataTypes.FILTER) {
+		if(ifEvaluatorType == PkslDataTypes.BOOLEAN) {
+			caseEvaluation = (boolean) ifEvaluatorObject;
+		} else if(ifEvaluatorType == PkslDataTypes.FILTER) {
 			// we have a filter object
 			// use its evaluate method
 			Filter filter = (Filter) ifEvaluatorObject;
@@ -42,22 +73,7 @@ public class IfReactor extends AbstractReactor {
 				}
 			}
 		}
-		
-		// the if will always have 2 values in its curRow
-		// the first value is the true object
-		// the second value is the false object
-		// based on the case evaluation, we will know which one to evaluate
-		if(caseEvaluation == true) {
-			Object trueObj = this.curRow.get(1);
-			PkslDataTypes trueObjMeta = this.curRow.getMeta(1);
-			// evaluate the true statement
-			return evaluateStatement(trueObj, trueObjMeta);
-		} else {
-			Object falseObj = this.curRow.get(2);
-			PkslDataTypes falseObjMeta = this.curRow.getMeta(2);
-			// evaluate the false statement
-			return evaluateStatement(falseObj, falseObjMeta);
-		}
+		return caseEvaluation;
 	}
 	
 	private NounMetadata evaluateStatement(Object statementObj, PkslDataTypes statementType) {

@@ -152,15 +152,14 @@ public class ReactorFactory {
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 		reactorHash.put("CreateStore", CreateStoreReactor.class);
 		
-		// tax specific handles
+		//Tax specific handles
 		reactorHash.put("TaxMapStore", TaxMapStore.class);
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue.class);
-		
-		
 		//Tinker Specific Tax Reactors
 		reactorHash.put("RunTaxPlan", RunGraphTaxPlannerReactor.class);
 		reactorHash.put("RunPlan", ExecuteGraphPlannerReactor.class);
 		reactorHash.put("LoadClient", LoadGraphClient.class);
+		
 		
 		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
 //		//H2 Specific Tax Reactors

@@ -6,7 +6,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
@@ -42,7 +41,6 @@ import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.GenericReactor;
@@ -57,84 +55,33 @@ import prerna.sablecc2.reactor.expression.OpFilter;
 import prerna.sablecc2.reactor.qs.AsReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
-public class Translation extends DepthFirstAdapter {
+public class LazyTranslation extends DepthFirstAdapter {
 
-	private static final Logger LOGGER = LogManager.getLogger(Translation.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(LazyTranslation.class.getName());
 	
-	IReactor curReactor = null;
-	IReactor prevReactor = null;
+	protected IReactor curReactor = null;
+	protected IReactor prevReactor = null;
+	public PKSLPlanner planner;
+
+	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
-	TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
-	
-	boolean printTraceData = false;
-	String filepath = "";
-	boolean logToFile = false;
-	
+	//TODO: should probably use this instead of just commenting out the code in default in/out
+	protected boolean printTraceData = false;
 	public enum TypeOfOperation {PIPELINE, COMPOSITION};
 	
 	// there really will be 2 versions of this
 	// one for overall and one as the user does it
 	// for now.. this is just how the user does it
-	public PKSLPlanner planner;
-	public String lastOperation = null;
+	protected String lastOperation = null;
 	
-	
-	//The reactor factory associated with this translation
-	//Need a reactor factory
-	PKSLRunner runner; //need this to store return data to...maybe? or is that the planner
-	
-	String FILENAME = "C:\\Workspace\\Semoss_Dev\\log\\pksl_execution.log";
-	/***************************
-	 * CONSTRUCTORS
-	 ***************************/
-	public Translation() {
+	public LazyTranslation() {
 		this.planner = new PKSLPlanner();
-		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
-		this.runner = new PKSLRunner();
 	}
-	
-	public Translation(PKSLRunner runner) {
-		this.planner = new PKSLPlanner();
-		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
-		this.runner = runner;
-	}
-	
-	public Translation(IDataMaker dataMaker, PKSLRunner runner) {
-		this.planner = new PKSLPlanner(dataMaker);
-		this.planner.addProperty("FRAME", "FRAME", dataMaker);
-		this.runner = runner;
-	}
-	
-	public void setFileName(String fileName) {
-	}
- 	
-	/***************************
-	 * END CONSTRUCTORS
-	 ***************************/
 	
 	protected void postProcess() {
-		// get the noun meta result
-		// set that in the runner for later retrieval
-		// if it is a frame
-		// set it as the frame for the runner
-		NounMetadata noun = planner.getVariableValue("$RESULT");
-		if(noun != null) {
-			this.runner.setResult(noun);
-			Object frameNoun = noun.getValue();
-			if(frameNoun instanceof IDataMaker){
-				IDataMaker frame = (IDataMaker) frameNoun;
-				this.runner.setDataFrame(frame);
-			}
-			// if there was a previous result
-			// remove it
-			this.planner.removeVariable("$RESULT");
-		} else {
-			this.runner.setResult(null);
-		}
-		curReactor = null;
-		prevReactor = null;
-		lastOperation = null;
+		// do nothing
 	}
+	
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
 	@Override
@@ -378,50 +325,6 @@ public class Translation extends DepthFirstAdapter {
     	}
         this.lastOperation = node + "";
     }
-    /*
-    @Override
-    
-    public void caseAPlainRow(APlainRow node)
-    {
-        inAPlainRow(node);
-        if(node.getColDef() != null)
-        {
-            node.getColDef().apply(this); //IF(comparison, truecomparison, falsecomparison)
-        }
-        
-        {
-        	//TODO : EXPLAIN THIS!!!
-        	if(curReactor instanceof IfReactor) {
-        		NounMetadata result = (NounMetadata)curReactor.getNounStore().getNoun("f").get(0);
-        		
-        		//determine the result of the comparison
-        		boolean runFalseCase = result.getValue() == null || result.getValue().equals("FALSE") || result.getValue().equals(0);
-        		
-        		if(runFalseCase) {
-        			List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
-    	            if(copy.size() >= 2) {
-    	            	POthercol e = copy.get(1);
-    	            	e.apply(this);
-    	            }
-        		} else {
-        			List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
-        			POthercol e = copy.get(0);
-        			e.apply(this);
-        		}
-        	}
-        	
-        	else {
-	            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
-	            for(POthercol e : copy)
-	            {
-	                e.apply(this);
-	            }
-        	}
-        }
-        outAPlainRow(node);
-        
-    }
-	*/
     
 //    public void inAROp(AROp node) {
 //		RReactor reactor = new RReactor();
@@ -757,7 +660,6 @@ public class Translation extends DepthFirstAdapter {
         }
         if(node.getComparator() != null)
         {
-//            node.getComparator().apply(this);
         	curReactor.getCurRow().addLiteral(node.getComparator().toString().trim());
         }
         if(node.getRight() != null)
@@ -1054,88 +956,28 @@ public class Translation extends DepthFirstAdapter {
         curReactor.In();
     }
     
-    protected void deInitReactor()
-    {
-    	// couple of things I need to do here
-    	// a. see if this is a reduce operation if so.. execute the reactor at once
-    	// b. see if it can be done all through the native query
-    	// c. If it can't be done as native query <--- This will be the last piece I will come to
-    	// get the operation signature to be executed along with the genRowStruct
-    	// all of this logic is sitting in the out method
-    	
-    	// time for the last piece or may be ?
-    	// this is an all out codagen for now - mostly
-    	// Couple of things we need
-    	// we need some kind of a java class where I can continue to plug what I need to plug
-    	// - Need a query method which returns a row iterator
-    	// - You can pass in a query at any time and it would return that row iterator
-    	// - Each of the pieces are divided into blocks
-    	// - There needs to be something that gets you the blocks every single time
-    	// - The top of the block is always a query
-    	// - and the end of the block is either a query or it is some kind of a reduce value.. we should possibly keep this as an object as well
-    	// - When the expression is typically added, it should add the components i.e. the projectors to the block and add the other portion of the code to the block to indicate
-    	// this is what will be run at every block
-    	// Question - What decides the separation of blocks
-    	// a. Reduce operation - This should include the update and insert into the frame if you would like the to think of it that way.. 
-    	// b. FlatMap operation - This means something else being added
-    	// c. It also needs to follow George's logic in terms of breaking it into components
-    	
-    	
-    	
-    	if(curReactor != null)
-    	{
-	    	Object parent = curReactor.Out();
-	    	
-	    	//TODO : i hate these special case checks....how do we make this more elegant
-	    	if(parent instanceof Assimilator) {
-	    		// if our parent is an assimilator
-	    		// we want to not execute but put the curReactor as a lamda
-	    		((Assimilator) parent).getCurRow().add(new NounMetadata(curReactor, PkslDataTypes.LAMBDA));
-	    		// when the assimilator executes
-	    		// it will call super.execute
-	    		// which will evaluate this reactor and do a string replace
-	    		// on the signature
-	    		curReactor = (Assimilator)parent;
-	    		return;
-	    	}
-	    	
-	    	NounMetadata output = null;
-	    	try {
-	    		output = curReactor.execute();
-	    	} catch(Exception e) {
-	    		System.out.println(e.getMessage());
-	    		//should we make an error noun?
-	    	}
-	    	this.planner = ((AbstractReactor)curReactor).planner;
-	    	
-	    	//set the curReactor
-	    	if(parent != null && parent instanceof IReactor) {
-	    		curReactor = (IReactor)parent;
-	    	} else {
-	    		curReactor = null;
-	    	}
-	    	
-	    	// we will merge up to the parent if one is present
-	    	// otherwise, we will store the result in the planner for future use
-	    	// the beginning of the pksl command the beginning of each pipe is an independent routine and doesn't have a parent
-	    	// these will push their output to the result in the pksl planner
-	    	// if a routine does have children, we will push the to the result directly to the parent
-	    	// so the out of the parent can utilize it for its execution
-	    	// ( ex. Select(Studio, Sum(Movie_Budget) where the Sum is a child of the Select reactor )
-	    	
-	    	if(output != null) {
-	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
-	    			// add the value to the parent's curnoun
-	    			curReactor.getCurRow().add(output);
-		    	} else {
-		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
-		    		this.planner.addVariable("$RESULT", output);
-		    	}
-	    	} else {
-	    		this.planner.removeVariable("$RESULT");
-	    	}
-    	}
-    }
+	protected void deInitReactor()
+	{
+		if(curReactor != null)
+		{
+			// merge up and update the plan
+			try {
+				curReactor.mergeUp();
+				curReactor.updatePlan();
+			} catch(Exception e) {
+				LOGGER.error(e.getMessage());
+			}
+			// get the parent
+			Object parent = curReactor.Out();
+						
+			// set the parent as the curReactor if it is present
+			if(parent != null && parent instanceof IReactor) {
+				curReactor = (IReactor)parent;
+			} else {
+				curReactor = null;
+			}
+		}
+	}
     
     public IDataMaker getDataMaker() {
     	try {

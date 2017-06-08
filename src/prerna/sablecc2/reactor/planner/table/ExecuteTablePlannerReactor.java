@@ -6,7 +6,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.Translation;
+import prerna.sablecc2.GreedyTranslation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -25,7 +25,7 @@ public class ExecuteTablePlannerReactor extends AbstractTablePlannerReactor {
 		TablePKSLPlanner planner = getPlanner();
 		
 		List<String> pksls = collectRootPksls(planner);		
-		Translation translation = new Translation();
+		GreedyTranslation translation = new GreedyTranslation();
 		translation.planner = planner;
 		while(!pksls.isEmpty()) {
 			try {
