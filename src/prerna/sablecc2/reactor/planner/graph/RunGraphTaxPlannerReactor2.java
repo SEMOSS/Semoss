@@ -20,8 +20,8 @@ import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.PlannerTranslation;
-import prerna.sablecc2.Translation;
+import prerna.sablecc2.LazyTranslation;
+import prerna.sablecc2.GreedyTranslation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
@@ -90,7 +90,7 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 			LOGGER.info("Start execution for scenario = " + scenario);
 
 			// create a new translation to run through
-			Translation translation = new Translation();
+			GreedyTranslation translation = new GreedyTranslation();
 			// get the planner for the scenario
 			PKSLPlanner nextScenario = scenarioMap.get(scenario);
 			nextScenario.addVariable("$Scenario", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
@@ -99,7 +99,6 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 			// iterate through to determine execution order for
 			// the scenario
 			List<String> pkslList = getPksls(nextScenario);
-			
 			PkslUtility.addPkslToTranslation(translation, pkslList);
 			
 			LOGGER.info("End execution for scenario = " + scenario);
@@ -133,7 +132,7 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
+		traverseDownstreamVertsAndOrderProcessing(planner, rootVertices, pksls);
 		return pksls;
 	}
 
@@ -205,7 +204,7 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// define a central translation
 		// to execute everything with
 		// but substituting with the correct scenario planner
-		PlannerTranslation translation = new PlannerTranslation();
+		LazyTranslation translation = new LazyTranslation();
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextData = iterator.next();
 
@@ -243,7 +242,11 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 			// else, add it as a variable
 			if(isFormula) {
 				String pkslString = PkslUtility.generatePKSLString(alias, value);
-				PkslUtility.addPkslToTranslation(translation, pkslString);
+				// skip adding self reflection pksls
+				// i.e. x = (x);
+				if(!AbstractPlannerReactor.isSimpleAssignment(pkslString)) {
+					PkslUtility.addPkslToTranslation(translation, pkslString);
+				}
 			} else {
 				scenarioPlanner.addVariable(alias, PkslUtility.getNoun(value));
 			}

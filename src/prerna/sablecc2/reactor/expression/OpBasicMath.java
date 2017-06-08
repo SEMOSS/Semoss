@@ -69,6 +69,13 @@ public abstract class OpBasicMath extends OpReactor {
 				// TODO: expose int vs. double on the frame
 				this.returnInteger = false;	
 				evaluatedNouns[i] = evaluateString(this.operation, val);
+			} else if(valType == PkslDataTypes.CONST_STRING) {
+				String valueStr = val.getValue().toString(); 
+				if(valueStr.toUpperCase().trim().equals("NONE")) {
+					evaluatedNouns[i] = 0.0;
+				} else {
+					throw new IllegalArgumentException("Invalid input for "+this.operation+". Require all values to be numeric or column names");
+				}
 			} else {
 				throw new IllegalArgumentException("Invalid input for "+this.operation+". Require all values to be numeric or column names");
 			}

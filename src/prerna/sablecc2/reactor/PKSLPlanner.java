@@ -16,7 +16,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.om.VarStore;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -42,10 +41,20 @@ public class PKSLPlanner {
 
 	
 	public PKSLPlanner() {
-		TinkerGraph g = TinkerGraph.open();
+		this.g = TinkerGraph.open();
+		addIndices();
+	}
+	
+	public void addIndices() {
 		g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
 		g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
-		this.g = g;
+//		g.createIndex(PKSLPlanner.TINKER_ID, Edge.class);
+	}
+	
+	public void dropIndices() {
+		g.dropIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
+		g.dropIndex(PKSLPlanner.TINKER_ID, Vertex.class);
+//		g.dropIndex(PKSLPlanner.TINKER_ID, Edge.class);
 	}
 	
 	public PKSLPlanner(IDataMaker dataMaker) {
@@ -175,10 +184,10 @@ public class PKSLPlanner {
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim().toUpperCase());
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim());
 			outpVertex.property("VAR_TYPE", "QUERY"); // by default it is query
-			String edgeID = opName + "_" + outputs.get(outputIndex).trim().toUpperCase();
-			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property(TINKER_ID), "TYPE", "OUTPUT");
+			String edgeID = opName + "_" + outputs.get(outputIndex).trim();
+			upsertEdge(opVertex, outpVertex, edgeID, "OUTPUT");
 		}
 	}
 	
@@ -192,10 +201,10 @@ public class PKSLPlanner {
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++)
 		{
-			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim().toUpperCase());
+			Vertex outpVertex = upsertVertex(NOUN, outputs.get(outputIndex).trim());
 			outpVertex.property("VAR_TYPE", outputTypes.get(outputIndex)); // by default it is query
-			String edgeID = opName + "_" + outputs.get(outputIndex).trim().toUpperCase();
-			Edge retEdge = opVertex.addEdge(edgeID, outpVertex, "ID", edgeID, "COUNT", 1, "INEDGE", opVertex.property(TINKER_ID), "TYPE", "OUTPUT");
+			String edgeID = opName + "_" + outputs.get(outputIndex).trim();
+			upsertEdge(opVertex, outpVertex, edgeID, "OUTPUT");
 		}
 	}
 
@@ -211,14 +220,15 @@ public class PKSLPlanner {
 		Vector <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim().toUpperCase());
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim());
 			if(asInputs != null && inputIndex < asInputs.size())
 				aliasVector.add(asInputs.get(inputIndex));
 			else
-				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
-			String edgeID = inputs.get(inputIndex).trim().toUpperCase() + "_" + opName;
-			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property(TINKER_ID), "TYPE", "INPUT");
+				aliasVector.add(inputs.get(inputIndex).trim());
+			String edgeID = inputs.get(inputIndex).trim() + "_" + opName;
 			
+			// make sure we do not add the edges multiple times
+			upsertEdge(inpVertex, opVertex, edgeID, "INPUT");
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}
@@ -249,13 +259,13 @@ public class PKSLPlanner {
 		List <String> aliasVector = new Vector<String>();
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
-			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim().toUpperCase());
+			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim());
 			if(asInputs != null && inputIndex < asInputs.size())
 				aliasVector.add(asInputs.get(inputIndex).trim());
 			else
-				aliasVector.add(inputs.get(inputIndex).trim().toUpperCase());
-			String edgeID = inputs.get(inputIndex).trim().toUpperCase()+ "_" + opName;
-			Edge retEdge = inpVertex.addEdge(edgeID, opVertex, "ID", edgeID, "COUNT", 1, "INEDGE", inpVertex.property(TINKER_ID), "TYPE", "INPUT");			
+				aliasVector.add(inputs.get(inputIndex).trim());
+			String edgeID = inputs.get(inputIndex).trim()+ "_" + opName;
+			upsertEdge(inpVertex, opVertex, edgeID, "INPUT");
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}
@@ -278,6 +288,17 @@ public class PKSLPlanner {
 		if(retVertex == null)
 				retVertex = g.addVertex(TINKER_ID, type + ":" + name, TINKER_TYPE, type, TINKER_NAME, name);// push the actual value as well who knows when you would need it
 		return retVertex; 
+	}
+	
+	protected Edge upsertEdge(Vertex startV, Vertex endV, String edgeID, String type)
+	{
+//		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(TINKER_ID, edgeID);
+//		if(gt.hasNext()) {
+//			//TODO: come back if i want to add the count to here
+//			return gt.next();
+//		} else {
+			return startV.addEdge(edgeID, endV, TINKER_ID, edgeID, "COUNT", 1, "TYPE", type);
+//		}
 	}
 	
 	private Vertex findVertex(String type, String name)

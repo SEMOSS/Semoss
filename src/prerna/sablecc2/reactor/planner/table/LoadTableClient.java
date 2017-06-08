@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.PlannerTranslation;
+import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.reactor.TablePKSLPlanner;
 import prerna.sablecc2.reactor.planner.AbstractLoadClient;
 import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
@@ -29,7 +29,7 @@ public class LoadTableClient extends AbstractLoadClient {
 		// generate our lazy translation
 		// which only ingests the routines
 		// without executing
-		PlannerTranslation plannerT = new PlannerTranslation();
+		LazyTranslation plannerT = new LazyTranslation();
 		TablePKSLPlanner tplanner = new TablePKSLPlanner();
 		plannerT.planner = tplanner;
 		

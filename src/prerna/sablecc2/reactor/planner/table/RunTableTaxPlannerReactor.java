@@ -12,8 +12,8 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.PlannerTranslation;
-import prerna.sablecc2.Translation;
+import prerna.sablecc2.LazyTranslation;
+import prerna.sablecc2.GreedyTranslation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
@@ -61,7 +61,7 @@ public class RunTableTaxPlannerReactor extends AbstractTablePlannerReactor {
 			LOGGER.info("Start execution for scenario = " + scenario);
 
 			// create a new translation to run through
-			Translation translation = new Translation();
+			GreedyTranslation translation = new GreedyTranslation();
 			// get the planner for the scenario
 			TablePKSLPlanner nextScenario = scenarioMap.get(scenario);
 			nextScenario.addVariable("$Scenario", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
@@ -142,7 +142,7 @@ public class RunTableTaxPlannerReactor extends AbstractTablePlannerReactor {
 		// define a central translation
 		// to execute everything with
 		// but substituting with the correct scenario planner
-		PlannerTranslation translation = new PlannerTranslation();
+		LazyTranslation translation = new LazyTranslation();
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextData = iterator.next();
 

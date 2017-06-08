@@ -65,7 +65,7 @@ public class PKSLRunner {
 	 * @param frame					The data maker to run the pkql expression on
 	 */
 
-	private Translation translation;
+	private GreedyTranslation translation;
 	private IDataMaker dataMaker;
 	private String insightId;
 	private PKSLPlanner planner;
@@ -118,7 +118,7 @@ public class PKSLRunner {
 	public void runPKSL(String expression) {
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		if(translation == null){
-			translation = new Translation(this);
+			translation = new GreedyTranslation(this);
 		}
 
 		try {
@@ -138,7 +138,7 @@ public class PKSLRunner {
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
 		if(translation == null){
-			translation = new Translation(frame, this);
+			translation = new GreedyTranslation(frame, this);
 		}
 		try {
 			// parsing the pkql - this process also determines if expression is syntactically correct

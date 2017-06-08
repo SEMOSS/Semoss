@@ -12,6 +12,7 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -19,9 +20,9 @@ import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc2.GreedyTranslation;
+import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.PlannerTranslation;
-import prerna.sablecc2.Translation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
@@ -90,7 +91,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 			LOGGER.info("Start execution for scenario = " + scenario);
 
 			// create a new translation to run through
-			Translation translation = new Translation();
+			GreedyTranslation translation = new GreedyTranslation();
 			// get the planner for the scenario
 			PKSLPlanner nextScenario = scenarioMap.get(scenario);
 			nextScenario.addVariable("$SCENARIO", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
@@ -99,7 +100,6 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 			// iterate through to determine execution order for
 			// the scenario
 			List<String> pkslList = getPksls(nextScenario);
-			
 			PkslUtility.addPkslToTranslation(translation, pkslList);
 			
 			LOGGER.info("End execution for scenario = " + scenario);
@@ -112,7 +112,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		}
 		
 		long end = System.currentTimeMillis();
-		System.out.println("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
+		LOGGER.info("****************    END RUN TAX PLANNER "+(end - start)+"ms      *************************");
 
 		File file = new File(this.fileName);
 		file.delete();
@@ -133,7 +133,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
+		traverseDownstreamVertsAndOrderProcessing(planner, rootVertices, pksls);
 		return pksls;
 	}
 
@@ -191,6 +191,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		
 		newPlanner.g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
 		newPlanner.g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
+		newPlanner.g.createIndex(PKSLPlanner.TINKER_ID, Edge.class);
 
 		// now loop through the original planner
 		// and set all the variables that are defined
@@ -213,7 +214,7 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		// define a central translation
 		// to execute everything with
 		// but substituting with the correct scenario planner
-		PlannerTranslation translation = new PlannerTranslation();
+		LazyTranslation translation = new LazyTranslation();
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextData = iterator.next();
 
@@ -251,7 +252,11 @@ public class RunGraphTaxPlannerReactor extends AbstractPlannerReactor {
 			// else, add it as a variable
 			if(isFormula) {
 				String pkslString = PkslUtility.generatePKSLString(alias, value);
-				PkslUtility.addPkslToTranslation(translation, pkslString);
+				// skip adding self reflection pksls
+				// i.e. x = (x);
+				if(!isSimpleAssignment(pkslString)) {
+					PkslUtility.addPkslToTranslation(translation, pkslString);
+				}
 			} else {
 				scenarioPlanner.addVariable(alias, PkslUtility.getNoun(value));
 			}

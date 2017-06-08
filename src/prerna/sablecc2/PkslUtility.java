@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -11,6 +12,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
@@ -105,17 +107,25 @@ public class PkslUtility {
 	 * 
 	 * Adds a pkslString to the planner via lazy translation
 	 */
-	public static void addPkslToTranslation(Translation translation, List<String> pkslList) {
+	public static void addPkslToTranslation(DepthFirstAdapter translation, List<String> pkslList) {
 		/****** For Debugging *******/
 		int count = 0;
 		int errorCount = 0;
 		List<String> errorList = new Vector<String>();
 		/****** For Debugging *******/
 
+		LinkedHashSet s = new LinkedHashSet<>(pkslList);
+		if(s.size() == pkslList.size()) {
+			LOGGER.info("YAY!!!!");
+		} else {
+			LOGGER.info("SAD!!!");
+		}
+		
 		int numPksls = pkslList.size();
 		for(int i = 0; i < numPksls; i++) {
 			count++;
 			String pkslString = pkslList.get(i);
+//			System.out.println(pkslString);
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
@@ -139,9 +149,9 @@ public class PkslUtility {
 		
 		/****** For Debugging *******/
 		LOGGER.info("*************** TOTAL = " + count + "***************" );
-		LOGGER.info("*************** FAILED = " + errorCount + "***************" );
+		LOGGER.error("*************** FAILED = " + errorCount + "***************" );
 		for(int i = 0; i < errorCount; i++) {
-			LOGGER.info("\tFAILED WITH :::: " + errorList.get(i));
+			LOGGER.error("\tFAILED WITH :::: " + errorList.get(i));
 		}
 		/****** For Debugging *******/
 	}
@@ -153,17 +163,17 @@ public class PkslUtility {
 	 * 
 	 * Adds a pkslString to the planner via lazy translation
 	 */
-	public static void addPkslToTranslation(Translation translation, String pkslString) {
+	public static void addPkslToTranslation(DepthFirstAdapter translation, String pkslString) {
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 			Start tree = p.parse();
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-//			LOGGER.error("FAILED ON :::: " + pkslString);
-//			e.printStackTrace();
+			LOGGER.error("FAILED ON :::: " + pkslString);
+			e.printStackTrace();
 		} catch(Exception e) {
-//			LOGGER.error("FAILED ON :::: " + pkslString);
-//			e.printStackTrace();
+			LOGGER.error("FAILED ON :::: " + pkslString);
+			e.printStackTrace();
 		}
 	}
 	
