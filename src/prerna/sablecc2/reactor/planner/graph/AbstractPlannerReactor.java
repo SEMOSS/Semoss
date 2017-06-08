@@ -3,7 +3,9 @@ package prerna.sablecc2.reactor.planner.graph;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Vector;
 
@@ -21,7 +23,7 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 public abstract class AbstractPlannerReactor extends AbstractReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractPlannerReactor.class.getName());
-	
+
 	/**
 	 * Runs through and get all downstream vertices based on the execution order
 	 * and will continue to traverse down and get downstream vertices that it can execute
@@ -103,151 +105,76 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * Runs through and sees if it is possible to execute a set of vertices
-	 * and will continue to traverse down and get downstream vertices that it can execute
-	 * @param vertsToRun			The starting set of vertices to execute
-	 * @param pkslsToRun			The list of pksls that are being added in an order
-	 * 								where dependents are executed first
-	 */	
-	//TODO: delete this since it is just a pass through now
-	protected void traverseDownstreamVertsAndOrderProcessing(PKSLPlanner planner, Set<Vertex> vertsToRun, List<String> pkslsToRun) {
-		traverseDownstreamVertsProcessor(planner, vertsToRun, pkslsToRun, true);
+	protected void traverseDownstreamVertsProcessor(PKSLPlanner planner, List<String> pkslsToRun) {
+		int orderNum = 1;
+		Queue<Vertex> processQueue = new LinkedList<Vertex>(getZeroInDegreeVetices(planner));
+		while (!processQueue.isEmpty()) {
+			// grab the root vertex to start to process
+			// this root is a operation
+			// poll... grab from the top
+			int size = processQueue.size();
+			for (int i = 0; i < size; i++) {
+				Vertex root = processQueue.poll();
+				String pkslOperation = getPksl(root);
+				String type = root.value(PKSLPlanner.TINKER_TYPE);
+
+				// we get all the outs
+				// these are the nouns that this operation creates
+				Iterator<Vertex> nounIt = root.vertices(Direction.OUT);
+
+				// iterate through them
+				// note: all the downstream operations now have 1 less
+				// dependency that has not
+				// been executed because we can only get to the downstream op
+				// by executing on its parents
+				while (nounIt.hasNext()) {
+					Vertex downOp = nounIt.next();
+					if(!downOp.property("inVertexCount").isPresent()) {
+						// we set the IN_DEGREE when we insert the node in the planner
+						downOp.property("inVertexCount", downOp.value(PKSLPlanner.IN_DEGREE));
+					}
+					
+					Integer currentIntCount = downOp.value("inVertexCount");
+					downOp.property("inVertexCount", currentIntCount.intValue() - 1);
+					if (currentIntCount.intValue() == 1) {
+						processQueue.offer(downOp);
+					}
+				}
+
+				// now, set the order within the vertex
+				root.property(PKSLPlanner.ORDER, orderNum);
+				orderNum++;
+
+				// and add it to the pksl list
+				if (pkslOperation != null) {
+					if (type.equals(PKSLPlanner.OPERATION)) {
+						pkslsToRun.add(pkslOperation);
+					}
+				}
+			}
+		}
+
+		LOGGER.info("DONE TRAVERSING THROUGH GRAPH!!!");
 	}
 
-	/**
-	 * bfs traversal through the vertices
-	 * @param rootSet
-	 * @param pkslsToRun
-	 * @param setOrder
-	 */
-//	private void traverseDownstreamVertsProcessor(Set<Vertex> rootSet, List<String> pkslsToRun, boolean setOrder) {
-//		Queue<Vertex> processQueue = new LinkedList<Vertex>(rootSet);
-//
-//		int orderNum = 1;
-//		while(!processQueue.isEmpty()) {
-//			// grab the root vertex to start to process
-//			// this root is a operation
-//			// poll... grab from the top
-//			Vertex root = processQueue.poll();
-//			String pkslOperation = getPksl(root);
-//			if(pkslOperation.contains("aKCW")) {
-//				System.out.println("check bfs");
-//			}
-//			// we get all the outs
-//			// these are the nouns that this operation creates
-//			Iterator<Vertex> nounIt = root.vertices(Direction.OUT);
-//			// we want to collect all the operations that use the 
-//			// produced noun of the root
-//			Set<Vertex> downstreamOps = new HashSet<Vertex>();
-//			while(nounIt.hasNext()) {
-//				// iterate to get the next noun
-//				Vertex noun = nounIt.next();
-//				// go out of this noun to get all the operations that use it
-//				Iterator<Vertex> nounDownstreamOpIt = noun.vertices(Direction.OUT);
-//				while(nounDownstreamOpIt.hasNext()) {
-//					downstreamOps.add(nounDownstreamOpIt.next());
-//				}
-//			}
-//
-//			// now that we have collected the operations that are downstream of the root
-//			// iterate through them
-//			// note: all the downstream operations now have 1 less dependency that has not 
-//			// been executed because we can only get to the downstream op
-//			// by executing on its parents
-//			for(Vertex downOp : downstreamOps) {
-//				int totalInCount = 0;
-//				// if the property for the number of in vertices is not present
-//				String downOpPkslOperation = getPksl(downOp);
-//				if(downOpPkslOperation.contains("aKCW")) {
-//					System.out.println("check bfs");
-//				}
-//				
-//				if(!downOp.property("inVertexCount").isPresent()){
-//					// count all the in nouns that are coming into this operation
-//					Iterator<Vertex> inNounIt = downOp.vertices(Direction.IN);
-//					HashSet<String> set = new HashSet<>();
-//					while(inNounIt.hasNext()) {
-//						Vertex inNoun = inNounIt.next();
-//						set.add(inNoun.value("_T_ID") + "");
-//						totalInCount++;
-//					}
-//					if(set.size() != totalInCount) {
-//						System.out.println("wtf");
-//					} else {
-//						totalInCount = set.size();
-//					}
-//					// set it within the down operation
-//					downOp.property("inVertexCount", set.size());
-//				} else {
-//					// grab the totalInCount from the vertex since it was already added
-//					totalInCount = downOp.value("inVertexCount");
-//				}
-//
-//				// if the count is 1
-//				// it means everything else has been processed
-//				if(totalInCount == 1) {
-//					if(downOp.property(PKSLPlanner.PROCESSED).isPresent()){
-//						if((boolean) downOp.property(PKSLPlanner.PROCESSED).value()) {
-//							// System.out.println("wtf ... " + downOp.value("_T_ID"));
-//						} else {
-//							processQueue.offer(downOp);
-//						}
-//					} else {
-//						processQueue.offer(downOp);
-//					}
-//				} else {
-//					// we decrease the value by 1 
-//					// because we have processed one of its parent dependencies
-//					downOp.property("inVertexCount", totalInCount - 1);
-//				}
-//			}
-//
-//			// now, set the order within the vertex
-//			if(setOrder) {
-//				root.property(PKSLPlanner.ORDER, orderNum);
-//				orderNum++;
-//			}
-//
-//			// set the node to processed
-//			root.property(PKSLPlanner.PROCESSED, true);
-//
-//			// and add it to the pksl list
-//			if(pkslOperation !=  null) {
-//				pkslsToRun.add(pkslOperation);
-//			}
-//		}
-//		
-//		System.out.println("DONE TRAVERSING THROUGH GRAPH!!!");
-//	}
-	
-	/**
-	 * bfs traversal through the vertices
-	 * @param rootSet
-	 * @param pkslsToRun
-	 * @param setOrder
-	 */
-	private void traverseDownstreamVertsProcessor(PKSLPlanner planner, Set<Vertex> rootSet, List<String> pkslsToRun, boolean setOrder) {
-		if(rootSet.isEmpty()) {
-			return;
+	protected Set<Vertex> getZeroInDegreeVetices(PKSLPlanner planner) {
+		Set<Vertex> newRoots = new HashSet<Vertex>();
+		GraphTraversal<Vertex, Vertex> vertexIt = planner.g.traversal().V();
+		while (vertexIt.hasNext()) {
+			Vertex vertex = vertexIt.next();
+			if(vertex.property(PKSLPlanner.IN_DEGREE).isPresent()) {
+				if (vertex.value(PKSLPlanner.IN_DEGREE).equals(0)) {
+					newRoots.add(vertex);
+				}
+			} else {
+				// set it to 0 so we dont need to check in future
+				vertex.property(PKSLPlanner.IN_DEGREE, 0);
+				newRoots.add(vertex);
+			}
 		}
-		
-		// remove indices for faster removal
-		planner.dropIndices();
-		
-		for(Vertex root : rootSet) {
-			String pkslOperation = getPksl(root);
-			pkslsToRun.add(pkslOperation);
-			root.remove();
-		}
-		
-		// add back indices for faster searching
-		planner.addIndices();
-
-		rootSet = getRootPksls(planner);
-		traverseDownstreamVertsProcessor(planner, rootSet, pkslsToRun, setOrder);
+		return newRoots;
 	}
-	
+
 	/**
 	 * Get the list of pksls to run
 	 * @return
@@ -377,40 +304,4 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		}
 		return false;
 	}
-
-	/*
-	 * For debugging purposes, will also create new pksls to define variables that should be defined
-	 * This is only added right now since it is a pain to manually add these for tax use case
-	 * Setting these values to 0
-	 */
-	//	protected List<String> getUndefinedVariablesPksls(PKSLPlanner planner) {
-	//		// pksls to run will hold all the other operations to execute
-	//		List<String> pkslsToRun = new Vector<String>();
-	//
-	//		GraphTraversal<Vertex, Long> standAloneNounCount = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN).count(); 
-	//		if(standAloneNounCount.hasNext()) {
-	//			System.out.println("FOUND " + standAloneNounCount.next() + " NOUNS VERTICES!");
-	//		}
-	//
-	//		GraphTraversal<Vertex, Vertex> standAloneNoun = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.NOUN); 
-	//		while(standAloneNoun.hasNext()) {
-	//			Vertex vertNoun = standAloneNoun.next();
-	//			Iterator<Vertex> inOpsIt = vertNoun.vertices(Direction.IN);
-	//			if(inOpsIt.hasNext()) {
-	//				// i dont care about you
-	//			} else {
-	//				// you are a noun which is a logical end point or a variable that wasn't defined
-	//				// you should be a string or a number
-	//				String w = vertNoun.property(PKSLPlanner.TINKER_ID).value().toString();
-	//				if(w.startsWith("NOUN:A") && !w.contains(" ")) {
-	//					String pksl = w.replaceFirst("NOUN:", "");
-	//					pksl += " = 0;";
-	//					pkslsToRun.add(pksl);
-	//				}
-	//			}
-	//		}
-	//		
-	//		return pkslsToRun;
-	//	}
-
 }
