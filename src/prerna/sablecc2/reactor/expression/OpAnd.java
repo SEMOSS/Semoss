@@ -27,7 +27,7 @@ public class OpAnd extends OpBasic {
 		return result;
 	}
 	
-	public boolean eval(boolean[] values) {
+	public static boolean eval(boolean[] values) {
 		boolean result = true;
 		for (Object booleanValue : values) {
 			// need all values to be true
