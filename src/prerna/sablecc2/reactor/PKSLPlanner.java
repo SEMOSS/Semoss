@@ -36,6 +36,7 @@ public class PKSLPlanner {
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
 	
+	public static final String IN_DEGREE = "IN_DEGREE";
 	public static final String PROCESSED = "PROCESSED";
 	public static final String ORDER = "ORDER";
 
@@ -48,13 +49,13 @@ public class PKSLPlanner {
 	public void addIndices() {
 		g.createIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
 		g.createIndex(PKSLPlanner.TINKER_ID, Vertex.class);
-//		g.createIndex(PKSLPlanner.TINKER_ID, Edge.class);
+		g.createIndex(PKSLPlanner.TINKER_ID, Edge.class);
 	}
 	
 	public void dropIndices() {
 		g.dropIndex(PKSLPlanner.TINKER_TYPE, Vertex.class);
 		g.dropIndex(PKSLPlanner.TINKER_ID, Vertex.class);
-//		g.dropIndex(PKSLPlanner.TINKER_ID, Edge.class);
+		g.dropIndex(PKSLPlanner.TINKER_ID, Edge.class);
 	}
 	
 	public PKSLPlanner(IDataMaker dataMaker) {
@@ -138,43 +139,10 @@ public class PKSLPlanner {
 		return this.varStore;
 	}
 	
-//	public NounMetadata getVariable(String variableName) {
-//        NounMetadata noun = varStore.getVariableValue(variableName);
-//        if(noun == null) {
-//                      if(!variableName.startsWith("$"))
-//                                     return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
-//        }
-//        return noun;
-//	//    return varStore.getVariable(variableName);
-//	}
-//
-//	public NounMetadata getVariableValue(String variableName) {
-//        NounMetadata noun = varStore.getVariableValue(variableName);
-//        if(noun == null) {
-//        	if(!variableName.startsWith("$")) {
-//        		return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
-//        	}
-//        }
-//        return noun;
-//	//    return varStore.getVariableValue(variableName);
-//	}
-//
-//	public boolean hasVariable(String variableName) {
-//        boolean hasVar = varStore.hasVariable(variableName);
-//        //variable doesn't exist
-//        if(!hasVar) {
-//	          //variable name doesn't start with $...$Result, $Filter, etc.
-//	          if(!variableName.startsWith("$")) {
-//	                         return true;
-//	          }
-//        }
-//        return hasVar;
-//	//    return varStore.hasVariable(variableName);
-//	}
-	
 	//**********************END VARIABLE METHODS*******************************//
 	
-	
+	//**********************IMPORTANT METHODS*******************************//
+
 	// adds an operation with outputs
 	public void addOutputs(String opName, List <String> outputs, IReactor.TYPE opType)
 	{
@@ -190,7 +158,7 @@ public class PKSLPlanner {
 			upsertEdge(opVertex, outpVertex, edgeID, "OUTPUT");
 		}
 	}
-	
+
 	// specify what type is the output is going to be sitting in store or is it sitting in query
 	// should I also specify as names here ?
 	public void addOutputs(String opName, List <String> outputs, List <String> outputTypes, IReactor.TYPE opType)
@@ -208,6 +176,10 @@ public class PKSLPlanner {
 		}
 	}
 
+	public void addInputs(String opName, List <String> inputs, IReactor.TYPE opType) {
+		addInputs(opName, inputs, null, opType);
+	}
+
 	// adds an operation with necessary inputs
 	public void addInputs(String opName, List <String> inputs, List <String> asInputs, IReactor.TYPE opType)
 	{
@@ -221,21 +193,65 @@ public class PKSLPlanner {
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
 			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim());
-			if(asInputs != null && inputIndex < asInputs.size())
+			if(asInputs != null && inputIndex < asInputs.size()) {
 				aliasVector.add(asInputs.get(inputIndex));
-			else
+			} else {
 				aliasVector.add(inputs.get(inputIndex).trim());
+			} 
 			String edgeID = inputs.get(inputIndex).trim() + "_" + opName;
-			
 			// make sure we do not add the edges multiple times
 			upsertEdge(inpVertex, opVertex, edgeID, "INPUT");
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}
+
+	protected Vertex upsertVertex(String type, String name) {
+		name = name.trim();
+		type = type.trim();
+
+		Vertex retVertex = findVertex(type, name);
+		if(retVertex == null) {
+			retVertex = g.addVertex(TINKER_ID, type + ":" + name, TINKER_TYPE, type, TINKER_NAME, name);
+		}
+		return retVertex; 
+	}
+
+	protected Edge upsertEdge(Vertex startV, Vertex endV, String edgeID, String type) {
+		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(TINKER_ID, edgeID);
+		// increase the count of the in degree on the endV
+		if(gt.hasNext()) {
+			// this is a duplicate edge, do nothing
+			return gt.next();
+		} else {
+			// this is a new edge
+			// increase the in_degree on the end vertex
+			if(!endV.property(IN_DEGREE).isPresent()) {
+				endV.property(IN_DEGREE, 1);
+			} else {
+				int newInDegree = (int) endV.value(IN_DEGREE) + 1;
+				endV.property(IN_DEGREE, newInDegree);
+			}
+			return startV.addEdge(edgeID, endV, TINKER_ID, edgeID, "COUNT", 1, "TYPE", type);
+		}
+	}
+
+	private Vertex findVertex(String type, String name) {
+		name = name.trim();
+		type = type.trim();
+		Vertex retVertex = null;
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, type + ":" + name);
+		if(gt.hasNext()) {
+			retVertex = gt.next();
+		}
+		return retVertex;
+	}
 	
-	public void addInputs(String opName, List <String> inputs, IReactor.TYPE opType)
+	//**********************END IMPORTANT METHODS*******************************//
+
+
+	public void addInputs(String opName, CodeBlock codeBlock, List <String> inputs, IReactor.TYPE opType)
 	{
-		addInputs(opName, inputs, null, opType);
+		addInputs(opName, codeBlock, inputs, null, opType);
 	}
 	
 	// adds a java operation string as input
@@ -250,7 +266,6 @@ public class PKSLPlanner {
 		// it should be a map block
 		// or it should be a reduce block
 		// at a minimum it should say what type of block it is
-		// 
 		opName = opName.trim();
 		Vertex opVertex = upsertVertex(OPERATION, opName);
 		opVertex.property("OP_TYPE", opType);
@@ -260,60 +275,17 @@ public class PKSLPlanner {
 		for(int inputIndex = 0;inputIndex < inputs.size();inputIndex++)
 		{
 			Vertex inpVertex = upsertVertex(NOUN, inputs.get(inputIndex).trim());
-			if(asInputs != null && inputIndex < asInputs.size())
+			if(asInputs != null && inputIndex < asInputs.size()) {
 				aliasVector.add(asInputs.get(inputIndex).trim());
-			else
+			} else {
 				aliasVector.add(inputs.get(inputIndex).trim());
+			}
 			String edgeID = inputs.get(inputIndex).trim()+ "_" + opName;
 			upsertEdge(inpVertex, opVertex, edgeID, "INPUT");
 		}
 		opVertex.property("ALIAS", aliasVector);
 	}
 
-	public void addInputs(String opName, CodeBlock codeBlock, List <String> inputs, IReactor.TYPE opType)
-	{
-		addInputs(opName, codeBlock, inputs, null, opType);
-	}
-
-	
-	protected Vertex upsertVertex(String type, String name)
-	{
-		name = name.trim();
-		type = type.trim();
-		
-		Vertex retVertex = null;
-		// try to find the vertex
-		//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, type).has(TINKER_ID, type + ":" + data);
-		retVertex = findVertex(type, name);
-		if(retVertex == null)
-				retVertex = g.addVertex(TINKER_ID, type + ":" + name, TINKER_TYPE, type, TINKER_NAME, name);// push the actual value as well who knows when you would need it
-		return retVertex; 
-	}
-	
-	protected Edge upsertEdge(Vertex startV, Vertex endV, String edgeID, String type)
-	{
-//		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(TINKER_ID, edgeID);
-//		if(gt.hasNext()) {
-//			//TODO: come back if i want to add the count to here
-//			return gt.next();
-//		} else {
-			return startV.addEdge(edgeID, endV, TINKER_ID, edgeID, "COUNT", 1, "TYPE", type);
-//		}
-	}
-	
-	private Vertex findVertex(String type, String name)
-	{
-		
-		name = name.trim();
-		type = type.trim();
-		Vertex retVertex = null;
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, type + ":" + name);
-		if(gt.hasNext())
-			retVertex = gt.next();
-		return retVertex;
-	}
-	
-	
 	// this runs the plan for the final output
 	public Iterator runMyPlan(String output)
 	{

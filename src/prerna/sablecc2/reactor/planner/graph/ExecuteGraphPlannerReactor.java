@@ -1,12 +1,10 @@
 package prerna.sablecc2.reactor.planner.graph;
 
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.GreedyTranslation;
 import prerna.sablecc2.PkslUtility;
@@ -27,16 +25,12 @@ public class ExecuteGraphPlannerReactor extends AbstractPlannerReactor {
 		PKSLPlanner planner = getPlanner();
 		List<String> pksls = new Vector<String>();
 
-		// get the list of the root vertices
-		// these are the vertices we can run right away
-		// and are the starting point for the plan execution
-		Set<Vertex> rootVertices = getRootPksls(planner);
 		// using the root vertices
 		// iterate down all the other vertices and add the signatures
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(planner, rootVertices, pksls);
+		traverseDownstreamVertsProcessor(planner, pksls);
 		
 		GreedyTranslation translation = new GreedyTranslation();
 		translation.planner = planner;
