@@ -15,7 +15,7 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 
 public class ExecuteGraphPlannerReactor extends AbstractPlannerReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(LoadGraphClient.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ExecuteGraphPlannerReactor.class.getName());
 
 	@Override
 	public NounMetadata execute()

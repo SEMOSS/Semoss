@@ -9,4 +9,10 @@ public class DefaultOpReactor extends OpBasic {
 		// TODO Auto-generated method stub
 		return new NounMetadata(0, PkslDataTypes.CONST_DECIMAL);
 	}
+
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "double";
+	}
 }
