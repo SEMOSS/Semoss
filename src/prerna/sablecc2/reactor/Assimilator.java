@@ -13,23 +13,12 @@ public class Assimilator extends AbstractReactor {
 	// roles of the assimilator is simple, just assimilate an expression and then
 	// plug it into the parent
 	// filter is a good example of assimilator for example
-
 	private boolean containsStringValue = false;
-	private boolean allIntValue = true;
 
 	@Override
 	public NounMetadata execute() {
 		modifySignatureFromLambdas();
 		
-		// need to see if we are dealing with any non-integer values
-		if(this.curRow.getNounsOfType(PkslDataTypes.CONST_DECIMAL).size() > 0) {
-			this.allIntValue = false;
-		}
-		
-		// noun object to return
-		// need to cast to get the type of the NounMetadata object
-		NounMetadata noun = null;
-
 		// get the assimilator evaluator
 		// this is the class we are going to be using to execute
 		// if we are running this again, we will not create the class and add
@@ -39,23 +28,29 @@ public class Assimilator extends AbstractReactor {
 		// this is implemented this way so we can re-use the class
 		// even if a few variables are changed
 		setInstanceVariables(newInstance);
-		Object retVal = newInstance.execute();
-		if(newInstance.containsStringValue) {
-			noun = new NounMetadata(retVal.toString(), PkslDataTypes.CONST_STRING);
-		} else if(allIntValue) {
-			Number result = (Number) retVal;
-			if(result.doubleValue() == Math.rint(result.doubleValue())) {
-				noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
-			} else {
-				// not a valid integer
-				// return as a double
-				noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
-			}
-		} else {
-			noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
-		}
 
+		// noun object to return
+		// need to cast to get the type of the NounMetadata object
+		NounMetadata noun = new NounMetadata(newInstance, PkslDataTypes.LAMBDA);
 		return noun;
+		
+//		Object retVal = newInstance.execute();
+//		if(newInstance.containsStringValue) {
+//			noun = new NounMetadata(retVal.toString(), PkslDataTypes.CONST_STRING);
+//		} else if(allIntValue) {
+//			Number result = (Number) retVal;
+//			if(result.doubleValue() == Math.rint(result.doubleValue())) {
+//				noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
+//			} else {
+//				// not a valid integer
+//				// return as a double
+//				noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
+//			}
+//		} else {
+//			noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
+//		}
+//
+//		return noun;
 	}
 
 	/**
@@ -76,7 +71,7 @@ public class Assimilator extends AbstractReactor {
 			NounMetadata data = planner.getVariableValue(input);			
 			PkslDataTypes dataType = data.getNounName();
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
-				this.allIntValue = false;
+				evaluator.allIntValue = false;
 				evaluator.setVar(input, data.getValue());
 			} else if(dataType == PkslDataTypes.CONST_INT) {
 				evaluator.setVar(input, data.getValue());
@@ -167,7 +162,7 @@ public class Assimilator extends AbstractReactor {
 		// keep a string to generate the method to execute that will
 		// return an object that runs the expression
 		StringBuilder expressionBuilder = new StringBuilder();
-		expressionBuilder.append("public Object execute(){");
+		expressionBuilder.append("public Object getExpressionValue(){");
 		// we need to grab any variables and define them at the top of the method
 		appendVariables(expressionBuilder);
 		// now that the variables are defined

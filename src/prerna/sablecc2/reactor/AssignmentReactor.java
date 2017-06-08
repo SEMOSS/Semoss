@@ -25,7 +25,6 @@ public class AssignmentReactor extends AbstractReactor {
 			// which is stored in curRow and matches operationName
 			result = this.curRow.getNoun(1);
 		}
-		
 		planner.addVariable(operationName, result);
 		return result;
 	}
@@ -57,24 +56,5 @@ public class AssignmentReactor extends AbstractReactor {
 		NounMetadata output = new NounMetadata(this.operationName, PkslDataTypes.COLUMN);
 		outputs.add(output);
 		return outputs;
-	}
-	
-
-	@Override
-	public void updatePlan() {
-		List<NounMetadata> inputs = getInputs();
-		if(inputs != null) {
-			if(inputs.size() == 1) {
-				// ignore
-				// this is like x = x... not really useful
-			} else if(inputs.contains(this.operationName)) {
-				// we cannot have a cycle in the plan.. must be a DAG
-				throw new IllegalArgumentException("Cannot add cycle dependencies in plan.");
-			} else {
-				super.updatePlan();
-			}
-		} else {
-			super.updatePlan();
-		}
 	}
 }
