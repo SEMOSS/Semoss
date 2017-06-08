@@ -17,7 +17,7 @@ public class PkslConsole {
 
 	public static void main(String[] args){
 		TestUtilityMethods.loadDIHelper();
-//		loadEngines();
+		loadEngines();
 
 		PKSLRunner runner = new PKSLRunner();
 		Thread thread = new Thread(){
@@ -69,11 +69,24 @@ public class PkslConsole {
 		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.setEngineName("MinInput");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
+		
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinProposal.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("MinProposal");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("MinProposal", coreEngine);
+		
+//
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName("Movie_RDBMS");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 	}
 }
