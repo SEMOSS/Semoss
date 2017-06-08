@@ -225,7 +225,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 				pkslOperation = getPksl(nextOp);//nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
 
 				// we ignore this stupid thing....
-				if(!pkslOperation.equals("FRAME")) {
+				if(!pkslOperation.isEmpty() && !pkslOperation.equals("FRAME")) {
 					vertsToRun.add(nextOp);
 				}
 			}

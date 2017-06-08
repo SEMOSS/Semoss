@@ -25,4 +25,10 @@ public class OpSumProduct extends OpBasic {
 	    NounMetadata sumProduct = new NounMetadata(sum, PkslDataTypes.CONST_DECIMAL);
         return sumProduct;
 	}
+
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "double";
+	}
 }

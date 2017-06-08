@@ -7,6 +7,11 @@ public class OpAnd extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
+		boolean result = eval(values);
+		return new NounMetadata(result, PkslDataTypes.BOOLEAN);
+	}
+	
+	public static boolean eval(Object...values) {
 		boolean result = true;
 		for (Object booleanValue : values) {
 			// need all values to be true
@@ -16,7 +21,12 @@ public class OpAnd extends OpBasic {
 				break;
 			}
 		}
+		return result;
+	}
 
-		return new NounMetadata(result, PkslDataTypes.BOOLEAN);
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "boolean";
 	}
 }

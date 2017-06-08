@@ -1,5 +1,7 @@
 package prerna.sablecc2.om;
 
+import java.util.List;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -9,10 +11,11 @@ import javassist.CtClass;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.JavaExecutable;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.util.Utility;
 
-public class Filter {
+public class Filter implements JavaExecutable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Filter.class.getName());
 
@@ -278,5 +281,39 @@ public class Filter {
 		else {
 			evaluator.setVar(key, type);
 		}
+	}
+
+	@Override
+	public String getJavaSignature() {
+		Object left = lComparison.get(0);
+		Object right = rComparison.get(0);
+		
+		String leftSide;
+		String rightSide;
+		
+		if(left instanceof JavaExecutable) {
+			leftSide = ((JavaExecutable)left).getJavaSignature();
+		} else {
+			leftSide = left.toString();
+		}
+		
+		if(right instanceof JavaExecutable) {
+			rightSide = ((JavaExecutable)right).getJavaSignature();
+		} else {
+			rightSide = right.toString();
+		}
+		
+		return leftSide + this.comparator + rightSide;
+	}
+
+	@Override
+	public List<NounMetadata> getJavaInputs() {
+		return null;
+	}
+
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "boolean";
 	}
 }
