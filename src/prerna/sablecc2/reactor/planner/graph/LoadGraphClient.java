@@ -2,8 +2,6 @@ package prerna.sablecc2.reactor.planner.graph;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -51,7 +49,7 @@ public class LoadGraphClient extends AbstractLoadClient {
 				if(!AbstractPlannerReactor.isSimpleAssignment(pkslString)) {
 					PkslUtility.addPkslToTranslation(plannerT, pkslString);
 				}
-			} 
+			}
 			//else we just want to add the value of the constant/decimal directly to the planner
 			else {
 				addVariable(plannerT.planner, assignment, value);
