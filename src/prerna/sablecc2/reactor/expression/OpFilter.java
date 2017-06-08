@@ -1,8 +1,11 @@
 package prerna.sablecc2.reactor.expression;
 
+import java.util.List;
+
 import prerna.sablecc2.om.Filter2;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.reactor.JavaExecutable;
 import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 
 public class OpFilter extends OpBasic {
@@ -56,5 +59,43 @@ public class OpFilter extends OpBasic {
 		}
 		
 		return new NounMetadata(evaluation, PkslDataTypes.BOOLEAN);
+	}
+	
+	public String getJavaSignature() {
+		List<NounMetadata> inputs = this.getJavaInputs();
+		
+		NounMetadata leftSide = inputs.get(0);
+		Object leftSideValue = leftSide.getValue();
+		String leftString;
+		if(leftSideValue instanceof JavaExecutable) {
+			leftString = ((JavaExecutable)leftSideValue).getJavaSignature();
+		} else if(leftSide.getNounName() == PkslDataTypes.CONST_STRING) {
+			leftString = "\""+leftSideValue.toString()+"\"";
+		} else {
+			leftString = leftSideValue.toString();
+		}
+		
+		String comparator = inputs.get(1).getValue().toString();
+		
+		NounMetadata rightSide = inputs.get(2);
+		Object rightSideValue = rightSide.getValue();
+		String rightString;
+		if(rightSideValue instanceof JavaExecutable) {
+			rightString = ((JavaExecutable)rightSideValue).getJavaSignature();
+		} else if(rightSide.getNounName() == PkslDataTypes.CONST_STRING) {
+			rightString = "\""+rightSideValue.toString()+"\"";
+		} else {
+			rightString = rightSideValue.toString();
+		}
+		
+		
+		return leftString + " " +comparator + " " + rightString;
+
+	}
+
+	@Override
+	public String getReturnType() {
+		// TODO Auto-generated method stub
+		return "boolean";
 	}
 }

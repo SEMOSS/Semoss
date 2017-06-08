@@ -10,8 +10,17 @@ public class OpMedian extends OpBasicMath {
 
 	@Override
 	protected double evaluate(Object[] values) {
+		return eval(values);
+	}
+	
+	public static double eval(Object... values) {
 		double[] evals = convertToDoubleArray(values);
 		double medianValue = performComp(evals);
+		return medianValue;
+	}
+	
+	public static double eval(double[] values) {
+		double medianValue = performComp(values);
 		return medianValue;
 	}
 	
@@ -21,7 +30,7 @@ public class OpMedian extends OpBasicMath {
 	 * @param newMax
 	 * @return
 	 */
-	public double performComp(double[] evals) {
+	public static double performComp(double[] evals) {
 		// sort the values
 		Arrays.sort(evals);
 		int numValues = evals.length;

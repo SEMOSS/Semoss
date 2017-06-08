@@ -9,8 +9,9 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.storage.StoreValue;
 
-public class IfReactor extends AbstractReactor {
+public class IfReactor extends AbstractReactor implements JavaExecutable {
 
+	private static int ifMethodCount = 0;
 	// execute it
 	// once again this would be abstract
 	public NounMetadata execute()
@@ -112,5 +113,140 @@ public class IfReactor extends AbstractReactor {
 		}
 		
 		return outputs;
+	}
+
+	@Override
+	public String getJavaSignature() {
+		String returnType = getReturnType();
+		if(returnType.equals("Object")) {
+			return getUncertainReturnIfStatement();
+		} else {
+			return getTernaryIfStatement();
+		}
+	}
+	
+	
+	//Todo: how do we handle types
+	private String getUncertainReturnIfStatement() {
+		return getTernaryIfStatement();
+	}
+	
+	private static String createNewIfMethodName() {
+		return "if"+ifMethodCount++;
+	}
+	
+	private String createIfMethod(String ifMethodName, String returnType) {
+		StringBuilder ifBody = new StringBuilder();
+		ifBody.append("public Object "+ifMethodName+"(){");
+		
+		ifBody.append("}");
+		return ifBody.toString();
+	}
+	
+	private String getTernaryIfStatement() {
+		Object trueCase = curRow.get(1);
+		PkslDataTypes trueType = curRow.getMeta(1);
+		
+		Object falseCase;
+		PkslDataTypes falseType;
+		if(curRow.size() > 2) {
+			falseCase = curRow.get(2);
+			falseType = curRow.getMeta(2);
+		} else {
+			falseCase = getParentAssignment();
+			falseType = PkslDataTypes.COLUMN;
+		}
+		
+		String trueString;
+		String falseString;
+		
+		if(trueCase instanceof JavaExecutable) {
+			trueString = ((JavaExecutable)trueCase).getJavaSignature();
+		} else if(trueType == PkslDataTypes.CONST_STRING){
+			trueString = "\""+trueCase.toString()+"\"";
+		} else {
+			trueString = trueCase.toString();
+		}
+		
+		if(falseCase instanceof JavaExecutable) {
+			falseString = ((JavaExecutable)falseCase).getJavaSignature();
+		} else if(falseType == PkslDataTypes.CONST_STRING) {
+			falseString = "\""+falseCase.toString()+"\"";
+		} else {
+			falseString = falseCase.toString();
+		}
+		
+		
+		return "(" + getFilterString() + " ? " + trueString + " : "+ falseString + ")";
+	}
+	
+	private String getFilterString() {
+		Object filter = curRow.get(0);
+		String filterString;
+		if(filter instanceof JavaExecutable) {
+			filterString = ((JavaExecutable)filter).getJavaSignature();
+		} else {
+			filterString = filter.toString();
+		}
+		return filterString;
+	}
+
+	@Override
+	public List<NounMetadata> getJavaInputs() {
+		return null;
+	}
+
+	@Override
+	public String getReturnType() {
+		NounMetadata trueNoun = curRow.getNoun(1);
+		String trueReturn = getReturnType(trueNoun);
+		
+		//check return type for optional false return
+		String falseReturn;
+		if(curRow.size() > 2) {
+			NounMetadata falseNoun = curRow.getNoun(2);
+			falseReturn = getReturnType(falseNoun);
+		} else {
+			falseReturn = trueReturn;
+		}
+		
+		return trueReturn;
+//		//if they are not the same return object
+//		if(trueReturn.equals(falseReturn)) {
+//			return trueReturn;
+//		} else {
+//			return "Object";
+//		}
+ 		
+		
+	}
+	
+	private String getReturnType(NounMetadata returnNoun) {
+		String returnType = null;
+		Object returnObj = returnNoun.getValue();
+		if(returnObj instanceof JavaExecutable) {
+			returnType = ((JavaExecutable)returnObj).getReturnType();
+		} else if(returnNoun.getNounName() == PkslDataTypes.CONST_DECIMAL || returnNoun.getNounName() == PkslDataTypes.CONST_INT) {
+			returnType = "double";
+		} else if(returnNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+			returnType = "String";
+		} else if(returnNoun.getNounName() == PkslDataTypes.BOOLEAN){
+			returnType = "boolean";
+		} else if(returnNoun.getNounName() == PkslDataTypes.COLUMN) {
+			returnType = returnObj.toString();
+		} else {
+			returnType = "Object";
+		}
+		return returnType;
+	}
+	
+	private String getParentAssignment() {
+		if(this.parentReactor instanceof IfReactor) {
+			return ((IfReactor)parentReactor).getParentAssignment();
+		} else if(this.parentReactor instanceof AssignmentReactor) {
+			return ((AssignmentReactor)parentReactor).operationName;
+		} else {
+			return "";
+		}
 	}
 }

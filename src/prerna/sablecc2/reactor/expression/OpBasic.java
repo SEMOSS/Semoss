@@ -20,6 +20,11 @@ public abstract class OpBasic extends OpReactor {
 	 * 		existing classes
 	 */
 	
+	@Override 
+	public String getJavaSignature() {
+		return "1";
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		this.nouns = getValues();

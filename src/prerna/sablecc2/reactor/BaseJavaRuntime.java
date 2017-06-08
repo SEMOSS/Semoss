@@ -1,17 +1,9 @@
-package prerna.sablecc2.reactor.test;
+package prerna.sablecc2.reactor;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
-import prerna.sablecc2.om.VarStore;
-
-/**
- * This is just a internal class
- * so that when we compile to execute the assimilator
- * we can have a method to call based on the super that is 
- * assigned to the new class
- *
- */
-public abstract class AbstractTestClass {
+public class BaseJavaRuntime {
 
 	Map<String, Object> variables = new HashMap<>();
 	
@@ -32,7 +24,19 @@ public abstract class AbstractTestClass {
 		variables.put(var, 1);
 	}
 	
+	public void addVariable(String var, double value) {
+		variables.put(var, value);
+	}
+	
 	public void addVariable(String var, int value) {
+		variables.put(var, value);
+	}
+	
+	public void addVariable(String var, String value) {
+		variables.put(var, value);
+	}
+	
+	public void addVariable(String var, boolean value) {
 		variables.put(var, value);
 	}
 	

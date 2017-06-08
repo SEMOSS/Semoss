@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.planner;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -45,8 +47,41 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	 * This method will directly add the variable to the planner instead of adding an assignment pksl
 	 */
 	protected void addVariable(PKSLPlanner planner, String assignment, Object value) {
+		if(assignment.equals(value.toString())) return;
+		
 		NounMetadata noun = PkslUtility.getNoun(value);
 		planner.addVariable(assignment, noun);
+		if(planner.hasProperty("MAIN_MAP", "MAIN_MAP")) {
+			HashMap<String, String> map = (HashMap<String, String>)planner.getProperty("MAIN_MAP", "MAIN_MAP");
+			
+			PkslDataTypes data = noun.getNounName();
+			if(data == PkslDataTypes.CONST_DECIMAL) {
+				map.put(assignment, "double");
+			} else if(data == PkslDataTypes.CONST_INT) {
+				map.put(assignment, "double");
+			} else if(data == PkslDataTypes.COLUMN) {
+				map.put(assignment, data.toString());
+			} else if(data == PkslDataTypes.BOOLEAN) {
+				map.put(assignment, "boolean");
+			} else if(data == PkslDataTypes.CONST_STRING) {
+				map.put(assignment, "String");
+			}
+		} else {
+			Map<String, String> mainMap = new HashMap<>();
+			PkslDataTypes data = noun.getNounName();
+			if(data == PkslDataTypes.CONST_DECIMAL) {
+				mainMap.put(assignment, "double");
+			} else if(data == PkslDataTypes.CONST_INT) {
+				mainMap.put(assignment, "double");
+			} else if(data == PkslDataTypes.COLUMN) {
+				mainMap.put(assignment, data.toString());
+			} else if(data == PkslDataTypes.BOOLEAN) {
+				mainMap.put(assignment, "boolean");
+			} else if(data == PkslDataTypes.CONST_STRING) {
+				mainMap.put(assignment, "String");
+			}
+			planner.addProperty("MAIN_MAP", "MAIN_MAP", mainMap);
+		}
 	}
 	
 	/**

@@ -175,4 +175,32 @@ public class PowAssimilator extends Assimilator {
 		return outputs;
 	}
 	
+	@Override
+	public String getJavaSignature() {
+		String javaSig = this.signature;
+		// replace all the values that is inside this. this could be a recursive call
+		for(int i = 0; i < curRow.size(); i++) {
+			NounMetadata thisLambdaMeta = curRow.getNoun(i);
+			
+			Object nextValue = (Object)thisLambdaMeta.getValue();
+			
+			String replaceValue;
+			if(nextValue instanceof JavaExecutable) {
+				 replaceValue = ((JavaExecutable)nextValue).getJavaSignature();
+			} else {
+				continue;
+			}
+			
+			String rSignature;
+			if(nextValue instanceof IReactor) {
+				rSignature = ((IReactor)nextValue).getSignature();
+			} else {
+				continue;
+			}
+
+			javaSig = modifyJavaSignature(javaSig, rSignature, replaceValue);
+		}
+		return "0";
+//		return javaSig;
+	}
 }
