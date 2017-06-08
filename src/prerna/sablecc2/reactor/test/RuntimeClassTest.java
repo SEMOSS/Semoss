@@ -17,14 +17,18 @@ public class RuntimeClassTest extends AbstractReactor {
 
 	List<String> equations = new ArrayList<>();
 	Map<String, Object> variables = new HashMap<>();
-
+	int methodCount = 0;
+	
 	public static void main(String[] args) {
 		long startTime = System.currentTimeMillis();
 		RuntimeClassTest test = new RuntimeClassTest();
 		addVariables(test);
 		addEquations(test);
-		AbstractTestClass testClass = test.buildTestClass(test.buildMethod());
+		List<String> methods  = test.buildMethods();
+		methods.add(test.buildMainExecutionMethod());
+		AbstractTestClass testClass = test.buildTestClass(methods);
 		testClass.execute();
+		
 		long endTime = System.currentTimeMillis();
 		System.out.println(endTime - startTime);
 		Map<String, Object> varMap = testClass.getVariables();
@@ -36,9 +40,9 @@ public class RuntimeClassTest extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		
-		AbstractTestClass testClass = buildTestClass(buildMethod());
-		testClass.execute();
-		Map<String, Object> vars = testClass.getVariables();
+//		AbstractTestClass testClass = buildTestClass(buildMethod());
+//		testClass.execute();
+//		Map<String, Object> vars = testClass.getVariables();
 		return null;
 	}
 	
@@ -63,13 +67,15 @@ public class RuntimeClassTest extends AbstractReactor {
 	 * 
 	 * method responsible for building a new assimilator class from a stringified method
 	 */
-	private AbstractTestClass buildTestClass(String stringMethod) {
+	private AbstractTestClass buildTestClass(List<String> stringMethods) {
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
 
 		// add a super so we have a base method to execute
 		maker.addSuper("prerna.sablecc2.reactor.test.AbstractTestClass");
-		maker.addMethod(stringMethod);
+		for(String stringMethod : stringMethods) {
+			maker.addMethod(stringMethod);
+		}
 		Class newClass = maker.toClass();
 
 		try {
@@ -82,11 +88,46 @@ public class RuntimeClassTest extends AbstractReactor {
 		return null;
 	}
 	
-	private String buildMethod() {
+	private List<String> buildMethods() {
+		List<String> equationExecutionMethods = new ArrayList<>();
+		int equationCount = 0;
+		methodCount = 1;
+		StringBuilder curMethod = new StringBuilder();
+		String varDefs = getVarDefinitions().toString();
+		
+		curMethod.append("public void execute"+methodCount+"() {");
+		curMethod.append(varDefs);
+		for(String equation : equations) {
+			curMethod.append(equation+";");
+			String varName = getVarNameFromEquation(equation);
+			curMethod.append("addVariable(\""+varName+"\","+varName+");");
+			
+			if(equationCount == 2000) {
+				curMethod.append("}");
+				equationExecutionMethods.add(curMethod.toString());
+				
+				equationCount = 0;
+				methodCount++;
+				curMethod = new StringBuilder();
+				curMethod.append("public void execute"+methodCount+"() {");
+				curMethod.append(varDefs);
+			} else {
+				equationCount++;
+			}
+		}
+		curMethod.append("}");
+		equationExecutionMethods.add(curMethod.toString());
+		return equationExecutionMethods;
+	}
+	
+	private String buildMainExecutionMethod() {
 		StringBuilder method = new StringBuilder();
 		method.append("public void execute() {");
-		method.append(getVarDefinitions());
-		method.append(getEquationDefinitions());
+		method.append(getInitVarSettings());
+		for(int i = 1; i <= methodCount; i++) {
+			method.append("execute"+i+"();");
+		}
+//		method.append(getEquationDefinitions());
 		method.append("}");
 		
 		return method.toString();
@@ -119,15 +160,35 @@ public class RuntimeClassTest extends AbstractReactor {
 			Object var = variables.get(varName);
 			String varDef = "";
 			if(var instanceof Number) {
-				varDef = "int "+varName+" = "+((Number)var).intValue();
+				varDef = "int "+varName+" = ((Number)getVariable(\""+varName+"\")).intValue()";
 			} 
 			
-			else if(var instanceof String) {
-				varDef = "String "+varName+" = \""+var+"\"";
-				throw new IllegalArgumentException();
+//			else if(var instanceof String) {
+//				varDef = "String "+varName+" = \""+var+"\"";
+//				throw new IllegalArgumentException();
+//			} else {
+//				varDef = "String "+varName+" = \""+var.toString()+"\"";
+//				throw new IllegalArgumentException();
+//			}
+			builder.append(varDef+";");
+		}
+		return builder;
+	}
+	
+	private StringBuilder getInitVarSettings() {
+		StringBuilder builder = new StringBuilder();
+		for(String varName : variables.keySet()) {
+			Object var = variables.get(varName);
+			String varDef = "";
+			if(var instanceof Number) {
+//				varDef = "int "+varName+" = "+((Number)var).intValue();
+				varDef = "addVariable(\""+varName+"\","+((Number)var).intValue()+");";
+			} else if(var instanceof String) {
+//				varDef = "String "+varName+" = \""+var+"\"";
+//				throw new IllegalArgumentException();
 			} else {
-				varDef = "String "+varName+" = \""+var.toString()+"\"";
-				throw new IllegalArgumentException();
+//				varDef = "String "+varName+" = \""+var.toString()+"\"";
+//				throw new IllegalArgumentException();
 			}
 			builder.append(varDef+";");
 		}
@@ -149,10 +210,8 @@ public class RuntimeClassTest extends AbstractReactor {
 	private static void addEquations(RuntimeClassTest test) {
 		EquationGenerator eg = new EquationGenerator();
 		
-		String[] equations = eg.getRandomEquations(1000);
-		
+		String[] equations = eg.getRandomEquations(100000);		
 		for(String equation : equations) {
-//			System.out.println(equation);
 			test.addEquation(equation);
 		}
 	}

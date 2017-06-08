@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.expression;
 
+import java.util.List;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
@@ -8,6 +10,7 @@ import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.reactor.JavaExecutable;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
 
@@ -138,7 +141,7 @@ public abstract class OpBasicMath extends OpReactor {
 	 * @param values
 	 * @return
 	 */
-	protected double[] convertToDoubleArray(Object[] values) {
+	protected static double[] convertToDoubleArray(Object[] values) {
 		return convertToDoubleArray(values, 0, values.length);
 	}
 	
@@ -151,12 +154,43 @@ public abstract class OpBasicMath extends OpReactor {
 	 * @param lastIndex
 	 * @return
 	 */
-	protected double[] convertToDoubleArray(Object[] values, int startIndex, int lastIndex) {
+	protected static double[] convertToDoubleArray(Object[] values, int startIndex, int lastIndex) {
 		double[] dblArray = new double[values.length-1];
 		for(int i = startIndex; i < lastIndex; i++) {
 			dblArray[i] = ((Number)values[i]).doubleValue();
 		}
 		
 		return dblArray;
+	}
+	
+	public String getReturnType() {
+		return "double";
+	}
+	
+	public String getJavaSignature() {
+		StringBuilder javaSignature = new StringBuilder(this.getClass().getName()+".eval(new double[]{");
+		List<NounMetadata> inputs = this.getJavaInputs();
+		for(int i = 0; i < inputs.size(); i++) {
+			if(i > 0) {
+				javaSignature.append(", ");
+			}
+			
+			String nextArgument;
+			NounMetadata nextNoun = inputs.get(i);
+			Object nextInput = inputs.get(i).getValue();
+			if(nextInput instanceof JavaExecutable) {
+				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
+			} else {
+				if(nextNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+					nextArgument = "\""+nextInput.toString() +"\"";
+				} else {
+					nextArgument = nextInput.toString();
+				}
+			}
+			javaSignature.append(nextArgument);
+		}
+		javaSignature.append("})");
+		
+		return javaSignature.toString();
 	}
 }

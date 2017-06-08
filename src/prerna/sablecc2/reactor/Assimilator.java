@@ -1,14 +1,17 @@
 package prerna.sablecc2.reactor;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.codehaus.plexus.util.StringUtils;
+
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
-public class Assimilator extends AbstractReactor {
+public class Assimilator extends AbstractReactor implements JavaExecutable {
 
 	// roles of the assimilator is simple, just assimilate an expression and then
 	// plug it into the parent
@@ -240,5 +243,63 @@ public class Assimilator extends AbstractReactor {
 		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
 		outputs.add(output);
 		return outputs;
+	}
+
+	@Override
+	public String getJavaSignature() {
+//		String javaSig = this.signature;
+		String javaSig = this.originalSignature;
+		// replace all the values that is inside this. this could be a recursive call
+		for(int i = 0; i < curRow.size(); i++) {
+			NounMetadata thisLambdaMeta = curRow.getNoun(i);
+			
+			Object nextValue = (Object)thisLambdaMeta.getValue();
+			
+			String replaceValue;
+			if(nextValue instanceof JavaExecutable) {
+				 replaceValue = ((JavaExecutable)nextValue).getJavaSignature();
+			} else {
+				continue;
+			}
+			
+			String rSignature;
+			if(nextValue instanceof IReactor) {
+				rSignature = ((IReactor)nextValue).getOriginalSignature();
+			} else {
+				continue;
+			}
+//			NounMetadata result = thisReactor.execute();// this might further trigger other things
+
+//			// for compilation reasons
+//			// if we have a double
+//			// we dont want it to print with the exponential
+//			Object replaceValue = result.getValue();
+//			PkslDataTypes replaceType = result.getNounName();
+//			if(replaceType == PkslDataTypes.CONST_DECIMAL || 
+//					replaceType == PkslDataTypes.CONST_INT) {
+//				// big decimal is easiest way i have seen to do this formatting
+//				replaceValue = new BigDecimal( ((Number) replaceValue).doubleValue()).toPlainString();
+//			} else {
+//				replaceValue = replaceValue + "";
+//			}
+			javaSig = modifyJavaSignature(javaSig, rSignature, replaceValue);
+		}
+		return javaSig;
+//		return null;
+	}
+	
+	public String modifyJavaSignature(String javaSignature, String stringToFind, String stringReplacement) {
+		return StringUtils.replaceOnce(javaSignature, stringToFind, stringReplacement);
+	}
+
+	@Override
+	public List<NounMetadata> getJavaInputs() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getReturnType() {
+		return "double";
 	}
 }

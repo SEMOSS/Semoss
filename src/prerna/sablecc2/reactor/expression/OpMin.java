@@ -8,6 +8,10 @@ public class OpMin extends OpBasicMath {
 	
 	@Override
 	protected double evaluate(Object[] values) {
+		return eval(values);
+	}
+	
+	public static double eval(Object...values) {
 		double min = Double.MAX_VALUE;
 		
 		for(Object val : values) {
@@ -16,5 +20,16 @@ public class OpMin extends OpBasicMath {
 		}
 		
 		return min;
-	}	
+	}
+	
+	public static double eval(double[] values) {
+		double min = Double.MAX_VALUE;
+		
+		for(Object val : values) {
+			Double nextNumber = ((Number) val).doubleValue();
+			min = min > nextNumber ? nextNumber : min;
+		}
+		
+		return min;
+	}
 }

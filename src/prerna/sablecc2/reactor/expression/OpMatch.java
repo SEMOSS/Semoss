@@ -89,7 +89,7 @@ public class OpMatch extends OpBasic {
 			Collections.sort(intArrlist);
 			navSet.addAll(intArrlist);
 			int matchVal1 = navSet.floor(inputVal);
-			matchValIndex = intArrlist.indexOf(matchVal1);
+			matchValIndex = intArrlist.indexOf(matchVal1)+1;
 		} else if (index == -1) { // Elements should be in descending order
 			reverseNavSet.addAll(intArrlist);
 			reverseNavSet = reverseNavSet.descendingSet();
@@ -147,5 +147,10 @@ public class OpMatch extends OpBasic {
 		}
 
 		return matchValIndex;
+	}
+
+	@Override
+	public String getReturnType() {
+		return "int";
 	}
 }

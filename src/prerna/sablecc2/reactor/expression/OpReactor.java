@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.expression;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
@@ -9,8 +10,9 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.JavaExecutable;
 
-public abstract class OpReactor extends AbstractReactor {
+public abstract class OpReactor extends AbstractReactor implements JavaExecutable {
 
 	/*
 	 * The specific operation would only need to override
@@ -92,4 +94,57 @@ public abstract class OpReactor extends AbstractReactor {
 		}
 		return outputs;
 	}
+	
+	@Override
+	public void mergeUp() {
+		super.mergeUp();
+//		System.out.println(getJavaSignature());
+	}
+	
+	public String getJavaSignature() {
+		StringBuilder javaSignature = new StringBuilder(this.getClass().getName()+".eval(");
+		List<NounMetadata> inputs = this.getJavaInputs();
+		for(int i = 0; i < inputs.size(); i++) {
+			if(i > 0) {
+				javaSignature.append(", ");
+			}
+			
+			String nextArgument;
+			NounMetadata nextNoun = inputs.get(i);
+			Object nextInput = inputs.get(i).getValue();
+			if(nextInput instanceof JavaExecutable) {
+				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
+			} else {
+				if(nextNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+					nextArgument = "\""+nextInput.toString() +"\"";
+				} else {
+					nextArgument = nextInput.toString();
+				}
+			}
+			javaSignature.append(nextArgument);
+		}
+		javaSignature.append(")");
+		
+		return javaSignature.toString();
+	}
+	
+	public List<NounMetadata> getJavaInputs() {
+		List<NounMetadata> inputs = new Vector<NounMetadata>();
+		// grab all the nouns in the noun store
+		Set<String> nounKeys = this.getNounStore().nounRow.keySet();
+		for(String nounKey : nounKeys) {
+			// grab the genrowstruct for the noun
+			// and add its vector to the inputs list
+			GenRowStruct struct = this.getNounStore().getNoun(nounKey);
+			inputs.addAll(struct.vector);
+		}
+
+		return inputs;
+	}
+	
+//	@Override
+//	public void updatePlan() {
+//		super.updatePlan();
+//		this.planner.addProperty(signature, "JAVA_SIGNATURE", getJavaSignature());
+//	}
 }

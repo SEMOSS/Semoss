@@ -8,6 +8,7 @@ import javassist.CannotCompileException;
 import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtField;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.util.Utility;
@@ -81,6 +82,15 @@ public class ClassMaker {
 	{
 		try {
 			cc.addMethod(CtNewMethod.make(daMethod, cc));
+		} catch (CannotCompileException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void addField(String field) {
+		try {
+			cc.addField(CtField.make(field, cc));
 		} catch (CannotCompileException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
