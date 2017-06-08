@@ -19,9 +19,9 @@ import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.GreedyTranslation;
+import prerna.sablecc2.LazyTranslation;
+import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
@@ -123,16 +123,12 @@ public class RunGraphTaxPlannerReactor2 extends AbstractPlannerReactor {
 		// keep track of all the pksls to execute
 		List<String> pksls = new Vector<String>();
 
-		// get the list of the root vertices
-		// these are the vertices we can run right away
-		// and are the starting point for the plan execution
-		Set<Vertex> rootVertices = getRootPksls(planner);
 		// using the root vertices
 		// iterate down all the other vertices and add the signatures
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(planner, rootVertices, pksls);
+		traverseDownstreamVertsProcessor(planner, pksls);
 		return pksls;
 	}
 

@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -113,19 +112,11 @@ public class PkslUtility {
 		int errorCount = 0;
 		List<String> errorList = new Vector<String>();
 		/****** For Debugging *******/
-
-		LinkedHashSet s = new LinkedHashSet<>(pkslList);
-		if(s.size() == pkslList.size()) {
-			LOGGER.info("YAY!!!!");
-		} else {
-			LOGGER.info("SAD!!!");
-		}
-		
 		int numPksls = pkslList.size();
+		LOGGER.info("STARTING TO EXECUTE " + numPksls + " PKSL STATEMENTS!!!");
 		for(int i = 0; i < numPksls; i++) {
 			count++;
 			String pkslString = pkslList.get(i);
-//			System.out.println(pkslString);
 			try {
 				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pkslString.getBytes("UTF-8"))))));
 				Start tree = p.parse();
