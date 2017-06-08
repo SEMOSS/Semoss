@@ -13,7 +13,7 @@ public class OpSumIf extends OpBasic {
 	private static final Logger LOGGER = LogManager.getLogger(OpSumIf.class.getName());
 	
 	public OpSumIf() {
-		this.operation = "sumif";
+		this.operation = "SumIf";
 	}
 	
 	@Override
