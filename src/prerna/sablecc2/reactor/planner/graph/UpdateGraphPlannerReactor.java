@@ -7,9 +7,9 @@ import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.sablecc2.GreedyTranslation;
+import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.PlannerTranslation;
-import prerna.sablecc2.Translation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -57,7 +57,7 @@ public class UpdateGraphPlannerReactor extends AbstractPlannerReactor {
 			// know we execute these on a new planner
 			// and then we will figure out the roots of these new values
 			start = System.currentTimeMillis();
-			PlannerTranslation plannerT = new PlannerTranslation();
+			LazyTranslation plannerT = new LazyTranslation();
 			PkslUtility.addPkslToTranslation(plannerT, pkslsToAdd);
 			end = System.currentTimeMillis();
 			System.out.println("Add initial values = " + (end - start));
@@ -98,7 +98,7 @@ public class UpdateGraphPlannerReactor extends AbstractPlannerReactor {
 			// we will use the same planner which has all the assignments
 			// set and have those values automatically updated
 			start = System.currentTimeMillis();
-			Translation translation = new Translation();
+			GreedyTranslation translation = new GreedyTranslation();
 			translation.planner = myPlanner;
 			System.out.println("Need to run thorugh " + pkslsToRun.size() + " pksls!!!");
 			PkslUtility.addPkslToTranslation(translation, pkslsToRun);

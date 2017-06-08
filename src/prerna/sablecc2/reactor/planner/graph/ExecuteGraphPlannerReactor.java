@@ -8,8 +8,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.sablecc2.GreedyTranslation;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.Translation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -36,14 +36,14 @@ public class ExecuteGraphPlannerReactor extends AbstractPlannerReactor {
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
 		// calculated at beginning of class 
-		traverseDownstreamVertsAndOrderProcessing(rootVertices, pksls);
+		traverseDownstreamVertsAndOrderProcessing(planner, rootVertices, pksls);
 		
-		Translation translation = new Translation();
+		GreedyTranslation translation = new GreedyTranslation();
 		translation.planner = planner;
 		PkslUtility.addPkslToTranslation(translation, pksls);
 		
 		long end = System.currentTimeMillis();
-		System.out.println("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
+		LOGGER.info("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
 		
 		return new NounMetadata(translation.planner, PkslDataTypes.PLANNER);
 	}
