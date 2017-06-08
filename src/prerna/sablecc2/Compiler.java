@@ -47,11 +47,11 @@ public class Compiler
 //		coreEngine.openDB(engineProp);
 //		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
 		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName("Movie_RDBMS");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 		
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 		coreEngine = new RDBMSNativeEngine();
@@ -97,15 +97,39 @@ public class Compiler
 //													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]);"
 //													+ "planData = RunTaxPlan(PLANNER = [plan], PROPOSALS = [proposals]); "
 
+													
+
 													+ "plan = Database(\"MinInput\") "
-													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version, INPUTCSV__Hashcode) "
-													//+ "| Select(UPDATEDINPUTCSV ,  UPDATEDINPUTCSV__Alias_1 ,  UPDATEDINPUTCSV__Client_ID ,  UPDATEDINPUTCSV__FieldName ,  UPDATEDINPUTCSV__FormName ,  UPDATEDINPUTCSV__Scenario ,  UPDATEDINPUTCSV__Type_1 ,  UPDATEDINPUTCSV__Value_1 ,  UPDATEDINPUTCSV__Version) "
+													+ "| Select(INPUTCSV,INPUTCSV__Hashcode,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
 													+ "| Iterate() "
-													+ "| LoadClient(assignment = ['Hashcode'], value = ['Value_1']);"
-													+ "proposals = Database(\"MinProposal\") "
-													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version, PROPOSALCSV__Hashcode) "
-													+ "| Iterate();"
-													+ "executedPlan = RunPlan(PLANNER = [plan]);"
+													+ "| LoadClient(assignment = ['Hashcode'], value = ['Value_1'], type = ['Type_1']);"
+													+ "proposals = Database(\"MinProposal\") | "
+													+ "Select(PROPOSALCSV,PROPOSALCSV__Hashcode,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version) "
+													+ "| Iterate(); "
+													+ "executedPlan = RunPlan(PLANNER = [plan]); "
+													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]); "
+													+ "retData = TaxRetrieveValue(PLANNER=[planData], "
+															+ "key=[\"aBE\","
+															+ "\"aBF\","
+															+ "\"aBG\","
+															+ "\"aBH\""
+															+ "]);"
+													+ "Iterate(store=[retData]) | "
+									                + "AddFormat(formatName = [\"d2\"], type = [\"keyvalue\"]) | "
+									                + "Export(target = [\"abcd\"], formatName = ['d2']) | Collect(1000);"
+													
+													
+													
+													
+//													+ "plan = Database(\"MinInput\") "
+//													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version, INPUTCSV__Hashcode) "
+													//+ "| Select(UPDATEDINPUTCSV ,  UPDATEDINPUTCSV__Alias_1 ,  UPDATEDINPUTCSV__Client_ID ,  UPDATEDINPUTCSV__FieldName ,  UPDATEDINPUTCSV__FormName ,  UPDATEDINPUTCSV__Scenario ,  UPDATEDINPUTCSV__Type_1 ,  UPDATEDINPUTCSV__Value_1 ,  UPDATEDINPUTCSV__Version) "
+//													+ "| Iterate() "
+//													+ "| LoadClient(assignment = ['Hashcode'], value = ['Value_1']);"
+//													+ "proposals = Database(\"MinProposal\") "
+//													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version, PROPOSALCSV__Hashcode) "
+//													+ "| Iterate();"
+//													+ "executedPlan = RunPlan(PLANNER = [plan]);"
 //													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]); "
 //													+ "UpdatePlan(PLANNER = [plan], store=[retData], pksls=["
 //													+ "\"ATAX_REFORM_SCENARIOS__SELECTED_LIMITATION_FOR_163J = 1000;\" "
@@ -237,8 +261,9 @@ public class Compiler
 
 			// Apply the translation.
 			PKSLRunner runner = new PKSLRunner();
-			tree.apply(new Translation(runner));
-//			System.out.println(runner.getResults());
+			GreedyTranslation t = new GreedyTranslation(runner);
+			tree.apply(t);
+			System.out.println(t.getResults());
 		}
 		catch(Exception e)
 		{
