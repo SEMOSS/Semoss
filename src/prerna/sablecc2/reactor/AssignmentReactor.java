@@ -85,6 +85,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 //		} else {
 //			super.updatePlan();
 //		}
+		super.updatePlan();
 		this.planner.addProperty(signature, "JAVA_SIGNATURE", getJavaSignature());
 		this.planner.addProperty(signature, "REACTOR_TYPE", this.reactorName);
 		if(this.planner.hasProperty("MAIN_MAP", "MAIN_MAP")) {
