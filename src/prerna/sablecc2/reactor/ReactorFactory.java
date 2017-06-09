@@ -39,6 +39,7 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.planner.CreateStoreReactor;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
 import prerna.sablecc2.reactor.planner.graph.ExecuteGraphPlannerReactor;
+import prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor;
 import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
 import prerna.sablecc2.reactor.planner.graph.RunGraphTaxPlannerReactor;
 import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor;
@@ -158,6 +159,7 @@ public class ReactorFactory {
 		//Tinker Specific Tax Reactors
 		reactorHash.put("RunTaxPlan", RunGraphTaxPlannerReactor.class);
 		reactorHash.put("RunPlan", ExecuteGraphPlannerReactor.class);
+//		reactorHash.put("RunPlan", ExecuteJavaGraphPlannerReactor.class);
 		reactorHash.put("LoadClient", LoadGraphClient.class);
 		
 		
