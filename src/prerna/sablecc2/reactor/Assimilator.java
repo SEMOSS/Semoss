@@ -247,8 +247,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 
 	@Override
 	public String getJavaSignature() {
-//		String javaSig = this.signature;
-		String javaSig = this.originalSignature;
+		String javaSig = this.signature;
 		// replace all the values that is inside this. this could be a recursive call
 		for(int i = 0; i < curRow.size(); i++) {
 			NounMetadata thisLambdaMeta = curRow.getNoun(i);
@@ -284,6 +283,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 //			}
 			javaSig = modifyJavaSignature(javaSig, rSignature, replaceValue);
 		}
+		
 		return javaSig;
 //		return null;
 	}
