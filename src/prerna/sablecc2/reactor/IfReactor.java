@@ -171,10 +171,28 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		if(falseCase instanceof JavaExecutable) {
 			falseString = ((JavaExecutable)falseCase).getJavaSignature();
 		} else if(falseType == PkslDataTypes.CONST_STRING) {
-			falseString = "\""+falseCase.toString()+"\"";
+			
+			//Hard coded special case, not sure how to handle this currently
+			if(falseCase.toString().equals("Select Scenario")) {
+				falseString = "1";
+			} else if(trueType == PkslDataTypes.CONST_DECIMAL || trueType == PkslDataTypes.CONST_INT) {
+				try {
+					double number = Double.parseDouble(falseCase.toString().trim());
+					falseString = number + "";
+				} catch(Exception e) {
+					falseString = "\""+falseCase.toString()+"\"";
+				}
+			}
+			
+			
+			
+			else {
+				falseString = "\""+falseCase.toString()+"\"";
+			}
 		} else {
 			falseString = falseCase.toString();
 		}
+		
 		
 		
 		return "(" + getFilterString() + " ? " + trueString + " : "+ falseString + ")";
