@@ -75,7 +75,10 @@ public class OpFilter extends OpBasic {
 			leftString = leftSideValue.toString();
 		}
 		
-		String comparator = inputs.get(1).getValue().toString();
+		String comparator = inputs.get(1).getValue().toString().trim();
+		if(comparator.equals("<>")) {
+			comparator = "!=";
+		}
 		
 		NounMetadata rightSide = inputs.get(2);
 		Object rightSideValue = rightSide.getValue();

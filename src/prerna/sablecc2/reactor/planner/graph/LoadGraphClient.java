@@ -52,7 +52,9 @@ public class LoadGraphClient extends AbstractLoadClient {
 			}
 			//else we just want to add the value of the constant/decimal directly to the planner
 			else {
-				addVariable(plannerT.planner, assignment, value);
+				if(!value.startsWith("\"CY")) {
+					addVariable(plannerT.planner, assignment, value);
+				}
 			}
 		}
 		
