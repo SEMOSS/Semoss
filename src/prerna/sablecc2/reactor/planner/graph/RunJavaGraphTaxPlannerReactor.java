@@ -18,12 +18,11 @@ import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc2.GreedyTranslation;
+import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.PlannerTranslation;
-import prerna.sablecc2.Translation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.Job;
@@ -103,7 +102,7 @@ public class RunJavaGraphTaxPlannerReactor extends AbstractPlannerReactor {
 			LOGGER.info("Start execution for scenario = " + scenario);
 
 			// create a new translation to run through
-			Translation translation = new Translation();
+			GreedyTranslation translation = new GreedyTranslation();
 			// get the planner for the scenario
 			PKSLPlanner nextScenario = scenarioMap.get(scenario);
 			nextScenario.addVariable("$SCENARIO", new NounMetadata(scenario, PkslDataTypes.CONST_STRING));
@@ -269,7 +268,7 @@ public class RunJavaGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		// define a central translation
 		// to execute everything with
 		// but substituting with the correct scenario planner
-		PlannerTranslation translation = new PlannerTranslation();
+		LazyTranslation translation = new LazyTranslation();
 		while(iterator.hasNext()) {
 			IHeadersDataRow nextData = iterator.next();
 
