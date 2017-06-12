@@ -45,7 +45,7 @@ public class RuntimeJavaClassBuilder {
 	
 	public void addEquations(List<String> equations) {
 		for(String equation : equations) {
-			if(!equations.isEmpty()) {
+			if(!equation.isEmpty()) {
 				this.equations.add(equation);
 			}
 		}

@@ -92,13 +92,123 @@ public class OpFilter extends OpBasic {
 		}
 		
 		
-		return leftString + " " +comparator + " " + rightString;
-
+//		return leftString + " " +comparator + " " + rightString;
+		
+		StringBuilder javaSignature = new StringBuilder(this.getClass().getName()+".eval(");
+		javaSignature.append(leftString).append(",");
+		javaSignature.append("\""+comparator+"\"").append(",");
+		javaSignature.append(rightString);
+		javaSignature.append(")");
+		return javaSignature.toString();
 	}
-
+	
 	@Override
 	public String getReturnType() {
 		// TODO Auto-generated method stub
 		return "boolean";
+	}
+	
+	public static boolean eval(double right, String comparator, double left) {
+		if(comparator.equals("==")) {
+			return right == left;
+		} else if(comparator.equals("!=") || comparator.equals("<>")) {
+			return right != left;
+		}
+		// we have some numerical stuff
+		// everything needs to be a valid number
+		else if(comparator.equals(">=")) {
+			return right >= left;
+		} else if(comparator.equals(">")) {
+			return right > left;
+		} else if(comparator.equals("<=")) {
+			return right <= left;
+		} else if(comparator.equals("<")) {
+			return right < left;
+		} else {
+			return false;//?
+//			throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+		}
+	}
+	
+	public static boolean eval(double right, String comparator, int left) {
+		if(comparator.equals("==")) {
+			return right == left;
+		} else if(comparator.equals("!=") || comparator.equals("<>")) {
+			return right != left;
+		}
+		// we have some numerical stuff
+		// everything needs to be a valid number
+		else if(comparator.equals(">=")) {
+			return right >= left;
+		} else if(comparator.equals(">")) {
+			return right > left;
+		} else if(comparator.equals("<=")) {
+			return right <= left;
+		} else if(comparator.equals("<")) {
+			return right < left;
+		} else {
+			return false;//?
+//			throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+		}
+	}
+	
+	public static boolean eval(int right, String comparator, double left) {
+		if(comparator.equals("==")) {
+			return right == left;
+		} else if(comparator.equals("!=") || comparator.equals("<>")) {
+			return right != left;
+		}
+		// we have some numerical stuff
+		// everything needs to be a valid number
+		else if(comparator.equals(">=")) {
+			return right >= left;
+		} else if(comparator.equals(">")) {
+			return right > left;
+		} else if(comparator.equals("<=")) {
+			return right <= left;
+		} else if(comparator.equals("<")) {
+			return right < left;
+		} else {
+			return false;//?
+//			throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+		}
+	}
+	
+	public static boolean eval(String right, String comparator, String left) {
+		if(comparator.equals("==")) {
+			return right.equals(left);
+		} else if(comparator.equals("!=") || comparator.equals("<>")) {
+			return !right.equals(left);
+		}
+		// we have some numerical stuff
+		// everything needs to be a valid number
+		else if(comparator.equals(">=")) {
+			return right.compareTo(left) >= 0;
+		} else if(comparator.equals(">")) {
+			return right.compareTo(left) > 0;
+		} else if(comparator.equals("<=")) {
+			return right.compareTo(left) <= 0;
+		} else if(comparator.equals("<")) {
+			return right.compareTo(left) < 0;
+		} else {
+			return false;//?
+//			throw new IllegalArgumentException("Cannot handle comparator " + comparator);
+		}
+	}
+	
+	public static boolean eval(String value, String comparator, int value2) {
+		return false;
+	}
+	
+	public static boolean eval(String value, String comparator, double value2) {
+		return false;
+	}
+	
+	public static boolean eval(int value, String comparator, String value2) {
+		return false;
+	}
+	
+	public static boolean eval(double value, String comparator, String value2) {
+		return false;
 	}
 }
