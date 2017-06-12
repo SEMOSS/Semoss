@@ -58,6 +58,8 @@ public class LoadGraphClient extends AbstractLoadClient {
 			}
 		}
 		
+		addHardCodedValues(plannerT);
+		
 		// grab the planner from the new translation
 //		LOGGER.info("****************    "+total+"      *************************");
 //		LOGGER.info("****************    "+error+"      *************************");
@@ -66,5 +68,10 @@ public class LoadGraphClient extends AbstractLoadClient {
 		LOGGER.info("****************    END LOAD CLIENT "+(end - start)+"ms      *************************");
 
 		return plannerT.planner;
+	}
+	
+	private void addHardCodedValues(LazyTranslation plannerT) {
+		addVariable(plannerT.planner, "aBEK", "0.0");
+		addVariable(plannerT.planner, "a0G", "0.0");
 	}
 }

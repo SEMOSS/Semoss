@@ -49,10 +49,9 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		BaseJavaRuntime javaClass = builder.buildClass();
 		javaClass.execute();
 		Map<String, Object> map = javaClass.getVariables();
-		for(String key : map.keySet()) {
-			System.out.println(key+":::"+map.get(key));
-		}
-		long endTime = System.currentTimeMillis();
+//		for(String key : map.keySet()) {
+//			System.out.println(key+":::"+map.get(key));
+//		}
 		
 		long end = System.currentTimeMillis();
 		LOGGER.info("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
@@ -115,12 +114,24 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 			} else {
 				String field = "public "+value+" "+assignment;
 				if(value.equals("double") || value.equals("int")) {
-					field += " = 0.0;";
+					if(planner.hasVariable(assignment)) {
+						field += " = " + planner.getVariableValue(assignment).getValue()+";";
+					} else {
+						field += " = 0.0;";
+					}
 				} else if(value.equals("String")) {
-					field += " = \"\";";
+					if(planner.hasVariable(assignment)) {
+						field += " = \""+planner.getVariableValue(assignment).getValue()+"\";";
+					} else {
+						field += " = \"\";";
+					}
 				} else if(value.equals("boolean")) {
-					field += " = true;";
-				} 
+					if(planner.hasVariable(assignment)) {
+						field += " = " + planner.getVariableValue(assignment).getValue().toString().toLowerCase()+";";
+					} else {
+						field += " = true;";
+					}
+				}
 				
 				if(!assignedFields.contains(assignment)) {
 					fields.add(field);
