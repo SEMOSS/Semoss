@@ -1,19 +1,12 @@
 package prerna.util.insight;
 
-import java.awt.image.RenderedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import java.nio.file.Paths;
 import java.util.Timer;
 import java.util.TimerTask;
-
 import javax.imageio.ImageIO;
-
 import org.apache.log4j.Logger;
-
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.embed.swing.SwingFXUtils;
@@ -22,6 +15,9 @@ import javafx.scene.SnapshotParameters;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * @author ericjbruno
@@ -36,7 +32,7 @@ public class InsightScreenshot {
 	private boolean complete = false;
 	private boolean validStage = false;
 	private Stage window;
-	Logger LOGGER = Logger.getLogger(InsightScreenshot.class.getName());
+	static Logger LOGGER = Logger.getLogger(InsightScreenshot.class.getName());
 	private String url;
 
 	/**
@@ -60,7 +56,7 @@ public class InsightScreenshot {
 				window.setTitle(url);
 
 				// load url to broswer and wait til visualization is loaded
-				browser = new Browser(url);
+				browser = new Browser(url, window);
 				monitorPageStatus(imagePath, window);
 
 				VBox layout = new VBox();
@@ -126,9 +122,11 @@ public class InsightScreenshot {
 	 * Checks if the browser has taken a screenshot
 	 * 
 	 * @return
+	 * @throws Exception
+	 *             if browser is unable to capture image
 	 */
 	@SuppressWarnings("restriction")
-	public boolean getComplete() {
+	public boolean getComplete() throws Exception {
 		boolean complete = false;
 		int count = 0;
 		int secondDelay = 0;
@@ -150,9 +148,9 @@ public class InsightScreenshot {
 						Platform.runLater(() -> {
 							window.close();
 						});
-						LOGGER.error("Unable to capture image from " + url);
 						complete = true;
 						timer.cancel();
+						throw new Exception();
 					}
 
 					count++;
@@ -167,31 +165,34 @@ public class InsightScreenshot {
 	}
 
 	public static void main(String[] args) throws IOException {
-		System.out.println("Taking photo start");
+		// System.out.println("Taking photo start");
+		//
+		// InsightScreenshot pic = new InsightScreenshot();
+		// System.out.println("Taking photo...");
+		// pic.showUrl("http://localhost:8080/SemossWeb/embed/#/embed?engine=movie&questionId=80&settings=false",
+		// "C:\\workspace\\Semoss\\images\\insight1.png");
+		// try {
+		// pic.getComplete();
+		// } catch (Exception e) {
+		// e.printStackTrace();
+		// }
+		// String serialized_image =
+		// InsightScreenshot.imageToString("C:\\workspace\\Semoss\\images\\insight1.png");
+		// System.out.println(serialized_image);
+		// System.exit(0);
 
-		InsightScreenshot pic = new InsightScreenshot();
-		System.out.println("Taking photo...");
-		pic.showUrl("http://localhost:8080/SemossWeb/embed/#/embed?engine=movie&questionId=80&settings=false",
-				"C:\\workspace\\Semoss\\images\\insight1.png");
+		String filePath = "C:\\workspace\\Semoss\\images\\h2movie_7.png";
+		Path path = Paths.get(filePath);
+		String base64Str = "";
+		byte[] codedFile = null;
 		try {
-			pic.getComplete();
-		} catch (Exception e) {
+			codedFile = Files.readAllBytes(path);
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		String serialized_image = InsightScreenshot.imageToString("C:\\workspace\\Semoss\\images\\insight1.png");
-		System.out.println(serialized_image);
-		System.exit(0);
 
-	}
-
-	private static String imgToBase64String(final RenderedImage img, final String formatName) {
-		final ByteArrayOutputStream os = new ByteArrayOutputStream();
-		try {
-			ImageIO.write(img, formatName, Base64.getEncoder().wrap(os));
-			return os.toString(StandardCharsets.ISO_8859_1.name());
-		} catch (final IOException ioe) {
-			throw new UncheckedIOException(ioe);
-		}
+		base64Str = Base64.encodeBase64String(codedFile);
+		System.out.println(base64Str);
 	}
 
 	/**
@@ -201,16 +202,17 @@ public class InsightScreenshot {
 	 * @return
 	 * @throws IOException
 	 */
-	public static String imageToString(String path) throws IOException {
-
-		RenderedImage bi;
-		String base64String = "";
-
-		File imageFile = new File(path);
-		bi = javax.imageio.ImageIO.read(imageFile);
-		base64String = imgToBase64String(bi, "png");
-
-		return base64String;
+	public static String imageToString(String filePath) throws IOException {
+		Path path = Paths.get(filePath);
+		String base64Str = "";
+		byte[] codedFile = null;
+		try {
+			codedFile = Files.readAllBytes(path);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		base64Str = Base64.encodeBase64String(codedFile);
+		return base64Str;
 	}
 
 }
