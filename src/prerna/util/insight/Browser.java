@@ -12,23 +12,32 @@ import javafx.geometry.VPos;
 import javafx.scene.layout.Region;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import javafx.stage.Stage;
+import netscape.javascript.JSObject;
 
 @SuppressWarnings("restriction")
 class Browser extends Region {
 
 	private final WebView browser = new WebView();
 
-	Browser(String url) {
+	Browser(String url, Stage window) {
 
 		// set up certificate manager for browser
 		browserSSL();
 
 		WebEngine webEngine = browser.getEngine();
 		webEngine.load(url);
-
+		webEngine.impl_getDebugger();
+		JSObject jsWindow = (JSObject) webEngine.executeScript("window");
 		// Log browser errors
-		webEngine.getLoadWorker().stateProperty().addListener((ov, oldState, newState) -> {
-			System.err.println(webEngine.getLoadWorker().exceptionProperty());
+		webEngine.getLoadWorker().stateProperty().addListener((observable, oldValue, newValue) -> {
+			if (oldValue.name().equals("FAILED")) {
+				JSObject jsWindowError = (JSObject) webEngine.executeScript("window");
+				JavaBridge bridgeError = new JavaBridge();
+				jsWindowError.setMember("java", bridgeError);
+				webEngine.executeScript("console.log = function(message)\n" + "{\n" + "    java.log(message);\n" + "};");
+				window.close();
+			}
 		});
 
 		getChildren().add(browser);
@@ -85,6 +94,12 @@ class Browser extends Region {
 	@Override
 	protected double computePrefHeight(double height) {
 		return 720;
+	}
+
+	class JavaBridge {
+		public void log(String text) {
+			System.out.println(text);
+		}
 	}
 
 }
