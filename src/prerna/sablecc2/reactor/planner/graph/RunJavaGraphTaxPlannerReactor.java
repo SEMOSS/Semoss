@@ -190,7 +190,7 @@ public class RunJavaGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		long start = System.currentTimeMillis();
 		Builder<GryoIo> builder = IoCore.gryo();
 		builder.graph(originalPlanner.g);
-		IoRegistry kryo = MyGraphIoRegistry.getGraphIORegistry();
+		IoRegistry kryo =  new MyGraphIoRegistry();
 		builder.registry(kryo);
 		GryoIo yes = builder.create();
 		try {
@@ -230,7 +230,7 @@ public class RunJavaGraphTaxPlannerReactor extends AbstractPlannerReactor {
 		long curTime = System.currentTimeMillis();
 		Builder<GryoIo> builder = IoCore.gryo();
 		builder.graph(newPlanner.g);
-		IoRegistry kryo = MyGraphIoRegistry.getGraphIORegistry();
+		IoRegistry kryo =  new MyGraphIoRegistry();
 		builder.registry(kryo);
 		GryoIo yes = builder.create();
 		try {
