@@ -392,22 +392,7 @@ public abstract class AbstractVizReactor extends AbstractReactor {
 	 */
 	protected void configMap(VizPkqlMetadata metadata) {
 		Map config = (HashMap) myStore.get("configMap");
-		Map size = (Map) config.get("size");
-		Object position = config.get("position");
-		
-		String width = (String) size.get("width");
-		String height = (String) size.get("height");
-		String top = "";
-		String left = "";
-		if(position instanceof Map) {
-			Map positionMap = (Map) position;
-			top = (String) positionMap.get("top");
-			left = (String) positionMap.get("left");
-		} else {
-			top = left = "auto";
-		}
-		// add to the metadata here
-		metadata.addVizConfigMap(width, height, top, left);
+		metadata.addVizConfigMap(config);
 	}
 	
 }
