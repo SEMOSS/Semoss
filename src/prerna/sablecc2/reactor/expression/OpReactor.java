@@ -101,8 +101,16 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 //		System.out.println(getJavaSignature());
 	}
 	
+	/**
+	 * We want the result of this to return a string in the form of:
+	 * 	prerna.sablecc2.OpSum.eval(1, 2, prerna.sablecc2.OpMin(x, y))
+	 * 	if a reactor does not conform to this standard that reactor overrides the signature for itself, e.g. opFilter
+	 */
 	public String getJavaSignature() {
+		//class name plus eval
 		StringBuilder javaSignature = new StringBuilder(this.getClass().getName()+".eval(");
+		
+		//we only want the java inputs, i.e. the direct inputs for THIS reactor, not the inputs for any child reactor
 		List<NounMetadata> inputs = this.getJavaInputs();
 		for(int i = 0; i < inputs.size(); i++) {
 			if(i > 0) {
@@ -112,9 +120,13 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 			String nextArgument;
 			NounMetadata nextNoun = inputs.get(i);
 			Object nextInput = inputs.get(i).getValue();
+			
+			//if java executable add that as an argument
 			if(nextInput instanceof JavaExecutable) {
 				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
 			} else {
+				
+				//if string add quotes
 				if(nextNoun.getNounName() == PkslDataTypes.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
