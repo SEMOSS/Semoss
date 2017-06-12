@@ -120,8 +120,8 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 		this.laf = new VizLookAndFeel(laf);
 	}
 	
-	public void addVizConfigMap(String width, String height, String top, String left) {
-		this.configMap = new VizConfigMap(width, height, top, left);
+	public void addVizConfigMap(Map configMap) {
+		this.configMap = new VizConfigMap(configMap);
 	}
 
 	public void editVizComment(String commentText) {
@@ -370,38 +370,22 @@ class VizLookAndFeel implements VizComponent {
  */
 class VizConfigMap implements VizComponent {
 	
-	String width;
-	String height;
-	String top;
-	String left;
+	Map configMap;
+	private static final String MAP_AS_STRING = "map";
 
-	final String WIDTH_TEMPLATE_FIELD_NAME = "width";
-	final String HEIGHT_TEMPLATE_FIELD_NAME = "height";
-	final String TOP_TEMPLATE_FIELD_NAME = "top";
-	final String LEFT_TEMPLATE_FIELD_NAME = "left";
-
-	public VizConfigMap(String width, String height, String top, String left) {
-		this.width = width;
-		this.height = height;
-		this.top = top;
-		this.left = left;
+	public VizConfigMap(Map configMap) {
+		this.configMap = configMap;
 	}
 	
 	@Override
 	public String getTemplate() {
-		return "Panel width: {{" + WIDTH_TEMPLATE_FIELD_NAME + "}}, height: {{"
-				+ HEIGHT_TEMPLATE_FIELD_NAME + "}}, top: {{"
-				+ TOP_TEMPLATE_FIELD_NAME + "}}, left: {{"
-				+ LEFT_TEMPLATE_FIELD_NAME + "}}";
+		return "Changed viz config: {{" + MAP_AS_STRING + "}}";
 	}
 
 	@Override
 	public Map<String, Object> getTemplateData() {
 		Map<String, Object> templateData = new Hashtable<String, Object>();
-		templateData.put(WIDTH_TEMPLATE_FIELD_NAME, width);
-		templateData.put(HEIGHT_TEMPLATE_FIELD_NAME, height);
-		templateData.put(TOP_TEMPLATE_FIELD_NAME, top);
-		templateData.put(LEFT_TEMPLATE_FIELD_NAME, left);
+		templateData.put(MAP_AS_STRING, configMap.toString());
 		return templateData;
 	}
 }
