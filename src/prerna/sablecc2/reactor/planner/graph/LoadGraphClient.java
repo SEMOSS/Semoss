@@ -52,6 +52,8 @@ public class LoadGraphClient extends AbstractLoadClient {
 			}
 			//else we just want to add the value of the constant/decimal directly to the planner
 			else {
+				
+				//hardcoded this...we don't want to add this because it is useless
 				if(!value.startsWith("\"CY")) {
 					addVariable(plannerT.planner, assignment, value);
 				}
@@ -71,7 +73,7 @@ public class LoadGraphClient extends AbstractLoadClient {
 	}
 	
 	private void addHardCodedValues(LazyTranslation plannerT) {
-		addVariable(plannerT.planner, "aBEK", "0.0");
-		addVariable(plannerT.planner, "a0G", "0.0");
+//		addVariable(plannerT.planner, "aBEK", "0.0"); //this is only assigned to itself
+//		addVariable(plannerT.planner, "a0G", "0.0");
 	}
 }

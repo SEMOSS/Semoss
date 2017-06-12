@@ -44,11 +44,12 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		
 		long startTime = System.currentTimeMillis();
 		RuntimeJavaClassBuilder builder = new RuntimeJavaClassBuilder();
-		builder.addEquations(pksls);
-		builder.addFields(fieldsList);
+		builder.addEquations(pksls); //add the java signatures
+		builder.addFields(fieldsList); //add the class declarations and instantiations
 		BaseJavaRuntime javaClass = builder.buildClass();
 		javaClass.execute();
-		Map<String, Object> map = javaClass.getVariables();
+		Map<String, Object> map = javaClass.getVariables(); //these are the results of execution
+		
 //		for(String key : map.keySet()) {
 //			System.out.println(key+":::"+map.get(key));
 //		}
@@ -56,7 +57,7 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		long end = System.currentTimeMillis();
 		LOGGER.info("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
 		
-		return new NounMetadata(javaClass, PkslDataTypes.PLANNER);
+		return new NounMetadata(javaClass, PkslDataTypes.PLANNER); //do we want to return the java class or the planner with extracted variables?
 	}
 	
 	private PKSLPlanner getPlanner() {
@@ -70,9 +71,18 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param mainMap
+	 * @param planner
+	 * @return
+	 * 
+	 * This method is used to build the class variables of the java class
+	 * i.e. String x = "HALLOW", double y = 0.0;
+	 */
 	private List<String> buildFields(Map<String, String> mainMap, PKSLPlanner planner) {
-		List<String> fields = new ArrayList<>();
-		Set<String> assignedFields = new HashSet<>();
+		List<String> fields = new ArrayList<>(); //The list of assignments
+		Set<String> assignedFields = new HashSet<>(); //I need to keep track of which fields i have already declared so i don't do them twice (java compilation error)
 		
 		for(String assignment : mainMap.keySet()) {
 			String value = mainMap.get(assignment);
