@@ -120,8 +120,8 @@ public class VizPkqlMetadata extends AbstractPkqlMetadata {
 		this.laf = new VizLookAndFeel(laf);
 	}
 	
-	public void addVizConfigMap(Map configMap) {
-		this.configMap = new VizConfigMap(configMap);
+	public void addVizConfigStr(String config) {
+		this.configMap = new VizConfigMap(config);
 	}
 
 	public void editVizComment(String commentText) {
@@ -370,11 +370,11 @@ class VizLookAndFeel implements VizComponent {
  */
 class VizConfigMap implements VizComponent {
 	
-	Map configMap;
+	String configStr;
 	private static final String MAP_AS_STRING = "map";
 
-	public VizConfigMap(Map configMap) {
-		this.configMap = configMap;
+	public VizConfigMap(String configStr) {
+		this.configStr = configStr;
 	}
 	
 	@Override
@@ -385,7 +385,7 @@ class VizConfigMap implements VizComponent {
 	@Override
 	public Map<String, Object> getTemplateData() {
 		Map<String, Object> templateData = new Hashtable<String, Object>();
-		templateData.put(MAP_AS_STRING, configMap.toString());
+		templateData.put(MAP_AS_STRING, configStr);
 		return templateData;
 	}
 }
