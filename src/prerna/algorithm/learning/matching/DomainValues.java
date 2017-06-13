@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -100,15 +101,14 @@ public class DomainValues {
 	 * @param compareProperties
 	 *            add or remove concept properties
 	 */
-	public void exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty, String instanceCountFile) {
+	public HashMap<String, String> exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty) {
 		String engineName = engine.getEngineName();
-		
+		HashMap<String, String> propertyMap = new HashMap<String, String>();
 		// Grab all the concepts that exist in the database
 		// Process each concept
 		List<String> concepts = getConceptList(engine);
 		
 		//Used to write out instance count to instanceCountFile
-		ArrayList<String> instanceCount = new ArrayList<String>();
 		for (String concept : concepts) {
 
 			// Ignore the default concept node...
@@ -133,7 +133,7 @@ public class DomainValues {
 			writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
 			
 			//build instanceCountFile
-			String metadataRow = conceptId + "," + conceptValues.size(); 
+			String metadataRow = conceptId; 
 			boolean hasProperties = false;
 
 			// If the user wants to compare properties,
@@ -146,8 +146,7 @@ public class DomainValues {
 
 				// If there are no properties, go onto the next concept
 				if (properties.isEmpty()) {
-					metadataRow += "," + 0;
-					instanceCount.add(metadataRow);
+					propertyMap.put(conceptId, conceptValues.size() + ", 0");
 					continue;
 				}
 
@@ -163,28 +162,12 @@ public class DomainValues {
 				}
 			}
 			if(hasProperties) {
-				metadataRow += "," + 1;
+				propertyMap.put(conceptId, conceptValues.size() + ", 0");
 			}
-			instanceCount.add(metadataRow);
-
 
 		}
+		return propertyMap;
 		
-		//write out instance countFile
-
-	    try {
-			FileWriter fw = new FileWriter(instanceCountFile,true);
-			for(int i =0; i < instanceCount.size(); i++) {
-				fw.write(instanceCount.get(i));
-				if(i < instanceCount.size() - 1) {
-					fw.write("\n");
-				}
-			}
-			fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 
@@ -409,41 +392,51 @@ public class DomainValues {
 	 * @param engine
 	 * @param outputFolder
 	 */
-	public void exportRelationInstanceValues(IEngine engine, String outputFolder) {
+	public HashMap<String, String> exportRelationInstanceValues(IEngine engine, String outputFolder) {
 		String engineName = engine.getEngineName();
 		QueryStruct engineQS = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = engineQS.getRelations();
-
+		HashMap<String, String> totalCount = new HashMap<String, String>();
+		List<Object[]> allSourceInstances = null;
 		for (String fromConcept : relations.keySet()) {
 			Map<String, List> joins = relations.get(fromConcept);
 			for (String join : joins.keySet()) {
 				Vector<String> concepts = (Vector) joins.get(join);
 				for (String endConcept : concepts) {
 					HashSet<String> uniqueConceptValues = new HashSet<String>();
-					List<Object[]> allSourceInstances = null;
 					Insight insightSource = InsightUtility.createInsight(engineName);
 					StringBuilder pkqlCommand = new StringBuilder();
 					pkqlCommand.append("data.frame('grid'); ");
 					pkqlCommand.append("data.import ( api: " + engineName + " ");
-					// pkqlCommand.append(". query ( [ c: "+ fromConcept + " ,
-					// c:" + endConcept + "], " );
-					pkqlCommand.append(". query ( [ c:" + endConcept + "], ");
+					pkqlCommand.append(". query ( [ c: "+ endConcept + " ,c:" + fromConcept + "], " );
+					//pkqlCommand.append(". query ( [ c:" + endConcept + "], ");
 					pkqlCommand.append("([ c: " + fromConcept + " , " + join + " , c:" + endConcept + " ])));");
 					InsightUtility.runPkql(insightSource, pkqlCommand.toString());
 					ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
 					allSourceInstances = data.getData();
-					for (int i = 0; i < allSourceInstances.size(); i++) {
-						Object[] rowValues = allSourceInstances.get(i);
-						String rowOutput = rowValues[0] + " ";
+					Object[] rowValues = data.getColumn(endConcept);
+					for (int i = 0; i < rowValues.length; i++) {
+						String rowOutput = rowValues[i] + " ";
 						uniqueConceptValues.add(rowOutput);
 					}
 
 					String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept + "%%%"
 							+ endConcept;
-
+					
+					String metaDataProperty = engineName +ENGINE_CONCEPT_PROPERTY_DELIMETER + endConcept + ENGINE_CONCEPT_PROPERTY_DELIMETER;
+					String size = allSourceInstances.size() + "";
+					totalCount.put(metaDataProperty, size);
 					writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
+					
 				}
+				
 			}
+			//TODO write from concept total count
+			String metaDataProperty = engineName +ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept + ENGINE_CONCEPT_PROPERTY_DELIMETER;
+			String size = allSourceInstances.size() + "";
+			totalCount.put(metaDataProperty, size);
 		}
+
+		return totalCount;
 	}
 }

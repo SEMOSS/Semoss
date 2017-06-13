@@ -71,6 +71,30 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
     df$match_instances[r] <- wordcounts[match.file.name][[1]]
 	
 	# Get total instance count for item and match based on metadata file
+	if(grepl("%%%",item.file.name)){
+	pos <- regexpr('%%%', item.file.name)
+	item.file.name <- substr(item.file.name, 0, pos-1)
+	item.file.name <- paste0(item.file.name, ";")
+	}
+	if(grepl(".*;",item.file.name)){
+	pos <- regexpr(';', item.file.name)
+	values <- strsplit(item.file.name, ";")
+	item.file.name <-paste0(values[[1]][1],';', values[[1]][2])
+	item.file.name <- paste0(item.file.name, ";")
+	}
+	
+	if(grepl("%%%",match.file.name)){
+	pos <- regexpr('%%%', match.file.name)
+	match.file.name <- substr(match.file.name, 0, pos-1)
+	match.file.name <- paste0(match.file.name, ";")
+	}
+	if(grepl(".*;",match.file.name)){
+	pos <- regexpr(';', match.file.name)
+	values <- strsplit(match.file.name, ";")
+	match.file.name <-paste0(values[[1]][1],';', values[[1]][2])
+	match.file.name <- paste0(match.file.name, ";")
+	}
+	
 	item.total.count <- metadata[metadata$sourceFileName == item.file.name,][[2]]
 	match.total.count <- metadata[metadata$sourceFileName == match.file.name,][[2]]
 	if(length(item.total.count) == 0) {
@@ -112,6 +136,8 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   # Order the data frame properly
   df <- df[order(df$item, -df$score, df$match), ]
 
+  #obtain unique count to total count ratio
+  
   # Split out the engine and concept
   # Add a period at the end in case there are no properties
   setDT(df)
@@ -314,7 +340,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 
 	is.concept.match <- NA
   
-  property.ids.match <- dt$match_property_id
+  property.ids.match <- dt$match_property_iddf
   for (i in seq_along(property.ids.match)) {
 	if(is.na(property.ids.match[i])) {
 		is.concept.match[i] = 0
@@ -349,7 +375,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	}
 	
 	dt<-cbind(dt, is.relation.match)
-	
+	df$PKI <- round(df$item_instances / df$item_total_count, 3)
 	
   
   
