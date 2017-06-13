@@ -1239,13 +1239,18 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outAPanelConfig(APanelConfig node) {
 		System.out.println("out a panel config");
-		Map config = (Map) runner.getFeData("config");
-		if (config == null) {
-			config = new HashMap();
-		}
-		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
-		curReactor.put("configMap", config);
-		runner.addFeData("config", config, true);
+//		String config = (Map) runner.getFeData("config");
+//		if (config == null) {
+//			config = new HashMap();
+//		}
+//		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
+		
+		String json = node.getJson().getText();
+		json = json.replace("<json>", "");
+		json = json.replace("</json>", "");
+		
+		curReactor.put("configMap", json);
+		runner.addFeData("config", json, true);
 		deinitReactor(PKQLEnum.VIZ, "", "");
 		runner.setResponse("Successfully set config");
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
