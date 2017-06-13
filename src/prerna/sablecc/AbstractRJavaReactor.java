@@ -1847,12 +1847,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	public void runCompatibilitySearch(String[] engines, double candidateThreshold, double similarityThreshold,
 			int instancesThreshold, boolean compareProperties, boolean refresh) {
-		//if there is only one engine compare to self
-		if(engines.length < 2) {
-			engines = new String[]{engines[0], engines[0]};
-		}
-		String instanceCountFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
+		metadataFile = metadataFile.replace("\\", "/");
+		HashMap<String, String> allProperties = new HashMap<String, String>();
+
+		if (engines.length < 2) {
+			engines = new String[] { engines[0], engines[0] };
+		}
 		// Refresh the corpus
 		if (refresh) {
 			DomainValues dv = new DomainValues();
@@ -1863,10 +1865,32 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 				// Wipe out the old files
 				FileUtils.cleanDirectory(new File(outputFolder));
-
 				for (String engineName : engines) {
 					IEngine engine = (IEngine) Utility.getEngine(engineName);
-					dv.exportInstanceValues(engine, outputFolder, compareProperties, instanceCountFile);
+					HashMap<String, String> properties = dv.exportInstanceValues(engine, outputFolder,
+							compareProperties);
+					allProperties.putAll(properties);
+					dv.exportRelationInstanceValues(engine, outputFolder);
+				}
+				try {
+					ArrayList<String> rowValues = new ArrayList<String>();
+					String row = "";
+					for (String key : allProperties.keySet()) {
+						String propertyValue = allProperties.get(key);
+						row = key + ","+ propertyValue;
+						rowValues.add(row);
+					}
+					
+					FileWriter fw = new FileWriter(metadataFile, false);
+					// headers
+					fw.write("sourceFileName, totalInstanceCount, hasProperties");
+					System.out.println("where");
+					for(String rowData: rowValues) {
+						fw.write("\n" + rowData);
+					}
+					fw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 
 			} catch (IOException e) {
@@ -1897,11 +1921,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String rdfPropDirectory = baseRDFDirectory + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_MATCHING_PROP_FOLDER;
 		rdfPropDirectory = rdfPropDirectory.replace("\\", "/");
-		
-		//Semoss/R/Matching/Temp/rdbms
+
+		// Semoss/R/Matching/Temp/rdbms
 		String rdbmsDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdbms";
 		rdbmsDirectory = rdbmsDirectory.replace("\\", "/");
-
 
 		// Set the number of minhash functions and the number of bands
 		// nMinhash should be divisible by nBands, and the greater the nBands
@@ -1937,7 +1960,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
 
 		// Grab the utility script
-		String utilityScriptPath = baseMatchingFolder + "\\" + Constants.R_MATCHING_SCRIPT;
+		String utilityScriptPath = baseMatchingFolder + "\\" + "matching.R";
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
 
 		// TODO add this library to the list when starting R
@@ -1952,7 +1975,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
 				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \"" +rdbmsDirectory +"\" )");
+				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \""
+				+ rdbmsDirectory + "\", \""+ metadataFile + "\")");
 
 		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);
@@ -1966,8 +1990,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// TODO gracefully refresh the entire db
 		if (engine == null) {
 			MatchingDB db = new MatchingDB(getBaseFolder());
-			//creates rdf and rdbms dbs
-			//TODO specify dbType if desired
+			// creates rdf and rdbms dbs
+			// TODO specify dbType if desired
 			String matchingDBType = "";
 			db.saveDB(matchingDBType);
 			// Clean directory
@@ -3199,6 +3223,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
 		metadataFile = metadataFile.replace("\\", "/");
+		HashMap<String, String> allProperties = new HashMap<String, String>();
+		HashMap<String, String> allTotalCount = new HashMap<String, String>();
+
 
 		if (engines.length < 2) {
 			engines = new String[] { engines[0], engines[0] };
@@ -3210,34 +3237,35 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				String outputFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 						+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\"
 						+ Constants.R_MATCHING_REPO_FOLDER;
-				
-				 try {
-						FileWriter fw = new FileWriter(metadataFile,false);
-						//headers
-						fw.write("sourceFileName, totalInstanceCount, hasProperties");
-						fw.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} //the true will append the new data
 
 				// Wipe out the old files
 				FileUtils.cleanDirectory(new File(outputFolder));
-
 				for (String engineName : engines) {
 					IEngine engine = (IEngine) Utility.getEngine(engineName);
-					try {
-						FileWriter fw = new FileWriter(metadataFile,true);
-						//headers
-						fw.write("\n");
-						fw.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} //the true will append the new data
-					dv.exportInstanceValues(engine, outputFolder, compareProperties, metadataFile);
+					HashMap<String, String> properties = dv.exportInstanceValues(engine, outputFolder,
+							compareProperties);
+					allProperties.putAll(properties);
 					dv.exportRelationInstanceValues(engine, outputFolder);
-
+				}
+				try {
+					ArrayList<String> rowValues = new ArrayList<String>();
+					String row = "";
+					for (String key : allProperties.keySet()) {
+						String propertyValue = allProperties.get(key);
+						row = key + ","+ propertyValue;
+						rowValues.add(row);
+					}
+					
+					FileWriter fw = new FileWriter(metadataFile, false);
+					// headers
+					fw.write("sourceFileName, totalInstanceCount, hasProperties");
+					System.out.println("where");
+					for(String rowData: rowValues) {
+						fw.write("\n" + rowData);
+					}
+					fw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 
 			} catch (IOException e) {
@@ -3307,7 +3335,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
 
 		// Grab the utility script
-		String utilityScriptPath = baseMatchingFolder + "\\" + Constants.R_MATCHING_SCRIPT;
+		String utilityScriptPath = baseMatchingFolder + "\\" + "xray.R";
 		utilityScriptPath = utilityScriptPath.replace("\\", "/");
 
 		// TODO add this library to the list when starting R
