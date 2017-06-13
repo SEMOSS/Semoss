@@ -254,7 +254,7 @@ panel_tools = // e.g. panel.tools({'flippedaxis':'true'});
 		;
 		
 panel_config = // e.g. panel.config({'positon':'leftside'});
-		panelconfig l_par [map]:map_obj r_par
+		panelconfig l_par [json]:jsonblock r_par
 		;
 		
 panel_clone = // e.g. panel.clone(1);
