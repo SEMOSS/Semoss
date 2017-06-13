@@ -9,7 +9,7 @@ public final class APanelConfig extends PPanelConfig
 {
     private TPanelconfig _panelconfig_;
     private TLPar _lPar_;
-    private PMapObj _map_;
+    private TJsonblock _json_;
     private TRPar _rPar_;
 
     public APanelConfig()
@@ -20,7 +20,7 @@ public final class APanelConfig extends PPanelConfig
     public APanelConfig(
         @SuppressWarnings("hiding") TPanelconfig _panelconfig_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PMapObj _map_,
+        @SuppressWarnings("hiding") TJsonblock _json_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -28,7 +28,7 @@ public final class APanelConfig extends PPanelConfig
 
         setLPar(_lPar_);
 
-        setMap(_map_);
+        setJson(_json_);
 
         setRPar(_rPar_);
 
@@ -40,7 +40,7 @@ public final class APanelConfig extends PPanelConfig
         return new APanelConfig(
             cloneNode(this._panelconfig_),
             cloneNode(this._lPar_),
-            cloneNode(this._map_),
+            cloneNode(this._json_),
             cloneNode(this._rPar_));
     }
 
@@ -100,16 +100,16 @@ public final class APanelConfig extends PPanelConfig
         this._lPar_ = node;
     }
 
-    public PMapObj getMap()
+    public TJsonblock getJson()
     {
-        return this._map_;
+        return this._json_;
     }
 
-    public void setMap(PMapObj node)
+    public void setJson(TJsonblock node)
     {
-        if(this._map_ != null)
+        if(this._json_ != null)
         {
-            this._map_.parent(null);
+            this._json_.parent(null);
         }
 
         if(node != null)
@@ -122,7 +122,7 @@ public final class APanelConfig extends PPanelConfig
             node.parent(this);
         }
 
-        this._map_ = node;
+        this._json_ = node;
     }
 
     public TRPar getRPar()
@@ -156,7 +156,7 @@ public final class APanelConfig extends PPanelConfig
         return ""
             + toString(this._panelconfig_)
             + toString(this._lPar_)
-            + toString(this._map_)
+            + toString(this._json_)
             + toString(this._rPar_);
     }
 
@@ -176,9 +176,9 @@ public final class APanelConfig extends PPanelConfig
             return;
         }
 
-        if(this._map_ == child)
+        if(this._json_ == child)
         {
-            this._map_ = null;
+            this._json_ = null;
             return;
         }
 
@@ -207,9 +207,9 @@ public final class APanelConfig extends PPanelConfig
             return;
         }
 
-        if(this._map_ == oldChild)
+        if(this._json_ == oldChild)
         {
-            setMap((PMapObj) newChild);
+            setJson((TJsonblock) newChild);
             return;
         }
 
