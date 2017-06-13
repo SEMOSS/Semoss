@@ -391,8 +391,8 @@ public abstract class AbstractVizReactor extends AbstractReactor {
 	 * @param metadata
 	 */
 	protected void configMap(VizPkqlMetadata metadata) {
-		Map config = (HashMap) myStore.get("configMap");
-		metadata.addVizConfigMap(config);
+		String config = (String) myStore.get("configMap");
+		metadata.addVizConfigStr(config);
 	}
 	
 }
