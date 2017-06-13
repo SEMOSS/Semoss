@@ -1747,9 +1747,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getMap() != null)
+        if(node.getJson() != null)
         {
-            node.getMap().apply(this);
+            node.getJson().apply(this);
         }
         if(node.getRPar() != null)
         {
