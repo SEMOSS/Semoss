@@ -4,10 +4,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import prerna.ds.TinkerIterator;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
 import prerna.util.ArrayUtilityMethods;
 
 public class MetaH2ImportDataReactor extends ImportDataReactor{
@@ -38,7 +40,12 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 				numNewRecords = ((IFileIterator) this.dataIterator).getNumRecords();
 			} else if(this.dataIterator instanceof IRawSelectWrapper && myStore.containsKey(PKQLEnum.API)) {
 				// get if the frame is over the limit of acceptable values
+				if(this.dataIterator instanceof RawTinkerSelectWrapper) {
+					numNewRecords = 0;
+				} else {
 				numNewRecords = ((Double) this.getValue(PKQLEnum.API + "_QUERY_NUM_CELLS")).intValue();
+				}
+
 				overLimit = numNewRecords > LIMIT_SIZE ;
 			}
 			
