@@ -414,10 +414,13 @@ public class DomainValues {
 					InsightUtility.runPkql(insightSource, pkqlCommand.toString());
 					ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
 					allSourceInstances = data.getData();
+					String[] headers = data.getColumnHeaders();
+					if(headers.length > 0) {
 					Object[] rowValues = data.getColumn(endConcept);
 					for (int i = 0; i < rowValues.length; i++) {
 						String rowOutput = rowValues[i] + " ";
 						uniqueConceptValues.add(rowOutput);
+					}
 					}
 
 					String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept + "%%%"
