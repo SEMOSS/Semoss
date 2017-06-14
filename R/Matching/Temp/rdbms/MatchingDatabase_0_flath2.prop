@@ -18,12 +18,12 @@ NUM_COLUMNS	23
 17	STRING
 18	STRING
 19	NUMBER
-20	STRING
+20	NUMBER
 21	NUMBER
 22	NUMBER
 23	NUMBER
 START_ROW	2
 END_ROW	69
 RELATION	
-NODE_PROP	match_id%match_property;match_id%is_concept_item;match_id%is_concept_match;match_id%is_relation_item;match_id%is_relation_match;match_id%PKI;match_id%item_property;match_id%match_concept;match_id%item_concept;match_id%match_property_id;match_id%match_concept_id;match_id%match_engine;match_id%item_property_id;match_id%item_concept_id;match_id%item_engine;match_id%match_instances;match_id%match_has_properties;match_id%item_has_properties;match_id%match_total_count;match_id%item_total_count;match_id%item_instances;match_id%score;
+NODE_PROP	match_id%is_concept_item;match_id%match_property;match_id%is_concept_match;match_id%is_relation_item;match_id%is_relation_match;match_id%PKI;match_id%item_property;match_id%match_concept;match_id%item_concept;match_id%match_property_id;match_id%match_concept_id;match_id%match_engine;match_id%item_property_id;match_id%item_concept_id;match_id%item_engine;match_id%match_instances;match_id%match_has_properties;match_id%item_has_properties;match_id%match_total_count;match_id%item_total_count;match_id%item_instances;match_id%score;
 RELATION_PROP	 
