@@ -8,8 +8,10 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.ds.GremlinInterpreter;
 import prerna.ds.QueryStruct;
+import prerna.ds.TinkerIterator;
 import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -51,14 +53,27 @@ public class TinkerQueryApiReactor extends AbstractApiReactor {
 		}
 		// this.qs.print();
 
-//		Iterator thisIterator = interp.composeIterator();
+		// Iterator thisIterator = interp.composeIterator();
 		((TinkerEngine) engine).setQueryStruct(this.qs);
-		Iterator thisIterator = WrapperManager.getInstance().getRawWrapper(engine, null);
+		IRawSelectWrapper thisIterator = WrapperManager.getInstance().getRawWrapper(engine, null);
+
+		IRawSelectWrapper countIterator = WrapperManager.getInstance().getRawWrapper(engine, null);
+		double numCells = 0;
+
+		if (!countIterator.hasNext()) {
+			this.put("QUERY_NUM_CELLS", 0);
+		} else {
+			while (countIterator.hasNext()) {
+				countIterator.next();
+				numCells++;
+			}
+			this.put("QUERY_NUM_CELLS", numCells);
+		}
 
 		this.put((String) getValue(PKQLEnum.API), thisIterator);
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
-		
+
 		return null;
 
 	}
