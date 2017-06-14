@@ -74,6 +74,8 @@ public class PropFileWriter {
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	SQLQueryUtil queryUtil;
 	private String shouldFillEmptyTypes = "false";
+	
+	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default 
 
 	public void setShouldFillEmptyTypes(String shouldFillEmptyTypes) {
 		this.shouldFillEmptyTypes = shouldFillEmptyTypes;
@@ -96,6 +98,10 @@ public class PropFileWriter {
 	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
 		if(dbDriverType != null)
 			this.dbDriverType = dbDriverType;
+	}
+	
+	public void setTinkerType(ImportOptions.TINKER_DRIVER tinkerDriverType) {
+		this.tinkerDriverType = tinkerDriverType;
 	}
 
 	// TODO Change variable names, should we change default.properties to default.smss?
@@ -328,8 +334,12 @@ public class PropFileWriter {
 				}
 			}
 			if(dbType == ImportOptions.DB_TYPE.TINKER) {
+				//tinker-specific properties
+				
 				pw.write(Constants.TINKER_FILE + " @BaseFolder@/db/@ENGINE@/@ENGINE@.tg" + "\n");
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultTinkerEngine + "\n");
+				pw.write(Constants.TINKER_DRIVER + "\t" + this.tinkerDriverType + "\n");
+				
 			}
 		} catch (IOException ex) {
 			ex.printStackTrace();

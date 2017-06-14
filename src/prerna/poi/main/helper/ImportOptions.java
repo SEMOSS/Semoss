@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImportOptions {
@@ -19,6 +20,7 @@ public class ImportOptions {
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, OVERRIDE, CONNECT_TO_EXISTING_RDBMS};
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD, EXCEL_FLAT_UPLOAD, EXTERNAL_RDBMS};
 	public enum DB_TYPE {RDF, RDBMS, TINKER};
+	public enum TINKER_DRIVER {TG, XML, JSON, NEO4J};
 	
 	public enum IMPORT_OPTIONS {
 		SMSS_LOCATION, 			// should point to string - location of smss file
@@ -51,7 +53,8 @@ public class ImportOptions {
 								// but do not exist as headers in a CSV
 		OBJECT_TYPE_MAP,		
 		ROW_KEY,				// What to put in a prop file to grab the current row number
-		CREATE_INDEXES			// If true, RDBMSReader will create indexes when cleaning up tables
+		CREATE_INDEXES,			// If true, RDBMSReader will create indexes when cleaning up tables
+		TINKER_DRIVER_TYPE		//.tg, neo4j, .xml, .json
 	};
 	
 	/**
@@ -203,8 +206,17 @@ public class ImportOptions {
 		return (SQLQueryUtil.DB_TYPE) thisMap.get(IMPORT_OPTIONS.DB_DRIVER_TYPE);
 	}
 	
+	
 	public void setRDBMSDriverType(SQLQueryUtil.DB_TYPE rdbmsDriverType) {
 		thisMap.put(IMPORT_OPTIONS.DB_DRIVER_TYPE, rdbmsDriverType);
+	}
+	
+	public void setTinkerDriverType(TINKER_DRIVER driver) {
+		thisMap.put(IMPORT_OPTIONS.TINKER_DRIVER_TYPE, driver);
+	}
+	
+	public TINKER_DRIVER getTinkerDriverType() {
+		return (TINKER_DRIVER) thisMap.get(IMPORT_OPTIONS.TINKER_DRIVER_TYPE);
 	}
 	
 	/**

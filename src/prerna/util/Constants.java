@@ -502,6 +502,7 @@ public class Constants {
 	
 	//Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";
+	public static final String TINKER_DRIVER = "TINKER_DRIVER";
 	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
@@ -527,4 +528,5 @@ public class Constants {
 	
 	public static final String DATABASE_FOLDER = "db";
 	public static final String SEMOSS_EXTENSION = ".smss";
+	
 }
