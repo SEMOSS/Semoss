@@ -376,6 +376,8 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	
 	dt<-cbind(dt, is.relation.match)
 	df$PKI <- round(df$item_instances / df$item_total_count, 3)
+	dt$PKI <- round(dt$item_instances / dt$item_total_count, 3)
+
 	
   
   
