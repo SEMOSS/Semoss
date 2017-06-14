@@ -691,6 +691,8 @@ public class ImportDataProcessor {
 		String dbName = options.getDbName(), dbPropFile = options.getSMSSLocation(), questionFile = options.getQuestionFile();
 		ImportOptions.IMPORT_TYPE importType = options.getImportType();
 		ImportOptions.DB_TYPE dbType = options.getDbType();		
+		
+		
 
 		//DB_TYPE dbType = DB_TYPE.RDF;
 		if(importType == ImportOptions.IMPORT_TYPE.NLP) {
@@ -710,6 +712,11 @@ public class ImportDataProcessor {
 				propWriter.setSQLQueryUtil(sqlQueryUtil);
 			}
 			propWriter.setRDBMSType(dbDriverType);
+		}
+		
+		if(dbType == ImportOptions.DB_TYPE.TINKER) {
+			ImportOptions.TINKER_DRIVER driver = options.getTinkerDriverType();
+			propWriter.setTinkerType(driver);
 		}
 
 		propWriter.setBaseDir(baseDirectory);
