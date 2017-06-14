@@ -329,9 +329,9 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   property.ids.item <- dt$item_property_id
   for (i in seq_along(property.ids.item)) {
 	if(is.na(property.ids.item[i])) {
-		is.concept.item[i] = 0
+		is.concept.item[i] = 1
 	} else {
-		is.concept.item[i] =1}
+		is.concept.item[i] =0}
 	}
 	
 	dt<-cbind(dt, is.concept.item)
@@ -340,12 +340,12 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 
 	is.concept.match <- NA
   
-  property.ids.match <- dt$match_property_iddf
+  property.ids.match <- dt$match_property_id
   for (i in seq_along(property.ids.match)) {
 	if(is.na(property.ids.match[i])) {
-		is.concept.match[i] = 0
+		is.concept.match[i] = 1
 	} else {
-		is.concept.match[i] =1}
+		is.concept.match[i] =0}
 	}
 	
 	dt<-cbind(dt, is.concept.match)
