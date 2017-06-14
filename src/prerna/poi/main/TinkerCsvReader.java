@@ -102,6 +102,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				closeOWL();
 			} else {
 				commitDB();
+				
 			}
 		}
 
@@ -453,8 +454,13 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		instanceObjectName = Utility.cleanString(instanceObjectName, true);
 
 		// upsert the subject vertex
-		Vertex startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-				new Object[] { subjectNodeType, instanceSubjectName });
+		Vertex startV = null;
+		try {
+			startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
+					new Object[] { subjectNodeType, instanceSubjectName });
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 		// upsert the object vertex
 		Vertex endV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
 				new Object[] { objectNodeType, instanceObjectName });
