@@ -162,7 +162,7 @@ public class DomainValues {
 				}
 			}
 			if(hasProperties) {
-				propertyMap.put(conceptId, conceptValues.size() + ", 0");
+				propertyMap.put(conceptId, conceptValues.size() + ", 1");
 			}
 
 		}
@@ -223,7 +223,7 @@ public class DomainValues {
 				// in the R package
 				// But I do know that underscores are not used
 				if (s != null) {
-					fileWriter.write(s.replaceAll("[^A-Za-z0-9 ]", "_") + " ");
+					fileWriter.write(s.replaceAll("[^A-Za-z0-9 ]", "_") + "\n");
 				}
 			}
 			fileWriter.close();
@@ -408,25 +408,26 @@ public class DomainValues {
 					StringBuilder pkqlCommand = new StringBuilder();
 					pkqlCommand.append("data.frame('grid'); ");
 					pkqlCommand.append("data.import ( api: " + engineName + " ");
-					pkqlCommand.append(". query ( [ c: "+ endConcept + " ,c:" + fromConcept + "], " );
+					pkqlCommand.append(". query ( [ c: "+ fromConcept + " ,c:" + endConcept + "], " );
 					//pkqlCommand.append(". query ( [ c:" + endConcept + "], ");
 					pkqlCommand.append("([ c: " + fromConcept + " , " + join + " , c:" + endConcept + " ])));");
 					InsightUtility.runPkql(insightSource, pkqlCommand.toString());
 					ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
 					allSourceInstances = data.getData();
 					String[] headers = data.getColumnHeaders();
-					if(headers.length > 0) {
-					Object[] rowValues = data.getColumn(endConcept);
-					for (int i = 0; i < rowValues.length; i++) {
-						String rowOutput = rowValues[i] + " ";
-						uniqueConceptValues.add(rowOutput);
-					}
+					if (headers.length > 0) {
+						Object[] rowValues = data.getColumn(endConcept);
+						for (int i = 0; i < rowValues.length; i++) {
+							String rowOutput = rowValues[i] + " ";
+							uniqueConceptValues.add(rowOutput);
+						}
 					}
 
 					String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + fromConcept + "%%%"
 							+ endConcept;
-					
-					String metaDataProperty = engineName +ENGINE_CONCEPT_PROPERTY_DELIMETER + endConcept + ENGINE_CONCEPT_PROPERTY_DELIMETER;
+
+					String metaDataProperty = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + endConcept
+							+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
 					String size = allSourceInstances.size() + "";
 					totalCount.put(metaDataProperty, size);
 					writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);

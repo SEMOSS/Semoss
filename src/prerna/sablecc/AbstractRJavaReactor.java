@@ -7,6 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,8 +42,11 @@ import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
+import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -3218,165 +3224,84 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
   }
     
-	public void runXraySearch(String[] engines, double candidateThreshold, double similarityThreshold,
-			int instancesThreshold, boolean compareProperties, boolean refresh) {
-		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
-		metadataFile = metadataFile.replace("\\", "/");
-		HashMap<String, String> allProperties = new HashMap<String, String>();
-		HashMap<String, String> allTotalCount = new HashMap<String, String>();
-
-
-		if (engines.length < 2) {
-			engines = new String[] { engines[0], engines[0] };
-		}
-		// Refresh the corpus
-		if (refresh) {
-			DomainValues dv = new DomainValues();
-			try {
-				String outputFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-						+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\"
-						+ Constants.R_MATCHING_REPO_FOLDER;
-
-				// Wipe out the old files
-				FileUtils.cleanDirectory(new File(outputFolder));
-				for (String engineName : engines) {
-					IEngine engine = (IEngine) Utility.getEngine(engineName);
-					HashMap<String, String> properties = dv.exportInstanceValues(engine, outputFolder,
-							compareProperties);
-					allProperties.putAll(properties);
-					dv.exportRelationInstanceValues(engine, outputFolder);
-				}
-				try {
-					ArrayList<String> rowValues = new ArrayList<String>();
-					String row = "";
-					for (String key : allProperties.keySet()) {
-						String propertyValue = allProperties.get(key);
-						row = key + ","+ propertyValue;
-						rowValues.add(row);
-					}
-					
-					FileWriter fw = new FileWriter(metadataFile, false);
-					// headers
-					fw.write("sourceFileName, totalInstanceCount, hasProperties");
-					System.out.println("where");
-					for(String rowData: rowValues) {
-						fw.write("\n" + rowData);
-					}
-					fw.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-
-			} catch (IOException e) {
-				LOGGER.error("Failed to refresh corpus");
-				e.printStackTrace();
-			}
-		}
-
-		// base folder Semoss/R/Matching
-		String baseMatchingFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_MATCHING_FOLDER;
-		baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
-
-		// Grab the corpus directory
-		String corpusDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\"
-				+ Constants.R_MATCHING_REPO_FOLDER;
-		corpusDirectory = corpusDirectory.replace("\\", "/");
-
-		// Grab the csv directory Semoss/R/Matching/Temp/rdf
-		String baseRDFDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdf";
-		baseRDFDirectory = baseRDFDirectory.replace("\\", "/");
-
-		// Semoss/R/Matching/Temp/rdf/MatchingCsvs
-		String rdfCsvDirectory = baseRDFDirectory + "\\" + Constants.R_MATCHING_CSVS_FOLDER;
-		rdfCsvDirectory = rdfCsvDirectory.replace("\\", "/");
-
-		// Grab the prop directory Semoss/R/Matching/Temp/rdf/MatchingProp
-		String rdfPropDirectory = baseRDFDirectory + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_MATCHING_PROP_FOLDER;
-		rdfPropDirectory = rdfPropDirectory.replace("\\", "/");
-
-		// Semoss/R/Matching/Temp/rdbms
-		String rdbmsDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdbms";
-		rdbmsDirectory = rdbmsDirectory.replace("\\", "/");
-
-		// Set the number of minhash functions and the number of bands
-		// nMinhash should be divisible by nBands, and the greater the nBands
-		// the slower the performance of the algorithm
-		// These values are meant to optimize the balance between speed and the
-		// probability of a match
-		int nMinhash;
-		int nBands;
-		if (candidateThreshold <= 0.03) {
-			nMinhash = 3640;
-			nBands = 1820;
-		} else if (candidateThreshold <= 0.05) {
-			nMinhash = 1340;
-			nBands = 670;
-		} else if (candidateThreshold <= 0.1) {
-			nMinhash = 400;
-			nBands = 200;
-		} else if (candidateThreshold <= 0.2) {
-			nMinhash = 200;
-			nBands = 100;
-		} else if (candidateThreshold <= 0.4) {
-			nMinhash = 210;
-			nBands = 70;
-		} else if (candidateThreshold <= 0.5) {
-			nMinhash = 200;
-			nBands = 50;
-		} else {
-			nMinhash = 200;
-			nBands = 40;
-		}
-
-		// Parameters for R script
-		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
-
-		// Grab the utility script
-		String utilityScriptPath = baseMatchingFolder + "\\" + "xray.R";
-		utilityScriptPath = utilityScriptPath.replace("\\", "/");
-
-		// TODO add this library to the list when starting R
-		// This is also called in the function,
-		// but by calling it here we can see if the user doesn't have the
-		// package
-		runR("library(textreuse)");
-
-		// Source the LSH function from the utility script
-		runR("source(\"" + utilityScriptPath + "\");");
-
-		// Run locality sensitive hashing to generate matches
-		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
-				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \""
-				+ rdbmsDirectory + "\", \""+ metadataFile + "\")");
-
-		// Synchronize from R
-		storeVariable("GRID_NAME", rFrameName);
-		synchronizeFromR();
+	public void runXrayNetwork(String[] engines, double pkiThreshold) {
 
 		// Persist the data into a database
 		String matchingDbName = "MatchingRDBMSDatabase";
-		IEngine engine = Utility.getEngine(matchingDbName);
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(matchingDbName);
 
-		// Only add to the engine if it is null
-		// TODO gracefully refresh the entire db
-		if (engine == null) {
-			MatchingDB db = new MatchingDB(getBaseFolder());
-			// creates rdf and rdbms dbs
-			// TODO specify dbType if desired
-			String matchingDBType = "";
-			db.saveDB(matchingDBType);
-			// Clean directory
-			// TODO clean the directory even when there is an error
-			// try {
-			// FileUtils.cleanDirectory(new File(corpusDirectory));
-			// } catch (IOException e) {
-			// System.out.println("Unable to clean directory");
-			// e.printStackTrace();
-			// }
+		H2Frame frameToUse = new H2Frame();
+		String[] colNames = new String[] { "item_concept", "item_engine", "match_concept", "match_engine" };
+		String[] colTypes = new String[] { "STRING", "STRING", "STRING", "STRING" };
+
+		QueryStruct qs = new QueryStruct();
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+		for (int i = 0; i < colNames.length; i++) {
+			dataTypeMapStr.put(colNames[i], colTypes[i]);
+			dataTypeMap.put(colNames[i], Utility.convertStringToDataType(colTypes[i]));
+			qs.addSelector(colNames[i], null);
+		}
+
+		// set the correct schema in the new frame
+		// drop the existing table
+
+		// frameToUse.setUserId(schemaName);
+		((H2Frame) dataframe).dropTable();
+
+		// this is set when we set the original dataframe
+		// within the reactor
+		frameToUse.setUserId(this.userId);
+
+		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+		frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
+
+		// override frame references & table name reference
+		this.put("G", frameToUse);
+		this.dataframe = frameToUse;
+		this.frameChanged = true;
+		String tableName = frameToUse.getTableName();
+
+		if (engine != null) {
+			String query = "SELECT item_concept, item_engine, match_concept, match_engine";
+			query += " FROM match_id WHERE ";
+			query += "item_engine = '" + engines[0] + "' ";
+			query += "AND PKI >= " + pkiThreshold + ";";
+			// query += "AND match_engine = '"+engines[0]+"';";
+
+			Map<String, Object> values = engine.execQuery(query);
+			ResultSet rs = (ResultSet) values.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			ResultSetMetaData rsmd;
+			try {
+				rsmd = rs.getMetaData();
+				int columnsNumber = rsmd.getColumnCount();
+				Object[] data = new Object[columnsNumber];
+
+				while (rs.next()) {
+					// double pki = rs.getDouble(1);
+					String itemConcept = rs.getString(1);
+					// clean itemConcept
+					String itemEngine = rs.getString(2);
+					String matchConcept = rs.getString(3);
+					if (matchConcept.contains("%%%")) {
+						String[] temp = matchConcept.split("%%%");
+						matchConcept = temp[0];
+					}
+					String matchEngine = rs.getString(4);
+					frameToUse.addRow(new Object[] { itemConcept, itemEngine, matchConcept, matchEngine });
+
+				}
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			// frameToUse.addRows(dataIterator, dataTypeMap);
+			// dataIterator.deleteFile();
+
+			System.out.println("Table Synchronized as " + tableName);
+
+			frameToUse.updateDataId();
+
 		}
 
 	}
