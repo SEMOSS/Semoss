@@ -38,7 +38,7 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 				numNewRecords = ((IFileIterator) this.dataIterator).getNumRecords();
 			} else if(this.dataIterator instanceof IRawSelectWrapper && myStore.containsKey(PKQLEnum.API)) {
 				// get if the frame is over the limit of acceptable values
-				numNewRecords = ((Double) this.getValue(PKQLEnum.API + "_QUERY_NUM_CELLS")).intValue();
+				numNewRecords = ((Number) this.getValue(PKQLEnum.API + "_QUERY_NUM_CELLS")).intValue();
 				overLimit = numNewRecords > LIMIT_SIZE ;
 			}
 			
