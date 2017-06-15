@@ -59,9 +59,9 @@ public class QueryStruct {
 	private int limit = -1;
 	private int offset = -1;
 	
+	public final static int NO_COUNT = 0; //use this when we don't want to do a count
 	public final static int COUNT_CELLS = 1; //use this when we want to count the number of total rows*selectors in the query
 	public final static int COUNT_DISTINCT_SELECTORS = 2; //use this when we want to count the number of distinct values for a selector in a query
-	public final static int NO_COUNT = 0; //use this when we don't want to do a count
 	
 	private int performCount = NO_COUNT;
 	
