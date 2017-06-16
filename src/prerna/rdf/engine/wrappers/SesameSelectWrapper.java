@@ -27,10 +27,10 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
@@ -45,6 +45,8 @@ import prerna.util.Utility;
 
 public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 
+	private static final Logger LOGGER = LogManager.getLogger(SesameSelectWrapper.class.getName());
+	
 	public transient TupleQueryResult tqr = null;
 
 	@Override
@@ -73,7 +75,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		ISelectStatement sjss = null;
 		// thisSt = new SesameJenaSelectStatement();
 		try {
-			logger.debug("Adding a sesame statement ");
+			LOGGER.debug("Adding a sesame statement ");
 			BindingSet bs = tqr.next();
 			sjss = getSelectFromBinding(bs);
 		} catch (QueryEvaluationException e) {
@@ -97,7 +99,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 			if(val!=null){
 				sjss.setRawVar(variableArr[colIndex], val);
 			}
-			logger.debug("Binding Name " + variableArr[colIndex]);
+			LOGGER.debug("Binding Name " + variableArr[colIndex]);
 		}
 		return sjss;
 	}
@@ -117,7 +119,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 						return (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
 					}
 					else{
-						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
+						LOGGER.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
 						return new Double(((Literal)val).doubleValue());
 					}
 				} else {
@@ -141,7 +143,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 					return ((Literal)val).getLabel();
 				}
 			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {
-				logger.debug("Class is " + val.getClass());
+				LOGGER.debug("Class is " + val.getClass());
 				return new Double(((Literal)val).doubleValue());
 			}
 			
@@ -150,7 +152,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 				return Utility.getInstanceName(value);
 			}
 		} catch(RuntimeException ex) {
-			logger.debug(ex);
+			LOGGER.debug(ex);
 		}
 		return "";
 	}

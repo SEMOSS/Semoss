@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerIterator;
 import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IHeadersDataRow;
@@ -15,7 +12,7 @@ import prerna.engine.impl.rdf.HeadersDataRow;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 
 public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
-	private TinkerGraph g;
+	
 	private TinkerIterator it;
 
 	@Override
@@ -30,8 +27,7 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 	@Override
 	public String[] getDisplayVariables() {
 		if (displayVar == null) {
-			QueryStruct qs = (QueryStruct) ((TinkerEngine) engine).getQueryStruct();
-			Map<String, List<String>> selectors = qs.selectors;
+			Map<String, List<String>> selectors = this.qs.selectors;
 			ArrayList<String> dV = new ArrayList<>();
 			for (String selectorKey : selectors.keySet()) {
 				List<String> props = selectors.get(selectorKey);
@@ -50,20 +46,19 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public String[] getPhysicalVariables() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void execute() {
-		TinkerQueryInterpreter interp = (TinkerQueryInterpreter) ((TinkerEngine) this.engine).getQueryInterpreter();
-		interp.setQueryStruct(((TinkerEngine) this.engine).getQueryStruct());
+		// we cast interp so that we can compose iterator since all other engines return a query string
+		TinkerQueryInterpreter interp = (TinkerQueryInterpreter) this.engine.getQueryInterpreter();
+		interp.setQueryStruct(this.qs);
 		it = (TinkerIterator) interp.composeIterator();
 	}
 
 	@Override
 	public boolean hasNext() {
-		// TODO Auto-generated method stub
 		return it.hasNext();
 	}
 

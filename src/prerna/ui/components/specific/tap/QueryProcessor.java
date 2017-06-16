@@ -224,7 +224,7 @@ public class QueryProcessor {
 	 * Processes query that returns one numerical value
 	 * 
 	 * @param query
-	 * @param engine
+	 * @param engineName
 	 * @return
 	 */
 	public static Double getSingleCount(String query, String engineName) {

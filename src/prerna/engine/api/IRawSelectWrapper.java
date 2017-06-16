@@ -9,5 +9,5 @@ public interface IRawSelectWrapper extends IEngineWrapper, Iterator {
 	public String [] getDisplayVariables();
 	
 	public String [] getPhysicalVariables();
-	
+
 }

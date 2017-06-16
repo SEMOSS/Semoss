@@ -13,9 +13,7 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
@@ -94,14 +92,7 @@ public class QueryDataReactor extends AbstractReactor {
 			myStore.put("source", "frame");
 		} else {
 			IEngine engine = Utility.getEngine(engineName);	
-			IQueryInterpreter interp = engine.getQueryInterpreter();
-			interp.setQueryStruct(qs);
-			String query = interp.composeQuery();
-			
-			if(engine instanceof TinkerEngine) {
-				((TinkerEngine) engine).setQueryStruct(qs);
-			}
-			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			List searchData = new ArrayList();
 			if(!grabAll) {
 				while(thisIterator.hasNext()) {
@@ -192,7 +183,6 @@ public class QueryDataReactor extends AbstractReactor {
 	
 	@Override
 	public IPkqlMetadata getPkqlMetadata() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }
