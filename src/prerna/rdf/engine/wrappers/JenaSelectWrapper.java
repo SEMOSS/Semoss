@@ -29,6 +29,9 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -40,11 +43,12 @@ import prerna.util.Utility;
 
 public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper {
 	
+	private static final Logger LOGGER = LogManager.getLogger(JenaSelectWrapper.class.getName());
+	
 	transient ResultSet rs = null;
 	
 	@Override
 	public boolean hasNext() {
-		// TODO Auto-generated method stub
 		return rs.hasNext();
 	}
 
@@ -60,8 +64,8 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			
 			thisSt.setVar(displayVar[colIndex], getRealValue(node));
 			thisSt.setRawVar(displayVar[colIndex], value);
-			logger.debug("Binding Name " + var[colIndex]);
-			logger.debug("Binding Value " + value);
+			LOGGER.debug("Binding Name " + var[colIndex]);
+			LOGGER.debug("Binding Value " + value);
 		}	
 		return thisSt;
 	}
@@ -91,8 +95,6 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			tableLabelURI += tableLabel;
 			columnLabelURI += columnLabel;
 			//now get the display name 
-//			tableLabelURI = engine.getTransformedNodeName(tableLabelURI, true);
-//			columnLabelURI = engine.getTransformedNodeName(columnLabelURI, true);
 			tableLabel = Utility.getInstanceName(tableLabelURI);
 			columnLabel = Utility.getInstanceName(columnLabelURI);
 			if(columnIsProperty){
@@ -123,12 +125,12 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	private Object getRealValue(RDFNode node){
 		if(node.isAnon())
 		{
-			logger.debug("Ok.. an anon node");
+			LOGGER.debug("Ok.. an anon node");
 			return Utility.getNextID();
 		}
 		else
 		{
-			logger.debug("Raw data JENA For Column ");
+			LOGGER.debug("Raw data JENA For Column ");
 			return Utility.getInstanceName(node + "");
 		}
 	}
