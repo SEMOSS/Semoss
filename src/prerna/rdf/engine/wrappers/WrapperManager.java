@@ -29,12 +29,14 @@ package prerna.rdf.engine.wrappers;
 
 import org.apache.log4j.Logger;
 
+import prerna.ds.QueryStruct;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
 import prerna.engine.impl.tinker.TinkerSelectWrapper;
+import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class WrapperManager {
 
@@ -208,6 +210,59 @@ public class WrapperManager {
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
 		returnWrapper.execute();
+
+		return returnWrapper;
+	}
+	
+	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct qs) {
+		IRawSelectWrapper returnWrapper = null;
+		boolean genQueryString = true;
+		switch(engine.getEngineType()) {
+			case SESAME: {
+				returnWrapper = new RawSesameSelectWrapper();
+				break;
+			}
+			case JENA: {
+				returnWrapper = new RawJenaSelectWrapper();
+				break;
+			}
+			case RDBMS:{
+				returnWrapper = new RawRDBMSSelectWrapper();
+				break;
+			}
+			case SEMOSS_SESAME_REMOTE:{
+				//TODO: need to build out RemoteSesameSelectWrapper
+				/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+				*/
+				returnWrapper = new RemoteSesameSelectWrapper();
+				break;
+			}
+			case TINKER: {
+				genQueryString = false;
+				returnWrapper = new RawTinkerSelectWrapper();
+				break;
+			}
+			default: {
+	
+			}
+		}
+
+		if(genQueryString) {
+			IQueryInterpreter interpreter = engine.getQueryInterpreter();
+			interpreter.setQueryStruct(qs);
+			String query = interpreter.composeQuery();
+			LOGGER.debug("Executing query on engine " + engine.getEngineName());
+			returnWrapper.setEngine(engine);
+			returnWrapper.setQuery(query);
+			returnWrapper.execute();
+		} else {
+			returnWrapper.setEngine(engine);
+			returnWrapper.setQueryStruct(qs);
+			returnWrapper.execute();
+		}
 
 		return returnWrapper;
 	}

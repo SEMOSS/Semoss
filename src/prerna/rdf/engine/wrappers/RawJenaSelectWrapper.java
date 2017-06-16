@@ -2,6 +2,9 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -13,6 +16,8 @@ import prerna.util.Utility;
 
 public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelectWrapper {
 
+	private static final Logger LOGGER = LogManager.getLogger(RawJenaSelectWrapper.class.getName());
+	
 	private ResultSet rs = null;
 	private int numColumns = 0;
 
@@ -89,10 +94,10 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 
 	private Object getRealValue(RDFNode node){
 		if(node.isAnon()) {
-			logger.debug("Ok.. an anon node");
+			LOGGER.debug("Ok.. an anon node");
 			return Utility.getNextID();
 		} else {
-			logger.debug("Raw data JENA For Column ");
+			LOGGER.debug("Raw data JENA For Column ");
 			return Utility.getInstanceName(node + "");
 		}
 	}

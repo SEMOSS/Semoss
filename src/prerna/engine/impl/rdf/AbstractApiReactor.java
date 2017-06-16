@@ -37,7 +37,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	
 	// these are the params that are parsed from the abstract that is used by the specific instances
 	// of abstract api reactor
-	protected String engine = null;
+	protected String engineName = null;
 	protected QueryStruct qs = null;
 	protected Map<Object, Object> mapOptions = null;
 	protected boolean useCheater = false;
@@ -67,7 +67,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	@Override
 	public Iterator process() {
 		// grab the engine from the my store
-		this.engine = (String)myStore.get("ENGINE");
+		this.engineName = (String)myStore.get("ENGINE");
 		
 		// get additional options
 		this.mapOptions = (Map<Object, Object>) myStore.get(PKQLEnum.MAP_OBJ);
@@ -155,7 +155,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 								// if we have different types, we cannot add the implicit filter
 								DATA_TYPES dataType = frame.getDataType(fromColumn);
 								// TODO: need to expose this for other things aside from engine
-								IEngine engine = Utility.getEngine(this.engine);
+								IEngine engine = Utility.getEngine(this.engineName);
 								if(engine != null) {
 									// we need to make sure we add this correclty
 									// is this a concept, or a property
@@ -289,7 +289,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 			IDataMaker datamaker = (IDataMaker) myStore.get("G");
 			String userId = datamaker.getUserId();
 			UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
-			rowLevelFilters = permissions.getRowLevelSeedsForUserAndEngine(userId, this.engine);
+			rowLevelFilters = permissions.getRowLevelSeedsForUserAndEngine(userId, this.engineName);
 			Set<String> addedConcepts = new HashSet<String>();
 			
 			for(String s : selectors) {

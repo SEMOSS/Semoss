@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
@@ -43,6 +45,8 @@ import prerna.util.Utility;
 
 public class SesameSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
+	private static final Logger LOGGER = LogManager.getLogger(SesameSelectCheater.class.getName());
+	
 	public transient TupleQueryResult tqr = null;
 	transient int count = 0;
 	transient String [] var = null;
@@ -70,7 +74,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 			{
 				bs = tqr.next();
 			}
-			logger.debug("Adding a sesame statement ");
+			LOGGER.debug("Adding a sesame statement ");
 			
 			// there should only be three values
 			Object sub=null;

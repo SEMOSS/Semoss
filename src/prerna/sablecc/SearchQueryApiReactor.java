@@ -21,7 +21,7 @@ public class SearchQueryApiReactor extends AbstractApiReactor {
 		// if the engine is in DIHelper, it will grab it
 		// otherwise, it will load the engine using the smss and return it
 		// we grab the engine from the AbstractApiReactor
-		IEngine engine = Utility.getEngine(this.engine);
+		IEngine engine = Utility.getEngine(this.engineName);
 
 		// logic that if a person is trying to query an engine
 		// and if the query struct is empty

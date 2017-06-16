@@ -2,6 +2,8 @@ package prerna.rdf.engine.wrappers;
 
 import java.util.List;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
@@ -16,6 +18,8 @@ import prerna.util.Utility;
 
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
+	private static final Logger LOGGER = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
+	
 	private TupleQueryResult tqr = null;
 	private int numColumns = 0;
 	
@@ -124,7 +128,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 						return (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
 					}
 					else{
-						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
+						LOGGER.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
 						return new Double(((Literal)val).doubleValue());
 					}
 				} else {
@@ -148,7 +152,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					return ((Literal)val).getLabel();
 				}
 			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {
-				logger.debug("Class is " + val.getClass());
+				LOGGER.debug("Class is " + val.getClass());
 				return new Double(((Literal)val).doubleValue());
 			}
 			
@@ -157,7 +161,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				return Utility.getInstanceName(value);
 			}
 		} catch(RuntimeException ex) {
-			logger.debug(ex);
+			LOGGER.debug(ex);
 		}
 		return "";
 	}

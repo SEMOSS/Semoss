@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
 
 import prerna.engine.api.IConstructStatement;
@@ -39,6 +41,8 @@ import prerna.engine.impl.rdf.RemoteSemossSesameEngine;
 import prerna.util.Utility;
 
 public class RemoteSesameSelectCheater extends SesameSelectCheater implements IConstructWrapper {
+	
+	private static final Logger LOGGER = LogManager.getLogger(RemoteSesameSelectCheater.class.getName());
 	
 	SesameSelectCheater proxy = null;
 	String [] var = null;
@@ -91,7 +95,7 @@ public class RemoteSesameSelectCheater extends SesameSelectCheater implements IC
 				//tqrCount++;
 				//logger.info(tqrCount);
 			}
-			logger.debug("Adding a sesame statement ");
+			LOGGER.debug("Adding a sesame statement ");
 			
 			// there should only be three values
 

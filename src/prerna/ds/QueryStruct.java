@@ -20,8 +20,6 @@ import prerna.util.Utility;
 
 public class QueryStruct {
 
-	
-	
 	// what is in a query
 	// 1. selectors - what is it that we want to give back
 	// 2. filters - what are the things that we want to filter ooo.. profound
@@ -29,7 +27,6 @@ public class QueryStruct {
 	// Studio = ["WB", "Fox"]
 	// 3. How you want to join
 	// Title.Title Inner_Join Studio.Title_Fk
-		
 	public Map <String, List<String>> selectors = new Hashtable<String, List<String>>();
 	
 	// there could be multiple comparators for the same thing
