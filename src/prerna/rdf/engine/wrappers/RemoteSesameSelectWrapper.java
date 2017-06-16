@@ -30,9 +30,9 @@ package prerna.rdf.engine.wrappers;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Set;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
 
 import prerna.engine.api.IRawSelectWrapper;
@@ -42,6 +42,8 @@ import prerna.util.Utility;
 
 public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper, IRawSelectWrapper {
 
+	private static final Logger LOGGER = LogManager.getLogger(RemoteSesameSelectWrapper.class.getName());
+	
 	transient SesameSelectWrapper remoteWrapperProxy = null;
 	transient ISelectStatement retSt = null;
 	transient ObjectInputStream ris = null;
@@ -147,7 +149,7 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 			if(val!=null){
 				sjss.setRawVar(variableArr[colIndex], val);
 			}
-			logger.debug("Binding Name " + variableArr[colIndex]);
+			LOGGER.debug("Binding Name " + variableArr[colIndex]);
 		}
 		return sjss;
 	}

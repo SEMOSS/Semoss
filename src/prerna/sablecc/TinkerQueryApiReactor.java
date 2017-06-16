@@ -4,18 +4,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import prerna.ds.GremlinInterpreter;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
-import prerna.ds.TinkerIterator;
-import prerna.ds.TinkerQueryInterpreter;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.AbstractApiReactor;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
@@ -28,7 +23,7 @@ public class TinkerQueryApiReactor extends AbstractApiReactor {
 		// if the engine is in DIHelper, it will grab it
 		// otherwise, it will load the engine using the smss and return it
 		// we grab the engine from the AbstractApiReactor
-		IEngine engine = Utility.getEngine(this.engine);
+		IEngine engine = Utility.getEngine(this.engineName);
 
 		// logic that if a person is trying to query an engine
 		// and if the query struct is empty
@@ -51,31 +46,35 @@ public class TinkerQueryApiReactor extends AbstractApiReactor {
 			// we store the edge hash in myStore
 			this.put("EDGE_HASH", edgeHash);
 		}
-		// this.qs.print();
+		
+		// first, get the iterator
+		// we do not create a query string
+		// but will automatically generate the iterator via java api
+		IRawSelectWrapper thisIterator = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
 
-		// Iterator thisIterator = interp.composeIterator();
-		((TinkerEngine) engine).setQueryStruct(this.qs);
-		IRawSelectWrapper thisIterator = WrapperManager.getInstance().getRawWrapper(engine, null);
-
-		IRawSelectWrapper countIterator = WrapperManager.getInstance().getRawWrapper(engine, null);
-		double numCells = 0;
-
-		if (!countIterator.hasNext()) {
-			this.put("QUERY_NUM_CELLS", 0);
-		} else {
-			while (countIterator.hasNext()) {
-				countIterator.next();
-				numCells++;
+		// now also perform a count on the query to determine if it is the right size
+		// currently only use this in H2Importing
+		if(myStore.get("G") != null && (myStore.get("G") instanceof ITableDataFrame)  ) {
+			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+			// only need to run query for count if frame is not in memory
+			if(frame instanceof H2Frame && ((H2Frame) frame).isInMem()) {
+				// modify the qs that this is using
+				qs.setPerformCount(QueryStruct.COUNT_CELLS);
+				IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
+				if(countIt.hasNext()) {
+					Object numCells = countIt.next().getValues()[0]; 
+					System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
+					
+					this.put("QUERY_NUM_CELLS", numCells);
+				}
 			}
-			this.put("QUERY_NUM_CELLS", numCells);
 		}
-
+		
 		this.put((String) getValue(PKQLEnum.API), thisIterator);
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
-
+		
 		return null;
-
 	}
 
 	@Override

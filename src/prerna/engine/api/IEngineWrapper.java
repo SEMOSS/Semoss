@@ -29,15 +29,19 @@ package prerna.engine.api;
 
 import java.util.Map;
 
+import prerna.ds.QueryStruct;
+
 public interface IEngineWrapper {
 
-	public void setQuery(String query);
+	void setQuery(String query);
 	
-	public void setEngine(IEngine engine);
+	void setQueryStruct(QueryStruct qs);
 	
-	public void execute();
+	void setEngine(IEngine engine);
 	
-	public boolean hasNext();
+	void execute();
 	
-	public Map<String, Object> getResponseMeta();
+	boolean hasNext();
+	
+	Map<String, Object> getResponseMeta();
 }

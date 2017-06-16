@@ -3,14 +3,12 @@ package prerna.solr;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -26,22 +24,12 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
-import org.h2.jdbc.JdbcClob;
-import org.openrdf.repository.Repository;
-import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.sail.SailRepository;
-import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFParseException;
-import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
-import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -349,51 +337,7 @@ public final class SolrUtility {
 							perspective = perspective.replace(perspString3, "").trim();
 						}
 
-						// get the clob containing the question makeup
-						// TODO: we use this to query it and get the list of engines associated with an insight
-						// TODO: however, since the DMC is no longer valid and that logic is placed within the PKQL
-						// TODO: we need to not do this and figure out a way to get the engines that are used in the PKQL
-
-						/////// START CLOB PROCESSING TO GET LIST OF ENGINES ///////
-						JdbcClob obj = (JdbcClob) ss.getVar("QUESTION_MAKEUP"); 
-						InputStream makeup = null;
-						try {
-							makeup = obj.getAsciiStream();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
-
-						//load the makeup input stream into a rc
-						RepositoryConnection rc = null;
-						try {
-							Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
-							myRepository.initialize();
-							rc = myRepository.getConnection();
-							rc.add(makeup, "semoss.org", RDFFormat.NTRIPLES);
-						} catch (RuntimeException ignored) {
-							ignored.printStackTrace();
-						} catch (RDFParseException e) {
-							e.printStackTrace();
-						} catch (RepositoryException e) {
-							e.printStackTrace();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						// set the rc in the in-memory engine
-						InMemorySesameEngine myEng = new InMemorySesameEngine();
-						myEng.setRepositoryConnection(rc);
-
 						Set<String> engineSet = new HashSet<String>();
-						// query the in-memory sesame engine to get the list of engines
-						String engineQuery = "SELECT DISTINCT ?EngineName WHERE {{?Engine a <http://semoss.org/ontologies/Concept/Engine>}{?Engine <http://semoss.org/ontologies/Relation/Contains/Name> ?EngineName} }";
-						ISelectWrapper engineWrapper = WrapperManager.getInstance().getSWrapper(myEng, engineQuery);
-						while(engineWrapper.hasNext()) {
-							ISelectStatement engineSS = engineWrapper.next();
-							engineSet.add(engineSS.getVar("EngineName") + "");
-						}
-						// since pkql adds only one dmc with engine being local master... we want to remove that
-						// and set engine into the set
-						engineSet.remove(Constants.LOCAL_MASTER_DB_NAME);
 						engineSet.add(engineName);
 						/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
 

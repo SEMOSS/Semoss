@@ -31,13 +31,18 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import prerna.engine.api.IConstructStatement;
-import prerna.engine.api.IConstructWrapper;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
+
 public class JenaSelectCheater extends AbstractWrapper implements IConstructWrapper {
+	
+	private static final Logger LOGGER = LogManager.getLogger(JenaSelectCheater.class.getName());
 	
 	transient int count = 0;
 	transient String [] var = null;
@@ -46,19 +51,17 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 	String queryVar[];
 	transient ResultSet rs = null;
 
-
 	@Override
 	public IConstructStatement next() {
 		
 		IConstructStatement thisSt = new ConstructStatement();
-	    logger.debug("Adding a JENA statement ");
+		LOGGER.debug("Adding a JENA statement ");
 	    QuerySolution row = rs.nextSolution();
 	    thisSt.setSubject(row.get(var[0])+"");
 	    thisSt.setPredicate(row.get(var[1])+"");
 	    thisSt.setObject(row.get(var[2]));
 	    
 	    return thisSt;
-	    
 	}
 
 	@Override
@@ -70,19 +73,13 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 			processSelectVar();
 			count=0;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
-	
-	
 
 	@Override
 	public boolean hasNext() {
-		// TODO Auto-generated method stub
 		return 	rs.hasNext();
-
 	}
 	
 	private String [] getVariables()
