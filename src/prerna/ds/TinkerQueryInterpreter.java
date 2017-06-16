@@ -70,7 +70,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		getSelector();
 		addFilters();
 		addJoins();
-		// addOrderBy();
+		addOrderBy();
 		// addGroupBy();
 		addSelectors();
 		addLimitOffset();
@@ -142,12 +142,17 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 	 */
 	private void addOrderBy() {
 		Map<String, String> orderBy = qs.getOrderBy();
-		orderBy.put("Title", Order.incr + "");
 		if (orderBy != null && !orderBy.isEmpty()) {
 			for (String orderByCol : orderBy.keySet()) {
-				gt = gt.select(orderByCol).order().by(TinkerFrame.TINKER_NAME, Order.incr).as(orderByCol + "ORDERED");
-				this.selector.remove(orderByCol);
-				this.selector.add(orderByCol + "ORDERED");
+				String select = orderBy.get(orderByCol);
+				//order by for node
+				if (select.contains("PRIM_KEY_PLACEHOLDER")) {
+					gt = gt.select(orderByCol).order().by(TinkerFrame.TINKER_NAME, Order.incr).as(orderByCol);
+				}
+				//order by for property
+				else {
+					gt = gt.select(orderByCol).order().by(select, Order.incr).as(select);
+				}
 			}
 		}
 
