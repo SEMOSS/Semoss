@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.QueryEvaluationException;
@@ -36,13 +38,15 @@ import prerna.engine.api.IConstructWrapper;
 
 public class SesameConstructWrapper extends AbstractWrapper implements IConstructWrapper {
 
+	private static final Logger LOGGER = LogManager.getLogger(SesameConstructWrapper.class.getName());
+	
 	public transient GraphQueryResult gqr = null;
 	
 	@Override
 	public IConstructStatement next() {
 		IConstructStatement thisSt = new ConstructStatement();
 		try {
-			logger.debug("Adding a sesame statement ");
+			LOGGER.debug("Adding a sesame statement ");
 			Statement stmt = gqr.next();
 			thisSt.setSubject(stmt.getSubject()+"");
 			thisSt.setObject(stmt.getObject());

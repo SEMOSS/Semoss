@@ -13,9 +13,9 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
@@ -74,7 +74,20 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 		// addGroupBy();
 		addSelectors();
 		addLimitOffset();
+		// add the count
+		addCount();
 		return new TinkerIterator(gt, this.selector, qs);
+	}
+
+	private void addCount() {
+		int performCountInt = qs.getPerformCount();
+		if(performCountInt == QueryStruct.NO_COUNT) {
+			return;
+		} else if(performCountInt == QueryStruct.COUNT_CELLS) {
+			gt = gt.count();
+		} else if(performCountInt == QueryStruct.COUNT_DISTINCT_SELECTORS) {
+			gt = gt.dedup().count();
+		}
 	}
 
 	/**
@@ -201,29 +214,11 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			String selectNode = qs.selectors.keySet().iterator().next();
 			// property
 			if (!select.equals(selectNode)) {
-				gt = gt.select(selector.get(0));
-				if (qs.getPerformCount() == 2 || qs.getLimit() > 0) {
-					gt = gt.dedup();
-				}
-
+				gt = gt.select(selectNode).values(select).dedup();
 			}
 			// node
 			else {
-				if (qs.relations.size() > 0) {
-					gt = gt.select(select);
-					gt = gt.dedup();
-				} else {
-					if (qs.andfilters != null && !qs.andfilters.isEmpty()) {
-						gt = gt.select(select);
-					} else {
-						// gt = gt.has(TinkerFrame.TINKER_TYPE,
-						// selector.get(0));
-						gt = gt.select(select);
-
-					}
-
-				}
-
+				gt = gt.select(select).dedup();
 			}
 
 		}
@@ -274,7 +269,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 
 					if (propTraversals.size() > 0) {
 						GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
-						twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(selectNode);
+						twoStepT = twoStepT.match(propTraversals.toArray(propArray));
 					}
 					gt = gt.match(twoStepT);
 				} else {
@@ -350,8 +345,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 						}
 					}
 
-					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNodeType)
-							.as(downstreamNodeType);
+					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNodeType).as(downstreamNodeType);
 					if (this.filters.containsKey(downstreamNodeType)) {
 						addFilterInPath2(twoStepT, downstreamNodeType, this.filters.get(downstreamNodeType));
 					}
@@ -361,8 +355,7 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 						GraphTraversal downStepT = __.as(downstreamNodeType);
 
 						// Get properties from downstream Node node
-						List<GraphTraversal<Object, Object>> propTraversals = getProperties(downStepT,
-								downstreamNodeType);
+						List<GraphTraversal<Object, Object>> propTraversals = getProperties(downStepT, downstreamNodeType);
 
 						if (propTraversals.size() > 0) {
 							GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
@@ -469,32 +462,24 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 						List values = comparatorMap.get(comparison);
 						if (comparison.equals("=")) {
 							if (values.size() == 1) {
-								matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property)
-										.as(property);
+								matchTraversal = matchTraversal.has(property, P.eq(values.get(0))).values(property).as(property);
 							} else {
-								matchTraversal = matchTraversal.has(property, P.within(values.toArray()))
-										.values(property).as(property);
+								matchTraversal = matchTraversal.has(property, P.within(values.toArray())).values(property).as(property);
 							}
 						} else if (comparison.equals("!=")) {
 							if (values.size() == 1) {
-								matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property)
-										.as(property);
+								matchTraversal = matchTraversal.has(property, P.neq(values.get(0))).values(property).as(property);
 							} else {
-								matchTraversal = matchTraversal.has(property, P.without(values.toArray()))
-										.values(property).as(property);
+								matchTraversal = matchTraversal.has(property, P.without(values.toArray())).values(property).as(property);
 							}
 						} else if (comparison.equals("<")) {
-							matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property)
-									.as(property);
+							matchTraversal = matchTraversal.has(property, P.lt(values.get(0))).values(property).as(property);
 						} else if (comparison.equals(">")) {
-							matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property)
-									.as(property);
+							matchTraversal = matchTraversal.has(property, P.gt(values.get(0))).values(property).as(property);
 						} else if (comparison.equals("<=")) {
-							matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property)
-									.as(property);
+							matchTraversal = matchTraversal.has(property, P.lte(values.get(0))).values(property).as(property);
 						} else if (comparison.equals(">=")) {
-							matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property)
-									.as(property);
+							matchTraversal = matchTraversal.has(property, P.gte(values.get(0))).values(property).as(property);
 						}
 					}
 				} else {

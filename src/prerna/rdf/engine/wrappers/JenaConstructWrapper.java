@@ -27,9 +27,8 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import prerna.engine.api.IConstructStatement;
-import prerna.engine.api.IConstructWrapper;
-import prerna.util.Utility;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Property;
@@ -37,18 +36,23 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 
+import prerna.engine.api.IConstructStatement;
+import prerna.engine.api.IConstructWrapper;
+import prerna.util.Utility;
+
 public class JenaConstructWrapper extends AbstractWrapper implements IConstructWrapper {
+	
+	private static final Logger LOGGER = LogManager.getLogger(JenaConstructWrapper.class.getName());
 	
 	transient Model model = null;
 	transient StmtIterator si = null;
-	
 
 	@Override
 	public IConstructStatement next() {
 		IConstructStatement thisSt = new ConstructStatement();
 
 		com.hp.hpl.jena.rdf.model.Statement stmt = si.next();
-		logger.debug("Adding a JENA statement ");
+		LOGGER.debug("Adding a JENA statement ");
 		Resource sub = stmt.getSubject();
 		Property pred = stmt.getPredicate();
 		RDFNode node = stmt.getObject();
@@ -72,7 +76,7 @@ public class JenaConstructWrapper extends AbstractWrapper implements IConstructW
 
 	@Override
 	public void execute() {
-		model = (Model)engine.execQuery(query);
+		model = (Model) engine.execQuery(query);
 		si = model.listStatements();
 	}
 
