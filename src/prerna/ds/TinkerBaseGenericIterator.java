@@ -68,7 +68,7 @@ public class TinkerBaseGenericIterator extends TinkerBaseIterator{
 				boolean filtered = false;
 				if (data instanceof Vertex) {
 					value = ((Vertex) data).values(TinkerFrame.TINKER_NAME).next();
-					System.out.println(value);
+//					System.out.println(value);
 					if (filters.containsKey(select)) {
 						value = search(value + "", filters.get(select));
 						filtered = true;
