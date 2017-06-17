@@ -378,20 +378,26 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	df$PKI <- round(df$item_instances / df$item_total_count, 3)
 	dt$PKI <- round(dt$item_instances / dt$item_total_count, 3)
 
-	
-  
+  ################################################
+  # Rename columns for matching database
+  ##################################################
+  colnames(dt) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table_id", "source_column_id", "target_database", "target_table_id", "target_column_id", "source_table", "target_table", "source_column", "target_column", "match_id", "is_table_source", "is_table_target", "is_relation_source", "is_relation_target", "PKI")
+
+  ################################################
+  # Rename columns for dataframe returned
+  ##################################################
+  colnames(df) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table", "source_column", "target_database", "target_table", "target_column", "PKI")  
   
   ##################################################
   # Write all the tables
   ##################################################
- 
   write.csv(dt, paste0(rdbmsPath, "\\", "0_flat_table.csv"), row.names = FALSE, na = "")
-  write.csv(unique.ecp, paste0(rdfPath, "\\", "1_unique_ecp.csv"), row.names = FALSE, na = "")
-  write.csv(match, paste0(rdfPath, "\\", "2_match.csv"), row.names = FALSE, na = "")
-  write.csv(concept.match, paste0(rdfPath, "\\", "3_concept_match.csv"), row.names = FALSE, na = "")
-  write.csv(match.concept, paste0(rdfPath, "\\", "4_match_concept.csv"), row.names = FALSE, na = "")
-  write.csv(property.match, paste0(rdfPath, "\\", "5_property_match.csv"), row.names = FALSE, na = "")
-  write.csv(match.property, paste0(rdfPath, "\\", "6_match_property.csv"), row.names = FALSE, na = "")
+  #write.csv(unique.ecp, paste0(rdfPath, "\\", "1_unique_ecp.csv"), row.names = FALSE, na = "")
+  #write.csv(match, paste0(rdfPath, "\\", "2_match.csv"), row.names = FALSE, na = "")
+  #write.csv(concept.match, paste0(rdfPath, "\\", "3_concept_match.csv"), row.names = FALSE, na = "")
+  #write.csv(match.concept, paste0(rdfPath, "\\", "4_match_concept.csv"), row.names = FALSE, na = "")
+  #write.csv(property.match, paste0(rdfPath, "\\", "5_property_match.csv"), row.names = FALSE, na = "")
+  #write.csv(match.property, paste0(rdfPath, "\\", "6_match_property.csv"), row.names = FALSE, na = "")
   
   # Finally return the data frame
   write.csv(df, paste0(rdbmsPath, "\\", "final.csv"), row.names = FALSE, na = "")
