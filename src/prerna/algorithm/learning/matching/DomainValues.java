@@ -7,7 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -101,14 +99,14 @@ public class DomainValues {
 	 * @param compareProperties
 	 *            add or remove concept properties
 	 */
-	public HashMap<String, String> exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty) {
+	public HashMap<String, String> exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty, int instancesThreshold) {
 		String engineName = engine.getEngineName();
 		HashMap<String, String> propertyMap = new HashMap<String, String>();
 		// Grab all the concepts that exist in the database
 		// Process each concept
 		List<String> concepts = getConceptList(engine);
-		
-		//Used to write out instance count to instanceCountFile
+
+		// Used to write out instance count to instanceCountFile
 		for (String concept : concepts) {
 
 			// Ignore the default concept node...
@@ -118,56 +116,62 @@ public class DomainValues {
 
 			// Grab the unique values for the concept
 			HashSet<String> uniqueConceptValues = retrieveConceptUniqueValues(concept, engine);
+
 			List<Object> conceptValues = retrieveConceptValues(concept, engine);
-			
-			// Sometimes this list is empty when users create databases with
-			// empty fields that are meant to filled in via forms
-			if (uniqueConceptValues.isEmpty()) {
-				continue;
-			}
-
-			// Write the unique instances to a file
-			String cleanConcept = determineCleanConceptName(concept, engine);
-			String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
-					+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
-			writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
-			
-			//build instanceCountFile
-			String metadataRow = conceptId; 
-			boolean hasProperties = false;
-
-			// If the user wants to compare properties,
-			// then proceed to the concept's properties
-			if (exportProperty) {
-
-				// Grab all the properties that exist for the concept
-
-				List<String> properties = getPropertyList(engine, concept);
-
-				// If there are no properties, go onto the next concept
-				if (properties.isEmpty()) {
-					propertyMap.put(conceptId, conceptValues.size() + ", 0");
+			if (uniqueConceptValues.size() >= instancesThreshold) {
+				// Sometimes this list is empty when users create databases with
+				// empty fields that are meant to filled in via forms
+				if (uniqueConceptValues.isEmpty()) {
 					continue;
 				}
 
-				// Process each property uri
-				for (String property : properties) {
-					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engine);
-					if (!uniquePropertyValues.isEmpty()) {
-						hasProperties = true;
-						String cleanProperty = determineCleanPropertyName(property, engine);
-						String propertyId = conceptId + cleanProperty;
-						writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
+				// Write the unique instances to a file
+				String cleanConcept = determineCleanConceptName(concept, engine);
+				String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
+						+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
+				writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
+
+				// build instanceCountFile
+				String metadataRow = conceptId;
+				boolean hasProperties = false;
+
+				// If the user wants to compare properties,
+				// then proceed to the concept's properties
+				if (exportProperty) {
+					// Grab all the properties that exist for the concept
+					List<String> properties = getPropertyList(engine, concept);
+
+					// If there are no properties, go onto the next concept
+					if (properties.isEmpty()) {
+						propertyMap.put(conceptId, conceptValues.size() + ", 0");
+						continue;
+					}
+					hasProperties = true;
+
+
+						// Process each property uri
+					for (String property : properties) {
+						HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engine);
+						if (uniquePropertyValues.size() >= instancesThreshold) {
+
+							String type = engine.getDataTypes(property);
+							if (!type.contains("FLOAT") && !type.contains("DOUBLE")) {
+								if (!uniquePropertyValues.isEmpty()) {
+									String cleanProperty = determineCleanPropertyName(property, engine);
+									String propertyId = conceptId + cleanProperty;
+									writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
+								}
+							}
+						}
 					}
 				}
-			}
-			if(hasProperties) {
-				propertyMap.put(conceptId, conceptValues.size() + ", 1");
+				if (hasProperties) {
+					propertyMap.put(conceptId, conceptValues.size() + ", 1");
+				}
 			}
 
 		}
 		return propertyMap;
-		
 
 	}
 
@@ -392,7 +396,7 @@ public class DomainValues {
 	 * @param engine
 	 * @param outputFolder
 	 */
-	public HashMap<String, String> exportRelationInstanceValues(IEngine engine, String outputFolder) {
+	public HashMap<String, String> exportRelationInstanceValues(IEngine engine, String outputFolder, int instancesThreshold) {
 		String engineName = engine.getEngineName();
 		QueryStruct engineQS = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = engineQS.getRelations();
@@ -429,9 +433,11 @@ public class DomainValues {
 					String metaDataProperty = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + endConcept
 							+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
 					String size = allSourceInstances.size() + "";
-					totalCount.put(metaDataProperty, size);
-					writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
-					
+					if (uniqueConceptValues.size() >= instancesThreshold) {
+						totalCount.put(metaDataProperty, size);
+						writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
+					}
+
 				}
 				
 			}
