@@ -262,16 +262,22 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 			// Read the file and publish
 			while ((line = reader.readLine()) != null) {
-
+				
 				// Create the record and clean the entries
 				// Sometimes when there is missing data at the end of the
 				// record,
 				// the raw length is less than the number of columns
 				String[] splitLine = line.split("\t");
-				int rawLength = splitLine.length;
+				int splitLength = splitLine.length;
+				
+				// The end of the file is a SUB character
+				// If the line has no records, then skip over it
+				if (splitLength == 1) {
+					continue;
+				}
 				String[] rawRecord = new String[nCol];
 				for (int i = 0; i < nCol; i++) {
-					if (i < rawLength) {
+					if (i < splitLength) {
 						rawRecord[i] = splitLine[i].trim();
 					} else {
 
@@ -296,6 +302,11 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 					// Informational
 					errorCode = rawRecord[nCol - 2];
+				}
+				
+				// Because Sanja wanted it
+				if (rawRecord[0].equals("VIRGINIA")) {
+					rawRecord[0] = "CPMF";
 				}
 
 				// Comma separated string with each element in quotes

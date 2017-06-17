@@ -208,7 +208,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		String tempCsvFilePath = tempDirectory + System.getProperty("file.separator") + "archive_"
 				+ Utility.getRandomString(10) + ".csv";
 		try {
-			File tempCsv = writeToCsv(tempCsvFilePath, giveFullHeaderString(), addToArchiveMap);
+			File tempCsv = writeToCsv(tempCsvFilePath, giveFullHeaderString(), allRecordsMap, addToArchiveMap.keySet());
 			ImportOptions options = generateImportOptions(tempCsvFilePath, propFilePath, archiveDbName);
 
 			// Create new if the database does not yet exist, otherwise add to
@@ -429,7 +429,9 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			// being updated
 			boolean archive = daysSinceLastObserved > considerNewThresholdDays;
 			if (archive) {
-				addToArchiveMap.put(errorKey, allRecordsMap.get(errorKey));
+				// TODO
+//				addToArchiveMap.put(errorKey, allRecordsMap.get(errorKey));
+				addToArchiveMap.put(errorKey, "");
 			}
 		}
 	}
@@ -453,10 +455,14 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	// Static helper methods
 
 	protected static File writeToCsv(String csvFilePath, String header, MVMap<?, String> map) throws IOException {
+		return writeToCsv(csvFilePath, header, map, map.keySet());
+	}
+	
+	protected static File writeToCsv(String csvFilePath, String header, MVMap<?, String> map, Set<?> keys) throws IOException {
 		File csv = new File(csvFilePath);
 		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(csv)))) {
 			writer.write(header);
-			for (Object key : map.keySet()) {
+			for (Object key : keys) {
 				writer.write(map.get(key));
 			}
 		}
