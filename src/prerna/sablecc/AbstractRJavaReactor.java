@@ -45,6 +45,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.util.ArrayUtilityMethods;
@@ -1874,9 +1875,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				for (String engineName : engines) {
 					IEngine engine = (IEngine) Utility.getEngine(engineName);
 					HashMap<String, String> properties = dv.exportInstanceValues(engine, outputFolder,
-							compareProperties);
+							compareProperties, instancesThreshold);
 					allProperties.putAll(properties);
-					dv.exportRelationInstanceValues(engine, outputFolder);
+					dv.exportRelationInstanceValues(engine, outputFolder, instancesThreshold);
 				}
 				try {
 					ArrayList<String> rowValues = new ArrayList<String>();
@@ -1998,7 +1999,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			MatchingDB db = new MatchingDB(getBaseFolder());
 			// creates rdf and rdbms dbs
 			// TODO specify dbType if desired
-			String matchingDBType = "";
+			String matchingDBType = ImportOptions.DB_TYPE.RDBMS.toString();
 			db.saveDB(matchingDBType);
 			// Clean directory
 			// TODO clean the directory even when there is an error
@@ -3224,14 +3225,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
   }
     
-	public void runXrayNetwork(String[] engines, double pkiThreshold) {
+	public void runXrayNetwork(String[] engines, double pkiThreshold, double similarityScore) {
 
 		// Persist the data into a database
 		String matchingDbName = "MatchingRDBMSDatabase";
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(matchingDbName);
 
 		H2Frame frameToUse = new H2Frame();
-		String[] colNames = new String[] { "item_concept", "item_engine", "match_concept", "match_engine" };
+		String[] colNames = new String[] { "item_concept_id", "item_engine", "match_concept_id", "match_engine" };
 		String[] colTypes = new String[] { "STRING", "STRING", "STRING", "STRING" };
 
 		QueryStruct qs = new QueryStruct();
@@ -3243,9 +3244,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			qs.addSelector(colNames[i], null);
 		}
 
-		// set the correct schema in the new frame
-		// drop the existing table
-
 		// frameToUse.setUserId(schemaName);
 		((H2Frame) dataframe).dropTable();
 
@@ -3255,20 +3253,27 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
 		frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
-
-		// override frame references & table name reference
-		this.put("G", frameToUse);
-		this.dataframe = frameToUse;
-		this.frameChanged = true;
-		String tableName = frameToUse.getTableName();
-
+		
 		if (engine != null) {
-			String query = "SELECT item_concept, item_engine, match_concept, match_engine";
+			String query = "SELECT item_concept_id, item_engine, match_concept_id, match_engine";
 			query += " FROM match_id WHERE ";
-			query += "item_engine = '" + engines[0] + "' ";
-			query += "AND PKI >= " + pkiThreshold + ";";
-			// query += "AND match_engine = '"+engines[0]+"';";
-
+			
+			//add engines to query
+			query += "item_engine IN( ";
+			for (int i = 0; i < engines.length; i++) {
+				query += "'" + engines[i] + "'";
+				if(i < engines.length - 1) {
+					query += ",";
+				}
+			}
+			query += ") ";
+			
+			//add pki threshold to query
+			query += "AND PKI >= " + pkiThreshold + " ";
+			
+			//add similarity to query
+			query += "AND SCORE >= " +similarityScore + ";";
+			
 			Map<String, Object> values = engine.execQuery(query);
 			ResultSet rs = (ResultSet) values.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 			ResultSetMetaData rsmd;
@@ -3285,7 +3290,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					String matchConcept = rs.getString(3);
 					if (matchConcept.contains("%%%")) {
 						String[] temp = matchConcept.split("%%%");
-						matchConcept = temp[0];
+						String[] engineSplit = temp[1].split("~");
+						matchConcept = temp[0] + "~" + engineSplit[1];
 					}
 					String matchEngine = rs.getString(4);
 					frameToUse.addRow(new Object[] { itemConcept, itemEngine, matchConcept, matchEngine });
@@ -3298,9 +3304,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			// frameToUse.addRows(dataIterator, dataTypeMap);
 			// dataIterator.deleteFile();
 
-			System.out.println("Table Synchronized as " + tableName);
-
-			frameToUse.updateDataId();
+			this.dataframe = frameToUse;
+			this.put("G", frameToUse);
+			this.frameChanged = true;
+			this.dataframe.updateDataId();
 
 		}
 
