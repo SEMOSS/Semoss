@@ -1,3 +1,13 @@
+# Anomaly detection packages
+install.packages("RCurl")
+install.packages("httr")
+install.packages("devtools")
+library(RCurl)
+library(httr)
+library(devtools)
+set_config( config( ssl_verifypeer = 0L ) )
+devtools::install_github("twitter/AnomalyDetection")
+
 # General Semoss packages
 install.packages("Rserve")
 install.packages("splitstackshape")
@@ -8,15 +18,11 @@ install.packages("sqldf")
 install.packages("stringr")
 install.packages("rJava")
 
-# Anomaly detection packages
-install.packages("devtools")
-devtools::install_github("twitter/AnomalyDetection")
-
 # Semantic matching package
 install.packages("textreuse")
 
 # Fuzzy Join
 install.packages("fuzzyjoin")
 
-# fuzzy matching
+# Fuzzy matching
 install.packages("stringdist")
