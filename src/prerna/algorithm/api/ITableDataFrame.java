@@ -453,4 +453,7 @@ public interface ITableDataFrame extends IDataMaker {
 
 	String getValueForUniqueName(String uniqueName);
 	
+	IMetaData getMetaData();
+
+	void setMetaData(IMetaData metaData);
 }
