@@ -58,6 +58,9 @@ public class InsightStore extends Hashtable<String, Insight> {
 		// update the new id inside the insight
 		data.setInsightID(uniqueID);
 		
+		// keep track of messages for the insight
+		InsightMessageStore.getInstance().put(uniqueID);
+		
 		return uniqueID;
 	}
 	
@@ -71,6 +74,9 @@ public class InsightStore extends Hashtable<String, Insight> {
 		if(activeInsight != null && activeInsight.getInsightID().equalsIgnoreCase(key)) {
 			activeInsight = null;
 		}
+		
+		// remove from the message store
+		InsightMessageStore.getInstance().remove(key);
 		
 		if(data != null) {
 			return true;

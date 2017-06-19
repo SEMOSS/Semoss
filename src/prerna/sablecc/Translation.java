@@ -142,20 +142,7 @@ public class Translation extends DepthFirstAdapter {
 			this.reactorNames.putAll(frameReactorNames);
 		}
 
-//		fillApiReactors();
 	}
-
-//	/**
-//	 * We want to use a strategy pattern for instantiating the different API
-//	 * reactors
-//	 */
-//	private void fillApiReactors() {
-//		// TODO: should move all of these in RDF_MAP so that its easily updated
-//		apiReactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-//		apiReactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-//		apiReactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-//		apiReactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
-//	}
 
 	/////////////////////////////////// HIGHLEST LEVEL PKQL IN AND OUT
 	/////////////////////////////////// OPERATIONS
@@ -372,6 +359,7 @@ public class Translation extends DepthFirstAdapter {
 			String reactorName = reactorNames.get(myName);
 			curReactor = (IScriptReactor) Class.forName(reactorName).newInstance();
 			curReactor.put(PKQLEnum.G, frame);
+			curReactor.setInsightId(this.runner.getInsightId());
 			// this is how I can get access to the parent when that happens
 			reactorHash.put(myName, curReactor);
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
