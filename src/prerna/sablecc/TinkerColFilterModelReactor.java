@@ -85,14 +85,8 @@ public class TinkerColFilterModelReactor extends ColFilterModelReactor {
 		HashSet<String> filteredSet = new HashSet<String>();
 
 		// only get filtered values if the column was filtered
-		if (filteredCols.containsKey(col)) {
-			// only filter if word is not found in unfilterList
-			if (filterWord != null && unfilterSet.isEmpty()) {
-				filteredSet = table.filterModel(col, filterWord, limit, offset);
-			}
-			if (filterWord == null) {
-				filteredSet = table.filterModel(col, filterWord, limit, offset);
-			}
+		if (filteredCols.containsKey(col) && !unfilterSet.isEmpty()) {
+			filteredSet = table.filterModel(col, filterWord, limit, offset);
 		}
 		filteredValues.put(col, new ArrayList<String>(filteredSet));
 

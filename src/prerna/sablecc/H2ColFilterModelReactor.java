@@ -69,7 +69,6 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 					String sqlComparison = getQueryCompString(compKey);
 					Set<Object> values = comp.get(compKey);
 					if (values.isEmpty() && (compKey.equals(Comparator.IS_NULL) || compKey.equals(Comparator.IS_NOT_NULL))) {
-						System.out.println("here");
 						nullValue = true;
 						if (key.equals(col)) {
 							filterCol.add(key + getQueryNegationCompString(compKey));
@@ -78,7 +77,6 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 						}
 						unfilterCol.add(key + sqlComparison);
 					}
-					System.out.println("here");
 					int i = 0;
 					for (Object s : values) {
 						s = "\'" + s + "\'";
