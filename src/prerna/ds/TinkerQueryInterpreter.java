@@ -168,7 +168,6 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			gt = gt.range(offset, offset + limit);
 		} else if (limit > 0) {
 			gt = gt.range(0, limit);
-		} else {
 		}
 	}
 

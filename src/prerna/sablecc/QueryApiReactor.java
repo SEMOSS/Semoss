@@ -49,10 +49,24 @@ public class QueryApiReactor extends AbstractApiReactor {
 		}
 //		this.qs.print();
 		
-		IQueryInterpreter interp = engine.getQueryInterpreter();
-		interp.setQueryStruct(this.qs);
-		String query = interp.composeQuery();
-
+		Iterator thisIterator = null;
+		// in order to support legacy GDM insights
+		// need to determine if we should get a select wrapper or a cheater wrapper
+		// we grab this boolean from the AbstractApiReactor
+		if(this.useCheater) {
+			IQueryInterpreter interp = engine.getQueryInterpreter();
+			interp.setQueryStruct(this.qs);
+			String query = interp.composeQuery();
+			thisIterator = WrapperManager.getInstance().getChWrapper(engine, query);
+		} else {
+			// return the raw wrapper
+			long startTime = System.currentTimeMillis();
+			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
+			long endTime = System.currentTimeMillis();
+			
+			System.out.println("Query execution time = " + (endTime - startTime) + " ms");
+		}
+		
 		// now also perform a count on the query to determine if it is the right size
 		// currently only use this in H2Importing
 		// TODO: move this logic out
@@ -60,32 +74,16 @@ public class QueryApiReactor extends AbstractApiReactor {
 			ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 			// only need to run query for count if frame is not in memory
 			if(frame instanceof H2Frame && ((H2Frame) frame).isInMem()) {
-				interp.clear();
-				interp.setPerformCount(QueryStruct.COUNT_CELLS);
-				String countQuery = interp.composeQuery();
-				IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, countQuery);
+				// modify the qs that this is using
+				qs.setPerformCount(QueryStruct.COUNT_CELLS);
+				IRawSelectWrapper countIt = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
 				if(countIt.hasNext()) {
 					Object numCells = countIt.next().getValues()[0]; 
-							System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
+					System.out.println("QUERY CONTAINS NUM_CELLS = " + numCells);
 					
 					this.put("QUERY_NUM_CELLS", numCells);
 				}
 			}
-		}
-		
-		Iterator thisIterator = null;
-		// in order to support legacy GDM insights
-		// need to determine if we should get a select wrapper or a cheater wrapper
-		// we grab this boolean from the AbstractApiReactor
-		if(this.useCheater) {
-			thisIterator = WrapperManager.getInstance().getChWrapper(engine, query);
-		} else {
-			// return the raw wrapper
-			long startTime = System.currentTimeMillis();
-			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, query);
-			long endTime = System.currentTimeMillis();
-			
-			System.out.println("Query execution time = " + (endTime - startTime) + " ms");
 		}
 		
 		this.put((String) getValue(PKQLEnum.API), thisIterator);
