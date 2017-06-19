@@ -18,6 +18,7 @@ import com.github.mustachejava.MustacheFactory;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
+import prerna.om.InsightMessageStore;
 import prerna.sablecc.expressions.IExpressionBuilder;
 
 public abstract class AbstractReactor implements IScriptReactor {
@@ -29,6 +30,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 	// DECIMAL
 	// NUMBER - listening just for the fun of it for now
 
+	protected String insightId;
 	protected String[] whatIReactTo = null;
 	protected String whoAmI = null;
 	protected HashMap <String, Object> myStore = new HashMap <String, Object>();
@@ -309,5 +311,18 @@ public abstract class AbstractReactor implements IScriptReactor {
 		PKQLRunner runner = (PKQLRunner)myStore.get("PKQL_RUNNER");
 		//runner.emit(whoAmI + " : " + message);
 		// eventually I should do this with thread
+	}
+	
+	@Override
+	public void setInsightId(String insightId) {
+		this.insightId = insightId;
+	}
+	
+	/**
+	 * Add a new message so we can know what the BE is currently working on
+	 * @param message
+	 */
+	protected void addMessage(String message) {
+		InsightMessageStore.getInstance().addNewMessage(this.insightId, message);
 	}
 }
