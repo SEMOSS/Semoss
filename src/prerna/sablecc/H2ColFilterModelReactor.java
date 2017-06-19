@@ -59,8 +59,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 
 		// set up filterHash and create conditions
 		// to add to filteredMap and unfilteredMap
-		// {"col": ["col = "value1", "col = value2"], "col2":["col2 = "value3",
-		// "col2 = "value4"]}
+		// {"col": ["col = "value1", "col = value2"], "col2":["col2 = "value3", "col2 = "value4"]}
 		if (filterHash != null) {
 			for (String key : filterHash.keySet()) {
 				Map<Comparator, Set<Object>> comp = filterHash.get(key);
@@ -69,10 +68,9 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 				for (Comparator compKey : comp.keySet()) {
 					String sqlComparison = getQueryCompString(compKey);
 					Set<Object> values = comp.get(compKey);
-					if (values.isEmpty()
-							&& (compKey.equals(Comparator.IS_NULL) || compKey.equals(Comparator.IS_NOT_NULL))) {
+					if (values.isEmpty() && (compKey.equals(Comparator.IS_NULL) || compKey.equals(Comparator.IS_NOT_NULL))) {
+						System.out.println("here");
 						nullValue = true;
-						Object s = null;
 						if (key.equals(col)) {
 							filterCol.add(key + getQueryNegationCompString(compKey));
 						} else {
@@ -80,6 +78,7 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 						}
 						unfilterCol.add(key + sqlComparison);
 					}
+					System.out.println("here");
 					int i = 0;
 					for (Object s : values) {
 						s = "\'" + s + "\'";
@@ -111,7 +110,11 @@ public class H2ColFilterModelReactor extends ColFilterModelReactor {
 		HashSet<String> filteredList = new HashSet<String>();
 
 		// only query for filtered values if column is in the filterHash
-		if (filterHash.containsKey(col)) {
+		// if there are no possible values to select, no need to run this query
+		// just return nothing
+		// this can only happen when you have filters at the dashboard level
+		// this is why we check unfilteredList
+		if (filterHash.containsKey(col) && !unfilteredList.isEmpty()) {
 			filteredList = table.getBuilder().getHashSetFromQuery(filteredQuery);
 		}
 
