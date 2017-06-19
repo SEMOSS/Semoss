@@ -46,8 +46,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -276,23 +274,24 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 			// need to create a new data table
 			// should properly merge the meta data
-			Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
-			Map<String, String> dataTypeMap = new HashMap<String, String>();
-			for (String colName : edgeHash.keySet()) {
-				if (!dataTypeMap.containsKey(colName)) {
-					dataTypeMap.put(colName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)));
-				}
-
-				Set<String> otherCols = edgeHash.get(colName);
-				for (String otherCol : otherCols) {
-					if (!dataTypeMap.containsKey(otherCol)) {
-						dataTypeMap.put(otherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)));
-					}
-				}
-			}
-
-			table.mergeEdgeHash(edgeHash, dataTypeMap);
-
+//			Map<String, Set<String>> edgeHash = gridFrame.getEdgeHash();
+//			Map<String, String> dataTypeMap = new HashMap<String, String>();
+//			for (String colName : edgeHash.keySet()) {
+//				if (!dataTypeMap.containsKey(colName)) {
+//					dataTypeMap.put(colName, Utility.convertDataTypeToString(gridFrame.getDataType(colName)));
+//				}
+//
+//				Set<String> otherCols = edgeHash.get(colName);
+//				for (String otherCol : otherCols) {
+//					if (!dataTypeMap.containsKey(otherCol)) {
+//						dataTypeMap.put(otherCol, Utility.convertDataTypeToString(gridFrame.getDataType(otherCol)));
+//					}
+//				}
+//			}
+//			table.mergeEdgeHash(edgeHash, dataTypeMap);
+			
+			table.setMetaData(gridFrame.getMetaData());
+			
 			StringBuilder selectors = new StringBuilder();
 			String[] colSelectors = gridFrame.getColumnHeaders();
 			for (int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
@@ -382,10 +381,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String schemaName = null;
 		String tableName = null;
 		boolean determineNewFrameNeeded = false;
-
+		boolean syncExistingRMetadata = false;
+		
 		// if we dont even have a h2frame currently, make a new one
 		if (!(dataframe instanceof H2Frame)) {
 			determineNewFrameNeeded = true;
+			if(dataframe instanceof RDataTable && ((RDataTable) dataframe).getTableVarName().equals(frameName)) {
+				syncExistingRMetadata = true;
+			}
 		} else {
 			frameIsH2 = true;
 			schemaName = ((H2Frame) dataframe).getSchema();
@@ -421,10 +424,15 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				// within the reactor
 				frameToUse.setUserId(this.userId);
 			}
-
-			Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
-			frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
-
+			
+			// if we can use the existing metadata, use it
+			if(syncExistingRMetadata) {
+				frameToUse.setMetaData(this.dataframe.getMetaData());
+			} else {
+				// create a prim key one
+				Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+				frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
+			}
 			// override frame references & table name reference
 			this.put("G", frameToUse);
 			this.dataframe = frameToUse;
@@ -1322,8 +1330,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// it must be JRI
 		RDataTable newTable = null;
 		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
-			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN),
-					(String) retrieveVariable(R_PORT));
+			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
 		} else {
 			newTable = new RDataTable(frameName);
 		}

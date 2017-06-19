@@ -789,4 +789,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	{
 		return null;
 	}
+	
+	@Override
+	public IMetaData getMetaData() {
+		return this.metaData;
+	}
+	
+	@Override
+	public void setMetaData(IMetaData metaData) {
+		this.metaData = metaData;
+	}
 }
