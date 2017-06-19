@@ -48,4 +48,6 @@ public interface IScriptReactor extends IApi {
 	 */
 	public Object removeLastStoredKey();
 	
+	public void setInsightId(String insightId);
+	
 }
