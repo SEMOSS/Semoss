@@ -1489,6 +1489,21 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		eval(script);
 		checkRTableModified(frameName);
 	}
+	
+	/**
+	 * Remove duplicate rows in the table
+	 */
+	protected void removeDuplicateRows() {
+		String frameName = (String) retrieveVariable("GRID_NAME");
+		removeDuplicateRows(frameName);
+	}
+
+	protected void removeDuplicateRows(String frameName) {
+		String script = frameName + " <- unique(" + frameName + ")";
+		System.out.println("Running script " + script);
+		eval(script);
+		checkRTableModified(frameName);
+	}
 
 	/**
 	 * Insert data at a given index into the frame
