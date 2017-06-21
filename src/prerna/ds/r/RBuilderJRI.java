@@ -21,9 +21,15 @@ public class RBuilderJRI extends AbstractRBuilder {
 
 	public RBuilderJRI() {
 		this.retCon = Rengine.getMainEngine();
+		
+		String OS = java.lang.System.getProperty("os.name").toLowerCase();
 		if(this.retCon == null) {
 			// start the R Engine
-			this.retCon = new Rengine(null, true, null);
+			if(OS.contains("mac")) {
+				this.retCon = new Rengine(new String[]{"--vanilla"}, true, null);
+			} else {
+				this.retCon = new Rengine(null, true, null);
+			}
 			LOGGER.info("Successfully created engine.. ");
 		}
 		loadDefaultLibraries();
@@ -47,6 +53,8 @@ public class RBuilderJRI extends AbstractRBuilder {
 //			LOGGER.info("SUCCESS!");
 //		}
 		// load in the sqldf package to run sql queries
+		String OS = System.getProperty("os.name").toLowerCase();
+		
 		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
 		REXP retObj = this.retCon.eval("library(sqldf)");
 		if(retObj == null) {
@@ -70,14 +78,27 @@ public class RBuilderJRI extends AbstractRBuilder {
 		} else {
 			LOGGER.info("SUCCESS!");
 		}
-		// xlsx
-		LOGGER.info("TRYING TO LOAD PACAKGE: xlsx");
-		retObj = this.retCon.eval("library(xlsx);");
-		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
-		} else {
-			LOGGER.info("SUCCESS!");
-		}	
+		
+		if(!OS.contains("mac")) {
+			// xlsx
+			LOGGER.info("TRYING TO LOAD PACAKGE: xlsx");
+			retObj = this.retCon.eval("library(xlsx);");
+			if(retObj == null) {
+				LOGGER.info(">>> FAILURE!");
+			} else {
+				LOGGER.info("SUCCESS!");
+			}	
+					
+			// rjdbc
+			LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
+			retObj = this.retCon.eval("library(RJDBC);");
+			if(retObj == null) {
+				LOGGER.info(">>> FAILURE!");
+			} else {
+				LOGGER.info("SUCCESS!");
+			}
+		}
+		
 		// reshape2
 		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
 		retObj = this.retCon.eval("library(reshape2);");
@@ -85,15 +106,8 @@ public class RBuilderJRI extends AbstractRBuilder {
 			LOGGER.info(">>> FAILURE!");
 		} else {
 			LOGGER.info("SUCCESS!");
-		}		
-		// rjdbc
-		LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
-		retObj = this.retCon.eval("library(RJDBC);");
-		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
-		} else {
-			LOGGER.info("SUCCESS!");
-		}		
+		}
+		
 		// stringr
 		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
 		retObj = this.retCon.eval("library(stringr);");

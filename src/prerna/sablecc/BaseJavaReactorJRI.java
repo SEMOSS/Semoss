@@ -44,11 +44,17 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 		if(retEngine == null) {
 			retEngine = (Rengine) retrieveVariable(R_ENGINE);
 		}
-		LOGGER.info("Connection right now is set to.. " + retEngine);
+		LOGGER.info("Connection right now is set to: " + retEngine);
+		
+		String OS = java.lang.System.getProperty("os.name").toLowerCase();
 		if(retEngine == null) {
 			try {
 				// start the R Engine
-				retEngine = new Rengine(null, true, null);
+				if(OS.contains("mac")) {
+					retEngine = new Rengine(new String[]{"--vanilla"}, true, null);
+				} else {
+					retEngine = new Rengine(null, true, null);
+				}
 				LOGGER.info("Successfully created engine.. ");
 	
 				// load all the libraries
@@ -66,10 +72,14 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 				if(ret == null) {
 					throw new ClassNotFoundException("Package reshape2 could not be found!");
 				}
-				// rjdbc
-				ret = retEngine.eval("library(RJDBC);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package RJDBC could not be found!");
+				
+				// Don't load RJDBC if OS is Mac because we'll write to CSV and load into data.table to avoid rJava setup
+				if(!OS.contains("mac")) {
+					// rjdbc
+					ret = retEngine.eval("library(RJDBC);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package RJDBC could not be found!");
+					}
 				}
 				// stringr
 				ret = retEngine.eval("library(stringr);");
@@ -96,6 +106,8 @@ public class BaseJavaReactorJRI extends AbstractRJavaReactor {
 						+ "4)RJDBC*\n"
 						+ "5)stringr\n\n"
 						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
+			} catch(Exception e) {
+				e.printStackTrace();
 			}
 		}
 		storeVariable(AbstractRJavaReactor.R_ENGINE, retEngine);
