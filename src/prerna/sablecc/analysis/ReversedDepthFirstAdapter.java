@@ -2074,9 +2074,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        if(node.getJsonblock() != null)
+        if(node.getJson() != null)
         {
-            node.getJsonblock().apply(this);
+            node.getJson().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -4908,9 +4908,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        if(node.getJsonblock() != null)
+        if(node.getJson() != null)
         {
-            node.getJsonblock().apply(this);
+            node.getJson().apply(this);
         }
         if(node.getLPar() != null)
         {
