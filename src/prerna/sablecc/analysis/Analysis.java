@@ -285,10 +285,6 @@ public interface Analysis extends Switch
     void caseTDatausecachetoken(TDatausecachetoken node);
     void caseTLiteral(TLiteral node);
     void caseTHelpToken(THelpToken node);
-    void caseTCodeblock(TCodeblock node);
-    void caseTJsonblock(TJsonblock node);
-    void caseTQueryblock(TQueryblock node);
-    void caseTWord(TWord node);
     void caseTPanelviz(TPanelviz node);
     void caseTPanelclone(TPanelclone node);
     void caseTPanelclose(TPanelclose node);
@@ -298,8 +294,6 @@ public interface Analysis extends Switch
     void caseTDataframeduplicates(TDataframeduplicates node);
     void caseTDataframechangetype(TDataframechangetype node);
     void caseTDataframesetedgehash(TDataframesetedgehash node);
-    void caseTFileText(TFileText node);
-    void caseTHtmlText(THtmlText node);
     void caseTPanelcommentremove(TPanelcommentremove node);
     void caseTPanelcommentedit(TPanelcommentedit node);
     void caseTPanelcommentadd(TPanelcommentadd node);
@@ -325,6 +319,12 @@ public interface Analysis extends Switch
     void caseTDashboardAddToken(TDashboardAddToken node);
     void caseTWherestr(TWherestr node);
     void caseTMetatag(TMetatag node);
+    void caseTWord(TWord node);
+    void caseTJsonblock(TJsonblock node);
+    void caseTCodeblock(TCodeblock node);
+    void caseTQueryblock(TQueryblock node);
+    void caseTFileText(TFileText node);
+    void caseTHtmlText(THtmlText node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }
