@@ -206,8 +206,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String tableName = gridFrame.getBuilder().getTableName();
 		String url = gridFrame.getBuilder().connectFrame();
 		url = url.replace("\\", "/");
-		initiateDriver(url, "sa");
-
+		
 		// note : do not use * since R will not preserve the column order
 		StringBuilder selectors = new StringBuilder();
 		String[] colSelectors = null;
@@ -223,12 +222,27 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				selectors.append(", ");
 			}
 		}
-
-		// make sure R is started
+		
 		startR();
-		eval(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName
-				+ "')));");
+		
+		// Don't sync via RJDBC if OS is Mac because we'll write to CSV and load into data.table to avoid rJava setup
+		String OS = java.lang.System.getProperty("os.name").toLowerCase();
+		if(OS.contains("mac")) {
+			String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + java.lang.System.getProperty("file.separator") + "R" 
+					+ java.lang.System.getProperty("file.separator") + "Temp" + java.lang.System.getProperty("file.separator") + "output.csv";
+			gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT * FROM " + gridFrame.getTableName() + "', 'charset=UTF-8 fieldSeparator=, fieldDelimiter=');");
+			eval("file <- '" + outputLocation + "';");
+			eval(frameName + " <- read.csv(file);");
+			File f = new File(outputLocation);
+			f.delete();
+		} else {
+			initiateDriver(url, "sa");
+			
+			eval(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName
+					+ "')));");
+		}
 		eval("setDT(" + frameName + ")");
+		
 		// modify the headers to be what they used to be because the query
 		// return everything in
 		// all upper case which may not be accurate
@@ -301,17 +315,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				}
 			}
 
-			eval(rVarName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName
-					+ "')));");
-			eval("setDT(" + rVarName + ")");
-
-			// modify the headers to be what they used to be because the * will
-			// return everything in caps
-			String[] currHeaders = getColNames(rVarName, false);
-			renameColumn(rVarName, currHeaders, colSelectors, false);
-			storeVariable("GRID_NAME", rVarName);
-			System.out.println("Completed synchronization as " + rVarName);
-
+			synchronizeGridToR(rVarName, null);
+			
 			this.dataframe = table;
 			this.frameChanged = true;
 		} else {
@@ -567,15 +572,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			jarLocation = (String) retrieveVariable("H2DRIVER_PATH");
 		}
 		LOGGER.info("Loading driver.. " + jarLocation);
+		// Create a driver object followed by the actual connection obj
 		String script = "drv <- JDBC('" + driver + "', '" + jarLocation + "', identifier.quote='`');"
-				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; // line
-																					// of
-																					// R
-																					// script
-																					// that
-																					// connects
-																					// to
-																					// H2Frame
+				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')";
 		runR(script);
 	}
 
@@ -1485,21 +1484,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} else if (orderDirection.equalsIgnoreCase("desc")) {
 			script = frameName + " <- " + frameName + "[order(-rank(" + colName + "))]";
 		}
-		System.out.println("Running script " + script);
-		eval(script);
-		checkRTableModified(frameName);
-	}
-	
-	/**
-	 * Remove duplicate rows in the table
-	 */
-	protected void removeDuplicateRows() {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		removeDuplicateRows(frameName);
-	}
-
-	protected void removeDuplicateRows(String frameName) {
-		String script = frameName + " <- unique(" + frameName + ")";
 		System.out.println("Running script " + script);
 		eval(script);
 		checkRTableModified(frameName);
