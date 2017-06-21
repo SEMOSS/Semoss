@@ -1707,30 +1707,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseTCodeblock(TCodeblock node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTJsonblock(TJsonblock node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTQueryblock(TQueryblock node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTWord(TWord node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseTPanelviz(TPanelviz node)
     {
         defaultCase(node);
@@ -1780,18 +1756,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTDataframesetedgehash(TDataframesetedgehash node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTFileText(TFileText node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTHtmlText(THtmlText node)
     {
         defaultCase(node);
     }
@@ -1942,6 +1906,42 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTMetatag(TMetatag node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTWord(TWord node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTJsonblock(TJsonblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTCodeblock(TCodeblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTQueryblock(TQueryblock node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTFileText(TFileText node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTHtmlText(THtmlText node)
     {
         defaultCase(node);
     }

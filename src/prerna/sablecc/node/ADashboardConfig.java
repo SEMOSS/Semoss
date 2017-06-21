@@ -9,7 +9,7 @@ public final class ADashboardConfig extends PDashboardConfig
 {
     private TDashboardconfig _dashboardconfig_;
     private TLPar _lPar_;
-    private TJsonblock _jsonblock_;
+    private TJsonblock _json_;
     private TRPar _rPar_;
 
     public ADashboardConfig()
@@ -20,7 +20,7 @@ public final class ADashboardConfig extends PDashboardConfig
     public ADashboardConfig(
         @SuppressWarnings("hiding") TDashboardconfig _dashboardconfig_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") TJsonblock _jsonblock_,
+        @SuppressWarnings("hiding") TJsonblock _json_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
@@ -28,7 +28,7 @@ public final class ADashboardConfig extends PDashboardConfig
 
         setLPar(_lPar_);
 
-        setJsonblock(_jsonblock_);
+        setJson(_json_);
 
         setRPar(_rPar_);
 
@@ -40,7 +40,7 @@ public final class ADashboardConfig extends PDashboardConfig
         return new ADashboardConfig(
             cloneNode(this._dashboardconfig_),
             cloneNode(this._lPar_),
-            cloneNode(this._jsonblock_),
+            cloneNode(this._json_),
             cloneNode(this._rPar_));
     }
 
@@ -100,16 +100,16 @@ public final class ADashboardConfig extends PDashboardConfig
         this._lPar_ = node;
     }
 
-    public TJsonblock getJsonblock()
+    public TJsonblock getJson()
     {
-        return this._jsonblock_;
+        return this._json_;
     }
 
-    public void setJsonblock(TJsonblock node)
+    public void setJson(TJsonblock node)
     {
-        if(this._jsonblock_ != null)
+        if(this._json_ != null)
         {
-            this._jsonblock_.parent(null);
+            this._json_.parent(null);
         }
 
         if(node != null)
@@ -122,7 +122,7 @@ public final class ADashboardConfig extends PDashboardConfig
             node.parent(this);
         }
 
-        this._jsonblock_ = node;
+        this._json_ = node;
     }
 
     public TRPar getRPar()
@@ -156,7 +156,7 @@ public final class ADashboardConfig extends PDashboardConfig
         return ""
             + toString(this._dashboardconfig_)
             + toString(this._lPar_)
-            + toString(this._jsonblock_)
+            + toString(this._json_)
             + toString(this._rPar_);
     }
 
@@ -176,9 +176,9 @@ public final class ADashboardConfig extends PDashboardConfig
             return;
         }
 
-        if(this._jsonblock_ == child)
+        if(this._json_ == child)
         {
-            this._jsonblock_ = null;
+            this._json_ = null;
             return;
         }
 
@@ -207,9 +207,9 @@ public final class ADashboardConfig extends PDashboardConfig
             return;
         }
 
-        if(this._jsonblock_ == oldChild)
+        if(this._json_ == oldChild)
         {
-            setJsonblock((TJsonblock) newChild);
+            setJson((TJsonblock) newChild);
             return;
         }
 

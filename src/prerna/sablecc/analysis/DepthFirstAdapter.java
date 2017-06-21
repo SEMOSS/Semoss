@@ -2077,9 +2077,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getJsonblock() != null)
+        if(node.getJson() != null)
         {
-            node.getJsonblock().apply(this);
+            node.getJson().apply(this);
         }
         if(node.getRPar() != null)
         {
@@ -4895,9 +4895,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLPar().apply(this);
         }
-        if(node.getJsonblock() != null)
+        if(node.getJson() != null)
         {
-            node.getJsonblock().apply(this);
+            node.getJson().apply(this);
         }
         if(node.getRPar() != null)
         {

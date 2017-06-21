@@ -1,25 +1,31 @@
 Package prerna.sablecc;
 
 Helpers
+ all = [0 .. 0xFFFF];
  alpha = [['a' .. 'z'] + ['A' .. 'Z']];
  letter_s = ['a' .. 'z'];
  letter_b = ['A' .. 'Z'];
  digit = ['0' .. '9'];
  underscore = '_';
  hdot = '.';
- alphanumeric = [0 .. 0xFFFF];
  quote = ('"' | ''');
- not_quote = [alphanumeric - ['"' + ''']];
+ not_quote = [all - ['"' + ''']];
+ 
+ url_unescaped_chars = ('-' | '_' | '.' | '!' | '~' | '*' | ''' | '(' | ')' | '%');
+ other_unescaped_chars = (';' | ',' | '/' | '?' | ':' | '@' | '&' | '=' | '+' | '$' | '#' | '\' | '"' | '{' | '}' | ' ');
+ encoded_values = (alpha | digit | url_unescaped_chars | other_unescaped_chars);
+ 
  panelprefix =  'panel' ( '[' digit ']' )?;
  panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
- code = '<code>';
+ 
  startjson = '<json>';
  endjson = '</json>';
  startquery = '<query>';
  endquery = '</query>';
  starthtml = '<html>';
  endhtml = '</html>';
- 
+ code = '<code>';
+
 Tokens
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
@@ -89,10 +95,7 @@ Tokens
  datausecachetoken = 'data.usecache';
  literal = (letter_s | letter_b | digit | underscore)*;// | special)*;
  help_token = 'info.help';
- codeblock = code alphanumeric* code;
- jsonblock = startjson alphanumeric* endjson;
- queryblock = startquery alphanumeric* endquery;
- word = quote not_quote* quote;
+ 
  panelviz =  panelprefix '.viz';
  panelclone = panelprefix '.clone';
  panelclose = panelprefix '.close';
@@ -103,9 +106,6 @@ Tokens
  dataframeduplicates = 'data.frame.hasDuplicates';
  dataframechangetype = 'data.frame.changeType';
  dataframesetedgehash = 'data.frame.setEdgeHash';
-
- file_text = '<startInput>' alphanumeric* '<endInput>';
- html_text = quote starthtml alphanumeric* endhtml quote;
  panelcommentremove = panelcommentprefix '.remove';
  panelcommentedit = panelcommentprefix '.edit';
  panelcommentadd = panelcommentprefix '.add';
@@ -136,6 +136,13 @@ Tokens
  //dashboard_unjoin_token = 'dashboard.unjoin'
  wherestr = 'where=' ;
  metatag = 'meta.';
+
+ word = quote not_quote* quote;
+ jsonblock = startjson encoded_values* endjson;
+ codeblock = code all* code;
+ queryblock = startquery all* endquery;
+ file_text = '<startInput>' all* '<endInput>';
+ html_text = quote starthtml all* endhtml quote;
  
 Ignored Tokens
  blank;
@@ -292,7 +299,7 @@ data_frame_set_edge_hash = // e.g. data.frame.setEdgeHash("")
 		;
 			
 dashboard_config = //e.g. dashboard.config(<json>*configuration string*</json>);
-		dashboardconfig l_par jsonblock r_par
+		dashboardconfig l_par [json]:jsonblock r_par
 		;
 			
 add_column = // follows the pattern of addColumn(columnName and optionally the expression) addColumn(c:NewCol, 'expression', [c:col1, c:col2]);
@@ -492,7 +499,7 @@ datanetworkdisconnect = datanetworkdisconnect_token l_par r_par;
 dataconnectdb = dataconnectdb_token l_par word_or_num r_par;
 
 data_model = // e.g. data.model(<json>*default widget json*</json>);
-		datamodeltoken l_par jsonblock r_par
+		datamodeltoken l_par [json]:jsonblock r_par
 		;
 
 equal_or_compare = {comparator} comparator | {equal} equal;
@@ -539,8 +546,7 @@ condition_block = l_par condition condition_group* r_par;
   | {codeblock} codeblock
   //| {input} user_input
   ;
-  
-  
+   
 //////////////////////////////////////////
 //////////////////////////////////////////
 ////////// DATABASE OPERATIONS ///////////
