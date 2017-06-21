@@ -1227,7 +1227,7 @@ public class Translation extends DepthFirstAdapter {
 //		}
 //		config.putAll(new Gson().fromJson(node.getMap().toString(), HashMap.class));
 		
-		String json = node.getJson().getText();
+		String json = node.getJson().toString();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
 		
@@ -1258,7 +1258,7 @@ public class Translation extends DepthFirstAdapter {
 	
 	@Override
 	public void outADataModel(ADataModel node) {
-		String json = node.getJsonblock().getText();
+		String json = node.getJson().toString();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
 		runner.setReturnData(json);
@@ -1437,7 +1437,7 @@ public class Translation extends DepthFirstAdapter {
 
 		Dashboard dm = (Dashboard) this.frame;
 
-		String json = node.getJsonblock().getText();
+		String json = node.getJson().toString();
 		json = json.replace("<json>", "");
 		json = json.replace("</json>", "");
 		
