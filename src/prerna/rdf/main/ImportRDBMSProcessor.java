@@ -67,8 +67,8 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	private final String ASTER = "ASTER_DB";
 	private final String ASTER_DRIVER = "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver";
 
-	private final String HANA = "SAP_HANA";
-	private final String HANA_DRIVER = "com.sap.db.jdbc.Driver";
+	private final String SAP_HANA = "SAP_HANA";
+	private final String SAP_HANA_DRIVER = "com.sap.db.jdbc.Driver";
 
 	private final String DB2 = "DB2";
 	private final String DB2_DRIVER = "com.ibm.db2.jcc.DB2Driver";
@@ -196,8 +196,8 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 				this.schema = schema;
 				con = DriverManager.getConnection(url, username, new String(password));
 
-			} else if (type.equals(this.HANA)) {
-				Class.forName(this.HANA_DRIVER);
+			} else if (type.equals(this.SAP_HANA)) {
+				Class.forName(this.SAP_HANA_DRIVER);
 				url = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 				if (port != null && !port.isEmpty()) {
 					url = url.replace(":PORT", ":" + port);
