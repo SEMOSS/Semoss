@@ -1,19 +1,13 @@
 package prerna.sablecc;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.sablecc.AbstractReactor;
-import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.sablecc.meta.ColAddMetadata;
 import prerna.sablecc.meta.ColRenameMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.util.ArrayUtilityMethods;
 
 public class ColRenameReactor extends AbstractReactor {
 
@@ -26,35 +20,28 @@ public class ColRenameReactor extends AbstractReactor {
 	
 	@Override
 	public Iterator process() {
-		//cleans the pqkl string
-		modExpression();
-
 		//get the Frame
-		ITableDataFrame frame = (ITableDataFrame)myStore.get("G");
-		Map<String, Set<String>> frameEdgeHash = frame.getEdgeHash();
-		
-		String[] originalColHeaders = frame.getColumnHeaders();
+		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
+		String[] origHeaders = frame.getColumnHeaders();
 		
 		//gets a list of all the column names
 		List<String> colList = (List<String>)myStore.get(PKQLEnum.COL_DEF);
 		String oldColName = colList.get(0);
-		String newColName = colList.get(1);
-		if(Arrays.asList(originalColHeaders).contains(newColName) || oldColName.equals(newColName)){
-			return null;
+		boolean validHeader = ArrayUtilityMethods.arrayContainsValue(origHeaders, oldColName);
+		if(!validHeader) {
+			myStore.put("STATUS",STATUS.ERROR);
+			throw new IllegalArgumentException("Invalid header. " + oldColName + " does not exist as a header");
 		}
-
-		//if the passed in old name is contained in the list of column names then change to new name
-			Set<String> colSet = frameEdgeHash.keySet();
-			if(colSet.contains(oldColName)) {
-				//rename column on the meta and instance level
-				frame.renameColumn(oldColName, newColName);
-			}
 		
-			// update the data id so FE knows data has been changed
-			frame.updateDataId();
-			myStore.put("STATUS",STATUS.SUCCESS);
-			
-			return null;
+		String newColName = colList.get(1);
+		// add an alias on the header
+		frame.renameColumn(oldColName, newColName);
+
+		// update the data id so FE knows data has been changed
+		frame.updateDataId();
+		myStore.put("STATUS",STATUS.SUCCESS);
+		
+		return null;
 	}
 	
 	@Override
