@@ -71,6 +71,7 @@ public class H2Builder {
 	// keep track of the indices that exist in the table for optimal speed in
 	// sorting
 	protected Hashtable<String, String> columnIndexMap = new Hashtable<String, String>();
+	protected Hashtable<String, String> multiColumnIndexMap = new Hashtable<String, String>();
 
 	// for writing the frame on disk
 	// currently not used
@@ -2321,11 +2322,61 @@ public class H2Builder {
 			}
 		}
 	}
+	
+	protected void addColumnIndex(String tableName, String[] colNames) {
+		StringBuilder multiColIndexNameBuilder = new StringBuilder(colNames[0]);
+		for(int i = 1; i < colNames.length; i++) {
+			multiColIndexNameBuilder.append("__").append(colNames[i]);
+		}
+		String multiColIndexName = multiColIndexNameBuilder.toString();
+		if (!multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
+			long start = System.currentTimeMillis();
+
+			StringBuilder indexSqlBuilder = new StringBuilder();;
+			LOGGER.info("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexNameBuilder);
+			try {
+				String indexName = multiColIndexNameBuilder + "_INDEX_" + getNextNumber();
+				indexSqlBuilder.append("CREATE INDEX ").append(indexName).append(" ON ").append(tableName)
+						.append("(").append(colNames[0]);
+				for(int i = 1; i < colNames.length; i++) {
+					indexSqlBuilder.append(",").append(colNames[i]);
+				}
+				indexSqlBuilder.append(")");
+				String indexSql = indexSqlBuilder.toString();
+				runQuery(indexSql);
+				multiColumnIndexMap.put(tableName + "+++" + multiColIndexName, indexName);
+				
+				long end = System.currentTimeMillis();
+
+				LOGGER.info("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+			} catch (Exception e) {
+				LOGGER.info("ERROR WITH INDEX !!! " + multiColIndexName);
+				e.printStackTrace();
+			}
+		}
+	}
 
 	protected void removeColumnIndex(String tableName, String colName) {
 		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
 			LOGGER.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
+			try {
+				runQuery("DROP INDEX " + indexName);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	protected void removeColumnIndex(String tableName, String[] colNames) {
+		StringBuilder multiColIndexNameBuilder = new StringBuilder(colNames[0]);
+		for(int i = 1; i < colNames.length; i++) {
+			multiColIndexNameBuilder.append("__").append(colNames[i]);
+		}
+		String multiColIndexName = multiColIndexNameBuilder.toString();
+		if (multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
+			LOGGER.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
+			String indexName = multiColumnIndexMap.remove(tableName +  "+++" + multiColIndexName);
 			try {
 				runQuery("DROP INDEX " + indexName);
 			} catch (Exception e) {
