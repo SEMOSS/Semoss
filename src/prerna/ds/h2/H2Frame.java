@@ -1736,10 +1736,28 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 	
 	/**
+	 * Add a multi column index
+	 * @param columnName
+	 */
+	public void addColumnIndex(String[] columnName) {
+		String tableName = getTableName();
+		this.builder.addColumnIndex(tableName, columnName);
+	}
+	
+	/**
 	 * Remove an index on a column
 	 * @param columnName
 	 */
 	public void removeColumnIndex(String columnName) {
+		String tableName = getTableName();
+		this.builder.removeColumnIndex(tableName, columnName);
+	}
+	
+	/**
+	 * Remove a multi column index
+	 * @param columnName
+	 */
+	public void removeColumnIndex(String[] columnName) {
 		String tableName = getTableName();
 		this.builder.removeColumnIndex(tableName, columnName);
 	}

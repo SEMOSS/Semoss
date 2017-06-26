@@ -175,7 +175,7 @@ public class H2ColAddReactor extends AbstractReactor {
 		H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);
 		
 		// doing this update in batches
-		final int BATCH_SIZE = 5000;
+		final int BATCH_SIZE = 10000;
 		int count = 0;
 
 		try {
@@ -200,6 +200,9 @@ public class H2ColAddReactor extends AbstractReactor {
 					// and here we create the prepared statement 
 					String[] newColsArr = new String[]{newColName};
 					ps = frame.createUpdatePreparedStatement(newColsArr, joinColumns);
+					
+					// create a temporary multi column index for faster updating
+					frame.addColumnIndex(joinColumns);
 				}
 
 				// things to note:
@@ -220,6 +223,7 @@ public class H2ColAddReactor extends AbstractReactor {
 
 				// batch commit based on size
 				if (++count % BATCH_SIZE == 0) {
+					LOGGER.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
 				}
 			}
@@ -236,6 +240,8 @@ public class H2ColAddReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
+		// remove the temporary multi column index
+		frame.removeColumnIndex(joinColumns);
 		
 		// add back index
 		for(String col : colsWithIndex) {
@@ -256,7 +262,7 @@ public class H2ColAddReactor extends AbstractReactor {
 		PreparedStatement ps = null;
 
 		// doing this update in batches
-		final int BATCH_SIZE = 5000;
+		final int BATCH_SIZE = 10000;
 		int count = 0;
 
 		try {
@@ -280,6 +286,9 @@ public class H2ColAddReactor extends AbstractReactor {
 					// and here we create the prepared statement 
 					String[] newColsArr = new String[]{newColumn};
 					ps = frame.createUpdatePreparedStatement(newColsArr, joinColumns);
+					
+					// create a temporary multi column index for faster updating
+					frame.addColumnIndex(joinColumns);
 				}
 
 				// things to note:
@@ -300,6 +309,7 @@ public class H2ColAddReactor extends AbstractReactor {
 
 				// batch commit based on size
 				if (++count % BATCH_SIZE == 0) {
+					LOGGER.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
 				}
 			}
@@ -307,6 +317,9 @@ public class H2ColAddReactor extends AbstractReactor {
 			// well, we are done looping through now
 			ps.executeBatch(); // insert any remaining records
 			ps.close();
+
+			// remove the temporary multi column index
+			frame.removeColumnIndex(joinColumns);
 
 		} catch(SQLException e) {
 			e.printStackTrace();
