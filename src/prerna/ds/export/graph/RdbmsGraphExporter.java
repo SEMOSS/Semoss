@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,7 +21,7 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 	// have an alias that ends up being the same
 	// since this will result in 2 vertices being painted
 	// on the FE
-//	private Map<String, Set<String>> aliasMap;
+	private Map<String, Set<String>> aliasMap;
 	
 	private ResultSet edgeRs;
 	private ResultSet nodeRs;
@@ -33,34 +35,48 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		// which single vertex and relationship to push into the nodeRs and edgeRs
 		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
 		parseEdgeHash(edgeHash);
-//		generateDupAliasMap(frame.getColumnHeaders(), frame.getColumnAliasName());
+		generateDupAliasMap(frame.getColumnHeaders(), frame.getColumnAliasName());
 	}
 
-//	private void generateDupAliasMap(String[] columnHeaders, String[] columnAliasName) {
-//		// loop through and find duplicate headers
-//		this.aliasMap = new Hashtable<String, Set<String>>();
-//		for(int i = 0; i < columnAliasName.length; i++) {
-//			String origHeader = columnHeaders[i];
-//			String alias = columnAliasName[i];
-//			for(int j = i+1; j < columnAliasName.length; j++) {
-//				String otherOrigHeader = columnHeaders[j];
-//				String otherAlias = columnAliasName[j];
-//				
-//				if(alias.equals(otherAlias)) {
-//					// we have a match
-//					Set<String> origHeadersSet = null;
-//					if(aliasMap.containsKey(alias)) {
-//						origHeadersSet = aliasMap.get(alias);
-//					} else {
-//						origHeadersSet = new HashSet<String>();
-//						aliasMap.put(alias, origHeadersSet);
-//					}
-//					aliasMap.get(alias).add(origHeader);
-//					aliasMap.get(alias).add(otherOrigHeader);
-//				}
-//			}
-//		}
-//	}
+	//TODO: i have it such that we will not send duplicate nodes to the FE
+	//		however, still possible that i would send multiple edges
+	//		will address this in the future
+	private void generateDupAliasMap(String[] columnHeaders, String[] columnAliasName) {
+		// loop through and find duplicate headers
+		this.aliasMap = new Hashtable<String, Set<String>>();
+		for(int i = 0; i < columnAliasName.length; i++) {
+			String origHeader = columnHeaders[i];
+			String alias = columnAliasName[i];
+			// if they are the same, just put it in the map
+			if(origHeader.equals(alias)) {
+				Set<String> nameSet = null;
+				if(aliasMap.containsKey(origHeader)) {
+					nameSet = aliasMap.get(origHeader);
+					nameSet.add(origHeader);
+					aliasMap.put(origHeader, nameSet);
+				} else {
+					nameSet = new HashSet<String>();
+					nameSet.add(origHeader);
+					aliasMap.put(origHeader, nameSet);
+				}
+			} else {
+				// we have a valid alias
+				// add it to the map
+				Set<String> nameSet = new HashSet<String>();
+				if(aliasMap.containsKey(alias)) {
+					nameSet = aliasMap.get(alias);
+					nameSet.add(origHeader);
+					aliasMap.put(alias, nameSet);
+				} else {
+					nameSet = new HashSet<String>();
+					nameSet.add(origHeader);
+					aliasMap.put(alias, nameSet);
+				}
+			}
+		}
+		// need to override the vertices iterator to only use the alias
+		this.verticesIterator = aliasMap.keySet().iterator();
+	}
 
 	@Override
 	public boolean hasNextEdge() {
@@ -154,7 +170,6 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		// first time, everything is null
 		if(this.nodeRs == null && verticesIterator.hasNext()) {
 			this.curVertex = verticesIterator.next();
-			this.aliasCurVertex = getAliasVertex();
 			this.nodeRs = createNodeRs(curVertex);
 			// so we made it, run this again to 
 			// see if this vertex has values to return
@@ -181,7 +196,6 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 				// got to see if there is another vertex to try
 				if(this.verticesIterator.hasNext()) {
 					this.curVertex = verticesIterator.next();
-					this.aliasCurVertex = getAliasVertex();
 					this.nodeRs = createNodeRs(curVertex);
 					// since we got to try and see if this has a next
 					// do this by recursively calling this method
@@ -198,6 +212,15 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 	public Map<String, Object> getNextVert() {
 		// TODO: Figure out how to do node properties and stuff
 		// till then, this is a really easy return
+		
+		/*
+		 * For the vertices iterator
+		 * in the method generateDupAliasMap
+		 * we already switch to using the alias
+		 * so we do not need to sue this.aliasCurVertex
+		 * and the method to get the unique set of vertices
+		 * takes this into consideration
+		 */
 		Object nodeVal = null;
 		try {
 			nodeVal = this.nodeRs.getObject(1);
@@ -211,15 +234,15 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 			nodeVal = "EMPTY";
 		}
 
-		String node = this.aliasCurVertex + "/" + nodeVal;
+		String node = this.curVertex + "/" + nodeVal;
 
 		Map<String, Object> vertexMap = new HashMap<String, Object>();
 		vertexMap.put("uri", node);
 		vertexMap.put(Constants.VERTEX_NAME, nodeVal);
-		vertexMap.put(Constants.VERTEX_TYPE, this.aliasCurVertex);
+		vertexMap.put(Constants.VERTEX_TYPE, this.curVertex);
 
 		// need to add in color
-		Color color = TypeColorShapeTable.getInstance().getColor(this.aliasCurVertex, nodeVal.toString());
+		Color color = TypeColorShapeTable.getInstance().getColor(this.curVertex, nodeVal.toString());
 		vertexMap.put("VERTEX_COLOR_PROPERTY", IGraphExporter.getRgb(color));
 
 		// also push empty vertex properties
@@ -227,7 +250,7 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		vertexMap.put("propHash", propMap);
 
 		// add to the meta count
-		addVertCount(this.aliasCurVertex);
+		addVertCount(this.curVertex);
 		
 		return vertexMap;
 	}
@@ -278,12 +301,37 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 	 * @return
 	 */
 	private String createQueryString(String selector) {
-		StringBuilder sql = new StringBuilder("SELECT DISTINCT ");
-		sql.append(selector).append(" ");
-		sql.append(" FROM ").append(frame.getTableName());
-		String sqlFilter = frame.getSqlFilter();
-		if(sqlFilter != null && !sqlFilter.isEmpty()) {
-			sql.append(frame.getSqlFilter());
+		StringBuilder sql = new StringBuilder();
+		if(this.aliasMap.containsKey(selector)) {
+			sql.append("SELECT DISTINCT ");
+			Set<String> actualSelectors = aliasMap.get(selector);
+			boolean first = true;
+			for(String select : actualSelectors) {
+				if(first) {
+					sql.append(select).append(" AS ").append(selector)
+						.append(" FROM ").append(frame.getTableName());
+					String sqlFilter = frame.getSqlFilter();
+					if(sqlFilter != null && !sqlFilter.isEmpty()) {
+						sql.append(frame.getSqlFilter());
+					}
+					first = false;
+				} else {
+					sql.append(" UNION SELECT DISTINCT ").append(select).append(" AS ").append(selector)
+						.append(" FROM ").append(frame.getTableName());
+					String sqlFilter = frame.getSqlFilter();
+					if(sqlFilter != null && !sqlFilter.isEmpty()) {
+						sql.append(frame.getSqlFilter());
+					}
+				}
+			}
+		} else {
+			sql.append("SELECT DISTINCT ");
+			sql.append(selector).append(" ");
+			sql.append(" FROM ").append(frame.getTableName());
+			String sqlFilter = frame.getSqlFilter();
+			if(sqlFilter != null && !sqlFilter.isEmpty()) {
+				sql.append(frame.getSqlFilter());
+			}
 		}
 		return sql.toString();
 	}
