@@ -1,12 +1,9 @@
 package prerna.sablecc2.reactor;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -69,45 +66,9 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 
 	@Override
 	public void updatePlan() {
-//		List<NounMetadata> inputs = getInputs();
-//		if(inputs != null) {
-//			if(inputs.size() == 1) {
-//				// ignore
-//				// this is like x = x... not really useful
-//			} else if(isSimpleAssignment(this.originalSignature)) {
-//				// we cannot have a cycle in the plan.. must be a DAG
-////				throw new IllegalArgumentException("Cannot add cycle dependencies in plan.");
-//				System.out.println(this.originalSignature);
-//				return;
-//			} else {
-//				super.updatePlan();
-//			}
-//		} else {
-//			super.updatePlan();
-//		}
 		super.updatePlan();
-		
-		//Only the assignment reactor pushes its java signature to the planner since that is the only one useful for creating a runtime class
-		//Ideally we should have a way to push the java signature only when we know we will use the planner for java methods
 		this.planner.addProperty(signature, "JAVA_SIGNATURE", getJavaSignature());
-//		this.planner.addProperty(signature, "REACTOR_TYPE", this.reactorName);
-		
-		//so for each variable we need to know the static type of that variable
-		//We track the static type by getting the return type 
-		if(this.planner.hasProperty("MAIN_MAP", "MAIN_MAP")) {
-			HashMap<String, String> map = (HashMap<String, String>)this.planner.getProperty("MAIN_MAP", "MAIN_MAP");
-			String returnType = getReturnType();
-			if(!returnType.equals(operationName)) {
-				map.put(operationName, getReturnType());
-			}
-		} else {
-			Map<String, String> mainMap = new HashMap<>();
-			String returnType = getReturnType();
-			if(!returnType.equals(operationName)) {
-				mainMap.put(operationName, getReturnType());
-				this.planner.addProperty("MAIN_MAP", "MAIN_MAP", mainMap);
-			}
-		}
+		this.planner.addProperty(signature, "REACTOR_TYPE", this.reactorName);
 	}
 
 	@Override
@@ -151,35 +112,10 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 	}
 	@Override
 	public String getReturnType() {
-		//Get the first (should be only) java input
-		NounMetadata javaNoun = getJavaInputs().get(0);
-		Object returnObj = javaNoun.getValue();
-		
-		//if its a java executable then we return the return type
+		Object returnObj = getJavaInputs().get(0).getValue();
 		if(returnObj instanceof JavaExecutable) {
 			return ((JavaExecutable)returnObj).getReturnType();
 		}
-		
-		//otherwise if its a number, string, column we just return that
-		if(javaNoun.getNounName() == PkslDataTypes.CONST_DECIMAL) {
-			return "double";
-		}
-		
-		if(javaNoun.getNounName() == PkslDataTypes.CONST_INT) {
-			return "double";
-		}
-		
-		if(javaNoun.getNounName() == PkslDataTypes.CONST_STRING) {
-			return "String";
-		}
-		
-		if(javaNoun.getNounName() == PkslDataTypes.BOOLEAN) {
-			return "boolean";
-		}
-		
-		//this should be a column or unimplement java executable lambda
-		//if its a column we are covered
-		//if its an unimplemented java executable lambda we are in trouble
 		return returnObj.toString();
 	}
 	
