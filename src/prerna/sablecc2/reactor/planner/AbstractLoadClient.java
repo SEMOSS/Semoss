@@ -1,9 +1,7 @@
 package prerna.sablecc2.reactor.planner;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import prerna.sablecc2.PkslUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -20,6 +18,7 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	public static final String VALUE_NOUN = "value";
 	public static final String SEPARATOR_NOUN = "separator";
 	public static final String TYPE_NOUN = "type";
+	public static final String RETURNTYPE_NOUN = "returnType";
 	
 	/**
 	 * 
@@ -48,40 +47,10 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	 */
 	protected void addVariable(PKSLPlanner planner, String assignment, Object value) {
 		if(assignment.equals(value.toString())) return;
+		if(assignment.equals(value.toString())) return;
 		
 		NounMetadata noun = PkslUtility.getNoun(value);
 		planner.addVariable(assignment, noun);
-		if(planner.hasProperty("MAIN_MAP", "MAIN_MAP")) {
-			HashMap<String, String> map = (HashMap<String, String>)planner.getProperty("MAIN_MAP", "MAIN_MAP");
-			
-			PkslDataTypes data = noun.getNounName();
-			if(data == PkslDataTypes.CONST_DECIMAL) {
-				map.put(assignment, "double");
-			} else if(data == PkslDataTypes.CONST_INT) {
-				map.put(assignment, "double");
-			} else if(data == PkslDataTypes.COLUMN) {
-				map.put(assignment, data.toString());
-			} else if(data == PkslDataTypes.BOOLEAN) {
-				map.put(assignment, "boolean");
-			} else if(data == PkslDataTypes.CONST_STRING) {
-				map.put(assignment, "String");
-			}
-		} else {
-			Map<String, String> mainMap = new HashMap<>();
-			PkslDataTypes data = noun.getNounName();
-			if(data == PkslDataTypes.CONST_DECIMAL) {
-				mainMap.put(assignment, "double");
-			} else if(data == PkslDataTypes.CONST_INT) {
-				mainMap.put(assignment, "double");
-			} else if(data == PkslDataTypes.COLUMN) {
-				mainMap.put(assignment, data.toString());
-			} else if(data == PkslDataTypes.BOOLEAN) {
-				mainMap.put(assignment, "boolean");
-			} else if(data == PkslDataTypes.CONST_STRING) {
-				mainMap.put(assignment, "String");
-			}
-			planner.addProperty("MAIN_MAP", "MAIN_MAP", mainMap);
-		}
 	}
 	
 	/**
@@ -101,7 +70,10 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 		return "formula".equalsIgnoreCase(value);
 	}
 
-	
+	protected String getReturnType(Object[] values, int returnTypeIndex) {
+		// TODO Auto-generated method stub
+		return values[returnTypeIndex].toString().trim();
+	}
 	/**
 	 * 
 	 * @param values
@@ -198,5 +170,16 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 		}
 		int typeIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(iteratorHeaders, typeName);
 		return typeIndex;
+	}
+	
+	protected int getReturnTypeIndex(String[] iteratorHeaders) {
+		String typeName;
+		if(this.store.getNounKeys().contains(RETURNTYPE_NOUN)) {
+			typeName = this.store.getNoun(RETURNTYPE_NOUN).get(0).toString();
+		} else {
+			typeName = "ReturnType";
+		}
+		int returnTypeIndex = ArrayUtilityMethods.arrayContainsValueAtIndexIgnoreCase(iteratorHeaders, typeName);
+		return returnTypeIndex;
 	}
 }
