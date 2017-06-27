@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.storage;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -32,33 +33,34 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	 */
 	@Override
 	public NounMetadata execute() {
-//		InMemStore storeVariable = getStore();
 		PKSLPlanner planner = getPlanner();
 		BaseJavaRuntime javaRunClass = (BaseJavaRuntime) planner.getProperty("RUN_CLASS", "RUN_CLASS");
 		javaRunClass.execute();
 		// for each scenario to hold the subportion
 		// of data to send back
 		InMemStore retStoreVar = new VarStore();
-//		try {
-//			retStoreVar = storeVariable.getClass().newInstance();
-//		} catch (InstantiationException | IllegalAccessException e) {
-//			e.printStackTrace();
-//		}
 
 		GenRowStruct grs = this.store.getNoun(KEY_NOUN);
 		int numGrs = grs.size();
 
+		// go through and get all the aliases the FE want
+		List<String> aliases = new Vector<String>();
 		for (int i = 0; i < numGrs; i++) {
 			String key = grs.get(i).toString();
-			// we will append the subset of info into it
-			Object value =  javaRunClass.getVariables().get(key);
-			retStoreVar.put(key, new NounMetadata(value, PkslDataTypes.CONST_STRING));
+			aliases.add(key);
 		}
-		for(Object objKey : retStoreVar.getKeys()){
-			System.out.println(objKey.toString()+" : "+ retStoreVar.get(objKey).toString());
+		
+		// convert the alias to the hashcode which was used in execution
+		Map<String, String> aliasHashMap = TaxUtility.mapAliasToHash(aliases);
+		
+		for(String alias : aliasHashMap.keySet()) {
+			String hashcode = aliasHashMap.get(alias);
+			Object value =  javaRunClass.getVariables().get(hashcode);
+			// return alias to the value associated with the hash
+			retStoreVar.put(alias, new NounMetadata(value, PkslDataTypes.CONST_STRING));
 		}
+		
 		return new NounMetadata(retStoreVar, PkslDataTypes.IN_MEM_STORE);
-
 	}
 
 	private PKSLPlanner getPlanner() {
@@ -78,27 +80,4 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 		outputs.add(output);
 		return outputs;
 	}
-	
-//	private InMemStore getStore() {
-//		// could be passed directly in the method -> as store
-//		GenRowStruct storeGrs = this.store.getNoun(STORE_NOUN);
-//		if (storeGrs != null) {
-//			return (InMemStore) storeGrs.get(0);
-//		}
-//
-//		// could be passed as a $RESULT -> as STORE
-//		storeGrs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
-//		if (storeGrs != null) {
-//			return (InMemStore) storeGrs.get(0);
-//		}
-//
-//		// see if there is anything in curRow with store
-//		List<NounMetadata> passedResults = this.curRow.getNounsOfType(PkslDataTypes.IN_MEM_STORE);
-//		if (passedResults != null && !passedResults.isEmpty()) {
-//			return (InMemStore) passedResults.get(0).getValue();
-//		}
-//
-//		else
-//			return new TaxMapStore();
-//	}
 }
