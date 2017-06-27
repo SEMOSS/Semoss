@@ -1,14 +1,15 @@
 package prerna.sablecc2.reactor.planner.graph;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.storm.shade.com.google.common.collect.Lists;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.om.GenRowStruct;
@@ -20,189 +21,180 @@ import prerna.sablecc2.reactor.PKSLPlanner;
 public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(ExecuteJavaGraphPlannerReactor.class.getName());
-	
+
 	@Override
-	public NounMetadata execute()
-	{
+	public NounMetadata execute() {
 		long start = System.currentTimeMillis();
-		
+
 		PKSLPlanner planner = getPlanner();
-		List<String> pksls = new Vector<String>();
+		PKSLPlanner basePlanner = getBasePlanner();
+		List<String> pksls = new LinkedList<String>();
+		Class superClass = null;
+		Map<String, String> mainMap = (Map) planner.getProperty("MAIN_MAP", "MAIN_MAP");
+		if (basePlanner != null) {
+			// We are excuting a plan based on a base plan
+			// 1. copy the Main Map to Base Map
+			// 2. Get the super class from the base plan
+			superClass = basePlanner.getProperty("RUN_CLASS", "RUN_CLASS").getClass();
+			Map<String, String> baseMap = new HashMap<String, String>(
+					(HashMap<String, String>) basePlanner.getProperty("MAIN_MAP", "MAIN_MAP"));
+			planner.addProperty("BASE_MAP", "BASE_MAP", baseMap);
+
+			// Exclude nodes already in base plan
+			mainMap.keySet().removeAll(baseMap.keySet());
+		}
 
 		// using the root vertices
 		// iterate down all the other vertices and add the signatures
 		// for the desired travels in the appropriate order
 		// note: this is adding to the list of undefined variables
-		// calculated at beginning of class 
+		// calculated at beginning of class
 		traverseDownstreamVertsProcessor(planner, pksls);
-		
-		//now we can the pksls
-		
-		Map<String, String> mainMap = (Map)planner.getProperty("MAIN_MAP", "MAIN_MAP");
-		
-		List<String> fieldsList = buildFields(mainMap, planner);
-		
+
+		// now we can the pksls
+
 		long startTime = System.currentTimeMillis();
 		RuntimeJavaClassBuilder builder = new RuntimeJavaClassBuilder();
-		builder.addEquations(pksls); //add the java signatures
-		builder.addFields(fieldsList); //add the class declarations and instantiations
+		List<String> fieldsList = buildFields(mainMap, planner, builder);
+		superClass = buildSuperClassWithOnlyFields(fieldsList, superClass);
+		builder.addEquations(pksls);
+		builder.addFields(fieldsList);
+		builder.setSuperClass(superClass);
 		BaseJavaRuntime javaClass = builder.buildClass();
-		javaClass.execute();
-		Map<String, Object> map = javaClass.getVariables(); //these are the results of execution
-		
-//		for(String key : map.keySet()) {
-//			System.out.println(key+":::"+map.get(key));
-//		}
-		
-		long end = System.currentTimeMillis();
-		LOGGER.info("****************    END RUN PLANNER "+(end - start)+"ms      *************************");
-		
-		return new NounMetadata(javaClass, PkslDataTypes.PLANNER); //do we want to return the java class or the planner with extracted variables?
+		long endTime = System.currentTimeMillis();
+		LOGGER.info("****************    Build Class " + (endTime - startTime) + "ms      *************************");
+//		javaClass.execute();
+		// Map<String, Object> map = javaClass.getVariables();
+		// for(String key : map.keySet()) {
+		// System.out.println(key+":::"+map.get(key));
+		// }
+
+//		long end = System.currentTimeMillis();
+//		LOGGER.info("****************    END RUN PLANNER " + (end - start) + "ms      *************************");
+
+		planner.addProperty("RUN_CLASS", "RUN_CLASS", javaClass);
+		return new NounMetadata(planner, PkslDataTypes.PLANNER);
 	}
-	
+
 	private PKSLPlanner getPlanner() {
 		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
 		PKSLPlanner planner = null;
-		if(allNouns != null) {
+		if (allNouns != null) {
 			planner = (PKSLPlanner) allNouns.get(0);
 			return planner;
 		} else {
 			return this.planner;
 		}
 	}
-	
-	/**
-	 * 
-	 * @param mainMap
-	 * @param planner
-	 * @return
-	 * 
-	 * This method is used to build the class variables of the java class
-	 * i.e. String x = "HALLOW", double y = 0.0;
-	 */
-	private List<String> buildFields(Map<String, String> mainMap, PKSLPlanner planner) {
-		List<String> fields = new ArrayList<>(); //The list of assignments
-		Set<String> assignedFields = new HashSet<>(); //I need to keep track of which fields i have already declared so i don't do them twice (java compilation error)
-		
-		for(String assignment : mainMap.keySet()) {
-			String value = mainMap.get(assignment);
-			
-			boolean isNumber = isNumber(value);
-			
-			while(!isNumber && value != null && (!value.equals("double") && !value.equals("boolean") && !value.equals("String") && !value.equals("int"))) {
-				value = mainMap.get(value);
+
+	private Class buildSuperClassWithOnlyFields(List<String> fieldsList, Class superClass) {
+		for (List<String> partList : Lists.partition(fieldsList, fieldsList.size()/2)) {
+			RuntimeJavaClassBuilder superClassBuilder = new RuntimeJavaClassBuilder();
+			superClassBuilder.addFields(partList);
+			if(superClass != null){
+				superClassBuilder.setSuperClass(superClass);
 			}
-			
-			if(value == null) {
+			superClass = superClassBuilder.buildSimpleClass().getClass();
+		}
+		fieldsList.clear();
+		return superClass;
+	}
+
+	private List<String> buildFields(Map<String, String> mainMap, PKSLPlanner planner,
+			RuntimeJavaClassBuilder builder) {
+		List<String> fields = new LinkedList<>();
+		Set<String> assignedFields = new HashSet<>();
+		for (String assignment : planner.getVariables()) {
+			if (!assignedFields.contains(assignment)) {
 				NounMetadata noun = planner.getVariableValue(assignment);
-				if(noun != null) {
+				if (noun != null) {
 					PkslDataTypes nounType = noun.getNounName();
-					String field = "";
 					Object nounValue = noun.getValue();
-					if(nounType == PkslDataTypes.CONST_DECIMAL || nounType == PkslDataTypes.CONST_INT) {
-						field = "double "+assignment+" = "+nounValue+";";
-					} else if(nounType == PkslDataTypes.CONST_STRING) {
-						field = "String "+assignment+" = \""+nounValue+"\";";
-					} else if(nounType == PkslDataTypes.BOOLEAN) {
-						field = "boolean "+assignment+" = "+nounValue+";";
+					String field = "";
+					// String addToMapString = "{a(\"" + assignment + "\"," +
+					// assignment + ");}";
+					boolean isValidTypeFlag = false;
+					if (nounType == PkslDataTypes.CONST_DECIMAL || nounType == PkslDataTypes.CONST_INT) {
+						field = "public double " + assignment + " = " + nounValue + ";";
+						isValidTypeFlag = true;
+					} else if (nounType == PkslDataTypes.CONST_STRING) {
+						field = "public String " + assignment + " = \"" + nounValue + "\";";
+						isValidTypeFlag = true;
+					} else if (nounType == PkslDataTypes.BOOLEAN) {
+						field = "public boolean " + assignment + " = " + nounValue + ";";
+						isValidTypeFlag = true;
 					}
-					
-					if(!assignedFields.contains(assignment)) {
+					if (isValidTypeFlag) {
 						fields.add(field);
 						assignedFields.add(assignment);
 					}
-					
-				} else {
-					
+
 				}
-			} else if(isNumber) { 
-				String field = "public double "+" "+assignment + " = "+value+";";
-				if(!assignedFields.contains(assignment)) {
-					fields.add(field);
-					assignedFields.add(assignment);
+			}
+
+		}
+
+		for (String assignment : mainMap.keySet()) {
+			if (!assignedFields.contains(assignment)) {
+				String value = mainMap.get(assignment);
+				String field = "public " + value + " " + assignment;
+				boolean isValidType = false;
+				if (value.equals("double") || value.equals("int")) {
+					field += " = 0.0;";
+					isValidType = true;
+				} else if (value.equals("String")) {
+					field += " = \"\";";
+					isValidType = true;
+				} else if (value.equals("boolean")) {
+					field += " = true;\n";
+					isValidType = true;
 				}
-			} else {
-				String field = "public "+value+" "+assignment;
-				if(value.equals("double") || value.equals("int")) {
-					if(planner.hasVariable(assignment)) {
-						field += " = " + planner.getVariableValue(assignment).getValue()+";";
-					} else {
-						field += " = 0.0;";
-					}
-				} else if(value.equals("String")) {
-					if(planner.hasVariable(assignment)) {
-						field += " = \""+planner.getVariableValue(assignment).getValue()+"\";";
-					} else {
-						field += " = \"\";";
-					}
-				} else if(value.equals("boolean")) {
-					if(planner.hasVariable(assignment)) {
-						field += " = " + planner.getVariableValue(assignment).getValue().toString().toLowerCase()+";";
-					} else {
-						field += " = true;";
-					}
-				}
-				
-				if(!assignedFields.contains(assignment)) {
+				if (isValidType) {
 					fields.add(field);
 					assignedFields.add(assignment);
 				}
 			}
 		}
-		
-		for(String assignment : planner.getVariables()) {
-			NounMetadata noun = planner.getVariableValue(assignment);
-			if(noun != null) {
-				PkslDataTypes nounType = noun.getNounName();
-				Object nounValue = noun.getValue();
-				String field = "";
-				if(nounType == PkslDataTypes.CONST_DECIMAL || nounType == PkslDataTypes.CONST_INT) {
-					field = "double "+assignment+" = "+nounValue+";";
-				} else if(nounType == PkslDataTypes.CONST_STRING) {
-					field = "String "+assignment+" = \""+nounValue+"\";";
-				} else if(nounType == PkslDataTypes.BOOLEAN) {
-					field = "boolean "+assignment+" = "+nounValue+";";
-				}
-				
-				if(!assignedFields.contains(assignment)) {
-					fields.add(field);
-					assignedFields.add(assignment);
-				}
-			} else {
-				
-			}
-		}
+		builder.variables = assignedFields;
 		return fields;
 	}
-		
-	private boolean isNumber(String value) {
-		try {
-			double doub = Double.parseDouble(value);
-			return true;
-		} catch(Exception e) {
-			return false;
-		}
-	}
-	
+
 	/**
-	 * We want to override the pksl that is extracted from the vertex so that we grab the java string instead of the pksl string
+	 * We want to override the pksl that is extracted from the vertex so that we
+	 * grab the java string instead of the pksl string
 	 */
 	@Override
 	protected String getPksl(Vertex vert) {
-		
-		//get the java signatures
+		// get the java signatures
 		try {
-			if(vert.property("JAVA_SIGNATURE") != null) {
+			if (vert.property("JAVA_SIGNATURE") != null) {
 				String pkslOperation = vert.value("JAVA_SIGNATURE");
-				if(pkslOperation.isEmpty()) {
+				if (pkslOperation.isEmpty()) {
 					return pkslOperation;
-				}
-				else return pkslOperation+";";
+				} else
+					return pkslOperation + ";";
 			}
 			return "";
-		} catch(Exception e) {
+		} catch (Exception e) {
 			return "";
 		}
+	}
+
+	/**
+	 * Get the Base Plan passed as the second Parameter
+	 * 
+	 * @return
+	 */
+	protected PKSLPlanner getBasePlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
+		if (allNouns != null && allNouns.size() > 1) {
+			Object secondParam = allNouns.get(1);
+			if (secondParam != null) {
+				PKSLPlanner basePlan = (PKSLPlanner) secondParam;
+				return basePlan;
+			}
+		}
+		return null;
 	}
 
 }
