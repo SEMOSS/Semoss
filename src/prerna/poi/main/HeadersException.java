@@ -308,6 +308,50 @@ public class HeadersException {
 		return origHeader;
 	}
 	
+	public String recursivelyFixHeaders(String origHeader, String[] currCleanHeaders) {
+		boolean isAltered = false;
+		
+		/*
+		 * For the following 3 checks
+		 * Just perform a single fix within each block
+		 * And let the recursion deal with having to fix an issue that is arising
+		 * due to a previous fix
+		 * i.e. you made a header no longer illegal but now it is a duplicate, recurssion of
+		 * this method will deal with that
+		 */
+		
+		// first, clean illegal characters
+		if(containsIllegalCharacter(origHeader)) {
+			origHeader = removeIllegalCharacters(origHeader);
+			isAltered = true;
+		}
+		
+		// second, check if header is some kind of reserved word
+		if(isIllegalHeader(origHeader)) {
+			origHeader = appendNumOntoHeader(origHeader);
+			isAltered = true;
+		}
+		
+		// third, check for duplications
+		for(String currHead : currCleanHeaders) {
+			if(origHeader.equalsIgnoreCase(currHead)) {
+				origHeader = appendNumOntoHeader(origHeader);
+				isAltered = true;
+				break;
+			}
+		}
+		
+		// if we did alter the string at any point
+		// we need to continue and re-run these checks again
+		// until we have gone through without altering the string
+		// and return the string
+		if(isAltered) {
+			origHeader = recursivelyFixHeaders(origHeader, currCleanHeaders);
+		}
+		
+		return origHeader;
+	}
+	
 	public String appendNumOntoHeader(String origHeader) {
 		int num = 0;
 		if(origHeader.matches(".*_\\d+")) {
