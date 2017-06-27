@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.planner.graph;
 
+import java.util.HashMap;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -20,18 +22,27 @@ public class LoadGraphClient extends AbstractLoadClient {
 		// generate our lazy translation
 		// which only ingests the routines
 		// without executing
-		LazyTranslation plannerT = new LazyTranslation();
 		
-		// get the iterator we are loading
+		LazyTranslation plannerT = new LazyTranslation();
+				// get the iterator we are loading
 		IRawSelectWrapper iterator = (IRawSelectWrapper) getIterator();
 		String[] headers = iterator.getDisplayVariables();
 		
 		int[] assignmentIndices = getAssignmentIndices(headers);
 		int valIndex = getValueIndex(headers);
 		int typeIndex = getTypeIndex(headers);
+		int returnTypeIndex = getReturnTypeIndex(headers);
 		String separator = getSeparator();
-
+		if(!plannerT.planner.hasProperty("MAIN_MAP", "MAIN_MAP")){
+			HashMap<String, String> map = new HashMap<String, String>();
+			plannerT.planner.addProperty("MAIN_MAP", "MAIN_MAP", map);
+		}
+		HashMap<String, String> mainMap = (HashMap<String, String> )plannerT.planner.getProperty("MAIN_MAP", "MAIN_MAP");
+		iterator = (IRawSelectWrapper) getIterator();
+		int count = 0;
 		while(iterator.hasNext()) {
+//			System.out.println(count);
+//			count++;
 			IHeadersDataRow nextData = iterator.next();
 			Object[] values = nextData.getValues();
 			
@@ -39,8 +50,9 @@ public class LoadGraphClient extends AbstractLoadClient {
 			String assignment = getAssignment(values, assignmentIndices, separator);
 			
 			//grab the value we are assigning to that variable/alias
-			String value = getValue(values, valIndex);
-			
+			String value = getValue(values, valIndex);	
+			String returnType = getReturnType(values, returnTypeIndex);
+			mainMap.put(assignment, returnType);
 			//if the value is a formula add to the pksl planner
 			if(isFormula(values, typeIndex)) {
 				String pkslString = generatePKSLString(assignment, value);
@@ -51,16 +63,11 @@ public class LoadGraphClient extends AbstractLoadClient {
 				}
 			}
 			//else we just want to add the value of the constant/decimal directly to the planner
-			else {
-				
-				//hardcoded this...we don't want to add this because it is useless
-				if(!value.startsWith("\"CY")) {
+			else{
 					addVariable(plannerT.planner, assignment, value);
-				}
 			}
-		}
 		
-		addHardCodedValues(plannerT);
+		}
 		
 		// grab the planner from the new translation
 //		LOGGER.info("****************    "+total+"      *************************");
@@ -72,8 +79,4 @@ public class LoadGraphClient extends AbstractLoadClient {
 		return plannerT.planner;
 	}
 	
-	private void addHardCodedValues(LazyTranslation plannerT) {
-//		addVariable(plannerT.planner, "aBEK", "0.0"); //this is only assigned to itself
-//		addVariable(plannerT.planner, "a0G", "0.0");
-	}
 }
