@@ -5,7 +5,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImportOptions {
@@ -36,6 +35,8 @@ public class ImportOptions {
 		DB_DRIVER_TYPE, 		// should point to SQLQueryUtil.DB_TYPE - only valid for RDBMS where we need to specify the type
 		ALLOW_DUPLICATES, 		// should point to boolean - only valid for RDBMS where we should remove duplicate values in tables
 		AUTO_LOAD, 				// should point to boolean - determine if we should load the database directly or shut it down and have
+		CLEAN_STRING, 			// TODO: only used by flat upload at the moment -> control if we should clean string values upon insertion
+		
 								// have the smss watcher find the engine and load it
 		DEFINED_METAMODEL,		// should point to Hashtable<String, String>[] - only valid for csv upload
 		DEFINED_PROPERTY_FILES,	// should be a ";" delimited string array containing the full path to the files
@@ -409,6 +410,19 @@ public class ImportOptions {
 	
 	public void setCreateIndexes(boolean createIndexes) {
 		thisMap.put(IMPORT_OPTIONS.CREATE_INDEXES, createIndexes);
+	}
+	
+	/**
+	 * TODO: only used by flat upload
+	 * Get whether or not to clean string inputs before 
+	 * @return
+	 */
+	public boolean getCleanString() {
+		return (boolean) thisMap.get(IMPORT_OPTIONS.CLEAN_STRING);
+	}
+	
+	public void setCleanString(boolean cleanString) {
+		thisMap.put(IMPORT_OPTIONS.CLEAN_STRING, cleanString);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////
