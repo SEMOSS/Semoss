@@ -138,8 +138,7 @@ public class GreedyTranslation extends LazyTranslation {
 	    	try {
 	    		output = curReactor.execute();
 	    	} catch(Exception e) {
-//	    		e.printStackTrace();
-	    		System.out.println(e.getMessage());
+	    		e.printStackTrace();
 	    		//should we make an error noun?
 	    	}
 	    	this.planner = ((AbstractReactor)curReactor).planner;

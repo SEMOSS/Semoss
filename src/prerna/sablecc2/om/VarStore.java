@@ -8,6 +8,7 @@ import java.util.Set;
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
 
 public class VarStore implements InMemStore<String, NounMetadata> {
 
@@ -79,12 +80,13 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	@Override
 	public Iterator<IHeadersDataRow> getIterator() {
-		return null;
+		return new MapHeaderDataRowIterator(this);
 	}
 
 	@Override
 	public Iterator<IHeadersDataRow> getIterator(QueryStruct2 qs) {
-		return null;
+		//TODO: figure out how to use a qs with this
+		return new MapHeaderDataRowIterator(this);
 	}
 
 	@Override
