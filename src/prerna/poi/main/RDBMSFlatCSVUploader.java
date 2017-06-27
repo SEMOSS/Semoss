@@ -47,6 +47,9 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	// used as a default for the unique row id
 	private final String BASE_PRIM_KEY = "_UNIQUE_ROW_ID";
 	
+	// cases when we do not want to perform any cleaning on the values
+	private boolean cleanString = true;
+	
 	///////////////////////////////////////// main upload methods //////////////////////////////////////////
 	
 	/**
@@ -62,7 +65,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 * @throws IOException 
 	 */
 	public IEngine importFileWithOutConnection(ImportOptions options) throws IOException {
-		
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
 		String fileLocations = options.getFileLocations();
@@ -70,8 +72,10 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String owlPath = options.getOwlFileLocation();		
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
-
+		
 		boolean error = false;
+
+		cleanString = options.getCleanString();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
@@ -141,7 +145,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	 * @throws IOException 
 	 */
 	public void importFileWithConnection(ImportOptions options) throws IOException {
-		
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
 		String fileLocations = options.getFileLocations();
@@ -152,6 +155,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		
 		boolean error = false;
 		
+		cleanString = options.getCleanString();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
@@ -637,8 +641,12 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 							ps.setObject(colIndex+1, null);
 						}
 					} else {
-						String value = Utility.cleanString(nextRow[colIndex], false);
-						ps.setString(colIndex+1, value + "");
+						if(cleanString) {
+							String value = Utility.cleanString(nextRow[colIndex], false);
+							ps.setString(colIndex+1, value + "");
+						} else {
+							ps.setString(colIndex+1, nextRow[colIndex] + "");
+						}
 					}
 				}
 				// add it
@@ -827,6 +835,10 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		//TODO: need to expand this to include other things.... too lazy to do this right now
 		
 		return false;
+	}
+	
+	public void setCleanString(boolean cleanString) {
+		this.cleanString = cleanString;
 	}
 	
 	private void addIndexes() {
