@@ -1350,14 +1350,23 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 
 	protected void renameColumn(String frameName, String curColName, String newColName) {
-		String script = "names(" + frameName + ")[names(" + frameName + ") == \"" + curColName + "\"] = \"" + newColName
+		String validNewHeader = getCleanNewHeader(frameName, newColName);
+		String script = "names(" + frameName + ")[names(" + frameName + ") == \"" + curColName + "\"] = \"" + validNewHeader
 				+ "\"";
 		System.out.println("Running script : " + script);
 		eval(script);
-		System.out.println("Successfully modified name = " + curColName + " to now be " + newColName);
+		System.out.println("Successfully modified name = " + curColName + " to now be " + validNewHeader);
 		if (checkRTableModified(frameName)) {
-			this.dataframe.modifyColumnName(curColName, newColName);
+			this.dataframe.modifyColumnName(curColName, validNewHeader);
 		}
+	}
+	
+	private String getCleanNewHeader(String frameName, String newColName) {
+		// make the new column name valid
+		HeadersException headerChecker = HeadersException.getInstance();
+		String[] currentColumnNames = getColNames(frameName);
+		String validNewHeader = headerChecker.recursivelyFixHeaders(newColName, currentColumnNames);
+		return validNewHeader;
 	}
 
 	protected void renameColumn(String[] oldNames, String[] newColNames) {
@@ -1406,7 +1415,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			}
 		}
 	}
-
+	
 	/**
 	 * Modify the specific cell value in the data frame
 	 * 
