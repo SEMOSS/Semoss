@@ -22,12 +22,12 @@ public class LoadGraphClient extends AbstractLoadClient {
 		// generate our lazy translation
 		// which only ingests the routines
 		// without executing
-		
+
 		LazyTranslation plannerT = new LazyTranslation();
-				// get the iterator we are loading
+		// get the iterator we are loading
 		IRawSelectWrapper iterator = (IRawSelectWrapper) getIterator();
 		String[] headers = iterator.getDisplayVariables();
-		
+
 		int[] assignmentIndices = getAssignmentIndices(headers);
 		int valIndex = getValueIndex(headers);
 		int typeIndex = getTypeIndex(headers);
@@ -41,14 +41,14 @@ public class LoadGraphClient extends AbstractLoadClient {
 		iterator = (IRawSelectWrapper) getIterator();
 		int count = 0;
 		while(iterator.hasNext()) {
-//			System.out.println(count);
-//			count++;
+			//			System.out.println(count);
+			//			count++;
 			IHeadersDataRow nextData = iterator.next();
 			Object[] values = nextData.getValues();
-			
+
 			//grab the assignment variable, or the alias
 			String assignment = getAssignment(values, assignmentIndices, separator);
-			
+
 			//grab the value we are assigning to that variable/alias
 			String value = getValue(values, valIndex);	
 			String returnType = getReturnType(values, returnTypeIndex);
@@ -64,19 +64,19 @@ public class LoadGraphClient extends AbstractLoadClient {
 			}
 			//else we just want to add the value of the constant/decimal directly to the planner
 			else{
-					addVariable(plannerT.planner, assignment, value);
+				addVariable(plannerT.planner, assignment, value);
 			}
-		
+
 		}
-		
+
 		// grab the planner from the new translation
-//		LOGGER.info("****************    "+total+"      *************************");
-//		LOGGER.info("****************    "+error+"      *************************");
+		//		LOGGER.info("****************    "+total+"      *************************");
+		//		LOGGER.info("****************    "+error+"      *************************");
 
 		long end = System.currentTimeMillis();
 		LOGGER.info("****************    END LOAD CLIENT "+(end - start)+"ms      *************************");
 
 		return plannerT.planner;
 	}
-	
+
 }

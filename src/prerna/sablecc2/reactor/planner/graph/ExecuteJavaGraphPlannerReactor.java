@@ -29,15 +29,14 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		PKSLPlanner planner = getPlanner();
 		PKSLPlanner basePlanner = getBasePlanner();
 		List<String> pksls = new LinkedList<String>();
-		Class superClass = null;
+		Class<BaseJavaRuntime> superClass = null;
 		Map<String, String> mainMap = (Map) planner.getProperty("MAIN_MAP", "MAIN_MAP");
 		if (basePlanner != null) {
 			// We are excuting a plan based on a base plan
 			// 1. copy the Main Map to Base Map
 			// 2. Get the super class from the base plan
-			superClass = basePlanner.getProperty("RUN_CLASS", "RUN_CLASS").getClass();
-			Map<String, String> baseMap = new HashMap<String, String>(
-					(HashMap<String, String>) basePlanner.getProperty("MAIN_MAP", "MAIN_MAP"));
+			superClass = (Class<BaseJavaRuntime>) basePlanner.getProperty("RUN_CLASS", "RUN_CLASS");
+			Map<String, String> baseMap = new HashMap<String, String>((HashMap<String, String>) basePlanner.getProperty("MAIN_MAP", "MAIN_MAP"));
 			planner.addProperty("BASE_MAP", "BASE_MAP", baseMap);
 
 			// Exclude nodes already in base plan
@@ -53,24 +52,36 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 
 		// now we can the pksls
 
-		long startTime = System.currentTimeMillis();
 		RuntimeJavaClassBuilder builder = new RuntimeJavaClassBuilder();
+		long startTime = System.currentTimeMillis();
 		List<String> fieldsList = buildFields(mainMap, planner, builder);
-		superClass = buildSuperClassWithOnlyFields(fieldsList, superClass);
-		builder.addEquations(pksls);
-		builder.addFields(fieldsList);
-		builder.setSuperClass(superClass);
-		BaseJavaRuntime javaClass = builder.buildClass();
 		long endTime = System.currentTimeMillis();
-		LOGGER.info("****************    Build Class " + (endTime - startTime) + "ms      *************************");
-//		javaClass.execute();
-		// Map<String, Object> map = javaClass.getVariables();
-		// for(String key : map.keySet()) {
-		// System.out.println(key+":::"+map.get(key));
-		// }
+		LOGGER.info("****************    Build fields " + (endTime - startTime) + "ms      *************************");
 
-//		long end = System.currentTimeMillis();
-//		LOGGER.info("****************    END RUN PLANNER " + (end - start) + "ms      *************************");
+		startTime = System.currentTimeMillis();
+		superClass = buildSuperClassWithOnlyFields(fieldsList, superClass);
+		endTime = System.currentTimeMillis();
+		LOGGER.info("****************    Build Super Clases with Fields " + (endTime - startTime) + "ms      *************************");
+		
+		startTime = System.currentTimeMillis();
+		builder.addEquations(pksls);
+		endTime = System.currentTimeMillis();
+		LOGGER.info("****************    Add equations " + (endTime - startTime) + "ms      *************************");
+
+		startTime = System.currentTimeMillis();
+		builder.addFields(fieldsList);
+		endTime = System.currentTimeMillis();
+		LOGGER.info("****************    Add equations " + (endTime - startTime) + "ms      *************************");
+
+		startTime = System.currentTimeMillis();
+		builder.setSuperClass(superClass);
+		endTime = System.currentTimeMillis();
+		LOGGER.info("****************    Set super " + (endTime - startTime) + "ms      *************************");
+		
+		startTime = System.currentTimeMillis();
+		Class<BaseJavaRuntime> javaClass = builder.generateClass();
+		endTime = System.currentTimeMillis();
+		LOGGER.info("****************    Build Class " + (endTime - startTime) + "ms      *************************");
 
 		planner.addProperty("RUN_CLASS", "RUN_CLASS", javaClass);
 		return new NounMetadata(planner, PkslDataTypes.PLANNER);
@@ -87,14 +98,14 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		}
 	}
 
-	private Class buildSuperClassWithOnlyFields(List<String> fieldsList, Class superClass) {
+	private Class<BaseJavaRuntime> buildSuperClassWithOnlyFields(List<String> fieldsList, Class<BaseJavaRuntime> superClass) {
 		for (List<String> partList : Lists.partition(fieldsList, fieldsList.size()/2)) {
 			RuntimeJavaClassBuilder superClassBuilder = new RuntimeJavaClassBuilder();
 			superClassBuilder.addFields(partList);
 			if(superClass != null){
 				superClassBuilder.setSuperClass(superClass);
 			}
-			superClass = superClassBuilder.buildSimpleClass().getClass();
+			superClass = superClassBuilder.generateClassWithOnlyFields();
 		}
 		fieldsList.clear();
 		return superClass;
