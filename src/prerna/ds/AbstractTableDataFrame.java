@@ -798,5 +798,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public void setMetaData(IMetaData metaData) {
 		this.metaData = metaData;
+		this.headerNames = this.metaData.getColumnNames().toArray(new String[]{});
 	}
 }
