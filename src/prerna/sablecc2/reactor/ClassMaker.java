@@ -19,12 +19,19 @@ public class ClassMaker {
 	CtClass cc = null;
 	boolean hasSuper = false;
 	
-	public ClassMaker(String packageName)
+	/**
+	 * Generate the class
+	 */
+	public ClassMaker()
+	{
+		this("t" + Utility.getRandomString(12), "c" + Utility.getRandomString(12));
+	}
+	
+	public ClassMaker(String packageName, String className)
 	{
 		pool = ClassPool.getDefault();
 		pool.insertClassPath(new ClassClassPath(this.getClass())); 
 		pool.insertClassPath(new ClassClassPath(prerna.util.Console.class)); 
-		//pool.importPackage("java.util");
 		pool.importPackage("java.sql");
 		pool.importPackage("java.lang");
 		pool.importPackage("java.util");
@@ -34,16 +41,7 @@ public class ClassMaker {
 		pool.importPackage("org.apache.tinkerpop.gremlin.process.traversal");
 		pool.importPackage("org.apache.tinkerpop.gremlin.structure");
 		pool.importPackage("prerna.ds");
-
-		//packageName = "t" + System.currentTimeMillis(); // make it unique
-		//CtClass consoleClass = pool.get("prerna.util.Console");
-		
-		cc = pool.makeClass(packageName + ".c" + Utility.getRandomString(12)); // the only reason I do this is if the user wants to do seomthing else
-	}
-	
-	public ClassMaker()
-	{
-		this("t" + Utility.getRandomString(12));
+		cc = pool.makeClass(packageName + ".c" + className); // the only reason I do this is if the user wants to do seomthing else
 	}
 	
 	//sets the interface
@@ -54,7 +52,6 @@ public class ClassMaker {
 			interfaceVector[0] = pool.getCtClass(interfaceName);
 			cc.setInterfaces(interfaceVector);
 		} catch (NotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -67,10 +64,8 @@ public class ClassMaker {
 			try {
 				cc.setSuperclass(pool.getCtClass(superClassName));
 			} catch (NotFoundException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (CannotCompileException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			hasSuper = true;
@@ -83,7 +78,6 @@ public class ClassMaker {
 		try {
 			cc.addMethod(CtNewMethod.make(daMethod, cc));
 		} catch (CannotCompileException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -92,7 +86,6 @@ public class ClassMaker {
 		try {
 			cc.addField(CtField.make(field, cc));
 		} catch (CannotCompileException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -103,7 +96,6 @@ public class ClassMaker {
 		try {
 			return cc.toClass();
 		} catch (CannotCompileException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -116,7 +108,6 @@ public class ClassMaker {
     		DataOutputStream out = new DataOutputStream(new FileOutputStream(fileName));
 			cc.getClassFile().write(out);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
