@@ -459,7 +459,11 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			int numCols = userDataTypes.length;
 			String[] sqlDataTypes = new String[numCols];
 			for(int colIdx = 0; colIdx < numCols; colIdx++) {
-				sqlDataTypes[colIdx] = sqlHash.get(userDataTypes[colIdx]);
+				if(sqlHash.containsKey(userDataTypes[colIdx])) {
+					sqlDataTypes[colIdx] = sqlHash.get(userDataTypes[colIdx]);
+				} else {
+					sqlDataTypes[colIdx] = userDataTypes[colIdx];
+				}
 			}
 			
 			// put back into the hash so we have the data types there
