@@ -415,7 +415,11 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		int numCols = headersToUse.length;
 		String[] sqlDataTypes = new String[numCols];
 		for(int colIdx = 0; colIdx < numCols; colIdx++) {
-			sqlDataTypes[colIdx] = sqlHash.get(dataTypes[colIdx]);
+			if(sqlHash.containsKey(dataTypes[colIdx])) {
+				sqlDataTypes[colIdx] = sqlHash.get(dataTypes[colIdx]);
+			} else {
+				sqlDataTypes[colIdx] = dataTypes[colIdx];
+			}
 		}
 		
 		// now update the meta data
