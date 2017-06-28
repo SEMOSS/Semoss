@@ -1,8 +1,5 @@
 package prerna.sablecc2.reactor.planner.graph;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -146,34 +143,33 @@ public class RuntimeJavaClassBuilder {
 		// add a super so we have a base method to execute
 
 		maker.addSuper(superClassName);
-
-		BufferedWriter writer = null;
-		FileWriter fw = null;
-		try {
-			fw = new FileWriter("C:\\workspace\\Semoss_Dev\\src\\prerna\\sablecc2\\reactor\\test\\ClassTest.txt");
-			writer = new BufferedWriter(fw);
-//			writer.write("#################################    Class" + superClassesCount++
-//					+ "###########################################\n");
-
-			if (stringFields != null) {
-				for (String stringField : stringFields) {
-					writer.write(stringField);
-					writer.write("\n");
-				}
-			}
-
-			if (stringMethods != null) {
-				for (String stringMethod : stringMethods) {
-					writer.write(stringMethod);
-					writer.write("\n");
-				}
-			}
-
-			writer.close();
-			fw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+//		BufferedWriter writer = null;
+//		FileWriter fw = null;
+//		try {
+//			fw = new FileWriter("C:\\workspace\\Semoss_Dev\\src\\prerna\\sablecc2\\reactor\\test\\ClassTest.txt");
+//			writer = new BufferedWriter(fw);
+////			writer.write("#################################    Class" + superClassesCount++
+////					+ "###########################################\n");
+//
+//			if (stringFields != null) {
+//				for (String stringField : stringFields) {
+//					writer.write(stringField);
+//					writer.write("\n");
+//				}
+//			}
+//
+//			if (stringMethods != null) {
+//				for (String stringMethod : stringMethods) {
+//					writer.write(stringMethod);
+//					writer.write("\n");
+//				}
+//			}
+//
+//			writer.close();
+//			fw.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 
 		if (stringFields != null) {
 			for (String stringField : stringFields) {
@@ -209,16 +205,16 @@ public class RuntimeJavaClassBuilder {
 		// String varDefs = getVarDefinitions().toString();
 		// curMethod.append(getInitMethod().toString());
 		methodCount++;
-		curMethod.append("private void execute" + methodCount + "() {" + "\n");
+		curMethod.append("private void execute" + methodCount + "() {");
 		// curMethod.append(varDefs);
 		for (String equation : equations) {
-			curMethod.append(equation + "\n");
+			curMethod.append(equation);
 			String varName = getVarNameFromEquation(equation);
 			if (varName == "") {
 				continue;
 			}
 
-			curMethod.append("a(\"" + varName + "\"," + varName + ");" + "\n");
+			curMethod.append("a(\"" + varName + "\"," + varName + ");");
 
 			if (equationCount == maxEquationsPerMethod) {
 				curMethod.append("}");
@@ -227,7 +223,7 @@ public class RuntimeJavaClassBuilder {
 				equationCount = 0;
 				methodCount++;
 				curMethod = new StringBuilder();
-				curMethod.append("private void execute" + methodCount + "() {" + "\n");
+				curMethod.append("private void execute" + methodCount + "() {");
 				// curMethod.append(varDefs);
 			} else {
 				equationCount++;
@@ -276,7 +272,7 @@ public class RuntimeJavaClassBuilder {
 	private StringBuilder getEquationDefinitions() {
 		StringBuilder equationDefs = new StringBuilder();
 		for (String equation : equations) {
-			equationDefs.append(equation + "\n");
+			equationDefs.append(equation);
 			String varName = getVarNameFromEquation(equation);
 			equationDefs.append("a(\"" + varName + "\"," + varName + ");");
 		}
@@ -311,14 +307,14 @@ public class RuntimeJavaClassBuilder {
 	private String buildUpdateMethods() {
 		StringBuilder updateMethod = new StringBuilder();
 		if (equations != null && !equations.isEmpty()) {
-			updateMethod.append("public void update(){");
+			updateMethod.append("public void update(){super.update();");
 			for (String equation : equations) {
-				updateMethod.append(equation + "\n");
+				updateMethod.append(equation);
 				String varName = getVarNameFromEquation(equation);
 				if (varName == "") {
 					continue;
 				}
-				updateMethod.append("a(\"" + varName + "\"," + varName + ");" + "\n");
+				updateMethod.append("a(\"" + varName + "\"," + varName + ");");
 			}
 			updateMethod.append("}");
 		}
