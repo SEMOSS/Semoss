@@ -34,7 +34,13 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		PKSLPlanner planner = getPlanner();
-		BaseJavaRuntime javaRunClass = (BaseJavaRuntime) planner.getProperty("RUN_CLASS", "RUN_CLASS");
+		Class<BaseJavaRuntime> javaClass = (Class<BaseJavaRuntime>) planner.getProperty("RUN_CLASS", "RUN_CLASS");
+		BaseJavaRuntime javaRunClass = null;
+		try {
+			javaRunClass = javaClass.newInstance();
+		} catch (InstantiationException | IllegalAccessException e) {
+			e.printStackTrace();
+		}
 		javaRunClass.execute();
 		// for each scenario to hold the subportion
 		// of data to send back
