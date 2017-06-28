@@ -27,11 +27,11 @@ public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
 		List<String> pkslsToAdd = getPkslStrings(pksls);		
 		
 		PKSLPlanner basePlanner = getPlanner();
-		BaseJavaRuntime javaRunClass = (BaseJavaRuntime) basePlanner.getProperty("RUN_CLASS", "RUN_CLASS");
+		Class<BaseJavaRuntime> javaRunClass = (Class<BaseJavaRuntime>) basePlanner.getProperty("RUN_CLASS", "RUN_CLASS");
 		RuntimeJavaClassBuilder builder = new RuntimeJavaClassBuilder();
-		builder.setSuperClass(javaRunClass.getClass());
+		builder.setSuperClass(javaRunClass);
 		builder.addEquations(pkslsToAdd);
-		BaseJavaRuntime updatedRunClass = builder.buildUpdateClass();
+		Class<BaseJavaRuntime> updatedRunClass = builder.generateUpdateClass();
 		PKSLPlanner updatedPlan = new PKSLPlanner();
 		updatedPlan.addProperty("RUN_CLASS", "RUN_CLASS", updatedRunClass);
 		return new NounMetadata(updatedPlan, PkslDataTypes.PLANNER);

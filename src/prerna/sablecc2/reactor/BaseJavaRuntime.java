@@ -5,15 +5,21 @@ import java.util.Map;
 
 public class BaseJavaRuntime {
 
-	Map<String, Object> variables = new HashMap<>();
+	public Map<String, Object> variables = new HashMap<>();
 
 	/**
 	 * Method that return the evaluation of the signature
-	 * 
 	 * @return
 	 */
 	public void execute() {
 
+	}
+	
+	/**
+	 * Method that will run any updates to the base model
+	 */
+	public void update() {
+		
 	}
 
 	public Map<String, Object> getVariables() {
@@ -46,7 +52,6 @@ public class BaseJavaRuntime {
 		} else {
 			return lString != rString;
 		}
-
 	}
 	
 	public boolean compareString(double lValue, String comparator, String rString) {
@@ -57,7 +62,4 @@ public class BaseJavaRuntime {
 		return false;
 	}
 	
-	public void update(){
-		
-	}
 }

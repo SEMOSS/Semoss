@@ -31,6 +31,8 @@ public class TaxUtility {
 		execAliasToHashCodeQuery(Utility.getEngine("MinInput"), sql, aliasHashMap);
 		sql = "SELECT ALIAS_1, HASHCODE FROM IMPACTCSV WHERE ALIAS_1 " + filterQuery;
 		execAliasToHashCodeQuery(Utility.getEngine("MinImpact"), sql, aliasHashMap);
+		sql = "SELECT ALIAS_1, HASHCODE FROM OUTPUTCSV WHERE ALIAS_1 " + filterQuery;
+		execAliasToHashCodeQuery(Utility.getEngine("MinOutput"), sql, aliasHashMap);
 
 		return aliasHashMap;
 	}
@@ -42,6 +44,9 @@ public class TaxUtility {
 	 * @param aliasHashMap
 	 */
 	private static void execAliasToHashCodeQuery(IEngine engine, String sql, Map<String, String> aliasHashMap) {
+		if(engine == null) {
+			return;
+		}
 		Map<String, Object> queryRet = (Map<String, Object>)engine.execQuery(sql);
 		Statement stmt = (Statement) queryRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
 		ResultSet rs = (ResultSet) queryRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
