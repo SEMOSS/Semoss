@@ -1,16 +1,32 @@
 package prerna.algorithm.learning.matching;
 
 import java.io.File;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class MatchingDB {
 	String baseFolder;
+	//DB name
+	public static final String MATCHING_RDBMS_DB = "MatchingRDBMSDatabase";
+	
+	//Table name
+	public static final String MATCH_ID = "match_id";
+	
+	//Column names
+	public static final String SOURCE_DATABASE = "source_database";
+	
 
 	public MatchingDB(String baseFolder) {
 		this.baseFolder = baseFolder;
@@ -102,6 +118,34 @@ public class MatchingDB {
 			options.setPropertyFiles(rdbmsDirectory + "/MatchingDatabase_0_flath2.prop");
 		}
 		return options;
+	}
+	
+	/**
+	 * Gets the source database from matching rdbms db
+	 * @return
+	 */
+	public static ArrayList<String> getSourceDatabases() {
+		RDBMSNativeEngine matchingEngine = (RDBMSNativeEngine) Utility.getEngine(MATCHING_RDBMS_DB);
+		ArrayList<String> sourceEngines = new ArrayList<>();
+
+		// Get all source databases
+		if (matchingEngine != null) {
+			String sourceDBQuery = "SELECT DISTINCT " + SOURCE_DATABASE + " FROM " + MATCH_ID + ";";
+
+			Map<String, Object> values = matchingEngine.execQuery(sourceDBQuery);
+			ResultSet rs = (ResultSet) values.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+
+			try {
+				while (rs.next()) {
+					sourceEngines.add(rs.getString(1));
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+
+		}
+		return sourceEngines;
+		
 	}
 
 }
