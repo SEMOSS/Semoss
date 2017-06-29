@@ -33,15 +33,15 @@ import prerna.ds.QueryStruct;
 
 public interface IEngineWrapper {
 
+	void execute();
+
+	boolean hasNext();
+
 	void setQuery(String query);
 	
 	void setQueryStruct(QueryStruct qs);
 	
 	void setEngine(IEngine engine);
-	
-	void execute();
-	
-	boolean hasNext();
 	
 	Map<String, Object> getResponseMeta();
 }

@@ -512,8 +512,8 @@ public class SPARQLInterpreter implements IQueryInterpreter {
 	}
 
 	private void addLimitOffset() {
-		int limit = qs.getLimit();
-		int offset = qs.getOffset();
+		long limit = qs.getLimit();
+		long offset = qs.getOffset();
 		
 		if(limit > 0) {
 			this.semossQuery.setLimit(limit);

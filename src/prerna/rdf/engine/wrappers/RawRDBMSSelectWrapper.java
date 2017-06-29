@@ -31,22 +31,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	// use this if we want to close the connection once the iterator is done
 	private boolean closeConnectionAfterExecution = false;
 	
-	public void directExecutionViaConnection(Connection conn, String query) {
-		try {
-			this.conn = conn;
-			this.stmt = this.conn.createStatement();
-			this.rs = this.stmt.executeQuery(query);
-			setVariables();
-		} catch(Exception e) {
-			e.printStackTrace();
-			ConnectionUtils.closeAllConnections(conn, rs, stmt);
-			throw new IllegalArgumentException(e.getMessage());
-		}
-	}
-	
 	@Override
 	public void execute() {
-		try{
+		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
 			this.stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
 			Object connObj = map.get(RDBMSNativeEngine.CONNECTION_OBJECT);
@@ -182,5 +169,25 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	
 	public void setCloseConenctionAfterExecution(boolean closeConnectionAfterExecution) {
 		this.closeConnectionAfterExecution = closeConnectionAfterExecution;
+	}
+	
+	/**
+	 * This method allows me to perform the execution of a query on a given connection
+	 * without having to go through a formal RDBMSNativeEngine construct
+	 * i.e. the naked engine ;)
+	 * @param conn
+	 * @param query
+	 */
+	public void directExecutionViaConnection(Connection conn, String query) {
+		try {
+			this.conn = conn;
+			this.stmt = this.conn.createStatement();
+			this.rs = this.stmt.executeQuery(query);
+			setVariables();
+		} catch(Exception e) {
+			e.printStackTrace();
+			ConnectionUtils.closeAllConnections(conn, rs, stmt);
+			throw new IllegalArgumentException(e.getMessage());
+		}
 	}
 }
