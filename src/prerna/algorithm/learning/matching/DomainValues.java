@@ -105,6 +105,7 @@ public class DomainValues {
 		// Grab all the concepts that exist in the database
 		// Process each concept
 		List<String> concepts = getConceptList(engine);
+		int totalValues = 0;
 
 		// Used to write out instance count to instanceCountFile
 		for (String concept : concepts) {
@@ -113,10 +114,9 @@ public class DomainValues {
 			if (concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
-
 			// Grab the unique values for the concept
 			HashSet<String> uniqueConceptValues = retrieveConceptUniqueValues(concept, engine);
-
+			String conceptId= "";
 			List<Object> conceptValues = retrieveConceptValues(concept, engine);
 			if (uniqueConceptValues.size() >= instancesThreshold) {
 				// Sometimes this list is empty when users create databases with
@@ -124,53 +124,54 @@ public class DomainValues {
 				if (uniqueConceptValues.isEmpty()) {
 					continue;
 				}
-
+				totalValues++;
 				// Write the unique instances to a file
 				String cleanConcept = determineCleanConceptName(concept, engine);
-				String conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
+				conceptId = engineName + ENGINE_CONCEPT_PROPERTY_DELIMETER + cleanConcept
 						+ ENGINE_CONCEPT_PROPERTY_DELIMETER;
 				writeToFile(outputFolder + "\\" + conceptId + ".txt", uniqueConceptValues);
+			}
+			
+			
+			// build instanceCountFile
+			boolean hasProperties = false;
 
-				// build instanceCountFile
-				String metadataRow = conceptId;
-				boolean hasProperties = false;
+			// If the user wants to compare properties,
+			// then proceed to the concept's properties
+			if (exportProperty) {
+				// Grab all the properties that exist for the concept
+				List<String> properties = getPropertyList(engine, concept);
 
-				// If the user wants to compare properties,
-				// then proceed to the concept's properties
-				if (exportProperty) {
-					// Grab all the properties that exist for the concept
-					List<String> properties = getPropertyList(engine, concept);
+				// If there are no properties, go onto the next concept
+				if (properties.isEmpty()) {
+					propertyMap.put(conceptId, conceptValues.size() + ", 0");
+					continue;
+				}
+				hasProperties = true;
 
-					// If there are no properties, go onto the next concept
-					if (properties.isEmpty()) {
-						propertyMap.put(conceptId, conceptValues.size() + ", 0");
-						continue;
-					}
-					hasProperties = true;
-
-
-						// Process each property uri
-					for (String property : properties) {
-						HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engine);
-						if (uniquePropertyValues.size() >= instancesThreshold) {
-
-							String type = engine.getDataTypes(property);
-							if (!type.contains("FLOAT") && !type.contains("DOUBLE")) {
-								if (!uniquePropertyValues.isEmpty()) {
-									String cleanProperty = determineCleanPropertyName(property, engine);
-									String propertyId = conceptId + cleanProperty;
-									writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
-								}
+			    // Process each property uri
+				for (String property : properties) {
+					HashSet<String> uniquePropertyValues = retrievePropertyUniqueValues(concept, property, engine);
+					if (uniquePropertyValues.size() >= instancesThreshold) {
+						
+						String type = engine.getDataTypes(property);
+						if (!type.contains("FLOAT") && !type.contains("DOUBLE")) {
+							totalValues++;
+							if (!uniquePropertyValues.isEmpty()) {
+								String cleanProperty = determineCleanPropertyName(property, engine);
+								String propertyId = conceptId + cleanProperty;
+								writeToFile(outputFolder + "\\" + propertyId + ".txt", uniquePropertyValues);
 							}
 						}
 					}
 				}
-				if (hasProperties) {
-					propertyMap.put(conceptId, conceptValues.size() + ", 1");
-				}
 			}
-
+			if (hasProperties) {
+				propertyMap.put(conceptId, conceptValues.size() + ", 1");
+			}
 		}
+		//get total number of engine property/concepts based on instanceThreshold and dataType
+		propertyMap.put(engineName, totalValues+"");
 		return propertyMap;
 
 	}
