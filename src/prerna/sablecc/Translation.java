@@ -1029,8 +1029,8 @@ public class Translation extends DepthFirstAdapter {
 
 		// set the information
 		Map<String, Object> commentMap = new HashMap<String, Object>();
-		String textWithQuotes = node.getText().toString().trim();
-		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length() - 1)); // remove
+		String text = node.getText().toString().trim();
+		commentMap.put("text", text);
 		commentMap.put("group", node.getGroup().toString().trim());
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
@@ -1071,8 +1071,8 @@ public class Translation extends DepthFirstAdapter {
 
 		// set the information
 		Map<String, Object> commentMap = new HashMap<String, Object>();
-		String textWithQuotes = node.getText().toString().trim();
-		commentMap.put("text", textWithQuotes.substring(1, textWithQuotes.length() - 1)); // remove
+		String text = node.getText().toString().trim();
+		commentMap.put("text", text); // remove
 		commentMap.put("group", node.getGroup().toString().trim());
 		commentMap.put("type", node.getType().toString().trim());
 		commentMap.put("location", node.getLocation().toString().trim());
