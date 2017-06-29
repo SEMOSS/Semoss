@@ -9,7 +9,7 @@ public final class APanelComment extends PPanelComment
 {
     private TPanelcommentadd _panelcommentadd_;
     private TLPar _lPar_;
-    private TWord _text_;
+    private THword _text_;
     private TComma _c1_;
     private TId _type_;
     private TComma _c2_;
@@ -26,7 +26,7 @@ public final class APanelComment extends PPanelComment
     public APanelComment(
         @SuppressWarnings("hiding") TPanelcommentadd _panelcommentadd_,
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") TWord _text_,
+        @SuppressWarnings("hiding") THword _text_,
         @SuppressWarnings("hiding") TComma _c1_,
         @SuppressWarnings("hiding") TId _type_,
         @SuppressWarnings("hiding") TComma _c2_,
@@ -130,12 +130,12 @@ public final class APanelComment extends PPanelComment
         this._lPar_ = node;
     }
 
-    public TWord getText()
+    public THword getText()
     {
         return this._text_;
     }
 
-    public void setText(TWord node)
+    public void setText(THword node)
     {
         if(this._text_ != null)
         {
@@ -431,7 +431,7 @@ public final class APanelComment extends PPanelComment
 
         if(this._text_ == oldChild)
         {
-            setText((TWord) newChild);
+            setText((THword) newChild);
             return;
         }
 
