@@ -7,6 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -20,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -43,9 +48,11 @@ import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.solr.SolrIndexEngine;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1869,8 +1876,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 */
 	public void runCompatibilitySearch(String[] engines, double candidateThreshold, double similarityThreshold,
 			int instancesThreshold, boolean compareProperties, boolean refresh) {
-		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_MATCHING_FOLDER + "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
+
+		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + Constants.R_MATCHING_FOLDER
+				+ "\\" + Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
 		metadataFile = metadataFile.replace("\\", "/");
 		HashMap<String, String> allProperties = new HashMap<String, String>();
 
@@ -1899,15 +1907,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					String row = "";
 					for (String key : allProperties.keySet()) {
 						String propertyValue = allProperties.get(key);
-						row = key + ","+ propertyValue;
+						row = key + "," + propertyValue;
 						rowValues.add(row);
 					}
-					
+
 					FileWriter fw = new FileWriter(metadataFile, false);
 					// headers
 					fw.write("sourceFileName, totalInstanceCount, hasProperties");
-					System.out.println("where");
-					for(String rowData: rowValues) {
+					for (String rowData : rowValues) {
 						fw.write("\n" + rowData);
 					}
 					fw.close();
@@ -1998,24 +2005,27 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
 				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
 				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \""
-				+ rdbmsDirectory + "\", \""+ metadataFile + "\")");
+				+ rdbmsDirectory + "\", \"" + metadataFile + "\")");
 
-		// Synchronize from R
-		storeVariable("GRID_NAME", rFrameName);
-		synchronizeFromR();
+		// Synchronize from R used to display resulting frame from R
+		// storeVariable("GRID_NAME", rFrameName);
+		// synchronizeFromR();
 
-		// Persist the data into a database
-		String matchingDbName = "MatchingRDBMSDatabase";
-		IEngine engine = Utility.getEngine(matchingDbName);
+		String matchingDbName = MatchingDB.MATCHING_RDBMS_DB;
+
+		// Delete previous matching database
+		IEngine matchingEngine = matchingEngine = Utility.getEngine(matchingDbName);
+		matchingEngine.deleteDB();
+		matchingEngine = null;
 
 		// Only add to the engine if it is null
 		// TODO gracefully refresh the entire db
-		if (engine == null) {
+		if (matchingEngine == null) {
 			MatchingDB db = new MatchingDB(getBaseFolder());
-			// creates rdf and rdbms dbs
-			// TODO specify dbType if desired
+			// rdbms db
 			String matchingDBType = ImportOptions.DB_TYPE.RDBMS.toString();
 			db.saveDB(matchingDBType);
+			
 			// Clean directory
 			// TODO clean the directory even when there is an error
 			// try {
@@ -2025,7 +2035,139 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			// e.printStackTrace();
 			// }
 		}
+		
+		// create data for heat map
+		matchingEngine = Utility.getEngine(matchingDbName);
+		H2Frame frame = new H2Frame();
+		String[] frameNames = new String[] { "source_database", "target_database", "similarity_ratio" };
+		String[] frameTypes = new String[] { "STRING", "STRING", "NUMBER" };
+
+		QueryStruct qs = new QueryStruct();
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+		for (int i = 0; i < frameNames.length; i++) {
+			dataTypeMapStr.put(frameNames[i], frameTypes[i]);
+			dataTypeMap.put(frameNames[i], Utility.convertStringToDataType(frameTypes[i]));
+			qs.addSelector(frameNames[i], null);
+		}
+		frame.setUserId(this.userId);
+
+		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(frameNames);
+		frame.mergeEdgeHash(edgeHash, dataTypeMapStr);
+
+		ArrayList<String> sourceEngines = MatchingDB.getSourceDatabases();
+
+		// get match id count for source - target db
+		HashMap<String, HashSet<String>> matchIDHash = new HashMap<>();
+		if (matchingEngine != null) {
+			String query = "SELECT match_id, source_database, target_database";
+			query += " FROM match_id WHERE ";
+
+			// add engines to query
+			query += "source_database IN ( ";
+			for (int i = 0; i < sourceEngines.size(); i++) {
+				query += "'" + sourceEngines.get(i) + "'";
+				if (i < sourceEngines.size() - 1) {
+					query += ",";
+				}
+			}
+			query += "); ";
+
+			Map<String, Object> values = (Map<String, Object>) matchingEngine.execQuery(query);
+			ResultSet rs = (ResultSet) values.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			try {
+				while (rs.next()) {
+					String matchID = rs.getString(1);
+					// clean itemConcept
+					String sourceDB = rs.getString(2);
+					String targetDB = rs.getString(3);
+					String relationshipRegEx = "%{3}";
+					Pattern pattern = Pattern.compile(relationshipRegEx);
+					Matcher matcher = pattern.matcher(matchID);
+					matchID = matchID.replaceFirst("%", "@");
+					String hashKey = sourceDB + "@" + targetDB;
+					HashSet<String> tempHash = new HashSet<>();
+					if (matcher.find()) {
+						String[] temp = matchID.split("@");
+						String source = temp[0];
+						String target = temp[1];
+						String leftSide = temp[0];
+						String rightSide = temp[1];
+						if (source.contains("%{3}")) {
+							String[] sourceRelationship = source.split("%{3}");
+							leftSide = sourceRelationship[1];
+						}
+						if (target.contains("%%%")) {
+							String[] targetRelationship = target.split("%%%");
+							rightSide = targetRelationship[1];
+						}
+						matchID = leftSide + "@" + rightSide;
+						matchID = matchID.replaceAll(".", "");
+
+						if (matchID.length() > 0) {
+							if (matchIDHash.containsKey(hashKey)) {
+								tempHash = matchIDHash.get(hashKey);
+							}
+							// Split matchID to get left side match
+							tempHash.add(matchID.split("@")[0]);
+							matchIDHash.put(hashKey, tempHash);
+						}
+					} else {
+						if (matchID.length() > 0) {
+							if (matchIDHash.containsKey(hashKey)) {
+								tempHash = matchIDHash.get(hashKey);
+							}
+							// Split matchID to get left side match
+							tempHash.add(matchID.split("@")[0]);
+							matchIDHash.put(hashKey, tempHash);
+						}
+					}
+
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
+
+		// write matchID for sourceDB to itself
+		for (String eng : sourceEngines) {
+			matchIDHash.put(eng + "@" + eng, new HashSet<>());
+		}
+
+		for (String sourceTargetKey : matchIDHash.keySet()) {
+			HashSet<String> ids = matchIDHash.get(sourceTargetKey);
+			String[] dbs = sourceTargetKey.split("@");
+			String sourceDB = dbs[0];
+			String targetDB = dbs[1];
+			String totalColumnCount = allProperties.get(sourceDB);
+			double matchColumnCount = ids.size();
+			double ratio = matchColumnCount / Integer.parseInt(totalColumnCount);
+
+			// source engine matching to itself
+			if (sourceDB.equals(targetDB)) {
+				ratio = 1;
+			}
+			// System.out.println("sourceDB " + sourceDB);
+			// System.out.println("source match count " + matchColumnCount);
+			// System.out.println("source db total count " + totalColumnCount);
+			// System.out.println("target db " + targetDB);
+			// System.out.println("matching ratio " + ratio);
+			// System.out.println("Matching IDs");
+			// for (String id : ids) {
+			// System.out.println(id);
+			// }
+			// System.out.println("");
+			frame.addRow(new Object[] { sourceDB, targetDB, ratio });
+		}
+		this.dataframe = frame;
+		this.dataframe.updateDataId();
+		this.frameChanged = true;
+		myStore.put("G", frame);
+
 	}
+	
+	
+	
 
 	/**
 	 * Displays the best fuzzy match between the instances values of a match for
@@ -3247,8 +3389,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(matchingDbName);
 
 		H2Frame frameToUse = new H2Frame();
-		String[] colNames = new String[] { "item_concept_id", "item_engine", "match_concept_id", "match_engine" };
-		String[] colTypes = new String[] { "STRING", "STRING", "STRING", "STRING" };
+		String[] colNames = new String[] { "source_table_id", "source_database", "target_table_id", "target_database", "match_id" };
+		String[] colTypes = new String[] { "STRING", "STRING", "STRING", "STRING", "STRING" };
 
 		QueryStruct qs = new QueryStruct();
 		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
@@ -3270,11 +3412,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
 		
 		if (engine != null) {
-			String query = "SELECT item_concept_id, item_engine, match_concept_id, match_engine";
+			String query = "SELECT source_table_id, source_database, target_table_id, target_database, match_id";
 			query += " FROM match_id WHERE ";
 			
 			//add engines to query
-			query += "item_engine IN( ";
+			query += "source_database IN( ";
 			for (int i = 0; i < engines.length; i++) {
 				query += "'" + engines[i] + "'";
 				if(i < engines.length - 1) {
@@ -3299,17 +3441,18 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 				while (rs.next()) {
 					// double pki = rs.getDouble(1);
-					String itemConcept = rs.getString(1);
+					String sourceTable = rs.getString(1);
 					// clean itemConcept
-					String itemEngine = rs.getString(2);
-					String matchConcept = rs.getString(3);
-					if (matchConcept.contains("%%%")) {
-						String[] temp = matchConcept.split("%%%");
+					String sourceDB = rs.getString(2);
+					String targetTable = rs.getString(3);
+					if (targetTable.contains("%%%")) {
+						String[] temp = targetTable.split("%%%");
 						String[] engineSplit = temp[1].split("~");
-						matchConcept = temp[0] + "~" + engineSplit[1];
+						targetTable = temp[0] + "~" + engineSplit[1];
 					}
-					String matchEngine = rs.getString(4);
-					frameToUse.addRow(new Object[] { itemConcept, itemEngine, matchConcept, matchEngine });
+					String targetDB = rs.getString(4);
+					String matchID = rs.getString(5);
+					frameToUse.addRow(new Object[] { sourceTable, sourceDB, targetTable, targetDB, matchID });
 
 				}
 			} catch (SQLException e1) {
@@ -3327,5 +3470,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 	}
+
 
 }
