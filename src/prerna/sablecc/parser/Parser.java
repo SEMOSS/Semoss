@@ -4058,7 +4058,7 @@ public class Parser
             // Block
         TPanelcommentadd tpanelcommentaddNode2;
         TLPar tlparNode3;
-        TWord twordNode4;
+        THword thwordNode4;
         TComma tcommaNode5;
         TId tidNode6;
         TComma tcommaNode7;
@@ -4068,7 +4068,7 @@ public class Parser
         TRPar trparNode11;
         tpanelcommentaddNode2 = (TPanelcommentadd)nodeArrayList1.get(0);
         tlparNode3 = (TLPar)nodeArrayList2.get(0);
-        twordNode4 = (TWord)nodeArrayList3.get(0);
+        thwordNode4 = (THword)nodeArrayList3.get(0);
         tcommaNode5 = (TComma)nodeArrayList4.get(0);
         tidNode6 = (TId)nodeArrayList5.get(0);
         tcommaNode7 = (TComma)nodeArrayList6.get(0);
@@ -4077,7 +4077,7 @@ public class Parser
         tidNode10 = (TId)nodeArrayList9.get(0);
         trparNode11 = (TRPar)nodeArrayList10.get(0);
 
-        ppanelcommentNode1 = new APanelComment(tpanelcommentaddNode2, tlparNode3, twordNode4, tcommaNode5, tidNode6, tcommaNode7, pmapobjNode8, tcommaNode9, tidNode10, trparNode11);
+        ppanelcommentNode1 = new APanelComment(tpanelcommentaddNode2, tlparNode3, thwordNode4, tcommaNode5, tidNode6, tcommaNode7, pmapobjNode8, tcommaNode9, tidNode10, trparNode11);
         }
 	nodeList.add(ppanelcommentNode1);
         return nodeList;
@@ -4105,7 +4105,7 @@ public class Parser
             // Block
         TPanelcommentedit tpanelcommenteditNode2;
         TLPar tlparNode3;
-        TWord twordNode4;
+        THword thwordNode4;
         TComma tcommaNode5;
         TId tidNode6;
         TComma tcommaNode7;
@@ -4115,7 +4115,7 @@ public class Parser
         TRPar trparNode11;
         tpanelcommenteditNode2 = (TPanelcommentedit)nodeArrayList1.get(0);
         tlparNode3 = (TLPar)nodeArrayList2.get(0);
-        twordNode4 = (TWord)nodeArrayList3.get(0);
+        thwordNode4 = (THword)nodeArrayList3.get(0);
         tcommaNode5 = (TComma)nodeArrayList4.get(0);
         tidNode6 = (TId)nodeArrayList5.get(0);
         tcommaNode7 = (TComma)nodeArrayList6.get(0);
@@ -4124,7 +4124,7 @@ public class Parser
         tidNode10 = (TId)nodeArrayList9.get(0);
         trparNode11 = (TRPar)nodeArrayList10.get(0);
 
-        ppanelcommenteditNode1 = new APanelCommentEdit(tpanelcommenteditNode2, tlparNode3, twordNode4, tcommaNode5, tidNode6, tcommaNode7, pmapobjNode8, tcommaNode9, tidNode10, trparNode11);
+        ppanelcommenteditNode1 = new APanelCommentEdit(tpanelcommenteditNode2, tlparNode3, thwordNode4, tcommaNode5, tidNode6, tcommaNode7, pmapobjNode8, tcommaNode9, tidNode10, trparNode11);
         }
 	nodeList.add(ppanelcommenteditNode1);
         return nodeList;
@@ -12246,7 +12246,7 @@ public class Parser
 
     private static int[][][] actionTable;
 /*      {
-			{{-1, REDUCE, 0}, {0, SHIFT, 1}, {17, SHIFT, 2}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {24, SHIFT, 7}, {25, SHIFT, 8}, {26, SHIFT, 9}, {27, SHIFT, 10}, {28, SHIFT, 11}, {29, SHIFT, 12}, {30, SHIFT, 13}, {31, SHIFT, 14}, {32, SHIFT, 15}, {33, SHIFT, 16}, {34, SHIFT, 17}, {38, SHIFT, 18}, {40, SHIFT, 19}, {46, SHIFT, 20}, {47, SHIFT, 21}, {49, SHIFT, 22}, {53, SHIFT, 23}, {54, SHIFT, 24}, {55, SHIFT, 25}, {56, SHIFT, 26}, {57, SHIFT, 27}, {58, SHIFT, 28}, {59, SHIFT, 29}, {60, SHIFT, 30}, {61, SHIFT, 31}, {63, SHIFT, 32}, {64, SHIFT, 33}, {65, SHIFT, 34}, {66, SHIFT, 35}, {67, SHIFT, 36}, {68, SHIFT, 37}, {69, SHIFT, 38}, {70, SHIFT, 39}, {71, SHIFT, 40}, {72, SHIFT, 41}, {73, SHIFT, 42}, {74, SHIFT, 43}, {75, SHIFT, 44}, {76, SHIFT, 45}, {77, SHIFT, 46}, {78, SHIFT, 47}, {79, SHIFT, 48}, {81, SHIFT, 49}, {82, SHIFT, 50}, {83, SHIFT, 51}, {84, SHIFT, 52}, {85, SHIFT, 53}, {86, SHIFT, 54}, {87, SHIFT, 55}, {88, SHIFT, 56}, {89, SHIFT, 57}, {90, SHIFT, 58}, {91, SHIFT, 59}, {92, SHIFT, 60}, {93, SHIFT, 61}, {94, SHIFT, 62}, {95, SHIFT, 63}, {97, SHIFT, 64}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, REDUCE, 0}, {0, SHIFT, 1}, {17, SHIFT, 2}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {24, SHIFT, 7}, {25, SHIFT, 8}, {26, SHIFT, 9}, {27, SHIFT, 10}, {28, SHIFT, 11}, {29, SHIFT, 12}, {30, SHIFT, 13}, {31, SHIFT, 14}, {32, SHIFT, 15}, {33, SHIFT, 16}, {34, SHIFT, 17}, {38, SHIFT, 18}, {40, SHIFT, 19}, {46, SHIFT, 20}, {47, SHIFT, 21}, {49, SHIFT, 22}, {53, SHIFT, 23}, {54, SHIFT, 24}, {55, SHIFT, 25}, {56, SHIFT, 26}, {57, SHIFT, 27}, {58, SHIFT, 28}, {59, SHIFT, 29}, {60, SHIFT, 30}, {61, SHIFT, 31}, {63, SHIFT, 32}, {64, SHIFT, 33}, {65, SHIFT, 34}, {66, SHIFT, 35}, {67, SHIFT, 36}, {68, SHIFT, 37}, {69, SHIFT, 38}, {70, SHIFT, 39}, {71, SHIFT, 40}, {72, SHIFT, 41}, {73, SHIFT, 42}, {74, SHIFT, 43}, {75, SHIFT, 44}, {76, SHIFT, 45}, {77, SHIFT, 46}, {78, SHIFT, 47}, {79, SHIFT, 48}, {81, SHIFT, 49}, {82, SHIFT, 50}, {83, SHIFT, 51}, {84, SHIFT, 52}, {85, SHIFT, 53}, {86, SHIFT, 54}, {87, SHIFT, 55}, {88, SHIFT, 56}, {89, SHIFT, 57}, {90, SHIFT, 58}, {91, SHIFT, 59}, {92, SHIFT, 60}, {93, SHIFT, 61}, {94, SHIFT, 62}, {95, SHIFT, 63}, {97, SHIFT, 64}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 148}, {0, SHIFT, 144}, {4, SHIFT, 145}, },
 			{{-1, ERROR, 2}, {38, SHIFT, 146}, },
 			{{-1, ERROR, 3}, {3, SHIFT, 147}, },
@@ -12264,10 +12264,10 @@ public class Parser
 			{{-1, ERROR, 15}, {38, SHIFT, 159}, },
 			{{-1, ERROR, 16}, {38, SHIFT, 160}, },
 			{{-1, ERROR, 17}, {38, SHIFT, 161}, },
-			{{-1, ERROR, 18}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 162}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 18}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 162}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, ERROR, 19}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {98, SHIFT, 168}, },
 			{{-1, REDUCE, 14}, },
-			{{-1, ERROR, 21}, {100, SHIFT, 173}, },
+			{{-1, ERROR, 21}, {101, SHIFT, 173}, },
 			{{-1, ERROR, 22}, {3, SHIFT, 174}, },
 			{{-1, ERROR, 23}, {38, SHIFT, 175}, },
 			{{-1, ERROR, 24}, {38, SHIFT, 176}, },
@@ -12310,10 +12310,10 @@ public class Parser
 			{{-1, ERROR, 61}, {38, SHIFT, 210}, },
 			{{-1, ERROR, 62}, {38, SHIFT, 211}, },
 			{{-1, ERROR, 63}, {38, SHIFT, 212}, },
-			{{-1, ERROR, 64}, {0, SHIFT, 1}, {17, SHIFT, 2}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {24, SHIFT, 7}, {25, SHIFT, 8}, {26, SHIFT, 9}, {27, SHIFT, 10}, {28, SHIFT, 11}, {29, SHIFT, 12}, {30, SHIFT, 13}, {31, SHIFT, 14}, {32, SHIFT, 15}, {33, SHIFT, 16}, {34, SHIFT, 17}, {38, SHIFT, 18}, {40, SHIFT, 19}, {46, SHIFT, 213}, {47, SHIFT, 21}, {49, SHIFT, 22}, {53, SHIFT, 23}, {54, SHIFT, 24}, {55, SHIFT, 25}, {56, SHIFT, 26}, {57, SHIFT, 27}, {58, SHIFT, 28}, {59, SHIFT, 29}, {60, SHIFT, 30}, {61, SHIFT, 31}, {63, SHIFT, 32}, {64, SHIFT, 33}, {65, SHIFT, 34}, {66, SHIFT, 35}, {67, SHIFT, 36}, {68, SHIFT, 37}, {69, SHIFT, 38}, {70, SHIFT, 39}, {71, SHIFT, 40}, {72, SHIFT, 41}, {73, SHIFT, 42}, {74, SHIFT, 43}, {75, SHIFT, 44}, {76, SHIFT, 45}, {77, SHIFT, 46}, {78, SHIFT, 47}, {79, SHIFT, 48}, {81, SHIFT, 49}, {82, SHIFT, 50}, {83, SHIFT, 51}, {84, SHIFT, 52}, {85, SHIFT, 53}, {86, SHIFT, 54}, {87, SHIFT, 55}, {88, SHIFT, 56}, {89, SHIFT, 57}, {90, SHIFT, 58}, {91, SHIFT, 59}, {92, SHIFT, 60}, {93, SHIFT, 61}, {94, SHIFT, 62}, {95, SHIFT, 63}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 64}, {0, SHIFT, 1}, {17, SHIFT, 2}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {24, SHIFT, 7}, {25, SHIFT, 8}, {26, SHIFT, 9}, {27, SHIFT, 10}, {28, SHIFT, 11}, {29, SHIFT, 12}, {30, SHIFT, 13}, {31, SHIFT, 14}, {32, SHIFT, 15}, {33, SHIFT, 16}, {34, SHIFT, 17}, {38, SHIFT, 18}, {40, SHIFT, 19}, {46, SHIFT, 213}, {47, SHIFT, 21}, {49, SHIFT, 22}, {53, SHIFT, 23}, {54, SHIFT, 24}, {55, SHIFT, 25}, {56, SHIFT, 26}, {57, SHIFT, 27}, {58, SHIFT, 28}, {59, SHIFT, 29}, {60, SHIFT, 30}, {61, SHIFT, 31}, {63, SHIFT, 32}, {64, SHIFT, 33}, {65, SHIFT, 34}, {66, SHIFT, 35}, {67, SHIFT, 36}, {68, SHIFT, 37}, {69, SHIFT, 38}, {70, SHIFT, 39}, {71, SHIFT, 40}, {72, SHIFT, 41}, {73, SHIFT, 42}, {74, SHIFT, 43}, {75, SHIFT, 44}, {76, SHIFT, 45}, {77, SHIFT, 46}, {78, SHIFT, 47}, {79, SHIFT, 48}, {81, SHIFT, 49}, {82, SHIFT, 50}, {83, SHIFT, 51}, {84, SHIFT, 52}, {85, SHIFT, 53}, {86, SHIFT, 54}, {87, SHIFT, 55}, {88, SHIFT, 56}, {89, SHIFT, 57}, {90, SHIFT, 58}, {91, SHIFT, 59}, {92, SHIFT, 60}, {93, SHIFT, 61}, {94, SHIFT, 62}, {95, SHIFT, 63}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 307}, },
 			{{-1, REDUCE, 309}, },
-			{{-1, ERROR, 67}, {104, ACCEPT, -1}, },
+			{{-1, ERROR, 67}, {105, ACCEPT, -1}, },
 			{{-1, REDUCE, 318}, },
 			{{-1, ERROR, 69}, {5, SHIFT, 223}, },
 			{{-1, ERROR, 70}, {5, SHIFT, 224}, },
@@ -12389,7 +12389,7 @@ public class Parser
 			{{-1, REDUCE, 72}, },
 			{{-1, REDUCE, 74}, },
 			{{-1, REDUCE, 73}, },
-			{{-1, REDUCE, 1}, {0, SHIFT, 1}, {17, SHIFT, 2}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {24, SHIFT, 7}, {25, SHIFT, 8}, {26, SHIFT, 9}, {27, SHIFT, 10}, {28, SHIFT, 11}, {29, SHIFT, 12}, {30, SHIFT, 13}, {31, SHIFT, 14}, {32, SHIFT, 15}, {33, SHIFT, 16}, {34, SHIFT, 17}, {38, SHIFT, 18}, {40, SHIFT, 19}, {46, SHIFT, 20}, {47, SHIFT, 21}, {49, SHIFT, 22}, {53, SHIFT, 23}, {54, SHIFT, 24}, {55, SHIFT, 25}, {56, SHIFT, 26}, {57, SHIFT, 27}, {58, SHIFT, 28}, {59, SHIFT, 29}, {60, SHIFT, 30}, {61, SHIFT, 31}, {63, SHIFT, 32}, {64, SHIFT, 33}, {65, SHIFT, 34}, {66, SHIFT, 35}, {67, SHIFT, 36}, {68, SHIFT, 37}, {69, SHIFT, 38}, {70, SHIFT, 39}, {71, SHIFT, 40}, {72, SHIFT, 41}, {73, SHIFT, 42}, {74, SHIFT, 43}, {75, SHIFT, 44}, {76, SHIFT, 45}, {77, SHIFT, 46}, {78, SHIFT, 47}, {79, SHIFT, 48}, {81, SHIFT, 49}, {82, SHIFT, 50}, {83, SHIFT, 51}, {84, SHIFT, 52}, {85, SHIFT, 53}, {86, SHIFT, 54}, {87, SHIFT, 55}, {88, SHIFT, 56}, {89, SHIFT, 57}, {90, SHIFT, 58}, {91, SHIFT, 59}, {92, SHIFT, 60}, {93, SHIFT, 61}, {94, SHIFT, 62}, {95, SHIFT, 63}, {97, SHIFT, 64}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, REDUCE, 1}, {0, SHIFT, 1}, {17, SHIFT, 2}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {24, SHIFT, 7}, {25, SHIFT, 8}, {26, SHIFT, 9}, {27, SHIFT, 10}, {28, SHIFT, 11}, {29, SHIFT, 12}, {30, SHIFT, 13}, {31, SHIFT, 14}, {32, SHIFT, 15}, {33, SHIFT, 16}, {34, SHIFT, 17}, {38, SHIFT, 18}, {40, SHIFT, 19}, {46, SHIFT, 20}, {47, SHIFT, 21}, {49, SHIFT, 22}, {53, SHIFT, 23}, {54, SHIFT, 24}, {55, SHIFT, 25}, {56, SHIFT, 26}, {57, SHIFT, 27}, {58, SHIFT, 28}, {59, SHIFT, 29}, {60, SHIFT, 30}, {61, SHIFT, 31}, {63, SHIFT, 32}, {64, SHIFT, 33}, {65, SHIFT, 34}, {66, SHIFT, 35}, {67, SHIFT, 36}, {68, SHIFT, 37}, {69, SHIFT, 38}, {70, SHIFT, 39}, {71, SHIFT, 40}, {72, SHIFT, 41}, {73, SHIFT, 42}, {74, SHIFT, 43}, {75, SHIFT, 44}, {76, SHIFT, 45}, {77, SHIFT, 46}, {78, SHIFT, 47}, {79, SHIFT, 48}, {81, SHIFT, 49}, {82, SHIFT, 50}, {83, SHIFT, 51}, {84, SHIFT, 52}, {85, SHIFT, 53}, {86, SHIFT, 54}, {87, SHIFT, 55}, {88, SHIFT, 56}, {89, SHIFT, 57}, {90, SHIFT, 58}, {91, SHIFT, 59}, {92, SHIFT, 60}, {93, SHIFT, 61}, {94, SHIFT, 62}, {95, SHIFT, 63}, {97, SHIFT, 64}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 150}, },
 			{{-1, REDUCE, 149}, {0, SHIFT, 239}, },
 			{{-1, ERROR, 146}, {21, SHIFT, 4}, },
@@ -12408,12 +12408,12 @@ public class Parser
 			{{-1, ERROR, 159}, {40, SHIFT, 248}, },
 			{{-1, ERROR, 160}, {21, SHIFT, 4}, },
 			{{-1, ERROR, 161}, {21, SHIFT, 4}, },
-			{{-1, ERROR, 162}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 162}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 162}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 162}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 301}, },
 			{{-1, ERROR, 164}, {15, SHIFT, 258}, {39, SHIFT, 259}, },
 			{{-1, ERROR, 165}, {10, SHIFT, 262}, {39, SHIFT, 263}, {40, SHIFT, 248}, },
 			{{-1, REDUCE, 228}, },
-			{{-1, ERROR, 167}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 167}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 230}, },
 			{{-1, REDUCE, 229}, },
 			{{-1, REDUCE, 232}, },
@@ -12427,7 +12427,7 @@ public class Parser
 			{{-1, ERROR, 178}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {98, SHIFT, 168}, },
 			{{-1, ERROR, 179}, {39, SHIFT, 280}, },
 			{{-1, ERROR, 180}, {18, SHIFT, 3}, {38, SHIFT, 271}, },
-			{{-1, ERROR, 181}, {99, SHIFT, 282}, },
+			{{-1, ERROR, 181}, {100, SHIFT, 282}, },
 			{{-1, ERROR, 182}, {0, SHIFT, 1}, {2, SHIFT, 166}, {10, SHIFT, 266}, {23, SHIFT, 6}, {38, SHIFT, 167}, {39, SHIFT, 283}, {98, SHIFT, 168}, },
 			{{-1, ERROR, 183}, {1, SHIFT, 286}, },
 			{{-1, ERROR, 184}, {3, SHIFT, 287}, },
@@ -12440,11 +12440,11 @@ public class Parser
 			{{-1, ERROR, 191}, {21, SHIFT, 4}, },
 			{{-1, ERROR, 192}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {98, SHIFT, 168}, },
 			{{-1, ERROR, 193}, {39, SHIFT, 299}, },
-			{{-1, ERROR, 194}, {98, SHIFT, 300}, },
-			{{-1, ERROR, 195}, {98, SHIFT, 301}, },
+			{{-1, ERROR, 194}, {99, SHIFT, 300}, },
+			{{-1, ERROR, 195}, {99, SHIFT, 301}, },
 			{{-1, ERROR, 196}, {42, SHIFT, 294}, },
 			{{-1, ERROR, 197}, {42, SHIFT, 294}, },
-			{{-1, ERROR, 198}, {99, SHIFT, 304}, },
+			{{-1, ERROR, 198}, {100, SHIFT, 304}, },
 			{{-1, ERROR, 199}, {3, SHIFT, 305}, },
 			{{-1, ERROR, 200}, {40, SHIFT, 306}, },
 			{{-1, ERROR, 201}, {40, SHIFT, 306}, },
@@ -12457,7 +12457,7 @@ public class Parser
 			{{-1, ERROR, 208}, {3, SHIFT, 316}, },
 			{{-1, ERROR, 209}, {3, SHIFT, 317}, },
 			{{-1, ERROR, 210}, {3, SHIFT, 318}, },
-			{{-1, ERROR, 211}, {99, SHIFT, 319}, },
+			{{-1, ERROR, 211}, {100, SHIFT, 319}, },
 			{{-1, ERROR, 212}, {40, SHIFT, 306}, },
 			{{-1, REDUCE, 15}, },
 			{{-1, ERROR, 214}, {5, SHIFT, 321}, },
@@ -12474,16 +12474,16 @@ public class Parser
 			{{-1, REDUCE, 16}, },
 			{{-1, REDUCE, 18}, },
 			{{-1, REDUCE, 20}, },
-			{{-1, ERROR, 228}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {55, SHIFT, 25}, {80, SHIFT, 330}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 228}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {55, SHIFT, 25}, {80, SHIFT, 330}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 4}, },
 			{{-1, REDUCE, 6}, },
 			{{-1, REDUCE, 10}, },
 			{{-1, REDUCE, 8}, },
-			{{-1, ERROR, 233}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
-			{{-1, ERROR, 234}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
-			{{-1, ERROR, 235}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
-			{{-1, ERROR, 236}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
-			{{-1, ERROR, 237}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 233}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
+			{{-1, ERROR, 234}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
+			{{-1, ERROR, 235}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
+			{{-1, ERROR, 236}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
+			{{-1, ERROR, 237}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 319}, },
 			{{-1, REDUCE, 151}, },
 			{{-1, ERROR, 240}, {10, SHIFT, 340}, },
@@ -12517,7 +12517,7 @@ public class Parser
 			{{-1, REDUCE, 328}, },
 			{{-1, ERROR, 269}, {10, SHIFT, 266}, {41, SHIFT, 380}, },
 			{{-1, ERROR, 270}, {40, SHIFT, 382}, },
-			{{-1, ERROR, 271}, {102, SHIFT, 384}, },
+			{{-1, ERROR, 271}, {103, SHIFT, 384}, },
 			{{-1, ERROR, 272}, {10, SHIFT, 386}, {39, SHIFT, 387}, {42, SHIFT, 294}, },
 			{{-1, REDUCE, 142}, },
 			{{-1, REDUCE, 141}, },
@@ -12586,7 +12586,7 @@ public class Parser
 			{{-1, REDUCE, 283}, },
 			{{-1, REDUCE, 284}, },
 			{{-1, REDUCE, 285}, },
-			{{-1, ERROR, 340}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 340}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, ERROR, 341}, {38, SHIFT, 443}, },
 			{{-1, ERROR, 342}, {21, SHIFT, 4}, },
 			{{-1, REDUCE, 101}, },
@@ -12598,7 +12598,7 @@ public class Parser
 			{{-1, REDUCE, 105}, },
 			{{-1, REDUCE, 270}, },
 			{{-1, REDUCE, 271}, },
-			{{-1, ERROR, 352}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 352}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 114}, },
 			{{-1, ERROR, 354}, {0, SHIFT, 1}, {2, SHIFT, 166}, {10, SHIFT, 450}, {23, SHIFT, 6}, {38, SHIFT, 167}, {39, SHIFT, 451}, {42, SHIFT, 294}, {98, SHIFT, 168}, },
 			{{-1, REDUCE, 106}, },
@@ -12608,7 +12608,7 @@ public class Parser
 			{{-1, ERROR, 359}, {38, SHIFT, 460}, },
 			{{-1, ERROR, 360}, {4, SHIFT, 461}, },
 			{{-1, ERROR, 361}, {39, SHIFT, 462}, },
-			{{-1, ERROR, 362}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 362}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, ERROR, 363}, {10, SHIFT, 342}, {39, SHIFT, 464}, },
 			{{-1, REDUCE, 117}, },
 			{{-1, ERROR, 365}, {39, SHIFT, 465}, },
@@ -12618,8 +12618,8 @@ public class Parser
 			{{-1, ERROR, 369}, {39, SHIFT, 469}, },
 			{{-1, ERROR, 370}, {21, SHIFT, 4}, },
 			{{-1, ERROR, 371}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {98, SHIFT, 168}, },
-			{{-1, ERROR, 372}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
-			{{-1, ERROR, 373}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 372}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
+			{{-1, ERROR, 373}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 277}, },
 			{{-1, REDUCE, 279}, },
 			{{-1, REDUCE, 345}, },
@@ -12628,7 +12628,7 @@ public class Parser
 			{{-1, REDUCE, 246}, },
 			{{-1, REDUCE, 218}, },
 			{{-1, REDUCE, 329}, },
-			{{-1, ERROR, 382}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 382}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, ERROR, 383}, {10, SHIFT, 476}, {39, SHIFT, 477}, {40, SHIFT, 248}, },
 			{{-1, REDUCE, 145}, },
 			{{-1, ERROR, 385}, {10, SHIFT, 480}, },
@@ -12687,9 +12687,9 @@ public class Parser
 			{{-1, REDUCE, 317}, },
 			{{-1, REDUCE, 99}, },
 			{{-1, REDUCE, 253}, },
-			{{-1, ERROR, 441}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 441}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, ERROR, 442}, {39, SHIFT, 518}, },
-			{{-1, ERROR, 443}, {10, SHIFT, 519}, {38, SHIFT, 368}, {39, SHIFT, 520}, {40, SHIFT, 248}, {42, SHIFT, 294}, {101, SHIFT, 521}, },
+			{{-1, ERROR, 443}, {10, SHIFT, 519}, {38, SHIFT, 368}, {39, SHIFT, 520}, {40, SHIFT, 248}, {42, SHIFT, 294}, {102, SHIFT, 521}, },
 			{{-1, REDUCE, 204}, },
 			{{-1, REDUCE, 102}, },
 			{{-1, REDUCE, 321}, },
@@ -12739,12 +12739,12 @@ public class Parser
 			{{-1, ERROR, 490}, {39, SHIFT, 560}, },
 			{{-1, REDUCE, 132}, },
 			{{-1, REDUCE, 137}, },
-			{{-1, ERROR, 493}, {0, SHIFT, 1}, {10, SHIFT, 561}, {14, SHIFT, 562}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {41, SHIFT, 563}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 493}, {0, SHIFT, 1}, {10, SHIFT, 561}, {14, SHIFT, 562}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {41, SHIFT, 563}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, ERROR, 494}, {10, SHIFT, 568}, {39, SHIFT, 569}, {42, SHIFT, 294}, },
 			{{-1, REDUCE, 206}, },
 			{{-1, REDUCE, 208}, },
 			{{-1, ERROR, 497}, {10, SHIFT, 406}, {43, SHIFT, 571}, },
-			{{-1, ERROR, 498}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 572}, {42, SHIFT, 294}, {98, SHIFT, 168}, {103, SHIFT, 573}, },
+			{{-1, ERROR, 498}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 572}, {42, SHIFT, 294}, {98, SHIFT, 168}, {104, SHIFT, 573}, },
 			{{-1, REDUCE, 209}, },
 			{{-1, REDUCE, 327}, },
 			{{-1, ERROR, 501}, {39, SHIFT, 578}, },
@@ -12789,7 +12789,7 @@ public class Parser
 			{{-1, REDUCE, 121}, },
 			{{-1, REDUCE, 122}, },
 			{{-1, REDUCE, 276}, },
-			{{-1, ERROR, 543}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, ERROR, 543}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 18}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 247}, },
 			{{-1, REDUCE, 340}, },
 			{{-1, ERROR, 546}, {10, SHIFT, 543}, {41, SHIFT, 623}, },
@@ -12807,8 +12807,8 @@ public class Parser
 			{{-1, ERROR, 558}, {38, SHIFT, 631}, },
 			{{-1, REDUCE, 133}, },
 			{{-1, REDUCE, 139}, },
-			{{-1, REDUCE, 243}, {0, SHIFT, 1}, {14, SHIFT, 562}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
-			{{-1, ERROR, 562}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {100, SHIFT, 66}, },
+			{{-1, REDUCE, 243}, {0, SHIFT, 1}, {14, SHIFT, 562}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
+			{{-1, ERROR, 562}, {0, SHIFT, 1}, {18, SHIFT, 3}, {21, SHIFT, 4}, {22, SHIFT, 5}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 19}, {49, SHIFT, 22}, {98, SHIFT, 65}, {101, SHIFT, 66}, },
 			{{-1, REDUCE, 237}, },
 			{{-1, ERROR, 564}, {10, SHIFT, 561}, {41, SHIFT, 634}, },
 			{{-1, REDUCE, 338}, },
@@ -12818,7 +12818,7 @@ public class Parser
 			{{-1, REDUCE, 75}, },
 			{{-1, ERROR, 570}, {39, SHIFT, 640}, },
 			{{-1, REDUCE, 210}, },
-			{{-1, ERROR, 572}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 572}, {42, SHIFT, 294}, {98, SHIFT, 168}, {103, SHIFT, 573}, },
+			{{-1, ERROR, 572}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 572}, {42, SHIFT, 294}, {98, SHIFT, 168}, {104, SHIFT, 573}, },
 			{{-1, REDUCE, 236}, },
 			{{-1, REDUCE, 234}, },
 			{{-1, REDUCE, 235}, },
@@ -12928,7 +12928,7 @@ public class Parser
 			{{-1, REDUCE, 295}, },
 			{{-1, REDUCE, 240}, },
 			{{-1, REDUCE, 78}, },
-			{{-1, ERROR, 682}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 572}, {42, SHIFT, 294}, {98, SHIFT, 168}, {103, SHIFT, 573}, },
+			{{-1, ERROR, 682}, {0, SHIFT, 1}, {2, SHIFT, 166}, {23, SHIFT, 6}, {38, SHIFT, 167}, {40, SHIFT, 572}, {42, SHIFT, 294}, {98, SHIFT, 168}, {104, SHIFT, 573}, },
 			{{-1, REDUCE, 219}, },
 			{{-1, REDUCE, 330}, },
 			{{-1, ERROR, 685}, {10, SHIFT, 682}, {41, SHIFT, 708}, },
@@ -13142,7 +13142,7 @@ public class Parser
 			"expecting: boolean",
 			"expecting: ')', '['",
 			"expecting: ')', '{'",
-			"expecting: word",
+			"expecting: hword",
 			"expecting: '{'",
 			"expecting: number, null, 'v:', '(', ')', word",
 			"expecting: number, api, 'c:', 't:', 'v:', '(', '[', 'm:', 'data.open', 'user.input', word, codeblock",
