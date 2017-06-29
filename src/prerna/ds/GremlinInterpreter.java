@@ -93,8 +93,8 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	 * gets the Limit/Offset and adds it to the traversal
 	 */
 	private void addLimitOffset() {
-		Integer limit = qs.getLimit();
-		Integer offset = qs.getOffset();
+		long limit = qs.getLimit();
+		long offset = qs.getOffset();
 		if (limit >= 0 && offset >= 0) {
 			gt = gt.range(offset, limit);
 		} else if (limit >= 0) {

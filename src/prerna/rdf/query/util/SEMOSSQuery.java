@@ -49,8 +49,8 @@ public class SEMOSSQuery {
 	private SPARQLGroupBy groupBy = null;
 	private SPARQLOrderBy orderBy = null;
 	private SPARQLBindings bindings = null;
-	private Integer limit = null;
-	private Integer offset = null;
+	private Long limit = null;
+	private Long offset = null;
 	private String customQueryStructure ="";
 	private String queryType;
 	private boolean distinct = false;
@@ -604,17 +604,17 @@ public class SEMOSSQuery {
 		return !(this.bindings == null);
 	}
 
-	public void setLimit(Integer limit)
+	public void setLimit(long limit)
 	{
 		this.limit = limit;
 	}
 
-	public Integer getLimit()
+	public Long getLimit()
 	{
 		return this.limit;
 	}
 
-	public void setOffset(Integer offset)
+	public void setOffset(Long offset)
 	{
 		this.offset = offset;
 	}

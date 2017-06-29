@@ -207,8 +207,8 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		query = appendGroupBy(query);
 		query = appendOrderBy(query);
 		
-		int limit = qs.getLimit();
-		int offset = qs.getOffset();
+		long limit = qs.getLimit();
+		long offset = qs.getOffset();
 		
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
