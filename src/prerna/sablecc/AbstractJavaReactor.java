@@ -1,29 +1,46 @@
 package prerna.sablecc;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.matching.DomainValues;
+import prerna.algorithm.learning.matching.MatchingDB;
 import prerna.algorithm.learning.r.RRoutine;
 import prerna.algorithm.learning.r.RRoutineException;
 import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector;
 import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector.AnomDirection;
 import prerna.ds.DataFrameHelper;
+import prerna.ds.QueryStruct;
 import prerna.ds.TinkerAlgorithmUtility;
 import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.sqlserver.SqlServerFrame;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Console;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class AbstractJavaReactor extends AbstractReactor {
 
@@ -958,4 +975,179 @@ public abstract class AbstractJavaReactor extends AbstractReactor {
 	public IPkqlMetadata getPkqlMetadata() {
 		return null;
 	}
+	
+	/**
+	 * Updates the frame to contain the similarity ratio between matching databases
+	 * @return List[sourceDB, targetDB, ratio]
+	 */
+	public List<Object[]> similarityHeat() {
+        String matchingDbName = MatchingDB.MATCHING_RDBMS_DB;
+		RDBMSNativeEngine matchingEngine = (RDBMSNativeEngine) Utility.getEngine(matchingDbName);
+		//Get all source databases from matching DB 
+		ArrayList<String> sourceEngines = MatchingDB.getSourceDatabases();
+
+		//get match id count for source - target db
+		HashMap<String, HashSet<String>> matchIDHash = new HashMap<>();
+		if (matchingEngine != null) {
+			String query = "SELECT match_id, source_database, target_database";
+			query += " FROM match_id WHERE ";
+
+			// add engines to query
+			query += "source_database IN( ";
+			for (int i = 0; i < sourceEngines.size(); i++) {
+				query += "'" + sourceEngines.get(i) + "'";
+				if (i < sourceEngines.size() - 1) {
+					query += ",";
+				}
+			}
+			query += "); ";
+
+			Map<String, Object> values = matchingEngine.execQuery(query);
+			ResultSet rs = (ResultSet) values.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+			try {
+				while (rs.next()) {
+					String matchID = rs.getString(1);
+					// clean itemConcept
+					String sourceDB = rs.getString(2);
+					String targetDB = rs.getString(3);
+					String relationshipRegEx = "%{3}";
+					Pattern pattern = Pattern.compile(relationshipRegEx);
+					Matcher matcher = pattern.matcher(matchID);
+					matchID = matchID.replaceFirst("%", "@");
+					String hashKey = sourceDB + "@" + targetDB;
+					HashSet<String> tempHash = new HashSet<>();
+					if (matcher.find()) {
+						String[] temp = matchID.split("@");
+						String source = temp[0];
+						String target = temp[1];
+						String leftSide = temp[0];
+						String rightSide = temp[1];
+						if (source.contains("%{3}")) {
+							String[] sourceRelationship = source.split("%{3}");
+							leftSide = sourceRelationship[1];
+						}
+						if (target.contains("%%%")) {
+							String[] targetRelationship = target.split("%%%");
+							rightSide = targetRelationship[1];
+						}
+						matchID = leftSide + "@" + rightSide;
+						matchID = matchID.replaceAll(".", "");
+
+						if (matchID.length() > 0) {
+							if(matchIDHash.containsKey(hashKey)) {
+								tempHash = matchIDHash.get(hashKey);
+							}
+							//Split matchID to get left side match
+							tempHash.add(matchID.split("@")[0]);
+							matchIDHash.put(hashKey, tempHash);
+						}
+					} else {
+						if (matchID.length() > 0) {
+							if(matchIDHash.containsKey(hashKey)) {
+								tempHash = matchIDHash.get(hashKey);
+							}
+							//Split matchID to get left side match
+							tempHash.add(matchID.split("@")[0]);
+							matchIDHash.put(hashKey, tempHash);
+						}
+					}
+
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
+		
+		//write matchID for sourceDB to itself
+		for(String eng: sourceEngines) {
+			matchIDHash.put(eng+"@"+ eng, new HashSet<>());
+		}
+		
+		//Get non numeric column count for dbs
+        Map<String, Integer> dbColumnCount = new HashMap<String, Integer>();
+        for (String engine : sourceEngines) {
+               IEngine sourceEngine = Utility.getEngine(engine);
+               String engineName = sourceEngine.getEngineName();
+               HashMap<String, String> propertyMap = new HashMap<String, String>();
+               DomainValues dv = new DomainValues();
+               List<String> concepts = dv.getConceptList(sourceEngine);
+               int totalCountNonnumeric = 0;
+
+               for (String concept : concepts) {
+                     
+                     if (concept.equals("http://semoss.org/ontologies/Concept")) {
+                            continue;
+                     }
+                     totalCountNonnumeric++;
+
+                     List<String> properties = dv.getPropertyList(sourceEngine, concept);
+                     if (!properties.isEmpty()) {
+                            for (String property : properties) {
+                                  String type = sourceEngine.getDataTypes(property);
+                                  if (!type.contains("FLOAT") && !type.contains("DOUBLE")) {
+                                         totalCountNonnumeric++;
+                                  }
+                            }
+                     }
+
+               }
+               
+               dbColumnCount.put(engineName, totalCountNonnumeric);
+
+        }
+        
+        //compute ratio and add values to frame
+        H2Frame frame = new H2Frame();
+		String[] frameNames = new String[] { "source_database", "target_database", "similarity_ratio" };
+		String[] frameTypes = new String[] { "STRING", "STRING", "NUMBER" };
+
+		QueryStruct qs = new QueryStruct();
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+		Map<String, String> dataTypeMapStr = new Hashtable<String, String>();
+		for (int i = 0; i < frameNames.length; i++) {
+			dataTypeMapStr.put(frameNames[i], frameTypes[i]);
+			dataTypeMap.put(frameNames[i], Utility.convertStringToDataType(frameTypes[i]));
+			qs.addSelector(frameNames[i], null);
+		}
+        List<Object[]> retValues = new Vector<Object[]>();
+        frame.setUserId(this.userId);
+
+		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(frameNames);
+		frame.mergeEdgeHash(edgeHash, dataTypeMapStr);
+		
+        for(String sourceTargetKey : matchIDHash.keySet()) {
+        	HashSet<String> ids = matchIDHash.get(sourceTargetKey);
+        	String[] dbs = sourceTargetKey.split("@");
+        	String sourceDB = dbs[0];
+        	String targetDB = dbs[1];
+        	Integer totalColumnCount = dbColumnCount.get(sourceDB);
+        	double matchColumnCount = ids.size();
+        	double ratio = matchColumnCount/totalColumnCount;
+        	
+        	//source engine matching to itself
+        	if(sourceDB.equals(targetDB)) {
+        		ratio = 1;
+        	}
+//        	System.out.println("sourceDB " + sourceDB);
+//        	System.out.println("source match count " + matchColumnCount );
+//        	System.out.println("source db total count " + totalColumnCount );
+//        	System.out.println("target db " + targetDB );
+//        	System.out.println("matching ratio " + ratio);
+//        	System.out.println("Matching IDs");
+//        	for(String id: ids) {
+//        		System.out.println(id);
+//        	}
+//        	System.out.println("");
+        	frame.addRow(new Object[]{sourceDB, targetDB, ratio});
+        	retValues.add(new Object[]{sourceDB, targetDB, ratio});
+        }
+        
+		this.dataframe = frame;
+		this.dataframe.updateDataId();
+		this.frameChanged = true;
+		myStore.put("G", frame);
+        
+        return retValues;
+  }
+	
 }
