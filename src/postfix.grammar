@@ -6,6 +6,7 @@ Helpers
  letter_s = ['a' .. 'z'];
  letter_b = ['A' .. 'Z'];
  digit = ['0' .. '9'];
+ 
  underscore = '_';
  hdot = '.';
  quote = ('"' | ''');
@@ -16,7 +17,7 @@ Helpers
  encoded_values = (alpha | digit | url_unescaped_chars | other_unescaped_chars);
  
  panelprefix =  'panel' ( '[' digit ']' )?;
- panelcommentprefix = panelprefix '.comment' ( '[' digit ']' )?;
+ panelcommentprefix = panelprefix '.comment' ( '[' digit+ ']' )?;
  
  startjson = '<json>';
  endjson = '</json>';
@@ -25,6 +26,7 @@ Helpers
  starthtml = '<html>';
  endhtml = '</html>';
  code = '<code>';
+ com_prefix = '<com>';
 
 Tokens
  number = ['0' .. '9']+;
@@ -138,6 +140,7 @@ Tokens
  metatag = 'meta.';
 
  word = quote not_quote* quote;
+ hword = com_prefix encoded_values* com_prefix;
  jsonblock = startjson encoded_values* endjson;
  codeblock = code all* code;
  queryblock = startquery all* endquery;
@@ -241,11 +244,11 @@ panel_viz = // e.g. panel.viz(bar, [c:Title, c:Budget]); panelviz( vizType, orde
 		;
 		
 panel_comment = // e.g. panel.comment.add("this looks super important", group0, coordinate, (50, 16));
-		panelcommentadd l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
+		panelcommentadd l_par [text]:hword [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
 		;
 		
 panel_comment_edit = // e.g. panel.comment.edit("this looks super important", group0, coordinate, (50, 16));
-		panelcommentedit l_par [text]:word [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
+		panelcommentedit l_par [text]:hword [c1]:comma [type]:id [c2]:comma [location]:map_obj [c3]:comma [group]:id r_par
 		;
 		
 panel_comment_remove = // e.g. panel.comment[0].remove();
