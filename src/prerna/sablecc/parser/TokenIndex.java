@@ -604,38 +604,44 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTJsonblock(@SuppressWarnings("unused") TJsonblock node)
+    public void caseTHword(@SuppressWarnings("unused") THword node)
     {
         this.index = 99;
     }
 
     @Override
-    public void caseTCodeblock(@SuppressWarnings("unused") TCodeblock node)
+    public void caseTJsonblock(@SuppressWarnings("unused") TJsonblock node)
     {
         this.index = 100;
     }
 
     @Override
-    public void caseTQueryblock(@SuppressWarnings("unused") TQueryblock node)
+    public void caseTCodeblock(@SuppressWarnings("unused") TCodeblock node)
     {
         this.index = 101;
     }
 
     @Override
-    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
+    public void caseTQueryblock(@SuppressWarnings("unused") TQueryblock node)
     {
         this.index = 102;
     }
 
     @Override
-    public void caseTHtmlText(@SuppressWarnings("unused") THtmlText node)
+    public void caseTFileText(@SuppressWarnings("unused") TFileText node)
     {
         this.index = 103;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTHtmlText(@SuppressWarnings("unused") THtmlText node)
     {
         this.index = 104;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 105;
     }
 }
