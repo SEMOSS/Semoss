@@ -426,7 +426,7 @@ public abstract class SQLQueryUtil {
 		return query.concat(" LIMIT " + limit);
 	}
 	
-	public StringBuilder addLimitOffsetToQuery(StringBuilder query, int limit, int offset) {
+	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
 		
 		if(limit > 0) {
 			query = query.append(" LIMIT "+limit);

@@ -16,6 +16,14 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 	private TinkerIterator it;
 
 	@Override
+	public void execute() {
+		// we cast interp so that we can compose iterator since all other engines return a query string
+		TinkerQueryInterpreter interp = (TinkerQueryInterpreter) this.engine.getQueryInterpreter();
+		interp.setQueryStruct(this.qs);
+		it = (TinkerIterator) interp.composeIterator();
+	}
+	
+	@Override
 	public IHeadersDataRow next() {
 		Object[] row = it.next();
 		if (displayVar == null) {
@@ -47,14 +55,6 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 	@Override
 	public String[] getPhysicalVariables() {
 		return null;
-	}
-
-	@Override
-	public void execute() {
-		// we cast interp so that we can compose iterator since all other engines return a query string
-		TinkerQueryInterpreter interp = (TinkerQueryInterpreter) this.engine.getQueryInterpreter();
-		interp.setQueryStruct(this.qs);
-		it = (TinkerIterator) interp.composeIterator();
 	}
 
 	@Override
