@@ -53,8 +53,8 @@ public class QueryStruct {
 	//tableName -> ColName
 	private Map <String, Set<String>> groupBy = new Hashtable<>();
 	
-	private int limit = -1;
-	private int offset = -1;
+	private long limit = -1;
+	private long offset = -1;
 	
 	public final static int NO_COUNT = 0; //use this when we don't want to do a count
 	public final static int COUNT_CELLS = 1; //use this when we want to count the number of total rows*selectors in the query
@@ -140,19 +140,19 @@ public class QueryStruct {
 		relations.put(fromConcept, compHash);
 	}
 	
-	public void setLimit(int limit) {
+	public void setLimit(long limit) {
 		this.limit = limit;
 	}
 	
-	public int getLimit() {
+	public long getLimit() {
 		return this.limit;
 	}
 	
-	public void setOffSet(int offset) {
+	public void setOffSet(long offset) {
 		this.offset = offset;
 	}
 	
-	public int getOffset() {
+	public long getOffset() {
 		return this.offset;
 	}
 	
