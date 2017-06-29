@@ -320,6 +320,7 @@ public interface Analysis extends Switch
     void caseTWherestr(TWherestr node);
     void caseTMetatag(TMetatag node);
     void caseTWord(TWord node);
+    void caseTHword(THword node);
     void caseTJsonblock(TJsonblock node);
     void caseTCodeblock(TCodeblock node);
     void caseTQueryblock(TQueryblock node);
