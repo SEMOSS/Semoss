@@ -34,6 +34,7 @@ import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.solr.RawSolrSelectWrapper;
 import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
 import prerna.engine.impl.tinker.TinkerSelectWrapper;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -46,15 +47,15 @@ public class WrapperManager {
 	// and then give back a wrapper
 	// I need to make this completely through reflection
 	// I will do that later
-	
+
 	public static WrapperManager manager = null;
 	static Logger LOGGER = Logger.getLogger(prerna.rdf.engine.wrappers.WrapperManager.class);
-	
+
 	protected WrapperManager()
 	{
-		
+
 	}
-	
+
 	public static WrapperManager getInstance()
 	{
 		// cant get lazier than this :)
@@ -65,139 +66,33 @@ public class WrapperManager {
 		}
 		return manager;
 	}
-	
-	public ISelectWrapper getSWrapper(IEngine engine, String query)
-	{
-		ISelectWrapper returnWrapper = null;
-			switch(engine.getEngineType()) {
-				case SESAME: {
-					returnWrapper = new SesameSelectWrapper();
-					break;
-				}
-				case JENA: {
-					returnWrapper = new JenaSelectWrapper();
-					break;
-				}
-				case SEMOSS_SESAME_REMOTE:{
-					returnWrapper = new RemoteSesameSelectWrapper();
-					break;
-				}
-				case RDBMS:{
-					returnWrapper = new RDBMSSelectWrapper();
-					break;
-					//TBD
-				}
-				case TINKER: {
-					returnWrapper = new TinkerSelectWrapper();
-				}
-				default: {
-					
-				}
-			}
-			
-			LOGGER.debug(returnWrapper.getClass() + " executing query: " + query);
-			returnWrapper.setEngine(engine);
-			returnWrapper.setQuery(query);
-			returnWrapper.execute();
-			returnWrapper.getDisplayVariables();
-			returnWrapper.getPhysicalVariables();
-			
-			return returnWrapper;
-	}
-
-	public IConstructWrapper getCWrapper(IEngine engine, String query)
-	{
-		IConstructWrapper returnWrapper = null;
-			switch(engine.getEngineType())
-			{
-			case SESAME: {
-				returnWrapper = new SesameConstructWrapper();
-				break;
-			}
-			case JENA: {
-				returnWrapper = new JenaConstructWrapper();
-				break;
-			}
-			case SEMOSS_SESAME_REMOTE:{
-				returnWrapper = new RemoteSesameConstructWrapper();
-				break;
-			}
-			case RDBMS:{
-				//TBD
-			}
-
-			default: {
-				
-			}
-			}
-			returnWrapper.setEngine(engine);
-			returnWrapper.setQuery(query);
-			returnWrapper.execute();
-			
-			return returnWrapper;
-	}
-
-	public IConstructWrapper getChWrapper(IEngine engine, String query)
-	{
-		IConstructWrapper returnWrapper = null;
-			switch(engine.getEngineType())
-			{
-			case SESAME: {
-				returnWrapper = new SesameSelectCheater();
-				break;
-			}
-			case JENA: {
-				returnWrapper = new JenaSelectCheater();
-				break;
-			}
-			case SEMOSS_SESAME_REMOTE:{
-				returnWrapper = new RemoteSesameSelectCheater();
-				break;
-			}
-			case RDBMS:{
-				returnWrapper = new RDBMSSelectCheater();
-				break;
-			}
-
-			default: {
-				
-			}
-			}
-			returnWrapper.setEngine(engine);
-			returnWrapper.setQuery(query);
-			returnWrapper.execute();
-			//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
-			//returnWrapper.getVariables();
-			
-			return returnWrapper;
-	}
 
 	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) {
 		IRawSelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
-		case SESAME: {
+		case SESAME : {
 			returnWrapper = new RawSesameSelectWrapper();
 			break;
 		}
-		case JENA: {
+		case JENA : {
 			returnWrapper = new RawJenaSelectWrapper();
 			break;
 		}
-		case RDBMS:{
+		case RDBMS : {
 			returnWrapper = new RawRDBMSSelectWrapper();
 			break;
 		}
-		case SEMOSS_SESAME_REMOTE:{
+		case SEMOSS_SESAME_REMOTE : {
 			//TODO: need to build out RemoteSesameSelectWrapper
 			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			*/
+			 */
 			returnWrapper = new RemoteSesameSelectWrapper();
 			break;
 		}
-		case TINKER: {
+		case TINKER : {
 			returnWrapper = new RawTinkerSelectWrapper();
 			break;
 		}
@@ -213,41 +108,45 @@ public class WrapperManager {
 
 		return returnWrapper;
 	}
-	
+
 	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct qs) {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
 		switch(engine.getEngineType()) {
-			case SESAME: {
-				returnWrapper = new RawSesameSelectWrapper();
-				break;
-			}
-			case JENA: {
-				returnWrapper = new RawJenaSelectWrapper();
-				break;
-			}
-			case RDBMS:{
-				returnWrapper = new RawRDBMSSelectWrapper();
-				break;
-			}
-			case SEMOSS_SESAME_REMOTE:{
-				//TODO: need to build out RemoteSesameSelectWrapper
-				/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+		case SESAME : {
+			returnWrapper = new RawSesameSelectWrapper();
+			break;
+		}
+		case JENA : {
+			returnWrapper = new RawJenaSelectWrapper();
+			break;
+		}
+		case RDBMS : {
+			returnWrapper = new RawRDBMSSelectWrapper();
+			break;
+		}
+		case SEMOSS_SESAME_REMOTE : {
+			//TODO: need to build out RemoteSesameSelectWrapper
+			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
 				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-				*/
-				returnWrapper = new RemoteSesameSelectWrapper();
-				break;
-			}
-			case TINKER: {
-				genQueryString = false;
-				returnWrapper = new RawTinkerSelectWrapper();
-				break;
-			}
-			default: {
-	
-			}
+			 */
+			returnWrapper = new RemoteSesameSelectWrapper();
+			break;
+		}
+		case TINKER : {
+			genQueryString = false;
+			returnWrapper = new RawTinkerSelectWrapper();
+			break;
+		}
+		case SOLR : {
+			genQueryString = false;
+			returnWrapper = new RawSolrSelectWrapper();
+		}
+		default: {
+
+		}
 		}
 
 		if(genQueryString) {
@@ -266,5 +165,111 @@ public class WrapperManager {
 
 		return returnWrapper;
 	}
-	
+
+	public ISelectWrapper getSWrapper(IEngine engine, String query)
+	{
+		ISelectWrapper returnWrapper = null;
+		switch(engine.getEngineType()) {
+		case SESAME : {
+			returnWrapper = new SesameSelectWrapper();
+			break;
+		}
+		case JENA : {
+			returnWrapper = new JenaSelectWrapper();
+			break;
+		}
+		case SEMOSS_SESAME_REMOTE : {
+			returnWrapper = new RemoteSesameSelectWrapper();
+			break;
+		}
+		case RDBMS : {
+			returnWrapper = new RDBMSSelectWrapper();
+			break;
+			//TBD
+		}
+		case TINKER : {
+			returnWrapper = new TinkerSelectWrapper();
+		}
+		default: {
+
+		}
+		}
+
+		LOGGER.debug(returnWrapper.getClass() + " executing query: " + query);
+		returnWrapper.setEngine(engine);
+		returnWrapper.setQuery(query);
+		returnWrapper.execute();
+		returnWrapper.getDisplayVariables();
+		returnWrapper.getPhysicalVariables();
+
+		return returnWrapper;
+	}
+
+	public IConstructWrapper getCWrapper(IEngine engine, String query)
+	{
+		IConstructWrapper returnWrapper = null;
+		switch(engine.getEngineType())
+		{
+		case SESAME : {
+			returnWrapper = new SesameConstructWrapper();
+			break;
+		}
+		case JENA : {
+			returnWrapper = new JenaConstructWrapper();
+			break;
+		}
+		case SEMOSS_SESAME_REMOTE : {
+			returnWrapper = new RemoteSesameConstructWrapper();
+			break;
+		}
+		case RDBMS : {
+			//TBD
+		}
+
+		default: {
+
+		}
+		}
+		returnWrapper.setEngine(engine);
+		returnWrapper.setQuery(query);
+		returnWrapper.execute();
+
+		return returnWrapper;
+	}
+
+	public IConstructWrapper getChWrapper(IEngine engine, String query)
+	{
+		IConstructWrapper returnWrapper = null;
+		switch(engine.getEngineType())
+		{
+		case SESAME : {
+			returnWrapper = new SesameSelectCheater();
+			break;
+		}
+		case JENA : {
+			returnWrapper = new JenaSelectCheater();
+			break;
+		}
+		case SEMOSS_SESAME_REMOTE : {
+			returnWrapper = new RemoteSesameSelectCheater();
+			break;
+		}
+		case RDBMS : {
+			returnWrapper = new RDBMSSelectCheater();
+			break;
+		}
+
+		default: {
+
+		}
+		}
+		returnWrapper.setEngine(engine);
+		returnWrapper.setQuery(query);
+		returnWrapper.execute();
+		//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
+		//returnWrapper.getVariables();
+
+		return returnWrapper;
+	}
+
 }
