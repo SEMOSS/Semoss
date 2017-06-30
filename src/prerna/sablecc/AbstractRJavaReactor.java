@@ -2015,11 +2015,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// Delete previous matching database
 		IEngine matchingEngine = matchingEngine = Utility.getEngine(matchingDbName);
-		matchingEngine.deleteDB();
-		matchingEngine = null;
+		if (matchingEngine != null) {
+			matchingEngine.deleteDB();
+			matchingEngine = null;
+		}
+	
 
 		// Only add to the engine if it is null
-		// TODO gracefully refresh the entire db
 		if (matchingEngine == null) {
 			MatchingDB db = new MatchingDB(getBaseFolder());
 			// rdbms db
