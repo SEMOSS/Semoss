@@ -41,6 +41,10 @@ public abstract class AbstractRBuilder {
 		return this.dataTableName;
 	}
 	
+	protected void setTableName(String dataTableName) {
+		this.dataTableName = dataTableName;
+	}
+	
 	////////////////////////////////////////////////////////////////////
 	///////////////////// Abstract Methods /////////////////////////////
 	
