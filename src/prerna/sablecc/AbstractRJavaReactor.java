@@ -7,9 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -48,11 +45,9 @@ import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.nameserver.DeleteFromMasterDB;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -326,6 +321,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			
 			this.dataframe = table;
 			this.frameChanged = true;
+		} else if(dataframe instanceof RDataTable){
+			// ughhh... why are you calling this?
+			// i will just change the r var name
+			((RDataTable) dataframe).executeRScript(rVarName + " <- " + ((RDataTable) dataframe).getTableVarName());
+			((RDataTable) dataframe).setTableVarName(rVarName);
 		} else {
 			throw new IllegalArgumentException("Frame must be of type H2");
 		}
