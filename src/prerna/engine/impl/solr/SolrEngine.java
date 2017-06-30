@@ -43,11 +43,10 @@ import prerna.util.OWLER;
 public class SolrEngine extends AbstractEngine {
 	
 	private static final Logger LOGGER = LogManager.getLogger(SolrEngine.class.getName());
-	private static final String SCHEMA_HEADERS_KEY = "headers";
-	private static final String SCHEMA_DATA_TYPE_KEY = "dataTypes";
-	private static final String SCHEMA_UNIQUE_HEADER_KEY = "uniqueKey";
-	private static final String SCHEMA_UNIQUE_HEADER_DATA_TYPE_KEY = "uniqueKeyType";
-
+	public static final String SCHEMA_HEADERS_KEY = "headers";
+	public static final String SCHEMA_DATA_TYPE_KEY = "dataTypes";
+	public static final String SCHEMA_UNIQUE_HEADER_KEY = "uniqueKey";
+	public static final String SCHEMA_UNIQUE_HEADER_DATA_TYPE_KEY = "uniqueKeyType";
 	
 	// the solr server
 	private SolrServer solrServer;
