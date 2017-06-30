@@ -38,7 +38,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.OWLER;
 
 public class SolrEngine extends AbstractEngine {
@@ -68,13 +67,13 @@ public class SolrEngine extends AbstractEngine {
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
 			CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
-//			this.solrBaseURL = prop.get(Constants.SOLR_URL).toString();
-//			this.solrCoreName = prop.get(Constants.SOLR_CORE_NAME).toString();
-//			this.solrCoreURL = solrBaseURL + "/" + solrCoreName;
-			
-			this.solrBaseURL = "http://localhost:8080/solr";
-			this.solrCoreName = "insightCore";
+			this.solrBaseURL = prop.get(Constants.SOLR_URL).toString();
+			this.solrCoreName = prop.get(Constants.SOLR_CORE_NAME).toString();
 			this.solrCoreURL = solrBaseURL + "/" + solrCoreName;
+			
+//			this.solrBaseURL = "http://localhost:8080/solr";
+//			this.solrCoreName = "insightCore";
+//			this.solrCoreURL = solrBaseURL + "/" + solrCoreName;
 			
 			this.solrServer = new HttpSolrServer(solrCoreURL, httpclient);
 		} catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {

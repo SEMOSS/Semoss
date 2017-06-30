@@ -362,6 +362,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.getTableVarName();
 	}
 	
+	public void setTableVarName(String tableVarName) {
+		this.builder.setTableName(tableVarName);
+	}
+	
 	@Override
 	public int getNumRows() {
 		return this.builder.getNumRows();
