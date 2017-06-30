@@ -43,32 +43,36 @@ public class SolrInterpreter implements IQueryInterpreter {
 		Map<String, Map<String, List>> filters = qs.andfilters;
 		for (String concept_property : filters.keySet()) {
 			Map<String, List> compHash = filters.get(concept_property);
+			String fieldName = concept_property;
+			if(concept_property.contains("__")) {
+				fieldName = concept_property.split("__")[1];
+			}
 
 			for (String filterType : compHash.keySet()) {
 				List filterVals = compHash.get(filterType);
 				for (Object s : filterVals) {
-
 					if (filterType.equals("=")) {
 						// case where comparator is equal
 						if (s instanceof String) {
-							query.addFilterQuery(concept_property + ":" + (String) s);
+							query.addFilterQuery(fieldName + ":" + (String) s);
 						} else if (s instanceof Number) {
-							query.addFilterQuery(concept_property + ":" + "[" + s + " TO " + s + "]");
+							query.addFilterQuery(fieldName + ":[" + s + " TO " + s + "]");
 						}
 					} else if (filterType.equals("<")) {
 						// TODO: less than?
 					} else if (filterType.equals(">")) {
+						
 					} else if (filterType.equals("<=")) {
-						query.addFilterQuery(concept_property + ":" + "[" + "*" + " TO " + s + "]");
+						query.addFilterQuery(fieldName + ":[ * TO " + s + "]");
 
 					} else if (filterType.equals(">=")) {
-						query.addFilterQuery(concept_property + ":" + "[" + s + " TO " + "*" + "]");
+						query.addFilterQuery(fieldName + ":[" + s + " TO * ]");
 
 					} else if (filterType.equals("!=")) {
 						if (s instanceof String) {
-							query.addFilterQuery("!" + concept_property + ":" + (String) s);
+							query.addFilterQuery("!" + fieldName + ":" + s);
 						} else if (s instanceof Number) {
-							query.addFilterQuery("!" + concept_property + ":" + "[" + s + " TO " + s + "]");
+							query.addFilterQuery("!" + fieldName + ":" + "[" + s + " TO " + s + "]");
 						}
 					}
 				}
