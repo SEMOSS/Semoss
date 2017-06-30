@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -69,10 +71,6 @@ public class SolrEngine extends AbstractEngine {
 			this.solrBaseURL = prop.get(Constants.SOLR_URL).toString();
 			this.solrCoreName = prop.get(Constants.SOLR_CORE_NAME).toString();
 			this.solrCoreURL = solrBaseURL + "/" + solrCoreName;
-			
-//			this.solrBaseURL = "http://localhost:8080/solr";
-//			this.solrCoreName = "insightCore";
-//			this.solrCoreURL = solrBaseURL + "/" + solrCoreName;
 			
 			this.solrServer = new HttpSolrServer(solrCoreURL, httpclient);
 		} catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
@@ -287,11 +285,18 @@ public class SolrEngine extends AbstractEngine {
 		 */
 		Map<String, Object> schemaData = new HashMap<String, Object>();
 		
-		InputStream input = null;
+		CloseableHttpClient httpclient = null;
 		try {
+			SSLContextBuilder builder = new SSLContextBuilder();
+			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+			
+			HttpGet getRequest = new HttpGet(schemaURL);
+			HttpResponse response = httpclient.execute(getRequest);
+			
 			// connect to the url to get the schema
-			input = new URL(schemaURL).openStream();
-			Map<String, Object> map = new Gson().fromJson(new InputStreamReader(input, "UTF-8"), new TypeToken<Map<String, Object>>() {}.getType());
+			Map<String, Object> map = new Gson().fromJson(new InputStreamReader(response.getEntity().getContent(), "UTF-8"), new TypeToken<Map<String, Object>>() {}.getType());
 			List fields = (List) map.get("fields");
 			int size = fields.size();
 			List<String> headers = new Vector<String>(size);
@@ -323,13 +328,13 @@ public class SolrEngine extends AbstractEngine {
 			
 			schemaData.put(SCHEMA_HEADERS_KEY, headers);
 			schemaData.put(SCHEMA_DATA_TYPE_KEY, types);
-		} catch (IOException | JsonIOException | JsonSyntaxException e) {
+		} catch (IOException | JsonIOException | JsonSyntaxException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Could not process the solr core's schema information at " + schemaURL);
 		} finally {
-			if(input != null) {
+			if(httpclient != null) {
 				try {
-					input.close();
+					httpclient.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -346,17 +351,30 @@ public class SolrEngine extends AbstractEngine {
 	 * @return
 	 */
 	public static boolean ping(String solrURL, String coreName) {
-		SSLContextBuilder builder = new SSLContextBuilder();
+		CloseableHttpClient httpclient = null;
+		HttpSolrServer solrServer = null;
 		try {
+			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
 			String solrCoreUrl = solrURL + "/" + coreName;
-			HttpSolrServer solrServer = new HttpSolrServer(solrCoreUrl, httpclient);
+			solrServer = new HttpSolrServer(solrCoreUrl, httpclient);
 			solrServer.ping();
 		} catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException | SolrServerException | IOException e) {
 			return false;
+		} finally {
+			if(httpclient != null) {
+				try {
+					httpclient.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(solrServer != null) {
+				solrServer.shutdown();
+			}
 		}
 
 		return true;
