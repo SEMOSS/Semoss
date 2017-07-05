@@ -23,8 +23,6 @@ public class VizReactor extends AbstractVizReactor {
 
 	@Override
 	public Iterator process() {
-		
-		
 		List<Object> selectors = (List<Object>) getValue("VIZ_SELECTOR");
 		List<String> vizTypes = (List<String>) getValue("VIZ_TYPE");
 		List<String> vizFormula = (List<String>) getValue("VIZ_FORMULA");
