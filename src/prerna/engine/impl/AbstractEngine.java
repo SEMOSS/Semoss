@@ -798,6 +798,11 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	@Override
+	public void setInsightDatabase(IEngine insightDatabase) {
+		this.insightRDBMS = (RDBMSNativeEngine) insightDatabase;
+	}
+	
+	@Override
 	public Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery) {
 		IEngine engine = this;
 		if(!isDbQuery){
