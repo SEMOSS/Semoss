@@ -121,6 +121,8 @@ public interface IExplorable {
 
 	IEngine getInsightDatabase();
 
+	void setInsightDatabase(IEngine insightDatabase);
+	
 	List<Map<String, Object>> getAllInsightsMetaData();
 	
 	String getInsightDefinition();
