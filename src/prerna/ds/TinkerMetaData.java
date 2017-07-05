@@ -213,6 +213,7 @@ public class TinkerMetaData implements IMetaData {
 		Vertex vert = getExistingVertex(uniqueName);
 		if(dataType == null || dataType.isEmpty()) {
 			vert.property(DB_DATATYPE, "VARCHAR(800)");
+			vert.property(DATATYPE, IMetaData.DATA_TYPES.STRING);
 			return;
 		}
 		if(dataType.contains("TYPE:")) {

@@ -535,4 +535,10 @@ public class MetaHelper implements IExplorable {
 		return null;
 	}
 
+	@Override
+	public void setInsightDatabase(IEngine insightDatabase) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
