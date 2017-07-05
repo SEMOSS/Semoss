@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.http.HttpResponse;
@@ -59,17 +60,51 @@ public class SolrEngine extends AbstractEngine {
 	// the combination fo the solr base url and the core name
 	private String solrCoreURL;
 	
+	/**
+	 * Default constructor
+	 * This assumes the user is going to use openDB to load
+	 * the engine using the existing properties
+	 */
+	public SolrEngine() {
+		
+	}
+	
+	/**
+	 * This will create a shell of a solr engine
+	 * This will not create or give you access to an OWL or insights RDBMS
+	 * @param solrUrl
+	 * @param solrCoreName
+	 */
+	public SolrEngine(String solrBaseURL, String solrCoreName) {
+		setConnectionDetails(solrBaseURL, solrCoreName);
+		this.prop = new Properties();
+		this.prop.setProperty(Constants.SOLR_URL, solrBaseURL);
+		this.prop.setProperty(Constants.SOLR_CORE_NAME, solrCoreName);
+		this.prop.setProperty(Constants.ENGINE_TYPE, this.getClass().getName());
+	}
+	
 	@Override
 	public void openDB(String propFile) {
 		super.openDB(propFile);
+		String solrBaseURL = prop.get(Constants.SOLR_URL).toString();
+		String solrCoreName = prop.get(Constants.SOLR_CORE_NAME).toString();
+		setConnectionDetails(solrBaseURL, solrCoreName);
+	}
+	
+	/**
+	 * Set the connection details for the constructors
+	 * @param solrUrl
+	 * @param solrCoreName
+	 */
+	private void setConnectionDetails(String solrUrl, String solrCoreName) {
 		SSLContextBuilder builder = new SSLContextBuilder();
 		try {
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
 			CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 
-			this.solrBaseURL = prop.get(Constants.SOLR_URL).toString();
-			this.solrCoreName = prop.get(Constants.SOLR_CORE_NAME).toString();
+			this.solrBaseURL = solrUrl;
+			this.solrCoreName = solrCoreName;
 			this.solrCoreURL = solrBaseURL + "/" + solrCoreName;
 			
 			this.solrServer = new HttpSolrServer(solrCoreURL, httpclient);
@@ -231,36 +266,6 @@ public class SolrEngine extends AbstractEngine {
 		return coreList;
 	}
 	
-	public void createOWL() {
-		String path = "C:\\workspace\\Semoss_Dev\\db\\Solr_OWL.OWL";
-		OWLER owl = new OWLER(path, IEngine.ENGINE_TYPE.SOLR);
-		
-		Map<String, Object> schemaData = getSchema(this.solrBaseURL, this.solrCoreName);
-		
-		List<String> columnHeaders = (List<String>) schemaData.get(SCHEMA_HEADERS_KEY);
-		List<String> columnTypes = (List<String>) schemaData.get(SCHEMA_DATA_TYPE_KEY);
-		String key = (String) schemaData.get(SCHEMA_UNIQUE_HEADER_KEY);
-		String keyType = (String) schemaData.get(SCHEMA_UNIQUE_HEADER_DATA_TYPE_KEY);
-
-		owl.addConcept(key, keyType);
-		for(int i = 0; i < columnHeaders.size(); i++) {
-			String column = columnHeaders.get(i);
-			// the list of column headers
-			// also contains the key
-			// so dont add it as a prop of itself
-			if(column.equals(key)) {
-				continue;
-			}
-			owl.addProp(key, columnHeaders.get(i), columnTypes.get(i));
-		}
-		owl.commit();
-		try {
-			owl.export();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
 	//////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////
 	///////////////////////// STATIC UTILITY METHODS /////////////////////////////////
@@ -380,13 +385,44 @@ public class SolrEngine extends AbstractEngine {
 		return true;
 	}
 	
+	/**
+	 * Get the OWLER that represents the schema for a given solr core
+	 * @param owlPath
+	 * @param solrBaseURL
+	 * @param solrCoreName
+	 * @return
+	 */
+	public static OWLER getSolrEngineOWLER(String owlPath, String solrBaseURL, String solrCoreName) {
+		OWLER owl = new OWLER(owlPath, IEngine.ENGINE_TYPE.SOLR);
+		
+		Map<String, Object> schemaData = getSchema(solrBaseURL, solrCoreName);
+		
+		List<String> columnHeaders = (List<String>) schemaData.get(SCHEMA_HEADERS_KEY);
+		List<String> columnTypes = (List<String>) schemaData.get(SCHEMA_DATA_TYPE_KEY);
+		String key = (String) schemaData.get(SCHEMA_UNIQUE_HEADER_KEY);
+		String keyType = (String) schemaData.get(SCHEMA_UNIQUE_HEADER_DATA_TYPE_KEY);
+
+		owl.addConcept(key, keyType);
+		for(int i = 0; i < columnHeaders.size(); i++) {
+			String column = columnHeaders.get(i);
+			// the list of column headers
+			// also contains the key
+			// so dont add it as a prop of itself
+			if(column.equals(key)) {
+				continue;
+			}
+			owl.addProp(key, columnHeaders.get(i), columnTypes.get(i));
+		}
+
+		return owl;
+	}
+	
 	public static void main(String[] args) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		// getCoreList();
 		TestUtilityMethods.loadDIHelper();
 		SolrEngine solr = new SolrEngine();
 		solr.openDB(null);
 		solr.setEngineName("insightCore");
-		solr.createOWL();
 	}
 
 }
