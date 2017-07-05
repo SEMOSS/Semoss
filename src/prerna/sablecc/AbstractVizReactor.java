@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import java.util.Vector;
 
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.VizPkqlMetadata;
+import prerna.util.ArrayUtilityMethods;
 
 public abstract class AbstractVizReactor extends AbstractReactor {
 
@@ -252,6 +254,106 @@ public abstract class AbstractVizReactor extends AbstractReactor {
 
 		return mergedMap;
 	}
+	
+	public Map<String, Object> getClustergramData(List<Object[]> data, String[] headers, List<String> xCategory, List<String> yCategory, String heat) {
+		// need to have 3 maps
+		// 1st map is for the x-axis dendrogram
+		// 2nd map is for the y-axis dendrogram
+		// 3rd map is for the grid
+		
+		final String CHILDREN = "children";
+		final String PARENT = "parent";
+		final String NAME = "name";
+		
+		LinkedHashMap<Object, Object> x_map = new LinkedHashMap<Object, Object>();
+		x_map.put(NAME, "root");
+		x_map.put(PARENT, "null");
+		x_map.put(CHILDREN, new LinkedHashSet<Map<Object, Object>>());
+		
+		LinkedHashMap<Object, Object> y_map = new LinkedHashMap<Object, Object>();
+		y_map.put(NAME, "root");
+		y_map.put(PARENT, "null");
+		y_map.put(CHILDREN, new LinkedHashSet<Map<Object, Object>>());
+		
+//		Map<Object, Map> grid_map = new LinkedHashMap<Object, Map>();
+
+		// loop through to get the indices of the datarow we care about for the various components
+		int num_x_components = xCategory.size();
+		List<Integer> x_indices = new Vector<Integer>(num_x_components);
+		for(int i = 0; i < num_x_components; i++) {
+			x_indices.add(ArrayUtilityMethods.arrayContainsValueAtIndex(headers, xCategory.get(i)));
+		}
+		
+		int num_y_components = yCategory.size();
+		List<Integer> y_indices = new Vector<Integer>(num_y_components);
+		for(int i = 0; i < num_y_components; i++) {
+			y_indices.add(ArrayUtilityMethods.arrayContainsValueAtIndex(headers, yCategory.get(i)));
+		}
+		
+		// now that we have the indices
+		// loop through the data
+		// and construct everything
+		for(Object[] dataRow : data) {
+			// generate the map for the x axis
+			generateParentChildMap(x_map, dataRow, x_indices, num_x_components, NAME, PARENT, CHILDREN);
+			
+			// second, get the y_map
+			generateParentChildMap(y_map, dataRow, y_indices, num_y_components, NAME, PARENT, CHILDREN);
+		}
+		
+		// now we need to loop through the data again
+		// in order to get the indices to paint the middle heat map
+		
+		
+		Map<String, Object> retObj = new HashMap<String, Object>();
+		retObj.put("leftTree", y_map);
+		retObj.put("topTree", x_map);
+
+		return retObj;
+	}
+	
+	private void generateParentChildMap(LinkedHashMap<Object, Object> staring_map, Object[] dataRow, List<Integer> indices, int num_components, final String NAME, final String PARENT, final String CHILDREN) {
+		// we need to replace the reference with each iteration
+		LinkedHashMap<Object, Object> x_subMap = staring_map;
+		
+		int counter = 0;
+		while(counter < num_components) {
+			LinkedHashSet childrenSet = (LinkedHashSet) x_subMap.get(CHILDREN);
+			String parent = x_subMap.get(NAME).toString();
+
+			int dataRowIndex = indices.get(counter);
+			Object dataRowValue = dataRow[dataRowIndex];
+			
+			// see if child already exists
+			LinkedHashMap childMap = getChildMap(dataRowValue, childrenSet, CHILDREN);
+			
+			if(childMap == null) {
+				// child doesn't exist
+				// add him in
+				childMap = new LinkedHashMap<Object, Object>();
+				childMap.put(NAME, dataRowValue.toString());
+				childMap.put(PARENT, parent);
+				childMap.put(CHILDREN, new LinkedHashSet<Map<Object, Object>>());
+				childrenSet.add(childMap);
+			}
+			// reset the x_sub map to point to this child
+			x_subMap = childMap;
+
+			// update the counter
+			counter++;
+		}
+	}
+	
+	private LinkedHashMap<Object, Object> getChildMap(Object name, LinkedHashSet<LinkedHashMap> childrenSet, final String CHILD_MAP_KEY) {
+		for(LinkedHashMap childMap : childrenSet) {
+			if(childMap.get(CHILD_MAP_KEY).toString().equals(name.toString())) {
+				return childMap;
+			}
+		}
+		
+		return null;
+	}
+		
 	
 	public IPkqlMetadata getPkqlMetadata() {
 		VizPkqlMetadata metadata = new VizPkqlMetadata();

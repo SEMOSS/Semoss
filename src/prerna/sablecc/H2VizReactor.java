@@ -27,6 +27,7 @@ public class H2VizReactor extends AbstractVizReactor {
 		List<String> vizTypes = (List<String>) getValue("VIZ_TYPE");
 		List<String> vizFormula = (List<String>) getValue("VIZ_FORMULA");
 		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
+		String layout = (String) getValue("layout");
 		
 		if(selectors == null || selectors.size() == 0) {
 			// this is the case when user wants a grid of everything
@@ -189,6 +190,29 @@ public class H2VizReactor extends AbstractVizReactor {
 			// this will store the table and headers in myStore
 			// this will also add the limit/offset/sortby
 			mergeIteratorWithMapData(mergeMaps, mergeVizTypes, it, tableKeys, queryHeaders, tableCols, optionsMap);
+		}
+		
+		if(layout.equals("Clustergram")) {
+			List<Object[]> data = (List<Object[]>) myStore.get("VizTableValues");
+			List<Map<String, Object>> varKeys = (List<Map<String, Object>>) myStore.get("VizTableKeys");
+			int numRetHeaders = varKeys.size();
+			String[] retHeaders = new String[numRetHeaders];
+			List<String> xCategory = new Vector<String>();
+			List<String> yCategory = new Vector<String>();
+			String heat = null;
+			for(int i = 0; i < numRetHeaders; i++) {
+				String vizType = vizTypes.get(i);
+				String name = varKeys.get(i).get("varKey").toString();
+				retHeaders[i] = name;
+				if(vizType.equals("x_category=")) {
+					xCategory.add(name);
+				} else if(vizType.equals("y_category=")) {
+					yCategory.add(name);
+				} else if(vizType.equals("heat=")) {
+					heat = name;
+				}
+			}
+			Object clusterData = getClustergramData(data, retHeaders, xCategory, yCategory, heat);
 		}
 			
 		return null;
