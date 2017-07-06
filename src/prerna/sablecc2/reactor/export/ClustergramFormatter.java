@@ -99,12 +99,14 @@ public class ClustergramFormatter extends AbstractFormatter {
 		addPositionsToMap(x_map);
 		addPositionsToMap(y_map);
 
+		int heat_index = ArrayUtilityMethods.arrayContainsValueAtIndex(headers, heat);
+
 		List<Map<Object, Object>> grid_data = new ArrayList<Map<Object, Object>>(data.size());
 		LinkedHashSet<Map<Object, Object>> xChildrenSet = (LinkedHashSet<Map<Object, Object>>) x_map.get(CHILDREN);
 		LinkedHashSet<Map<Object, Object>> yChildrenSet = (LinkedHashSet<Map<Object, Object>>) y_map.get(CHILDREN);
 		// now loop through and make the grid map
 		for(Object[] dataRow : data) {
-			addRowToMainMap(grid_data, dataRow, x_indices, y_indices, xChildrenSet, yChildrenSet);
+			addRowToMainMap(grid_data, dataRow, x_indices, y_indices, xChildrenSet, yChildrenSet, heat_index);
 		}
 		
 		// return all maps
@@ -125,13 +127,15 @@ public class ClustergramFormatter extends AbstractFormatter {
 	 * @param x_indices
 	 * @param y_map
 	 * @param y_indices
+	 * @param heat_index 
 	 */
 	private void addRowToMainMap(List<Map<Object, Object>> grid_data, 
 			Object[] dataRow,
 			List<Integer> x_indices, 
 			List<Integer> y_indices,
 			LinkedHashSet<Map<Object, Object>> xChildrenSet, 
-			LinkedHashSet<Map<Object, Object>> yChildrenSet) 
+			LinkedHashSet<Map<Object, Object>> yChildrenSet, 
+			int heat_index) 
 	{
 		Map<Object, Object> dataRowMap = new HashMap<Object, Object>();
 		
@@ -144,6 +148,12 @@ public class ClustergramFormatter extends AbstractFormatter {
 		dataRowMap.put("y_index", yChild.get(INDEX));
 		dataRowMap.put("y_child_value", yChild.get(NAME));
 
+		Object value = dataRow[heat_index];
+		if(value == null) {
+			value = NULL_PLACEHOLDER;
+		}
+		dataRowMap.put("value", value);
+		
 		grid_data.add(dataRowMap);
 	}
 
