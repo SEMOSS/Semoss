@@ -114,15 +114,15 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 
 		// get the username
 		String userName = (String) connectionInformation.get(USERNAME_KEY);
-		if(userName == null) {
-			throw new IllegalArgumentException("Need to define a username for the connection string");
-		}
+//		if(userName == null) {
+//			throw new IllegalArgumentException("Need to define a username for the connection string");
+//		}
 
 		// get the password
 		String password = (String) connectionInformation.get(PASSWORD_KEY);
-		if(password == null) {
-			throw new IllegalArgumentException("Need to define a passwrod for the connection string");
-		}
+//		if(password == null) {
+//			throw new IllegalArgumentException("Need to define a passwrod for the connection string");
+//		}
 
 		// get the query
 		String query = (String) myStore.get(QUERY_KEY);
@@ -133,7 +133,11 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 		// create the iterator
 		Connection con;
 		try {
-			con = DriverManager.getConnection(connectionUrl, userName, password);
+			if(userName == null || password == null) {
+				con = DriverManager.getConnection(connectionUrl);
+			} else {
+				con = DriverManager.getConnection(connectionUrl, userName, password);
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
