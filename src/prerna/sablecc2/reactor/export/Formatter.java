@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
+import java.util.Map;
+
 import prerna.engine.api.IHeadersDataRow;
 
 public interface Formatter {
@@ -13,4 +15,8 @@ public interface Formatter {
 	String getIdentifier();
 	
 	void clear();
+	
+	void setOptionsMap(Map<String, Object> options);
+	
+	Map<String, Object> getOptionsMap();
 }
