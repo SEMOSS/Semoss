@@ -193,28 +193,10 @@ public class H2VizReactor extends AbstractVizReactor {
 		}
 		
 		if(layout.equals("Clustergram")) {
-			List<Object[]> data = (List<Object[]>) myStore.get("VizTableValues");
-			List<Map<String, Object>> varKeys = (List<Map<String, Object>>) myStore.get("VizTableKeys");
-			int numRetHeaders = varKeys.size();
-			String[] retHeaders = new String[numRetHeaders];
-			List<String> xCategory = new Vector<String>();
-			List<String> yCategory = new Vector<String>();
-			String heat = null;
-			for(int i = 0; i < numRetHeaders; i++) {
-				String vizType = vizTypes.get(i);
-				String name = varKeys.get(i).get("varKey").toString();
-				retHeaders[i] = name;
-				if(vizType.equals("x_category=")) {
-					xCategory.add(name);
-				} else if(vizType.equals("y_category=")) {
-					yCategory.add(name);
-				} else if(vizType.equals("heat=")) {
-					heat = name;
-				}
-			}
-			Object clusterData = getClustergramData(data, retHeaders, xCategory, yCategory, heat);
+			Object clusterData = returnClustergramData((List<Object[]>) myStore.get("VizTableValues"), (List<Map<String, Object>>) myStore.get("VizTableKeys"), vizTypes);
+			myStore.put("VizTableValues", clusterData);
 		}
-			
+		
 		return null;
 	}
 }

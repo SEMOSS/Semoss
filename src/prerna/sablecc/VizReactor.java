@@ -27,7 +27,8 @@ public class VizReactor extends AbstractVizReactor {
 		List<String> vizTypes = (List<String>) getValue("VIZ_TYPE");
 		List<String> vizFormula = (List<String>) getValue("VIZ_FORMULA");
 		Map<Object, Object> optionsMap = (Map<Object, Object>) getValue(PKQLEnum.MAP_OBJ);
-		
+		String layout = (String) getValue("layout");
+
 		if(selectors == null || selectors.size() == 0 || !(getValue("G") instanceof ITableDataFrame)) {
 			// this is the case when user wants a grid of everything
 			// we do not send back any data through the pkql
@@ -112,6 +113,11 @@ public class VizReactor extends AbstractVizReactor {
 		
 		// this will also store the data table in myStore
 		performLimitOffsetAndSorting(data, optionsMap, tableKeys);
+		
+		if(layout.equals("Clustergram")) {
+			Object clusterData = returnClustergramData((List<Object[]>) myStore.get("VizTableValues"), (List<Map<String, Object>>) myStore.get("VizTableKeys"), vizTypes);
+			myStore.put("VizTableValues", clusterData);
+		}
 		
 		return null;
 	}
