@@ -13,11 +13,12 @@ public class TableFormatter extends AbstractFormatter {
 	private String[] headers;
 	
 	public TableFormatter() {
-		data = new ArrayList<>(100);
+		this.data = new ArrayList<>(100);
 	}
 	
+	@Override
 	public void addData(IHeadersDataRow nextData) {
-		headers = nextData.getHeaders();
+		this.headers = nextData.getHeaders();
 		this.data.add(nextData.getValues());
 	}
 	
@@ -30,8 +31,8 @@ public class TableFormatter extends AbstractFormatter {
 
 	@Override
 	public void clear() {
-		data = new ArrayList<>(100);
-		headers = null;
+		this.data = new ArrayList<>(100);
+		this.headers = null;
 	}
 
 }
