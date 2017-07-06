@@ -10,6 +10,10 @@ import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 
 public class SqlDistinctGroupConcatReactor extends AbstractH2SqlBaseReducer {
 
+	public SqlDistinctGroupConcatReactor() {
+		this.setRoutine("UniqueGroupConcat");
+		this.setPkqlRoutine("UniqueGroupConcat");
+	}
 	
 	@Override
 	public SqlExpressionBuilder process(H2Frame frame, SqlExpressionBuilder builder) {
