@@ -102,21 +102,16 @@ public class ReactorFactory {
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
 		// Import Reactors
-		reactorHash.put("Import", ImportDataReactor.class); // takes in a query
-															// struct and
-															// imports data to a
-															// new frame
-		reactorHash.put("Merge", MergeDataReactor.class); // takes in a query
-															// struct and merges
-															// data to an
-															// existing frame
+		// takes in a query struct and imports data to a new frame
+		reactorHash.put("Import", ImportDataReactor.class); 
+		// takes in a query struct and merges data to an  existing frame
+		reactorHash.put("Merge", MergeDataReactor.class); 
 
 		// Query Struct Reactors
-		reactorHash.put("Select", SelectReactor.class); // builds the select
-														// portion of the QS
+		 // builds the select portion of the QS
+		reactorHash.put("Select", SelectReactor.class);
 		reactorHash.put("Average", AverageReactor.class);
 		reactorHash.put("Sum", SumReactor.class);
-
 		reactorHash.put("Group", GroupByReactor.class);
 		reactorHash.put("Limit", LimitReactor.class);
 		reactorHash.put("Offset", OffsetReactor.class);
@@ -125,33 +120,17 @@ public class ReactorFactory {
 		reactorHash.put("Query", QueryReactor.class);
 
 		// Data Source Reactors
-		reactorHash.put("Database", DatabaseReactor.class); // specifies that
-															// our pksl
-															// operations after
-															// this point are
-															// dealing with the
-															// specified
-															// database
-		reactorHash.put("Datasource", DatabaseReactor.class); // specifies that
-																// our pksl
-																// operations
-																// after this
-																// point are
-																// dealing with
-																// the specified
-																// database
-		reactorHash.put("Frame", FrameReactor.class); // specifies that our pksl
-														// operations after this
-														// point are dealing
-														// with the specified
-														// frame
+		// specifies that our pksl operations after this point are dealing with the specified database
+		reactorHash.put("Database", DatabaseReactor.class); 
+		reactorHash.put("Datasource", DatabaseReactor.class); 
+
+		// specifies that our pksl operations after this point are dealing with the specified frame
+		reactorHash.put("Frame", FrameReactor.class); 
 		reactorHash.put("CreateFrame", CreateFrame.class);
 
 		// Reducers
-		reactorHash.put("Iterate", IterateReactor.class); // this takes in a
-															// query struct and
-															// produces an
-															// iterator
+		// this takes in a query struct and produces an iterator
+		reactorHash.put("Iterate", IterateReactor.class); 
 
 		// Exporting Reactors
 		reactorHash.put("Job", JobReactor.class); // defines the job

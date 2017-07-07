@@ -196,7 +196,7 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<Object[]> iterator() {
-		return this.builder.iterator(this.headerNames, 0, 0);
+		return this.builder.iterator(getColumnHeaders(), 0, 0);
 	}
 	
 	@Override
@@ -206,7 +206,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		// TODO Auto-generated method stub
 		// need to build this out
-		String[] headers = this.headerNames;
+		String[] headers = getColumnHeaders();
 		if(options.containsKey(AbstractTableDataFrame.SELECTORS)) {
 			List<String> headerList = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
 			headers = headerList.toArray(new String[]{});
