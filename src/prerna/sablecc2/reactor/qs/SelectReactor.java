@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
 
-import prerna.ds.h2.H2Frame;
 import prerna.ds.querystruct.QueryStruct2;
 import prerna.ds.querystruct.QueryStructSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -47,15 +46,19 @@ public class SelectReactor extends QueryStructReactor {
 			//Otherwise we are going to use the query struct for a frame in which case
 			//EVERY column will be referenced as Table__Column
 			else {
-				H2Frame frame = (H2Frame)planner.getFrame();
-				String tableName = frame.getBuilder().getTableName();
 				for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
 					Object newSelector = qsInputs.get(selectIndex);
 					if(newSelector instanceof QueryStruct2) {
 						mergeQueryStruct( (QueryStruct2) newSelector);
 					} else if(newSelector instanceof String) {
 						String thisSelector = newSelector + "";
-						QueryStructSelector selector = getSelector(tableName, thisSelector);
+						QueryStructSelector selector = null;
+						if(thisSelector.contains("__")) {
+							String[] selectorSplit = thisSelector.split("__");
+							selector = getSelector(selectorSplit[0], selectorSplit[1]);
+						} else {
+							selector = getSelector(thisSelector, null);
+						}
 						qs.addSelector(selector);
 					} else {
 						throw new IllegalArgumentException("ERROR!!! Invalid selector being sent");

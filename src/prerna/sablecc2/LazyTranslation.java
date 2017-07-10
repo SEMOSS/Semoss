@@ -54,7 +54,7 @@ import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.expression.OpFilter;
-import prerna.sablecc2.reactor.qs.AsReactor;
+import prerna.sablecc2.reactor.qs.QueryStructReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class LazyTranslation extends DepthFirstAdapter {
@@ -216,23 +216,30 @@ public class LazyTranslation extends DepthFirstAdapter {
     	{
     		deInitReactor();
     	}
-        this.lastOperation = node + "";
+    	this.lastOperation = node + "";
     }
+
     // setting the as value on a frame
     public void inAAsop(AAsop node)
     {
     	defaultIn(node);
-        IReactor opReactor = new AsReactor();
-        LOGGER.debug("In the AS Component of frame op");
-        opReactor.setPKSL("as", node.getAsOp() + "");
-        initReactor(opReactor);
+    	IReactor opReactor;
+    	// TODO: how do get this out of here...
+    	if(this.curReactor != null && this.curReactor instanceof QueryStructReactor) {
+    		opReactor = new prerna.sablecc2.reactor.qs.AsReactor();
+    	} else {
+    		opReactor = new prerna.sablecc2.reactor.AsReactor();
+    	}
+    	LOGGER.debug("In the AS Component of frame op");
+    	opReactor.setPKSL("as", node.getAsOp() + "");
+    	initReactor(opReactor);
     }
 
     public void outAAsop(AAsop node)
     {
-        defaultOut(node);
-        LOGGER.debug("OUT the AS Component of frame op");
-        deInitReactor();
+    	defaultOut(node);
+    	LOGGER.debug("OUT the AS Component of frame op");
+    	deInitReactor();
     }
 
     public void inAAssignment(AAssignment node)
