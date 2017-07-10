@@ -11,12 +11,11 @@ public class AsReactor extends AbstractReactor {
 	
 	public Object Out()
 	{
-		updatePlan();
 		return parentReactor;
 	}
 	
 	public NounMetadata execute() {
-		String alias = (String)curRow.get(0);
+		String alias = (String) curRow.get(0);
 		NounMetadata noun = new NounMetadata(alias, PkslDataTypes.ALIAS);
 		return noun;
 	}
