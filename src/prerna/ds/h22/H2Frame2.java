@@ -1,7 +1,6 @@
 package prerna.ds.h22;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -9,7 +8,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,8 +28,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.cache.ICache;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.RdbmsTableMetaData;
 import prerna.ds.TinkerFrame;
@@ -45,6 +41,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.r.RRunner;
 import prerna.poi.main.RDBMSEngineCreationHelper;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.SQLInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -1018,6 +1016,10 @@ public class H2Frame2 extends AbstractTableDataFrame {
 		return this.tableMeta.getFilters().getFilterHash();
 	}
 
+	@Override
+	public IQueryInterpreter2 getInterpreter() {
+		return new SQLInterpreter2();
+	}
 
 		
 	/******************************

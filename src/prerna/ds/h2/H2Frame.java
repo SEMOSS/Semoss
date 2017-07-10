@@ -43,15 +43,16 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Builder.Join;
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.r.RRunner;
 import prerna.poi.main.RDBMSEngineCreationHelper;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.QueryStruct2;
+import prerna.query.interpreters.SQLInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.SQLInterpreter;
-import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -1798,6 +1799,11 @@ public class H2Frame extends AbstractTableDataFrame {
 		String tableName = getTableName();
 		this.builder.changeDataType(tableName, columnName, newType);
 		this.metaData.modifyDataType(columnName, newType);
+	}
+
+	@Override
+	public IQueryInterpreter2 getInterpreter() {
+		return new SQLInterpreter2();
 	}
 	
 }

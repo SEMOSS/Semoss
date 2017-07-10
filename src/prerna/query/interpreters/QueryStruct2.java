@@ -1,4 +1,4 @@
-package prerna.ds.querystruct;
+package prerna.query.interpreters;
 
 import java.io.FileInputStream;
 import java.io.IOException;

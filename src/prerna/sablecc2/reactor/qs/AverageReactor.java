@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.querystruct.QueryStructSelector;
+import prerna.query.interpreters.QueryStructSelector;
 
 public class AverageReactor extends SelectReactor{
 
