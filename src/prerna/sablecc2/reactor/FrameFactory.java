@@ -7,13 +7,13 @@ import prerna.ds.r.RDataTable;
 
 public class FrameFactory {
 
-	public static ITableDataFrame getFrame(String frameType) {
+	public static ITableDataFrame getFrame(String frameType, String alias) {
 		switch (frameType.toUpperCase()) {
-		case "GRID": { return new H2Frame(); }
+		case "GRID": { return new H2Frame(alias); }
 		case "GRAPH": { return new TinkerFrame(); } 
-		case "RFRAME": { return new RDataTable(); }
-		case "R": { return new RDataTable(); }
-		default: { return new H2Frame(); }
+		case "RFRAME": { return new RDataTable(alias); }
+		case "R": { return new RDataTable(alias); }
+		default: { return new H2Frame(alias); }
 		}
 	}
 }
