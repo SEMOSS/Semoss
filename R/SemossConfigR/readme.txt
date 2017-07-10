@@ -1,7 +1,7 @@
 How to configure R for SEMOSS
 
 1) Download R-Portable from:
-https://sourceforge.net/projects/rportable/files/R-Portable/
+https://sourceforge.net/projects/rportable/files/R-Portable/3.3.2/R-Portable_3.3.2.paf.exe/download
 
 2) Install R-Portable using the downloaded executable file
 
