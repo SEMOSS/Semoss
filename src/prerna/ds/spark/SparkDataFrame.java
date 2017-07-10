@@ -12,6 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -309,5 +310,10 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	public void removeRelationship(String[] columns, Object[] values) {
 		// TODO Auto-generated method stub
 		
+	}
+	@Override
+	public IQueryInterpreter2 getInterpreter() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -1,4 +1,4 @@
-package prerna.ds.querystruct;
+package prerna.query.interpreters;
 
 public class QueryStructSelector {
 

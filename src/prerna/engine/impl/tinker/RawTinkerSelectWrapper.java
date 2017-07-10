@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.ds.TinkerIterator;
-import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.HeadersDataRow;
