@@ -33,24 +33,11 @@ import java.util.Vector;
  * This interface standardizes the functionality of all engines.  All engines must implement this interface 
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
  * IEngine to refer to a specific engine, including, most notably, ProcessQueryListener.
- * @author karverma
- * @version $Revision: 1.0 $
  */
 public interface IEngine extends IExplorable{
 	
-	/**
-	 * This specifies the type of the engine and determines what API should be used when processing the engine.
-	 * @author karverma
-	 * @version $Revision: 1.0 $
-	 */
 	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, TINKER, SOLR};
 	
-	/**
-	 * This standardizes the optional method calls that engines can choose to implement.
-	 * These actions are called through doMethod
-	 * @author bisutton
-	 *
-	 */
 	public enum ACTION_TYPE {
 		ADD_STATEMENT, // this is for rdf
 		REMOVE_STATEMENT, // this is for rdf

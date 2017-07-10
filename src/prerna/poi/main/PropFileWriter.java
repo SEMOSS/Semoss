@@ -35,10 +35,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 
@@ -54,55 +50,24 @@ import prerna.util.sql.SQLQueryUtil;
  */
 public class PropFileWriter {
 
+	private String defaultDBPropName = "db/Default/Default.properties";
 	private String engineDirectoryName;
-	private String defaultDBPropName;
-	private String defaultQuestionProp;
-//	private String defaultOntologyProp;
 	private String baseDirectory;
 
 	public String propFileName;
-	public String engineName;
-	public String questionFileName;
-	public String ontologyFileName;
-	public File engineDirectory;
 	public String owlFile;
-	public String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
-	public String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
-	public String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
-	public boolean hasMap = false;
+
+	private String engineName;
+	private File engineDirectory;
+	private String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
+	private String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
+	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
+	private boolean hasMap = false;
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	SQLQueryUtil queryUtil;
-	private String shouldFillEmptyTypes = "false";
 	
 	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default 
-
-	public void setShouldFillEmptyTypes(String shouldFillEmptyTypes) {
-		this.shouldFillEmptyTypes = shouldFillEmptyTypes;
-	}
-
-	public PropFileWriter() {
-		defaultDBPropName = "db/Default/Default.properties";
-		defaultQuestionProp = "db/Default/Default_Questions.properties";
-//		defaultOntologyProp = "db/Default/Default_Custom_Map.prop";
-	}
-
-	public void setDefaultQuestionSheet(String defaultQuestionSheet) {
-		this.defaultQuestionProp = defaultQuestionSheet;
-	}
-
-	public void setBaseDir(String baseDir) {
-		baseDirectory = baseDir;
-	}
-
-	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
-		if(dbDriverType != null)
-			this.dbDriverType = dbDriverType;
-	}
-	
-	public void setTinkerType(ImportOptions.TINKER_DRIVER tinkerDriverType) {
-		this.tinkerDriverType = tinkerDriverType;
-	}
 
 	// TODO Change variable names, should we change default.properties to default.smss?
 	/**
@@ -157,54 +122,6 @@ public class PropFileWriter {
 					}
 				}
 			}
-			// if question sheet was not specified, we need to make a copy of the default questions
-			if ((questionFile == null || questionFile.equals(""))) {
-				questionFileName = defaultQuestionProp.replaceAll("Default", dbName);
-				// need to create XML file from scratch
-				if (dbType == ImportOptions.DB_TYPE.RDF) {
-					copyFile(baseDirectory + System.getProperty("file.separator") + questionFileName, baseDirectory
-							+ System.getProperty("file.separator") + defaultQuestionProp);
-				} else if (dbType == ImportOptions.DB_TYPE.RDBMS) {
-					// do nothing, question sheets are created during the creation of the engine
-				}
-				// this needs to be completed
-			}
-			// if it was specified, get it in the format for the map file and move the file to the new directory
-			else {
-				if (dbType == ImportOptions.DB_TYPE.RDF)
-					FileUtils.copyFileToDirectory(new File(questionFile), engineDirectory, true);
-				questionFileName = engineDirectoryName + questionFile.substring(questionFile.lastIndexOf("\\"));
-				if (questionFileName.contains("\\"))
-					questionFileName = questionFileName.replaceAll("\\\\", "/");
-			}
-
-			// if the map was not specified, copy default map. All augmentation of the map must be done after poi reader though
-//			if (ontologyName == null || ontologyName.equals("")) {
-//				ontologyFileName = defaultOntologyProp.replace("Default", dbName);
-//				copyFile(baseDirectory + System.getProperty("file.separator") + ontologyFileName, baseDirectory
-//						+ System.getProperty("file.separator") + defaultOntologyProp);
-//			}
-//			// if it was specified, don't copy default---will augment after running reader
-//			else {
-//				// if a default file was selected, just copy and replace default
-//				if (ontologyName.contains("Default")) {
-//					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
-//					String newOntologyFile = ontologyName.replace("Default", dbName);
-//					ontologyFileName = engineDirectoryName + newOntologyFile.substring(ontologyName.lastIndexOf("\\"));
-//					if (ontologyFileName.contains("\\")) {
-//						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
-//					}
-//					copyFile(ontologyFileName, ontologyName);
-//				}
-//				// if a truly custom map file was selected, just get in the format for rdf map
-//				else {
-//					FileUtils.copyFileToDirectory(new File(ontologyName), engineDirectory, true);
-//					ontologyFileName = engineDirectoryName + ontologyName.substring(ontologyName.lastIndexOf("\\"));
-//					if (ontologyFileName.contains("\\")) {
-//						ontologyFileName = ontologyFileName.replaceAll("\\\\", "/");
-//					}
-//				}
-//			}
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
@@ -227,33 +144,6 @@ public class PropFileWriter {
 			throw new IOException(e.getMessage());
 		}
 
-	}
-
-	/**
-	 * Copies all the contents of one file and sends it to another file
-	 * 
-	 * @param newFilePath
-	 *            String containing the path to the new file
-	 * @param oldFilePath
-	 *            String containing the path to the old file which is going to be copied
-	 * @throws FileAlreadyExistsException
-	 * @throws IOException
-	 */
-	private void copyFile(String newFilePath, String oldFilePath) throws FileAlreadyExistsException, IOException {
-		try {
-//			if (!oldFilePath.contains("_Questions.XML")) {
-				Path newPath = Paths.get(newFilePath);
-				Path oldPath = Paths.get(oldFilePath);
-				Files.copy(oldPath, newPath);
-//			} else {
-//				createXMLQuestionFile(newFilePath, oldFilePath);
-//			}
-		} catch (FileAlreadyExistsException ex) {
-			throw new FileAlreadyExistsException("Database folder already exists. \nPlease delete the folder or load using a different database name.");
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			throw new IOException("Error copying default database files to new database");
-		}
 	}
 
 	/**
@@ -283,16 +173,13 @@ public class PropFileWriter {
 			File newFile = new File(propFileName);
 			pw = new FileWriter(newFile);
 			pw.write("Base Properties \n");
-//			pw.write(Constants.ONTOLOGY + "\t" + ontologyFileName + "\n");
-			pw.write(Constants.OWL + "\t" + owlFile + "\n");
-			// pw.write(name+"_PROP" + "\t"+ propFileName + "\n");
 			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
+			pw.write(Constants.OWL + "\t" + this.owlFile + "\n");
 			if (dbType == ImportOptions.DB_TYPE.RDF) {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
-				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 			}
+			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + dbname + System.getProperty("file.separator") + "insights_database" + "\n");
 			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
-			pw.write(Constants.FILL_EMPTY_DATATYPES + "\t"+this.shouldFillEmptyTypes +"\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
@@ -300,24 +187,18 @@ public class PropFileWriter {
 				}
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
 				pw.write(Constants.RDBMS_TYPE + "\t" + queryUtil.getDatabaseType().toString() + "\n");
-				pw.write(Constants.DREAMER + "\t" + questionFileName + "\n\n\n");
 				pw.write(Constants.DRIVER + "\t" + queryUtil.getDatabaseDriverClassName() + "\n");
 				pw.write(Constants.USERNAME + "\t" + queryUtil.getDefaultDBUserName() + "\n");
 				pw.write(Constants.PASSWORD + "\t" + queryUtil.getDefaultDBPassword() + "\n");
-				// pw.write("TEMP"+ "\t" + "true" + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-				System.out.println("Base Folder...  " + baseFolder);
 				if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
 					pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");			
 				} else {
 					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
 				}
-				//pw.write(Constants.RDBMS_QUERY_CLASS + "\t" +  H2QueryUtil.class.getCanonicalName() + "\n");
 				pw.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
 				//commenting out this item below by default
 				pw.write("# " + Constants.USE_CONNECTION_POOLING + "\t" + queryUtil.getDefaultConnectionPooling());
-//				pw.write(Constants.USE_CONNECTION_POOLING + "\t" + queryUtil.getDefaultConnectionPooling());
-
 			}
 			if (this.hasMap) {
 				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
@@ -335,11 +216,9 @@ public class PropFileWriter {
 			}
 			if(dbType == ImportOptions.DB_TYPE.TINKER) {
 				//tinker-specific properties
-				
 				pw.write(Constants.TINKER_FILE + " @BaseFolder@/db/@ENGINE@/@ENGINE@.tg" + "\n");
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultTinkerEngine + "\n");
 				pw.write(Constants.TINKER_DRIVER + "\t" + this.tinkerDriverType + "\n");
-				
 			}
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -369,67 +248,16 @@ public class PropFileWriter {
 	public void setSQLQueryUtil(SQLQueryUtil queryUtil) {
 		this.queryUtil = queryUtil;
 	}
+	
+	public void setBaseDir(String baseDir) {
+		this.baseDirectory = baseDir;
+	}
 
-//	/**
-//	 * Creates the XML file containing all of the questions/insights. This takes the default XML file and replace the content with the engine name.
-//	 * @param newFilePath			String containing the path to the new database
-//	 * @param oldFilePath			String containing the path to the Default folder
-//	 * @throws IOException 
-//	 */
-//	public void createXMLQuestionFile(String newFilePath, String oldFilePath) throws IOException {
-//		BufferedReader reader = null;
-//		BufferedWriter writer = null;
-//
-//		try {
-//			File oldFile = new File(oldFilePath);
-//			File newFile = new File(newFilePath);
-//
-//			newFile.createNewFile();
-//
-//			reader = new BufferedReader(new FileReader(oldFile));
-//			writer = new BufferedWriter(new FileWriter(newFile));
-//
-//			StringBuffer xmlStringBugger = new StringBuffer();
-//			String line;
-//			while ((line = reader.readLine()) != null) {
-//				if (line.contains("Default")) {
-//					line = line.replace("Default", StringEscapeUtils.escapeXml10(engineName));
-//				}
-//				xmlStringBugger.append(line);
-//				xmlStringBugger.append("\n");
-//			}
-//
-//			// ensure encoding occurs properly for XML
-//			Document doc = stringToXML(xmlStringBugger.toString());
-//		    Source source = new DOMSource(doc);
-//		    Result result = new StreamResult(newFile);
-//		    Transformer xformer = TransformerFactory.newInstance().newTransformer();
-//		    xformer.transform(source, result);
-//		    
-//		} catch (IOException | TransformerException | SAXException | ParserConfigurationException e) {
-//			e.printStackTrace();
-//			throw new IOException("Unable to create question xml file.");
-//		} finally {
-//			if (reader != null) {
-//				try {
-//					reader.close();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//			if (writer != null) {
-//				try {
-//					writer.close();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}
-//	}
-//
-//	public Document stringToXML(String xmlSource) throws SAXException, ParserConfigurationException, IOException {
-//		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-//		DocumentBuilder builder = factory.newDocumentBuilder();
-//		return builder.parse(new InputSource(new StringReader(xmlSource)));
-//	}
+	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
+		this.dbDriverType = dbDriverType;
+	}
+	
+	public void setTinkerType(ImportOptions.TINKER_DRIVER tinkerDriverType) {
+		this.tinkerDriverType = tinkerDriverType;
+	}
 }

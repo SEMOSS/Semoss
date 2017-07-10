@@ -94,26 +94,6 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileWriterException
 	 * @throws InvalidUploadFormatException
 	 */
-	//	public void importFileWithConnection(String engineName, String fileNames, String customBase, String customMap, String owlFile)
-	/*	public void importFileWithConnection(String engineName, String fileNames, String customBase, String owlFile)
-			throws FileNotFoundException, IOException {
-		logger.setLevel(Level.ERROR);
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
-		openEngineWithConnection(engineName);
-
-		// load map file for existing db
-		//		if (!customMap.isEmpty()) {
-		//			openProp(customMap);
-		//		}
-		for (String fileName : files) {
-			importFile(fileName);
-		}
-		loadMetadataIntoEngine();
-		createBaseRelations();
-		commitDB();
-		engine.loadTransformedNodeNames();
-	}*/
-
 	public void importFileWithConnection(ImportOptions options)
 			throws FileNotFoundException, IOException {		
 
@@ -125,20 +105,14 @@ public class POIReader extends AbstractFileReader {
 		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
 		openEngineWithConnection(engineName);
 
-		// load map file for existing db
-		//		if (!customMap.isEmpty()) {
-		//			openProp(customMap);
-		//		}
 		for (String fileName : files) {
 			importFile(fileName);
 		}
 		loadMetadataIntoEngine();
 		createBaseRelations();
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
 		commitDB();
-//		engine.loadTransformedNodeNames();
 	}
-
-
 
 	/**
 	 * Loading data into SEMOSS to create a new database
@@ -158,43 +132,6 @@ public class POIReader extends AbstractFileReader {
 	 * @throws FileWriterException
 	 * @throws InvalidUploadFormatException
 	 */
-	//	public void importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String customMap, String owlFile)
-	/*	public IEngine importFileWithOutConnection(String smssLocation, String engineName, String fileNames, String customBase, String owlFile)
-			throws FileNotFoundException, IOException {
-		boolean error = false;
-		logger.setLevel(Level.WARN);
-
-		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		try {
-			openRdfEngineWithoutConnection(engineName);
-			// load map file for db if user wants to use specific URIs
-			//			if (!customMap.isEmpty()) {
-			//				openProp(customMap);
-			//			}
-			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
-			for (String fileName : files) {
-				importFile(fileName);
-			}
-			loadMetadataIntoEngine();
-			createBaseRelations();
-		}  catch(FileNotFoundException e) {
-			error = true;
-			throw new FileNotFoundException(e.getMessage());
-		} catch(IOException e) {
-			error = true;
-			throw new IOException(e.getMessage());
-		} finally {
-			if(error || autoLoad) {
-				closeDB();
-				closeOWL();
-			} else {
-				commitDB();
-			}
-		}
-
-		return engine;
-	}*/
-	//Restructuring
 	public IEngine importFileWithOutConnection(ImportOptions options)
 			throws FileNotFoundException, IOException {
 		String smssLocation = options.getSMSSLocation();
@@ -208,16 +145,12 @@ public class POIReader extends AbstractFileReader {
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
 			openRdfEngineWithoutConnection(engineName);
-			// load map file for db if user wants to use specific URIs
-			//			if (!customMap.isEmpty()) {
-			//				openProp(customMap);
-			//			}
-			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 			for (String fileName : files) {
 				importFile(fileName);
 			}
 			loadMetadataIntoEngine();
 			createBaseRelations();
+			RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
 		}  catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -236,40 +169,6 @@ public class POIReader extends AbstractFileReader {
 		return engine;
 	}
 
-	/*public IEngine importFileWithOutConnectionRDBMS(String smssLocation, String engineName, String fileNames, String customBase, String owlFile, SQLQueryUtil.DB_TYPE dbType, boolean allowDuplicates)
-			throws FileNotFoundException, IOException {
-
-		boolean error = false;
-		queryUtil = SQLQueryUtil.initialize(dbType);
-		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		try {
-			openRdbmsEngineWithoutConnection(engineName);
-			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
-			for (String fileName : files) {
-				importFileRDBMS(fileName);
-			}
-			commitDB();
-			createBaseRelations();
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
-		} catch(FileNotFoundException e) {
-			error = true;
-			throw new FileNotFoundException(e.getMessage());
-		} catch(IOException e) {
-			error = true;
-			throw new IOException(e.getMessage());
-		} finally {
-			if(error || autoLoad) {
-				closeDB();
-				closeOWL();
-			} else {
-				commitDB();
-			}
-		}
-
-		return engine;
-	}*/
-
-	//Restructing
 	public IEngine importFileWithOutConnectionRDBMS(ImportOptions options)
 			throws FileNotFoundException, IOException {
 
@@ -291,7 +190,7 @@ public class POIReader extends AbstractFileReader {
 			}
 			commitDB();
 			createBaseRelations();
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());

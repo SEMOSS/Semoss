@@ -41,6 +41,7 @@ import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.GenericReactor;
@@ -76,6 +77,11 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	public LazyTranslation() {
 		this.planner = new PKSLPlanner();
+	}
+	
+	public LazyTranslation(VarStore varStore) {
+		this.planner = new PKSLPlanner();
+		this.planner.setVarStore(varStore);
 	}
 	
 	protected void postProcess() {
