@@ -13,14 +13,15 @@ public class CreateFrame extends AbstractReactor {
 		// get the name of the frame type
 		String frameType = this.curRow.get(0).toString();
 		// use factory to generate the new table
-		ITableDataFrame newFrame = FrameFactory.getFrame(frameType);
+		String alias = getAlias();
+		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias);
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
 		NounMetadata result = new NounMetadata(newFrame, PkslDataTypes.FRAME);
 		planner.addProperty("FRAME", "FRAME", newFrame);
 		return result;
 	}
-
+	
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
@@ -31,4 +32,19 @@ public class CreateFrame extends AbstractReactor {
 		outputs.add(output);
 		return outputs;
 	}
+	
+	/**
+	 * Get an alias for the frame
+	 * This doesn't have a meaning for all frame types
+	 * But is useful for sql frames where we need to define a table name
+	 * @return
+	 */
+	private String getAlias() {
+		List<Object> alias = this.curRow.getColumnsOfType(PkslDataTypes.ALIAS);
+		if(alias != null && alias.size() > 0) {
+			return alias.get(0).toString();
+		}
+		return null;
+	}
+
 }
