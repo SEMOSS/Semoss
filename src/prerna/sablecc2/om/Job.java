@@ -13,6 +13,7 @@ import prerna.sablecc2.reactor.export.Formatter;
 
 public class Job {
 
+	private String id;
 	private final Iterator iterator;
 	private QueryStruct2 queryStruct; //this is the query struct that was used to generate this job
 	private Map<String, List<Object>> options; //this holds the options object for the FE
@@ -96,15 +97,7 @@ public class Job {
 	private Object getOptions() {
 		options.remove(PkslDataTypes.JOB.toString());
 		options.remove("all");
-		
-		Map<String, Object> retMap = new HashMap<>();
-
-		List<Object> optionsList = options.remove("optionsName");
-		if(optionsList != null && !optionsList.isEmpty()) {
-			retMap.put(optionsList.get(0).toString(), options);
-		}
-		
-		return retMap;
+		return options;
 	}
 	
 	/**
@@ -167,6 +160,14 @@ public class Job {
 	public void setFormat(String format, String name) {
 		this.formatters.clear();
 		addFormat(format, name);
+	}
+
+	public void setId(String newId) {
+		this.id = newId;
+	}
+	
+	public String getId() {
+		return this.id;
 	}
 	
 	/****************** END SETTERS **************************/
