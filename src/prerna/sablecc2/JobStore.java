@@ -1,7 +1,6 @@
 package prerna.sablecc2;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -34,6 +33,7 @@ public enum JobStore {
 	
 	public String addJob(Job data) {
 		String newId = generateID();
+		data.setId(newId);
 		return addJob(newId, data);
 	}
 	
