@@ -35,6 +35,10 @@ public class GenRowStruct {
 		add(literal, PkslDataTypes.CONST_STRING);
 	}
 	
+	public void addBoolean(Boolean bool) {
+		add(bool, PkslDataTypes.BOOLEAN);
+	}
+	
 	public void addDecimal(Double literal)
 	{
 		add(literal, PkslDataTypes.CONST_DECIMAL);

@@ -3,6 +3,8 @@ package prerna.sablecc2.reactor;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.sablecc2.JobStore;
+import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
@@ -12,7 +14,8 @@ public class JobReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// this just returns the job id
 		String jobId = (String)curRow.get(0);
-		return new NounMetadata(jobId, PkslDataTypes.JOB);
+		Job job = JobStore.getInstance().getJob(jobId);
+		return new NounMetadata(job, PkslDataTypes.JOB);
 	}
 
 	@Override
