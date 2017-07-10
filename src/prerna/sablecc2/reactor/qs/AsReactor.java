@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import java.util.Enumeration;
 import java.util.List;
 
-import prerna.ds.querystruct.QueryStruct2;
+import prerna.query.interpreters.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;

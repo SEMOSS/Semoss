@@ -18,6 +18,8 @@ import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.engine.impl.r.RExcelFileWrapper;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.RInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -84,6 +86,11 @@ public class RDataTable extends AbstractTableDataFrame {
 				LOGGER.info("R Connection is already closed...");
 			}
 		}
+	}
+	
+	@Override
+	public IQueryInterpreter2 getInterpreter() {
+		return new RInterpreter2();
 	}
 	
 	@Override

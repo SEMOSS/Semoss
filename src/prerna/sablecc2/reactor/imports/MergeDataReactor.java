@@ -7,11 +7,11 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.interpreters.QueryStruct2;
+import prerna.query.interpreters.SQLInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;

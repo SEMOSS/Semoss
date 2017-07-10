@@ -6,8 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.interpreters.QueryStruct2;
 import prerna.sablecc2.reactor.export.FormatFactory;
 import prerna.sablecc2.reactor.export.Formatter;
 

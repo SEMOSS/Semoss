@@ -136,9 +136,11 @@ public class ReactorFactory {
 		reactorHash.put("Job", JobReactor.class); // defines the job
 		reactorHash.put("Export", ExportReactor.class); // export
 		reactorHash.put("Collect", CollectReactor.class); // collect
+		
 		reactorHash.put("Format", SetFormatReactor.class); // set formats
 		reactorHash.put("SetFormat", SetFormatReactor.class); // add options
 		reactorHash.put("AddFormat", AddFormatReactor.class); // add formats
+		
 		reactorHash.put("Options", SetOptionsReactor.class); // set options
 		reactorHash.put("AddOptions", AddOptionsReactor.class); // add options
 		reactorHash.put("SetOptions", SetOptionsReactor.class); // add options

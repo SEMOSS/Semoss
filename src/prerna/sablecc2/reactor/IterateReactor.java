@@ -7,12 +7,13 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.QueryStruct2;
+import prerna.query.interpreters.SQLInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.GenRowStruct;
@@ -81,7 +82,7 @@ public class IterateReactor extends AbstractReactor {
 				jobId = JobStore.INSTANCE.addJob(job);
 			} else {
 				ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-				SQLInterpreter2 interp = new SQLInterpreter2();
+				IQueryInterpreter2 interp = frame.getInterpreter();
 				interp.setQueryStruct(queryStruct);
 				Iterator iterator = frame.query(queryStruct);
 				Job job = new Job(iterator, queryStruct);

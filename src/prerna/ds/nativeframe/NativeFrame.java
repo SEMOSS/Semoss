@@ -22,6 +22,8 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerMetaData;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -437,6 +439,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		} else {
 			return super.isEmpty();
 		}
+	}
+	
+	@Override
+	public IQueryInterpreter2 getInterpreter() {
+		return new SQLInterpreter2();
 	}
 	
 //	public String getView() {
