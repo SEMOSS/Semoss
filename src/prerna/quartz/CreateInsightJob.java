@@ -27,10 +27,10 @@ public class CreateInsightJob implements org.quartz.Job {
 		InsightUtility.runPkql(insight, recipe);
 
 		// Store outputs
-		dataMap.put(OUT_INSIGHT_ID_KEY, insight.getInsightID());
+		dataMap.put(OUT_INSIGHT_ID_KEY, insight.getInsightId());
 
 		System.out.println();
-		System.out.println("Created insight with the id " + insight.getInsightID() + " using the following recipe: ");
+		System.out.println("Created insight with the id " + insight.getInsightId() + " using the following recipe: ");
 		System.out.println(recipe);
 		System.out.println();
 	}

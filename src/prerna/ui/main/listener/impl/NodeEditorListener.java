@@ -36,6 +36,7 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.om.GraphDataModel;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.BrowserTabSheetFullAddress;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -60,7 +61,7 @@ public class NodeEditorListener implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 		String uri = node.getProperty(Constants.URI)+"";
 		
 		String replacedURI = "<"+uri.replaceAll("/", "^") +">";

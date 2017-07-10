@@ -44,7 +44,7 @@ public class CSVInsightCache extends InsightCache {
 
 	@Override
 	public String createUniqueId(Insight in) {
-		String uniqueId = ICache.cleanFolderAndFileName(in.getDatabaseID());
+		String uniqueId = ICache.cleanFolderAndFileName(in.getInsightId());
 		String questionName = ICache.cleanFolderAndFileName(in.getInsightName());
 		if(questionName.length() > 25) {
 			questionName = questionName.substring(0, 25);

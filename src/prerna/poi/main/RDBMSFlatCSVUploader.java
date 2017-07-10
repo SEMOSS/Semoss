@@ -110,7 +110,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
 		} catch(IOException e) {
 			e.printStackTrace();
 			error = true;
@@ -188,7 +188,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.addToExistingQuestionFile(this.engine, newTables.keySet(), queryUtil);
+			RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, newTables.keySet());
 		} catch(IOException e) {
 			e.printStackTrace();
 			error = true;

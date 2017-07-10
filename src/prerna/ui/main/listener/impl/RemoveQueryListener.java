@@ -49,6 +49,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.SparqlArea;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -160,7 +161,7 @@ public class RemoveQueryListener extends SparqlAreaListener {
 				GraphPlaySheet playSheet = null;
 				logger.debug("Appending ");
 //				playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-				playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+				playSheet = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 				// need to create a playsheet append runner
 				playRunner = new PlaysheetRemoveRunner(playSheet);
 				playSheet.setQuery(this.sparql.getText());

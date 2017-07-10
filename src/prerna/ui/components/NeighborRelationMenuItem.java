@@ -33,6 +33,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -66,7 +67,8 @@ public class NeighborRelationMenuItem extends JMenuItem{
 	public void paintNeighborhood()
 	{
 //		IPlaySheet ps = QuestionPlaySheetStore.getInstance().getActiveSheet();
-		IPlaySheet ps = InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		OldInsight in = (OldInsight) InsightStore.getInstance().getActiveInsight();
+		IPlaySheet ps = in.getPlaySheet();
 		// need to find a way to add the relationship here
 		String predURI = DIHelper.getInstance().getProperty(Constants.PREDICATE_URI);
 		predURI += ";" + name;

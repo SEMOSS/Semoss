@@ -36,6 +36,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
 
@@ -82,7 +83,7 @@ public class ShowPlaySheetsListListener implements ListSelectionListener{
 		String id = lookUp.get(listEntry);
 		
 //		IPlaySheet selectedSheet = QuestionPlaySheetStore.getInstance().get(id);
-		IPlaySheet selectedSheet = InsightStore.getInstance().get(id).getPlaySheet();
+		IPlaySheet selectedSheet = ((OldInsight) InsightStore.getInstance().get(id)).getPlaySheet();
 		try {
 			((JInternalFrame)selectedSheet).setSelected(true);
 		} catch (PropertyVetoException e1) {

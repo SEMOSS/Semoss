@@ -13,6 +13,7 @@ import org.openrdf.rio.RDFHandlerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -20,6 +21,7 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
+import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.SQLQueryUtil;
 
 public class AbstractEngineCreator {
@@ -80,10 +82,13 @@ public class AbstractEngineCreator {
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
-		prop.put(Constants.DREAMER, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_Questions.properties");
 		prop.put("TEMP", "TRUE");
 		((AbstractEngine) engine).setProperties(prop);
 		engine.openDB(null);
+		
+		// create the insight database
+		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		engine.setInsightDatabase(insightDatabase);
 	}
 
 	private void createNewRdfEngine(String dbName) {
@@ -99,12 +104,20 @@ public class AbstractEngineCreator {
 		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
+		
+		// create the insight database
+		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		engine.setInsightDatabase(insightDatabase);
 	}
 	
 	private void createNewTinkerEngine(String dbName) {
 		engine = new TinkerEngine();
 		engine.setEngineName(dbName);
 		engine.openDB(dbPropFile);
+		
+		// create the insight database
+		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		engine.setInsightDatabase(insightDatabase);
 	}
 	
 	//added for connect to external RDBMS workflow
@@ -112,6 +125,7 @@ public class AbstractEngineCreator {
 		connectToExternalRDBMSEngine(schema,dbName);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
+	
 	//added for connect to external RDBMS workflow
 	private void connectToExternalRDBMSEngine(String schema, String dbName) {
 		engine = new RDBMSNativeEngine();
@@ -125,7 +139,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
-		prop.put(Constants.DREAMER, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_Questions.properties");
+		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 		((AbstractEngine) engine).setProperties(prop);
@@ -136,7 +150,6 @@ public class AbstractEngineCreator {
 		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
 		openOWLWithConnection(engine, owlFile);
 	}
-	
 	
 	/**
 	 * Close the database engine
@@ -152,7 +165,10 @@ public class AbstractEngineCreator {
 
 	protected void commitDB() throws IOException {
 		logger.warn("Committing....");
+		// commit the created engine
 		engine.commit();
+		// also commit the created insights rdbms engine
+		engine.getInsightDatabase().commit();
 		
 		if(engine!=null && engine instanceof BigDataEngine){
 			((BigDataEngine)engine).infer();
@@ -227,5 +243,81 @@ public class AbstractEngineCreator {
 		sqlHash.put("NUMBER", "FLOAT");
 		sqlHash.put("INTEGER", "FLOAT");
 		sqlHash.put("BOOLEAN", "BOOLEAN");
+	}
+	
+	/**
+	 * Creates the default insights rdbms engine
+	 * Also adds the explore an instance query
+	 * @param engineName
+	 * @return
+	 */
+	protected IEngine createNewInsightsDatabase(String engineName) {
+		H2QueryUtil queryUtil = new H2QueryUtil();
+		Properties prop = new Properties();
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String connectionURL = "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + 
+				"insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		prop.put(Constants.CONNECTION_URL, connectionURL);
+		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
+		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put("TEMP", "TRUE");
+		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
+		insightRDBMSEngine.setProperties(prop);
+		// opening will work since we directly injected the prop map
+		// this way i do not need to write it to disk and then recreate it later
+		insightRDBMSEngine.openDB(null);
+		
+		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
+				+ "ID INT, "
+				+ "QUESTION_NAME VARCHAR(255), "
+				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
+				+ "QUESTION_LAYOUT VARCHAR(225), "
+				+ "QUESTION_ORDER INT, "
+				+ "QUESTION_DATA_MAKER VARCHAR(225), "
+				+ "QUESTION_MAKEUP CLOB, "
+				+ "QUESTION_PROPERTIES CLOB, "
+				+ "QUESTION_OWL CLOB, "
+				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
+				+ "DATA_TABLE_ALIGN VARCHAR(500), "
+				+ "QUESTION_PKQL ARRAY)";
+
+		insightRDBMSEngine.insertData(questionTableCreate);
+
+		// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
+		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
+				+ "PARAMETER_ID VARCHAR(255), "
+				+ "PARAMETER_LABEL VARCHAR(255), "
+				+ "PARAMETER_TYPE VARCHAR(225), "
+				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
+				+ "PARAMETER_QUERY VARCHAR(2000), "
+				+ "PARAMETER_OPTIONS VARCHAR(2000), "
+				+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
+				+ "PARAMETER_MULTI_SELECT BOOLEAN, "
+				+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
+				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
+				+ "QUESTION_ID_FK INT)";
+
+		insightRDBMSEngine.insertData(parameterTableCreate);
+		
+		String feTableCreate = "CREATE TABLE UI ("
+				+ "QUESTION_ID_FK INT, "
+				+ "UI_DATA CLOB)";
+		
+		insightRDBMSEngine.insertData(feTableCreate);
+		
+		// let us automatically add the explore an instance query
+		InsightAdministrator admin = new InsightAdministrator(insightRDBMSEngine);
+		String insightName = "Explore an instance of a selected node type";
+		String layout = "Graph";
+		String pkqlCmd = "%7B%22jsonView%22%3A%5B%7B%22query%22%3A%22data.frame('graph')%3Bdata.import(api%3A%3Cengine%3E.query(%5Bc%3A%3Cconcept%3E%5D%2C(c%3A%3Cconcept%3E%3D%5B%3Cinstance%3E%5D)))%3Bpanel%5B0%5D.viz(Graph%2C%5B%5D)%3B%22%2C%22label%22%3A%22Explore%20an%20instance%22%2C%22description%22%3A%22Explore%20instances%20of%20a%20selected%20concept%22%2C%22params%22%3A%5B%7B%22paramName%22%3A%22concept%22%2C%22required%22%3Atrue%2C%22view%22%3A%7B%22displayType%22%3A%22dropdown%22%2C%22label%22%3A%22Select%20a%20Concept%22%2C%22description%22%3A%22Select%20a%20concept%20that%20you%20will%20explore%22%7D%2C%22model%22%3A%7B%22query%22%3A%22database.concepts(%3Cengine%3E)%3B%22%2C%22dependsOn%22%3A%5B%22engine%22%5D%7D%7D%2C%7B%22paramName%22%3A%22instance%22%2C%22required%22%3Atrue%2C%22view%22%3A%7B%22displayType%22%3A%22checklist%22%2C%22label%22%3A%22Select%20an%20Instance%22%2C%22description%22%3A%22Select%20an%20instance%20to%20explore%22%7D%2C%22model%22%3A%7B%22query%22%3A%22data.query(api%3A%3Cengine%3E.query(%5Bc%3A%3Cconcept%3E%5D%2C%7B'limit'%3A50%2C'offset'%3A0%2C'getCount'%3A'false'%7D))%3B%22%2C%22dependsOn%22%3A%5B%22engine%22%2C%22concept%22%5D%7D%7D%5D%2C%22execute%22%3A%22button%22%7D%5D%7D";	
+		pkqlCmd = pkqlCmd.replace("%3Cengine%3E", engine.getEngineName());
+		String[] pkqlRecipeToSave = {pkqlCmd};
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		
+		insightRDBMSEngine.commit();
+		return insightRDBMSEngine;
 	}
 }

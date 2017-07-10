@@ -41,8 +41,8 @@ import com.hp.hpl.jena.rdf.model.Model;
 
 import prerna.engine.impl.rdf.InMemoryJenaEngine;
 import prerna.om.GraphDataModel;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
@@ -79,7 +79,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 	public void actionPerformed(ActionEvent arg0) {
 		logger.info("Export button has been pressed");
 //		GraphPlaySheet playSheet=  (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		GraphPlaySheet playSheet=  (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet=  (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		GridPlaySheet NewplaySheet = new GridPlaySheet();
 //		try {
@@ -118,7 +118,7 @@ public class GraphPlaySheetExportListener  extends AbstractListener{
 		JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		NewplaySheet.setJDesktopPane(pane);
 	
-		Insight insight = new Insight(NewplaySheet);
+		OldInsight insight = new OldInsight(NewplaySheet);
 //		insight.setInsightID(question);
 //		insight.setPlaySheet(NewplaySheet);
 //		insight.setInsightName(title);

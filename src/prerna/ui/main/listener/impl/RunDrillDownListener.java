@@ -45,8 +45,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.components.playsheets.MachineLearningModulePlaySheet;
@@ -142,7 +142,7 @@ public class RunDrillDownListener extends AbstractListener {
 		
 		MachineLearningModulePlaySheet drillDownPlaySheet = new MachineLearningModulePlaySheet();
 		
-		Insight in = new Insight(drillDownPlaySheet);
+		OldInsight in = new OldInsight(drillDownPlaySheet);
 		InsightStore.getInstance().put(in);
 //		String insightID = QuestionPlaySheetStore.getInstance().getIDCount()+". "+playSheet.getTitle();
 //		QuestionPlaySheetStore.getInstance().put(insightID,  drillDownPlaySheet);

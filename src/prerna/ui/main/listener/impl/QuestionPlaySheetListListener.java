@@ -37,7 +37,7 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -75,7 +75,7 @@ public class QuestionPlaySheetListListener implements IChakraListener {
 							.getLocalProp(Constants.QUESTION_DB_SELECTOR);
 					String engineName = (String) questionDBSelector.getSelectedItem();
 					IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-					Insight in = engine.getInsight(questionId).get(0);
+					OldInsight in = (OldInsight) engine.getInsight(questionId).get(0);
 					questionLayoutField.setText(in.getOutput());
 				}
 			} else {

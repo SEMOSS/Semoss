@@ -1,7 +1,6 @@
 package prerna.sablecc;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -19,7 +18,6 @@ import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.solr.SolrDocumentExportWriter;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.Utility;
 
 /**
@@ -61,8 +59,8 @@ public class OutputDataReactor extends AbstractReactor {
 		}
 		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
 		
-		IDataMaker insight = (IDataMaker)myStore.get("G");
-		insightObj.setUserID(insight.getUserId());
+//		IDataMaker insight = (IDataMaker)myStore.get("G");
+//		insightObj.setUserId(insight.getUserId());
 		
 		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
@@ -71,7 +69,7 @@ public class OutputDataReactor extends AbstractReactor {
 		if(vizData != null) {
 			// insight has been cached, send it to the FE with a new insight id
 //			String id = InsightStore.getInstance().put(insightObj);
-			insightObj.setInsightID(insightId);
+			insightObj.setInsightId(insightId);
 			InsightStore.getInstance().put(insightId, insightObj);
 			myStore.put(PKQLEnum.OUTPUT_DATA, insightId);
 			
@@ -80,25 +78,25 @@ public class OutputDataReactor extends AbstractReactor {
 			
 			myStore.put("webData", uploaded);
 			
-			IDataMaker dm = insightObj.loadDataMakerFromCache();
+			insightObj.loadInsightCache();
+			IDataMaker dm = insightObj.getDataMaker();
 			if(dm != null) {
 				myStore.put("G", dm);
 				runInsightRecipe = false;
 			}
-			
-			// also load the R cache if it is present
-			insightObj.loadRCache();
 		}
 		
 		if(runInsightRecipe) {
 			// insight visualization data has not been cached, run the insight
 			try {
-				insightObj.setInsightID(insightId);
+				insightObj.setInsightId(insightId);
 				InsightStore.getInstance().put(insightId, insightObj);
 				myStore.put(PKQLEnum.OUTPUT_DATA, insightId);
 				
-				InsightCreateRunner run = new InsightCreateRunner(insightObj);
-				Map<String, Object> insightOutput = run.runSavedRecipe();
+				Map<String, Object> insightOutput = (Map<String, Object>) insightObj.reRunInsight();
+				
+//				InsightCreateRunner run = new InsightCreateRunner(insightObj);
+//				Map<String, Object> insightOutput = run.runSavedRecipe();
 				
 				myStore.put("webData", insightOutput);
 				myStore.put("G", insightObj.getDataMaker());

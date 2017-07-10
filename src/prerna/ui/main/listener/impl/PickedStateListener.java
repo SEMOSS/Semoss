@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.VertexPropertyTableModel;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -77,7 +78,7 @@ public class PickedStateListener implements ItemListener {
 		logger.info(e.getSource());
 		PickedState pickedState = (PickedState) e.getSource();	
 		
-		GraphPlaySheet ps3 = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet ps3 = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);

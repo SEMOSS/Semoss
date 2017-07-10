@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.impl.PageRankCalculator;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.GridFilterData;
 import prerna.ui.components.GridScrollPane;
@@ -71,7 +72,7 @@ public class GraphNodeRankListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 //		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		PageRankCalculator calc = new PageRankCalculator();
 		Hashtable<SEMOSSVertex, Double> ranks = calc.calculatePageRank(playSheet.forest);

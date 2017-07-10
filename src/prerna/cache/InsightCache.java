@@ -146,7 +146,7 @@ public abstract class InsightCache implements ICache {
 			baseFile = getBaseFilePath(in);
 			cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
 			cacheJSONData(in.getWebData(), baseFile);
-			cacheRData(in.getPKQLRunner(), baseFile);
+			cacheRData(in.getPkqlRunner(), baseFile);
 		}
 		return baseFile;
 	}
@@ -164,7 +164,7 @@ public abstract class InsightCache implements ICache {
 			baseFile = getBaseFilePath(in);
 			cacheDataMaker(in.getDataMakerName(), in.getDataMaker(), baseFile);
 			cacheJSONData(vizData, baseFile);
-			cacheRData(in.getPKQLRunner(), baseFile);
+			cacheRData(in.getPkqlRunner(), baseFile);
 		}
 		return baseFile;
 	}	
@@ -272,7 +272,7 @@ public abstract class InsightCache implements ICache {
 						ReentrantLock lock = getLock(fileName);
 						lock.lock();
 						try {
-							dataFrame = instanceFrame.open(fileName, in.getUserID());
+							dataFrame = instanceFrame.open(fileName, in.getUserId());
 						} finally {
 							//TODO : how to remove locks thread safely?
 //							if(!lock.hasQueuedThreads()) {
@@ -307,7 +307,7 @@ public abstract class InsightCache implements ICache {
 		File rFile = new File(cacheLoc);
 		if(rFile.exists() && rFile.isFile()) {
 			boolean foundRConnection = false;
-			PKQLRunner pkqlRunner = in.getPKQLRunner();
+			PKQLRunner pkqlRunner = in.getPkqlRunner();
 			if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
 				foundRConnection = true;
 				String rScript = "load(\"" + rFile.getAbsolutePath().replace("\\", "/") + "\")";

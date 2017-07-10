@@ -579,9 +579,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			jarLocation = (String) retrieveVariable("H2DRIVER_PATH");
 		}
 		LOGGER.info("Loading driver.. " + jarLocation);
-		// Create a driver object followed by the actual connection obj
+		// line of R script that connects to H2Frame
 		String script = "drv <- JDBC('" + driver + "', '" + jarLocation + "', identifier.quote='`');"
-				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')";
+				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; 
 		runR(script);
 	}
 
@@ -717,9 +717,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 		System.out.println("Successfully changed data type for column = " + colName);
 		if (checkRTableModified(frameName)) {
-			// TODO: should be able to change the data type dynamically!!!
-			// TODO: come back and fix this
-			recreateMetadata(frameName);
+			this.dataframe.getMetaData().storeDataType(colName, newType);
+//			// TODO: should be able to change the data type dynamically!!!
+//			// TODO: come back and fix this
+//			recreateMetadata(frameName);
 		}
 	}
 

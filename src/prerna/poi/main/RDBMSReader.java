@@ -145,7 +145,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			}
 			cleanUpDBTables(engineName, allowDuplicates);
 			createBaseRelations();
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -243,7 +243,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			createBaseRelations();
 			addOriginalIndices();
 			cleanUpDBTables(engineName, allowDuplicates);
-			RDBMSEngineCreationHelper.addToExistingQuestionFile(engine, addedTables, queryUtil);
+			RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, addedTables);
 		} finally {
 //			if(scriptFile != null) {
 //				scriptFile.println("-- ********* completed load process ********* ");

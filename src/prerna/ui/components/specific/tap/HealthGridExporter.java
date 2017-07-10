@@ -37,8 +37,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.ChartImageExportListener;
 import prerna.util.Constants;
@@ -81,8 +81,8 @@ public class HealthGridExporter {
 		JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 		playSheet.setJDesktopPane(pane);
 
-		Insight insight = new Insight(playSheet);
-		insight.setInsightID(id);
+		OldInsight insight = new OldInsight(playSheet);
+		insight.setInsightId(id);
 		insight.setPlaySheet(playSheet);
 		InsightStore.getInstance().put(insight);		
 //		QuestionPlaySheetStore.getInstance().put(question, playSheet);

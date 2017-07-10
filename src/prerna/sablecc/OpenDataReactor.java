@@ -14,7 +14,6 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.Utility;
 
 /**
@@ -56,7 +55,9 @@ public class OpenDataReactor extends AbstractReactor {
 		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
 		
 		IDataMaker insight = (IDataMaker)myStore.get("G");
-		insightObj.setUserID(insight.getUserId());
+		if(insight != null) {
+			insightObj.setUserId(insight.getUserId());
+		}
 		
 		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
@@ -69,7 +70,7 @@ public class OpenDataReactor extends AbstractReactor {
 			
 			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
 			Map<String, Object> webData = getWebData(uploaded);
-			
+			webData.put("recipe", insightObj.getPkslRecipe());
 			webData.put("insightID", id);
 			webData.put("core_engine", engine);
 			webData.put("core_engine_id", engine_id);
@@ -80,10 +81,12 @@ public class OpenDataReactor extends AbstractReactor {
 				String id = InsightStore.getInstance().put(insightObj);
 				myStore.put(PKQLEnum.OPEN_DATA, id);
 				
-				InsightCreateRunner run = new InsightCreateRunner(insightObj);
-				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
+				Map<String, Object> insightOutput = (Map<String, Object>) insightObj.reRunInsight();
+//				InsightCreateRunner run = new InsightCreateRunner(insightObj);
+//				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
 				
 				Map<String, Object> webData = getWebData(insightOutput);
+				webData.put("recipe", insightObj.getPkslRecipe());
 				webData.put("core_engine", engine);
 				webData.put("core_engine_id", engine_id);
 				myStore.put("webData", webData);

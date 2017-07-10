@@ -49,16 +49,15 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.helpers.InsightCreateRunner;
+import prerna.ui.helpers.OldInsightProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 /**
  * 1. Get information from the textarea for the query 2. Process the query
@@ -97,7 +96,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		String engineName = (String)list.getSelectedValue();
 
 		Map<String, List<Object>> paramHash = new HashMap<String, List<Object>>();
-		Insight insight = null;
+		OldInsight insight = null;
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 
 		// There are four options to get through here:
@@ -110,7 +109,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		if (appendBtn.isSelected()) { // if it is overlay, we will be setting a dmc into the stored insight to run
 			logger.debug("Appending ");
 			
-			insight = InsightStore.getInstance().getActiveInsight();
+			insight = (OldInsight) InsightStore.getInstance().getActiveInsight();
 			insight.setAppend(true);
 			
 			if (btnCustomSparql.isSelected()) { // if it is custom, we need to create a dmc to pass in
@@ -118,7 +117,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 				dmcList.add(dmc);
 			}
 			else { // if it is not custom, we need to get dmc list off of selected insight
-				Insight selectedInsight = getSelectedInsight(engine);
+				OldInsight selectedInsight = getSelectedInsight(engine);
 				dmcList.addAll(selectedInsight.getDataMakerComponents());
 //				paramHash = Utility.getTransformedNodeNamesMap(engine, getParamHash(), false);
 				paramHash = getParamHash();
@@ -131,7 +130,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 				DataMakerComponent dmc = createDMC(engineName);
 				dmcList.add(dmc);
 				String psString = getPlaySheetString();
-				insight = new Insight(engine, null, psString);
+				insight = new OldInsight(engine, null, psString);
 				insight.setDataMakerComponents(dmcList);
 			}
 			else { // if it is not custom, we need to get dmc list off of selected insight
@@ -142,7 +141,7 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		}
 
 		insight.setParamHash(paramHash);
-		InsightCreateRunner runner = new InsightCreateRunner(insight);
+		OldInsightProcessor runner = new OldInsightProcessor(insight);
 		runner.run();
 	}
 
@@ -192,13 +191,13 @@ public class ProcessQueryListener extends AbstractAction implements IChakraListe
 		return paramHash;
 	}
 	
-	private Insight getSelectedInsight(IEngine engine){
+	private OldInsight getSelectedInsight(IEngine engine){
 		String insightString = ((Map<String, String>) ((JComboBox<Map<String,String>>) DIHelper.getInstance().getLocalProp(Constants.QUESTION_LIST_FIELD)).getSelectedItem()).get(MapComboBoxRenderer.KEY);
 		String[] insightStringSplit = insightString.split("\\. ", 2);
-		if(((AbstractEngine)engine).getInsight(insightString).get(0).getOutput().equals("Unknown")){
+		if( ((OldInsight) ((AbstractEngine)engine).getInsight(insightString).get(0)).getOutput().equals("Unknown")){
 			insightString = insightStringSplit[1];
 		}
-		Insight selectedInsight = engine.getInsight(insightString).get(0);
+		OldInsight selectedInsight = (OldInsight) engine.getInsight(insightString).get(0);
 		return selectedInsight;
 	}
 	

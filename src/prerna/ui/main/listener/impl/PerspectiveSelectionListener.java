@@ -93,7 +93,7 @@ public class PerspectiveSelectionListener extends AbstractListener {
 					Insight in = vectorInsight.get(itemIndex);
 					// modify values to include the number ordering for optimal user experience <- cause we care about that
 					newQuestionV.add(itemIndex + 1 + ". " + in.getInsightName());
-					newQuestionID.add(in.getInsightID());
+					newQuestionID.add(in.getInsightId());
 				}
 			}
 			

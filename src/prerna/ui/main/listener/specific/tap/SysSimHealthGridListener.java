@@ -33,9 +33,8 @@ import com.google.gson.Gson;
 import com.teamdev.jxbrowser.chromium.JSValue;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.ui.components.playsheets.GraphPlaySheet;
+import prerna.om.OldInsight;
 import prerna.ui.components.specific.tap.HealthGridSheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.ui.main.listener.impl.AbstractBrowserSPARQLFunction;
@@ -89,11 +88,11 @@ public class SysSimHealthGridListener extends AbstractBrowserSPARQLFunction {
 		Runnable playRunner = null;
 		playRunner = new PlaysheetCreateRunner(hgs);
 //		QuestionPlaySheetStore.getInstance().put(question, hgs);
-		Insight insight = new Insight(engine, "", "");
+		OldInsight insight = new OldInsight(engine, "", "");
 		insight.setInsightName(question);
 		insight.setPlaySheet(hgs);
 		String insightID = InsightStore.getInstance().put(insight);
-		insight.setInsightID(insightID);
+		insight.setInsightId(insightID);
 		hgs.setQuestionID(question);
 		
 		Thread playThread = new Thread(playRunner);

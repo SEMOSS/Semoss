@@ -11,6 +11,7 @@ import prerna.sablecc2.node.APlainRow;
 import prerna.sablecc2.node.POthercol;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
@@ -37,8 +38,22 @@ public class GreedyTranslation extends LazyTranslation {
 		this.runner = runner;
 	}
 	
-	public GreedyTranslation(IDataMaker dataMaker, PKSLRunner runner) {
+	public GreedyTranslation(PKSLRunner runner, VarStore varStore) {
+		this.planner = new PKSLPlanner();
+		this.planner.setVarStore(varStore);
+		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
+		this.runner = runner;
+	}
+	
+	public GreedyTranslation(PKSLRunner runner, IDataMaker dataMaker) {
 		this.planner = new PKSLPlanner(dataMaker);
+		this.planner.addProperty("FRAME", "FRAME", dataMaker);
+		this.runner = runner;
+	}
+	
+	public GreedyTranslation(PKSLRunner runner, VarStore varStore, IDataMaker dataMaker) {
+		this.planner = new PKSLPlanner(dataMaker);
+		this.planner.setVarStore(varStore);
 		this.planner.addProperty("FRAME", "FRAME", dataMaker);
 		this.runner = runner;
 	}

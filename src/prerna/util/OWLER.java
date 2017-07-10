@@ -1,7 +1,9 @@
 package prerna.util;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
@@ -27,24 +29,14 @@ public class OWLER {
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
 	public static final String DEFAULT_COMPOSITE_CLASS = "Composite";
 	
-//	public static final String PROP_DATATYPE_PREDICATE = OWL.DatatypeProperty.toString();
-//	public static final String DATATYPE_PREDICATE = RDFS.CLASS.toString();
-//	public static final String SUBPROPERTY_URI = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf";
-//	public static final String SUBCLASS_URI = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
-//	public static final String CLASS_URI = "http://www.w3.org/2000/01/rdf-schema#Class";
-//	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-//	public static final String DEFAULT_PROPERTY_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property";
-//	public static final String CLASS = "_CLASS";
-//	public static final String CONCEPT_URI = BASE_URI + DEFAULT_NODE_CLASS + "/";
-//	public static final String RELATION_URI =  BASE_URI + DEFAULT_PROPERTY_CLASS + "/";
-	
-	
 	// hashtable of concepts
 	private Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 	// hashtable of relationships
 	private Hashtable<String, String> relationHash = new Hashtable<String, String>();
 	// hashtable of properties
 	private Hashtable<String, String> propHash = new Hashtable<String, String>();
+	// set of conceptual names
+	private Set<String> conceptualNames = new HashSet<String>();
 	// need to know the database type due to differences in URIs when the
 	// database is RDF vs. RDBMS
 	private IEngine.ENGINE_TYPE type = null;
@@ -262,6 +254,7 @@ public class OWLER {
 			// the conceptual name is the clean version of the name ... for now
 			String conceptualRelationship = baseRelation + "/" + CONCEPTUAL_RELATION_NAME;
 			String conceptualNode = Utility.cleanVariableString(tableName);
+			conceptualNames.add(conceptualNode);
 			String conceptualSubject = baseNodeURI + "/" + conceptualNode;
 			engine.addToBaseEngine(subject, conceptualRelationship, conceptualSubject);
 		}		
@@ -693,6 +686,9 @@ public class OWLER {
 	}
 	public Hashtable<String, String> getPropHash() {
 		return propHash;
+	}
+	public Set<String> getConceptualNodes() {
+		return conceptualNames;
 	}
 	
 	///////////////// END GETTERS ///////////////////////

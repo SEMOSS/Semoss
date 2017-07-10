@@ -14,7 +14,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.TablePlaySheet;
@@ -384,8 +384,7 @@ public final class OUSDPlaysheetHelper {
 			ISelectStatement val = it.next();
 			qID = val.getValues()[0] + "";
 		}
-		Insight in = mainEngine.getInsight(qID).get(0);
-		
+		OldInsight in = (OldInsight) mainEngine.getInsight(qID).get(0);
 
 //		ExecuteQueryProcessor proc = new ExecuteQueryProcessor();
 //		Hashtable<String, Object> emptyTable = new Hashtable<String, Object>();

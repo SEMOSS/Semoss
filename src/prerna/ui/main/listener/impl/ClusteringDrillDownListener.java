@@ -40,8 +40,8 @@ import javax.swing.JDesktopPane;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.ClusteringVizPlaySheet;
 import prerna.ui.helpers.PlaysheetCreateRunner;
 import prerna.util.Constants;
@@ -126,7 +126,7 @@ public class ClusteringDrillDownListener extends AbstractListener {
 		
 		ClusteringVizPlaySheet drillDownPlaySheet = new ClusteringVizPlaySheet();
 		drillDownPlaySheet.setJDesktopPane(playSheet.pane);
-		Insight in = new Insight(drillDownPlaySheet);
+		OldInsight in = new OldInsight(drillDownPlaySheet);
 		InsightStore.getInstance().put(in);
 		drillDownPlaySheet.setQuery(playSheet.getQuery());
 		drillDownPlaySheet.setRDFEngine(playSheet.engine);

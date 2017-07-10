@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.swing.custom.ButtonMenuDropDown;
 import prerna.util.StringNumericComparator;
 /**
@@ -75,7 +76,7 @@ public class ShowPlaySheetsButtonListener implements ActionListener{
 //				String listEntry = id.substring(0,id.indexOf("."))+". "+QuestionPlaySheetStore.getInstance().get(id).getTitle();
 	//			else
 	//				listEntry = QuestionPlaySheetStore.getInstance().get(id).getTitle();
-				String listEntry = id.substring(0,id.indexOf("."))+". "+InsightStore.getInstance().get(id).getPlaySheet().getTitle();
+				String listEntry = id.substring(0,id.indexOf("."))+". "+ ((OldInsight) InsightStore.getInstance().get(id)).getPlaySheet().getTitle();
 				IDArray[count] = listEntry;
 				lookUp.put(listEntry,id);
 				count++;
@@ -83,7 +84,7 @@ public class ShowPlaySheetsButtonListener implements ActionListener{
 			else if (id.indexOf("c")>=0) 
 			{
 //				String listEntry = id.substring(0,id.indexOf("c"))+". "+QuestionPlaySheetStore.getInstance().get(id).getTitle();
-				String listEntry = id.substring(0,id.indexOf("c"))+". "+InsightStore.getInstance().get(id).getPlaySheet().getTitle();
+				String listEntry = id.substring(0,id.indexOf("c"))+". "+ ((OldInsight) InsightStore.getInstance().get(id)).getPlaySheet().getTitle();
 
 				IDArray[count] = listEntry;
 				lookUp.put(listEntry,id);
