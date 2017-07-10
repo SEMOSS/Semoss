@@ -43,9 +43,6 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -91,7 +88,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
@@ -105,21 +101,16 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.QuestionAdministrator;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.om.SEMOSSParam;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
 import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -2218,10 +2209,10 @@ public class Utility {
 			//			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
 
 			// set the core prop
-			if(prop.containsKey(Constants.DREAMER))
-				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-			//			if(prop.containsKey(Constants.ONTOLOGY))
-			//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+//			if(prop.containsKey(Constants.DREAMER))
+//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
+//			if(prop.containsKey(Constants.ONTOLOGY))
+//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
 			if(prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 				//engine.setOWL(prop.getProperty(Constants.OWL));
@@ -2251,7 +2242,7 @@ public class Utility {
 			}
 			// still need to find a way to move this forward.. 
 			// but for now I am ignoring
-			Utility.loadDataTypesIfNotPresent(engine, fileName);
+//			Utility.loadDataTypesIfNotPresent(engine, fileName);
 
 			//			if(closeDB)
 			//				engine.closeDB();
@@ -2265,144 +2256,144 @@ public class Utility {
 		return engine;
 	}
 
-	/**
-	 * Add data types into the OWL file for each concept and property for an engine 
-	 * @param engine				The IEngine to add datatypes for
-	 * @param fileName				The location of the SMSS file for that engine
-	 */
-	public static void loadDataTypesIfNotPresent(IEngine engine, String fileName) {
-		/*
-		 * Many use cases through the application requires that the data type be properly 
-		 * defined within the OWL file for each data source
-		 * 		-> when data type is not defined, most places in the code assumes values
-		 * 			to be of type string/varchar
-		 * 
-		 * This routine is called at engine start-up to loop through every concept and
-		 * property and add an appropriate data type triple
-		 * 
-		 * Note: this code first looks to see if a data type for that column exists within
-		 * the owl, only if it not present will it try to determine the data type
-		 * 
-		 * Here is the logical flow
-		 * 1) grab the boolean on the SMSS file to see if we need to go through this routine
-		 * 2) if the boolean is true, continue to perform the following steps
-		 * 3) grab all the concepts that exist in the database
-		 * 4) get all the instances for the concept and determine the type IF a type is not present
-		 * 		-> note: all concepts in an RDF database are automatically strings
-		 * 			since they are stored as URIs
-		 * 5) grab all the properties for the given concept
-		 * 6) determine the type of the property IF a type is not already present
-		 * 
-		 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
-		 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
-		 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
-		 */
-
-		// 1) grab boolean value that was defined in the SMSS file to determine if we need to look at data types to add to owl
-		boolean fillEmpty = true;
-		String fillEmptyStr = engine.getProperty(Constants.FILL_EMPTY_DATATYPES);
-		if(fillEmptyStr != null) {
-			fillEmpty = Boolean.parseBoolean(fillEmptyStr);
-		}
-
-		// 2) if the boolean is true, proceed to perform logic, else, nothing to do
-		if(fillEmpty) {
-			LOGGER.info(engine.getEngineName() + " is reloading data types into owl file");
-			// grab the engine type
-			ENGINE_TYPE engineType = engine.getEngineType();
-			// use the super handy owler object to actual add the triples 
-			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL());
-
-			// 3) first grab all the concepts
-			// see if concept has a data type, if not, determine the type and then add it
-			Vector<String> concepts = engine.getConcepts(false);;
-			for(String concept : concepts) {
-				// ignore stupid master concept
-				if(concept.equals("http://semoss.org/ontologies/Concept")) {
-					continue; 
-				}
-				String conceptType = engine.getDataTypes(concept);
-				// 4) if the type of the concept isn't stored, need to add it
-				if(conceptType == null) {
-					// checking the type if rdf
-					// if it is a RDF engine, all concepts are strings as its stored in a URI
-					if(engineType != ENGINE_TYPE.RDBMS) {
-						// all URIs are strings!!!!
-						owler.addConcept(Utility.getInstanceName(concept), "STRING");
-					} else {
-						// grab all values
-						Vector<Object> instances = engine.getEntityOfType(concept);
-						if(instances != null && !instances.isEmpty()) {
-							// determine the type via the first row
-							String instanceObj = instances.get(0).toString().replace("\"", "");
-							String type = Utility.findTypes(instanceObj)[0] + "";
-							owler.addConcept(Utility.getInstanceName(concept), type);
-						} else {
-							// why is this a thing???
-							LOGGER.error("no instances... not sure how i determine a type here...");
-						}
-					}
-				}
-
-				// 5) For the concept, get all the properties
-				// see if property has a data type, if not, determine the type and then add it
-				List<String> propNames = engine.getProperties4Concept(concept, false);
-				if(propNames != null && !propNames.isEmpty()) {
-					// need a bifurcation in logic between rdbms and rdf
-					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
-					// however, rdf is dumb and requires a unique query to be created 
-					// in order to get the values of a property for a specific concept
-					for(String prop : propNames) {
-						String propType = engine.getDataTypes(prop);
-
-						// 6) If the prop type isn't sotred, need to add it
-						if(propType == null) {
-							if(engineType == ENGINE_TYPE.RDBMS) {
-								// grab all values
-								Vector<Object> properties = engine.getEntityOfType(prop);
-								if(properties != null && !properties.isEmpty()) {
-									// determine the type via the first row
-									String property = properties.get(0).toString().replace("\"", "");
-									String type = Utility.findTypes(property)[0] + "";
-									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-								} else {
-									// why is this a thing???
-									LOGGER.error("no instances of property... not sure how i determine a type here...");
-								}
-							} else {
-								// sadly, need to hand jam the appropriate query here
-								String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-								ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
-								if(propWrapper.hasNext()) {
-									ISelectStatement propSS = propWrapper.next();
-									String property = propSS.getVar("property").toString().replace("\"", "");
-									String type = Utility.findTypes(property)[0] + "";
-									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-								}  else {
-									// why is this a thing???
-									LOGGER.error("no instances of property... not sure how i determine a type here...");
-								}
-							}
-						}
-					}
-				}
-			}
-
-			// now write the owler with all these triples added
-			// also need to reset the OWL within the engine to load in the triples
-			try {
-				owler.export();
-				// setting the owl reloads the base engine to get the data types
-				engine.setOWL(owler.getOwlPath());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			// update the smss file to contain the boolean as true to avoid this process on start up again
-			LOGGER.info(engine.getEngineName() + " is changing boolean on smss for filling empty datatypes");
-			changePropMapFileValue(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
-		}
-	}
+//	/**
+//	 * Add data types into the OWL file for each concept and property for an engine 
+//	 * @param engine				The IEngine to add datatypes for
+//	 * @param fileName				The location of the SMSS file for that engine
+//	 */
+//	public static void loadDataTypesIfNotPresent(IEngine engine, String fileName) {
+//		/*
+//		 * Many use cases through the application requires that the data type be properly 
+//		 * defined within the OWL file for each data source
+//		 * 		-> when data type is not defined, most places in the code assumes values
+//		 * 			to be of type string/varchar
+//		 * 
+//		 * This routine is called at engine start-up to loop through every concept and
+//		 * property and add an appropriate data type triple
+//		 * 
+//		 * Note: this code first looks to see if a data type for that column exists within
+//		 * the owl, only if it not present will it try to determine the data type
+//		 * 
+//		 * Here is the logical flow
+//		 * 1) grab the boolean on the SMSS file to see if we need to go through this routine
+//		 * 2) if the boolean is true, continue to perform the following steps
+//		 * 3) grab all the concepts that exist in the database
+//		 * 4) get all the instances for the concept and determine the type IF a type is not present
+//		 * 		-> note: all concepts in an RDF database are automatically strings
+//		 * 			since they are stored as URIs
+//		 * 5) grab all the properties for the given concept
+//		 * 6) determine the type of the property IF a type is not already present
+//		 * 
+//		 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
+//		 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
+//		 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
+//		 */
+//
+//		// 1) grab boolean value that was defined in the SMSS file to determine if we need to look at data types to add to owl
+//		boolean fillEmpty = true;
+//		String fillEmptyStr = engine.getProperty(Constants.FILL_EMPTY_DATATYPES);
+//		if(fillEmptyStr != null) {
+//			fillEmpty = Boolean.parseBoolean(fillEmptyStr);
+//		}
+//
+//		// 2) if the boolean is true, proceed to perform logic, else, nothing to do
+//		if(fillEmpty) {
+//			LOGGER.info(engine.getEngineName() + " is reloading data types into owl file");
+//			// grab the engine type
+//			ENGINE_TYPE engineType = engine.getEngineType();
+//			// use the super handy owler object to actual add the triples 
+//			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL());
+//
+//			// 3) first grab all the concepts
+//			// see if concept has a data type, if not, determine the type and then add it
+//			Vector<String> concepts = engine.getConcepts(false);;
+//			for(String concept : concepts) {
+//				// ignore stupid master concept
+//				if(concept.equals("http://semoss.org/ontologies/Concept")) {
+//					continue; 
+//				}
+//				String conceptType = engine.getDataTypes(concept);
+//				// 4) if the type of the concept isn't stored, need to add it
+//				if(conceptType == null) {
+//					// checking the type if rdf
+//					// if it is a RDF engine, all concepts are strings as its stored in a URI
+//					if(engineType != ENGINE_TYPE.RDBMS) {
+//						// all URIs are strings!!!!
+//						owler.addConcept(Utility.getInstanceName(concept), "STRING");
+//					} else {
+//						// grab all values
+//						Vector<Object> instances = engine.getEntityOfType(concept);
+//						if(instances != null && !instances.isEmpty()) {
+//							// determine the type via the first row
+//							String instanceObj = instances.get(0).toString().replace("\"", "");
+//							String type = Utility.findTypes(instanceObj)[0] + "";
+//							owler.addConcept(Utility.getInstanceName(concept), type);
+//						} else {
+//							// why is this a thing???
+//							LOGGER.error("no instances... not sure how i determine a type here...");
+//						}
+//					}
+//				}
+//
+//				// 5) For the concept, get all the properties
+//				// see if property has a data type, if not, determine the type and then add it
+//				List<String> propNames = engine.getProperties4Concept(concept, false);
+//				if(propNames != null && !propNames.isEmpty()) {
+//					// need a bifurcation in logic between rdbms and rdf
+//					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
+//					// however, rdf is dumb and requires a unique query to be created 
+//					// in order to get the values of a property for a specific concept
+//					for(String prop : propNames) {
+//						String propType = engine.getDataTypes(prop);
+//
+//						// 6) If the prop type isn't sotred, need to add it
+//						if(propType == null) {
+//							if(engineType == ENGINE_TYPE.RDBMS) {
+//								// grab all values
+//								Vector<Object> properties = engine.getEntityOfType(prop);
+//								if(properties != null && !properties.isEmpty()) {
+//									// determine the type via the first row
+//									String property = properties.get(0).toString().replace("\"", "");
+//									String type = Utility.findTypes(property)[0] + "";
+//									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
+//								} else {
+//									// why is this a thing???
+//									LOGGER.error("no instances of property... not sure how i determine a type here...");
+//								}
+//							} else {
+//								// sadly, need to hand jam the appropriate query here
+//								String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+//								ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
+//								if(propWrapper.hasNext()) {
+//									ISelectStatement propSS = propWrapper.next();
+//									String property = propSS.getVar("property").toString().replace("\"", "");
+//									String type = Utility.findTypes(property)[0] + "";
+//									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
+//								}  else {
+//									// why is this a thing???
+//									LOGGER.error("no instances of property... not sure how i determine a type here...");
+//								}
+//							}
+//						}
+//					}
+//				}
+//			}
+//
+//			// now write the owler with all these triples added
+//			// also need to reset the OWL within the engine to load in the triples
+//			try {
+//				owler.export();
+//				// setting the owl reloads the base engine to get the data types
+//				engine.setOWL(owler.getOwlPath());
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//
+//			// update the smss file to contain the boolean as true to avoid this process on start up again
+//			LOGGER.info(engine.getEngineName() + " is changing boolean on smss for filling empty datatypes");
+//			changePropMapFileValue(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
+//		}
+//	}
 
 //	/**
 //	 * Adds the engine into the local master database
@@ -2964,143 +2955,148 @@ public class Utility {
 		return f;
 	}
 	
-	
-	/**
-	 * Update old insights... hope we get rid of this soon
-	 * @param insightRDBMS
-	 * @param engineName
-	 */
-	public static void updateOldInsights(IEngine engine) {
-		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'QUESTION_ID'";
-
-		// need to get the insight
-		IEngine insightRDBMS = engine.getInsightDatabase();
-		if(insightRDBMS == null) {
-			LOGGER.info(engine.getEngineName() + " does not have an insight rdbms");
-			return;
-		}
-		
-		Map<String, Object> mapRet = (Map<String, Object>) insightRDBMS.execQuery(query);
-		Statement stat = (Statement) mapRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-		ResultSet rs = (ResultSet) mapRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-		try {
-			if (rs.next()) {
-//				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
-				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
-				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
-				insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
-				
-				// also update the base explore instance query
-				Utility.updateExploreInstanceInsight(engine);
-			} else {
-				LOGGER.error("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + engine.getEngineName());
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stat != null) {
-				try {
-					stat.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-	
-	// i hope this doesn't need to stay here for long
-	// only because we have a dumb way of passing insights as old question file
-	// instead of keeping what is in the insights rdbms
-	public static void updateExploreInstanceInsight(IEngine engine) {
-		// ignore local master db
-		// this is important since DataMakerComponent will try to load the engine
-		// but the engine is already in a lock since this is called when the engine is called
-		// this will be cleaned up once we get rid of DMC
-		String engineName = engine.getEngineName();
-		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
-			return;
-		}
-		
-		String insightId = null;
-		
-		// need to get the insight
-		IEngine insightRDBMS = engine.getInsightDatabase();
-		if(insightRDBMS == null) {
-			LOGGER.info(engineName + " does not have an insight rdbms");
-			return;
-		}
-		
-		// to delete from solr, we need to get the insight id
-		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
-		try {
-			ResultSet rs = (ResultSet) queryMap.get(RDBMSNativeEngine.RESULTSET_OBJECT);
-			if(rs != null) {
-				while(rs.next()) {
-					insightId = rs.getObject(1) + "";
-				}
-				
-				// close the streams
-				Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
-				rs.close();
-				stmt.close();
-			}
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		if(insightId == null) {
-			LOGGER.info(engineName + " does not have explore an instance query in database to update");
-			return;
-		}
-		
-		// now we need to modify the insight DMC list to be the new values
-		QuestionAdministrator questionAdmin = new QuestionAdministrator(engine);
-		
-		String insightName = "Explore an instance of a selected node type";
-		String perspective = "Generic-Perspective";
-		String layout = "Graph";
-		String order = "1";
-		String dmName = "TinkerFrame";
-		boolean isDbQuery = false;
-		Map<String, String> dataTableAlign = new HashMap<String, String>();
-		List<SEMOSSParam> params = new Vector<SEMOSSParam>();
-		String uiOptions = "";
-		
-		// create an empty comp and add the pkqls 
-		Vector<DataMakerComponent> dmcList = new Vector<DataMakerComponent>();
-		DataMakerComponent emptyComp = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
-		dmcList.add(emptyComp);
-
-		// add the data.model pkql
-		PKQLTransformation trans = new PKQLTransformation();
-		Map<String, Object> prop = new HashMap<String, Object>();
-		String pkqlCmd = "%7B%22jsonView%22%3A%5B%7B%22query%22%3A%22data.frame('graph')%3Bdata.import(api%3A%3Cengine%3E.query(%5Bc%3A%3Cconcept%3E%5D%2C(c%3A%3Cconcept%3E%3D%5B%3Cinstance%3E%5D)))%3Bpanel%5B0%5D.viz(Graph%2C%5B%5D)%3B%22%2C%22label%22%3A%22Explore%20an%20instance%22%2C%22description%22%3A%22Explore%20instances%20of%20a%20selected%20concept%22%2C%22params%22%3A%5B%7B%22paramName%22%3A%22concept%22%2C%22required%22%3Atrue%2C%22view%22%3A%7B%22displayType%22%3A%22dropdown%22%2C%22label%22%3A%22Select%20a%20Concept%22%2C%22description%22%3A%22Select%20a%20concept%20that%20you%20will%20explore%22%7D%2C%22model%22%3A%7B%22query%22%3A%22database.concepts(%3Cengine%3E)%3B%22%2C%22dependsOn%22%3A%5B%22engine%22%5D%7D%7D%2C%7B%22paramName%22%3A%22instance%22%2C%22required%22%3Atrue%2C%22view%22%3A%7B%22displayType%22%3A%22checklist%22%2C%22label%22%3A%22Select%20an%20Instance%22%2C%22description%22%3A%22Select%20an%20instance%20to%20explore%22%7D%2C%22model%22%3A%7B%22query%22%3A%22data.query(api%3A%3Cengine%3E.query(%5Bc%3A%3Cconcept%3E%5D%2C%7B'limit'%3A50%2C'offset'%3A0%2C'getCount'%3A'false'%7D))%3B%22%2C%22dependsOn%22%3A%5B%22engine%22%2C%22concept%22%5D%7D%7D%5D%2C%22execute%22%3A%22button%22%7D%5D%7D";	
-		pkqlCmd = pkqlCmd.replace("%3Cengine%3E", engine.getEngineName());
-		pkqlCmd = "data.model(<json>" + pkqlCmd + "</json>);";
-		prop.put(PKQLTransformation.EXPRESSION, pkqlCmd);
-		trans.setProperties(prop);
-		emptyComp.addPostTrans(trans);
-		
-		questionAdmin.modifyQuestion(insightId, insightName, perspective, dmcList, layout, order, dmName, isDbQuery, dataTableAlign, params, uiOptions);
-		
-		Map<String, Object> solrMap = new HashMap<String, Object>();
-		// in case we modified the explore instance name since some legacy insights have difference in naming between rdf and rdbms
-		solrMap.put(SolrIndexEngine.INDEX_NAME, insightName);
-		solrMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
-		try {
-			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrMap);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e) {
-			e.printStackTrace();
-		}
-	}
+//	/**
+//	 * Update old insights... hope we get rid of this soon
+//	 * @param insightRDBMS
+//	 * @param engineName
+//	 */
+//	public static void updateOldInsights(IEngine engine) {
+//		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'QUESTION_ID'";
+//
+//		// need to get the insight
+//		IEngine insightRDBMS = engine.getInsightDatabase();
+//		if(insightRDBMS == null) {
+//			LOGGER.info(engine.getEngineName() + " does not have an insight rdbms");
+//			return;
+//		}
+//		
+//		Map<String, Object> mapRet = (Map<String, Object>) insightRDBMS.execQuery(query);
+//		Statement stat = (Statement) mapRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+//		ResultSet rs = (ResultSet) mapRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+//		try {
+//			if (rs.next()) {
+////				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_LAYOUT = 'Graph' WHERE p.QUESTION_DATA_MAKER = 'GraphDataModel'");
+//				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_DATA_MAKER = REPLACE(QUESTION_DATA_MAKER, 'BTreeDataFrame', 'TinkerFrame')");
+//				insightRDBMS.insertData("UPDATE QUESTION_ID p SET QUESTION_MAKEUP = REPLACE(QUESTION_MAKEUP, 'SELECT @Concept-Concept:Concept@, ''http://www.w3.org/1999/02/22-rdf-syntax-ns#type'', ''http://semoss.org/ontologies/Concept''', 'SELECT @Concept-Concept:Concept@') WHERE p.QUESTION_DATA_MAKER = 'TinkerFrame'");
+//				insightRDBMS.insertData("UPDATE QUESTION_ID SET QUESTION_DATA_MAKER='TinkerFrame' WHERE QUESTION_NAME='Explore a concept from the database' OR QUESTION_NAME='Explore an instance of a selected node type'"); 
+//				
+//				// also update the base explore instance query
+//				Utility.updateExploreInstanceInsight(engine);
+//			} else {
+//				LOGGER.error("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + engine.getEngineName());
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			if (rs != null) {
+//				try {
+//					rs.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if(stat != null) {
+//				try {
+//					stat.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//	}
+//	
+//	// i hope this doesn't need to stay here for long
+//	// only because we have a dumb way of passing insights as old question file
+//	// instead of keeping what is in the insights rdbms
+//	public static void updateExploreInstanceInsight(IEngine engine) {
+//		// ignore local master db
+//		// this is important since DataMakerComponent will try to load the engine
+//		// but the engine is already in a lock since this is called when the engine is called
+//		// this will be cleaned up once we get rid of DMC
+//		String engineName = engine.getEngineName();
+//		if(engineName.equals(Constants.LOCAL_MASTER_DB_NAME)) {
+//			return;
+//		}
+//		
+//		String insightId = null;
+//		
+//		// need to get the insight
+//		IEngine insightRDBMS = engine.getInsightDatabase();
+//		if(insightRDBMS == null) {
+//			LOGGER.info(engineName + " does not have an insight rdbms");
+//			return;
+//		}
+//		
+//		// to delete from solr, we need to get the insight id
+//		Map<String, Object> queryMap = (Map<String, Object>) insightRDBMS.execQuery("SELECT ID FROM QUESTION_ID p WHERE p.QUESTION_NAME = 'Explore an instance of a selected node type' OR p.QUESTION_NAME = 'Explore a concept from the database'");
+//		try {
+//			ResultSet rs = (ResultSet) queryMap.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+//			if(rs != null) {
+//				while(rs.next()) {
+//					insightId = rs.getObject(1) + "";
+//				}
+//				
+//				// close the streams
+//				Statement stmt = (Statement) queryMap.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+//				rs.close();
+//				stmt.close();
+//			}
+//			
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		if(insightId == null) {
+//			LOGGER.info(engineName + " does not have explore an instance query in database to update");
+//			return;
+//		}
+//		
+//		// now we need to modify the insight DMC list to be the new values
+//		QuestionAdministrator questionAdmin = new QuestionAdministrator(engine);
+//		
+//		String insightName = "Explore an instance of a selected node type";
+//		String perspective = "Generic-Perspective";
+//		String layout = "Graph";
+//		String order = "1";
+//		String dmName = "TinkerFrame";
+//		boolean isDbQuery = false;
+//		Map<String, String> dataTableAlign = new HashMap<String, String>();
+//		List<SEMOSSParam> params = new Vector<SEMOSSParam>();
+//		String uiOptions = "";
+//		
+//		// create an empty comp and add the pkqls 
+//		Vector<DataMakerComponent> dmcList = new Vector<DataMakerComponent>();
+//		DataMakerComponent emptyComp = new DataMakerComponent(Constants.LOCAL_MASTER_DB_NAME, Constants.EMPTY);
+//		dmcList.add(emptyComp);
+//
+//		// add the data.model pkql
+//		PKQLTransformation trans = new PKQLTransformation();
+//		Map<String, Object> prop = new HashMap<String, Object>();
+//		String pkqlCmd = "data.model(<json>{\"jsonView\":[{\"title\":\"Select Parameters:\",\"Description\":\"Explore instances of selected concept\",\"pkqlCommand\":\""
+//				+ "data.frame('graph');data.import(api:<engine>.query([c:<concept>],(c:<concept>=[<instance>])));panel[0].viz(Graph,[]);\",\"input\": {\"concept\": "
+//				+ "{\"name\": \"concept\",\"type\":\"dropdown\",\"required\": true,\"label\": \"Concept\",\"optionsGetter\": {\"command\": \"database.concepts(<engine>);"
+//				+ "\",\"dependInput\": []},\"options\": [],\"value\": \"\"},\"instance\": {\"name\": \"instance\",\"type\": \"checkBox\",\"required\": true,\"label\": "
+//				+ "\"Instance\",\"optionsGetter\": {\"command\": \"data.query(api:<engine>.query([c:<concept>],{'limit':50, 'offset':0, 'getCount': 'false'}));\","
+//				+ "\"dependInput\": [\"concept\"]},\"options\": [],\"value\": \"\"},\"execute\": {\"name\": \"execute\",\"type\": \"buttonGroup\",\"required\": true,"
+//				+ "\"position\": \"bottom\",\"label\": \"\",\"optionsGetter\": [],\"options\": [\"Execute\"],\"value\": \"\",\"attribute\": {\"buttonGroupAttr\": "
+//				+ "\"style='display:block'\"}}}}]}</json>);";		
+//		pkqlCmd = pkqlCmd.replace("<engine>", engine.getEngineName());
+//		prop.put(PKQLTransformation.EXPRESSION, pkqlCmd);
+//		trans.setProperties(prop);
+//		emptyComp.addPostTrans(trans);
+//		
+//		questionAdmin.modifyQuestion(insightId, insightName, perspective, dmcList, layout, order, dmName, isDbQuery, dataTableAlign, params, uiOptions);
+//		
+//		Map<String, Object> solrMap = new HashMap<String, Object>();
+//		// in case we modified the explore instance name since some legacy insights have difference in naming between rdf and rdbms
+//		solrMap.put(SolrIndexEngine.INDEX_NAME, insightName);
+//		solrMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
+//		try {
+//			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrMap);
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+//				| IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
 
 }

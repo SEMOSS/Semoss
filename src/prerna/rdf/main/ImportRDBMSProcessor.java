@@ -391,7 +391,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 								// ImportDataProcessor and removed from every
 								// subclass of AbstractEngineCreator
 
-		RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engineName, nodesAndPrimKeys.keySet());
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
 
 		return this.engine;
 	}

@@ -46,6 +46,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.ModalLensGraphMouse;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.SimpleGraphNodePopup;
 import prerna.ui.components.api.IChakraListener;
@@ -96,7 +97,7 @@ public class SimpleGraphListener extends ModalLensGraphMouse implements IChakraL
     	}
 		
 //    	SQLGraphPlaysheet ps3 = (SQLGraphPlaysheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-    	SQLGraphPlaysheet ps3 = (SQLGraphPlaysheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+    	SQLGraphPlaysheet ps3 = (SQLGraphPlaysheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 		
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();

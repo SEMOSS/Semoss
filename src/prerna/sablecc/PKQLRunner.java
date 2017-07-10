@@ -106,15 +106,15 @@ public class PKQLRunner {
 		
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
-		if(translation == null){
-			translation = new Translation(frame, this);
+		if(this.translation == null){
+			this.translation = new Translation(frame, this);
 		}
 
 		try {
 			// parsing the pkql - this process also determines if expression is syntactically correct
 			tree = p.parse();
 			// apply the translation.
-			tree.apply(translation);
+			tree.apply(this.translation);
 			
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
@@ -139,15 +139,15 @@ public class PKQLRunner {
 	public void runPKQL(String expression) {
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
-		if(translation == null){
-			translation = new Translation(this);
+		if(this.translation == null){
+			this.translation = new Translation(this);
 		}
 
 		try {
 			// parsing the pkql - this process also determines if expression is syntactically correct
 			tree = p.parse();
 			// apply the translation.
-			tree.apply(translation);
+			tree.apply(this.translation);
 			
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
@@ -188,7 +188,7 @@ public class PKQLRunner {
 		} 
 		//TODO: should extrapolate this to a generic kind of expression iterator
 		else if(response instanceof SqlExpressionBuilder) {
-			H2Frame frame = (H2Frame) translation.getDataFrame();
+			H2Frame frame = (H2Frame) this.translation.getDataFrame();
 			SqlExpressionBuilder builder = (SqlExpressionBuilder) response;
 			
 			// need to have a bifurcation when the expression is just a single scalar value
@@ -460,8 +460,8 @@ public class PKQLRunner {
 	}
 	
 	public IDataMaker getDataFrame() {
-		if(translation != null) {
-			return translation.getDataFrame();
+		if(this.translation != null) {
+			return this.translation.getDataFrame();
 		}
 		return null;
 	}
@@ -635,12 +635,18 @@ public class PKQLRunner {
 		this.responseArray = new Vector<Map>();
 		this.masterFeMap = new HashMap<String, Map<String,Object>>(); // this holds all active front end data. in the form panelId --> prop --> value
 		this.activeFeMap = null; // temporally grabbed out of master
-		this.translation = null;
 		this.newColumns = new HashMap<String,String>();
 		this.returnData = null;
 		this.newInsights = new ArrayList<>();
 		this.dashboardMap = null;
 		this.dataCleared = false;
+		
+		// ugh... this is really annoying
+		if(this.translation.getDataFrame() != null) {
+			this.translation = new Translation(this.translation.getDataFrame(), this);
+		} else {
+			this.translation = new Translation(this);
+		}
 //		this.expiredFeMaps =  new HashMap<String, List<Map<String,Object>>>();
 	}
 	

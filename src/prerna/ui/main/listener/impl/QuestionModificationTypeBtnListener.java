@@ -47,7 +47,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
@@ -202,7 +202,7 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		String[] questionSplit = question.split("\\. ", 2);
 		question = questionSplit[1];
 		
-		Insight in = ((AbstractEngine)engine).getInsight(id).get(0);
+		OldInsight in = (OldInsight) ((AbstractEngine)engine).getInsight(id).get(0);
 
 		// now get the SPARQL query for this id
 //		String sparql = in.getDataMakerComponents()[0].getQuery();

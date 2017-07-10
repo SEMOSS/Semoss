@@ -35,6 +35,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.api.IChakraListener;
 
 /**
@@ -51,7 +52,7 @@ public class FilterRefreshListener implements IChakraListener {
 	public void actionPerformed(ActionEvent actionevent) {
 		logger.info("Calling action performed - Refine");
 //		QuestionPlaySheetStore.getInstance().getActiveSheet().refineView();
-		InsightStore.getInstance().getActiveInsight().getPlaySheet().refineView();
+		((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet().refineView();
 	}
 
 	/**

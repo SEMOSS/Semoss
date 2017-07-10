@@ -36,6 +36,7 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.SQLGraphPlaysheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -75,10 +76,10 @@ public class NeighborMenuItem extends JMenuItem{
 	public void paintNeighborhood()
 	{
 //		if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof GraphPlaySheet)
-		if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof GraphPlaySheet)
+		OldInsight in = (OldInsight) InsightStore.getInstance().getActiveInsight();
+		if(in.getPlaySheet() instanceof GraphPlaySheet)
 		{
 //			GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-			Insight insight = InsightStore.getInstance().getActiveInsight();
 			logger.debug("Extending ");
 			Runnable playRunner = null;
 			// Here I need to get the active sheet
@@ -99,7 +100,7 @@ public class NeighborMenuItem extends JMenuItem{
 //				playSheet.setQuery(query);
 			
 
-				playRunner = new InsightOverlayRunner(insight, new DataMakerComponent[]{dmc});
+				playRunner = new InsightOverlayRunner(in, new DataMakerComponent[]{dmc});
 				// thread
 				Thread playThread = new Thread(playRunner);
 				playThread.start();
@@ -107,11 +108,11 @@ public class NeighborMenuItem extends JMenuItem{
 		}
 		// else is where we implement our logic
 //		else if(QuestionPlaySheetStore.getInstance().getActiveSheet() instanceof SQLGraphPlaysheet)
-		else if(InsightStore.getInstance().getActiveInsight().getPlaySheet() instanceof SQLGraphPlaysheet)
+		else if(in.getPlaySheet() instanceof SQLGraphPlaysheet)
 		{
 			// this is the sql playsheet
 //			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+			SQLGraphPlaysheet playSheet = (SQLGraphPlaysheet) in.getPlaySheet();
 			playSheet.addMore(engine, query);
 			logger.debug("Extending ");
 		}

@@ -15,13 +15,11 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
@@ -184,7 +182,6 @@ public class InsightFilesToDatabaseReader {
 				// make the insights database
 				engine.setOWL(owlPath);
 				((AbstractEngine) engine).setPropFile(propWriter.propFileName);
-				((AbstractEngine) engine).createInsights(baseDirectory);
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			} 
 			// if the engine exists
@@ -336,7 +333,6 @@ public class InsightFilesToDatabaseReader {
 			
 			engine.setOWL(owlPath);
 			((AbstractEngine) engine).setPropFile(propWriter.propFileName);
-			((AbstractEngine) engine).createInsights(baseDirectory);
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
 			SolrUtility.addToSolrInsightCore(engineName);
@@ -451,14 +447,10 @@ public class InsightFilesToDatabaseReader {
 		DIHelper.getInstance().setLocalProperty(engineName, coreEngine);
 		
 		// create the pkql to add data into the insight
-		String pkqlExp = "data.import(api:Movie_RDBMS.query([c:Title , c:Genre_Updated , c:Title__Movie_Budget],([c:Title, inner.join, c:Genre_Updated])));";
+		String pkqlExp = "data.frame('grid'); data.import(api:Movie_RDBMS.query([c:Title , c:Genre_Updated , c:Title__Movie_Budget],([c:Title, inner.join, c:Genre_Updated])));";
 		// create the insight and load the data
-		Insight in = new Insight(coreEngine, "H2Frame", "Grid");
-		
-		H2Frame dataframe = new H2Frame();
-		PKQLRunner run = new PKQLRunner();
-		run.runPKQL(pkqlExp, dataframe);
-		in.setDataMaker(dataframe);
+		Insight in = new Insight();
+		in.runPkql(pkqlExp);
 		
 		// TODO: make sure this is a new name
 		String newEngineName = "createNewEngineName";

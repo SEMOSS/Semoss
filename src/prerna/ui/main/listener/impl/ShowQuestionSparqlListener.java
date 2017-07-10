@@ -45,7 +45,7 @@ import javax.swing.JTextArea;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.ui.components.api.IChakraListener;
@@ -82,7 +82,7 @@ public class ShowQuestionSparqlListener implements IChakraListener {
 		String questionID = insightMap.get(MapComboBoxRenderer.KEY);
 		
 		// create insight to get sparql text
-		Insight insight = ((AbstractEngine)engine).getInsight(questionID).get(0);
+		OldInsight insight = (OldInsight) ((AbstractEngine)engine).getInsight(questionID).get(0);
 //		String sparql = Utility.normalizeParam(insight.getDataMakerComponents()[0].getQuery());
 		String sparql = Utility.normalizeParam(insight.getDataMakerComponents().get(0).getQuery());
 

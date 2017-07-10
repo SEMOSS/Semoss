@@ -45,8 +45,8 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -141,7 +141,7 @@ public class SOAAnalysisPerformer implements Runnable {
 			newPlaySheet.setDataMaker(oldPlaySheet.getDataMaker());
 			//newPlaySheet.setJenaModel(jenaModel);
 			JDesktopPane pane = (JDesktopPane)DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
-			InsightStore.getInstance().put(new Insight(newPlaySheet));
+			InsightStore.getInstance().put(new OldInsight(newPlaySheet));
 			newPlaySheet.setJDesktopPane(pane);
 			newPlaySheet.createView();
 		}

@@ -94,11 +94,11 @@ public class Dashboard implements IDataMaker {
 		for(Insight insight : insights) {
 			Map<String, Object> nextInsightMap = new HashMap<>();
 			
-			nextInsightMap.put("insightID", insight.getInsightID());
+			nextInsightMap.put("insightID", insight.getInsightId());
 			nextInsightMap.put("engine", insight.getEngineName());
 			nextInsightMap.put("questionID", insight.getRdbmsId());
 			
-			String[] ids = this.insight2frameMap.get(insight.getInsightID());
+			String[] ids = this.insight2frameMap.get(insight.getInsightId());
 			if(ids != null) {
 				nextInsightMap.put("widgetID", ids[0]);
 				nextInsightMap.put("panelID", ids[1]);
@@ -111,14 +111,14 @@ public class Dashboard implements IDataMaker {
 			
 //			joinedInsights.addAll(insightIDs);
 //			joinedInsights.remove(insight.getInsightID());
-			nextInsightMap.put("joinedInsights", joinedInsightMap.get(insight.getInsightID()));
+			nextInsightMap.put("joinedInsights", joinedInsightMap.get(insight.getInsightId()));
 			
 			//instead of doing this...have data.open save the output to the insight/dashboard
 			//grab that data from the insight/dashboard...then delete
 			//this doesn't have sufficient pkql data
 			Map<String, Object> insightOutput;
-			if(this.insightOutputMap.containsKey(insight.getInsightID())) {
-				insightOutput = insightOutputMap.get(insight.getInsightID());
+			if(this.insightOutputMap.containsKey(insight.getInsightId())) {
+				insightOutput = insightOutputMap.get(insight.getInsightId());
 			} else {
 				insightOutput = insight.getWebData();
 			}
@@ -215,12 +215,12 @@ public class Dashboard implements IDataMaker {
 	 * first doing the case where we have all unjoined insights
 	 */
 	public void joinInsights(List<Insight> insights, List<List<String>> joinColumns) {
-		joiner.joinInsights(joinColumns, insights);
-		Insight parentInsight = InsightStore.getInstance().get(this.insightID);
-		for(Insight insight : insights) {
-			//add the insight to the view
-			insight.setParentInsight(parentInsight);
-		}
+//		joiner.joinInsights(joinColumns, insights);
+//		Insight parentInsight = InsightStore.getInstance().get(this.insightID);
+//		for(Insight insight : insights) {
+//			//add the insight to the view
+//			insight.setParentInsight(parentInsight);
+//		}
 	}
 	
 	public void unjoinInsights(List<Insight> insights) {

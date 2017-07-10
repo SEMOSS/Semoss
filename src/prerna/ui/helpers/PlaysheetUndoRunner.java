@@ -30,7 +30,7 @@ package prerna.ui.helpers;
 import java.util.Arrays;
 import java.util.List;
 
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -40,13 +40,13 @@ import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
  */
 public class PlaysheetUndoRunner implements Runnable{
 
-	Insight insight = null;
+	OldInsight insight = null;
 	
 	/**
 	 * Constructor for PlaysheetUndoRunner.
 	 * @param playSheet GraphPlaySheet
 	 */
-	public PlaysheetUndoRunner(Insight insight)
+	public PlaysheetUndoRunner(OldInsight insight)
 	{
 		this.insight = insight;
 	}

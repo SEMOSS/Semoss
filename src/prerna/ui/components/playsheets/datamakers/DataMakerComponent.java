@@ -23,6 +23,7 @@ public class DataMakerComponent {
 	private String query;
 	private String dataFrameLocation;
 	private QueryStruct qs; // this is now a formal object! :)
+	private String engineName;
 	private IEngine engine;
 	private List<ISEMOSSTransformation> preTrans = new ArrayList<ISEMOSSTransformation>();
 	private List<ISEMOSSTransformation> postTrans = new ArrayList<ISEMOSSTransformation>();
@@ -36,9 +37,8 @@ public class DataMakerComponent {
 	 * @param engine					The name of the engine
 	 * @param query						The query corresponding to the data maker component to be run on the engine
 	 */
-	public DataMakerComponent(String engine, String query){
-		IEngine theEngine = Utility.getEngine(engine);
-		this.engine = theEngine;
+	public DataMakerComponent(String engineName, String query){
+		this.engineName = engineName;
 		this.query = query;
 	}
 	
@@ -49,6 +49,7 @@ public class DataMakerComponent {
 	 */
 	public DataMakerComponent(IEngine engine, String query){
 		this.engine = engine;
+		this.engineName = engine.getEngineName();
 		this.query = query;
 	}
 
@@ -57,9 +58,8 @@ public class DataMakerComponent {
 	 * @param engine					The name of the engine
 	 * @param metamodelData				The map to build the query based on the OWL
 	 */
-	public DataMakerComponent(String engine, QueryStruct qs){
-		IEngine theEngine = Utility.getEngine(engine);
-		this.engine = theEngine;
+	public DataMakerComponent(String engineName, QueryStruct qs){
+		this.engineName = engineName;
 		this.qs = qs;
 	}
 	
@@ -70,6 +70,7 @@ public class DataMakerComponent {
 	 */
 	public DataMakerComponent(IEngine engine, QueryStruct qs){
 		this.engine = engine;
+		this.engineName = engine.getEngineName();
 		this.qs = qs;
 	}
 	
@@ -118,7 +119,14 @@ public class DataMakerComponent {
 	 * @return
 	 */
 	public IEngine getEngine() {
-		return engine;
+		if(this.engine == null) {
+			this.engine = Utility.getEngine(this.engineName);
+		}
+		return this.engine;
+	}
+	
+	public String getEngineName() {
+		return this.engineName;
 	}
 	
 	public String getDataFrameLocation() {
@@ -208,7 +216,7 @@ public class DataMakerComponent {
 	 */
 	public void setParamHash(Map<String, List<Object>> paramHash, int filterNum) {
 		// clean up the params if the engine for the component is an RDBMS engine
-		if(this.engine instanceof RDBMSNativeEngine){
+		if(getEngine() instanceof RDBMSNativeEngine){
 			paramHash = Utility.cleanParamsForRDBMS(paramHash);
 		}
 		// get the transformation based on the filter number passed in
@@ -240,7 +248,7 @@ public class DataMakerComponent {
 	 * @return
 	 */
 	private String buildQuery() {
-		IQueryInterpreter builder = engine.getQueryInterpreter();
+		IQueryInterpreter builder = getEngine().getQueryInterpreter();
 		builder.setQueryStruct(qs);
 		return builder.composeQuery();
 	}
@@ -266,7 +274,7 @@ public class DataMakerComponent {
 	 * @return
 	 */
 	public DataMakerComponent copy() {
-		DataMakerComponent copy = new DataMakerComponent(engine, query);
+		DataMakerComponent copy = new DataMakerComponent(getEngine(), query);
 		copy.id = this.id;
 		copy.isProcessed = this.isProcessed;
 		

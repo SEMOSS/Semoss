@@ -40,8 +40,8 @@ import java.util.Random;
 import javax.swing.JDesktopPane;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.specific.tap.OptChartUtilityMethods;
 import prerna.ui.components.specific.tap.OptimizationOrganizer;
@@ -144,8 +144,8 @@ public class UnivariateSvcOptimizer extends UnivariateOpt{
 		gps.setTitle("Graph Analysis");
 		gps.setQuery(query);
 		//playSheet.tabbedPane.setSelectedComponent(playSheet.playSheetPanel);
-		Insight insight = new Insight(eng, "GraphDataModel", PlaySheetRDFMapBasedEnum.getSheetName("Graph"));
-		insight.setInsightID("Graph Analysis PlaySheet");
+		OldInsight insight = new OldInsight(eng, "GraphDataModel", PlaySheetRDFMapBasedEnum.getSheetName("Graph"));
+		insight.setInsightId("Graph Analysis PlaySheet");
 		insight.setPlaySheet(gps);
 //		QuestionPlaySheetStore.getInstance().put("Graph Analysis PlaySheet", gps);
 		InsightStore.getInstance().put(insight);

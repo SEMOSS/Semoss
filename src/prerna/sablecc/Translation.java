@@ -17,7 +17,6 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.impl.BaseReducerReactor;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.h2.H2Frame;
@@ -120,6 +119,13 @@ public class Translation extends DepthFirstAdapter {
 		defaultReactors.put(PKQLEnum.USE_CACHE, "prerna.sablecc.SetCacheReactor");
 		// for where statements
 		defaultReactors.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+		// able to generate a frame
+		defaultReactors.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+		
+		// for inputs/outputs
+		defaultReactors.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
+		defaultReactors.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
+
 		return defaultReactors;
 	}
 
@@ -629,7 +635,6 @@ public class Translation extends DepthFirstAdapter {
 			curReactor.put(PKQLEnum.TABLE_JOINS, tableJoins);
 		}
 		
-		
 		// something to do with parameters... need to look into this at some
 		// point...
 		curReactor.put("INSIGHT", node.getInsight().toString());
@@ -853,6 +858,9 @@ public class Translation extends DepthFirstAdapter {
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
 		if(dm != null) {
 			this.frame = dm;
+			// need to update the script reactors
+			Map<String, String> frameReactorNames = frame.getScriptReactors();
+			this.reactorNames.putAll(frameReactorNames);		
 		}
 		if (curReactor.getValue("G") instanceof Dashboard) {
 			Dashboard dash = (Dashboard) curReactor.getValue("G");
@@ -1393,19 +1401,25 @@ public class Translation extends DepthFirstAdapter {
 
 	public void inADashboardAdd(ADashboardAdd node) {
 		System.out.println("Have dashboard join as " + node);
-		if (reactorNames.containsKey(PKQLEnum.DASHBOARD_ADD)) {
-			initReactor(PKQLEnum.DASHBOARD_ADD);
-			String nodeStr = node + "";
-			curReactor.put(PKQLEnum.DASHBOARD_ADD, nodeStr.trim());
+		
+		//TOOD: this is really crappy!!!!
+		//unless I instantiate a frame on Insight creation... which I don't want to do
+		//there is nothing where the FE creates a dashboard :/
+		if (!reactorNames.containsKey(PKQLEnum.DASHBOARD_ADD)) {
+			this.frame = new Dashboard();
+			this.reactorNames.putAll(this.frame.getScriptReactors());
 		}
+		
+		initReactor(PKQLEnum.DASHBOARD_ADD);
+		String nodeStr = node + "";
+		curReactor.put(PKQLEnum.DASHBOARD_ADD, nodeStr.trim());
 	}
 
 	public void outADashboardAdd(ADashboardAdd node) {
 		String nodeStr = node.toString().trim();
 		IScriptReactor thisReactor = curReactor;
 		curReactor.put("G", this.frame);
-		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_ADD, nodeStr,
-				PKQLEnum.DASHBOARD_ADD);
+		Hashtable<String, Object> thisReactorHash = deinitReactor(PKQLEnum.DASHBOARD_ADD, nodeStr, PKQLEnum.DASHBOARD_ADD);
 
 		Map dashboardData = (Map) runner.getDashboardData();
 		if (dashboardData == null) {
@@ -1583,7 +1597,7 @@ public class Translation extends DepthFirstAdapter {
 		// set into this class
 
 		deinitReactor(PKQLEnum.DATA_FRAME, node.getBuilder().toString().trim(), node.toString().trim());
-		this.frame = (ITableDataFrame) curReactor.getValue(PKQLEnum.G);
+		this.frame = (IDataMaker) curReactor.getValue(PKQLEnum.G);
 		
 		// we need to set the connection in the PKQLRunner so we can call it via Java Reactor
 		if(this.frame instanceof RDataTable) {

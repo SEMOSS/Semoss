@@ -328,9 +328,8 @@ public class Constants {
 	public static final String SOA_TRANSITION_ALL_GENERIC_BLU_QUERY = "SOA_TRANSITION_ALL_GENERIC_BLU_QUERY";
 	public static final String SOA_TRANSITION_ALL_BLU_QUERY = "SOA_TRANSITION_ALL_BLU_QUERY";
 
-	public static final String DREAMER = "DREAMER";
-//	public static final String ONTOLOGY = "ONTOLOGY";
-
+	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
+	
 	public static final String PERSPECTIVE_SELECTOR = "perspectiveSelector";
 
 	public static final String BROWSER_TYPE = "BROWSER_TYPE";
@@ -368,8 +367,8 @@ public class Constants {
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
+	public static final String PKQL_UPDATE = "PKQL_UPDATED";
 	public static final String DB = "DB";
-	public static final String FILL_EMPTY_DATATYPES = "FILL_EMPTY_DATATYPES";
 	
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
@@ -389,10 +388,6 @@ public class Constants {
 	
 	public static final String INSIGHT_CACHE_DIR = "INSIGHT_CACHE_DIR";
 	public static final String CSV_INSIGHT_CACHE_FOLDER = "CSV_INSIGHT_CACHE_FOLDER";
-	
-	public static final String XML = "XML";
-	public static final String INSIGHTS = "INSIGHTS";
-	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
 	
 	// question modification
 	public static final String LABEL_QUESTION_SELECT_PERSPECTIVE = "lblQuestionSelectPerspective";

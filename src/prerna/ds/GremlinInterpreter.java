@@ -619,102 +619,102 @@ public class GremlinInterpreter implements IQueryInterpreter {
 	}
 	
 	public static void main(String[] args) {
-		TestUtilityMethods.loadDIHelper();
-
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		RDBMSNativeEngine movie = new RDBMSNativeEngine();
-		movie.setEngineName("Movie_RDBMS");
-		movie.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", movie);
-		
-		PKQLTransformation pkql = new PKQLTransformation();
-		Map<String, Object> props = new HashMap<String, Object>();
-		String pkqlCmd = "data.import ( api: Movie_RDBMS . query ( [ c: Title , c: Title__Movie_Budget, c:Title__Revenue_Domestic ] , ( [ c: Title , inner.join , c: Title__Movie_Budget ], [c: Title , inner.join , c: Title__Revenue_Domestic] ) ) ) ;";
-		props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
-		pkql.setProperties(props);
-		PKQLRunner runner = new PKQLRunner();
-		pkql.setRunner(runner);
-		List<ISEMOSSTransformation> list = new Vector<ISEMOSSTransformation>();
-		list.add(pkql);
-		
-		Insight insight = new Insight(null, "TinkerFrame", "Grid");
-		insight.processPostTransformation(list);
-		insight.syncPkqlRunnerAndFrame(runner);
-		
-		Map resultHash = insight.getPKQLData(true);
-		
-		System.out.println(resultHash);
-		
-		TinkerFrame tf = (TinkerFrame) insight.getDataMaker();
-		Iterator<Object[]> it = tf.iterator();
-		
-		System.out.println("<<<<<<<");
-		System.out.println("<<<<<<<");
-		System.out.println("<<<<<<<");
-		System.out.println("<<<<<<<");
-		LOGGER.info("First 10 iterator values");
-
-		int counter = 0;
-		while(it.hasNext() && counter < 10) {
-			System.out.println(Arrays.toString(it.next()));
-			counter++;
-		}
-		
-		QueryStruct qs = new QueryStruct();
-		Map <String, List<String>> selectors = new Hashtable <String, List<String>>();
-		Vector<String> v1 = new Vector<String>();
-		v1.add("PRIM_KEY_PLACEHOLDER");
-		v1.add("Title__Movie_Budget");
-//		v1.add("Title__Revenue_Domestic");
-		selectors.put("Title", v1);
-		qs.selectors = selectors;
-		
-		Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
-		List<String> v2 = new Vector<String>();
-		v2.add("Title__Movie_Budget");
-//		v2.add("Title__Revenue_Domestic");
-		Map<String, List> h2 = new Hashtable<String, List>();
-		h2.put("inner.join", v2);
-		relations.put("Title", h2);
-		qs.relations = relations;
-
-		Map <String, Map<String, List>> filters = new Hashtable<String, Map<String, List>>();
-		List v3 = new Vector();
-		v3.add("0");
-		Map<String, List> h3 = new Hashtable<String, List>();
-		h3.put(">", v3);
-		Vector v4 = new Vector();
-		v4.add("5000000");
-		h3.put("<", v4);
-		filters.put("Title__Movie_Budget", h3);
-		qs.andfilters = filters;
-		
-		
-		System.out.println("<<<<<<<");
-		System.out.println("<<<<<<<");
-		System.out.println("<<<<<<<");
-		System.out.println("<<<<<<<");
-
-		GremlinInterpreter interp = new GremlinInterpreter(tf.g, ((TinkerMetaData) tf.metaData).g);
-		interp.setQueryStruct(qs);
-		Iterator gremlinIt = interp.composeIterator();
-		
-		LOGGER.info("Gremlin Interpretor query output");
-
-		Object [] retObject = new Object[interp.selector.size()];
-		while(gremlinIt.hasNext()) {
-			Object data = gremlinIt.next();
-			if(data instanceof Map) {
-				for(int colIndex = 0;colIndex < interp.selector.size();colIndex++) {
-					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
-					retObject[colIndex] = ((Vertex)mapData.get(interp.selector.get(colIndex))).property(TinkerFrame.TINKER_NAME).value();
-				}
-			} else {
-				retObject[0] = ((Vertex)data).property(TinkerFrame.TINKER_NAME).value();
-			}
-			
-			System.out.println(Arrays.toString(retObject));
-		}
+//		TestUtilityMethods.loadDIHelper();
+//
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		RDBMSNativeEngine movie = new RDBMSNativeEngine();
+//		movie.setEngineName("Movie_RDBMS");
+//		movie.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", movie);
+//		
+//		PKQLTransformation pkql = new PKQLTransformation();
+//		Map<String, Object> props = new HashMap<String, Object>();
+//		String pkqlCmd = "data.import ( api: Movie_RDBMS . query ( [ c: Title , c: Title__Movie_Budget, c:Title__Revenue_Domestic ] , ( [ c: Title , inner.join , c: Title__Movie_Budget ], [c: Title , inner.join , c: Title__Revenue_Domestic] ) ) ) ;";
+//		props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
+//		pkql.setProperties(props);
+//		PKQLRunner runner = new PKQLRunner();
+//		pkql.setRunner(runner);
+//		List<ISEMOSSTransformation> list = new Vector<ISEMOSSTransformation>();
+//		list.add(pkql);
+//		
+//		Insight insight = new Insight(null, "TinkerFrame", "Grid");
+//		insight.processPostTransformation(list);
+//		insight.syncPkqlRunnerAndFrame(runner);
+//		
+//		Map resultHash = insight.getPKQLData(true);
+//		
+//		System.out.println(resultHash);
+//		
+//		TinkerFrame tf = (TinkerFrame) insight.getDataMaker();
+//		Iterator<Object[]> it = tf.iterator();
+//		
+//		System.out.println("<<<<<<<");
+//		System.out.println("<<<<<<<");
+//		System.out.println("<<<<<<<");
+//		System.out.println("<<<<<<<");
+//		LOGGER.info("First 10 iterator values");
+//
+//		int counter = 0;
+//		while(it.hasNext() && counter < 10) {
+//			System.out.println(Arrays.toString(it.next()));
+//			counter++;
+//		}
+//		
+//		QueryStruct qs = new QueryStruct();
+//		Map <String, List<String>> selectors = new Hashtable <String, List<String>>();
+//		Vector<String> v1 = new Vector<String>();
+//		v1.add("PRIM_KEY_PLACEHOLDER");
+//		v1.add("Title__Movie_Budget");
+////		v1.add("Title__Revenue_Domestic");
+//		selectors.put("Title", v1);
+//		qs.selectors = selectors;
+//		
+//		Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
+//		List<String> v2 = new Vector<String>();
+//		v2.add("Title__Movie_Budget");
+////		v2.add("Title__Revenue_Domestic");
+//		Map<String, List> h2 = new Hashtable<String, List>();
+//		h2.put("inner.join", v2);
+//		relations.put("Title", h2);
+//		qs.relations = relations;
+//
+//		Map <String, Map<String, List>> filters = new Hashtable<String, Map<String, List>>();
+//		List v3 = new Vector();
+//		v3.add("0");
+//		Map<String, List> h3 = new Hashtable<String, List>();
+//		h3.put(">", v3);
+//		Vector v4 = new Vector();
+//		v4.add("5000000");
+//		h3.put("<", v4);
+//		filters.put("Title__Movie_Budget", h3);
+//		qs.andfilters = filters;
+//		
+//		
+//		System.out.println("<<<<<<<");
+//		System.out.println("<<<<<<<");
+//		System.out.println("<<<<<<<");
+//		System.out.println("<<<<<<<");
+//
+//		GremlinInterpreter interp = new GremlinInterpreter(tf.g, ((TinkerMetaData) tf.metaData).g);
+//		interp.setQueryStruct(qs);
+//		Iterator gremlinIt = interp.composeIterator();
+//		
+//		LOGGER.info("Gremlin Interpretor query output");
+//
+//		Object [] retObject = new Object[interp.selector.size()];
+//		while(gremlinIt.hasNext()) {
+//			Object data = gremlinIt.next();
+//			if(data instanceof Map) {
+//				for(int colIndex = 0;colIndex < interp.selector.size();colIndex++) {
+//					Map<String, Object> mapData = (Map<String, Object>)data; //cast to map
+//					retObject[colIndex] = ((Vertex)mapData.get(interp.selector.get(colIndex))).property(TinkerFrame.TINKER_NAME).value();
+//				}
+//			} else {
+//				retObject[0] = ((Vertex)data).property(TinkerFrame.TINKER_NAME).value();
+//			}
+//			
+//			System.out.println(Arrays.toString(retObject));
+//		}
 	}
 
 	@Override
