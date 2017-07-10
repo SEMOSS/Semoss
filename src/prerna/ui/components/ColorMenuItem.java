@@ -35,6 +35,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -79,7 +80,7 @@ public class ColorMenuItem extends JMenuItem{
 			tcst.addColor(""+pickedVertex[vertIndex].getProperty(Constants.VERTEX_NAME), color);
 		}
 //		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		playSheet.repaint();
 	}

@@ -32,8 +32,8 @@ import java.awt.event.ActionListener;
 
 import javax.swing.AbstractAction;
 
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.helpers.PlaysheetUndoRunner;
 
@@ -51,7 +51,7 @@ public class UndoListener extends AbstractAction implements ActionListener {
 	 */
 	@Override
 	public void actionPerformed(ActionEvent actionevent) {
-		Insight insight = InsightStore.getInstance().get(gps.getQuestionID());
+		OldInsight insight = (OldInsight) InsightStore.getInstance().get(gps.getQuestionID());
 		PlaysheetUndoRunner playRunner = new PlaysheetUndoRunner(insight);
 		Thread playThread = new Thread(playRunner);
 		playThread.start();

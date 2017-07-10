@@ -45,6 +45,7 @@ import org.openrdf.repository.RepositoryConnection;
 
 import prerna.ds.TinkerFrame;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.ControlData;
@@ -52,7 +53,6 @@ import prerna.ui.components.ControlPanel;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.VertexFilterData;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.NetworkGraphHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -350,8 +350,8 @@ public class GraphTinkerPlaySheetHelper extends NetworkGraphHelper {
 	 * Method setUndoRedoBtn.
 	 */
 	public void setUndoRedoBtn() {
-		List<DataMakerComponent> dmcList = InsightStore.getInstance().get(this.gps.questionNum)
-				.getDataMakerComponents();
+		OldInsight in = (OldInsight) InsightStore.getInstance().get(this.gps.questionNum);
+		List<DataMakerComponent> dmcList = in.getDataMakerComponents();
 		if (dmcList.size() > 1) {
 			this.gps.searchPanel.undoBtn.setEnabled(true);
 		} else {

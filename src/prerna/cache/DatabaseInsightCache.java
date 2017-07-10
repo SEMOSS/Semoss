@@ -11,7 +11,6 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 
 import prerna.om.Insight;
-import prerna.util.ArrayUtilityMethods;
 
 public class DatabaseInsightCache extends InsightCache {
 
@@ -62,10 +61,10 @@ public class DatabaseInsightCache extends InsightCache {
 			questionName = questionName.substring(0, 25);
 		}
 		id += "_" + questionName;
-		String paramStr = getParamString(in.getParamHash());
-		if(!paramStr.isEmpty()) {
-			id += "_" + paramStr;
-		}
+//		String paramStr = getParamString(in.getParamHash());
+//		if(!paramStr.isEmpty()) {
+//			id += "_" + paramStr;
+//		}
 		return id;
 	}
 	

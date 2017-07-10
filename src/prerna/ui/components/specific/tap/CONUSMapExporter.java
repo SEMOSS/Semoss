@@ -40,8 +40,8 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.components.playsheets.CONUSMapPlaySheet;
@@ -131,8 +131,8 @@ public class CONUSMapExporter {
 				JDesktopPane pane = (JDesktopPane) DIHelper.getInstance().getLocalProp(Constants.DESKTOP_PANE);
 				playSheet.setJDesktopPane(pane);
 				
-				Insight insight = new Insight(null, "", "");
-				insight.setInsightID(id);
+				OldInsight insight = new OldInsight(null, "", "");
+				insight.setInsightId(id);
 				insight.setPlaySheet(playSheet);
 				InsightStore.getInstance().put(insight);
 //				QuestionPlaySheetStore.getInstance().put(question, playSheet);

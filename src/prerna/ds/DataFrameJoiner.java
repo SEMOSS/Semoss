@@ -20,13 +20,12 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.om.Dashboard;
-import prerna.om.Insight;
-import prerna.om.InsightStore;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ds.AbstractTableDataFrame.Comparator;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.H2FilterHash;
+import prerna.om.Dashboard;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 
 /**
  * 
@@ -686,7 +685,7 @@ public class DataFrameJoiner {
 	 * Returns the unique ID associated with the Insight
 	 */
 	private String getVertexId(Insight insight) {
-		return insight.getInsightID();
+		return insight.getInsightId();
 //		IDataMaker dm = insight.getDataMaker();
 //		if(dm instanceof ITableDataFrame) {
 //			return getVertexId((ITableDataFrame)dm);

@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -100,7 +101,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				// get the column as the specific type
 				// TODO: will need to expand this list... 
 				int type = colTypes[colNum-1];
-				if(type == Types.INTEGER || type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.BIGINT) {
+				if(type == Types.INTEGER) {
+					val = rs.getInt(colNum);
+				} else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.BIGINT) {
 					val = rs.getDouble(colNum);
 					//nulls are set to 0 unless there is a null check
 					// if (rs.wasNull()) {
@@ -108,7 +111,19 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					// }
 				} else if(type == Types.DATE || type == Types.TIMESTAMP || type == Types.TIME) {
 					val = rs.getDate(colNum);
-				} else {
+				} 
+				// TODO: we may want to not differentiate and just grab the String value of the CLOB
+				else if(type == Types.CLOB) {
+					val = rs.getClob(colNum);
+				} else if(type == Types.ARRAY) {
+					Array arrVal = rs.getArray(colNum);
+					if(arrVal != null) {
+						val = arrVal.getArray();
+					}
+				} else if(type == Types.BOOLEAN) {
+					val = rs.getBoolean(colNum);
+				}
+				else {
 					val = rs.getString(colNum);
 				}
 

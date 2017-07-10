@@ -47,7 +47,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamPanel;
@@ -95,7 +95,7 @@ public class QuestionListener implements IChakraListener {
 			String selectedEngine = selectedValuesList.get(selectedValuesList.size()-1).toString();
 			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(selectedEngine);
 
-			Insight in = ((AbstractEngine)engine).getInsight(questionID).get(0);
+			OldInsight in = (OldInsight) ((AbstractEngine)engine).getInsight(questionID).get(0);
 			// now get the SPARQL query for this id
 //			String sparql = in.getDataMakerComponents()[0].getQuery();
 			String sparql = in.getDataMakerComponents().get(0).getQuery();
@@ -122,7 +122,7 @@ public class QuestionListener implements IChakraListener {
 			ParamPanel panel = new ParamPanel();
 			panel.setParams(paramInfoVector);
 			//panel.setParamType(paramHash2);
-			panel.setQuestionId(in.getInsightID());
+			panel.setQuestionId(in.getInsightId());
 			panel.paintParam();
 
 			// finally add the param to the core panel

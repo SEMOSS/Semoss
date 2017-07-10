@@ -98,7 +98,6 @@ public class CSVReader extends AbstractCSVFileReader {
 					// get the user selected datatypes for each header
 					preParseRdfCSVMetaData(rdfMap);
 					parseMetadata();
-//					processDisplayNames();
 					skipRows();
 					processRelationShips();
 				} finally {
@@ -107,6 +106,7 @@ public class CSVReader extends AbstractCSVFileReader {
 			}
 			loadMetadataIntoEngine();
 			createBaseRelations();
+			RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -167,9 +167,9 @@ public class CSVReader extends AbstractCSVFileReader {
 				// get the user selected datatypes for each header
 				preParseRdfCSVMetaData(rdfMap);
 				parseMetadata();
-//				processDisplayNames();
 				skipRows();
 				processRelationShips();
+				RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
 			} finally {
 				closeCSVFile();
 			}

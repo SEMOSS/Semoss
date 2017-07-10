@@ -1,21 +1,14 @@
 package prerna.util.insight;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IEngine;
 import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLRunner;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
-import prerna.util.Utility;
 
 public class InsightUtility {
 
@@ -28,24 +21,25 @@ public class InsightUtility {
 	 * Runs a pkql command on an insight
 	 */
 	public static Map runPkql(Insight insight, String pkqlCmd) {
-		PKQLTransformation pkql = new PKQLTransformation();
-		Map<String, Object> props = new HashMap<String, Object>();
-		props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
-		pkql.setProperties(props);
-		PKQLRunner runner = insight.getPKQLRunner();
-		pkql.setRunner(runner);
-		List<ISEMOSSTransformation> list = new Vector<ISEMOSSTransformation>();
-		list.add(pkql);
-
-		Map resultHash = null;
-		//synchronize applyCalc calls for each insight to prevent interference during calculation
-		synchronized(insight) {
-			insight.processPostTransformation(list);
-			insight.syncPkqlRunnerAndFrame(runner);
-			resultHash = insight.getPKQLData(true);
-		}
-		
-		return resultHash;
+		return insight.runPkql(pkqlCmd);
+//		PKQLTransformation pkql = new PKQLTransformation();
+//		Map<String, Object> props = new HashMap<String, Object>();
+//		props.put(PKQLTransformation.EXPRESSION, pkqlCmd);
+//		pkql.setProperties(props);
+//		PKQLRunner runner = insight.getPKQLRunner();
+//		pkql.setRunner(runner);
+//		List<ISEMOSSTransformation> list = new Vector<ISEMOSSTransformation>();
+//		list.add(pkql);
+//
+//		Map resultHash = null;
+//		//synchronize applyCalc calls for each insight to prevent interference during calculation
+//		synchronized(insight) {
+//			insight.processPostTransformation(list);
+//			insight.syncPkqlRunnerAndFrame(runner);
+//			resultHash = insight.getPKQLData(true);
+//		}
+//		
+//		return resultHash;
 	}
 	
 	/**
@@ -70,7 +64,7 @@ public class InsightUtility {
 	 * Static Utility Method to drop an Insight
 	 */
 	public static boolean dropInsight(Insight insight, String sessionId) {
-		String insightID = insight.getInsightID();
+		String insightID = insight.getInsightId();
 //		if(insight.isJoined()){
 //			insight.unJoin();
 //		}
@@ -96,7 +90,7 @@ public class InsightUtility {
 		}
 		
 		// also see if other variables in runner that need to be dropped
-		PKQLRunner runner = insight.getPKQLRunner();
+		PKQLRunner runner = insight.getPkqlRunner();
 		runner.cleanUp();
 		
 		// native frame just holds a QueryStruct on an engine
@@ -115,9 +109,11 @@ public class InsightUtility {
 	 * @return Insight
 	 */
 	public static Insight createInsight(String engineName) {
-		IEngine engine = Utility.getEngine(engineName);
-		Insight insight = new Insight(engine, "H2Frame", "Grid");
-		insight.setUserID("myUserId");
+		//TODO: remove the engineName as a parameter
+//		IEngine engine = Utility.getEngine(engineName);
+//		Insight insight = new Insight(engine, "H2Frame", "Grid");
+		Insight insight = new Insight();
+		insight.setUserId("myUserId");
 		insight.setRdbmsId("myRdbmsId");
 		insight.setInsightName("myInsightName");
 		String uniqueId = InsightStore.getInstance().put(insight);

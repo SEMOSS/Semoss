@@ -46,6 +46,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.ModalLensGraphMouse;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.ui.components.EdgePropertyTableModel;
@@ -99,7 +100,7 @@ public class GraphNodeListener extends ModalLensGraphMouse implements IChakraLis
     	}
 		
 //    	GraphPlaySheet ps3 = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-    	GraphPlaySheet ps3 = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+    	GraphPlaySheet ps3 = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		JTable table = (JTable)DIHelper.getInstance().getLocalProp(Constants.PROP_TABLE);
 		TableModel tm = new DefaultTableModel();

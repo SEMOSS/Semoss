@@ -16,7 +16,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.impl.AbstractEngine;
@@ -25,7 +24,6 @@ import prerna.poi.main.AbstractEngineCreator;
 import prerna.poi.main.PropFileWriter;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.sablecc.PKQLRunner;
 import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -55,14 +53,10 @@ public class InsightToFlatDatabaseCreator extends AbstractEngineCreator {
 		DIHelper.getInstance().setLocalProperty(engineName, coreEngine);
 		
 		// create the pkql to add data into the insight
-		String pkqlExp = "data.import(api:Movie_RDBMS.query([c:Title , c:Genre_Updated , c:Title__Movie_Budget],([c:Title, inner.join, c:Genre_Updated])));";
+		String pkqlExp = "data.frame('grid'); data.import(api:Movie_RDBMS.query([c:Title , c:Genre_Updated , c:Title__Movie_Budget],([c:Title, inner.join, c:Genre_Updated])));";
 		// create the insight and load the data
-		Insight in = new Insight(coreEngine, "H2Frame", "Grid");
-		
-		H2Frame dataframe = new H2Frame();
-		PKQLRunner run = new PKQLRunner();
-		run.runPKQL(pkqlExp, dataframe);
-		in.setDataMaker(dataframe);
+		Insight in = new Insight();
+		in.runPkql(pkqlExp);
 		
 		// TODO: make sure this is a new name
 		String newEngineName = "createNewEngineName";
@@ -141,12 +135,11 @@ public class InsightToFlatDatabaseCreator extends AbstractEngineCreator {
 			// export owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
 			
 			engine.setOWL(owlPath);
 //			engine.loadTransformedNodeNames();
 			((AbstractEngine) engine).setPropFile(propWriter.propFileName);
-			((AbstractEngine) engine).createInsights(baseDirectory);
 
 			// convert the .temp to .smss file
 			newSmssProp = new File(smssLocation.replace("temp", "smss"));

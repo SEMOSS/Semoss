@@ -43,6 +43,7 @@ import com.hp.hpl.jena.vocabulary.RDFS;
 
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.GraphPlaySheet;
@@ -75,7 +76,7 @@ public class OWLRefreshListener implements IChakraListener {
 		// because if I did to parent everything else would become a property too
 		// however this is not attached to anything
 		// 
-		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet ps = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		// Step 1 : Establish Concept Model
 		// converting something into a concept is fairly simple and straight forward
@@ -204,7 +205,7 @@ public class OWLRefreshListener implements IChakraListener {
 	 */
 	public void saveIt()
 	{
-		GraphPlaySheet ps = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet ps = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
 		String engineName = ps.engine.getEngineName();
 		// get the core properties

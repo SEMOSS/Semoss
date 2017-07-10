@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.ui.helpers;
 
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
@@ -36,7 +36,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
  */
 public class InsightOverlayRunner implements Runnable{
 
-	Insight insight = null;
+	OldInsight insight = null;
 	DataMakerComponent[] dmComponents;
 	
 	
@@ -44,7 +44,7 @@ public class InsightOverlayRunner implements Runnable{
 	 * Constructor for PlaysheetOverlayRunner.
 	 * @param playSheet IPlaySheet
 	 */
-	public InsightOverlayRunner(Insight insight, DataMakerComponent[] dmComponents)
+	public InsightOverlayRunner(OldInsight insight, DataMakerComponent[] dmComponents)
 	{
 		this.insight = insight;
 		this.dmComponents = dmComponents;

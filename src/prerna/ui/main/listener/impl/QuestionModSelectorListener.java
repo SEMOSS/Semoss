@@ -41,6 +41,7 @@ import javax.swing.JTextPane;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
@@ -130,15 +131,15 @@ public class QuestionModSelectorListener implements IChakraListener {
 			//if the same question is used multiple times in different perspectives, vectorInsight will contain all those insights.
 			//we need to loop through the insights and find the question that belongs to the perspective selected to get the correct order #
 			Vector<Insight> vectorInsight = ((AbstractEngine)engine).getInsight(questionId);
-			Insight in = null;
+			OldInsight in = null;
 			if(vectorInsight.size() > 1){
 				for(Insight insight: vectorInsight){
 //					if(insight.getId().contains(perspective)){
-						in = insight;
+						in = (OldInsight) insight;
 //					}
 				}
 			} else {
-				in = vectorInsight.get(0);
+				in = (OldInsight) vectorInsight.get(0);
 			}
 			
 			order = in.getOrder();

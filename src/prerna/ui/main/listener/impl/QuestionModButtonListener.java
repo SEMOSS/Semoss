@@ -30,10 +30,8 @@ package prerna.ui.main.listener.impl;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -50,7 +48,7 @@ import javax.swing.ListModel;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
-import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
@@ -92,7 +90,6 @@ public class QuestionModButtonListener implements IChakraListener {
 	String currentQuestion;
 	String currentLayout;
 	String currentSparql;
-	String currentQuestionDescription;
 	Vector<String> currentParameterDependListVector;
 	Vector<String> currentParameterQueryListVector;
 	Vector<String> currentParameterOptionListVector;
@@ -107,7 +104,7 @@ public class QuestionModButtonListener implements IChakraListener {
 
 	IEngine engine = null;
 	QuestionAdministrator questionAdmin = null;
-	Insight in = null;
+	OldInsight in = null;
 
 	String xmlFile = null;
 	String baseFolder = null;
@@ -238,12 +235,11 @@ public class QuestionModButtonListener implements IChakraListener {
 			currentQuestion = currentQuestionSplit.get(MapComboBoxRenderer.VALUE);
 			currentQuestionKey = currentQuestionSplit.get(MapComboBoxRenderer.KEY);
 
-			in = ((AbstractEngine) engine).getInsight(currentQuestionKey).get(0);
+			in = (OldInsight) ((AbstractEngine) engine).getInsight(currentQuestionKey).get(0);
 
 			currentQuestionOrder = in.getOrder();
 			currentLayout = in.getOutput();
 			currentSparql = in.getDataMakerComponents().get(0).getQuery();
-			currentQuestionDescription = in.getDescription();
 
 			populateParamVectors();
 
@@ -303,12 +299,7 @@ public class QuestionModButtonListener implements IChakraListener {
 		// if the user wants to edit/delete then get the missing data
 		// (questionKey and questionDescription) from insight
 		if (!(modificationType.equals("Add Question") && addQuestionRadioButton.isSelected())) {
-			in = ((AbstractEngine) engine).getInsight(currentQuestionKey).get(0);
-
-			if (in.getDescription() != null) {
-				questionDescription = in.getDescription();
-				System.err.println(questionDescription);
-			}
+			in = (OldInsight) ((AbstractEngine) engine).getInsight(currentQuestionKey).get(0);
 			in.getDataMakerComponents().get(0).setQuery(sparql);
 		}
 
@@ -355,7 +346,6 @@ public class QuestionModButtonListener implements IChakraListener {
 						&& ((currentLayout != null) && (currentLayout.equals(layout)))
 						&& ((currentParameterDependListVector != null) && (currentParameterDependListVector.equals(parameterDependListVector)))
 						&& ((currentParameterQueryListVector != null) && (currentParameterQueryListVector.equals(parameterQueryListVector)))
-						&& ((currentQuestionDescription !=null) && (currentQuestionDescription.equals(questionDescription)))
 						&& ((currentPerspective != null) && (currentPerspective.equals(perspective)))
 						&& ((currentSparql != null) && (currentSparql.equals(sparql)))
 						&& ((currentQuestionOrder.equals(order)))) {

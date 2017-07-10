@@ -34,6 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.ui.components.BrowserTabSheet3;
 import prerna.ui.components.playsheets.GraphPlaySheet;
 
@@ -51,7 +52,7 @@ public class ChartListener implements ActionListener {
 	@Override
 	public void actionPerformed(ActionEvent e) {
 //		GraphPlaySheet playSheet = (GraphPlaySheet) QuestionPlaySheetStore.getInstance().getActiveSheet();
-		GraphPlaySheet playSheet = (GraphPlaySheet) InsightStore.getInstance().getActiveInsight().getPlaySheet();
+		GraphPlaySheet playSheet = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 		logger.info("Engaged the chart component successfully");
 		// get to the vertexfilter data
 		
