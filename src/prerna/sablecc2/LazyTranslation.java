@@ -10,6 +10,7 @@ import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
+import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AComparisonExpr;
 import prerna.sablecc2.node.ADivBaseExpr;
@@ -423,6 +424,19 @@ public class LazyTranslation extends DepthFirstAdapter {
 	        curReactor.setProp(node.toString().trim(), word);
         } else {
         	NounMetadata noun = new NounMetadata(word, PkslDataTypes.CONST_STRING);
+    		this.planner.addVariable("$RESULT", noun);
+        }
+    }
+    
+    public void inABooleanScalar(ABooleanScalar node) {
+    	defaultIn(node);
+    	String booleanStr = node.getBoolean().toString().trim();
+    	Boolean bool = Boolean.parseBoolean(booleanStr);
+        if(curReactor != null) {
+	        curReactor.getCurRow().addBoolean(bool);
+	        curReactor.setProp(node.toString().trim(), booleanStr);
+        } else {
+        	NounMetadata noun = new NounMetadata(bool, PkslDataTypes.CONST_STRING);
     		this.planner.addVariable("$RESULT", noun);
         }
     }
