@@ -8,10 +8,11 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.ds.QueryStruct;
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.QueryStruct2;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public interface ITableDataFrame extends IDataMaker {
@@ -447,6 +448,8 @@ public interface ITableDataFrame extends IDataMaker {
 	Iterator<IHeadersDataRow> query(QueryStruct qs);
 	
 	Iterator<IHeadersDataRow> query(QueryStruct2 qs);
+	
+	IQueryInterpreter2 getInterpreter(); 
 	
 	// gets the table name
 	String getTableName();

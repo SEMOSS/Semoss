@@ -1,4 +1,4 @@
-package prerna.rdf.query.builder;
+package prerna.query.interpreters;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,11 +13,11 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.ds.QueryStruct;
-import prerna.ds.querystruct.HardQueryStruct;
-import prerna.ds.querystruct.QueryStruct2;
-import prerna.ds.querystruct.QueryStructSelector;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.rdf.query.builder.SQLInterpreter;
+import prerna.rdf.query.builder.SqlJoinList;
+import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.Filter2;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -26,10 +26,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class SQLInterpreter2 implements IQueryInterpreter{
-	
-	// core class to convert the query struct into a sql query
-	QueryStruct2 qs = null;
+public class SQLInterpreter2 extends AbstractQueryInterpreter {
 	
 	// this keeps the table aliases
 	private Hashtable <String,String> aliases = new Hashtable<String,String>();
@@ -81,12 +78,8 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		this.engine = engine;
 		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
 	}
-	
-	public void setQueryStruct(QueryStruct2 qs) {
-		this.qs = qs;
-		this.performCount = qs.getPerformCount();
-	}
-	
+
+	@Override
 	public void clear() {
 		this.selectors = "";
 		this.froms.clear();
@@ -99,6 +92,7 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 	/**
 	 * Main method to invoke to take the QueryStruct to compose the appropriate SQL query
 	 */
+	@Override
 	public String composeQuery()
 	{
 		if(this.qs instanceof HardQueryStruct) {
@@ -1103,14 +1097,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		return new String[]{conceptPhysical, propertyPhysical};
 	}
 	
-	public int isPerformCount() {
-		return performCount;
-	}
-
-	public void setPerformCount(int performCount) {
-		this.performCount = performCount;
-	}
-	
 	////////////////////////////////////////// end other utility methods ///////////////////////////////////////////
 	
 	
@@ -1145,11 +1131,6 @@ public class SQLInterpreter2 implements IQueryInterpreter{
 		System.out.println(query);
 	}
 
-	@Override
-	public void setQueryStruct(QueryStruct qs) {
-		
-	}
-	
 	///////////////////////////////////////// end test methods //////////////////////////////////////////////
 	
 

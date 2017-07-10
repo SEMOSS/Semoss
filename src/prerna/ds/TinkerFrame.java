@@ -57,9 +57,12 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.tinker.TinkerQueryInterpreter;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.om.TinkerGraphDataModel;
+import prerna.query.interpreters.GremlinInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.sablecc.PKQLEnum;
@@ -2820,5 +2823,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public void recreateMetadata(Map<String, Set<String>> newEgdeHash) {
 		throw new IllegalArgumentException("Cannot modify the edge hash in a TinkerFrame");
+	}
+
+	@Override
+	public IQueryInterpreter2 getInterpreter() {
+		return new GremlinInterpreter2();
 	}
 }

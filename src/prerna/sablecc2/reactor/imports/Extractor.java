@@ -8,13 +8,13 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.ds.TinkerMetaHelper;
-import prerna.ds.querystruct.HardQueryStruct;
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.HardQueryStruct;
+import prerna.query.interpreters.QueryStruct2;
+import prerna.query.interpreters.SQLInterpreter2;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.SQLInterpreter2;
 import prerna.sablecc.PKQLEnum;
 import prerna.util.Utility;
 

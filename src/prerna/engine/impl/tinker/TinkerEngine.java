@@ -27,7 +27,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerIterator;
-import prerna.ds.TinkerQueryInterpreter;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
