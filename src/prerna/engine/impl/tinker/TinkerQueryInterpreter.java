@@ -1,4 +1,4 @@
-package prerna.ds;
+package prerna.engine.impl.tinker;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,8 +17,10 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import prerna.ds.QueryStruct;
+import prerna.ds.TinkerFrame;
+import prerna.ds.TinkerIterator;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements IQueryInterpreter {

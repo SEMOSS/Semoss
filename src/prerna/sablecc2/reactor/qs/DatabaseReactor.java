@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.querystruct.QueryStruct2;
+import prerna.query.interpreters.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 

@@ -3,8 +3,8 @@ package prerna.sablecc2.om;
 import java.util.Iterator;
 import java.util.Set;
 
-import prerna.ds.querystruct.QueryStruct2;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.interpreters.QueryStruct2;
 
 public interface InMemStore<K, V> {
 

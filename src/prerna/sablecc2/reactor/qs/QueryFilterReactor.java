@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
 
-import prerna.ds.querystruct.QueryStruct2;
+import prerna.query.interpreters.QueryStruct2;
 import prerna.sablecc2.om.Filter2;
 import prerna.sablecc2.om.PkslDataTypes;
 
