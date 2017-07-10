@@ -318,7 +318,6 @@ public class FormulaExtractor extends AbstractFileReader {
 			}
 			commitDB();
 			createBaseRelations();
-			RDBMSEngineCreationHelper.writeDefaultQuestionSheet(engine, queryUtil);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());

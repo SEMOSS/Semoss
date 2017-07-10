@@ -29,11 +29,11 @@ package prerna.engine.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Clob;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,16 +47,18 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSParam;
 import prerna.om.SEMOSSVertex;
@@ -79,7 +81,7 @@ public abstract class AbstractEngine implements IEngine {
 	//THIS IS IN CASE YOU NEED TO RECREATE YOUR INSIGHTS FROM THE XML/PROP QUESTIONS FILE
 	//USE THIS INSTEAD OF GOING THROUGH EACH DB FOLDER TO DELETE THE INSIGHT_DATABASE AND SMSS RDMBS_INSIGHT LINE
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
-	private static final boolean RECREATE_INSIGHTS = false;
+//	private static final boolean RECREATE_INSIGHTS = false;
 
 	//THIS IS IN CASE YOU ARE MANUALLY MANIPULATING THE DB FOLDER AND WANT TO RE-ADD
 	//INSIGHTS INTO THE SOLR INSTANCE ON YOUR LOCAL MACHINE
@@ -124,10 +126,10 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
 
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
-	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 
-	private static final String PERSPECTIVE_PARAM_KEY = "@PERSPECTIVE_VALUE@";
-	private static final String GET_ALL_INSIGHTS_IN_PERSPECTIVE = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE = '" + PERSPECTIVE_PARAM_KEY + "' ORDER BY QUESTION_ORDER";
+//	private static final String PERSPECTIVE_PARAM_KEY = "@PERSPECTIVE_VALUE@";
+//	private static final String GET_ALL_INSIGHTS_IN_PERSPECTIVE = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE = '" + PERSPECTIVE_PARAM_KEY + "' ORDER BY QUESTION_ORDER";
 
 	private static final String QUESTION_ID_FK_PARAM_KEY = "@QUESTION_ID_FK_VALUES@";
 	private static final String GET_ALL_PARAMS_FOR_QUESTION_ID = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID, PARAMETER_ID FROM PARAMETER_ID WHERE QUESTION_ID_FK = " + QUESTION_ID_FK_PARAM_KEY;
@@ -160,12 +162,12 @@ public abstract class AbstractEngine implements IEngine {
 			if(prop != null) {
 				// load the rdbms insights db
 				insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
-				// creating logic to delete file if not there
-				if(insightDatabaseLoc != null && RECREATE_INSIGHTS) {
-					String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + insightDatabaseLoc + ".mv.db";
-					FileUtils.forceDelete(new File(location));
-				} 
-				if(insightDatabaseLoc != null && !RECREATE_INSIGHTS) {
+//				// creating logic to delete file if not there
+//				if(insightDatabaseLoc != null && RECREATE_INSIGHTS) {
+//					String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + insightDatabaseLoc + ".mv.db";
+//					FileUtils.forceDelete(new File(location));
+//				} 
+				if(insightDatabaseLoc != null) {
 					logger.info("Loading insight rdbms database...");
 					insightRDBMS = new RDBMSNativeEngine();
 					Properties prop = new Properties();
@@ -177,14 +179,36 @@ public abstract class AbstractEngine implements IEngine {
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
 				} 
-				else { // RDBMS Question engine has not been made. Must do conversion
-					// set the necessary fun stuff
-					createInsights(baseFolder);
-				}
+//				else { // RDBMS Question engine has not been made. Must do conversion
+//					// set the necessary fun stuff
+//					createInsights(baseFolder);
+//				}
+				
 				// this is for some legacy insights
 				// hope this doesn't stay here forever...
-				Utility.updateOldInsights(this);
-
+				// TODO: can i accurately remove this now???
+				// TODO: can i accurately remove this now???
+				// TODO: can i accurately remove this now???
+				// TODO: can i accurately remove this now???
+				// TODO: can i accurately remove this now???
+				// TODO: need to figure out how I can set the default insights
+				// 		for a given database!
+				//		need to update this ...
+//				Utility.updateOldInsights(this);
+				
+				// TODO: this is new code to convert
+				// TODO: this is new code to convert
+				// TODO: this is new code to convert
+				// TODO: this is new code to convert
+				String updatedInsights = prop.getProperty(Constants.PKQL_UPDATE);
+				if(updatedInsights == null) {
+					updateToPKQLInsights();
+					Utility.updateSMSSFile(propFile, Constants.PKQL_UPDATE, "true");
+				} else if(!Boolean.parseBoolean(updatedInsights)){
+					updateToPKQLInsights();
+					Utility.changePropMapFileValue(propFile, Constants.PKQL_UPDATE, "true");
+				}
+				
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
 				if (owlFile != null) {
@@ -201,54 +225,57 @@ public abstract class AbstractEngine implements IEngine {
 				if (genEngPropFile != null) {
 					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
 				}
-				
-				// since this is new, we need to add it to the smss file if missing
-				String fillDataTypes = prop.getProperty(Constants.FILL_EMPTY_DATATYPES);
-				if(fillDataTypes == null) {
-					Utility.updateSMSSFile(propFile, Constants.FILL_EMPTY_DATATYPES, "true");
-				}
-				
 			}
 			this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
 //			this.owlHelper.loadTransformedNodeNames();
 			//this.loadTransformedNodeNames();
 		} catch (RuntimeException e) {
 			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		} 
+//		catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
-	public void createInsights(String baseFolder) throws FileNotFoundException, IOException {
-		InsightsConverter converter = new InsightsConverter();
-		this.insightRDBMS = converter.generateNewInsightsRDBMS(this.engineName);
-		converter.setEngine(this);
-		converter.setEngineName(prop.getProperty(Constants.ENGINE));
-		converter.setSMSSLocation(propFile);
-		
-		// Use the xml if the prop file has that defined
-		if (prop.containsKey(Constants.INSIGHTS)){
-			logger.info("LOADING XML QUESTIONS FOR DB ::: " + this.getEngineName());
-			String xmlFilePath = prop.getProperty(Constants.INSIGHTS);
-			converter.loadQuestionsFromXML(baseFolder + "\\" + xmlFilePath); // this does questions and parameters now
-		}
-		// else we will use the prop file
-		else if (prop.containsKey(Constants.DREAMER)){
-			String dreamerLoc = baseFolder + "/" + prop.getProperty(Constants.DREAMER);
-			logger.info("LOADING PROP FILE QUESTIONS FOR DB ::: " + this.getEngineName());
-			logger.info("question prop file loc is " + dreamerLoc);
-			Properties dreamerProps = loadProp(dreamerLoc);
-			converter.loadQuestionsFromPropFile(dreamerProps);
-		}
-		else {
-			logger.fatal("NO QUESTION SHEET DEFINED ON SMSS");
-			logger.fatal("cannot start " + this.getEngineName() + " without question file");
-		}
-		//update smss location
-		if(!RECREATE_INSIGHTS) {
-			converter.updateSMSSFile();
+//	public void createInsights(String baseFolder) throws FileNotFoundException, IOException {
+//		InsightsConverter converter = new InsightsConverter();
+//		this.insightRDBMS = converter.generateNewInsightsRDBMS(this.engineName);
+//		converter.setEngine(this);
+//		converter.setEngineName(prop.getProperty(Constants.ENGINE));
+//		converter.setSMSSLocation(propFile);
+//		
+//		// Use the xml if the prop file has that defined
+//		if (prop.containsKey(Constants.INSIGHTS)){
+//			logger.info("LOADING XML QUESTIONS FOR DB ::: " + this.getEngineName());
+//			String xmlFilePath = prop.getProperty(Constants.INSIGHTS);
+//			converter.loadQuestionsFromXML(baseFolder + "\\" + xmlFilePath); // this does questions and parameters now
+//		}
+//		// else we will use the prop file
+//		else if (prop.containsKey(Constants.DREAMER)){
+//			String dreamerLoc = baseFolder + "/" + prop.getProperty(Constants.DREAMER);
+//			logger.info("LOADING PROP FILE QUESTIONS FOR DB ::: " + this.getEngineName());
+//			logger.info("question prop file loc is " + dreamerLoc);
+//			Properties dreamerProps = loadProp(dreamerLoc);
+//			converter.loadQuestionsFromPropFile(dreamerProps);
+//		}
+//		else {
+//			logger.fatal("NO QUESTION SHEET DEFINED ON SMSS");
+//			logger.fatal("cannot start " + this.getEngineName() + " without question file");
+//		}
+//		//update smss location
+//		if(!RECREATE_INSIGHTS) {
+//			converter.updateSMSSFile();
+//		}
+//	}
+	
+	private void updateToPKQLInsights() {
+		InsightsConverter2 converter = new InsightsConverter2(this);
+		try {
+			converter.modifyInsightsDatabase();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
 		}
 	}
 	
@@ -819,7 +846,12 @@ public abstract class AbstractEngine implements IEngine {
 
 	@Override
 	public Vector<String> getInsights(String perspective) {
-		String insightsInPerspective = GET_ALL_INSIGHTS_IN_PERSPECTIVE.replace(PERSPECTIVE_PARAM_KEY, perspective);
+		String insightsInPerspective = null;
+		if(perspective != null && !perspective.isEmpty()) {
+			insightsInPerspective = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE = '" + perspective + "' ORDER BY QUESTION_ORDER";
+		} else {
+			insightsInPerspective = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE IS NULL ORDER BY QUESTION_ORDER";
+		}
 		return Utility.getVectorOfReturn(insightsInPerspective, insightRDBMS, false);
 	}
 
@@ -905,40 +937,55 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	
-	@Override
 	public Vector<SEMOSSParam> getParams(String questionID) {
 		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, questionID);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-		String[] names = wrap.getVariables();
+		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, query);
 
 		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
 		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String label = ss.getVar(names[0]) + "";
+			// get a bunch of options
+			IHeadersDataRow ss = wrap.next();
+			Object[] dataRow = ss.getValues();
+			String label = dataRow[0] + "";
 			SEMOSSParam param = new SEMOSSParam();
 			param.setName(label);
-			if(!ss.getVar(names[1]).toString().isEmpty())
-				param.setType(ss.getVar(names[1]) +"");
-			if(!ss.getVar(names[2]).toString().isEmpty())
-				param.setOptions(ss.getVar(names[2]) + "");
-			if(!ss.getVar(names[3]).toString().isEmpty())
-				param.setQuery(ss.getVar(names[3]) + "");
-			if(!ss.getVar(names[4]).toString().isEmpty()) {
-				String[] vars = (ss.getVar(names[4]) +"").split(";");
+			Object type = dataRow[1];
+			if(type != null && !type.toString().isEmpty()) {
+				param.setType(type.toString());
+			}
+			Object options = dataRow[2];
+			if(options != null && !options.toString().isEmpty()) {
+				param.setOptions(options.toString());
+			}
+			Object paramQuery = dataRow[3];
+			if(paramQuery != null && !paramQuery.toString().isEmpty()) {
+				param.setQuery(paramQuery.toString());
+			}
+			Object paramDependency = dataRow[4];
+			if(paramDependency != null && !paramDependency.toString().isEmpty()) {
+				String[] vars = paramDependency.toString().split(";");
 				for(String var : vars){
 					param.addDependVar(var);
 				}
+				param.setQuery(paramQuery.toString());
 			}
-			if(!ss.getVar(names[5]).toString().isEmpty()) {
-				param.setDbQuery((boolean) ss.getVar(names[5]));
+			Object isDbQuery = dataRow[5];
+			if(isDbQuery != null) {
+				param.setDbQuery((boolean) isDbQuery);
 			}
-			if(!ss.getVar(names[6]).toString().isEmpty()) {
-				param.setMultiSelect((boolean) ss.getVar(names[6]));
+			Object isMultiSelect = dataRow[6];
+			if(isDbQuery != null) {
+				param.setMultiSelect((boolean) isMultiSelect);
 			}
-			if(!ss.getVar(names[7]).toString().isEmpty())
-				param.setComponentFilterId(ss.getVar(names[7]) + "");
-			if(!ss.getRawVar(names[8]).toString().isEmpty())
-				param.setParamID(ss.getVar(names[8]) +"");
+			Object componentFilter = dataRow[3];
+			if(componentFilter != null && !componentFilter.toString().isEmpty()) {
+				param.setComponentFilterId(componentFilter.toString());
+			}
+			Object paramId = dataRow[3];
+			if(paramId != null && !paramId.toString().isEmpty()) {
+				param.setParamID(paramId.toString());
+			}
+			// add to the set
 			retParam.addElement(param);
 		}
 
@@ -1056,42 +1103,56 @@ public abstract class AbstractEngine implements IEngine {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
 			logger.info("Running insights query " + query);
 			
-			ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-			wrap.execute();
-			String[] names = wrap.getVariables();
+			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, query);
 			while (wrap.hasNext()) {
-				ISelectStatement ss = wrap.next();
-				String insightID = ss.getVar(names[0]) + "";
-				String insightName = ss.getVar(names[1]) + "";
+				IHeadersDataRow dataRow = wrap.next();
+				Object[] values = dataRow.getValues();
+//				Object[] rawValues = dataRow.getRawValues();
+
+				String rdbmsId = values[0] + "";
+				String insightName = values[1] + "";
 				
-				JdbcClob obj = (JdbcClob) ss.getRawVar(names[2]);
-				
+				Clob obj = (Clob) values[2];
 				InputStream insightDefinition = null;
-				try {
-					insightDefinition = obj.getAsciiStream();
-				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				if(obj != null) {
+					try {
+						insightDefinition = obj.getAsciiStream();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
-				String perspective = ss.getVar(names[3]) + "";
-				String layout = ss.getVar(names[4]) + "";
-				String order = ss.getVar(names[5]) + "";
-				String dataTableAlign = ss.getVar(names[6]) + "";
-				String dataMakerName = ss.getVar(names[7]) + "";
-	
-				Insight in = new Insight(this, dataMakerName, layout);
-				in.setInsightID(insightID);
-				in.setRdbmsId(insightID);
-				in.setInsightName(insightName);
-				in.setMakeup(insightDefinition);
-				in.setPerspective(perspective);
-				in.setOrder(order);
-				in.setDataTableAlign(dataTableAlign);
-				// adding semoss parameters to insight
-				in.setInsightParameters(getParams(insightID));
+				String layout = values[4] + "";
+				String dataTableAlign = values[6] + "";
+				String dataMakerName = values[7] + "";
+				Object[] pksl = (Object[]) values[8];
 				
+				String perspective = values[3] + "";
+				String order = values[5] + "";
+				
+				Insight in = null;
+				if(pksl == null || pksl.length == 0) {
+					in = new OldInsight(this, dataMakerName, layout);
+					in.setRdbmsId(rdbmsId);
+					in.setInsightName(insightName);
+					((OldInsight) in).setMakeup(insightDefinition);
+//					in.setPerspective(perspective);
+//					in.setOrder(order);
+					((OldInsight) in).setDataTableAlign(dataTableAlign);
+					// adding semoss parameters to insight
+					((OldInsight) in).setInsightParameters(getParams(rdbmsId));
+					in.setIsOldInsight(true);
+				} else {
+					in = new Insight(this.engineName, rdbmsId);
+					in.setInsightName(insightName);
+					List<String> pkslList = new Vector<String>();
+					for(int i = 0; i < pksl.length; i++) {
+						pkslList.add(pksl[i].toString().trim());
+					}
+					in.setPkslRecipe(pkslList);
+					// I need this for dashboard
+					in.setOutput(layout);
+				}
 				insightV.insertElementAt(in, counts.remove(0));
-				logger.debug(in.toString());
 			}
 		}
 		return insightV;

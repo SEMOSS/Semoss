@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.meta.DataframeMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Utility;
 
 public class DataFrameReactor extends AbstractReactor {
@@ -30,6 +30,7 @@ public class DataFrameReactor extends AbstractReactor {
 		dfTranslation.put("NATIVE", "NativeFrame");
 		dfTranslation.put("RFRAME", "RDataTable");
 		dfTranslation.put("MSSQLSERVER", "SqlServerFrame");
+		dfTranslation.put("DASHBOARD", "Dashboard");
 	}
 
 	@Override
@@ -46,12 +47,13 @@ public class DataFrameReactor extends AbstractReactor {
 			}
 
 			System.out.println("DataFrameReactor translates this name to  : " + translatedDf);
-			ITableDataFrame oldFrame = (ITableDataFrame) myStore.get("G");
+			IDataMaker oldFrame = (IDataMaker) myStore.get("G");
 			
-			ITableDataFrame newFrame = (ITableDataFrame) Utility.getDataMaker(null, translatedDf);
+			IDataMaker newFrame = (IDataMaker) Utility.getDataMaker(null, translatedDf);
 			// set the old id into the new frame
-			newFrame.setUserId(oldFrame.getUserId());
-			
+			if(oldFrame != null) {
+				newFrame.setUserId(oldFrame.getUserId());
+			}
 			myStore.put(PKQLEnum.G, newFrame);
 		}
 		

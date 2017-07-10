@@ -44,6 +44,7 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.om.Insight;
+import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -171,7 +172,7 @@ public class QuestionAdministrator {
 						int currInOrder = Integer.parseInt(in.getOrder());
 						if(addedInsightOrder <= currInOrder) {
 							int newOrder = currInOrder++;
-							setInsightOrder(newOrder, in.getInsightID());
+							setInsightOrder(newOrder, in.getInsightId());
 						}
 					}
 				}
@@ -199,13 +200,13 @@ public class QuestionAdministrator {
 		
 		Insight currInsightInfo = engine.getInsight(insightID).get(0);
 		String currInsightName = currInsightInfo.getInsightName();
-		String currPerspective = currInsightInfo.getPerspective();
+//		String currPerspective = currInsightInfo.getPerspective();
 //		List<DataMakerComponent> currComps = currInsightInfo.getDataMakerComponents();
-		String currLayout = currInsightInfo.getOutput();
+//		String currLayout = currInsightInfo.getOutput();
 		String currOrder = currInsightInfo.getOrder();
-		boolean currIsDbQuery = currInsightInfo.isDbQuery();
-		Map<String, String> currDataTableAlign = currInsightInfo.getDataTableAlign();
-		String currDataTableAlignStr = gson.toJson(currDataTableAlign);
+//		boolean currIsDbQuery = currInsightInfo.isDbQuery();
+//		Map<String, String> currDataTableAlign = currInsightInfo.getDataTableAlign();
+//		String currDataTableAlignStr = gson.toJson(currDataTableAlign);
 		
 		boolean orderChange = false;
 		boolean perspectiveChange = false;
@@ -214,27 +215,27 @@ public class QuestionAdministrator {
 		if(insightName != null && !insightName.equals(currInsightName)) {
 			query += "QUESTION_NAME='"+ insightName + "', ";
 		}
-		if(perspective != null && !perspective.equals(currPerspective)) {
-			query += "QUESTION_PERSPECTIVE='" + perspective + "', ";
-			perspectiveChange = true;
-		}
+//		if(perspective != null && !perspective.equals(currPerspective)) {
+//			query += "QUESTION_PERSPECTIVE='" + perspective + "', ";
+//			perspectiveChange = true;
+//		}
 //		if(!comps.equals(currComps) || parameters.equals(currParams)) {
 			query += "QUESTION_MAKEUP='" + this.generateXMLInsightMakeup(comps, parameters) + "', ";
 //		}
-		if(layout != null && !layout.equals(currLayout)) {
-			query += "QUESTION_LAYOUT='" + layout + "', ";
-		}
+//		if(layout != null && !layout.equals(currLayout)) {
+//			query += "QUESTION_LAYOUT='" + layout + "', ";
+//		}
 //		if(multiInsightQuery != currMultiInsightQuery) {
 //			query += "MULTIPLE_QUERIES='" + multiInsightQuery + "', ";
 //			insightEngine.insertData(query);
 //		}
-		if(isDbQuery != currIsDbQuery) {
-			query += "QUESTION_IS_DB_QUERY='" + isDbQuery + "', ";
-		}
+//		if(isDbQuery != currIsDbQuery) {
+//			query += "QUESTION_IS_DB_QUERY='" + isDbQuery + "', ";
+//		}
 		String dataTableAlignStr = gson.toJson(dataTableAlign);
-		if(!dataTableAlignStr.equals(currDataTableAlignStr)) {
-			query += "DATA_TABLE_ALIGN='" + dataTableAlignStr + "', ";
-		}
+//		if(!dataTableAlignStr.equals(currDataTableAlignStr)) {
+//			query += "DATA_TABLE_ALIGN='" + dataTableAlignStr + "', ";
+//		}
 		if(order != null && !order.equals(currOrder)) {
 			orderChange = true;
 			query += "QUESTION_ORDER=" + order + ", ";
@@ -247,9 +248,9 @@ public class QuestionAdministrator {
 			cleanPerspectiveOrdering(perspective, null);
 		}
 		// modify order for previous perspective
-		if(perspectiveChange) {
-			cleanPerspectiveOrdering(currPerspective, null);
-		}
+//		if(perspectiveChange) {
+//			cleanPerspectiveOrdering(currPerspective, null);
+//		}
 		
 		//finally update the actual question
 		insightEngine.insertData(query);
@@ -499,7 +500,7 @@ public class QuestionAdministrator {
 				LOGGER.info("Component " + i + " .... building pre-transformation " + preIdx + " JUST FOR PARAM");
 				SEMOSSParam param = involvedParams.remove(0);
 				ISEMOSSTransformation newPreTrans = buildEmptyFilterTrans(param.getName());
-				param.setComponentFilterId(Insight.COMP + i + ":" + Insight.PRE_TRANS + preIdx);
+				param.setComponentFilterId(OldInsight.COMP + i + ":" + OldInsight.PRE_TRANS + preIdx);
 				buildPreTransString(newPreTrans, preIdx, i, numPreTransformations, builder, null, gson);
 				preIdx++;
 			}
@@ -602,7 +603,7 @@ public class QuestionAdministrator {
 					paramMap = new HashMap<String, Object> (paramMap);
 					paramMap.remove(FilterTransformation.VALUES_KEY);
 					involvedParamsPre.remove(p);
-					p.setComponentFilterId(Insight.COMP + i + ":" + Insight.PRE_TRANS + j);
+					p.setComponentFilterId(OldInsight.COMP + i + ":" + OldInsight.PRE_TRANS + j);
 					break;
 				}
 			}

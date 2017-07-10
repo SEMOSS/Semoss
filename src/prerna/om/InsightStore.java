@@ -48,7 +48,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 	 * @return						The unique id for the insight
 	 */
 	public String put(Insight data) {
-		String uniqueID = data.getInsightID();
+		String uniqueID = data.getInsightId();
 		if(uniqueID == null || uniqueID.isEmpty()) {
 			uniqueID = (++idCount) + "_" + Utility.getRandomString(16);
 		} else {
@@ -56,7 +56,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 		}
 		super.put(uniqueID, data);
 		// update the new id inside the insight
-		data.setInsightID(uniqueID);
+		data.setInsightId(uniqueID);
 		
 		// keep track of messages for the insight
 		InsightMessageStore.getInstance().put(uniqueID);
@@ -71,7 +71,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 	 */
 	public boolean remove(String key) {
 		Insight data = super.remove(key);
-		if(activeInsight != null && activeInsight.getInsightID().equalsIgnoreCase(key)) {
+		if(activeInsight != null && activeInsight.getInsightId().equalsIgnoreCase(key)) {
 			activeInsight = null;
 		}
 		
