@@ -8,7 +8,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.sablecc2.PKSLRunner;
+import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -45,6 +47,9 @@ public class PkslConsole {
 					long start = System.currentTimeMillis();
 					NounMetadata returnData = run(runner, pksl);
 					System.out.println(">>> " + returnData.getValue());
+					if(returnData.getNounName() == PkslDataTypes.JOB) {
+						System.out.println("\t>>> " + ((Job)returnData.getValue()).getId());
+					}
 					long time2 = System.currentTimeMillis();
 					System.out.println("Execution time : " + (time2 - start )+ " ms");
 				} else {
@@ -70,23 +75,23 @@ public class PkslConsole {
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("MinInput");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
-		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinProposal.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("MinProposal");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("MinProposal", coreEngine);
-		
-//
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 //		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("Movie_RDBMS");
+//		coreEngine.setEngineName("MinInput");
 //		coreEngine.openDB(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+//		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinImpact.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName("MinImpact");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
+		
+
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 	}
 }
