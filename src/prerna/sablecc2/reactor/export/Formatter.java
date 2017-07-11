@@ -10,10 +10,6 @@ public interface Formatter {
 	
 	public Object getFormattedData();
 	
-	void setIdentifier(String name);
-	
-	String getIdentifier();
-	
 	void clear();
 	
 	void setOptionsMap(Map<String, Object> options);
