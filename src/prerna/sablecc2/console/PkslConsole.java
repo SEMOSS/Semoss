@@ -45,7 +45,8 @@ public class PkslConsole {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 				System.out.println("Enter new pksl command ");
 				String pksl = reader.readLine();   
-				if(pksl != null && !pksl.isEmpty()) {
+				pksl = pksl.trim();
+				if(!pksl.isEmpty()) {
 					if(!pksl.endsWith(";")) {
 						pksl = pksl + ";";
 					}
