@@ -318,15 +318,15 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		Hashtable<String, Hashtable<String, Vector>> relationsData = qs.relations;
+		Map<String, Map<String, List>> relationsData = qs.relations;
 		// loop through all the relationships
 		// realize we can be joining on properties within a table
 		for(String startConceptProperty : relationsData.keySet() ) {
 			// the key for this object is the specific type of join to be used
 			// between this instance and all the other ones
-			Hashtable<String, Vector> joinMap = relationsData.get(startConceptProperty);
+			Map<String, List> joinMap = relationsData.get(startConceptProperty);
 			for(String comparator : joinMap.keySet()) {
-				Vector<String> joinColumns = joinMap.get(comparator);
+				List<String> joinColumns = joinMap.get(comparator);
 				for(String endConceptProperty : joinColumns) {
 					// go through and perform the actual join
 					addJoin(startConceptProperty, comparator, endConceptProperty);
