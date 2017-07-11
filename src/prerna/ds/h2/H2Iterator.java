@@ -93,7 +93,7 @@ public class H2Iterator implements Iterator<Object[]>{
 			int columnCount = rsmd.getColumnCount();
 			this.headers = new String[columnCount];
 			for (int i = 1; i <= columnCount; i++ ) {
-				headers[i-1] = rsmd.getColumnName(i);
+				headers[i-1] = rsmd.getColumnLabel(i);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
