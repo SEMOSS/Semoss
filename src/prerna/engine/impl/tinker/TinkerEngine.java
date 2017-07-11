@@ -1,13 +1,10 @@
 package prerna.engine.impl.tinker;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
@@ -26,7 +23,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -273,13 +269,5 @@ public class TinkerEngine extends AbstractEngine {
 
 	public Graph getGraph() {
 		return g;
-	}
-
-	public QueryStruct getQueryStruct() {
-		return queryStruct;
-	}
-
-	public void setQueryStruct(QueryStruct queryStruct) {
-		this.queryStruct = queryStruct;
 	}
 }
