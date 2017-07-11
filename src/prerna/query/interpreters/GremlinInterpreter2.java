@@ -105,15 +105,15 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	private void processFilters() {
 		List<Filter2> filters = qs.filters.getFilters();
 		for(Filter2 filter : filters) {
-			GenRowFilters.FILTER_TYPE filterType = GenRowFilters.determineFilterType(filter);
+			Filter2.FILTER_TYPE filterType = Filter2.determineFilterType(filter);
 			NounMetadata lComp = filter.getLComparison();
 			NounMetadata rComp = filter.getRComparison();
 			String comp = filter.getComparator();
 			
-			if(filterType == GenRowFilters.FILTER_TYPE.COL_TO_VALUES) {
+			if(filterType == Filter2.FILTER_TYPE.COL_TO_VALUES) {
 				// here, lcomp is the column and rComp is a set of values
 				processFilterColToValues(lComp, rComp, comp);
-			} else if(filterType == GenRowFilters.FILTER_TYPE.VALUES_TO_COL) {
+			} else if(filterType == Filter2.FILTER_TYPE.VALUES_TO_COL) {
 				// here, lcomp is the values and rComp is a the column
 				// so same as above, but switch the order
 				processFilterColToValues(rComp, lComp, comp);

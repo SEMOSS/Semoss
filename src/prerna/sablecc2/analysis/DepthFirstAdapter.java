@@ -1639,9 +1639,17 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getLcol().apply(this);
         }
+        if(node.getComma1() != null)
+        {
+            node.getComma1().apply(this);
+        }
         if(node.getRelType() != null)
         {
             node.getRelType().apply(this);
+        }
+        if(node.getComma2() != null)
+        {
+            node.getComma2().apply(this);
         }
         if(node.getRcol() != null)
         {

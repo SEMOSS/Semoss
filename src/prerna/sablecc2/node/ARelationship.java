@@ -9,7 +9,9 @@ public final class ARelationship extends PRelationship
 {
     private TLPar _lPar_;
     private PColDef _lcol_;
+    private TComma _comma1_;
     private TRelType _relType_;
+    private TComma _comma2_;
     private PColDef _rcol_;
     private TRPar _rPar_;
 
@@ -21,7 +23,9 @@ public final class ARelationship extends PRelationship
     public ARelationship(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _lcol_,
+        @SuppressWarnings("hiding") TComma _comma1_,
         @SuppressWarnings("hiding") TRelType _relType_,
+        @SuppressWarnings("hiding") TComma _comma2_,
         @SuppressWarnings("hiding") PColDef _rcol_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
@@ -30,7 +34,11 @@ public final class ARelationship extends PRelationship
 
         setLcol(_lcol_);
 
+        setComma1(_comma1_);
+
         setRelType(_relType_);
+
+        setComma2(_comma2_);
 
         setRcol(_rcol_);
 
@@ -44,7 +52,9 @@ public final class ARelationship extends PRelationship
         return new ARelationship(
             cloneNode(this._lPar_),
             cloneNode(this._lcol_),
+            cloneNode(this._comma1_),
             cloneNode(this._relType_),
+            cloneNode(this._comma2_),
             cloneNode(this._rcol_),
             cloneNode(this._rPar_));
     }
@@ -105,6 +115,31 @@ public final class ARelationship extends PRelationship
         this._lcol_ = node;
     }
 
+    public TComma getComma1()
+    {
+        return this._comma1_;
+    }
+
+    public void setComma1(TComma node)
+    {
+        if(this._comma1_ != null)
+        {
+            this._comma1_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma1_ = node;
+    }
+
     public TRelType getRelType()
     {
         return this._relType_;
@@ -128,6 +163,31 @@ public final class ARelationship extends PRelationship
         }
 
         this._relType_ = node;
+    }
+
+    public TComma getComma2()
+    {
+        return this._comma2_;
+    }
+
+    public void setComma2(TComma node)
+    {
+        if(this._comma2_ != null)
+        {
+            this._comma2_.parent(null);
+        }
+
+        if(node != null)
+        {
+            if(node.parent() != null)
+            {
+                node.parent().removeChild(node);
+            }
+
+            node.parent(this);
+        }
+
+        this._comma2_ = node;
     }
 
     public PColDef getRcol()
@@ -186,7 +246,9 @@ public final class ARelationship extends PRelationship
         return ""
             + toString(this._lPar_)
             + toString(this._lcol_)
+            + toString(this._comma1_)
             + toString(this._relType_)
+            + toString(this._comma2_)
             + toString(this._rcol_)
             + toString(this._rPar_);
     }
@@ -207,9 +269,21 @@ public final class ARelationship extends PRelationship
             return;
         }
 
+        if(this._comma1_ == child)
+        {
+            this._comma1_ = null;
+            return;
+        }
+
         if(this._relType_ == child)
         {
             this._relType_ = null;
+            return;
+        }
+
+        if(this._comma2_ == child)
+        {
+            this._comma2_ = null;
             return;
         }
 
@@ -244,9 +318,21 @@ public final class ARelationship extends PRelationship
             return;
         }
 
+        if(this._comma1_ == oldChild)
+        {
+            setComma1((TComma) newChild);
+            return;
+        }
+
         if(this._relType_ == oldChild)
         {
             setRelType((TRelType) newChild);
+            return;
+        }
+
+        if(this._comma2_ == oldChild)
+        {
+            setComma2((TComma) newChild);
             return;
         }
 

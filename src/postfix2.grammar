@@ -195,7 +195,7 @@ Productions
  asop = as_op l_par gen_row r_par;
  
  // relationship is used for joins within a database and table joining when adding new data to existing frame
- relationship = l_par [lcol]:col_def rel_type [rcol]:col_def r_par; 
+ relationship = l_par [lcol]:col_def [comma1]:comma? rel_type [comma2]:comma? [rcol]:col_def r_par; 
  
  ///////////////////////////////////////////////////////////////////////
  ////////////////////////// END COMPOSITES  ////////////////////////////
