@@ -11,7 +11,6 @@ import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 /**
- * 
  * This is the base class for any reactor responsible for building a querystruct
  * 
  * The design of this class is as such:
@@ -22,12 +21,12 @@ import prerna.sablecc2.reactor.AbstractReactor;
  * 			JoinReactor overrides createQueryStruct() builds on top of the existing query struct with only joins
  * 
  * 			QueryStructReactor is responsible for grabbing any input querystructs and passing the output
- *
  */
 public abstract class QueryStructReactor extends AbstractReactor {
 
-	QueryStruct2 qs;
-
+	protected QueryStruct2 qs;
+	protected String[] selectorAlias;
+	
 	// method to override in the specific qs classes
 	abstract QueryStruct2 createQueryStruct();
 
@@ -41,25 +40,14 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		//build the query struct
 		QueryStruct2 qs = createQueryStruct();
+		setAlias(selectorAlias);
 		//create the output and return
 		NounMetadata noun = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
 		return noun;
 	}
 	
-	//method to merge an outside query struct with this query struct
-	public void mergeQueryStruct(QueryStruct2 queryStruct) {
-		if(qs == null) {
-			qs = queryStruct;
-		} else {
-			qs.merge(queryStruct);
-		}
-	}
-	
-	public void setAs(String [] asName) {
-		List<QueryStructSelector> selectors = qs.getSelectors();
-		for(int i = 0; i < asName.length; i++) {
-			selectors.get(i).setAlias(asName[i]);
-		}
+	public void setAs(String[] asName) {
+		this.selectorAlias = asName;
 	}
 	
 	//initialize the reactor with its necessary inputs
@@ -71,7 +59,8 @@ public abstract class QueryStructReactor extends AbstractReactor {
 			int numInputs = qsInputParams.size();
 			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
 				NounMetadata qsNoun = (NounMetadata)qsInputParams.getNoun(inputIdx);
-				mergeQueryStruct((QueryStruct2)qsNoun.getValue());
+				QueryStruct2 qs = (QueryStruct2) qsNoun.getValue();
+				mergeQueryStruct(qs);
 			}
 		}
 		
@@ -82,8 +71,36 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		// selector ( studio , sum(mb) ) 
 		// the selector reactor will handle putting the studio and the sum(mb)
 		
-		if(qs == null) {
-			qs = new QueryStruct2();
+		if(this.qs == null) {
+			this.qs = new QueryStruct2();
+		}
+	}
+	
+	//method to merge an outside query struct with this query struct
+	protected void mergeQueryStruct(QueryStruct2 queryStruct) {
+		if(this.qs == null) {
+			this.qs = queryStruct;
+		} else {
+			this.qs.merge(queryStruct);
+		}
+	}
+	
+	private void setAlias(String[] selectorAlias2) {
+		/*
+		 * Since multiple select reactors can each have an alias
+		 * we need to go back and add alias to the last selectors that were added
+		 * based on the index of the alias we are adding
+		 */
+		if(selectorAlias != null) {
+			List<QueryStructSelector> selectors = this.qs.selectors;
+			int numSelectors = selectors.size();
+			int numAlias = selectorAlias.length;
+			int startingPoint = numSelectors-numAlias;
+			int counter = 0;
+			for(int i = startingPoint; i < numSelectors; i++) {
+				selectors.get(i).setAlias(selectorAlias[counter]);
+				counter++;
+			}
 		}
 	}
 	
@@ -96,7 +113,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		// and since out is called prior to update the planner
 		// the qs cannot be null
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
+		NounMetadata output = new NounMetadata(this.qs, PkslDataTypes.QUERY_STRUCT);
 		outputs.add(output);
 		return outputs;
 	}
