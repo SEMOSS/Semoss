@@ -3,35 +3,40 @@ package prerna.sablecc2.console;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.sablecc2.PKSLRunner;
-import prerna.sablecc2.om.Job;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class PkslConsole {
 
+	private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
 	public static void main(String[] args){
 		TestUtilityMethods.loadDIHelper();
 		loadEngines();
 
-		PKSLRunner runner = new PKSLRunner();
+		Insight insight = new Insight();
+		InsightStore.getInstance().put(insight);
 		Thread thread = new Thread(){
 			public void run()
 			{
-				openCommandLine(runner);				
+				openCommandLine(insight);				
 			}
 		};
 		thread.start();
 	}
 
-	public static void openCommandLine(PKSLRunner runner)
+	public static void openCommandLine(Insight insight)
 	{
 		String end = "";
 		while(!end.equalsIgnoreCase("end"))
@@ -45,11 +50,8 @@ public class PkslConsole {
 						pksl = pksl + ";";
 					}
 					long start = System.currentTimeMillis();
-					NounMetadata returnData = run(runner, pksl);
-					System.out.println(">>> " + returnData.getValue());
-					if(returnData.getNounName() == PkslDataTypes.JOB) {
-						System.out.println("\t>>> " + ((Job)returnData.getValue()).getId());
-					}
+					Map<String, Object> returnData = run(insight, pksl);
+					System.out.println(gson.toJson(returnData));
 					long time2 = System.currentTimeMillis();
 					System.out.println("Execution time : " + (time2 - start )+ " ms");
 				} else {
@@ -63,9 +65,8 @@ public class PkslConsole {
 		}
 	}
 
-	public static NounMetadata run(PKSLRunner runner, String pksl) {
-		runner.runPKSL(pksl);
-		return runner.getLastResult();
+	public static Map<String, Object> run(Insight insight, String pksl) {
+		return insight.runPksl(pksl);
 	}
 
 	public static void loadEngines() {
