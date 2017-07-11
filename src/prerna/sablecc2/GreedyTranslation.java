@@ -187,24 +187,20 @@ public class GreedyTranslation extends LazyTranslation {
     	}
     }
 	
-	protected void postProcess() {
+	protected void postProcess(String pkslExpression) {
 		// get the noun meta result
 		// set that in the runner for later retrieval
 		// if it is a frame
 		// set it as the frame for the runner
 		NounMetadata noun = planner.getVariableValue("$RESULT");
 		if(noun != null) {
-			this.runner.setResult(noun);
-			Object frameNoun = noun.getValue();
-			if(frameNoun instanceof IDataMaker){
-				IDataMaker frame = (IDataMaker) frameNoun;
-				this.runner.setDataFrame(frame);
-			}
+			this.runner.addResult(pkslExpression, noun);
 			// if there was a previous result
 			// remove it
 			this.planner.removeVariable("$RESULT");
-		} else {
-			this.runner.setResult(null);
+		} 
+		else {
+			this.runner.addResult(pkslExpression, new NounMetadata("no output", PkslDataTypes.CONST_STRING));
 		}
 		curReactor = null;
 		prevReactor = null;

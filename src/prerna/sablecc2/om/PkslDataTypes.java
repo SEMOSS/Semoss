@@ -18,7 +18,6 @@ public enum PkslDataTypes {
 	FORMATTED_DATA_SET ("FDATA"),					// formatted data - for FE
 	JOB ("JOB"),									// job
 	ITERATOR ("ITERATOR"),							// iterator
-	DATA_FRAME ("DATA_FRAME"),
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),
 	ALIAS ("ALIAS"),
