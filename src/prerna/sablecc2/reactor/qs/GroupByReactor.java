@@ -1,9 +1,8 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.ds.h2.H2Frame;
 import prerna.query.interpreters.QueryStruct2;
+import prerna.query.interpreters.QueryStructSelector;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounStore;
 
 public class GroupByReactor extends QueryStructReactor
 {
@@ -26,11 +25,16 @@ public class GroupByReactor extends QueryStructReactor
 				}
 			}
 		} else {
-			H2Frame frame = (H2Frame)planner.getFrame();
-			String tableName = frame.getBuilder().getTableName();
 			for(int selectIndex = 0;selectIndex < allNouns.size();selectIndex++) {
-				String thisSelector = (String)allNouns.get(selectIndex);				
-				qs.addGroupBy(tableName, thisSelector);
+				Object newSelector = allNouns.get(selectIndex);
+				String thisSelector = newSelector + "";
+				QueryStructSelector selector = null;
+				if(thisSelector.contains("__")) {
+					String[] selectorSplit = thisSelector.split("__");
+					qs.addGroupBy(selectorSplit[0], selectorSplit[1]);
+				} else {
+					qs.addGroupBy(thisSelector, QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				}
 			}
 		}
 		return qs;
