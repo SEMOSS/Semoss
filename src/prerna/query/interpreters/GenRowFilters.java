@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.sablecc2.om.Filter2;
+import prerna.sablecc2.om.QueryFilter;
 
 public class GenRowFilters {
 
@@ -15,7 +15,7 @@ public class GenRowFilters {
 	 */
 	
 	// keep the list of filter objects to execute
-	private List<Filter2> filterVec = new Vector<Filter2>();
+	private List<QueryFilter> filterVec = new Vector<QueryFilter>();
 	
 	// keep the list of filtered columns instead of iterating through
 	private Set<String> filteredColumns = new HashSet<String>();
@@ -24,11 +24,11 @@ public class GenRowFilters {
 		
 	}
 
-	public List<Filter2> getFilters() {
+	public List<QueryFilter> getFilters() {
 		return this.filterVec;
 	}
 	
-	public void addFilters(Filter2 newFilter) {
+	public void addFilters(QueryFilter newFilter) {
 		this.filterVec.add(newFilter);
 		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
 	}

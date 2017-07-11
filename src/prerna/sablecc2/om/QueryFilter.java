@@ -3,7 +3,7 @@ package prerna.sablecc2.om;
 import java.util.HashSet;
 import java.util.Set;
 
-public class Filter2 {
+public class QueryFilter {
 
 	/**
 	 * Right now, tracking for these types of filters within querying
@@ -14,7 +14,7 @@ public class Filter2 {
 	private NounMetadata lComparison = null; //the column we want to filter
 	private NounMetadata rComparison = null; //the values to bind the filter on
 	
-	public Filter2(NounMetadata lComparison, String comparator, NounMetadata rComparison)
+	public QueryFilter(NounMetadata lComparison, String comparator, NounMetadata rComparison)
 	{
 		this.lComparison = lComparison;
 		this.rComparison = rComparison;
@@ -92,7 +92,7 @@ public class Filter2 {
 		return false;
 	}
 	
-	public static FILTER_TYPE determineFilterType(Filter2 filter) {
+	public static FILTER_TYPE determineFilterType(QueryFilter filter) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 
