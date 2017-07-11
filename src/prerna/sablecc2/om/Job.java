@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.QueryStruct2;
@@ -19,7 +20,6 @@ public class Job {
 	private Map<String, List<Object>> options; //this holds the options object for the FE
 	private Map<String, Map<String, String>> targets; //map of maps
 	private List<Formatter> formatters;
-	//need to specify a format type
 	
 	public Job(Iterator iterator, QueryStruct2 queryStruct) {
 		this.iterator = iterator;
@@ -59,7 +59,7 @@ public class Job {
 	 * 			}
 	 * 		}
 	 */
-	private Map<String, Object> getData(int num) {
+	private List<Object> getData(int num) {
 		int count = 0;
 		List<Formatter> formatters = getFormatters();
 		while(iterator.hasNext() && count < num) {
@@ -77,12 +77,12 @@ public class Job {
 			count++;
 		}
 		
-		Map<String, Object> retMap = new HashMap<>(1);
+		List<Object> data = new Vector<Object>();
 		for(Formatter formatter : formatters) {
-			retMap.put(formatter.getIdentifier(), formatter.getFormattedData());
+			data.add(formatter.getFormattedData());
 			formatter.clear();
 		}
-		return retMap;
+		return data;
 	}
 	
 	/**
@@ -151,15 +151,14 @@ public class Job {
 		addOutput(target, formatKey, optionsKey);
 	}
 	
-	public void addFormat(String format, String name) {
+	public void addFormat(String format) {
 		Formatter formatter = FormatFactory.getFormatter(format);
-		formatter.setIdentifier(name);
 		this.formatters.add(formatter);
 	}
 	
-	public void setFormat(String format, String name) {
+	public void setFormat(String format) {
 		this.formatters.clear();
-		addFormat(format, name);
+		addFormat(format);
 	}
 
 	public void setId(String newId) {
