@@ -14,6 +14,7 @@ public class TableFormatter extends AbstractFormatter {
 	
 	public TableFormatter() {
 		this.data = new ArrayList<>(100);
+		this.headers = new String[0];
 	}
 	
 	@Override
@@ -32,7 +33,7 @@ public class TableFormatter extends AbstractFormatter {
 	@Override
 	public void clear() {
 		this.data = new ArrayList<>(100);
-		this.headers = null;
+		this.headers = new String[0];
 	}
 
 }
