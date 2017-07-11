@@ -17,6 +17,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.ds.TinkerFrame;
+import prerna.sablecc2.om.Filter2;
+import prerna.sablecc2.om.NounMetadata;
 
 public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
@@ -33,6 +35,10 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	// the alias that is assigned each vertex/property
 	private Map<String, String> aliasMap;
 
+	// for filtering
+	private Map<String, Map<String, List<Object>>> filterColToValues;
+	private Map<String, Map<String, List<String>>> filterColToCol;
+	
 	public GremlinInterpreter2(Graph g) {
 		this.g = g;
 		this.gt = g.traversal().V();
@@ -40,10 +46,16 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 	public Iterator composeIterator() {
 		generateSelectors();
+		processFilters();
 		traverseRelations();
 		return null;
 	}
 
+	/**
+	 * Get the selectors from the QS
+	 * Store both the list of selectors (which includes names of vertices and properties)
+	 * Also maintain a list of vertex to list of properties
+	 */
 	private void generateSelectors() {
 		if (this.selectors == null) {
 			// generate the names for each component of the selector
@@ -84,6 +96,41 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 
+	/**
+	 * We need to store the filters that are required
+	 * I wish we could do this while iterating through
+	 * But with the new filters, it is difficult to determine where within the iterator we should add them
+	 * ... this issue doesn't arise for other querying languages...
+	 */
+	private void processFilters() {
+		List<Filter2> filters = qs.filters.getFilters();
+		for(Filter2 filter : filters) {
+			GenRowFilters.FILTER_TYPE filterType = GenRowFilters.determineFilterType(filter);
+			NounMetadata lComp = filter.getLComparison();
+			NounMetadata rComp = filter.getRComparison();
+			String comp = filter.getComparator();
+			
+			if(filterType == GenRowFilters.FILTER_TYPE.COL_TO_VALUES) {
+				// here, lcomp is the column and rComp is a set of values
+				processFilterColToValues(lComp, rComp, comp);
+			} else if(filterType == GenRowFilters.FILTER_TYPE.VALUES_TO_COL) {
+				// here, lcomp is the values and rComp is a the column
+				// so same as above, but switch the order
+				processFilterColToValues(rComp, lComp, comp);
+			}
+		}
+	}
+
+	/**
+	 * Handle adding a column to set of values filter
+	 * @param colComp
+	 * @param valuesComp
+	 * @param comparison
+	 */
+	private void processFilterColToValues(NounMetadata colComp, NounMetadata valuesComp, String comparison) {
+		
+	}
+	
 	private void traverseRelations() {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
 		if(edgeMap.isEmpty()) {
@@ -196,22 +243,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		if (traversals.size() > 0) {
 			GraphTraversal[] array = new GraphTraversal[traversals.size()];
 			gt = gt.match(traversals.toArray(array));
-		} 
-//		else {
-//			// get the traversal and store the necessary info
-//			GraphTraversal twoStepT = __.as(startNode);
-//
-//			List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, startNode);
-//
-//			if (propTraversals.size() > 0) {
-//				GraphTraversal[] propArray = new GraphTraversal[propTraversals.size()];
-//				twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startNode);
-//				gt = gt.match(twoStepT);
-//
-//			}
-//
-//		}
-
+		}
 	}
 
 	/**
