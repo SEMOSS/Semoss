@@ -55,7 +55,7 @@ public class QueryStruct2 {
 	// concept = type of join toCol
 	// Movie	 InnerJoin Studio, Genre
 	//			 OuterJoin Nominated
-	public Hashtable <String, Hashtable<String, Vector>> relations = new Hashtable<String, Hashtable<String, Vector>>();
+	public Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
 	
 	//holds the selector we want to order by
 	//tableName -> ColName
@@ -124,11 +124,11 @@ public class QueryStruct2 {
 		// ok if the logical name stops being unique this will have some weird results
 		
 		
-		Hashtable <String, Vector> compHash = new Hashtable<String, Vector>();
+		Map <String, List> compHash = new Hashtable<String, List>();
 		if(relations.containsKey(fromConcept))
 			compHash = relations.get(fromConcept);
 		
-		Vector curData = new Vector();
+		List curData = new Vector();
 		// next piece is to see if we have the comparator
 		if(compHash.containsKey(comparator))
 			curData = compHash.get(comparator);
@@ -199,7 +199,7 @@ public class QueryStruct2 {
 		System.out.println("RELATIONS.. " + relations);
 	}
 	
-	public Hashtable<String, Hashtable<String, Vector>> getRelations(){
+	public Map<String, Map<String, List>> getRelations(){
 		return this.relations;
 	}
 	
@@ -278,7 +278,7 @@ public class QueryStruct2 {
 			// get the starting concept
 			for(String startNode : this.relations.keySet()) {
 				// the relMap contains the joinType pointing to a list of columns to be joined to
-				Hashtable<String, Vector> relMap = this.relations.get(startNode);
+				Map<String, List> relMap = this.relations.get(startNode);
 				// else, just doing a normal join
 				// if the edge hash has the start node as a selector
 				// then we need to see if we should connect it
@@ -310,11 +310,11 @@ public class QueryStruct2 {
 	 * @param relMap				The relationships being observed for the startNode
 	 * @param edgeHash				The existing edge hash to determine what the current selectors are
 	 */
-	private void processRelationship(String startNode, Hashtable<String, Vector> relMap, Map<String, Set<String>> edgeHash) {
+	private void processRelationship(String startNode, Map<String, List> relMap, Map<String, Set<String>> edgeHash) {
 		// grab all the end nodes
 		// the edge hash doesn't care about what kind of join it is
-		Collection<Vector> endNodeValues = relMap.values();
-		for(Vector<String> endNodeList : endNodeValues) {
+		Collection<List> endNodeValues = relMap.values();
+		for(List<String> endNodeList : endNodeValues) {
 			// iterate through all the end nodes
 			for(String endNode : endNodeList) {
 				// need to ignore the prim_key_value...
@@ -378,11 +378,11 @@ public class QueryStruct2 {
 		// first see if there is a connection for the endNode to traverse to
 		if(this.relations.containsKey(endNode)) {
 			// grab the join map
-			Hashtable<String, Vector> joinMap = this.relations.get(endNode);
+			Map<String, List> joinMap = this.relations.get(endNode);
 			// we do not care at all about the type of join
 			// just go through and get the list of nodes which we care about
-			Collection<Vector> connections = joinMap.values();
-			for(Vector<String> endNodeList :  connections) {
+			Collection<List> connections = joinMap.values();
+			for(List<String> endNodeList :  connections) {
 				for(String possibleNewEndNode : endNodeList) {
 					// if this connection is a selector (i.e. key in the edgeHash), then we need to add it to the newEndNodeList
 					if(edgeHash.containsKey(possibleNewEndNode)) {
@@ -475,24 +475,24 @@ public class QueryStruct2 {
 	 * 
 	 * merges incomingRelations with this relations
 	 */
-	public void mergeRelations(Hashtable<String, Hashtable<String, Vector>> incomingRelations) {
+	public void mergeRelations(Map<String, Map<String, List>> incomingRelations) {
 		
 		//for each concept in the new relations
 		for(String conceptName : incomingRelations.keySet()) {
 			
 			//Grab the relationships for that concept
-			Hashtable<String, Vector> incomingHash = incomingRelations.get(conceptName);
+			Map<String, List> incomingHash = incomingRelations.get(conceptName);
 			
 			//if we already have relationships for the same concept we need to merge
 			if(this.relations.containsKey(conceptName)) {
 				
 				//grab this relations for concept
-				Hashtable<String, Vector> thisHash = this.relations.get(conceptName);
+				Map<String, List> thisHash = this.relations.get(conceptName);
 				
 				//relationKey is inner.join, outer.join, etc.
 				//so we want to merge relationships that have the same relationKey
 				for(String relationKey : incomingHash.keySet()) {
-					Vector v;
+					List v;
 					if(thisHash.containsKey(relationKey)) {
 						v = thisHash.get(relationKey);
 					} else {
@@ -506,9 +506,9 @@ public class QueryStruct2 {
 			} else {
 				
 				//we don't have the relationship described in the incoming relations so just copy them to this relations
-				Hashtable<String, Vector> newHash = new Hashtable<>();
+				Map<String, List> newHash = new Hashtable<>();
 				for(String relationKey : incomingHash.keySet()) {
-					Vector v = new Vector();
+					List v = new Vector();
 					v.addAll(incomingHash.get(relationKey));
 					newHash.put(relationKey, v);
 				}
