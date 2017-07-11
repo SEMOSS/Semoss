@@ -6,6 +6,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.interpreters.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ImportDataReactor extends AbstractReactor {
@@ -34,7 +35,7 @@ public class ImportDataReactor extends AbstractReactor {
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
 		
-		return null;
+		return new NounMetadata(importedFrame, PkslDataTypes.FRAME);
 	}
 
 	private QueryStruct2 getQueryStruct() {
