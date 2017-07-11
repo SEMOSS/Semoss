@@ -46,6 +46,7 @@ import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc2.PKSLRunner;
+import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.om.VarStore;
@@ -204,7 +205,7 @@ public class Insight {
 		if(datamaker != null) {
 			returnObj.put("dataID", datamaker.getDataId());
 			// TODO: just cause i want as many things to be in future state as possible
-			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.DATA_FRAME));
+			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.FRAME));
 		}
 		
 		// add the pkql data
@@ -339,16 +340,40 @@ public class Insight {
 	 * @return
 	 */
 	private Map<String, Object> collectPkslData(PKSLRunner runner) {
+		if(runner.getDataFrame() != null) {
+			// update since we have a new frame now
+			this.setDataMaker(runner.getDataFrame());
+		}
+		
 		Map<String, Object> retData = new Hashtable<String, Object>();
-		NounMetadata lastResult = runner.getLastResult();
-		if(lastResult != null) {
-			retData.put("lastNoun", lastResult.getValue());
+		// get the return values
+		List<NounMetadata> resultList = runner.getResults();
+		// get the expression which created the return
+		// this matches with the above by index
+		List<String> pkslStrings = runner.getPkslExpressions();
+		
+		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
+		for(int i = 0; i < pkslStrings.size(); i++) {
+			Map<String, Object> ret = new HashMap<String, Object>();
+			
+			// get the value to send to the FE
+			
+			NounMetadata noun = resultList.get(i);
+			if(noun.getNounName() == PkslDataTypes.FRAME) {
+				ret.put("output", "Have frame of type " + ((IDataMaker) noun.getValue()).getDataMakerName());
+			} else if(noun.getNounName() == PkslDataTypes.JOB) {
+				ret.put("jobId", ((Job) noun.getValue()).getId());
+			} else {
+				ret.put("output", noun.getValue());
+			}
+			
+			// get the expression which created this return
+			String expression = pkslStrings.get(i);
+			ret.put("pkslExpression", expression);
+			
+			retValues.add(ret);
 		}
-		Object pkslOutput = runner.getResults();
-		if(pkslOutput == null) {
-			pkslOutput = "complete";
-		}
-		retData.put("pkslOutput", pkslOutput);
+		retData.put("orderedValues", retValues);
 		retData.put("insightID", this.insightId);
 		return retData;
 	}
@@ -552,7 +577,7 @@ public class Insight {
 	
 	// currently only used via newdashboard in NameServer
 	public void setDataMaker(IDataMaker datamaker) {
-		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.DATA_FRAME));
+		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.FRAME));
 	}
 	
 	public String getDataMakerName() {
