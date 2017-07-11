@@ -35,6 +35,10 @@ public class GenRowStruct {
 		add(literal, PkslDataTypes.CONST_STRING);
 	}
 	
+	public void addComparator(String comparator) {
+		add(comparator, PkslDataTypes.COMPARATOR);
+	}
+	
 	public void addBoolean(Boolean bool) {
 		add(bool, PkslDataTypes.BOOLEAN);
 	}

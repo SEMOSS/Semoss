@@ -478,10 +478,15 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 					filterBuilder.append(getAlias(rightConcept)).append(".").append(rightProperty);
 
 					this.whereFilters.add(filterBuilder.toString());
-				} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
+				} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_INT || rCompType == PkslDataTypes.CONST_STRING) {
 					// WE ARE COMPARING A COLUMN AGAINST A LIST OF DECIMALS OR STRINGS
 					List<Object> objects = new Vector<Object>();
-					objects.add(rightComp.getValue());
+					// ugh... this is gross
+					if(rightComp.getValue() instanceof List) {
+						objects.addAll( (List) rightComp.getValue());
+					} else {
+						objects.add(rightComp.getValue());
+					}
 					String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
 
 					StringBuilder filterBuilder = new StringBuilder();
@@ -502,11 +507,15 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 
 					this.whereFilters.add(filterBuilder.toString());
 				}
-			} else if(lCompType == PkslDataTypes.CONST_DECIMAL || lCompType == PkslDataTypes.CONST_STRING) {
+			} else if(lCompType == PkslDataTypes.CONST_DECIMAL || lCompType == PkslDataTypes.CONST_INT || lCompType == PkslDataTypes.CONST_STRING) {
 				// ON THE LEFT SIDE, WE HAVE SOME KIND OF CONSTANT
 				List<Object> leftObjects = new Vector<Object>();
-				leftObjects.add(leftComp.getValue());
-
+				// ugh... this is gross
+				if(leftComp.getValue() instanceof List) {
+					leftObjects.addAll( (List) leftComp.getValue());
+				} else {
+					leftObjects.add(leftComp.getValue());
+				}
 				String leftDataType = null;
 				if(lCompType == PkslDataTypes.CONST_DECIMAL) {
 					leftDataType = "NUMBER";
@@ -556,13 +565,18 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 
 					this.whereFilters.add(filterBuilder.toString());
 
-				} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_STRING) {
+				} else if(rCompType == PkslDataTypes.CONST_DECIMAL || rCompType == PkslDataTypes.CONST_INT || rCompType == PkslDataTypes.CONST_STRING) {
 					// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
 					// ... what is the point of this... this is a dumb thing... you are dumb
 
 					List<Object> rightObjects = new Vector<Object>();
-					rightObjects.add(rightComp.getValue());
-
+					// ugh... this is gross
+					if(rightComp.getValue() instanceof List) {
+						rightObjects.addAll( (List) rightComp.getValue());
+					} else {
+						rightObjects.add(rightComp.getValue());
+					}
+					
 					String rightDataType = null;
 					if(rCompType == PkslDataTypes.CONST_DECIMAL) {
 						rightDataType = "NUMBER";
