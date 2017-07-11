@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.qs;
 import java.util.List;
 
 import prerna.query.interpreters.QueryStruct2;
-import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.QueryFilter;
 
 public class QueryFilterReactor extends QueryStructReactor {
 

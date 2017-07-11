@@ -22,8 +22,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class QueryStruct2 {
-
-	
 	
 	// what is in a query
 	// 1. selectors - what is it that we want to give back
@@ -95,10 +93,9 @@ public class QueryStruct2 {
 
 	public void addSelector(String concept, String property)
 	{
-		if(property == null)
+		if(property == null) {
 			property = PRIM_KEY_PLACEHOLDER; 
-		
-//		addToHash(concept, property, selectors);
+		}
 		
 		QueryStructSelector selector = new QueryStructSelector();
 		selector.setTable(concept);
