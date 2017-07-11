@@ -1,7 +1,5 @@
 package prerna.sablecc2.om;
 
-import java.util.Vector;
-
 // left column
 // right column
 // type of join
