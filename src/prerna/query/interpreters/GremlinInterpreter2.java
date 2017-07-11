@@ -17,7 +17,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.ds.TinkerFrame;
-import prerna.sablecc2.om.Filter2;
+import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 
 public class GremlinInterpreter2 extends AbstractQueryInterpreter {
@@ -103,17 +103,17 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	 * ... this issue doesn't arise for other querying languages...
 	 */
 	private void processFilters() {
-		List<Filter2> filters = qs.filters.getFilters();
-		for(Filter2 filter : filters) {
-			Filter2.FILTER_TYPE filterType = Filter2.determineFilterType(filter);
+		List<QueryFilter> filters = qs.filters.getFilters();
+		for(QueryFilter filter : filters) {
+			QueryFilter.FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
 			NounMetadata lComp = filter.getLComparison();
 			NounMetadata rComp = filter.getRComparison();
 			String comp = filter.getComparator();
 			
-			if(filterType == Filter2.FILTER_TYPE.COL_TO_VALUES) {
+			if(filterType == QueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 				// here, lcomp is the column and rComp is a set of values
 				processFilterColToValues(lComp, rComp, comp);
-			} else if(filterType == Filter2.FILTER_TYPE.VALUES_TO_COL) {
+			} else if(filterType == QueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 				// here, lcomp is the values and rComp is a the column
 				// so same as above, but switch the order
 				processFilterColToValues(rComp, lComp, comp);
