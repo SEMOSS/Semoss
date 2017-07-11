@@ -2827,6 +2827,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IQueryInterpreter2 getInterpreter() {
-		return new GremlinInterpreter2();
+		return new GremlinInterpreter2(this.g);
 	}
 }
