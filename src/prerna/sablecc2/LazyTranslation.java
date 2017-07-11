@@ -687,7 +687,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         }
         if(node.getComparator() != null)
         {
-        	curReactor.getCurRow().addLiteral(node.getComparator().toString().trim());
+        	curReactor.getCurRow().addComparator(node.getComparator().toString().trim());
         }
         if(node.getRight() != null)
         {
