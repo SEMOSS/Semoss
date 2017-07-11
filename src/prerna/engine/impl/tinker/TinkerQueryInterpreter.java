@@ -20,13 +20,18 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.TinkerIterator;
-import prerna.engine.impl.AbstractEngine;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
-public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements IQueryInterpreter {
+public class TinkerQueryInterpreter implements IQueryInterpreter {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractEngine.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(TinkerQueryInterpreter.class.getName());
 
+	private Graph g;
+	private GraphTraversal gt;
+	private QueryStruct qs = null;
+	private Map<String, Set<String>> edgeHash;
+	private List<String> selector;
+	private Map<String, Map<String, List>> filters;
 	private HashMap<String, List<String>> propHash;
 
 	/**
@@ -89,6 +94,15 @@ public class TinkerQueryInterpreter extends AbstractTinkerInterpreter implements
 			gt = gt.count();
 		} else if(performCountInt == QueryStruct.COUNT_DISTINCT_SELECTORS) {
 			gt = gt.dedup().count();
+		}
+	}
+	
+	/**
+	 * Need to clean the filter headers
+	 */
+	protected void addFilters() {
+		if (this.filters == null) {
+			this.filters = qs.andfilters;
 		}
 	}
 
