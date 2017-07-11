@@ -18,7 +18,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
-import prerna.sablecc2.om.Filter2;
+import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.test.TestUtilityMethods;
@@ -404,8 +404,8 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 	
 	public void addFilters()
 	{
-		List<Filter2> filters = qs.filters.getFilters();
-		for(Filter2 filter : filters) {
+		List<QueryFilter> filters = qs.filters.getFilters();
+		for(QueryFilter filter : filters) {
 			NounMetadata leftComp = filter.getLComparison();
 			NounMetadata rightComp = filter.getRComparison();
 			String thisComparator = filter.getComparator();

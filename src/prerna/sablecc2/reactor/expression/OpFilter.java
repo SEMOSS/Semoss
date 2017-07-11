@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.sablecc2.om.Filter2;
+import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.reactor.JavaExecutable;
@@ -17,7 +17,7 @@ public class OpFilter extends OpBasic {
 		if(this.parentReactor instanceof QueryFilterReactor) {
 			// we want to return a filter object
 			// so it can be integrated with the query struct
-			Filter2 filter = generateFilterObject();
+			QueryFilter filter = generateFilterObject();
 			return new NounMetadata(filter, PkslDataTypes.FILTER);
 		}
 		
@@ -114,7 +114,7 @@ public class OpFilter extends OpBasic {
 	 * Generate the filter object that will be used by the query struct
 	 * @return
 	 */
-	private Filter2 generateFilterObject() {
+	private QueryFilter generateFilterObject() {
 		// need to consider list fo values
 		// can have column == [set of values]
 		// can also have [set of values] == column
@@ -145,7 +145,7 @@ public class OpFilter extends OpBasic {
 			}
 		}
 		
-		Filter2 filter = new Filter2(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
+		QueryFilter filter = new QueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
 		return filter;
 	}
 	
