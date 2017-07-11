@@ -7,6 +7,7 @@ import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -30,11 +31,11 @@ public class PKSLRunner {
 	 */
 
 	private GreedyTranslation translation;
-	private IDataMaker dataMaker;
 	private String insightId;
 	private PKSLPlanner planner;
-	private NounMetadata result;
-
+	private List<NounMetadata> results = new Vector<NounMetadata>();
+	private List<String> pkslExpression = new Vector<String>();
+	
 	public static void main(String[] args) throws Exception {
 		String pksl = "A = 10; B = \"Apple\";";
 		List<String> x = parsePKSL(pksl);
@@ -97,7 +98,6 @@ public class PKSLRunner {
 	}
 	
 	public void runPKSL(String expression, IDataMaker frame) {
-		this.dataMaker = frame;
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
 		if(translation == null){
@@ -110,9 +110,10 @@ public class PKSLRunner {
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
-		} finally {
-			translation.postProcess();
-		}
+		} 
+//		finally {
+//			translation.postProcess();
+//		}
 		return;
 	}
 	
@@ -134,7 +135,6 @@ public class PKSLRunner {
 	}
 	
 	public void runPKSL(String expression, VarStore varStore, IDataMaker frame) {
-		this.dataMaker = frame;
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		Start tree;
 		if(translation == null){
@@ -147,9 +147,10 @@ public class PKSLRunner {
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
-		} finally {
-			translation.postProcess();
-		}
+		} 
+//		finally {
+//			translation.postProcess();
+//		}
 		return;
 	}
 	
@@ -168,26 +169,21 @@ public class PKSLRunner {
 		return null;
 	}
 
-	public void setDataFrame(IDataMaker frame) {
-		this.dataMaker = frame;
-	}
-
-	public Object getResults() {
-		return translation.getResults();
-	}
-
 	public PKSLPlanner getPlanner() {
 		return this.planner;
 	}
 
-	public void setResult(NounMetadata result) {
-		if(result != null) {
-			this.result = result;
-		}
+	public void addResult(String pkslExpression, NounMetadata result) {
+		this.pkslExpression.add(pkslExpression);
+		this.results.add(result);
 	}
 	
-	public NounMetadata getLastResult() {
-		return this.result;
+	public List<NounMetadata> getResults() {
+		return this.results;
+	}
+	
+	public List<String> getPkslExpressions() {
+		return this.pkslExpression;
 	}
 	
 }

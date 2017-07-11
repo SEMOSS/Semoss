@@ -85,8 +85,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 		this.planner.setVarStore(varStore);
 	}
 	
-	protected void postProcess() {
+	protected void postProcess(String pkslExpression) {
 		// do nothing
+		// only the lazy implements this
 	}
 	
 /********************** First is the main level operation, script chain or other script operations ******************/
@@ -102,7 +103,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         // we do this in case someone is doing an embedded assignment 
         // instead of just doing a normal assignment...
         if(!(curReactor instanceof AssignmentReactor)) {
-    		postProcess();
+    		postProcess(node.toString().trim());
     	}
 	}
 	
@@ -116,7 +117,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		defaultIn(node);
         // we do this in case someone is dumb and is doing an embedded assignment 
         // instead of just doing a normal assignment...
-    	postProcess();
+    	postProcess(node.toString().trim());
 	}
 	
     // all the operation sits here - these are the script starting points

@@ -17,8 +17,9 @@ public class CreateFrame extends AbstractReactor {
 		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias);
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
-		NounMetadata result = new NounMetadata(newFrame, PkslDataTypes.FRAME);
 		planner.addProperty("FRAME", "FRAME", newFrame);
+		
+		NounMetadata result = new NounMetadata(newFrame, PkslDataTypes.FRAME);
 		return result;
 	}
 	
