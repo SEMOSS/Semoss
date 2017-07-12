@@ -80,17 +80,16 @@ public class IterateReactor extends AbstractReactor {
 				this.output = job;
 				jobId = JobStore.INSTANCE.addJob(job);
 			} else {
-				ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
+				ITableDataFrame frame = (ITableDataFrame) this.planner.getProperty("FRAME", "FRAME");
 				Iterator<IHeadersDataRow> iterator = frame.query(queryStruct);
 				Job job = new Job(iterator, queryStruct);
 				this.output = job;
 				jobId = JobStore.INSTANCE.addJob(job);
-			}	
+			}
 		}
 		
 		Map<String, Object> returnData = new HashMap<>();
 		returnData.put("jobId", jobId);
-		this.planner.addProperty("DATA", "DATA", returnData);
 		
 		// create the return
 		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);

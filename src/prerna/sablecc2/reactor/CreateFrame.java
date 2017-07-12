@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.Insight;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
 
@@ -15,12 +16,15 @@ public class CreateFrame extends AbstractReactor {
 		// use factory to generate the new table
 		String alias = getAlias();
 		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias);
+		
+		NounMetadata noun = new NounMetadata(newFrame, PkslDataTypes.FRAME);
+		
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
 		planner.addProperty("FRAME", "FRAME", newFrame);
-		
-		NounMetadata result = new NounMetadata(newFrame, PkslDataTypes.FRAME);
-		return result;
+		planner.getVarStore().put(Insight.CUR_FRAME_KEY, noun);
+
+		return noun;
 	}
 	
 	@Override

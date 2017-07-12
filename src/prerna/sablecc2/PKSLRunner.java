@@ -4,22 +4,25 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import prerna.om.Insight;
+import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PKSLRunner {
 
@@ -30,9 +33,6 @@ public class PKSLRunner {
 	 * @param frame					The data maker to run the pkql expression on
 	 */
 
-	private GreedyTranslation translation;
-	private String insightId;
-	private PKSLPlanner planner;
 	private List<NounMetadata> results = new Vector<NounMetadata>();
 	private List<String> pkslExpression = new Vector<String>();
 	
@@ -80,11 +80,10 @@ public class PKSLRunner {
 		return translation.getUnimplementedReactors();
 	}
 
-	public void runPKSL(String expression) {
+	public void runPKSL(String expression, Insight insight) {
+		expression = preProcessPksl(expression);
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
-		if(translation == null){
-			translation = new GreedyTranslation(this);
-		}
+		DepthFirstAdapter translation = new GreedyTranslation(this, insight);
 
 		try {
 			// parsing the pkql - this process also determines if expression is syntactically correct
@@ -97,80 +96,30 @@ public class PKSLRunner {
 		return;
 	}
 	
-	public void runPKSL(String expression, IDataMaker frame) {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
-		Start tree;
-		if(translation == null){
-			translation = new GreedyTranslation(this, frame);
+	/**
+	 * Pre-process the pksl to encode values that would not be allowed based on the grammar
+	 * @param expression
+	 * @return
+	 */
+	private String preProcessPksl(String expression) {
+		String newExpression = expression;
+		
+		Pattern p = Pattern.compile("<encode>.+?</encode>");
+		Matcher m = p.matcher(newExpression);
+		while(m.find()) {
+			String originalText = m.group(0);
+			String encodedText = originalText.replace("<encode>", "").replace("</encode>", "");
+			try {
+				encodedText = URLEncoder.encode(encodedText, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// well, you are kinda screwed...
+				// this replacement will definitley fail
+				e.printStackTrace();
+			}
+			newExpression = newExpression.replace(originalText, encodedText);
 		}
-		try {
-			// parsing the pkql - this process also determines if expression is syntactically correct
-			tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException | RuntimeException e) {
-			e.printStackTrace();
-		} 
-//		finally {
-//			translation.postProcess();
-//		}
-		return;
-	}
-	
-	public void runPKSL(String expression, VarStore varStore) {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
-		if(translation == null){
-			translation = new GreedyTranslation(this, varStore);
-		}
-
-		try {
-			// parsing the pkql - this process also determines if expression is syntactically correct
-			Start tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException | RuntimeException e) {
-			e.printStackTrace();
-		}
-		return;
-	}
-	
-	public void runPKSL(String expression, VarStore varStore, IDataMaker frame) {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
-		Start tree;
-		if(translation == null){
-			translation = new GreedyTranslation(this, varStore, frame);
-		}
-		try {
-			// parsing the pkql - this process also determines if expression is syntactically correct
-			tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException | RuntimeException e) {
-			e.printStackTrace();
-		} 
-//		finally {
-//			translation.postProcess();
-//		}
-		return;
-	}
-	
-
-	public void setInsightId(String insightId) {
-		this.insightId = insightId;
-	}
-	public String getInsightId() {
-		return this.insightId;
-	}
-
-	public IDataMaker getDataFrame() {
-		if(translation != null) {
-			return translation.getDataMaker();
-		}
-		return null;
-	}
-
-	public PKSLPlanner getPlanner() {
-		return this.planner;
+		
+		return newExpression;
 	}
 
 	public void addResult(String pkslExpression, NounMetadata result) {

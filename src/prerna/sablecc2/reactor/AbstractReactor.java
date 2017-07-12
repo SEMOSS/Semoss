@@ -14,6 +14,7 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
@@ -22,6 +23,9 @@ import prerna.sablecc2.om.PkslDataTypes;
 public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
+
+	public Insight insight = null;
+	public PKSLPlanner planner = null;
 	
 	protected String operationName = null;
 	protected String signature = null;
@@ -43,7 +47,6 @@ public abstract class AbstractReactor implements IReactor {
 	protected Hashtable <String, Object> propStore = new Hashtable<String, Object>();
 	protected ITableDataFrame frame = null;
 	
-	public PKSLPlanner planner = null;
 	protected Lambda runner = null;
 	
 	protected String[] defaultOutputAlias;
@@ -69,6 +72,11 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public void setFrame(ITableDataFrame frame) {
 		this.frame = frame;
+	}
+	
+	@Override
+	public void setInsight(Insight insight) {
+		this.insight = insight;
 	}
 
 	@Override
