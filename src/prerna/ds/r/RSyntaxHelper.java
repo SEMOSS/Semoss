@@ -113,15 +113,13 @@ public class RSyntaxHelper {
 	 * @param joinCols
 	 * @return
 	 */
-	public static String getMergeSyntax(String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
+	public static String getMergeSyntax(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
 		/*
 		 * joinCols = [ {leftTable.Title -> rightTable.Movie} , {leftTable.Genre -> rightTable.Genre}  ]
 		 */
 		
 		StringBuilder builder = new StringBuilder();
-		
-		
-		
+		builder.append(returnTable).append(" <- ");
 		
 		return builder.toString();
 	}
@@ -152,6 +150,14 @@ public class RSyntaxHelper {
 	}
 	
 	public static void main(String[] args) {
+		// testing inner
+		System.out.println("testing inner...");
+		System.out.println("testing inner...");
+		System.out.println("testing inner...");
+		System.out.println("testing inner...");
+		System.out.println("testing inner...");
+
+		String returnTable = "tableToTest";
 		String leftTableName = "x";
 		String rightTableName = "y";
 		String joinType = "inner.join"; // left.outer.join, right.outer.join, outer.join
@@ -165,6 +171,17 @@ public class RSyntaxHelper {
 //		join2.put("", "");
 //		joinCols.add(join2);
 		
-		System.out.println(getMergeSyntax(leftTableName, rightTableName, joinType, joinCols));
+		System.out.println(getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols));
+		
+		System.out.println("testing left...");
+		System.out.println("testing left...");
+		System.out.println("testing left...");
+		System.out.println("testing left...");
+		System.out.println("testing left...");
+		
+		returnTable = "tableToTest";
+		joinType = "left.outer.join"; // left.outer.join, right.outer.join, outer.join
+		
+		System.out.println(getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols));
 	}
 }
