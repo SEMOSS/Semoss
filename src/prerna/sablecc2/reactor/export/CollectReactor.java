@@ -20,9 +20,7 @@ public class CollectReactor extends AbstractReactor{
 		int collectThisMany = getTotalToCollect();
 		
 		Object data = job.collect(collectThisMany);
-		this.planner.addProperty("DATA", "DATA", data); //this is the property that translation looks for when grabbing the Response
 		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET);
-		
 		return result;
 	}
 	
@@ -31,7 +29,6 @@ public class CollectReactor extends AbstractReactor{
 		Job job;
 		
 		List<Object> jobs = curRow.getColumnsOfType(PkslDataTypes.JOB);
-		
 		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(jobs == null || jobs.size() == 0) {
 			job = (Job) getNounStore().getNoun(PkslDataTypes.JOB.toString()).get(0);

@@ -5,8 +5,9 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.reactor.export.CollectReactor;
-import prerna.sablecc2.reactor.export.job.SetFormatReactor;
-import prerna.sablecc2.reactor.export.job.SetOptionsReactor;
+import prerna.sablecc2.reactor.export.JobMetaCollectorReactor;
+import prerna.sablecc2.reactor.export.job.FormatReactor;
+import prerna.sablecc2.reactor.export.job.ViewOptionsReactor;
 import prerna.sablecc2.reactor.expression.DefaultOpReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
@@ -133,8 +134,9 @@ public class ReactorFactory {
 		// Exporting Reactors
 		reactorHash.put("Job", JobReactor.class); // defines the job
 		reactorHash.put("Collect", CollectReactor.class); // collect
-		reactorHash.put("Format", SetFormatReactor.class); // set formats
-		reactorHash.put("ViewOptions", SetOptionsReactor.class); // set options
+		reactorHash.put("CollectMeta", JobMetaCollectorReactor.class); // collect
+		reactorHash.put("Format", FormatReactor.class); // set formats
+		reactorHash.put("ViewOptions", ViewOptionsReactor.class); // set options
 
 		// If is in its own category
 		reactorHash.put("if", IfReactor.class);
