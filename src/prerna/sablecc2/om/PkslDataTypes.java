@@ -29,6 +29,7 @@ public enum PkslDataTypes {
 	MAP ("MAP"),
 	BOOLEAN ("BOOLEAN"),
 	ERROR ("ERROR"),
+	PANEL ("PANEL"),
 	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE");
 
 	

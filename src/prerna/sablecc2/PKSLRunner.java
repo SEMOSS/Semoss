@@ -102,7 +102,7 @@ public class PKSLRunner {
 	 * @return
 	 */
 	private String preProcessPksl(String expression) {
-		String newExpression = expression;
+		String newExpression = expression.trim();
 		
 		Pattern p = Pattern.compile("<encode>.+?</encode>");
 		Matcher m = p.matcher(newExpression);
