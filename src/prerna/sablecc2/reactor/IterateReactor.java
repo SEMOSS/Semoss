@@ -25,7 +25,7 @@ import prerna.util.Utility;
 
 public class IterateReactor extends AbstractReactor {
 
-	private Job output;
+	private Job job;
 	private String IN_MEM_STORE = "store";
 	
 	public NounMetadata execute() {
@@ -41,8 +41,6 @@ public class IterateReactor extends AbstractReactor {
 		// 2) data from a frame
 		// 3) data from a in-memory source
 		
-		String jobId;
-		
 		// try to get a QS
 		// ... not everything has a qs
 		// ... primarily a key-value pair
@@ -56,16 +54,14 @@ public class IterateReactor extends AbstractReactor {
 		{
 			// TODO: figure out how to use a QS if present with this query
 			Iterator<IHeadersDataRow> iterator = inMemStore.getIterator();
-			Job job = new Job(iterator, queryStruct);
-			this.output = job;
-			jobId = JobStore.INSTANCE.addJob(job);
-			
+			this.job = new Job(iterator, queryStruct);
+			JobStore.INSTANCE.addJob(job);
 		} 
 		else 
 		{
 			//TODO: add tableJoins to query
 			//TODO: remove hard coded classes when we establish querystruct2 and sqlinterpreter2 function properly 
-			//TODO : Hard coding this to use QueryStruct2 and SQLInterpreter2 to test changes
+			//TODO: Hard coding this to use QueryStruct2 and SQLInterpreter2 to test changes
 
 			// okay, we want to query an engine or a frame
 			// do this based on if the key is defined in the QS
@@ -76,23 +72,19 @@ public class IterateReactor extends AbstractReactor {
 				interp.setQueryStruct(queryStruct);
 				String importQuery = interp.composeQuery();
 				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
-				Job job = new Job(iterator, queryStruct);
-				this.output = job;
-				jobId = JobStore.INSTANCE.addJob(job);
+				this.job = new Job(iterator, queryStruct);
+				JobStore.INSTANCE.addJob(job);
 			} else {
 				ITableDataFrame frame = (ITableDataFrame) this.planner.getProperty("FRAME", "FRAME");
 				Iterator<IHeadersDataRow> iterator = frame.query(queryStruct);
-				Job job = new Job(iterator, queryStruct);
-				this.output = job;
-				jobId = JobStore.INSTANCE.addJob(job);
+				this.job = new Job(iterator, queryStruct);
+				this.job.setHeaderInfo(queryStruct.getHeaderInfo());
+				JobStore.INSTANCE.addJob(job);
 			}
 		}
 		
-		Map<String, Object> returnData = new HashMap<>();
-		returnData.put("jobId", jobId);
-		
 		// create the return
-		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);
+		NounMetadata output = new NounMetadata(this.job, PkslDataTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
 		return output;
 	}
@@ -103,7 +95,7 @@ public class IterateReactor extends AbstractReactor {
 		if(outputs != null) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.output, PkslDataTypes.JOB);
+		NounMetadata output = new NounMetadata(this.job, PkslDataTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
 		outputs.add(output);
 		return outputs;
@@ -120,6 +112,21 @@ public class IterateReactor extends AbstractReactor {
 			queryStruct = (QueryStruct2) allNouns.get(0);
 		}
 		return queryStruct;
+	}
+	
+	private InMemStore getInMemoryStore() {
+		InMemStore inMemStore = null;
+		GenRowStruct grs = this.store.getNoun(this.IN_MEM_STORE);
+		if(grs != null) {
+			inMemStore = (InMemStore) grs.get(0);
+		} else {
+			grs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+			if(grs != null) {
+				inMemStore = (InMemStore) grs.get(0);
+			}
+		}
+		
+		return inMemStore;
 	}
 	
 	private Vector<Map<String,String>> getJoinCols(GenRowStruct joins) {
@@ -140,22 +147,6 @@ public class IterateReactor extends AbstractReactor {
 			}
 		}
 		return joinCols;
-	}
-	
-
-	private InMemStore getInMemoryStore() {
-		InMemStore inMemStore = null;
-		GenRowStruct grs = this.store.getNoun(this.IN_MEM_STORE);
-		if(grs != null) {
-			inMemStore = (InMemStore) grs.get(0);
-		} else {
-			grs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
-			if(grs != null) {
-				inMemStore = (InMemStore) grs.get(0);
-			}
-		}
-		
-		return inMemStore;
 	}
 }
 
