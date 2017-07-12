@@ -50,6 +50,7 @@ import prerna.sablecc2.reactor.qs.SumReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
 import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
+import prerna.sablecc2.reactor.storage.TaxSaveScenarioReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 
 public class ReactorFactory {
@@ -149,8 +150,8 @@ public class ReactorFactory {
 		reactorHash.put("RunPlan", ExecuteJavaGraphPlannerReactor.class);
 		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor2.class);
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
-
 		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
+		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
 
 		// Local Master Reactors
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
