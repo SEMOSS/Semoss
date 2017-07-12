@@ -1,15 +1,11 @@
 package prerna.sablecc2;
 
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.io.StringBufferInputStream;
+import java.util.Map;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.node.Start;
-import prerna.sablecc2.parser.Parser;
+import prerna.om.Insight;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -28,76 +24,65 @@ public class Compiler
 		//	DIHelper.getInstance().loadCoreProp(propFile);
 
 		TestUtilityMethods.loadDIHelper();
-		
+
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Input.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("Input");
-//		coreEngine.openDB(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Input", coreEngine);
-//
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Proposal.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("Proposal");
-//		coreEngine.openDB(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
-		
-//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-//		coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineName("Movie_RDBMS");
-//		coreEngine.openDB(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-		
+
+		//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Input.smss";
+		//		coreEngine = new RDBMSNativeEngine();
+		//		coreEngine.setEngineName("Input");
+		//		coreEngine.openDB(engineProp);
+		//		DIHelper.getInstance().setLocalProperty("Input", coreEngine);
+		//
+		//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Proposal.smss";
+		//		coreEngine = new RDBMSNativeEngine();
+		//		coreEngine.setEngineName("Proposal");
+		//		coreEngine.openDB(engineProp);
+		//		DIHelper.getInstance().setLocalProperty("Proposal", coreEngine);
+
+		//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		//		coreEngine = new RDBMSNativeEngine();
+		//		coreEngine.setEngineName("Movie_RDBMS");
+		//		coreEngine.openDB(engineProp);
+		//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineName("MinInput");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
-		
+
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinProposal.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineName("MinProposal");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("MinProposal", coreEngine);
-		
-		try
-		{
+
+		String expression = ""
+
+				//+ "j:<code>import prerna.util.Console;import java.util.Hashtable;System.out.println(\"Crabby Patty !! \"); Hashtable myHash = new Hashtable();String data = null; data.toString();<code>;"
+				//    												+ "network.connect();network.disconnect();"
+				//+ "pig(s=[a,b,v], s=[t,t,p], <c>System.out.println(\"Hello World\"); 3+ 5;<c>);" 
+				//+ "pig(s=[a,b,c], filter=[(s == ['ab', 'cd','ef']), (a > [1])], join=[(a inner.join b)], <c>System.out.println(\"Hello World\");<c>).as([select_a]) |  monkey(s=[select_a], props=[type=\"reduce\"]).as([group_b]) | donkey(a,select_a, group_b);" // | trial(s=[a,b,c],props=[name=\"samiksha\"]);"
+				//+ "sum((2*abc)+product(5,2));"
+				//+ "sum(<c>System.out.println(1);<c>).try(c=['hello']);"
 
 
-			// Create a Parser instance.
-			Parser p =
-					new Parser(
-							new Lexer(
-									new PushbackReader(
-											//new InputStreamReader(new StringBufferInputStream("5;")), 1024)));
-											// new InputStreamReader(new StringBufferInputStream(" 1 + 2 * (3 + 5); ")), 1024)));
-											//new InputStreamReader(new StringBufferInputStream("j:{a b c d };")), 1024)));
-											new InputStreamReader(new StringBufferInputStream(""
-													//+ "j:<code>import prerna.util.Console;import java.util.Hashtable;System.out.println(\"Crabby Patty !! \"); Hashtable myHash = new Hashtable();String data = null; data.toString();<code>;"
-													//    												+ "network.connect();network.disconnect();"
-													//+ "pig(s=[a,b,v], s=[t,t,p], <c>System.out.println(\"Hello World\"); 3+ 5;<c>);" 
-													//+ "pig(s=[a,b,c], filter=[(s == ['ab', 'cd','ef']), (a > [1])], join=[(a inner.join b)], <c>System.out.println(\"Hello World\");<c>).as([select_a]) |  monkey(s=[select_a], props=[type=\"reduce\"]).as([group_b]) | donkey(a,select_a, group_b);" // | trial(s=[a,b,c],props=[name=\"samiksha\"]);"
-													//+ "sum((2*abc)+product(5,2));"
-													//+ "sum(<c>System.out.println(1);<c>).try(c=['hello']);"
-													
-													
-//													+ "plan = Database(\"Input\") "
-//													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
-//													+ "| Iterate() "
-//													+ "| LoadClient(assignment = ['Alias_1'], value = ['Value_1']);"
-//													+ "proposals = Database(\"Proposal\") "
-//													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version) "
-//													+ "| Iterate();"
-//													+ "executedPlan = RunPlan(PLANNER = [plan]);"
-//													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]);"
-//													+ "planData = RunTaxPlan(PLANNER = [plan], PROPOSALS = [proposals]); "
+				//													+ "plan = Database(\"Input\") "
+				//													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
+				//													+ "| Iterate() "
+				//													+ "| LoadClient(assignment = ['Alias_1'], value = ['Value_1']);"
+				//													+ "proposals = Database(\"Proposal\") "
+				//													+ "| Select(PROPOSALCSV,PROPOSALCSV__Alias_1,PROPOSALCSV__Client_ID,PROPOSALCSV__FieldName,PROPOSALCSV__FormName,PROPOSALCSV__ProposalName,PROPOSALCSV__Type_1,PROPOSALCSV__Value_1,PROPOSALCSV__Version) "
+				//													+ "| Iterate();"
+				//													+ "executedPlan = RunPlan(PLANNER = [plan]);"
+				//													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]);"
+				//													+ "planData = RunTaxPlan(PLANNER = [plan], PROPOSALS = [proposals]); "
 
-													
+
 
 													+ "plan = Database(\"MinInput\") "
 													+ "| Select(INPUTCSV,INPUTCSV__Hashcode,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version) "
@@ -109,21 +94,21 @@ public class Compiler
 													+ "executedPlan = RunPlan(PLANNER = [plan]); "
 													+ "planData = RunTaxPlan(PLANNER = [executedPlan], PROPOSALS = [proposals]); "
 													+ "retData = TaxRetrieveValue(PLANNER=[planData], "
-															+ "key=[\"aBE\","
-															+ "\"aBF\","
-															+ "\"aBG\","
-															+ "\"aBH\""
-															+ "]);"
+													+ "key=[\"aBE\","
+													+ "\"aBF\","
+													+ "\"aBG\","
+													+ "\"aBH\""
+													+ "]);"
 													+ "Iterate(store=[retData]) | "
-									                + "AddFormat(formatName = [\"d2\"], type = [\"keyvalue\"]) | "
-									                + "Export(target = [\"abcd\"], formatName = ['d2']) | Collect(1000);"
-													
-													
-													
-													
+													+ "AddFormat(formatName = [\"d2\"], type = [\"keyvalue\"]) | "
+													+ "Export(target = [\"abcd\"], formatName = ['d2']) | Collect(1000);"
+
+
+
+
 //													+ "plan = Database(\"MinInput\") "
 //													+ "| Select(INPUTCSV,INPUTCSV__Alias_1,INPUTCSV__Client_ID,INPUTCSV__FieldName,INPUTCSV__FormName,INPUTCSV__Scenario,INPUTCSV__Type_1,INPUTCSV__Value_1,INPUTCSV__Version, INPUTCSV__Hashcode) "
-													//+ "| Select(UPDATEDINPUTCSV ,  UPDATEDINPUTCSV__Alias_1 ,  UPDATEDINPUTCSV__Client_ID ,  UPDATEDINPUTCSV__FieldName ,  UPDATEDINPUTCSV__FormName ,  UPDATEDINPUTCSV__Scenario ,  UPDATEDINPUTCSV__Type_1 ,  UPDATEDINPUTCSV__Value_1 ,  UPDATEDINPUTCSV__Version) "
+//+ "| Select(UPDATEDINPUTCSV ,  UPDATEDINPUTCSV__Alias_1 ,  UPDATEDINPUTCSV__Client_ID ,  UPDATEDINPUTCSV__FieldName ,  UPDATEDINPUTCSV__FormName ,  UPDATEDINPUTCSV__Scenario ,  UPDATEDINPUTCSV__Type_1 ,  UPDATEDINPUTCSV__Value_1 ,  UPDATEDINPUTCSV__Version) "
 //													+ "| Iterate() "
 //													+ "| LoadClient(assignment = ['Hashcode'], value = ['Value_1']);"
 //													+ "proposals = Database(\"MinProposal\") "
@@ -137,7 +122,7 @@ public class Compiler
 //													+ ", \"A1120_PG_1_MAPPING__24__EMPLOYEE_BENEFIT_PROGRAMS = -45673134;\" "
 //													+ ", \"ASCH_C_MAPPING__TOTAL_DIVIDENDS__ADD_LINES_1_THROUGH_17__ENTER_HERE_AND_ON_PAGE_1__LINE_4_ = 8797652721;\" "
 //													+ "]);"
-													
+
 //													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
 //													+ "Frame() | Select(Studio, Sum(Movie_Budget)) | Group(Studio) | Iterate();"
 //													
@@ -161,17 +146,17 @@ public class Compiler
 //													+ "newRet = RetrieveValue(store=['retData'], key=['ASCH_M_3_OTHER_ITEMS_MAPPING_LAB_TESTING_PERMANENT_DIFFERENCE','AFORECASTING_PERCENTAGE_20_DEPRECIATION_FORM_4562_MANUAL']); "
 //													+ "Iterate(store=[newRet]) | AddFormat(formatName = ['d1'], type = ['keyvalue']) | "
 //													+ "Export(target = ['1120_Pg1_Form'], formatName = ['d1']) | Collect(10000); "
-													
+
 //													+ "Job('job2') | AddFormat(formatName = ['d1'], type = ['keyvalue']) | "
 //													+ "AddOptions(optionsName = ['o1'], label = ['Studio'], value = ['Sum_MovieBudget']) | "
 //													+ "Export(target = ['bar'], formatName = ['d1'], optionsName = ['o1']) | Collect(10000);"
-													
+
 //													+ "Job('job2') | AddFormat(formatName = ['d1'], type = ['keyvalue']) | "
 //													+ "Export(target = ['1120_Pg1_Form'], formatName = ['d1']) | Collect(10000);"
 
 //													+ "a = 10; b = 5; c = b-a;"
 //													+ "a = 10; b = (a); Sum(a, b, -6); if( (b-a > 10), 6, 8);"
-													
+
 //													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
 //													+ "a = Sum(Movie_Budget); 
 //													+ "1b = (-6); "
@@ -179,14 +164,14 @@ public class Compiler
 //													+ "Database(Clean_Sch_J) | Select(CLEAN_SCHJ_IMPACTRESULTCSV, CLEAN_SCHJ_IMPACTRESULTCSV__FieldName, CLEAN_SCHJ_IMPACTRESULTCSV__FormName, CLEAN_SCHJ_IMPACTRESULTCSV__Type_1, CLEAN_SCHJ_IMPACTRESULTCSV__Value_1) | Iterate() | LoadClient(assignment=['FormName', 'FieldName'], value=['Value_1'], separator=['__']);"
 //													+ "Database(\"clean_1120_page_mapping\") | Select(CLEAN_1120_PAGE_MAPPINGCSV, CLEAN_1120_PAGE_MAPPINGCSV__Client_ID, CLEAN_1120_PAGE_MAPPINGCSV__FieldName, CLEAN_1120_PAGE_MAPPINGCSV__FormName, CLEAN_1120_PAGE_MAPPINGCSV__Scenario, CLEAN_1120_PAGE_MAPPINGCSV__Type_1, CLEAN_1120_PAGE_MAPPINGCSV__Value_1, CLEAN_1120_PAGE_MAPPINGCSV__Version ) | Iterate() | LoadClient(assignment = ['FormName', 'FieldName'], value = ['Value_1'], separator = ['__']);"
 
-													
+
 //													+"test = MapStore();; StoreValue(store=[test], key=['thiskey'], value=[5000]);RetrieveValue(store=[test], key=['thiskey']);"
 //													+ "if( ( RetrieveValue(store=['test'], key=['thiskey']) > 10 ) , if((2*(3+Sum(Movie_Budget)) > 9), 0, 1) , 6);"
-													
+
 //													+ "Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget, Title__Revenue_Domestic, Title__Revenue_International, Studio) | Filter((Title__Movie_Budget > 45), (45 < Title__Revenue_International), (Title__Revenue_Domestic > Title__Revenue_International)) | Join((Title inner.join Studio)) | Import(); "
 //													+ "a = Sum(Movie_Budget);; "
 //													+ "if( ( (Sum(Revenue_Domestic) + a) > 10000000), if((6 > 5), 10, 5), 0);"
-													
+
 													//+ "if(((a + 2 *5)==10), if(b, a*2, if(c, k*9+2*3+h, 0)), if(c, b*2, 0));"
 													//+ "sum((2*abc)+5*2);sum(s=[hello, 'hello world', sum(hello, world)], k=[(name != 'gh'), (somethingelse == 5)])|product(s=[demo]) | product2(s=[demo]); sum(2 + 3); sum2(2 + 3); sum3(a,b,c,d) | sum4(a,b,c); sum7(s=[a,b,c, sum6(a,b,c)]); name = 'pk';"
 													//+ "(3 + 4, [c:bp, c:ab]);"
@@ -250,25 +235,16 @@ public class Compiler
    													+ "join:(c:newColumn, c:existingcol, c:existingcol2);"
    													+ "del:(c:colToRemove);"
    													+ "rm:(c:colToRemove, c:anotherColToRemove);"*/
-													//+ "jc"
-													//+"database.concepts(Movie_RDBMS)"	
-													+ "")), 1024)));
-			// new InputStreamReader(System.in), 1024)));
+   													//+ "jc"
+   													//+"database.concepts(Movie_RDBMS)"	
+   													// new InputStreamReader(System.in), 1024)));
 
 			// Parse the input.
-			Start tree = p.parse();
+			+ "";
 
-
-			// Apply the translation.
-			PKSLRunner runner = new PKSLRunner();
-			GreedyTranslation t = new GreedyTranslation(runner);
-			tree.apply(t);
-			System.out.println(t.getResults());
-		}
-		catch(Exception e)
-		{
-			System.out.println(e.getMessage());
-			e.printStackTrace();
-		}
+		// Apply the translation.
+		Insight in = new Insight();
+		Map<String, Object> reuslts = in.runPksl(expression);
+		System.out.println(reuslts);
 	}
 }

@@ -231,6 +231,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMapRegTerm(AMapRegTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAFormulaRegTerm(AFormulaRegTerm node)
     {
         defaultCase(node);
@@ -453,7 +459,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseARelationship(ARelationship node)
+    public void caseAExplicitRelationship(AExplicitRelationship node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAImplicitRelationship(AImplicitRelationship node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAImplicitRel(AImplicitRel node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAExplicitRel(AExplicitRel node)
     {
         defaultCase(node);
     }
@@ -478,6 +502,54 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseADotcol(ADotcol node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMap(AMap node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMapEntry(AMapEntry node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOtherMapEntry(AOtherMapEntry node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASimpleScalarValues(ASimpleScalarValues node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVectorValues(AVectorValues node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANestedMapValues(ANestedMapValues node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMapScalarList(AMapScalarList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOtherScalar(AOtherScalar node)
     {
         defaultCase(node);
     }
@@ -712,6 +784,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTRBrac(TRBrac node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTLCurl(TLCurl node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTRCurl(TRCurl node)
     {
         defaultCase(node);
     }
