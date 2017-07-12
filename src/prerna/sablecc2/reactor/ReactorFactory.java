@@ -33,6 +33,12 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.panel.AddPanelOrnamentsReactor;
+import prerna.sablecc2.reactor.panel.AddPanelReactor;
+import prerna.sablecc2.reactor.panel.PanelCloneReactor;
+import prerna.sablecc2.reactor.panel.PanelReactor;
+import prerna.sablecc2.reactor.panel.ResetPanelOrnamentsReactor;
+import prerna.sablecc2.reactor.panel.RetrievePanelOrnamentsReactor;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
 import prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor;
 import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
@@ -161,6 +167,14 @@ public class ReactorFactory {
 		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetEngineMetamodel", DatabaseMetamodelReactor.class);
+		
+		// Panel Reactors
+		reactorHash.put("Panel", PanelReactor.class);
+		reactorHash.put("Clone", PanelCloneReactor.class);
+		reactorHash.put("AddPanel", AddPanelReactor.class);
+		reactorHash.put("AddPanelOrnaments", AddPanelOrnamentsReactor.class);
+		reactorHash.put("ResetPanelOrnaments", ResetPanelOrnamentsReactor.class);
+		reactorHash.put("RetrievePanelOrnaments", RetrievePanelOrnamentsReactor.class);
 	}
 
 	/**
