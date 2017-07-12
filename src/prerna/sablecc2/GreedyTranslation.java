@@ -6,19 +6,16 @@ import java.util.List;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.h2.H2Frame;
+import prerna.om.Insight;
 import prerna.sablecc2.node.APlainRow;
 import prerna.sablecc2.node.POthercol;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
-import prerna.sablecc2.reactor.PKSLPlanner;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class GreedyTranslation extends LazyTranslation {
 
@@ -26,35 +23,11 @@ public class GreedyTranslation extends LazyTranslation {
 
 	protected PKSLRunner runner;
 
-	public GreedyTranslation() {
-		this.planner = new PKSLPlanner();
-		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
-		this.runner = new PKSLRunner();
-	}
-	
-	public GreedyTranslation(PKSLRunner runner) {
-		this.planner = new PKSLPlanner();
-		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
-		this.runner = runner;
-	}
-	
-	public GreedyTranslation(PKSLRunner runner, VarStore varStore) {
-		this.planner = new PKSLPlanner();
-		this.planner.setVarStore(varStore);
-		this.planner.addProperty("FRAME", "FRAME", new H2Frame());
-		this.runner = runner;
-	}
-	
-	public GreedyTranslation(PKSLRunner runner, IDataMaker dataMaker) {
-		this.planner = new PKSLPlanner(dataMaker);
-		this.planner.addProperty("FRAME", "FRAME", dataMaker);
-		this.runner = runner;
-	}
-	
-	public GreedyTranslation(PKSLRunner runner, VarStore varStore, IDataMaker dataMaker) {
-		this.planner = new PKSLPlanner(dataMaker);
-		this.planner.setVarStore(varStore);
-		this.planner.addProperty("FRAME", "FRAME", dataMaker);
+	public GreedyTranslation(PKSLRunner runner, Insight insight) {
+		super(insight);
+		if(insight.getDataMaker() != null) {
+			this.planner.addProperty("FRAME", "FRAME", insight.getDataMaker());
+		}
 		this.runner = runner;
 	}
 	

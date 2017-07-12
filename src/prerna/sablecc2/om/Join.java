@@ -10,16 +10,26 @@ public class Join {
 	private String joinType = null;
 	private String selector = null;
 	private String qualifier = null;
+	private String relName = null;
 	int count = 0;
 	
 	public Join(String lCol, String comparator, String rCol)
 	{
-		selector = lCol;
-		qualifier = rCol;
-		joinType = comparator;
+		this.selector = lCol;
+		this.qualifier = rCol;
+		this.joinType = comparator;
 	}
 
 	
+	public Join(String lCol, String comparator, String rCol, String relName) 
+	{
+		this.selector = lCol;
+		this.qualifier = rCol;
+		this.joinType = comparator;
+		this.relName = relName;
+	}
+
+
 	public void setJoinType(String joinType)
 	{
 		this.joinType = joinType;
@@ -38,5 +48,10 @@ public class Join {
 	public String getJoinType()
 	{
 		return this.joinType;
+	}
+	
+	public String getJoinRelName() 
+	{
+		return this.relName;
 	}
 }

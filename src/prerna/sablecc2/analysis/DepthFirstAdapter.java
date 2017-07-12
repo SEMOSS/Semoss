@@ -692,6 +692,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAScalarRegTerm(node);
     }
 
+    public void inAMapRegTerm(AMapRegTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapRegTerm(AMapRegTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapRegTerm(AMapRegTerm node)
+    {
+        inAMapRegTerm(node);
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        outAMapRegTerm(node);
+    }
+
     public void inAFormulaRegTerm(AFormulaRegTerm node)
     {
         defaultIn(node);
@@ -1617,20 +1638,62 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAAsop(node);
     }
 
-    public void inARelationship(ARelationship node)
+    public void inAExplicitRelationship(AExplicitRelationship node)
     {
         defaultIn(node);
     }
 
-    public void outARelationship(ARelationship node)
+    public void outAExplicitRelationship(AExplicitRelationship node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseARelationship(ARelationship node)
+    public void caseAExplicitRelationship(AExplicitRelationship node)
     {
-        inARelationship(node);
+        inAExplicitRelationship(node);
+        if(node.getExplicitRel() != null)
+        {
+            node.getExplicitRel().apply(this);
+        }
+        outAExplicitRelationship(node);
+    }
+
+    public void inAImplicitRelationship(AImplicitRelationship node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAImplicitRelationship(AImplicitRelationship node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAImplicitRelationship(AImplicitRelationship node)
+    {
+        inAImplicitRelationship(node);
+        if(node.getImplicitRel() != null)
+        {
+            node.getImplicitRel().apply(this);
+        }
+        outAImplicitRelationship(node);
+    }
+
+    public void inAImplicitRel(AImplicitRel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAImplicitRel(AImplicitRel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAImplicitRel(AImplicitRel node)
+    {
+        inAImplicitRel(node);
         if(node.getLPar() != null)
         {
             node.getLPar().apply(this);
@@ -1659,7 +1722,60 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        outARelationship(node);
+        outAImplicitRel(node);
+    }
+
+    public void inAExplicitRel(AExplicitRel node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAExplicitRel(AExplicitRel node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAExplicitRel(AExplicitRel node)
+    {
+        inAExplicitRel(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getLcol() != null)
+        {
+            node.getLcol().apply(this);
+        }
+        if(node.getComma1() != null)
+        {
+            node.getComma1().apply(this);
+        }
+        if(node.getRelType() != null)
+        {
+            node.getRelType().apply(this);
+        }
+        if(node.getComma2() != null)
+        {
+            node.getComma2().apply(this);
+        }
+        if(node.getRcol() != null)
+        {
+            node.getRcol().apply(this);
+        }
+        if(node.getComma3() != null)
+        {
+            node.getComma3().apply(this);
+        }
+        if(node.getRelationshipName() != null)
+        {
+            node.getRelationshipName().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outAExplicitRel(node);
     }
 
     public void inAJavaOp(AJavaOp node)
@@ -1756,6 +1872,220 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getColumnName().apply(this);
         }
         outADotcol(node);
+    }
+
+    public void inAMap(AMap node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMap(AMap node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMap(AMap node)
+    {
+        inAMap(node);
+        if(node.getLCurl() != null)
+        {
+            node.getLCurl().apply(this);
+        }
+        if(node.getMapEntry() != null)
+        {
+            node.getMapEntry().apply(this);
+        }
+        {
+            List<POtherMapEntry> copy = new ArrayList<POtherMapEntry>(node.getOtherMapEntry());
+            for(POtherMapEntry e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRCurl() != null)
+        {
+            node.getRCurl().apply(this);
+        }
+        outAMap(node);
+    }
+
+    public void inAMapEntry(AMapEntry node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapEntry(AMapEntry node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapEntry(AMapEntry node)
+    {
+        inAMapEntry(node);
+        if(node.getKey() != null)
+        {
+            node.getKey().apply(this);
+        }
+        if(node.getColon() != null)
+        {
+            node.getColon().apply(this);
+        }
+        if(node.getVal() != null)
+        {
+            node.getVal().apply(this);
+        }
+        outAMapEntry(node);
+    }
+
+    public void inAOtherMapEntry(AOtherMapEntry node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOtherMapEntry(AOtherMapEntry node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOtherMapEntry(AOtherMapEntry node)
+    {
+        inAOtherMapEntry(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getMapEntry() != null)
+        {
+            node.getMapEntry().apply(this);
+        }
+        outAOtherMapEntry(node);
+    }
+
+    public void inASimpleScalarValues(ASimpleScalarValues node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASimpleScalarValues(ASimpleScalarValues node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASimpleScalarValues(ASimpleScalarValues node)
+    {
+        inASimpleScalarValues(node);
+        if(node.getScalar() != null)
+        {
+            node.getScalar().apply(this);
+        }
+        outASimpleScalarValues(node);
+    }
+
+    public void inAVectorValues(AVectorValues node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAVectorValues(AVectorValues node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAVectorValues(AVectorValues node)
+    {
+        inAVectorValues(node);
+        if(node.getMapScalarList() != null)
+        {
+            node.getMapScalarList().apply(this);
+        }
+        outAVectorValues(node);
+    }
+
+    public void inANestedMapValues(ANestedMapValues node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANestedMapValues(ANestedMapValues node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANestedMapValues(ANestedMapValues node)
+    {
+        inANestedMapValues(node);
+        if(node.getMap() != null)
+        {
+            node.getMap().apply(this);
+        }
+        outANestedMapValues(node);
+    }
+
+    public void inAMapScalarList(AMapScalarList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapScalarList(AMapScalarList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapScalarList(AMapScalarList node)
+    {
+        inAMapScalarList(node);
+        if(node.getLBrac() != null)
+        {
+            node.getLBrac().apply(this);
+        }
+        if(node.getScalar() != null)
+        {
+            node.getScalar().apply(this);
+        }
+        {
+            List<POtherScalar> copy = new ArrayList<POtherScalar>(node.getOtherScalar());
+            for(POtherScalar e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRBrac() != null)
+        {
+            node.getRBrac().apply(this);
+        }
+        outAMapScalarList(node);
+    }
+
+    public void inAOtherScalar(AOtherScalar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOtherScalar(AOtherScalar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOtherScalar(AOtherScalar node)
+    {
+        inAOtherScalar(node);
+        if(node.getComma() != null)
+        {
+            node.getComma().apply(this);
+        }
+        if(node.getScalar() != null)
+        {
+            node.getScalar().apply(this);
+        }
+        outAOtherScalar(node);
     }
 
     public void inANumScalar(ANumScalar node)

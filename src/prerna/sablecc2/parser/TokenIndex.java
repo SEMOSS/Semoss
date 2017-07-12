@@ -190,62 +190,74 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTFrameprefix(@SuppressWarnings("unused") TFrameprefix node)
+    public void caseTLCurl(@SuppressWarnings("unused") TLCurl node)
     {
         this.index = 30;
     }
 
     @Override
-    public void caseTFrameid(@SuppressWarnings("unused") TFrameid node)
+    public void caseTRCurl(@SuppressWarnings("unused") TRCurl node)
     {
         this.index = 31;
     }
 
     @Override
-    public void caseTOutput(@SuppressWarnings("unused") TOutput node)
+    public void caseTFrameprefix(@SuppressWarnings("unused") TFrameprefix node)
     {
         this.index = 32;
     }
 
     @Override
-    public void caseTJava(@SuppressWarnings("unused") TJava node)
+    public void caseTFrameid(@SuppressWarnings("unused") TFrameid node)
     {
         this.index = 33;
     }
 
     @Override
-    public void caseTR(@SuppressWarnings("unused") TR node)
+    public void caseTOutput(@SuppressWarnings("unused") TOutput node)
     {
         this.index = 34;
     }
 
     @Override
-    public void caseTIf(@SuppressWarnings("unused") TIf node)
+    public void caseTJava(@SuppressWarnings("unused") TJava node)
     {
         this.index = 35;
     }
 
     @Override
-    public void caseTAsOp(@SuppressWarnings("unused") TAsOp node)
+    public void caseTR(@SuppressWarnings("unused") TR node)
     {
         this.index = 36;
     }
 
     @Override
-    public void caseTCustom(@SuppressWarnings("unused") TCustom node)
+    public void caseTIf(@SuppressWarnings("unused") TIf node)
     {
         this.index = 37;
     }
 
     @Override
-    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
+    public void caseTAsOp(@SuppressWarnings("unused") TAsOp node)
     {
         this.index = 38;
     }
 
     @Override
-    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    public void caseTCustom(@SuppressWarnings("unused") TCustom node)
     {
         this.index = 39;
+    }
+
+    @Override
+    public void caseTRelType(@SuppressWarnings("unused") TRelType node)
+    {
+        this.index = 40;
+    }
+
+    @Override
+    public void caseEOF(@SuppressWarnings("unused") EOF node)
+    {
+        this.index = 41;
     }
 }
