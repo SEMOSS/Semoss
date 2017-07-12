@@ -558,6 +558,31 @@ public class QueryStruct2 {
 		return copy;
 	}
 	
+	public List<Map<String, Object>> getHeaderInfo() {
+		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
+		for(QueryStructSelector selector : this.selectors) {
+			Map<String, Object> selectorMap = new HashMap<String, Object>();
+			if(selector.getMath() != null && !selector.getMath().isEmpty()) {
+				selectorMap.put("header", selector.getAlias());
+				selectorMap.put("alias", selector.getAlias());
+				selectorMap.put("math", selector.getMath());
+				List<String> groupBy = new ArrayList<String>();
+				for(QueryStructSelector groupBySelector : this.groupBy) {
+					groupBy.add(groupBySelector.getColumn());
+				}
+				selectorMap.put("derived", true);
+				selectorMap.put("groupBy", groupBy);
+				selectorMap.put("calculatedBy", selector.getColumn());
+			} else {
+				selectorMap.put("header", selector.getColumn());
+				selectorMap.put("alias", selector.getAlias());
+				selectorMap.put("derived", false);
+			}
+			headerInfo.add(selectorMap);
+		}
+		return headerInfo;
+	}
+	
 	public static void main(String [] args) throws Exception
 	{
 		// test code for getting proper edge hash when there are intermediary nodes that
