@@ -98,6 +98,32 @@ public class TaxUtility {
 		sql.append(")");
 		return sql.toString();
 	}
-
-
+	
+	public static double getLatestVersionForScenario(IEngine engine, String clientID, double scenarioID) {
+		double scenarioRet = 1.0;
+		String sql = "SELECT VERSION FROM INPUTCSV WHERE CLIENT_ID='" + "' AND SCENARIO=" + scenarioID + " ORDER BY VERSION DESC LIMIT 1";
+		Map<String, Object> queryRet = (Map<String, Object>)engine.execQuery(sql);
+		Statement stmt = (Statement) queryRet.get(RDBMSNativeEngine.STATEMENT_OBJECT);
+		ResultSet rs = (ResultSet) queryRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
+		try {
+			while(rs.next()) {
+				scenarioRet = rs.getDouble(1);
+			}
+		} catch(SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				stmt.close();
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return scenarioRet;
+	}
 }
