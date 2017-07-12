@@ -71,7 +71,6 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();		
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
-		boolean allowDuplicates = options.isAllowDuplicates();
 		
 		boolean error = false;
 
@@ -150,8 +149,8 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();		
+		autoLoad = options.isAutoLoad();
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
-		boolean allowDuplicates = options.isAllowDuplicates();
 		
 		boolean error = false;
 		
@@ -267,7 +266,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			
 			// if the number of headers does not match
 			// we know it is not a good match
-			if(existingColTypeMap.keySet().size() != headers.length) {
+			if(existingColTypeMap.keySet().size()-1 != headers.length) {
 				// no way all columns are contained
 				// look at the next table
 				continue TABLE_LOOP;
