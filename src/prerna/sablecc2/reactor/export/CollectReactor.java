@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.export;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -13,13 +14,16 @@ import prerna.sablecc2.reactor.AbstractReactor;
  * This class is responsible for collecting data from a job and returning it
  *
  */
-public class CollectReactor extends AbstractReactor{
+public class CollectReactor extends AbstractReactor {
+
+	private static final String INCLUDE_META_KEY = "includeMeta";
+	private static final String NUM_COLLECT_KEY = "limit";
 
 	public NounMetadata execute() {
 		Job job = getJob();
 		int collectThisMany = getTotalToCollect();
-		
-		Object data = job.collect(collectThisMany);
+		boolean collectMeta = collectMeta();
+		Object data = job.collect(collectThisMany, collectMeta);
 		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET);
 		return result;
 	}
@@ -40,8 +44,36 @@ public class CollectReactor extends AbstractReactor{
 	
 	//returns how much do we need to collect
 	private int getTotalToCollect() {
-		Number collectThisMany = (Number) curRow.getAllNumericColumns().get(0);
-		return collectThisMany.intValue();
+		// try the key
+		GenRowStruct numGrs = store.getNoun(NUM_COLLECT_KEY);
+		if(numGrs != null && !numGrs.isEmpty()) {
+			return ((Number) numGrs.get(0)).intValue();
+		}
+		
+		// try the cur row
+		List<Object> allNumericInputs = this.curRow.getAllNumericColumns();
+		if(allNumericInputs != null && !allNumericInputs.isEmpty()) {
+			return ((Number) allNumericInputs.get(0)).intValue();
+		}
+		
+		// default to 500
+		return 500;
+	}
+	
+	private boolean collectMeta() {
+		// try the key
+		GenRowStruct includeMetaGrs = store.getNoun(INCLUDE_META_KEY);
+		if(includeMetaGrs != null && !includeMetaGrs.isEmpty()) {
+			return (boolean) includeMetaGrs.get(0);
+		}
+		
+		// try the cur row
+		List<NounMetadata> booleanNouns = this.curRow.getNounsOfType(PkslDataTypes.BOOLEAN);
+		if(booleanNouns != null && !booleanNouns.isEmpty()) {
+			return (boolean) booleanNouns.get(0).getValue();
+		}
+		
+		return true;
 	}
 	
 	@Override

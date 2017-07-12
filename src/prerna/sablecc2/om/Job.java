@@ -1,6 +1,5 @@
 package prerna.sablecc2.om;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -16,16 +15,12 @@ public class Job {
 
 	private String id;
 	private final Iterator iterator;
-	private Map<String, List<Object>> viewOptions; //this holds the options object for the FE
+	private Map<String, Object> viewOptions; //this holds the options object for the FE
 	private Formatter formatter = null;;
-	private List<String> views;
-	private List<String> targets; 
 	private List<Map<String, Object>> headerInfo;
 	
 	public Job(Iterator iterator, QueryStruct2 queryStruct) {
 		this.iterator = iterator;
-		this.views = new ArrayList<>();
-		this.targets = new ArrayList<>();
 		this.viewOptions = new HashMap<>();
 		this.formatter = new TableFormatter();
 	}
@@ -35,13 +30,13 @@ public class Job {
 	 * @param num
 	 * @return
 	 */
-	public Map<String, Object> collect(int num) {
+	public Map<String, Object> collect(int num, boolean meta) {
 		Map<String, Object> collectedData = new HashMap<String, Object>(3);
 		collectedData.put("data", getData(num));
-		collectedData.put("viewOptions", getViewOptions());
-		collectedData.put("headerInfo", this.headerInfo);
-		collectedData.put("views", this.views);
-		collectedData.put("targets", this.targets);
+		if(meta) {
+			collectedData.put("viewOptions", getViewOptions());
+			collectedData.put("headerInfo", this.headerInfo);
+		}
 		collectedData.put("jobId", this.id);
 		collectedData.put("numCollected", num);
 		return collectedData;
@@ -77,19 +72,7 @@ public class Job {
 		return this.iterator;
 	}
 	
-	/**
-	 * Returns structure in this format:
-	 * 		{
-	 * 			"optionsKey": {
-	 * 				key : "value",
-	 * 				key2: "value2"
-	 * 			}
-	 * 		}
-	 * @return 
-	 */
-	public Map<String, List<Object>> getViewOptions() {
-		viewOptions.remove(PkslDataTypes.JOB.toString());
-		viewOptions.remove("all");
+	public Map<String, Object> getViewOptions() {
 		return viewOptions;
 	}
 	
@@ -97,17 +80,9 @@ public class Job {
 		return headerInfo;
 	}
 	
-	public List<String> getViews() {
-		return this.views;
-	}
-	
-	public List<String> getTargets() {
-		return this.targets;
-	}
-	
 	/****************** SETTERS ******************************/
 	
-	public void setViewOptions(Map<String, List<Object>> viewOptions) {
+	public void setViewOptions(Map<String, Object> viewOptions) {
 		this.viewOptions = viewOptions;
 	}
 	
@@ -125,14 +100,6 @@ public class Job {
 
 	public void setHeaderInfo(List<Map<String, Object>> headerInfo) {
 		this.headerInfo = headerInfo;		
-	}
-
-	public void setViews(List<String> views) {
-		this.views = views;
-	}
-
-	public void setTargets(List<String> targets) {
-		this.targets = targets;
 	}
 
 	/****************** END SETTERS **************************/
