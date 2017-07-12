@@ -1,29 +1,21 @@
 package prerna.sablecc2.reactor.export.job;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PkslDataTypes;
 
 public class ViewOptionsReactor extends JobBuilderReactor {
 
 	@Override
 	protected void buildJob() {
-		Map<String, List<Object>> newOptions = new HashMap<>();
-		//Grab the keys in the nounstore
-		Set<String> nounKeys = getNounStore().getNounKeys();
-		for(String nounKey : nounKeys) {
-			newOptions.putIfAbsent(nounKey, new ArrayList<>());			
-			GenRowStruct genRow = getNounStore().getNoun(nounKey);
-			for(int i = 0; i < genRow.size(); i++) {
-				Object nextVal = genRow.get(i);
-				newOptions.get(nounKey).add(nextVal);
-			}
+		List<Object> mapOptions = this.curRow.getColumnsOfType(PkslDataTypes.MAP);
+		if(mapOptions == null) {
+			// if it is null, i guess we just clear the map values
+			job.setViewOptions(new HashMap<String, Object>());
+		} else {
+			job.setViewOptions((Map<String, Object>) mapOptions.get(0));
 		}
-
-		job.setViewOptions(newOptions);
 	}
 }
