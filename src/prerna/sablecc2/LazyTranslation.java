@@ -6,6 +6,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.Insight;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
@@ -16,13 +17,17 @@ import prerna.sablecc2.node.AComparisonExpr;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.AEmbeddedAssignment;
+import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AFrameop;
 import prerna.sablecc2.node.AFrameopRegTerm;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
+import prerna.sablecc2.node.AImplicitRel;
 import prerna.sablecc2.node.AList;
+import prerna.sablecc2.node.AMap;
+import prerna.sablecc2.node.AMapScalarList;
 import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
@@ -34,7 +39,6 @@ import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
-import prerna.sablecc2.node.ARelationship;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
@@ -42,12 +46,13 @@ import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
+import prerna.sablecc2.reactor.MapListReactor;
+import prerna.sablecc2.reactor.MapReactor;
 import prerna.sablecc2.reactor.NegReactor;
 import prerna.sablecc2.reactor.PKSLPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
@@ -61,9 +66,11 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	private static final Logger LOGGER = LogManager.getLogger(LazyTranslation.class.getName());
 	
+	protected Insight insight;
+	public PKSLPlanner planner;
+
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
-	public PKSLPlanner planner;
 
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
@@ -80,9 +87,10 @@ public class LazyTranslation extends DepthFirstAdapter {
 		this.planner = new PKSLPlanner();
 	}
 	
-	public LazyTranslation(VarStore varStore) {
+	public LazyTranslation(Insight insight) {
+		this.insight = insight;
 		this.planner = new PKSLPlanner();
-		this.planner.setVarStore(varStore);
+		this.planner.setVarStore(this.insight.getVarStore());
 	}
 	
 	protected void postProcess(String pkslExpression) {
@@ -305,7 +313,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	if(prevResult != null) {
     		PkslDataTypes nounName = prevResult.getNounName();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
-    		genRow.add(prevResult, nounName);
+    		genRow.add(prevResult);
     		// then we will remove the result from the planner
         	this.planner.removeVariable("$RESULT");
     	}
@@ -595,7 +603,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 //    	}
 //    }
     
-    
     public void inADotcol(ADotcol node)
     {
     	defaultIn(node);
@@ -635,24 +642,39 @@ public class LazyTranslation extends DepthFirstAdapter {
     // you definitely need the other party to be in a relationship :)
     // this is of the form colDef followed by type of relation and another col def
     
-    public void inARelationship(ARelationship node)
-    {
-        defaultIn(node);    
-        // Need some way to track the state to say all the other things are interim
-        // so I can interpret the dot notation etc for frame columns
+    @Override
+    public void inAExplicitRel(AExplicitRel node) {
+    	defaultIn(node);    
+    	// Need some way to track the state to say all the other things are interim
+    	// so I can interpret the dot notation etc for frame columns
     }
 
-    //why is relationship implemented differently than filter?
-    //they do very similar things
-    public void outARelationship(ARelationship node)
-    {
+    @Override
+    public void outAExplicitRel(AExplicitRel node) {
+        defaultOut(node);
+    	String leftCol = node.getLcol().toString().trim();
+    	String rightCol = node.getRcol().toString().trim();
+    	String relType = node.getRelType().toString().trim();
+    	String relName = node.getRelationshipName().toString().trim();
+    	curReactor.getCurRow().addRelation(leftCol, relType, rightCol, relName);
+    }
+    
+    @Override
+    public void inAImplicitRel(AImplicitRel node) {
+    	defaultIn(node);    
+    	// Need some way to track the state to say all the other things are interim
+    	// so I can interpret the dot notation etc for frame columns
+    }
+
+    @Override
+    public void outAImplicitRel(AImplicitRel node) {
+        defaultOut(node);
     	String leftCol = node.getLcol().toString().trim();
     	String rightCol = node.getRcol().toString().trim();
     	String relType = node.getRelType().toString().trim();
     	curReactor.getCurRow().addRelation(leftCol, relType, rightCol);
-        defaultOut(node);
     }
-
+    
     @Override
     public void inAComparisonExpr(AComparisonExpr node) {
     	defaultIn(node);
@@ -661,16 +683,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     	IReactor opReactor = new OpFilter();
     	initReactor(opReactor);
     	syncResult();
-
-//    	defaultIn(node);
-//        IReactor opReactor = new FilterReactor();
-//        opReactor.setName("Filter");
-//        opReactor.setPKSL("Filter", node.toString().trim());
-//        initReactor(opReactor);
-//        GenRowStruct genRow = curReactor.getNounStore().makeNoun("COMPARATOR");
-//        genRow.add(node.getComparator().toString().trim(), PkslDataTypes.COMPARATOR);
-        // Need some way to track the state to say all the other things are interim
-        // so I can interpret the dot notation etc for frame columns
     }
 
     @Override
@@ -696,59 +708,6 @@ public class LazyTranslation extends DepthFirstAdapter {
         }
         outAComparisonExpr(node);
     }
-    
-//    @Override
-//    public void caseAComparisonExpr(AComparisonExpr node)
-//    {
-//    	inAComparisonExpr(node);
-////        if(node.getLPar() != null)
-////        {
-////            node.getLPar().apply(this);
-////        }
-//        if(node.getLeft() != null)
-//        {
-//        	// we will change the curNoun here
-//        	// so when we hit a literal
-//        	// it will be cast to the appropriate type
-//        	curReactor.curNoun("LCOL");
-//        	node.getLeft().apply(this);
-//            // we need to account for various expressions being evaluated within a filter
-//            // if there is a result, grab the result and set it as a lcol in the filter reactor
-//            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
-//        	if(prevResult != null) {
-//        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("LCOL");
-//        		genRow.add(prevResult, prevResult.getNounName());
-//        		this.planner.removeVariable("$RESULT");
-//        	}
-//        }
-//        // we put the comparator into the noun store of the filter
-//        // during the init of the filter reactor
-////        if(node.getComparator() != null)
-////        {
-////            node.getComparator().apply(this);
-////        }
-//        if(node.getRight() != null)
-//        {
-//            // we will change the curNoun here
-//        	// so when we hit a literal
-//        	// it will be cast to the appropriate type
-//        	curReactor.curNoun("RCOL");
-//        	node.getRight().apply(this);
-//            // we need to account for various expressions being evaluated within a filter
-//            // if there is a result, grab the result and set it as a lcol in the filter reactor
-//            NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
-//        	if(prevResult != null) {
-//        		GenRowStruct genRow = curReactor.getNounStore().makeNoun("RCOL");
-//        		genRow.add(prevResult, prevResult.getNounName());
-//        		this.planner.removeVariable("$RESULT");
-//        	}
-//        }
-////        if(node.getRPar() != null)
-////        {
-////            node.getRPar().apply(this);
-////        }
-//        outAComparisonExpr(node);
-//    }
     
     /**************************************************
      *	Expression Methods
@@ -980,7 +939,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         	}
         }
         curReactor = reactor;
-        curReactor.setPKSLPlanner(planner);
+        curReactor.setInsight(this.insight);
+        curReactor.setPKSLPlanner(this.planner);
         curReactor.In();
     }
     
@@ -1009,11 +969,49 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     public IDataMaker getDataMaker() {
     	try {
-    		return (IDataMaker)planner.getProperty("FRAME", "FRAME");
+    		return (IDataMaker) planner.getProperty("FRAME", "FRAME");
     	} catch(Exception e) {
     		return null;
     	}
     }
+    
+    //////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    
+    /*
+     * This section is for processing maps
+     * These are all just things to store
+     * No additional processing occurs within the map inputs
+     */
+    
+    @Override
+    public void inAMap(AMap node) {
+    	defaultIn(node);
+    	MapReactor mapR = new MapReactor();
+    	initReactor(mapR);
+    }
+    
+    @Override
+    public void outAMap(AMap node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
+    @Override
+    public void inAMapScalarList(AMapScalarList node) {
+    	defaultIn(node);
+    	MapListReactor mapListR = new MapListReactor();
+    	initReactor(mapListR);
+    }
+    
+    @Override
+    public void outAMapScalarList(AMapScalarList node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
+	//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
     
     /**
      * 
@@ -1077,8 +1075,4 @@ public class LazyTranslation extends DepthFirstAdapter {
 //    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
 //    	}
     }
-
-	public Object getResults() {
-		return planner.getProperty("DATA", "DATA");
-	}
 }

@@ -66,11 +66,11 @@ public class PKQLTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
-		if(runner == null) {
-			String expression = props.get(EXPRESSION) + "";	
-			runner2.runPKSL(expression, this.dm);
-			return;
-		}
+//		if(runner == null) {
+//			String expression = props.get(EXPRESSION) + "";	
+//			runner2.runPKSL(expression, this.dm);
+//			return;
+//		}
 		// check how long runner response array is
 		int numOldCmds = runner.getResults().size();
 		

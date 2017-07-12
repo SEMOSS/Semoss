@@ -32,17 +32,17 @@ public class GenericReactor extends AbstractReactor {
 
 		int numNouns = allNouns.size();
 		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
-			Object noun = allNouns.get(nounIdx);
+			Object nounValue = allNouns.get(nounIdx);
 			PkslDataTypes nounType = allNouns.getMeta(nounIdx);
 			if(nounType == PkslDataTypes.COLUMN) {
-				NounMetadata value = this.planner.getVariableValue((String)noun);
+				NounMetadata value = this.planner.getVariableValue((String)nounValue);
 				if(value != null) {
 					thisStruct.add(value);
 				} else {
-					thisStruct.add(noun, nounType);
+					thisStruct.add(nounValue, nounType);
 				}
 			} else {
-				thisStruct.add(noun, nounType);
+				thisStruct.add(nounValue, nounType);
 			}
 		}
 
