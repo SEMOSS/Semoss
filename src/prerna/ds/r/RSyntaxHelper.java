@@ -1,5 +1,10 @@
 package prerna.ds.r;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
 import prerna.algorithm.api.IMetaData;
 
 public class RSyntaxHelper {
@@ -101,6 +106,27 @@ public class RSyntaxHelper {
 	}
 	
 	/**
+	 * 
+	 * @param leftTableName
+	 * @param rightTableName
+	 * @param joinType
+	 * @param joinCols
+	 * @return
+	 */
+	public static String getMergeSyntax(String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
+		/*
+		 * joinCols = [ {leftTable.Title -> rightTable.Movie} , {leftTable.Genre -> rightTable.Genre}  ]
+		 */
+		
+		StringBuilder builder = new StringBuilder();
+		
+		
+		
+		
+		return builder.toString();
+	}
+	
+	/**
 	 * Convert a java object[] into a r column vector
 	 * @param row				The object[] to convert
 	 * @param dataType			The data type for each entry in the object[]
@@ -123,5 +149,22 @@ public class RSyntaxHelper {
 		}
 		str.append(")");
 		return str.toString();
+	}
+	
+	public static void main(String[] args) {
+		String leftTableName = "x";
+		String rightTableName = "y";
+		String joinType = "inner.join"; // left.outer.join, right.outer.join, outer.join
+		List<Map<String, String>> joinCols = new Vector<Map<String, String>>();
+		Map<String, String> join1 = new HashMap<String, String>();
+		join1.put("", "");
+		joinCols.add(join1);
+		
+		// when you get to multi
+//		Map<String, String> join2 = new HashMap<String, String>();
+//		join2.put("", "");
+//		joinCols.add(join2);
+		
+		System.out.println(getMergeSyntax(leftTableName, rightTableName, joinType, joinCols));
 	}
 }
