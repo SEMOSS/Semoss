@@ -104,6 +104,7 @@ public class Insight {
 	*/
 	private transient List<FilePkqlMetadata> filesUsedInInsight = new Vector<FilePkqlMetadata>();	
 	
+	private transient Map<String, InsightPanel> insightPanels = new Hashtable<String, InsightPanel>();
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -265,6 +266,17 @@ public class Insight {
 		return runner;
 	}
 	
+	public Map<String, InsightPanel> getInsightpanels() {
+		return this.insightPanels;
+	}
+	
+	public InsightPanel getInsightPanel(String panelId) {
+		return this.insightPanels.get(panelId);
+	}
+	
+	public void addNewInsightPanel(InsightPanel insightPanel) {
+		this.insightPanels.put(insightPanel.getPanelId(), insightPanel);
+	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -368,7 +380,6 @@ public class Insight {
 	
 	public PKSLRunner getPkslRunner() {
 		PKSLRunner runner = new PKSLRunner();
-//		runner.setInsightId(this.insightId);
 		return runner;
 	}
 	
