@@ -14,8 +14,6 @@ public class JobMetaCollectorReactor extends AbstractReactor {
 
 	private static final String VIEW_OPTIONS = "VIEWOPTIONS";
 	private static final String HEADER_INFO = "HEADERINFO";
-	private static final String VIEWS = "VIEWS";
-	private static final String TARGETS = "TARGETS";
 
 	public NounMetadata execute() {
 		Job job = getJob();
@@ -31,10 +29,6 @@ public class JobMetaCollectorReactor extends AbstractReactor {
 				metaData.put("viewOptions", job.getViewOptions());
 			} else if(HEADER_INFO.equals(valToRetrieve)) {
 				metaData.put("headerInfo", job.getHeaderInfo());
-			} else if(VIEWS.equals(valToRetrieve)) {
-				metaData.put("view", job.getViews());
-			} else if(TARGETS.equals(valToRetrieve)) {
-				metaData.put("targets", job.getTargets());
 			}
 		}
 		metaData.put("jobId", job.getId());
