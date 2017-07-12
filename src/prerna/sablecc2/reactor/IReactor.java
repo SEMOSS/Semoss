@@ -5,6 +5,7 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
@@ -132,6 +133,8 @@ public interface IReactor {
 	void modifySignature(String stringToFind, String stringReplacement);
 
 	void modifySignatureFromLambdas();
+
+	void setInsight(Insight insight);
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

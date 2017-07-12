@@ -5,7 +5,7 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ARelationship extends PRelationship
+public final class AImplicitRel extends PImplicitRel
 {
     private TLPar _lPar_;
     private PColDef _lcol_;
@@ -15,12 +15,12 @@ public final class ARelationship extends PRelationship
     private PColDef _rcol_;
     private TRPar _rPar_;
 
-    public ARelationship()
+    public AImplicitRel()
     {
         // Constructor
     }
 
-    public ARelationship(
+    public AImplicitRel(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PColDef _lcol_,
         @SuppressWarnings("hiding") TComma _comma1_,
@@ -49,7 +49,7 @@ public final class ARelationship extends PRelationship
     @Override
     public Object clone()
     {
-        return new ARelationship(
+        return new AImplicitRel(
             cloneNode(this._lPar_),
             cloneNode(this._lcol_),
             cloneNode(this._comma1_),
@@ -62,7 +62,7 @@ public final class ARelationship extends PRelationship
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseARelationship(this);
+        ((Analysis) sw).caseAImplicitRel(this);
     }
 
     public TLPar getLPar()

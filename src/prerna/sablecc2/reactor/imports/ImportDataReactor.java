@@ -17,7 +17,7 @@ public class ImportDataReactor extends AbstractReactor {
 		// will not return anything
 		// but will update the frame in the pksl planner
 		QueryStruct2 queryStruct = getQueryStruct();
-		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
+		ITableDataFrame frame = (ITableDataFrame) this.planner.getProperty("FRAME", "FRAME");
 		
 		Extractor extractor = new Extractor(queryStruct);
 		Map<String, Object> extractedData = extractor.extractData();

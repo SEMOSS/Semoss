@@ -77,7 +77,7 @@ public class Insight {
 
 	// need to account for multiple frames to be saved on the insight
 	// we will use a special key 
-	private static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
+	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
 
 	// ugh... going to write this for both 
 //	private transient PKQLRunner pkqlRunner;
@@ -301,12 +301,9 @@ public class Insight {
 		PKSLRunner runner = getPkslRunner();
 		try {
 			LOGGER.info("Running >>> " + pkslString);
-			if(this.getDataMaker() != null) {
-				runner.runPKSL(pkslString, this.varStore, this.getDataMaker());
-			} else {
-				runner.runPKSL(pkslString, this.varStore);
-			}
+			runner.runPKSL(pkslString, this);
 		} catch(Exception e) {
+			e.printStackTrace();
 			throw new IllegalArgumentException("Error with " + pkslString + "\n" + e.getMessage());
 		}
 		this.pkslList.add(pkslString);
@@ -321,11 +318,7 @@ public class Insight {
 			String pkslString = pkslList.get(i);
 			try {
 				LOGGER.info("Running >>> " + pkslString);
-				if(this.getDataMaker() != null) {
-					runner.runPKSL(pkslString, this.varStore, this.getDataMaker());
-				} else {
-					runner.runPKSL(pkslString, this.varStore);
-				}
+				runner.runPKSL(pkslString, this);
 			} catch(Exception e) {
 				throw new IllegalArgumentException("Error with " + pkslString + "\n" + e.getMessage());
 			}
@@ -340,11 +333,6 @@ public class Insight {
 	 * @return
 	 */
 	private Map<String, Object> collectPkslData(PKSLRunner runner) {
-		if(runner.getDataFrame() != null) {
-			// update since we have a new frame now
-			this.setDataMaker(runner.getDataFrame());
-		}
-		
 		Map<String, Object> retData = new Hashtable<String, Object>();
 		// get the return values
 		List<NounMetadata> resultList = runner.getResults();
@@ -380,7 +368,7 @@ public class Insight {
 	
 	public PKSLRunner getPkslRunner() {
 		PKSLRunner runner = new PKSLRunner();
-		runner.setInsightId(this.insightId);
+//		runner.setInsightId(this.insightId);
 		return runner;
 	}
 	
@@ -543,6 +531,15 @@ public class Insight {
 	public void setInsightName(String insightName) {
 		this.insightName = insightName;
 	}
+	
+	public VarStore getVarStore() {
+		return this.varStore;
+	}
+	
+	public void setVarStore(VarStore varStore) {
+		this.varStore = varStore;
+	}
+	
 
 	// TODO: need a better way of doing this...
 	// need to keep track of files that made this insight
