@@ -132,7 +132,9 @@ public class H2Frame extends AbstractTableDataFrame {
 	public H2Frame(String tableName) {
 		this.metaData = new TinkerMetaData();
 		setSchema();
-		this.builder.tableName = tableName;
+		if(tableName != null) {
+			this.builder.tableName = tableName;
+		}
 	}
 	
 	public H2Frame(IMetaData metaData) {
