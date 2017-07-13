@@ -266,7 +266,7 @@ public class Insight {
 		return runner;
 	}
 	
-	public Map<String, InsightPanel> getInsightpanels() {
+	public Map<String, InsightPanel> getInsightPanels() {
 		return this.insightPanels;
 	}
 	
@@ -283,7 +283,7 @@ public class Insight {
 	///////////////////////////// END EXECUTION OF PKQL ////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-
+	
 	/**
 	 * Load any cached objects relating to this insight
 	 */
@@ -360,7 +360,16 @@ public class Insight {
 			
 			NounMetadata noun = resultList.get(i);
 			if(noun.getNounName() == PkslDataTypes.FRAME) {
-				ret.put("output", "Have frame of type " + ((IDataMaker) noun.getValue()).getDataMakerName());
+				// if we have a frame
+				// return the table name of the frame
+				// FE needs this to create proper QS
+				// this has no meaning for graphs
+				String name = ((ITableDataFrame) noun.getValue()).getTableName();
+				if(name == null) {
+					ret.put("output", "Created frame of type " + ((ITableDataFrame) noun.getValue()).getDataMakerName());
+				} else {
+					ret.put("output", name);
+				}
 			} else if(noun.getNounName() == PkslDataTypes.JOB) {
 				ret.put("jobId", ((Job) noun.getValue()).getId());
 			} else {
