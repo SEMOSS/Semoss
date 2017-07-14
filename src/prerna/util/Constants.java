@@ -519,7 +519,8 @@ public class Constants {
 	public static final String R_LSH_MATCHING_FUN = "run_lsh_matching";
 	
 	// Composite key constants
-	public static final String COMPOSITE_KEY_SEPARATOR = "_COMPOSITE_";
+	public static final String COMPOSITE_KEY_SEPARATOR = ":";
+	// TODO once local master is refactored, remove references to these constants
 	public static final String COMPOSITE_KEY_TYPE = "COMPOSITE";
 	public static final String META_KEY = "URI:KEY";
 	

@@ -67,7 +67,8 @@ public class OWLER {
 		engine.addToBaseEngine(baseRelation, predicate, RDF.PROPERTY.stringValue());
 		
 		// for composite keys
-		engine.addToBaseEngine(baseComposite, predicate, RDFS.CLASS.stringValue());
+		// TODO no longer need this here after finished refactoring multiple pk
+//		engine.addToBaseEngine(baseComposite, predicate, RDFS.CLASS.stringValue());
 	}
 	
 	/**
@@ -105,6 +106,7 @@ public class OWLER {
 
 	
 	/////////////////// ADDING CONCEPTS INTO THE OWL /////////////////////////////////
+	// TODO update documentation here once multiple pk thing is finalized
 	/*
 	 * This method is overloaded to make it easier to add concepts into the owl file
 	 * The overloading exists since some fields are not required as a result of the difference
@@ -228,25 +230,36 @@ public class OWLER {
 			
 			// 3) mark the type of the column as either a composite key or primary key
 			// Only add primary key tag for RDBMS
+			// TODO - refactoring to get away from using the URI:KEY, instead inferring from delimiter
+			// Thus commenting this out
+			/*
 			if (compositeKey) {
 				engine.addToBaseEngine(subject, RDF.TYPE.stringValue(), baseComposite);
 			} else if (type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
 				engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, subject, false});
 			}
-						
+			*/
+			
 			// store it in the hash for future use
 			// Needs to be done before adding properties 
 			// (if a composite key, properties are added in the next step)
 			conceptHash.put(key, subject);
 			
+			// TODO Commenting this out now, as we should be able to infer that all the delimited concepts
+			// in the composite key are also concepts
+			/*
 			// 4) if the concept has a composite key, add each individual column as a property as necessary
 			// then add a triple for each
 			if (compositeKey) {
 				for (int i = 0; i < colNames.length; i++) {
+					String conceptURI = addConcept(tableName, colName, colNames[i], dataTypes[i]);
 					String propURI = addProp(tableName, colName, colNames[i], dataTypes[i]);
-					engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, propURI, false});
+					
+					// If we want to add them as additional concepts, put that here
+//					engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, conceptURI, false});
 				}
 			}
+			*/
 			
 			// 5) now lets add the physical URI concept to the conceptual concept URI
 			// one of the advantages of the conceptual URI is that we can specify a concept in a database even
@@ -609,14 +622,14 @@ public class OWLER {
 	///////////////////// TESTING /////////////////////
 	public static void main(String [] args) {
 		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
-		OWLER owler = new OWLER("C:\\Users\\tbanach\\Workspace\\test.owl", IEngine.ENGINE_TYPE.RDBMS);
+		OWLER owler = new OWLER("C:\\Users\\tbanach\\Workspace\\test5.owl", IEngine.ENGINE_TYPE.RDBMS);
 //		owler.addConcept("Title Table", new String[] {"Title", "Date Released"}, new String[] {"varchar(800)", "varchar(800)"});
 //		owler.addConcept("Studio", "Studio", "varchar(800)");
 //		owler.addProp("Studio", "Address", "varchar(800)");
 //		owler.addRelation("Studio", "Studio", "Title Table", "Title" + Constants.COMPOSITE_KEY_SEPARATOR + "Date Released", "produces");
 		owler.addConcept("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", new String[] {"Song", "Artist"}, new String[] {"varchar(800)", "varchar(800)"});
-		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Length_1", "varchar(800)");
-		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Year", "varchar(800)");
+//		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Length_1", "varchar(800)");
+//		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Year", "varchar(800)");
 		
 		// load the owl into a rfse
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
@@ -645,7 +658,7 @@ public class OWLER {
 			}
 		}		
 	}
-	
+		
 	public String getOwlAsString() {
 		// this will both write the owl to a file and print it onto the console
 		String owl = null;
