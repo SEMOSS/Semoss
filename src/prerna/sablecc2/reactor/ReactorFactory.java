@@ -26,9 +26,10 @@ import prerna.sablecc2.reactor.expression.OpSum;
 import prerna.sablecc2.reactor.expression.OpSumIf;
 import prerna.sablecc2.reactor.expression.OpSumIfs;
 import prerna.sablecc2.reactor.expression.OpSumProduct;
+import prerna.sablecc2.reactor.framemeta.GetFrameHeaderMetadataReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
-import prerna.sablecc2.reactor.insights.CreateNewInsight;
+import prerna.sablecc2.reactor.insights.CreateNewInsightReactor;
 import prerna.sablecc2.reactor.insights.RunSavedInsightReactor;
 import prerna.sablecc2.reactor.insights.SaveInsightReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
@@ -187,8 +188,11 @@ public class ReactorFactory {
 		
 		// Running Saved Insights Reactors
 		reactorHash.put("RunSavedInsight", RunSavedInsightReactor.class);
-		reactorHash.put("CreateNewInsight", CreateNewInsight.class);
+		reactorHash.put("CreateNewInsight", CreateNewInsightReactor.class);
 		reactorHash.put("Save", SaveInsightReactor.class);
+		
+		// Frame Reactors
+		reactorHash.put("FrameHeaders", GetFrameHeaderMetadataReactor.class);
 	}
 
 	/**
