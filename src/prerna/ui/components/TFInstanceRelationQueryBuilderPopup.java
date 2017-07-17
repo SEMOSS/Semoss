@@ -116,7 +116,7 @@ public class TFInstanceRelationQueryBuilderPopup extends JMenu implements MouseL
 			
 			List<String> traverseFromList = new Vector<String>();
 			traverseFromList.add(type);
-			Map<String, Map<String, Object>> connectedConcepts = MasterDatabaseUtility.getConnectedConcepts(traverseFromList);
+			Map<String, Map<String, Object>> connectedConcepts = MasterDatabaseUtility.getConnectedConceptsRDBMS(traverseFromList);
 			
 			if(connectedConcepts != null && !connectedConcepts.isEmpty()) {
 				Map<String, Object> myDbConnections = connectedConcepts.get(repo);

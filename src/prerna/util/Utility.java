@@ -91,19 +91,15 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
-
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.MetaHelper;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
@@ -111,6 +107,9 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -1201,6 +1200,48 @@ public class Utility {
 
 	/**
 	 * Gets the vector of uris from first variable returned from the query
+	 * @param raw TODO
+	 * @param sparql
+	 * @param eng
+	 * @return Vector of uris associated with first variale returned from the query
+	 */
+	public static Vector<String[]> getVectorArrayOfReturn(String query,IEngine engine, Boolean raw){
+		Vector<String[]> retString = new Vector<String[]>();
+		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
+		//		wrap.execute();
+
+		String[] names = wrap.getVariables();
+
+		while (wrap.hasNext()) {
+			String [] valArray = new String[names.length];
+			
+			ISelectStatement bs = wrap.next();
+			for(int nameIndex = 0;nameIndex < names.length;nameIndex++)
+			{
+				Object value = null;
+				if(raw){
+					value = bs.getRawVar(names[nameIndex]);
+				} else {
+					value = bs.getVar(names[nameIndex]);
+				}
+				String val = null;
+				if(value instanceof Binding){
+					val = ((Value)((Binding) value).getValue()).stringValue();
+				}
+				else{
+					val = value +"";
+				}
+				val = val.replace("\"", "");
+				valArray[nameIndex] = val;
+				retString.addElement(valArray);
+			}
+		}
+		return retString;
+
+	}
+
+	/**
+	 * Gets the vector of uris from first variable returned from the query
 	 * @param sparql
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
@@ -2237,7 +2278,8 @@ public class Utility {
 				synchronizeEngineMetadata(engineName);
 			} else if(!isLocal){ // never add local master to itself...
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-				deleter.deleteEngine(engineName);
+				//>>deleter.deleteEngine(engineName);
+				deleter.deleteEngineRDBMS(engineName);
 				SolrUtility.deleteFromSolr(engineName);
 			}
 			// still need to find a way to move this forward.. 
@@ -2552,13 +2594,15 @@ public class Utility {
 		}
 			}
 		}
+		AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 
+		Date rdbmsDate = adder.getEngineDate(engineName);
 		String owlFileName = baseFolder + "/" + prop.getProperty(Constants.OWL);
 		File owlFile = new File(owlFileName);
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
-		String engineURL = "http://semoss.org/ontologies/meta/engine/" + Utility.cleanString(engineName, true);
+/*		String engineURL = "http://semoss.org/ontologies/meta/engine/" + Utility.cleanString(engineName, true);
 		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <http://semoss.org/ontologies/Relation/modified> ?TIMESTAMP}";
 
 		// 1) get the local master timestamp for engine
@@ -2569,7 +2613,7 @@ public class Utility {
 			ISelectStatement ss = wrapper.next();
 			localDbTimeForEngine = ss.getVar(names[0]) + "";
 		}
-
+*/
 		// if the engine OWL file doesn't have a time stamp, add one into it
 		// not sure if I need this anymore
 		/*
@@ -2595,30 +2639,35 @@ public class Utility {
 		// 4.1) the local master doesn't have a time stamp which means the engine is not present
 		//		-> i.e. we do not need to remove the engine and re-add it
 		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
+		String engineRdbmsDbTime = "Dummy";
+		if(rdbmsDate != null)
+			engineRdbmsDbTime = df.format(rdbmsDate);		
+		if(engineRdbmsDbTime.equalsIgnoreCase(engineDbTime))
+			System.out.println("Success.. !!");
 
-		if(localDbTimeForEngine == null) {
+		if(rdbmsDate == null) {
 			// here we add the engine's time stamp into the local master
-			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+			//>>localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
 
 			// logic to register the engine into the local master
-			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			adder.registerEngineLocal(prop);
-			localMaster.commit(); 
-		} else if(!localDbTimeForEngine.startsWith(engineDbTime)) { // BIGData has idiosyncracy where it keeps date in a weird format 2016-05-12T12:23:07.000Z instead of 2016-05-12T12:23:07
+			//>>localMaster.commit(); 
+			adder.close(localMaster);
+		} else if(!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) { // BIGData has idiosyncracy where it keeps date in a weird format 2016-05-12T12:23:07.000Z instead of 2016-05-12T12:23:07
 			// remove the existing time stamp in the local master
-			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
+			//>>localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
 			// add the time stamp to be equal to that which is stored in the engine's OWL
-			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
+			//>>localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
 
 			// if it has a time stamp, it means it was previously in local master
 			// logic to delete an engine from the local master
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			remover.deleteEngine(engineName);
-
+			//>>remover.deleteEngine(engineName);
+			remover.deleteEngineRDBMS(engineName);
 			// logic to add the engine into the local master
-			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			adder.registerEngineLocal(prop);
-			localMaster.commit();
+			//>>localMaster.commit();
+			adder.close(localMaster);
 		}
 	}
 	
@@ -2954,6 +3003,8 @@ public class Utility {
 		
 		return f;
 	}
+	
+	
 	
 //	/**
 //	 * Update old insights... hope we get rid of this soon
