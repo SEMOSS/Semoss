@@ -32,7 +32,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 			engineFilter = engineFilterGrs.get(0).toString();
 		}
 		
-		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptProperties(conceptLogicals, engineFilter);
+		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptPropertiesRDBMS(conceptLogicals, engineFilter);
 		return new NounMetadata(conceptProperties, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_CONCEPT_PROPERTIES);
 	}
 

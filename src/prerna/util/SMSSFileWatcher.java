@@ -243,7 +243,7 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					remover.deleteEngine(engine);
+					remover.deleteEngineRDBMS(engine);
 				}
 			}
 		}

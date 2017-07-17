@@ -12,7 +12,7 @@ public class DatabaseListReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		List<String> databaseList = MasterDatabaseUtility.getDatabaseList();
+		List<String> databaseList = MasterDatabaseUtility.getAllEnginesRDBMS();
 		return new NounMetadata(databaseList, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_LIST);
 	}
 

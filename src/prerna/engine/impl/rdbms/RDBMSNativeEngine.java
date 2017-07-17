@@ -59,6 +59,7 @@ import prerna.rdf.util.SQLQueryParser;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PersistentHash;
 import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.RDBMSUtility;
@@ -79,6 +80,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private BasicDataSource dataSource = null;
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
+	int tableCount = 0;
+	PersistentHash conceptIdHash = null;
 
 	@Override
 	public void openDB(String propFile)
@@ -120,7 +123,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
 					try {
 						Class.forName(H2QueryUtil.DATABASE_DRIVER);
-						Connection c = DriverManager.getConnection(connectionURL, "sa" , "");
+						Connection c = DriverManager.getConnection(connectionURL, userName , password);
 						if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || !RDBMSUtility.isValidConnection(c)) {
 							connectionURL = resetH2ConnectionURL();
 						}
@@ -188,6 +191,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			Class.forName("org.h2.Driver");
 			engineConn = DriverManager.getConnection(url, userName, password);
 			engineConnected = true;
+
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -407,18 +411,19 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		super.closeDB();
+		try {
 		if(useConnectionPooling){
 			closeEngine();
 		} else {
-			if(engineConn != null) {
-				try {
+			if(engineConn != null && !engineConn.isClosed()) {
+					engineConn.commit(); // addeing the commit
 					engineConn.close();
 					this.engineConnected = false;
-				} catch (SQLException e) {
-					e.printStackTrace();
 				}
 			}
 			closeDataSource();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -676,5 +681,54 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		return null;
 	}
-
+	
+	// does not account for a pooled connection need to ensure
+	public Connection makeConnection()
+	{
+		Connection retObject = getConnection();
+		if(conceptIdHash == null)
+		{
+			conceptIdHash = new PersistentHash();
+			try {
+				
+				conceptIdHash.setConnection(retObject);
+				String checkQuery = "select count(*) from information_schema.tables where table_schema='PUBLIC'";
+				ResultSet rs = engineConn.createStatement().executeQuery(checkQuery);
+				
+				while(rs.next())
+					tableCount = rs.getInt(1);
+				if(tableCount >= 7)
+					conceptIdHash.load();
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
+		return retObject;
+	}
+	
+	public int getTableCount()
+	{
+		return this.tableCount;
+	}
+	
+	public PersistentHash getConceptIdHash()
+	{
+		return this.conceptIdHash;
+	}
+	
+	public void commitRDBMS()
+	{
+		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
+		conceptIdHash.persistBack();
+		System.out.println("Once committed.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
+		/*try {
+			engineConn.commit();
+			engineConn.close();
+			localCheater = null;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+	}
 }
