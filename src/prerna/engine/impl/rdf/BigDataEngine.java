@@ -28,6 +28,10 @@
 package prerna.engine.impl.rdf;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,6 +68,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PersistentHash;
 import prerna.util.Utility;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
@@ -85,6 +90,9 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	private ValueFactory vf = null;
 	boolean connected = false;
 	private InferenceEngine ie = null;
+	Connection localCheater = null;
+	PersistentHash conceptIdHash = new PersistentHash();
+	int tableCount = 0;
 	
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 

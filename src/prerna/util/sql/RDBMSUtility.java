@@ -28,6 +28,7 @@
 
 package prerna.util.sql;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -58,11 +59,29 @@ public class RDBMSUtility {
 	
 	public static String getH2ConnectionURLAbsolutePath(String connectionURL) {
 		connectionURL = connectionURL.replace("jdbc:h2:nio:", "");
+		String [] urlParts = connectionURL.split(";");
+		System.out.println(urlParts[0]);
+		String returnURL = urlParts[0];
+		try
+		{
+			File file = new File(urlParts[0]);
+			returnURL = file.getParent();
+			file.delete();
+			
+			
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		return returnURL;
+		/*
 		if(connectionURL.contains("database;")) {
 			return connectionURL.substring(0, connectionURL.indexOf("database;")-1);
 		} else {
 			return connectionURL.substring(0, connectionURL.indexOf("/database")-1);
 		}
+		*/
 	}
 	
 	public static String getH2BaseConnectionURL() {

@@ -26,7 +26,7 @@ public class ConnectedConceptsReactor extends AbstractReactor {
 			conceptLogicals.add(conceptNamesGrs.get(i).toString());
 		}
 		
-		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConcepts(conceptLogicals);
+		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConceptsRDBMS(conceptLogicals);
 		return new NounMetadata(connectedConceptsData, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.CONNECTED_CONCEPTS);
 	}
 
