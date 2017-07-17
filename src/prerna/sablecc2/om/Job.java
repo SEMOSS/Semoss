@@ -14,10 +14,10 @@ import prerna.sablecc2.reactor.export.TableFormatter;
 public class Job {
 
 	private String id;
-	private final Iterator iterator;
-	private Map<String, Object> viewOptions; //this holds the options object for the FE
-	private Formatter formatter = null;;
-	private List<Map<String, Object>> headerInfo;
+	private transient final Iterator iterator;
+	private transient Map<String, Object> viewOptions; //this holds the options object for the FE
+	private transient Formatter formatter = null;;
+	private transient List<Map<String, Object>> headerInfo;
 	
 	public Job(Iterator iterator, QueryStruct2 queryStruct) {
 		this.iterator = iterator;
@@ -36,6 +36,7 @@ public class Job {
 		if(meta) {
 			collectedData.put("viewOptions", getViewOptions());
 			collectedData.put("headerInfo", this.headerInfo);
+			collectedData.put("format", this.formatter.getFormatType());
 		}
 		collectedData.put("jobId", this.id);
 		collectedData.put("numCollected", num);
@@ -103,4 +104,9 @@ public class Job {
 	}
 
 	/****************** END SETTERS **************************/
+	
+	@Override
+	public String toString() {
+		return this.id;
+	}
 }

@@ -20,10 +20,11 @@ public class GenRowStruct {
 	
 	public void add(Object value, PkslDataTypes type) {
 		if(value instanceof NounMetadata) {
-			System.out.println("wtf");
+			vector.add((NounMetadata) value);
+		} else {
+			NounMetadata noun = new NounMetadata(value, type);
+			vector.add(noun);
 		}
-		NounMetadata noun = new NounMetadata(value, type);
-		vector.add(noun);
 	}
 	
 	public void add(NounMetadata noun) {
@@ -106,7 +107,7 @@ public class GenRowStruct {
 	{
 		List<String> retVector = new ArrayList<>();
 		for(NounMetadata noun : vector) {
-			if(noun.getNounName() == PkslDataTypes.COLUMN) {
+			if(noun.getNounType() == PkslDataTypes.COLUMN) {
 				retVector.add((String)noun.getValue());
 			}
 		}
@@ -116,7 +117,7 @@ public class GenRowStruct {
 	public List<Object> getColumnsOfType(PkslDataTypes type) {
 		List<Object> retVector = new Vector<Object>();
 		for(NounMetadata noun : vector) {
-			if(noun.getNounName() == type) {
+			if(noun.getNounType() == type) {
 				retVector.add(noun.getValue());
 			}
 		}
@@ -126,7 +127,7 @@ public class GenRowStruct {
 	public List<NounMetadata> getNounsOfType(PkslDataTypes type) {
 		List<NounMetadata> retVector = new Vector<NounMetadata>();
 		for(NounMetadata noun : vector) {
-			if(noun.getNounName() == type) {
+			if(noun.getNounType() == type) {
 				retVector.add(noun);
 			}
 		}
@@ -136,8 +137,8 @@ public class GenRowStruct {
 	public List<Object> getAllNumericColumns() {
 		List<Object> retVector = new Vector<Object>();
 		for(NounMetadata noun : vector) {
-			if(noun.getNounName() == PkslDataTypes.CONST_DECIMAL || 
-					noun.getNounName() == PkslDataTypes.CONST_INT) {
+			if(noun.getNounType() == PkslDataTypes.CONST_DECIMAL || 
+					noun.getNounType() == PkslDataTypes.CONST_INT) {
 				retVector.add(noun.getValue());
 			}
 		}
@@ -157,7 +158,7 @@ public class GenRowStruct {
 	}
 	
 	public PkslDataTypes getMeta(int i) {
-		return this.vector.get(i).getNounName();
+		return this.vector.get(i).getNounType();
 	}
 
 	// I will turn this into query struct eventually - nope I never will

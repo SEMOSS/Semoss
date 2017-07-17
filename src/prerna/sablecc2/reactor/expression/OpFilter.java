@@ -73,7 +73,7 @@ public class OpFilter extends OpBasic {
 		boolean needCheckType = false;
 		if(leftSideValue instanceof JavaExecutable) {
 			leftString = ((JavaExecutable)leftSideValue).getJavaSignature();
-		} else if(leftSide.getNounName() == PkslDataTypes.CONST_STRING) {
+		} else if(leftSide.getNounType() == PkslDataTypes.CONST_STRING) {
 			leftString = "\""+leftSideValue.toString()+"\"";
 		} else {
 			leftString = leftSideValue.toString();
@@ -89,7 +89,7 @@ public class OpFilter extends OpBasic {
 		String rightString;
 		if(rightSideValue instanceof JavaExecutable) {
 			rightString = ((JavaExecutable)rightSideValue).getJavaSignature();
-		} else if(rightSide.getNounName() == PkslDataTypes.CONST_STRING ) {
+		} else if(rightSide.getNounType() == PkslDataTypes.CONST_STRING ) {
 			needCheckType = true;
 			rightString = "\""+rightSideValue.toString()+"\"";
 		} else {
@@ -128,7 +128,7 @@ public class OpFilter extends OpBasic {
 		for(NounMetadata noun : this.nouns) {
 			// if we are at the comparator
 			// store it and we are done for this loop
-			if(noun.getNounName() == PkslDataTypes.COMPARATOR) {
+			if(noun.getNounType() == PkslDataTypes.COMPARATOR) {
 				comparator = noun.getValue().toString().trim();
 				foundComparator = true;
 				continue;
@@ -161,7 +161,7 @@ public class OpFilter extends OpBasic {
 			for(int i = 0; i < nouns.size(); i++) {
 				values.add(nouns.get(i).getValue());
 			}
-			noun = new NounMetadata(values, nouns.get(0).getNounName());
+			noun = new NounMetadata(values, nouns.get(0).getNounType());
 		} else {
 			noun = nouns.get(0);
 		}

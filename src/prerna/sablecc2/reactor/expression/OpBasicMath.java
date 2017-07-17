@@ -60,7 +60,7 @@ public abstract class OpBasicMath extends OpReactor {
 		Object[] evaluatedNouns = new Object[nouns.length];
 		for(int i = 0; i < nouns.length; i++) {
 			NounMetadata val = nouns[i];
-			PkslDataTypes valType = val.getNounName();
+			PkslDataTypes valType = val.getNounType();
 			if(valType == PkslDataTypes.CONST_DECIMAL) {
 				this.returnInteger = false;
 				evaluatedNouns[i] = ((Number) val.getValue()).doubleValue();
@@ -181,7 +181,7 @@ public abstract class OpBasicMath extends OpReactor {
 			if(nextInput instanceof JavaExecutable) {
 				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
 			} else {
-				if(nextNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

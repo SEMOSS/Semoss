@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.panel;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 
 public class PanelCloneReactor extends AbstractInsightPanelReactor {
 
@@ -21,7 +22,7 @@ public class PanelCloneReactor extends AbstractInsightPanelReactor {
 		this.insight.addNewInsightPanel(newClonePanel);
 		
 		// return the new panel
-		return new NounMetadata(newClonePanel, PkslDataTypes.PANEL);
+		return new NounMetadata(newClonePanel, PkslDataTypes.PANEL, PkslOperationTypes.PANEL_CLONE);
 	}
 	
 }

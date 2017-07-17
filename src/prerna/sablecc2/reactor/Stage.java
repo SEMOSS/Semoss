@@ -259,7 +259,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		if(values.size() > 0)
 		{
 			// predict what the type is
-			PkslDataTypes type = values.vector.get(1).getNounName();
+			PkslDataTypes type = values.vector.get(1).getNounType();
 			String pad = "";
 			StringBuffer filterVectorString = new StringBuffer();
 			if(type == PkslDataTypes.CONST_STRING)

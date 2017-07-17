@@ -15,4 +15,6 @@ public interface Formatter {
 	void setOptionsMap(Map<String, Object> options);
 	
 	Map<String, Object> getOptionsMap();
+	
+	String getFormatType();
 }
