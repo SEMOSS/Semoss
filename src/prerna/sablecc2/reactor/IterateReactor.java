@@ -21,6 +21,7 @@ import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.util.Utility;
 
 public class IterateReactor extends AbstractReactor {
@@ -84,7 +85,7 @@ public class IterateReactor extends AbstractReactor {
 		}
 		
 		// create the return
-		NounMetadata output = new NounMetadata(this.job, PkslDataTypes.JOB);
+		NounMetadata output = new NounMetadata(this.job, PkslDataTypes.JOB, PkslOperationTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
 		return output;
 	}
@@ -95,7 +96,7 @@ public class IterateReactor extends AbstractReactor {
 		if(outputs != null) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.job, PkslDataTypes.JOB);
+		NounMetadata output = new NounMetadata(this.job, PkslDataTypes.JOB, PkslOperationTypes.JOB);
 		output.setExplanation("Iterator created from iterate reactor");
 		outputs.add(output);
 		return outputs;

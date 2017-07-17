@@ -7,6 +7,7 @@ import prerna.sablecc2.JobStore;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 
 public class JobReactor extends AbstractReactor {
 	
@@ -15,7 +16,7 @@ public class JobReactor extends AbstractReactor {
 		// this just returns the job id
 		String jobId = (String)curRow.get(0);
 		Job job = JobStore.getInstance().getJob(jobId);
-		return new NounMetadata(job, PkslDataTypes.JOB);
+		return new NounMetadata(job, PkslDataTypes.JOB, PkslOperationTypes.JOB);
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 /**
@@ -24,7 +25,7 @@ public class CollectReactor extends AbstractReactor {
 		int collectThisMany = getTotalToCollect();
 		boolean collectMeta = collectMeta();
 		Object data = job.collect(collectThisMany, collectMeta);
-		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET);
+		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET, PkslOperationTypes.JOB_DATA);
 		return result;
 	}
 	
@@ -83,7 +84,7 @@ public class CollectReactor extends AbstractReactor {
 		if(outputs != null) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FORMATTED_DATA_SET);
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FORMATTED_DATA_SET, PkslOperationTypes.JOB_DATA);
 		outputs.add(output);
 		return outputs;
 	}

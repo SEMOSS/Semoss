@@ -8,6 +8,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DatabaseConceptPropertiesReactors extends AbstractReactor {
@@ -32,7 +33,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 		}
 		
 		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptProperties(conceptLogicals, engineFilter);
-		return new NounMetadata(conceptProperties, PkslDataTypes.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(conceptProperties, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_CONCEPT_PROPERTIES);
 	}
 
 }

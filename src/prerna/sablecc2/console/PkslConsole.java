@@ -3,6 +3,7 @@ package prerna.sablecc2.console;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Modifier;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -19,7 +20,7 @@ import prerna.util.DIHelper;
 
 public class PkslConsole {
 
-	private static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	private static Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.TRANSIENT).setPrettyPrinting().create();
 
 	public static void main(String[] args){
 		TestUtilityMethods.loadDIHelper();

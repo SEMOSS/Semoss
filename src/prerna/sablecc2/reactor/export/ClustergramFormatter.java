@@ -270,5 +270,10 @@ public class ClustergramFormatter extends AbstractFormatter {
 		return childMap;
 	}
 
+	@Override
+	public String getFormatType() {
+		return "CLUSTERGRAM";
+	}
+
 
 }

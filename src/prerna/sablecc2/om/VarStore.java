@@ -21,7 +21,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	@Override
 	public void put(String varName, NounMetadata variable) {
 		varName = cleanVarName(varName);
-		if(variable.getNounName() == PkslDataTypes.COLUMN) {
+		if(variable.getNounType() == PkslDataTypes.COLUMN) {
 			if(varName.equals(variable.getValue().toString())) {
 				return;
 			}
@@ -40,7 +40,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		varName = cleanVarName(varName);
 		NounMetadata valueNoun = varMap.get(varName);
 		if(valueNoun != null) {
-			PkslDataTypes valType = valueNoun.getNounName();
+			PkslDataTypes valType = valueNoun.getNounType();
 			if(valType == PkslDataTypes.COLUMN) {
 				String valName = valueNoun.getValue().toString();
 				// got to make sure it is not a variable

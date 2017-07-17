@@ -72,7 +72,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		uniqueInputs.addAll(inputColumns);
 		for(String input : uniqueInputs) {
 			NounMetadata data = planner.getVariableValue(input);			
-			PkslDataTypes dataType = data.getNounName();
+			PkslDataTypes dataType = data.getNounType();
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
 				evaluator.allIntValue = false;
 				evaluator.setVar(input, data.getValue());
@@ -89,7 +89,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				Object rVal = data.getValue();
 				if(rVal instanceof IReactor) {
 					NounMetadata newNoun = ((IReactor) rVal).execute(); 
-					PkslDataTypes newDataType = data.getNounName();
+					PkslDataTypes newDataType = data.getNounType();
 					if(newDataType == PkslDataTypes.CONST_DECIMAL) {
 						evaluator.setVar(input, newNoun.getValue());
 					} else if(newDataType == PkslDataTypes.CONST_STRING) {
@@ -198,7 +198,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				// this only happens when a variable is being used but isn't defined
 				throw new IllegalArgumentException("Undefined variable : " + input);
 			}
-			PkslDataTypes dataType = data.getNounName();
+			PkslDataTypes dataType = data.getNounType();
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
 				expressionBuilder.append("double ").append(input).append(" = ").append("((Number)super.vars.get("+"\""+input+"\")).doubleValue()").append(";");
 			} else if(dataType == PkslDataTypes.CONST_INT) {
@@ -213,7 +213,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				// object better be a reactor to run
 				Object rVal = data.getValue();
 				if(rVal instanceof IReactor) {
-					PkslDataTypes newDataType = data.getNounName();
+					PkslDataTypes newDataType = data.getNounType();
 					if(newDataType == PkslDataTypes.CONST_DECIMAL) {
 						expressionBuilder.append("double ").append(input).append(" = ").append("((Number)super.vars.get("+"\""+input+"\")).doubleValue()").append(";");
 					} else if(newDataType == PkslDataTypes.CONST_INT) {

@@ -26,9 +26,9 @@ public class IfError extends OpBasic {
 		
 		if(tryObj instanceof JavaExecutable) {
 			tryString = ((JavaExecutable)tryObj).getJavaSignature();
-		} else if(tryInput.getNounName() == PkslDataTypes.CONST_DECIMAL) {
+		} else if(tryInput.getNounType() == PkslDataTypes.CONST_DECIMAL) {
 			tryString = tryObj.toString();
-		} else if(tryInput.getNounName() == PkslDataTypes.CONST_STRING) {
+		} else if(tryInput.getNounType() == PkslDataTypes.CONST_STRING) {
 			tryString = "\""+tryObj.toString()+"\"";
 		} else {
 			tryString = tryObj.toString();
@@ -41,9 +41,9 @@ public class IfError extends OpBasic {
 		if(defaultObj instanceof JavaExecutable) {
 			defaultString = ((JavaExecutable)tryObj).getJavaSignature();
 			
-		} else if(defaultInput.getNounName() == PkslDataTypes.CONST_DECIMAL) {
+		} else if(defaultInput.getNounType() == PkslDataTypes.CONST_DECIMAL) {
 			
-		} else if(defaultInput.getNounName() == PkslDataTypes.CONST_STRING) {
+		} else if(defaultInput.getNounType() == PkslDataTypes.CONST_STRING) {
 			
 		} else {
 			

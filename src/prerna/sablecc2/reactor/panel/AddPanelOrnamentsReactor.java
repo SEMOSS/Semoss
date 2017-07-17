@@ -5,6 +5,7 @@ import java.util.Map;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 
 public class AddPanelOrnamentsReactor extends AbstractInsightPanelReactor {
 
@@ -16,7 +17,7 @@ public class AddPanelOrnamentsReactor extends AbstractInsightPanelReactor {
 		Map<String, Object> ornaments = getOrnamentsMapInput();
 		// merge the map options
 		insightPanel.setOrnaments(ornaments);
-		return new NounMetadata(insightPanel, PkslDataTypes.PANEL);
+		return new NounMetadata(insightPanel, PkslDataTypes.PANEL, PkslOperationTypes.PANEL_ORNAMENT);
 	}
 
 }

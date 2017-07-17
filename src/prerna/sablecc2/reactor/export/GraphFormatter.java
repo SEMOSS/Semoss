@@ -21,4 +21,10 @@ public class GraphFormatter extends AbstractFormatter {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public String getFormatType() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

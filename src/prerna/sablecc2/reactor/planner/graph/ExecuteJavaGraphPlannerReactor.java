@@ -119,7 +119,7 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 			if (!assignedFields.contains(assignment)) {
 				NounMetadata noun = planner.getVariableValue(assignment);
 				if (noun != null) {
-					PkslDataTypes nounType = noun.getNounName();
+					PkslDataTypes nounType = noun.getNounType();
 					Object nounValue = noun.getValue();
 					String field = "";
 					// String addToMapString = "{a(\"" + assignment + "\"," +

@@ -46,9 +46,9 @@ import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc2.PKSLRunner;
-import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.om.VarStore;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -206,7 +206,7 @@ public class Insight {
 		if(datamaker != null) {
 			returnObj.put("dataID", datamaker.getDataId());
 			// TODO: just cause i want as many things to be in future state as possible
-			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.FRAME));
+			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.FRAME, PkslOperationTypes.FRAME));
 		}
 		
 		// add the pkql data
@@ -290,7 +290,7 @@ public class Insight {
 	public void loadInsightCache() {
 		IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
 		if(dm != null) {
-			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PkslDataTypes.FRAME));
+			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PkslDataTypes.FRAME, PkslOperationTypes.FRAME));
 		}
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
 	}
@@ -359,7 +359,7 @@ public class Insight {
 			// get the value to send to the FE
 			
 			NounMetadata noun = resultList.get(i);
-			if(noun.getNounName() == PkslDataTypes.FRAME) {
+			if(noun.getNounType() == PkslDataTypes.FRAME) {
 				// if we have a frame
 				// return the table name of the frame
 				// FE needs this to create proper QS
@@ -370,10 +370,10 @@ public class Insight {
 				} else {
 					ret.put("output", name);
 				}
-			} else if(noun.getNounName() == PkslDataTypes.JOB) {
-				ret.put("jobId", ((Job) noun.getValue()).getId());
+				ret.put("operationType", noun.getOpType());
 			} else {
 				ret.put("output", noun.getValue());
+				ret.put("operationType", noun.getOpType());
 			}
 			
 			// get the expression which created this return
@@ -382,7 +382,7 @@ public class Insight {
 			
 			retValues.add(ret);
 		}
-		retData.put("orderedValues", retValues);
+		retData.put("pkslReturn", retValues);
 		retData.put("insightID", this.insightId);
 		return retData;
 	}
@@ -594,7 +594,7 @@ public class Insight {
 	
 	// currently only used via newdashboard in NameServer
 	public void setDataMaker(IDataMaker datamaker) {
-		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.FRAME));
+		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PkslDataTypes.FRAME, PkslOperationTypes.FRAME));
 	}
 	
 	public String getDataMakerName() {

@@ -210,7 +210,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 						System.out.println(nounName+" not found!");
 						continue;
 					}
-					PkslDataTypes data = noun.getNounName();
+					PkslDataTypes data = noun.getNounType();
 					if (data == PkslDataTypes.CONST_DECIMAL) {
 						mainMap.put(nounName, "double");
 					} else if (data == PkslDataTypes.CONST_INT) {
