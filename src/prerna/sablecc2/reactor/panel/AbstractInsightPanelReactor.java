@@ -20,12 +20,6 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 	protected InsightPanel getInsightPanel() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct syncedPanelGrs = this.store.getNoun(PkslDataTypes.PANEL.toString());
-		if(syncedPanelGrs != null && !syncedPanelGrs.isEmpty()) {
-			return (InsightPanel) syncedPanelGrs.get(0);
-		}
-		
-		// see if it was passed directly in with the lower case key panel
 		GenRowStruct genericReactorGrs = this.store.getNoun(PkslDataTypes.PANEL.toString());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (InsightPanel) genericReactorGrs.get(0);
