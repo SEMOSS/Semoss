@@ -33,22 +33,8 @@ public class NounMetadata
 		return this.explanation;
 	}
 	
-	//should make this immutable
 	public Object getValue() {
 		return this.value;
-	}
-	
-	public boolean isScalar() {
-		// if it is a number or word
-		// it is a scalar
-		if(this.noun == PkslDataTypes.CONST_DECIMAL || 
-			this.noun == PkslDataTypes.CONST_INT ||
-			this.noun == PkslDataTypes.CONST_STRING ||
-			this.noun == PkslDataTypes.BOOLEAN) {
-			return true;
-		}
-		
-		return false;
 	}
 	
 	/**
