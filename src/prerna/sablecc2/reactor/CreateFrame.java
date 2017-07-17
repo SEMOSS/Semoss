@@ -7,6 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 
 public class CreateFrame extends AbstractReactor {
 
@@ -17,7 +18,7 @@ public class CreateFrame extends AbstractReactor {
 		String alias = getAlias();
 		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias);
 		
-		NounMetadata noun = new NounMetadata(newFrame, PkslDataTypes.FRAME);
+		NounMetadata noun = new NounMetadata(newFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME);
 		
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
@@ -33,7 +34,7 @@ public class CreateFrame extends AbstractReactor {
 		if(outputs != null) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FRAME);
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FRAME, PkslOperationTypes.FRAME);
 		outputs.add(output);
 		return outputs;
 	}

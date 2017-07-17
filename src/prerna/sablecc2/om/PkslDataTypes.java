@@ -32,7 +32,6 @@ public enum PkslDataTypes {
 	PANEL ("PANEL"),
 	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE");
 
-	
 	private final String strValue;
 	
 	private PkslDataTypes(String strValue) {

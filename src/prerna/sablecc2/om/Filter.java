@@ -174,7 +174,7 @@ public class Filter implements JavaExecutable {
 	 */
 	private String getIfExpressionString(NounMetadata noun, String key) {
 		Object type = noun.getValue();
-		PkslDataTypes metaType = noun.getNounName();
+		PkslDataTypes metaType = noun.getNounType();
 		if(metaType == PkslDataTypes.LAMBDA) {
 			// lambda means it is some other reactor (ex. sum) 
 			// that is embedded within this filter
@@ -183,7 +183,7 @@ public class Filter implements JavaExecutable {
 			// if the type is not a string, then it is assumed to be a number
 			// so we just return it as a string
 			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
-			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
+			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounType();
 			if(lambdaType == PkslDataTypes.CONST_STRING) {
 //				return "\"" + lambdaVal.getValue() + "\"";
 				return getStringExpression(key);
@@ -246,7 +246,7 @@ public class Filter implements JavaExecutable {
 	 */
 	private void setIfExpression(FilterEvaluator evaluator, NounMetadata noun, String key) {
 		Object type = noun.getValue();
-		PkslDataTypes metaType = noun.getNounName();
+		PkslDataTypes metaType = noun.getNounType();
 		if(metaType == PkslDataTypes.LAMBDA) {
 			// lambda means it is some other reactor (ex. sum) 
 			// that is embedded within this filter
@@ -255,7 +255,7 @@ public class Filter implements JavaExecutable {
 			// if the type is not a string, then it is assumed to be a number
 			// so we just return it as a string
 			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
-			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounName();
+			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounType();
 			if(lambdaType == PkslDataTypes.CONST_STRING) {
 				evaluator.setVar(key, lambdaVal.getValue().toString());
 			} else {

@@ -311,7 +311,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         // into the noun store of this new reactor
     	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
     	if(prevResult != null) {
-    		PkslDataTypes nounName = prevResult.getNounName();
+    		PkslDataTypes nounName = prevResult.getNounType();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
     		genRow.add(prevResult);
     		// then we will remove the result from the planner

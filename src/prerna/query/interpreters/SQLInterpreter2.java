@@ -411,7 +411,7 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 			String thisComparator = filter.getComparator();
 
 			// DIFFERENT PROCESSING BASED ON THE TYPE OF VALUE
-			PkslDataTypes lCompType = leftComp.getNounName();
+			PkslDataTypes lCompType = leftComp.getNounType();
 
 			if(lCompType == PkslDataTypes.COLUMN) {
 				// ON THE LEFT SIDE, WE HAVE A COLUMN!!!
@@ -447,7 +447,7 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 				StringBuilder startFilterBuilder = new StringBuilder();
 				startFilterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
 
-				PkslDataTypes rCompType = rightComp.getNounName();
+				PkslDataTypes rCompType = rightComp.getNounType();
 				if(rCompType == PkslDataTypes.COLUMN) {
 					// WE ARE COMPARING TWO COLUMNS AGAINST EACH OTHER
 					String right_concept_property = rightComp.getValue().toString();
@@ -525,7 +525,7 @@ public class SQLInterpreter2 extends AbstractQueryInterpreter {
 				//TODO: NEED TO CONSIDER DATES!!!
 				String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, thisComparator);
 
-				PkslDataTypes rCompType = rightComp.getNounName();
+				PkslDataTypes rCompType = rightComp.getNounType();
 				if(rCompType == PkslDataTypes.COLUMN) {
 					// WE ARE COMPARING A CONSTANT TO A COLUMN
 					String right_concept_property = rightComp.getValue().toString();

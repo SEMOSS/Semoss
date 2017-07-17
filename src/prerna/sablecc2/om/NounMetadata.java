@@ -2,32 +2,27 @@ package prerna.sablecc2.om;
 
 public class NounMetadata 
 {
-	private String explanation;
-	private boolean required;
+	private String explanation = "";
 	private final PkslDataTypes noun;
+	private final PkslOperationTypes opType;
 	private final Object value;
 
 	public NounMetadata(Object value, PkslDataTypes noun) {
-		setDefaults();
+		this(value, noun, PkslOperationTypes.OPERATION);
+	}
+	
+	public NounMetadata(Object value, PkslDataTypes noun, PkslOperationTypes opType) {
 		this.noun = noun;
 		this.value = value;
+		this.opType = opType;
 	}
 	
-	private void setDefaults() {
-		explanation = "";
-		required = true;
+	public PkslDataTypes getNounType() {
+		return this.noun;
 	}
 	
-	public PkslDataTypes getNounName() {
-		return noun;
-	}
-	
-	public void setIsRequired(boolean isRequired) {
-		this.required = isRequired;
-	}
-	
-	public boolean isRequired() {
-		return this.required;
+	public PkslOperationTypes getOpType() {
+		return this.opType;
 	}
 	
 	public void setExplanation(String explanation) {
@@ -48,7 +43,8 @@ public class NounMetadata
 		// it is a scalar
 		if(this.noun == PkslDataTypes.CONST_DECIMAL || 
 			this.noun == PkslDataTypes.CONST_INT ||
-			this.noun == PkslDataTypes.CONST_STRING) {
+			this.noun == PkslDataTypes.CONST_STRING ||
+			this.noun == PkslDataTypes.BOOLEAN) {
 			return true;
 		}
 		
