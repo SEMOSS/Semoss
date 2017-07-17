@@ -1,32 +1,19 @@
-Base Properties 
-ENGINE	LocalMasterDatabase
-ENGINE_TYPE	prerna.rdf.engine.impl.BigDataEngine
-RDBMS_INSIGHTS	db/LocalMasterDatabase/insights_database
-INSIGHTS	db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
-ONTOLOGY	db/LocalMasterDatabase/MasterDatabase_Custom_Map.prop
-OWL	db/LocalMasterDatabase/MasterDatabase_OWL.OWL
-FILL_EMPTY_DATATYPES	false
-XML	db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
-DREAMER	db/LocalMasterDatabase/MasterDatabase_Questions.properties
-HIDDEN_DATABASE	true
-
-
-# changing the axiom model to none essentially disables all inference
-com.bigdata.rdf.store.AbstractTripleStore.axiomsClass=com.bigdata.rdf.axioms.NoAxioms
-com.bigdata.rdf.store.AbstractTripleStore.quads=false
-com.bigdata.rdf.store.AbstractTripleStore.statementIdentifiers=false
-com.bigdata.rdf.store.AbstractTripleStore.textIndex=true
-	
-com.bigdata.rdf.sail.bufferCapacity=100000
-
-# turn off automatic inference in the SAIL
-com.bigdata.rdf.sail.truthMaintenance=true
-	
-# The name of the backing file.
-com.bigdata.journal.AbstractJournal.file=db/LocalMasterDatabase/MasterDatabase.jnl
-com.bigdata.journal.AbstractJournal.bufferMode=DiskRW
-	
-com.bigdata.btree.writeRetentionQueue.capacity=4000
-com.bigdata.btree.BTree.branchingFactor=512
-	
-com.bigdata.rdf.store.DataLoader.commit=Incremental
+Base Properties
+ENGINE                LocalMasterDatabase
+ENGINE_TYPE    prerna.engine.impl.rdbms.RDBMSNativeEngine
+ 
+RDBMS_INSIGHTS           db/LocalMasterDatabase/insights_database
+INSIGHTS             db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
+ONTOLOGY         db/LocalMasterDatabase/MasterDatabase_Custom_Map.prop
+OWL      db/LocalMasterDatabase/MasterDatabase_OWL.OWL
+PKQL_UPDATED               true
+FILL_EMPTY_DATATYPES              false
+XML       db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
+DREAMER            db/LocalMasterDatabase/MasterDatabase_Questions.properties
+ 
+DRIVER org.h2.Driver
+USERNAME        sa
+PASSWORD        abcd
+CONNECTION_URL                jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+USE_OUTER_JOINS         false
+# USE_CONNECTION_POOLING                true
