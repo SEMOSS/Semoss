@@ -6,10 +6,12 @@ import java.util.Map;
 public class InsightPanel {
 
 	private String panelId;
+	private String panelLabel;
 	private transient Map<String, Object> ornaments;
 	
 	public InsightPanel(String panelId) {
 		this.panelId = panelId;
+		this.panelLabel = panelId;
 		this.ornaments = new HashMap<String, Object>();
 	}
 	
@@ -76,11 +78,14 @@ public class InsightPanel {
 		this.panelId = panelId;
 	}
 	
-	@Override
-	public String toString() {
-		return this.panelId;
+	public void setPanelLabel(String panelLabel) {
+		this.panelLabel = panelLabel;
 	}
-
+	
+	public String getPanelLabel() {
+		return this.panelLabel;
+	}
+	
 	/**
 	 * Take all the properties of another insight panel
 	 * and set them for this panel

@@ -9,6 +9,7 @@ public enum PkslOperationTypes {
 	
 	// FRAME INFORMATION
 	FRAME,
+	FRAME_DATA_CHANGE,
 	FRAME_HEADERS,
 	
 	// PANEL OPERATIONS
