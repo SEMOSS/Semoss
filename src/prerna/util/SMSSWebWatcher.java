@@ -46,6 +46,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.nameserver.DeleteFromMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
 
@@ -299,7 +300,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		if(localMasterIndex == 0) {
 			// remove unused databases
 			String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
-			List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
+			//List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
+			List<String> engines = MasterDatabaseUtility.getAllEnginesRDBMS();
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			
 			// so delete the engines if the SMSS is not there anymore sure makes sense
@@ -307,7 +309,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 					System.out.println("Deleting the engine..... " + engine);
-					remover.deleteEngine(engine);
+					remover.deleteEngineRDBMS(engine);
 				}
 			}
 		}
@@ -316,6 +318,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		try {
 			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
+			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			if(solrIndexEngine.serverActive()) {
 				List<String> facetList = new ArrayList<String>();
 				facetList.add(SolrIndexEngine.CORE_ENGINE);
@@ -328,6 +331,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						for(String engine : engineSet) {
 							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 								SolrUtility.deleteFromSolr(engine);
+								remover.deleteEngineRDBMS(engine);
 							}
 						}
 					}

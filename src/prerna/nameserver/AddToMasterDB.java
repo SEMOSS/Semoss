@@ -31,10 +31,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.OWL;
@@ -45,10 +48,6 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.hp.hpl.jena.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -62,7 +61,12 @@ import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.PersistentHash;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.hp.hpl.jena.vocabulary.RDFS;
 
 public class AddToMasterDB extends ModifyMasterDB {
 
@@ -80,8 +84,25 @@ public class AddToMasterDB extends ModifyMasterDB {
 	private String engineType = Constants.BASE_URI + Constants.DEFAULT_RELATION_CLASS + "/engineType";
 
 	// For testing, change to your own local directories
-	private static final String WS_DIRECTORY = "C:/Users/tbanach/Workspace";
-	private static final String DB_DIRECTORY = WS_DIRECTORY + "/SemossDev/db";
+	private static final String WS_DIRECTORY = "C:/Users/pkapaleeswaran/Workspacej3";
+	private static final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
+	
+	Connection conn = null;
+	
+	private PersistentHash conceptIdHash = new PersistentHash();
+	
+	/*
+	 *  a.	Need multiple primary keys
+		b.	Need a way to specify property with same name across the multiple concepts
+		c.	Need for multiple foreign keys
+		d.	Being able to handle loop elegantly
+		e.	Being able to link based on multiple keys i.e. I should be able to query the database through 2 keys instead of one
+		f.	Same as e. but also being able to do it across tables on create
+		g.	Need a way to tag instance level data so it can be compared and new recommendations can be made i.e. being able to send the data. Need some way of doing a PKI so the actual data is never sent
+	 * 
+	 * 
+	 */
+	
 	
 	public AddToMasterDB(String localMasterDbName) {
 		super(localMasterDbName);
@@ -117,6 +138,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 		// grab the local master engine
 		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		
+		getConnection(localMaster);
+		
 
 		// get the base folder
 		String baseFolder = null;
@@ -164,6 +188,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	DATE_LITERAL 
 		 * }
 		 */
+		/*
+		 * Modification 
+		 * Engine | Created Date | Modification Date | Type
+		 * 
+		 * 
+		 */
 		addData(engineUri, modified, modDate, false, localMaster);
 
 		/*
@@ -174,7 +204,14 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<RDF.TYPE>
 		 *  	<http://semoss.org/ontologies/meta/engine>
 		 * }
+		 * 
 		 */
+		
+		/**
+		 * Not needed - covered in the type above
+		 * 
+		 */
+		
 		addData(engineUri, RDF.TYPE + "", semossEngine, true, localMaster);
 
 		// grab the engine type 
@@ -194,6 +231,15 @@ public class AddToMasterDB extends ModifyMasterDB {
 			engineType = IEngine.ENGINE_TYPE.SESAME;
 			engineTypeString = "TYPE:RDF";
 		}
+		
+		String uniqueId = UUID.randomUUID().toString();
+		conceptIdHash.put(engineName+"_ENGINE", uniqueId);
+		String [] colNames = {"ID", "EngineName", "ModifiedDate", "Type"};
+		String [] types = {"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
+		Object [] engineData = {uniqueId, engineName, new java.sql.Timestamp(modDate.getTime()), engineTypeString, "true"};
+		makeQuery("Engine", colNames, types, engineData);
+		
+		
 
 		/*
 		 * TRIPLE INSERTION EXAMPLE
@@ -224,6 +270,82 @@ public class AddToMasterDB extends ModifyMasterDB {
 		return true;
 	}
 	
+	private void makeQuery(String tableName, String [] colNames, String [] types, Object [] data)
+	{
+		//System.out.println("------------------------------------------------");
+		//System.out.println(data[0]);
+		/*for(int dataIndex = 1;dataIndex < data.length;dataIndex++)
+			System.out.print("<" + data[dataIndex] + ">");
+		System.out.println();
+		*/
+		
+		String createString = makeCreate(tableName, colNames, types);
+		String insertString = makeInsert(tableName, colNames, types, data);
+		try
+		{
+			conn.createStatement().execute(createString);
+			conn.createStatement().execute(insertString);
+		}catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+	}
+	
+	private String makeCreate(String tableName, String [] colNames, String [] types)
+	{
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS "+ tableName + " (" + colNames[0] + " " + types[0]);
+		for(int colIndex = 1;colIndex < colNames.length;colIndex++)
+			retString = retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+		retString = retString.append(")");
+		
+		//System.out.println("CREATE >>> " + retString);
+		
+		return retString.toString();
+		
+	}
+
+	
+	private String makeInsert(String tableName, String [] colNames, String [] types, Object [] data)
+	{
+		StringBuilder retString = new StringBuilder("INSERT INTO "+ tableName + " (" + colNames[0]);
+		for(int colIndex = 1;colIndex < colNames.length;colIndex++)
+			retString = retString.append(" , " + colNames[colIndex]);
+
+		String prefix = "'";
+		
+		retString = retString.append(") VALUES (" + prefix + data[0] + prefix);
+		for(int colIndex = 1;colIndex < colNames.length;colIndex++)
+		{
+			if(types[colIndex].contains("varchar") || types[colIndex].toLowerCase().contains("timestamp") || types[colIndex].toLowerCase().contains("date"))
+				prefix = "'";
+			else
+				prefix = "";
+			retString = retString.append(" , " + prefix + data[colIndex] + prefix);
+		}
+		retString = retString.append(")");
+		
+		//System.out.println("INSERT >>> " + retString);
+		
+		return retString.toString();
+	}
+	
+
+	
+	private Connection getConnection(IEngine localMaster)
+	{
+		if(conn == null)
+		{
+	    	try {
+	    		conn = ((RDBMSNativeEngine)localMaster).makeConnection();
+	    		conceptIdHash = ((RDBMSNativeEngine)localMaster).getConceptIdHash();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return conn;
+	}
 	
 	private void masterConcept(String physicalConceptUri, 
 			String engineUri, 
@@ -254,6 +376,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// http://semoss.org/ontologies/Concept/ENGINE_NAME_PHYSICAL_NAME
 		String engineComposite = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/" + engineInstance + "_" + conceptInstance;
 
+
 		// get the logical concept name
 		// as a note
 		// this is the same as the physical concept URI in RDF
@@ -279,7 +402,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<http://semoss.org/ontologies/Concept>
 		 * }
 		 */
-		addData(physicalConceptUri, RDFS.subClassOf+ "", semossConcept, true, engine);
+		//>>addData(physicalConceptUri, RDFS.subClassOf+ "", semossConcept, true, engine);
 
 		/*
 		 * Add the engine composite as a subclass of concept
@@ -292,7 +415,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<http://semoss.org/ontologies/Concept>
 		 * }
 		 */
-		addData(engineComposite, RDFS.subClassOf+ "", semossConcept, true, engine);
+		//>>addData(engineComposite, RDFS.subClassOf+ "", semossConcept, true, engine);
 
 		/*
 		 * Add engine composite to be present in the engine
@@ -305,10 +428,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<http://semoss.org/ontologies/meta/engine/ENGINE_NAME>
 		 * }
 		 */
-		addData(engineComposite, presentIn, engineUri, true, engine);
+		//>>addData(engineComposite, presentIn, engineUri, true, engine);
 
 		/*
-		 * Add engine composite as a type of hte physical URI
+		 * Add engine composite as a type of the physical URI
 		 * Note, for RDBMS, the value after the engine name is the table name
 		 * 
 		 * TRIPLE INSERTION EXAMPLE
@@ -324,7 +447,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 * 		<http://semoss.org/ontologies/Concept/TABLE_NAME/COLUMN_NAME> 
 		 * }
 		 */
-		addData(engineComposite, RDF.TYPE+"", physicalConceptUri, true, engine);
+		//>>addData(engineComposite, RDF.TYPE+"", physicalConceptUri, true, engine);
 
 		/*
 		 * Add physical uri to conceptual uri
@@ -341,7 +464,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<http://semoss.org/ontologies/Concept/TABLE_NAME>
 		 * }
 		 */
-		addData(engineComposite, conceptual, conceptualUri, true, engine);
+		//>>addData(engineComposite, conceptual, conceptualUri, true, engine);
 
 		/*
 		 * TODO: Come back to this to add multiple logical names
@@ -360,7 +483,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<http://semoss.org/ontologies/Concept/TABLE_NAME>
 		 * } 
 		 */
-		addData(engineComposite, logical, logicalConcept, true, engine);
+		//>>addData(engineComposite, logical, logicalConcept, true, engine);
 		
 		/*
 		 * Also add the conceputal name as a logical name
@@ -377,7 +500,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 		 *  	<http://semoss.org/ontologies/Concept/TABLE_NAME>
 		 * } 
 		 */
-		addData(engineComposite, logical, conceptualUri, true, engine);
+		//>>addData(engineComposite, logical, conceptualUri, true, engine);
+		
+		addConcept(engineInstance, physicalInstance, physicalInstance, helper, physicalConceptUri);
 		
 		// now get all the keys for the concept
 		List<String> keys = helper.getKeys4Concept(physicalConceptUri, false);
@@ -401,7 +526,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		for (String physicalKeyUri : keys) {
 			String iKey = Utility.getInstanceName(physicalKeyUri, engineType);
 			String engineKeyComposite = Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS + "/" + engineInstance + "_" + iKey;
-			addData(engineComposite, Constants.META_KEY, engineKeyComposite, true, engine);
+			//>>addData(engineComposite, Constants.META_KEY, engineKeyComposite, true, engine);
 		}
 		
 		// adding the physical URI to the engine composite
@@ -415,27 +540,107 @@ public class AddToMasterDB extends ModifyMasterDB {
 		for(int propIndex = 0;propIndex < properties.size(); propIndex++) {
 			String physicalPropUri = properties.get(propIndex);
 			LOGGER.debug("For concept = " + physicalConceptUri + " adding property ::: " + physicalPropUri);
-			addProperty(engineComposite, physicalPropUri, engineUri, engine, helper, engineType); 
+			addProperty(engineComposite, physicalPropUri, engineUri, engine, helper, engineType, conceptInstance, physicalInstance); 
 		}
 		
 		// only need to process relationships in one direction
-		Vector <String> otherConcepts = helper.getFromNeighbors(physicalConceptUri, 0);		
-		masterOtherConcepts(engine, otherConcepts, previousConcepts, engineInstance, conceptInstance, engineComposite, true, engineType);
+		
+		Vector <String[]> otherConcepts = helper.getFromNeighborsWithRelation(physicalConceptUri, 0);		
+		
+		masterOtherConcepts(engine, otherConcepts, previousConcepts, engineInstance, conceptInstance, engineComposite, true, engineType, physicalInstance, helper);
+		
+		// need to introduce another class called get composite neighbors
+		// with the relation /Relation/Composite - where it is also a subclass of relation ?
+		// the composite relation will contain all the composite relationship in a single string
+		// Where the compositions will be separated by a :	
+		// /Relation/Composite/Title.Title.Studio.Title_FK:Title.Title.Nominated.Title_FK
+
 	}
 	
+	private void addConcept(String engineInstance, String physicalInstance, String mainInstance, MetaHelper helper, String Uri)
+	{
+		/**
+		 * All Concepts are of the form
+		 *  Concept | Conceptual Name | Logical Name | DomainArea | ID
+		 *  Need to figure out domain area
+		 * In the beginning - everything is just physical
+		 */
+
+		String uniqueId = null;
+		String [] colNames;
+		String [] types;
+		String [] conceptData;
+		// need to make the domain also to be an ID
+		if(conceptIdHash.containsKey(physicalInstance+"_CONCEPTUAL"))
+		{
+			uniqueId = conceptIdHash.get(physicalInstance+"_CONCEPTUAL");
+		}
+		else
+		{
+			uniqueId = UUID.randomUUID().toString();
+			conceptIdHash.put(physicalInstance+"_CONCEPTUAL", uniqueId);
+			colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			conceptData = new String[]{uniqueId, physicalInstance, physicalInstance, "NewDomain", ""};
+			String tableName = "Concept";
+			makeQuery(tableName, colNames, types, conceptData);
+		}
+		/**
+		 * Engine Specific Concept Data
+		 *  Engine | Physical Concept | Main Physical Concept (Same as Physical for concept different for property) | ID | Concept ID (refers to the id of the concept in ConceptTable | Primary Key? 
+		 *  Primary Key - may be useful in terms of getting to the concept
+		 *  i.e. the table should be the same for property ?
+		 *  We need to make sure that the concept in previous step doesn't always insert but gives the id as well
+		 *  Do we need the main physical Concept - ok.. so this could be the table in the case of RDBMS without which you cannot bring it up
+		 *  but there could be many of these - in which case we should show the user about it ? or qualify it with the table name ?
+		 * 
+		 */
+		
+		String dataType = "";
+		String originalType = "";
+		if(helper != null) {
+			dataType = helper.getDataTypes(Uri);
+			originalType = dataType;
+			dataType = dataType.replace("TYPE:", "");
+		}
+
+		if(dataType.equalsIgnoreCase("STRING") || dataType.toUpperCase().contains("VARCHAR"))
+			dataType = "STRING";
+		else if(dataType.equalsIgnoreCase("DOUBLE") || dataType.toUpperCase().contains("FLOAT"))
+			dataType = "DOUBLE";
+		else if(dataType.equalsIgnoreCase("DATE") || dataType.toUpperCase().contains("TIMESTAMP"))
+			dataType = "DATE";
+
+		if(!conceptIdHash.containsKey(physicalInstance+  "_" + engineInstance + "_PHYSICAL"))
+		{
+			String conceptId = uniqueId;
+			uniqueId = UUID.randomUUID().toString();
+			String engineId = conceptIdHash.get(engineInstance + "_ENGINE");
+			conceptIdHash.put(physicalInstance + "_" + engineInstance + "_PHYSICAL", uniqueId);
+			colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
+			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
+			String [] conceptInstanceData = {engineId, physicalInstance, uniqueId, uniqueId, conceptId, "TRUE", "FALSE", originalType, dataType};
+			makeQuery("EngineConcept", colNames, types, conceptInstanceData);
+		}
+	}
+	
+	
+	
 	private void masterOtherConcepts(IEngine engine, 
-			Vector <String> otherConcepts, 
+			Vector <String[]> otherConcepts, 
 			Hashtable <String, String> previousConcepts, 
 			String engineInstance, 
 			String conceptInstance, 
 			String engineComposite, 
 			boolean from, 
-			IEngine.ENGINE_TYPE engineType)
+			IEngine.ENGINE_TYPE engineType, String mainConceptInstance, MetaHelper helper)
 	{
 		for(int otherIndex = 0;otherIndex < otherConcepts.size();otherIndex++)
 		{
-			String otherConcept = otherConcepts.get(otherIndex);
+			String otherConcept = otherConcepts.get(otherIndex)[0];
+			String otherRelation = otherConcepts.get(otherIndex)[1];
 			String iOtherConcept = Utility.getInstanceName(otherConcept, engineType);
+			String iOtherRelation = Utility.getInstanceName(otherRelation);
 			String otherEngineConceptComposite = previousConcepts.get(otherConcept);
 			
 			
@@ -447,10 +652,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 			{
 				otherEngineConceptComposite = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/" + engineInstance + "_" + iOtherConcept;
 				previousConcepts.put(otherConcept, otherEngineConceptComposite);
+				addConcept(engineInstance, Utility.getInstanceName(otherConcept), Utility.getInstanceName(otherConcept), helper, otherConcept);
 			}
 			
 			String relationCompositeName = null;
 			
+			/*
 			// we only need to process in one direction!
 //			if(from)
 //			{
@@ -465,6 +672,57 @@ public class AddToMasterDB extends ModifyMasterDB {
 			LOGGER.debug("Added Relation.... " + relationCompositeName);
 			
 			addData(relationCompositeName, RDFS.subPropertyOf + "", Constants.BASE_URI + Constants.DEFAULT_RELATION_CLASS, true, engine);
+			*/
+			
+			/**
+			 * Create a conceptual relationship and then the actual relationship
+			 * first piece is conceptual
+			 * ID, Source Conceptual ID, Target Conceptual ID, GLOBAL ID   
+			 */
+			String otherConceptInstance = Utility.getInstanceName(otherConcept);
+			
+			String [] colNames = {"ID", "SourceID", "TargetID", "GlobalID"};
+			String [] types = {"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			String relId = null;
+			if(!conceptIdHash.containsKey(mainConceptInstance + "_" + otherConceptInstance + "_RELATION"))
+			{
+				relId = UUID.randomUUID().toString();
+				String conceptConceptualId = conceptIdHash.get(mainConceptInstance + "_CONCEPTUAL");
+				String otherConceptualId = conceptIdHash.get(otherConceptInstance + "_CONCEPTUAL");
+				String [] relData = {relId, conceptConceptualId, otherConceptualId, ""};
+				makeQuery("Relation", colNames, types, relData);
+				// I need to keep the relation name as well
+				conceptIdHash.put(mainConceptInstance + "_" + otherConceptInstance + "_RELATION", relId);
+			}
+			else
+				relId = conceptIdHash.get(mainConceptInstance + "_" + otherConceptInstance + "_RELATION");
+			
+			/**
+			 * Relationships are kept only at the physical level - sorry that did not come out right.. but..
+			 * need to accomodate for multiple foreign keys as well
+			 *  
+			 * Engine | Rel_ID| InstanceRelation ID | From Concept ID | To Concept ID | From Property ID | To Property ID 	
+			 * 
+			 * In the case of RDBMS the property is the same as concept ?
+			 * In the case 
+			 * 
+			 */
+			//System.out.println(conceptIdHash.thisHash);
+			// for now I am not keeping ID.. but merely trying to get the property
+			// need to make sure we balance for multiple foregin keys
+			// need to get the IDs for the concepts
+			if(!conceptIdHash.containsKey(engineInstance + "_" + mainConceptInstance + "_" + Utility.getInstanceName(otherConcept)+"_PHYSICAL"))
+			{
+				colNames = new String []{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID", "SourceProperty", "TargetProperty", "RelationName"}; //"DomainName"};
+				types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+				String conceptId = conceptIdHash.get(mainConceptInstance + "_" + engineInstance +"_PHYSICAL");
+				String otherConceptId = conceptIdHash.get(Utility.getInstanceName(otherConcept) + "_" + engineInstance +"_PHYSICAL");
+				String engineId = conceptIdHash.get(engineInstance + "_ENGINE");
+				String uniqueId = UUID.randomUUID().toString();
+				String [] conceptData = {engineId, relId, uniqueId, conceptId, otherConceptId, mainConceptInstance, Utility.getInstanceName(otherConcept), iOtherRelation};
+				conceptIdHash.put(engineInstance + "_" + mainConceptInstance + "_" + Utility.getInstanceName(otherConcept)+"_PHYSICAL", uniqueId);
+				makeQuery("EngineRelation", colNames, types, conceptData);
+			}
 		}
 	}
 	
@@ -474,7 +732,9 @@ public class AddToMasterDB extends ModifyMasterDB {
 			String engineUri, 
 			IEngine engine,
 			MetaHelper helper, 
-			IEngine.ENGINE_TYPE engineType)
+			IEngine.ENGINE_TYPE engineType, 
+			String conceptInstance,
+			String physicalInstance)
 	{
 		String conceptualPropertyUri = helper.getConceptualUriFromPhysicalUri(physicalPropUri);
 		
@@ -496,7 +756,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 		// I need to say this property in this engine is a type of property
 		// and also specify this belongs to this engineConcept
-		addData(enginePropertyComposite, RDF.TYPE + "", Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS, true, engine);
+		/*addData(enginePropertyComposite, RDF.TYPE + "", Constants.BASE_URI + Constants.DEFAULT_PROPERTY_CLASS, true, engine);
 		addData(enginePropertyComposite, RDF.TYPE + "", physicalPropUri, true, engine);
 		
 		// present in the engine
@@ -513,6 +773,61 @@ public class AddToMasterDB extends ModifyMasterDB {
 		
 		// add in conceptual name
 		addData(enginePropertyComposite, conceptual, conceptualPropertyUri, true, engine);
+		*/
+		/**
+		 * All Concepts are of the form
+		 *  Concept | Conceptual Name | Logical Name | DomainArea | ID
+		 *  Need to figure out domain area
+		 * 
+		 */
+		String dataType = "";
+		String originalType = "";
+		if(helper != null) {
+			dataType = helper.getDataTypes(physicalPropUri);
+			originalType = dataType;
+			dataType = dataType.replace("TYPE:", "");
+		}
+		if(dataType.equalsIgnoreCase("STRING") || dataType.toUpperCase().contains("VARCHAR"))
+			dataType = "STRING";
+		else if(dataType.equalsIgnoreCase("DOUBLE") || dataType.toUpperCase().contains("FLOAT"))
+			dataType = "DOUBLE";
+		else if(dataType.equalsIgnoreCase("DATE") || dataType.toUpperCase().contains("TIMESTAMP"))
+			dataType = "DATE";
+
+
+		String [] colNames = {"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+		String [] types = {"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		if(!conceptIdHash.containsKey(lProperty))
+		{
+			// how do we handle if there is a concept and property with the same name ?
+			// it is treated the same
+
+			String uniqueId = UUID.randomUUID().toString();
+			conceptIdHash.put(lProperty, uniqueId);
+			String [] conceptData = {uniqueId, lProperty, lProperty, "New Domain",""};
+			makeQuery("Concept", colNames, types, conceptData);
+		}
+		
+		/**
+		 * Need a similar structure for properties as concept
+		 * Should we just promote the properties to just concept ?
+		 * Engine Specific Concept Data
+		 *  Engine ID | Physical Concept | Main Physical Concept ID (Filled only when it is a property) | ID | Concept ID (refers to the id of the concept in ConceptTable | Primary Key? 
+		 *  We need to make sure that the concept in previous step doesn't always insert but gives the id as well
+		 * 
+
+		 * 
+		 */
+		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
+
+		String conceptId = conceptIdHash.get(lProperty);
+		String uniqueId = UUID.randomUUID().toString();
+		String engineId = conceptIdHash.get(engineName + "_ENGINE");
+		String mainConceptId = conceptIdHash.get(physicalInstance + "_" + engineName + "_PHYSICAL");
+		String [] conceptInstanceData = {engineId, lProperty, mainConceptId, uniqueId, conceptId, "FALSE", "TRUE", originalType, dataType};
+		makeQuery("EngineConcept", colNames, types, conceptInstanceData);
+
 	}
 	
 	/**
@@ -617,7 +932,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 				+ "		  ?semRel = <http://semoss.org/ontologies/Relation>"
 				+ ")"
 				+"}";
-			
+			 
 		engine.insertData(deleteQuery);
 		
 		// last delete everything else
@@ -978,10 +1293,23 @@ public class AddToMasterDB extends ModifyMasterDB {
 		return DB_DIRECTORY + "/" + engineName + ".smss";
 	}
 	
+	public void close(IEngine localMaster)
+	{
+		try {
+    		((RDBMSNativeEngine)localMaster).commitRDBMS();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
 	public static void main(String [] args) throws IOException
 	{
 		// load the RDF map for testing purposes
-		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
+		String rdfMapDir = "C:/Users/pkapaleeswaran/Workspacej3/SemossDev";
+		//System.getProperty("user.dir") 
+		DIHelper.getInstance().loadCoreProp(rdfMapDir + "/RDF_Map.prop");
 				
 		// load the local master database
 		Properties localMasterProp = loadEngineProp(Constants.LOCAL_MASTER_DB_NAME);
@@ -990,19 +1318,60 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// test loading in a new engine to the master database
 		
 		// get the new engine
-		String engineName = "Songs";
+		String engineName = "Mv1";
 		Properties engineProp = loadEngineProp(engineName);
 		Utility.loadEngine(determineSmssPath(engineName), engineProp);
 		
 		// delete the engine from the master db so that we can re-add it fresh for testing purposes
 		DeleteFromMasterDB deleter = new DeleteFromMasterDB();
-		deleter.deleteEngine(engineName);
+		deleter.deleteEngineRDBMS(engineName);
+
 		
+		String engineName2 = "actor";
+		Properties engineProp2 = loadEngineProp(engineName2);
+		Utility.loadEngine(determineSmssPath(engineName), engineProp);
+		
+		// delete the engine from the master db so that we can re-add it fresh for testing purposes
+		deleter = new DeleteFromMasterDB();
+		deleter.deleteEngineRDBMS(engineName);
+
 		// test registering the engine
 		AddToMasterDB adder = new AddToMasterDB();
 		adder.registerEngineLocal(engineProp);
+		adder.registerEngineLocal(engineProp2);
+		
+		//adder.close();
 		
 		// test the master db
-		adder.testMaster(localMaster);
+		
+		//adder.testMaster(localMaster);
 	}
+
+	public Date getEngineDate(String engineName) {
+		// TODO Auto-generated method stub
+		java.util.Date retDate = null;
+		Connection conn = ((RDBMSNativeEngine)this.masterEngine).makeConnection();
+		if(((RDBMSNativeEngine)this.masterEngine).getTableCount() > 0)
+		{
+			try
+			{
+				String query = "select modifieddate from engine e "
+							+ "where "
+							+ "e.enginename = '" + engineName + "'";
+				
+				ResultSet rs = conn.createStatement().executeQuery(query);
+				while(rs.next())
+				{
+					java.sql.Timestamp modDate = rs.getTimestamp(1);
+					retDate = new java.util.Date(modDate.getTime());
+				
+				}
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
+		return retDate;
+	}
+	
 }

@@ -128,6 +128,14 @@ public class MetaHelper implements IExplorable {
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
+	public Vector<String[]> getFromNeighborsWithRelation(String physicalNodeType, int neighborHood) {
+		// this is where this node is the from node
+		//String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI + Utility.getInstanceName(nodeType), false);
+		String query = "SELECT DISTINCT ?node ?rel WHERE { BIND(<" + physicalNodeType + "> AS ?start) {?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
+		+ "{?node ?rel ?start}}";
+		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
+	}
+
 	// gets the to nodes
 	public Vector<String> getToNeighbors(String physicalNodeType, int neighborHood) {
 		// this is where this node is the to node
@@ -440,14 +448,50 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public String getDataTypes(String uri) {
-		// TODO Auto-generated method stub
-		return null;
+//			String cleanUri = getTransformedNodeName(uri, false);
+		String cleanUri = uri;
+		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
+			
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
+		String[] names = wrapper.getPhysicalVariables();
+		String type = null;
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			type = ss.getVar(names[0]).toString();
+		}
+		
+		return type;
 	}
 
 	@Override
 	public Map<String, String> getDataTypes(String... uris) {
-		// TODO Auto-generated method stub
-		return null;
+		Map<String, String> retMap = new Hashtable<String, String>();
+		String bindings = "";
+		for(String uri : uris) {
+//			String cleanUri = getTransformedNodeName(uri, false);
+			String cleanUri = uri;
+			bindings += "(<" + cleanUri + ">)";	
+		}
+		String query = null;
+		if(!bindings.isEmpty()) {
+			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} } BINDINGS ?NODE {" + bindings + "}";
+			
+		} else {
+			// if no bindings, return everything
+			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} }";
+		}
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
+		String[] names = wrapper.getPhysicalVariables();
+		while(wrapper.hasNext()) {
+			ISelectStatement ss = wrapper.next();
+			String node = ss.getRawVar(names[0]).toString();
+			String type = ss.getVar(names[1]).toString();
+			
+//			retMap.put(getTransformedNodeName(node, true), type);
+			retMap.put(node, type);
+		}
+		
+		return retMap;
 	}
 
 	@Override

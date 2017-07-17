@@ -21,7 +21,7 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only define one engine within this call");
 		}
 		String engineName = eGrs.get(0).toString();
-		Map<String, Object[]> metamodelObject = MasterDatabaseUtility.getMetamodel(engineName);
+		Map<String, Object[]> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineName);
 		return new NounMetadata(metamodelObject, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_METAMODEL);
 	}
 

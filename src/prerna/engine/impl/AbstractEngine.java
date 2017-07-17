@@ -1211,49 +1211,12 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public String getDataTypes(String uri) {
 //		String cleanUri = getTransformedNodeName(uri, false);
-		String cleanUri = uri;
-		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
-			
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		String[] names = wrapper.getPhysicalVariables();
-		String type = null;
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			type = ss.getVar(names[0]).toString();
-		}
-		
-		return type;
+		return this.owlHelper.getDataTypes(uri);
 	}
 	
 	@Override
 	public Map<String, String> getDataTypes(String... uris) {
-		Map<String, String> retMap = new Hashtable<String, String>();
-		String bindings = "";
-		for(String uri : uris) {
-//			String cleanUri = getTransformedNodeName(uri, false);
-			String cleanUri = uri;
-			bindings += "(<" + cleanUri + ">)";	
-		}
-		String query = null;
-		if(!bindings.isEmpty()) {
-			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} } BINDINGS ?NODE {" + bindings + "}";
-			
-		} else {
-			// if no bindings, return everything
-			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} }";
-		}
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		String[] names = wrapper.getPhysicalVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String node = ss.getRawVar(names[0]).toString();
-			String type = ss.getVar(names[1]).toString();
-			
-//			retMap.put(getTransformedNodeName(node, true), type);
-			retMap.put(node, type);
-		}
-		
-		return retMap;
+		return this.owlHelper.getDataTypes(uris);
 	}
 	
 	public String getParentOfProperty(String prop) {
