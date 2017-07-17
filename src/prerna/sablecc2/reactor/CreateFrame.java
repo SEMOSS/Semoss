@@ -16,7 +16,7 @@ public class CreateFrame extends AbstractReactor {
 		String frameType = this.curRow.get(0).toString();
 		// use factory to generate the new table
 		String alias = getAlias();
-		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias);
+		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias.toUpperCase());
 		
 		NounMetadata noun = new NounMetadata(newFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME);
 		

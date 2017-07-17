@@ -86,7 +86,7 @@ public class Insight {
 
 	// list to store the pksls that make this insight
 	// TODO: right now using this for both pkql and pksl
-	private transient List<String> pkslList;
+	private List<String> pkslList;
 
 	// need a way to shift between old and new insights...
 	// dont know how else to shift to this
@@ -116,8 +116,6 @@ public class Insight {
 	 * Create an empty insight
 	 */
 	public Insight() {
-		//		this.pkslRunner = new PKSLRunner();
-		//		this.pkslRunner.setVarStore(this.varStore);
 		this.pkslList = new Vector<String>();
 	}
 
@@ -127,6 +125,7 @@ public class Insight {
 	 * @param rdbmsId
 	 */
 	public Insight(String engineName, String rdbmsId) {
+		super();
 		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
 	}
@@ -252,7 +251,31 @@ public class Insight {
 		// like actually removing the data makers so we do not 
 		// have too much in memory
 		this.varStore.clear();
+		this.insightPanels.clear();
 		return runPkql(this.pkslList);
+	}
+	
+	public Map<String, Object> reRunPkslInsight() {
+		// just clear the varStore
+		// TODO: need to do better clean up
+		// like actually removing the data makers so we do not 
+		// have too much in memory
+
+		Set<String> keys = this.varStore.getKeys();
+		for(String key : keys) {
+			NounMetadata noun = this.varStore.get(key);
+			if(noun.getValue() instanceof H2Frame) {
+				H2Frame frame = (H2Frame) noun.getValue();
+				frame.closeRRunner();
+				frame.dropTable();
+				if(!frame.isInMem()) {
+					frame.dropOnDiskTemporalSchema();
+				}
+			}
+		}
+		this.varStore.clear();
+		this.insightPanels.clear();
+		return runPksl(this.pkslList);
 	}
 	
 	/**
