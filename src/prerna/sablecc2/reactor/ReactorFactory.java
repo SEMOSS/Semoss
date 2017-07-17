@@ -41,6 +41,7 @@ import prerna.sablecc2.reactor.panel.PanelCloneReactor;
 import prerna.sablecc2.reactor.panel.PanelReactor;
 import prerna.sablecc2.reactor.panel.ResetPanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.RetrievePanelOrnamentsReactor;
+import prerna.sablecc2.reactor.panel.SetPanelLabel;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
 import prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor;
 import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
@@ -179,6 +180,7 @@ public class ReactorFactory {
 		reactorHash.put("AddPanelOrnaments", AddPanelOrnamentsReactor.class);
 		reactorHash.put("ResetPanelOrnaments", ResetPanelOrnamentsReactor.class);
 		reactorHash.put("RetrievePanelOrnaments", RetrievePanelOrnamentsReactor.class);
+		reactorHash.put("SetPanelLabel", SetPanelLabel.class);
 	}
 
 	/**

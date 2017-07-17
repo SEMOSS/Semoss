@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.panel;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
@@ -12,11 +15,13 @@ public class RetrievePanelOrnamentsReactor extends AbstractInsightPanelReactor {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
 		String traversal = getTraversalLiteralInput();
-		Object ornamentData = null;
+		Map<String, Object> ornamentData = new HashMap<String, Object>();
+		// need to add the panel id so the FE knows which panel this is for
+		ornamentData.put("panelId", insightPanel.getPanelId());
 		if(traversal == null) {
-			ornamentData = insightPanel.getOrnaments();
+			ornamentData.put("ornaments", insightPanel.getOrnaments());
 		} else {
-			ornamentData = insightPanel.getOrnament(traversal);
+			ornamentData.put("ornaments", insightPanel.getOrnaments());
 		}
 		return new NounMetadata(ornamentData, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.PANEL_ORNAMENT);
 	}

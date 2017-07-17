@@ -15,6 +15,7 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 	protected static final String ORNAMENTS_KEY = "ornaments";
 	protected static final String ORNAMENTS_TRAVERSAL_KEY = "key";
 	protected static final String CLONE_PANEL_KEY = "cloneId";
+	protected static final String PANEL_LABEL_KEY = "panelLabel";
 
 	protected InsightPanel getInsightPanel() {
 		// look at all the ways the insight panel could be passed
@@ -102,6 +103,23 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 		
 		// well, you are out of luck
 		return null;
+	}
+	
+	protected String getPanelLabel() {
+		// see if it was passed directly in with the lower case key ornaments
+		GenRowStruct genericReactorGrs = this.store.getNoun(PANEL_LABEL_KEY);
+		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+			return genericReactorGrs.get(0).toString();
+		}
+
+		// see if it is in the curRow
+		// if it was passed directly in as a variable
+		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PkslDataTypes.CONST_STRING);
+		if(strNouns != null && !strNouns.isEmpty()) {
+			return strNouns.get(0).getValue().toString();
+		}
+		
+		return "";
 	}
 	
 }

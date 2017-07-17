@@ -36,7 +36,7 @@ public class ImportDataReactor extends AbstractReactor {
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
 		
-		return new NounMetadata(importedFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME);
+		return new NounMetadata(importedFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME_DATA_CHANGE);
 	}
 
 	private QueryStruct2 getQueryStruct() {
