@@ -11,7 +11,7 @@ import prerna.sablecc2.om.PkslDataTypes;
 import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.util.Utility;
 
-public class CreateNewInsight extends AbstractInsightReactor {
+public class CreateNewInsightReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
