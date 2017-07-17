@@ -21,7 +21,7 @@ public class DatabaseConceptsReactors extends AbstractReactor {
 			throw new IllegalArgumentException("Can only define one engine within this call");
 		}
 		String engineName = eGrs.get(0).toString();
-		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinEngine(engineName);
+		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engineName);
 		return new NounMetadata(conceptsWithinEngineList, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_CONCEPTS);
 	}
 

@@ -39,21 +39,27 @@ import prerna.rdf.query.builder.IQueryInterpreter;
 public interface IExplorable {
 	
 	// gets the perspectives for this engine
+	// REFAC: Not sure we need this anymore
 	Vector<String> getPerspectives();
 	
 	// gets the questions for a given perspective
+	// REFAC: Not sure we need this anymore
 	Vector<String> getInsights(String perspective);
 	
 	// get all the insights irrespective of perspective
+	// REFAC: Not sure we need this anymore
 	Vector<String> getInsights();
 
 	// get the insight for a given question description
+	// REFAC: Not sure we need this anymore - we can do this where id is null
 	Vector<Insight> getInsight(String... id);
 	
 	// gets insights for a given type of entity
+	// REFAC: Not sure we need this anymore 
 	Vector<String> getInsight4Type(String type);
 	
 	// get insights for a tag
+	// REFAC: Not sure we need this anymore - Goes to SOLR	
 	Vector<String> getInsight4Tag(String tag) ;
 	
 	// gets the from neighborhood for a given node
@@ -69,6 +75,7 @@ public interface IExplorable {
 	Vector<SEMOSSParam> getParams(String insightName);
 
 	// sets the dreamer properties file
+	// REFAC: Not sure we need this anymore 
 	void setDreamer(String dreamer);
 	
 	// sets the owl
@@ -83,6 +90,7 @@ public interface IExplorable {
 	void commitOWL();
 	
 	// adds property to be associated with explorable
+	// REFAC: Check
 	void addProperty(String key, String value);
 	
 	// get property
@@ -111,12 +119,15 @@ public interface IExplorable {
 	List<String> getProperties4Concept(String concept, Boolean conceptualNames);
 
 	// executes a query on the ontology engine
+	// REFAC: Change this to engine
 	Object execOntoSelectQuery(String query);
 	
 	// executes an insert query on the ontology engine
+	// REFAC: Change this to engine
 	void ontoInsertData(String query);
 	
 	// executes a remove query on the onotology engine
+	// REFAC: Change this to engine
 	void ontoRemoveData(String query);
 
 	IEngine getInsightDatabase();
@@ -127,6 +138,7 @@ public interface IExplorable {
 	
 	String getInsightDefinition();
 	
+	
 	Vector<SEMOSSParam> getParams(String... paramIds);
 	
 	/**
@@ -135,6 +147,7 @@ public interface IExplorable {
 	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
 	 * @return						Return the physical URI 					
 	 */
+	// REFAC: Change this to engine - this should be local master
 	String getPhysicalUriFromConceptualUri(String conceptualURI);
 	
 	/**
@@ -143,12 +156,15 @@ public interface IExplorable {
 	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
 	 * @return						Return the conceptual URI 					
 	 */
+	// REFAC: Change this to engine - this should be local master
 	String getConceptualUriFromPhysicalUri(String physicalURI);
 
+	// WHAT IS THIS ?
 	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
 	
 	String getNodeBaseUri();
 	
+	// REFAC: Change this to engine - this should be local master
 	String getConceptUri4PhysicalName(String physicalName);
 	
 	/**
@@ -156,6 +172,7 @@ public interface IExplorable {
 	 * @param uris
 	 * @return
 	 */
+	// REFAC: Change this to engine - this should be local master
 	String getDataTypes(String uri);
 	
 	/**
@@ -164,15 +181,22 @@ public interface IExplorable {
 	 * @param uris
 	 * @return
 	 */
+	// REFAC: Change this to engine - this should be local master
 	Map<String, String> getDataTypes(String... uris);
 
+	// REFAC: this has no meaning.. sorry
 	String getParentOfProperty(String property);
 	
+	// and this also has no meaning.. not sure
 	List<String> getParentOfProperty2(String property);
 	
+	// 
 	QueryStruct getDatabaseQueryStruct();
 	
+	
+	// REFAC: Change this to engine - this should be local master
 	Map<String, Object> getMetamodel();
 
+	// REFAC: Change this to engine - this should be local master
 	String getPhysicalUriFromConceptualUri(String propertyName, String parentName);
 }
