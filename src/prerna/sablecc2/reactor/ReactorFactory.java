@@ -28,6 +28,9 @@ import prerna.sablecc2.reactor.expression.OpSumIfs;
 import prerna.sablecc2.reactor.expression.OpSumProduct;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
+import prerna.sablecc2.reactor.insights.CreateNewInsight;
+import prerna.sablecc2.reactor.insights.RunSavedInsightReactor;
+import prerna.sablecc2.reactor.insights.SaveInsightReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
@@ -181,6 +184,11 @@ public class ReactorFactory {
 		reactorHash.put("ResetPanelOrnaments", ResetPanelOrnamentsReactor.class);
 		reactorHash.put("RetrievePanelOrnaments", RetrievePanelOrnamentsReactor.class);
 		reactorHash.put("SetPanelLabel", SetPanelLabel.class);
+		
+		// Running Saved Insights Reactors
+		reactorHash.put("RunSavedInsight", RunSavedInsightReactor.class);
+		reactorHash.put("CreateNewInsight", CreateNewInsight.class);
+		reactorHash.put("Save", SaveInsightReactor.class);
 	}
 
 	/**
