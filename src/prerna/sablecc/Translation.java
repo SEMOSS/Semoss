@@ -2636,7 +2636,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outADatabaseList(ADatabaseList node) {
 		// just get the list of engines
-		List<String> dbList = MasterDatabaseUtility.getDatabaseList();
+		List<String> dbList = MasterDatabaseUtility.getAllEnginesRDBMS();
 		// put it in a map so the FE knows what it is looking at
 		Map returnData = new HashMap();
 		returnData.put("list", convertListToListMaps(dbList));
@@ -2648,7 +2648,7 @@ public class Translation extends DepthFirstAdapter {
 	public void outADatabaseConcepts(ADatabaseConcepts node) {
 		// get the engine
 		String engineName = node.getEngineName().toString().trim();
-		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngine(engineName);
+		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engineName);
 
 		// put it in a map so the FE knows what it is looking at
 		Map returnData = new HashMap();
@@ -2667,7 +2667,7 @@ public class Translation extends DepthFirstAdapter {
 		List<String> logicalNames = new Vector<String>();
 		logicalNames.add(conceptLogicalName);
 		
-		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConcepts(logicalNames);
+		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConceptsRDBMS(logicalNames);
 
 		runner.setReturnData(connectedConceptsData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
@@ -2678,7 +2678,7 @@ public class Translation extends DepthFirstAdapter {
 		// get the engine
 		String engineName = node.getEngineName().toString().trim();
 		// get the metamodel for the engine
-		runner.setReturnData(MasterDatabaseUtility.getMetamodel(engineName));
+		runner.setReturnData(MasterDatabaseUtility.getMetamodelRDBMS(engineName));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
@@ -2697,7 +2697,7 @@ public class Translation extends DepthFirstAdapter {
 		String engineName = null;
 		if(hasEngine) {
 			engineName = node.getEngineName().toString().trim();
-			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptProperties(logicalNames, engineName);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicalNames, engineName);
 			//iterate through cause not sure if engine key will get reformatted
 			for(String engineKey : retData.keySet()) {
 				Object[] props = retData.get(engineKey);
@@ -2713,7 +2713,7 @@ public class Translation extends DepthFirstAdapter {
 				break;
 			}
 		} else {
-			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptProperties(logicalNames, null);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicalNames, null);
 			runner.setReturnData(retData);
 		}
 		
