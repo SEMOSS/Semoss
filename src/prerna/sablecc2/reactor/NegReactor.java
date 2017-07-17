@@ -32,11 +32,11 @@ public class NegReactor extends AbstractReactor implements JavaExecutable {
 	 * @return
 	 */
 	private NounMetadata createAdditiveInverseNoun(NounMetadata noun) {
-		if(noun.getNounName() == PkslDataTypes.CONST_INT) {
+		if(noun.getNounType() == PkslDataTypes.CONST_INT) {
 			noun = new NounMetadata(-1 * ((Number) noun.getValue()).intValue(), PkslDataTypes.CONST_INT);
-		} else if(noun.getNounName() == PkslDataTypes.CONST_DECIMAL) {
+		} else if(noun.getNounType() == PkslDataTypes.CONST_DECIMAL) {
 			noun = new NounMetadata(-1.0 * ((Number) noun.getValue()).doubleValue(), PkslDataTypes.CONST_DECIMAL);
-		} else if(noun.getNounName() == PkslDataTypes.COLUMN) {
+		} else if(noun.getNounType() == PkslDataTypes.COLUMN) {
 			NegEvaluator neg = new NegEvaluator();
 			neg.setPKSLPlanner(this.planner);
 			neg.In();

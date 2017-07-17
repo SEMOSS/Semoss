@@ -11,7 +11,7 @@ public class ViewOptionsReactor extends JobBuilderReactor {
 	@Override
 	protected void buildJob() {
 		List<Object> mapOptions = this.curRow.getColumnsOfType(PkslDataTypes.MAP);
-		if(mapOptions == null) {
+		if(mapOptions == null || mapOptions.size() == 0) {
 			// if it is null, i guess we just clear the map values
 			job.setViewOptions(new HashMap<String, Object>());
 		} else {

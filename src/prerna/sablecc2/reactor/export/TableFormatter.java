@@ -36,4 +36,9 @@ public class TableFormatter extends AbstractFormatter {
 		this.headers = new String[0];
 	}
 
+	@Override
+	public String getFormatType() {
+		return "TABLE";
+	}
+
 }

@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.panel;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class PanelReactor extends AbstractReactor {
@@ -15,7 +16,7 @@ public class PanelReactor extends AbstractReactor {
 		if(insightPanel == null) {
 			throw new NullPointerException("Panel Id " + panelId + " does not exist");
 		}
-		NounMetadata noun = new NounMetadata(insightPanel, PkslDataTypes.PANEL);
+		NounMetadata noun = new NounMetadata(insightPanel, PkslDataTypes.PANEL, PkslOperationTypes.PANEL);
 		return noun;
 	}
 }

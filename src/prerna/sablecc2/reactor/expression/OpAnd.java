@@ -55,7 +55,7 @@ public class OpAnd extends OpBasic {
 			if(nextInput instanceof JavaExecutable) {
 				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
 			} else {
-				if(nextNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

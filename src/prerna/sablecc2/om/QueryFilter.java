@@ -85,7 +85,7 @@ public class QueryFilter {
 	 * @return
 	 */
 	private boolean isCol(NounMetadata noun) {
-		PkslDataTypes type = noun.getNounName();
+		PkslDataTypes type = noun.getNounType();
 		if(type == PkslDataTypes.COLUMN) {
 			return true;
 		}
@@ -97,8 +97,8 @@ public class QueryFilter {
 		NounMetadata rightComp = filter.getRComparison();
 
 		// DIFFERENT PROCESSING BASED ON THE TYPE OF VALUE
-		PkslDataTypes lCompType = leftComp.getNounName();
-		PkslDataTypes rCompType = rightComp.getNounName();
+		PkslDataTypes lCompType = leftComp.getNounType();
+		PkslDataTypes rCompType = rightComp.getNounType();
 
 		// col to col
 		if(lCompType == PkslDataTypes.COLUMN && rCompType == PkslDataTypes.COLUMN) 

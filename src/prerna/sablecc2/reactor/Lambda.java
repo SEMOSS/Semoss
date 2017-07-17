@@ -78,7 +78,7 @@ public class Lambda implements Iterator{
 				if(values.size() > 0)
 				{
 					// predict what the type is
-					PkslDataTypes type = values.vector.get(1).getNounName();
+					PkslDataTypes type = values.vector.get(1).getNounType();
 					String pad = "";
 					if(type == PkslDataTypes.CONST_STRING)
 					{

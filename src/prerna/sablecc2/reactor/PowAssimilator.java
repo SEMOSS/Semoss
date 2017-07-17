@@ -121,7 +121,7 @@ public class PowAssimilator extends Assimilator {
 				// this only happens when a variable is being used but isn't defined
 				throw new IllegalArgumentException("Undefined variable : " + input);
 			}
-			PkslDataTypes dataType = data.getNounName();
+			PkslDataTypes dataType = data.getNounType();
 			// we have a double that is stored
 			if(dataType == PkslDataTypes.CONST_DECIMAL) {
 				expressionBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
@@ -141,7 +141,7 @@ public class PowAssimilator extends Assimilator {
 				Object rVal = data.getValue();
 				if(rVal instanceof IReactor) {
 					NounMetadata newNoun = ((IReactor) rVal).execute(); 
-					PkslDataTypes newDataType = data.getNounName();
+					PkslDataTypes newDataType = data.getNounType();
 					if(newDataType == PkslDataTypes.CONST_DECIMAL) {
 						expressionBuilder.append("double ").append(input).append(" = ").append(newNoun.getValue()).append(";");
 					} else if(newDataType == PkslDataTypes.CONST_INT) {

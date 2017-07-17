@@ -46,7 +46,7 @@ public abstract class OpBasic extends OpReactor {
 	
 	protected Object evaluateNoun(NounMetadata val) {
 		Object obj;
-		PkslDataTypes valType = val.getNounName();
+		PkslDataTypes valType = val.getNounType();
 		if(valType == PkslDataTypes.CONST_DECIMAL) {
 			this.allIntValue = false;
 			obj = ((Number) val.getValue()).doubleValue();

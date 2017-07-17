@@ -82,7 +82,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		if(assignmentInput instanceof JavaExecutable) {
 			argument = ((JavaExecutable)assignmentInput).getJavaSignature();
 		} else {
-			if(assignmentNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+			if(assignmentNoun.getNounType() == PkslDataTypes.CONST_STRING) {
 				argument = "\""+assignmentInput.toString() +"\"";
 			} else {
 				argument = assignmentInput.toString();

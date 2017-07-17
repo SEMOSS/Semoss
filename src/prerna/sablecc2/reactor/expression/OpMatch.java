@@ -21,7 +21,7 @@ public class OpMatch extends OpBasic {
 		}
 		boolean comparingNumbers = false;
 		
-		boolean isString = this.curRow.getNoun(0).getNounName().equals(PkslDataTypes.CONST_STRING);
+		boolean isString = this.curRow.getNoun(0).getNounType().equals(PkslDataTypes.CONST_STRING);
 		// figure out
 		// if sort needs to do a number sort
 		// or do a string sort
