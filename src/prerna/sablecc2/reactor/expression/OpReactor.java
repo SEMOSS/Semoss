@@ -54,7 +54,7 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 	 * If the noun is a list, it will recursively execute each noun in that list
 	 */
 	private NounMetadata executeNoun(NounMetadata noun) {
-		PkslDataTypes nounType = noun.getNounName();
+		PkslDataTypes nounType = noun.getNounType();
 		NounMetadata evaluatedNoun;
 		if(nounType == PkslDataTypes.LAMBDA) {
 			evaluatedNoun = ((IReactor) noun.getValue()).execute();
@@ -127,7 +127,7 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 			} else {
 				
 				//if string add quotes
-				if(nextNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

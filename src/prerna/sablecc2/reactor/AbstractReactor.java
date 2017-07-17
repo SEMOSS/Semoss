@@ -210,7 +210,7 @@ public abstract class AbstractReactor implements IReactor {
 
 			//The result of a reactor could be a var, if we are doing string replacing we should just replace with the value of that var instead of the var itself
 			//reason being the variable is not initialized in the java runtime class through this flow
-			if(result.getNounName() == PkslDataTypes.COLUMN) {
+			if(result.getNounType() == PkslDataTypes.COLUMN) {
 				NounMetadata resultValue = planner.getVariableValue(result.getValue().toString());
 				if(resultValue != null) {
 					result = resultValue;
@@ -220,7 +220,7 @@ public abstract class AbstractReactor implements IReactor {
 			// if we have a double
 			// we dont want it to print with the exponential
 			Object replaceValue = result.getValue();
-			PkslDataTypes replaceType = result.getNounName();
+			PkslDataTypes replaceType = result.getNounType();
 			if(replaceType == PkslDataTypes.CONST_DECIMAL || 
 					replaceType == PkslDataTypes.CONST_INT) {
 				// big decimal is easiest way i have seen to do this formatting
@@ -331,7 +331,7 @@ public abstract class AbstractReactor implements IReactor {
 			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
 				
 				NounMetadata noun = inputs.get(inputIndex);
-				PkslDataTypes type = noun.getNounName();
+				PkslDataTypes type = noun.getNounType();
 				if(type == PkslDataTypes.COLUMN) {
 					strInputs.add(noun.getValue() + "");
 				}
@@ -344,7 +344,7 @@ public abstract class AbstractReactor implements IReactor {
 			List<String> strOutputs = new Vector<String>();
 			for(int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
 				NounMetadata noun = outputs.get(outputIndex);
-				PkslDataTypes type = noun.getNounName();
+				PkslDataTypes type = noun.getNounType();
 				if(type == PkslDataTypes.COLUMN) {
 					strOutputs.add(noun.getValue() + "");
 				}

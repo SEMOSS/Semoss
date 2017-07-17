@@ -244,13 +244,13 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		Object returnObj = returnNoun.getValue();
 		if(returnObj instanceof JavaExecutable) {
 			returnType = ((JavaExecutable)returnObj).getReturnType();
-		} else if(returnNoun.getNounName() == PkslDataTypes.CONST_DECIMAL || returnNoun.getNounName() == PkslDataTypes.CONST_INT) {
+		} else if(returnNoun.getNounType() == PkslDataTypes.CONST_DECIMAL || returnNoun.getNounType() == PkslDataTypes.CONST_INT) {
 			returnType = "double";
-		} else if(returnNoun.getNounName() == PkslDataTypes.CONST_STRING) {
+		} else if(returnNoun.getNounType() == PkslDataTypes.CONST_STRING) {
 			returnType = "String";
-		} else if(returnNoun.getNounName() == PkslDataTypes.BOOLEAN){
+		} else if(returnNoun.getNounType() == PkslDataTypes.BOOLEAN){
 			returnType = "boolean";
-		} else if(returnNoun.getNounName() == PkslDataTypes.COLUMN) {
+		} else if(returnNoun.getNounType() == PkslDataTypes.COLUMN) {
 			returnType = returnObj.toString();
 		} else {
 			returnType = "Object";

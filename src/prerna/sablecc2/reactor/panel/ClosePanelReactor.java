@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.panel;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ClosePanelReactor extends AbstractReactor {
@@ -16,6 +17,6 @@ public class ClosePanelReactor extends AbstractReactor {
 		if(panelToDelete == null) {
 			success = false;
 		}
-		return new NounMetadata(success, PkslDataTypes.BOOLEAN);
+		return new NounMetadata(success, PkslDataTypes.BOOLEAN, PkslOperationTypes.PANEL_CLOSE);
 	}
 }

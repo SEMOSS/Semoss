@@ -47,4 +47,9 @@ public class KeyValueFormatter extends AbstractFormatter {
 		// but we need to generate a new object
 		dataStore = new Hashtable<Object, Object>();
 	}
+
+	@Override
+	public String getFormatType() {
+		return "KEYVALUE";
+	}
 }

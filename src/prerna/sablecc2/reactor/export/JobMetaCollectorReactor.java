@@ -8,6 +8,7 @@ import java.util.Vector;
 import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class JobMetaCollectorReactor extends AbstractReactor {
@@ -33,7 +34,7 @@ public class JobMetaCollectorReactor extends AbstractReactor {
 		}
 		metaData.put("jobId", job.getId());
 		
-		NounMetadata result = new NounMetadata(metaData, PkslDataTypes.FORMATTED_DATA_SET);
+		NounMetadata result = new NounMetadata(metaData, PkslDataTypes.FORMATTED_DATA_SET, PkslOperationTypes.JOB_METADATA);
 		
 		return result;
 	}
@@ -57,7 +58,7 @@ public class JobMetaCollectorReactor extends AbstractReactor {
 		if(outputs != null) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FORMATTED_DATA_SET);
+		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FORMATTED_DATA_SET, PkslOperationTypes.JOB_METADATA);
 		outputs.add(output);
 		return outputs;
 	}
