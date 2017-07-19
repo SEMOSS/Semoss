@@ -142,11 +142,11 @@ public class ClustergramFormatter extends AbstractFormatter {
 		// find x child
 		LinkedHashMap xChild = getChildMap(dataRow, xChildrenSet, x_indices);
 		dataRowMap.put("x_index", xChild.get(INDEX));
-		dataRowMap.put("x_child_value", xChild.get(NAME));
+		dataRowMap.put("x_path", getFullPath(dataRow, x_indices));
 
 		LinkedHashMap yChild = getChildMap(dataRow, yChildrenSet, y_indices);
 		dataRowMap.put("y_index", yChild.get(INDEX));
-		dataRowMap.put("y_child_value", yChild.get(NAME));
+		dataRowMap.put("y_path", getFullPath(dataRow, y_indices));
 
 		Object value = dataRow[heat_index];
 		if(value == null) {
@@ -268,6 +268,25 @@ public class ClustergramFormatter extends AbstractFormatter {
 			childrenSet = (LinkedHashSet) childMap.get(CHILDREN);
 		}
 		return childMap;
+	}
+	
+	private String getFullPath(Object[] dataRow, List<Integer> indicesToGet) {
+		StringBuilder fullPath = new StringBuilder();
+		// loop through the data row
+		// and get the indices we want in the order we want them in
+		// and append in between each index a "." 
+		int numIndices = indicesToGet.size();
+		for(int i = 0; i < numIndices; i++) {
+			Object value = dataRow[indicesToGet.get(i)];
+			if(value == null) {
+				value = NULL_PLACEHOLDER;
+			}
+			fullPath.append(value);
+			if((i+1) != numIndices) {
+				fullPath.append(".");
+			}
+		}
+		return fullPath.toString();
 	}
 
 	@Override
