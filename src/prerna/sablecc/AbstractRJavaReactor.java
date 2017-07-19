@@ -3604,6 +3604,46 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return (String) this.returnData;
 	}
 
+	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, double candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, candidateThreshold);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, int candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, similarityThreshold, (double) candidateThreshold);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, int candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, (double) candidateThreshold);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, int candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, double candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, String candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, String candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15);
+	}
+
+	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, String candidateThreshold)
+			throws JsonParseException, JsonMappingException, SQLException, IOException {
+		return runXrayCompatibility(selectedInfoJson, .7, .15);
+	}
+
 	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, double candidateThreshold)
 			throws SQLException, JsonParseException, JsonMappingException, IOException {
 
@@ -3744,7 +3784,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 							+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
 					minHashFilePath = minHashFilePath.replace("\\", "/");
-					List<Object> instances = DomainValues.retrieveCleanConceptValues(concept, engine);
+					String uri = DomainValues.getConceptURI(concept, engine, true);
+					List<Object> instances;
+					if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)){
+						instances = DomainValues.retrieveCleanConceptValues(uri, engine);
+					}
+					else {
+						instances = DomainValues.retrieveCleanConceptValues(concept, engine);
+					}
 					StringBuilder rsb = new StringBuilder();
 					rsb.append("library(textreuse);");
 					rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
@@ -3775,8 +3822,17 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 							+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
 					minHashFilePath = minHashFilePath.replace("\\", "/");
 					// TODO rdf?
-					List<Object> instances = DomainValues.retrieveCleanPropertyValues(concept, concept + ":" + property,
-							engine);
+					String conceptUri = DomainValues.getConceptURI(concept, engine, true);
+
+					String propUri = DomainValues.getPropertyURI(property, concept, engine, false);
+
+					List<Object> instances;
+					if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)){
+						instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
+					}
+					else {
+						instances = DomainValues.retrieveCleanConceptValues(concept, engine);
+					}
 					StringBuilder rsb = new StringBuilder();
 					rsb.append("library(textreuse);");
 					rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
@@ -3826,14 +3882,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		int nMinhash;
 		int nBands;
 		int instancesThreshold = 1;
-
-		// check values
-		if (candidateThreshold < 0 || candidateThreshold > 1) {
-			candidateThreshold = 0.8;
+		
+		if (similarityThreshold < 0 || similarityThreshold > 1) {
+			similarityThreshold = 0.7;
 		}
 
-		if (similarityThreshold < 0 || similarityThreshold > 1) {
-			similarityThreshold = 0.8;
+		if (candidateThreshold < 0 || candidateThreshold > 1) {
+			candidateThreshold = 0.15;
 		}
 
 		// set other parameters
