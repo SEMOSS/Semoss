@@ -3533,6 +3533,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				colDetails = new HashMap<String, String>();
 				colDetails.put("name", keys.getString("column_name"));
 				String dataType = keys.getString("type_name");
+				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
 				colDetails.put("type", dataType);
 				allCols.add(colDetails);
 			}
@@ -3580,14 +3581,18 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
 			HashMap<String, String> colInfo = new HashMap<String, String>();
 			colInfo.put("name", cleanConcept);
-			colInfo.put("type", engine.getDataTypes(conceptURI));
+			String dataType = engine.getDataTypes(conceptURI);
+			dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+			colInfo.put("type", dataType);
 			allCols.add(colInfo);
 			List<String> properties = DomainValues.getPropertyList(engine, conceptURI);
 			for (String prop : properties) {
 				String cleanProp = DomainValues.determineCleanPropertyName(prop, engine);
 				HashMap<String, String> propInfo = new HashMap<String, String>();
 				propInfo.put("name", cleanProp);
-				propInfo.put("type", engine.getDataTypes(prop));
+				dataType = engine.getDataTypes(prop);
+				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+				propInfo.put("type", dataType);
 				allCols.add(propInfo);
 			}
 			tableDetails.put(cleanConcept, allCols);
