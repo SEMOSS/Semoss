@@ -44,7 +44,7 @@ public class DomainValues {
 	 * @param engine
 	 * @return concept uri
 	 */
-	public List<String> getConceptList(IEngine engine){
+	public static List<String> getConceptList(IEngine engine){
 		return engine.getConcepts(false);
 	}
 	
@@ -85,7 +85,7 @@ public class DomainValues {
 	 * @param concept uri
 	 * @return properties
 	 */
-	public List<String> getPropertyList(IEngine engine, String concept) {
+	public static List<String> getPropertyList(IEngine engine, String concept) {
 		return engine.getProperties4Concept(concept, false);
 	}
 	

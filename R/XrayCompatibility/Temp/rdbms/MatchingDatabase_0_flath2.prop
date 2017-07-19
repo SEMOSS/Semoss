@@ -1,0 +1,29 @@
+NUM_COLUMNS	23
+1	NUMBER
+2	NUMBER
+3	NUMBER
+4	NUMBER
+5	NUMBER
+6	NUMBER
+7	NUMBER
+8	STRING
+9	STRING
+10	STRING
+11	STRING
+12	STRING
+13	STRING
+14	STRING
+15	STRING
+16	STRING
+17	STRING
+18	STRING
+19	NUMBER
+20	NUMBER
+21	NUMBER
+22	NUMBER
+23	NUMBER
+START_ROW	2
+END_ROW	51
+RELATION	
+NODE_PROP	match_id%target_column;match_id%source_column;match_id%target_table;match_id%is_table_source;match_id%is_table_target;match_id%is_relation_source;match_id%is_relation_target;match_id%PKI;match_id%source_table;match_id%target_column_id;match_id%target_table_id;match_id%target_database;match_id%source_column_id;match_id%source_table_id;match_id%source_database;match_id%target_instances;match_id%target_has_columns;match_id%source_has_columns;match_id%target_total_count;match_id%source_total_count;match_id%source_instances;match_id%score;
+RELATION_PROP	 
