@@ -43,6 +43,9 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -91,15 +94,18 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
+
 import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.MetaHelper;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
+import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
@@ -107,9 +113,6 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -3004,6 +3007,36 @@ public class Utility {
 		return f;
 	}
 	
+	public static String getRDBMSDriverType(String url) {
+        String[] parts = url.split(":");
+        return parts[1];
+  }
+
+	public static List<String> getInstancesFromRs(ResultSet rs) {
+		List<String> instances = new ArrayList<String>();
+
+		try {
+			ResultSetMetaData meta = rs.getMetaData();
+			int numberOfColumns = meta.getColumnCount();
+			String dataHeaders = "\"" + meta.getColumnName(1) + "\"";
+			for (int i = 2; i < numberOfColumns + 1; i++) {
+				dataHeaders += ",\"" + meta.getColumnName(i).replaceAll("\"", "\\\"") + "\"";
+			}
+
+			while (rs.next()) {
+				String row = "\"" + rs.getString(1).replaceAll("\"", "\\\"") + "\"";
+				for (int i = 2; i < numberOfColumns + 1; i++) {
+					row += ",\"" + rs.getString(i).replaceAll("\"", "\\\"") + "\"";
+				}
+				instances.add(row.toString());
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return instances;
+	}
 	
 	
 //	/**
