@@ -402,7 +402,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   # Finally return the data frame
   write.csv(df, paste0(rdbmsPath, "\\", "final.csv"), row.names = FALSE, na = "")
 
-  return(df)
+  return(dt)
 }
 
 # For test cases
