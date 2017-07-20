@@ -3604,47 +3604,50 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return (String) this.returnData;
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, double candidateThreshold)
+	/**
+	 * Method overloading to cast types passed by front end pkqls
+	 */
+	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, double candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, candidateThreshold);
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, candidateThreshold, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, int candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, int candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, similarityThreshold, (double) candidateThreshold);
+		return runXrayCompatibility(selectedInfoJson, similarityThreshold, (double) candidateThreshold, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, int candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, int candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, (double) candidateThreshold);
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, (double) candidateThreshold, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, int candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, int candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold);
+		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, double candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, double candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold);
+		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, String candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, String candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15);
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, String candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, String candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15);
+		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15, matchingSameDB);
 	}
 
-	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, String candidateThreshold)
+	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, String candidateThreshold, boolean matchingSameDB)
 			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, .7, .15);
+		return runXrayCompatibility(selectedInfoJson, .7, .15, matchingSameDB);
 	}
-
-	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, double candidateThreshold)
+	
+	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, double candidateThreshold, boolean matchingSameDB)
 			throws SQLException, JsonParseException, JsonMappingException, IOException {
 
 		// runs the full xray compatibility from the new UI
@@ -3786,10 +3789,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					minHashFilePath = minHashFilePath.replace("\\", "/");
 					String uri = DomainValues.getConceptURI(concept, engine, true);
 					List<Object> instances;
-					if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)){
+					if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
 						instances = DomainValues.retrieveCleanConceptValues(uri, engine);
-					}
-					else {
+					} else {
 						instances = DomainValues.retrieveCleanConceptValues(concept, engine);
 					}
 					StringBuilder rsb = new StringBuilder();
@@ -3827,11 +3829,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					String propUri = DomainValues.getPropertyURI(property, concept, engine, false);
 
 					List<Object> instances;
-					if(engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)){
+					if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
 						instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
-					}
-					else {
-						instances = DomainValues.retrieveCleanConceptValues(concept, engine);
+					} else {
+						instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
 					}
 					StringBuilder rsb = new StringBuilder();
 					rsb.append("library(textreuse);");
@@ -3882,7 +3883,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		int nMinhash;
 		int nBands;
 		int instancesThreshold = 1;
-		
+
 		if (similarityThreshold < 0 || similarityThreshold > 1) {
 			similarityThreshold = 0.7;
 		}
@@ -3927,11 +3928,18 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Source the LSH function from the utility script
 		runR("source(\"" + utilityScriptPath + "\");");
 		runR(rFrameName + " <- data.frame()");
+
+		// check if user wants to compare columns from the same database
+		String matchingSameDBR = "FALSE";
+		if (matchingSameDB) {
+			matchingSameDBR = "TRUE";
+		}
+
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
 				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", \"" + rdfCsvDirectory + "\", \""
-				+ rdbmsDirectory + "\", \"" + metadataFile + "\")");
+				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchingSameDBR + ", \"" + rdbmsDirectory
+				+ "\", \"" + metadataFile + "\")");
 
 		// Synchronize from R
 		storeVariable("GRID_NAME", rFrameName);

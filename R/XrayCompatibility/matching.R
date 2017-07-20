@@ -1,5 +1,5 @@
 # Function to run locality sensitive hashing match
-run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold, delimiter, rdfPath, rdbmsPath, metadataPath){
+run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold, delimiter, matchingSameDB, rdbmsPath, metadataPath){
   
   # Library the necessary packages
   library(textreuse)
@@ -323,6 +323,22 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   match.property <- rbindlist(list(match.property, list(c.p, t.p.id)))
   match.property <- rbindlist(list(match.property, list(p.p, t.p.id)))
   
+  ###################################################################
+  # remove item engine and match engine if they match
+  ###################################################################
+  if(!matchingSameDB) {
+	removeMatchingSourceTargetDF <- dt
+	removeMatchingSourceTargetDF <- dt[which(dt$item_engine != dt$match_engine)]
+	dt <- removeMatchingSourceTargetDF
+	#check for empty df
+	size <- dim(dt)
+	if(size[1] == 0) {
+	  df <- data.frame(source_database = character(1), source_table = character(1), source_column = character(1), target_database = character(1), target_table = character(1), target_column = character(1), score = numeric(1), source_instances = numeric(1), target_instances = numeric(1), stringsAsFactors = FALSE)
+      df[1, 1] <- "(No Matches Found)"
+      return(df)
+	}
+  }
+  
   #check if item id is for concept or property
   is.concept.item <- NA
   
@@ -391,13 +407,8 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ##################################################
   # Write all the tables
   ##################################################
+  
   write.csv(dt, paste0(rdbmsPath, "\\", "0_flat_table.csv"), row.names = FALSE, na = "")
-  #write.csv(unique.ecp, paste0(rdfPath, "\\", "1_unique_ecp.csv"), row.names = FALSE, na = "")
-  #write.csv(match, paste0(rdfPath, "\\", "2_match.csv"), row.names = FALSE, na = "")
-  #write.csv(concept.match, paste0(rdfPath, "\\", "3_concept_match.csv"), row.names = FALSE, na = "")
-  #write.csv(match.concept, paste0(rdfPath, "\\", "4_match_concept.csv"), row.names = FALSE, na = "")
-  #write.csv(property.match, paste0(rdfPath, "\\", "5_property_match.csv"), row.names = FALSE, na = "")
-  #write.csv(match.property, paste0(rdfPath, "\\", "6_match_property.csv"), row.names = FALSE, na = "")
   
   # Finally return the data frame
   write.csv(df, paste0(rdbmsPath, "\\", "final.csv"), row.names = FALSE, na = "")
