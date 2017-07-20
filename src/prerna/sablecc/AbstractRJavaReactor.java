@@ -3673,9 +3673,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			HashMap<String, Object> urlInfo = (HashMap<String, Object>) selectedInfo.get(url);
 			// bifurcation in processing occurs if input is an engine or jdbc
 
-			Boolean isJDBC = (Boolean) urlInfo.get("isJdbc");
-
-			if (isJDBC) {
+			String schemaType = (String) urlInfo.get("databaseType"); 
+			if (schemaType.equalsIgnoreCase("external")) {
 				// process if jdbc connection
 				Connection con = null;
 				String driverType = Utility.getRDBMSDriverType(connectionUrl);
