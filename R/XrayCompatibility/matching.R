@@ -324,7 +324,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   match.property <- rbindlist(list(match.property, list(p.p, t.p.id)))
   
   ###################################################################
-  # remove item engine and match engine if they match
+  # Remove matching columns within a same database
   ###################################################################
   if(!matchingSameDB) {
 	removeMatchingSourceTargetDF <- dt
@@ -397,12 +397,44 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ################################################
   # Rename columns for matching database
   ##################################################
-  colnames(dt) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table_id", "source_column_id", "target_database", "target_table_id", "target_column_id", "source_table", "target_table", "source_column", "target_column", "match_id", "is_table_source", "is_table_target", "is_relation_source", "is_relation_target", "PKI")
+  colnames(dt) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table_id", "source_column_id", "target_database", "target_table_id", "target_column_id", "source_table", "target_table", "source_property", "target_property", "match_id", "is_table_source", "is_table_target", "is_relation_source", "is_relation_target", "PKI")
 
   ################################################
   # Rename columns for dataframe returned
   ##################################################
   colnames(df) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table", "source_column", "target_database", "target_table", "target_column", "PKI")  
+  
+  #########################################################
+  # Merge concept and property as one value to be displayed
+  #########################################################
+  source_column <- NA
+  source.property.values <- dt$source_property
+
+  for (i in seq_along(source.property.values)) {
+	if(is.na(source.property.values[i])) {
+		source_column[i] = dt$source_table[i]
+	} 
+	else {
+		source_column[i] = source.property.values[i]
+	}
+  }
+  
+  dt<-cbind(dt, source_column)
+  
+  
+  target_column <- NA
+  target.property.values <- dt$target_property
+
+  for (i in seq_along(target.property.values)) {
+	if(is.na(target.property.values[i])) {
+		target_column[i] = dt$target_table[i]
+	} 
+	else {
+		target_column[i] = target.property.values[i]
+	}
+  }
+  
+  dt<-cbind(dt, target_column)
   
   ##################################################
   # Write all the tables
