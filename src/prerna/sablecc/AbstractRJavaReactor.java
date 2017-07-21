@@ -3733,7 +3733,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 						minHashFilePath = minHashFilePath.replace("\\", "/");
 						runR("library(textreuse)");
 						runR("source(" + "\"" + minHashFilePath + "\"" + ");");
-						List<String> instances = Utility.getInstancesFromRs(rs);
+						List<Object> instances = Utility.getInstancesFromRs(rs);
 						StringBuilder rsb = new StringBuilder();
 
 						// construct R dataframe
@@ -3976,4 +3976,388 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// return null;
 	}
 
+	
+	public String runXrayCompatibility(String configFileJson)
+			throws SQLException, JsonParseException, JsonMappingException, IOException {
+
+		// runs the full xray compatibility from the new UI
+		HashMap<String, Object> config = new ObjectMapper().readValue(configFileJson, HashMap.class);
+
+		// TODO regenerate?
+		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\XrayCompatibility" + "\\"
+				+ Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
+		metadataFile = metadataFile.replace("\\", "/");
+
+		String outputFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "XrayCompatibility\\Temp\\MatchingRepository";
+		// clean output folder
+		try {
+			FileUtils.cleanDirectory(new File(outputFolder));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		ArrayList<Object> connectors = (ArrayList<Object>) config.get("connectors");
+		for (int i = 0; i < connectors.size(); i++) {
+			HashMap<String, Object> connection = (HashMap<String, Object>) connectors.get(i);
+			String connectorType = (String) connection.get("connectorType");
+			HashMap<String, Object> connectorData = (HashMap<String, Object>) connection.get("connectorData");
+			HashMap<String, Object> dataSelection = (HashMap<String, Object>) connection.get("dataSelection");
+			if (connectorType.toUpperCase().equals("LOCAL")) {
+				String engineName = (String) connectorData.get("engineName");
+				IEngine engine = Utility.getEngine(engineName);
+				for (String table : dataSelection.keySet()) {
+					HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
+					for (String column : allColumns.keySet()) {
+						Boolean selectedValue = (Boolean) allColumns.get(column); 
+						if(selectedValue) {
+						if (table.equals(column)) {
+							String fileName = engineName + ";" + table + ";";
+							String testFilePath = outputFolder + "\\" + fileName + ".txt";
+							testFilePath = testFilePath.replace("\\", "/");
+							String uri = DomainValues.getConceptURI(table, engine, true);
+							List<Object> instances;
+							if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
+								instances = DomainValues.retrieveCleanConceptValues(uri, engine);
+							} else {
+								instances = DomainValues.retrieveCleanConceptValues(table, engine);
+							}
+							encodeInstances(testFilePath, instances);
+						} else {
+							String fileName = engineName + ";" + table + ";" + column;
+							String testFilePath = outputFolder + "\\" + fileName + ".txt";
+							testFilePath = testFilePath.replace("\\", "/");
+							String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+									+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+							minHashFilePath = minHashFilePath.replace("\\", "/");
+							String conceptUri = DomainValues.getConceptURI(table, engine, true);
+							String propUri = DomainValues.getPropertyURI(column, table, engine, false);
+							List<Object> instances;
+							if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
+								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
+							} else {
+								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
+							}
+							encodeInstances(testFilePath, instances);
+							
+						}
+						}
+
+					}
+				}
+			}
+			else if (connectorType.toUpperCase().equals("EXTERNAL")) {
+				// process if jdbc connection
+				String connectionUrl = (String)connectorData.get("connectionString");
+				String userName = (String) connectorData.get("userName");
+				String password = (String) connectorData.get("password");
+				Connection con = null;
+				String driverType = Utility.getRDBMSDriverType(connectionUrl);
+
+				try {
+					// instantiate the correct rdbms driver depending on type
+					if (driverType.equals("mysql")) {
+						Class.forName("com.mysql.jdbc.Driver");
+					} else if (driverType.equals("oracle")) {
+						Class.forName("oracle.jdbc.driver.OracleDriver");
+					} else if (driverType.equals("sqlserver")) {
+						Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+					} else if (driverType.equals("db2")) {
+						Class.forName("com.ibm.db2.jcc.DB2Driver");
+					} else if (driverType.equals("h2")) {
+						Class.forName("org.h2.Driver");
+					} else {
+						System.out.println(">>>Invalid connection string");
+					}
+
+					// build connection
+					
+					//TODO needs to use userName and password
+					con = DriverManager.getConnection(connectionUrl, "sa", "");
+
+				} catch (ClassNotFoundException e) {
+					System.out.println(">>>JDBC Driver not found, please ensure you have drivers installed.");
+					e.printStackTrace();
+				}
+				ArrayList<String> colInfo = (ArrayList<String>) config.get(connectionUrl);
+				for (String col : colInfo) {
+					String[] parts = col.split("__");
+					String db = parts[0];
+					String tableName = parts[1];
+					String columnName = parts[2];
+
+					// build sql query - write only unique values
+					StringBuilder sb = new StringBuilder();
+					sb.append("SELECT DISTINCT ");
+					sb.append(columnName);
+					sb.append(" FROM ");
+					sb.append(tableName);
+					sb.append(";");
+					String query = sb.toString();
+
+					// execute query against db
+					Statement stmt = null;
+
+					try {
+						stmt = con.createStatement();
+						ResultSet rs = stmt.executeQuery(query);
+						String fileName = parts[0] + ";" + parts[1] + ";" + parts[2];
+						String testFilePath = outputFolder + fileName + ".txt";
+						testFilePath = testFilePath.replace("\\", "/");
+						String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+								+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+						minHashFilePath = minHashFilePath.replace("\\", "/");
+						runR("library(textreuse)");
+						runR("source(" + "\"" + minHashFilePath + "\"" + ");");
+						List<Object> instances = Utility.getInstancesFromRs(rs);
+						stmt.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+				con.close();
+
+			}
+
+			
+		}
+
+//		// write text files for all connections
+//		for (Object url : config.keySet()) {
+//			String connectionUrl = (String) url;
+//			HashMap<String, Object> urlInfo = (HashMap<String, Object>) config.get(url);
+//			// bifurcation in processing occurs if input is an engine or jdbc
+//
+//			String schemaType = (String) urlInfo.get("databaseType"); 
+//			if (schemaType.equalsIgnoreCase("external")) {
+//				// process if jdbc connection
+//				Connection con = null;
+//				String driverType = Utility.getRDBMSDriverType(connectionUrl);
+//
+//				try {
+//					// instantiate the correct rdbms driver depending on type
+//					if (driverType.equals("mysql")) {
+//						Class.forName("com.mysql.jdbc.Driver");
+//					} else if (driverType.equals("oracle")) {
+//						Class.forName("oracle.jdbc.driver.OracleDriver");
+//					} else if (driverType.equals("sqlserver")) {
+//						Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+//					} else if (driverType.equals("db2")) {
+//						Class.forName("com.ibm.db2.jcc.DB2Driver");
+//					} else if (driverType.equals("h2")) {
+//						Class.forName("org.h2.Driver");
+//					} else {
+//						System.out.println(">>>Invalid connection string");
+//					}
+//
+//					// build connection
+//
+//					con = DriverManager.getConnection(connectionUrl, "sa", "");
+//
+//				} catch (ClassNotFoundException e) {
+//					System.out.println(">>>JDBC Driver not found, please ensure you have drivers installed.");
+//					e.printStackTrace();
+//				}
+//				ArrayList<String> colInfo = (ArrayList<String>) config.get(connectionUrl);
+//				for (String col : colInfo) {
+//					String[] parts = col.split("__");
+//					String db = parts[0];
+//					String tableName = parts[1];
+//					String columnName = parts[2];
+//
+//					// build sql query - write only unique values
+//					StringBuilder sb = new StringBuilder();
+//					sb.append("SELECT DISTINCT ");
+//					sb.append(columnName);
+//					sb.append(" FROM ");
+//					sb.append(tableName);
+//					sb.append(";");
+//					String query = sb.toString();
+//
+//					// execute query against db
+//					Statement stmt = null;
+//
+//					try {
+//						stmt = con.createStatement();
+//						ResultSet rs = stmt.executeQuery(query);
+//						String fileName = parts[0] + ";" + parts[1] + ";" + parts[2];
+//						String testFilePath = outputFolder + fileName + ".txt";
+//						testFilePath = testFilePath.replace("\\", "/");
+//						String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+//								+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+//						minHashFilePath = minHashFilePath.replace("\\", "/");
+//						runR("library(textreuse)");
+//						runR("source(" + "\"" + minHashFilePath + "\"" + ");");
+//						List<Object> instances = Utility.getInstancesFromRs(rs);
+//						StringBuilder rsb = new StringBuilder();
+//
+//						// construct R dataframe
+//						String dfName = "df.xray";
+//						runR(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
+//						for (int i = 0; i < instances.size(); i++) {
+//							// ugh why doesn't R have zero-based indexing
+//							rsb.append(dfName + "[" + (i + 1) + ",1" + "]");
+//							rsb.append("<-");
+//							rsb.append("\"" + instances.get(i) + "\"");
+//							rsb.append(";");
+//
+//						}
+//						runR(rsb.toString());
+//						runR("encode_instances(" + dfName + "," + "\"" + testFilePath + "\"" + ");");
+//
+//						stmt.close();
+//					} catch (SQLException e) {
+//						e.printStackTrace();
+//					}
+//				}
+//				con.close();
+//
+//			}
+//		}
+		String baseMatchingFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "XrayCompatibility";
+		baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
+
+		// Grab the corpus directory
+		String corpusDirectory = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ "XrayCompatibility\\Temp\\MatchingRepository";
+		corpusDirectory = corpusDirectory.replace("\\", "/");
+
+		// Grab the csv directory Semoss/R/Matching/Temp/rdf
+		String baseRDFDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdf";
+		baseRDFDirectory = baseRDFDirectory.replace("\\", "/");
+
+		// Semoss/R/Matching/Temp/rdf/MatchingCsvs
+		String rdfCsvDirectory = baseRDFDirectory + "\\" + Constants.R_MATCHING_CSVS_FOLDER;
+		rdfCsvDirectory = rdfCsvDirectory.replace("\\", "/");
+
+		// Grab the prop directory Semoss/R/Matching/Temp/rdf/MatchingProp
+		String rdfPropDirectory = baseRDFDirectory + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_MATCHING_PROP_FOLDER;
+		rdfPropDirectory = rdfPropDirectory.replace("\\", "/");
+
+		// Semoss/R/Matching/Temp/rdbms
+		String rdbmsDirectory = baseMatchingFolder + "\\" + Constants.R_TEMP_FOLDER + "\\rdbms";
+		rdbmsDirectory = rdbmsDirectory.replace("\\", "/");
+
+		int nMinhash;
+		int nBands;
+		int instancesThreshold = 1;
+		double similarityThreshold = -1;
+		double candidateThreshold = -1;
+		if (similarityThreshold < 0 || similarityThreshold > 1) {
+			similarityThreshold = 0.7;
+		}
+
+		if (candidateThreshold < 0 || candidateThreshold > 1) {
+			candidateThreshold = 0.15;
+		}
+
+		// set other parameters
+		if (candidateThreshold <= 0.03) {
+			nMinhash = 3640;
+			nBands = 1820;
+		} else if (candidateThreshold <= 0.05) {
+			nMinhash = 1340;
+			nBands = 670;
+		} else if (candidateThreshold <= 0.1) {
+			nMinhash = 400;
+			nBands = 200;
+		} else if (candidateThreshold <= 0.2) {
+			nMinhash = 200;
+			nBands = 100;
+		} else if (candidateThreshold <= 0.4) {
+			nMinhash = 210;
+			nBands = 70;
+		} else if (candidateThreshold <= 0.5) {
+			nMinhash = 200;
+			nBands = 50;
+		} else {
+			nMinhash = 200;
+			nBands = 40;
+		}
+
+		// Parameters for R script
+		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
+
+		// Grab the utility script
+		String utilityScriptPath = baseMatchingFolder + "\\" + "matching.R";
+		utilityScriptPath = utilityScriptPath.replace("\\", "/");
+
+		runR("library(textreuse)");
+
+		// Source the LSH function from the utility script
+		runR("source(\"" + utilityScriptPath + "\");");
+		runR(rFrameName + " <- data.frame()");
+
+		// check if user wants to compare columns from the same database
+		String matchingSameDBR = "FALSE";
+		boolean matchingSameDB = false;
+		if (matchingSameDB) {
+			matchingSameDBR = "TRUE";
+		}
+
+		// Run locality sensitive hashing to generate matches
+		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
+				+ nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
+				+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchingSameDBR + ", \"" + rdbmsDirectory
+				+ "\", \"" + metadataFile + "\")");
+
+		// Synchronize from R
+		storeVariable("GRID_NAME", rFrameName);
+		synchronizeFromR();
+
+		// List<Object[]> returnArray = new ArrayList<Object[]>();
+		// returnArray.add(dataframe.getColumnHeaders());
+		//
+		// for (Object[] obj : dataframe.getData()) {
+		// returnArray.add(obj);
+		// }
+		//
+		// ObjectWriter ow = new
+		// ObjectMapper().writer().withDefaultPrettyPrinter();
+		// this.returnData = ow.writeValueAsString(returnArray);
+
+		// TODO save to local master?
+
+		// // Persist the data into a database
+		// String matchingDbName = "MatchingRDBMSDatabase";
+		// IEngine engine = Utility.getEngine(matchingDbName);
+		//
+		// // Only add to the engine if it is null
+		// // TODO gracefully refresh the entire db
+		// if (engine == null) {
+		// MatchingDB db = new MatchingDB(getBaseFolder());
+		// // creates rdf and rdbms dbs
+		// // TODO specify dbType if desired
+		// String matchingDBType = ImportOptions.DB_TYPE.RDBMS.toString();
+		// db.saveDB(matchingDBType);
+		//
+		// }
+		// this.hasReturnData = true;
+		return "";
+		// return null;
+	}
+	private void encodeInstances(String filePath, List<Object> instances) {
+		String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+		minHashFilePath = minHashFilePath.replace("\\", "/");
+		
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("library(textreuse);");
+		rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
+
+		// construct R dataframe
+		String dfName = "df.xray";
+		rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
+
+		for (int j = 0; j < instances.size(); j++) {
+			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
+			rsb.append("<-");
+			rsb.append("\"" + instances.get(j) + "\"");
+			rsb.append(";");
+
+		}
+		rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
+		runR(rsb.toString());
+	}
 }
