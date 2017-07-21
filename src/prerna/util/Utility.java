@@ -3012,8 +3012,8 @@ public class Utility {
         return parts[1];
   }
 
-	public static List<String> getInstancesFromRs(ResultSet rs) {
-		List<String> instances = new ArrayList<String>();
+	public static List<Object> getInstancesFromRs(ResultSet rs) {
+		List<Object> instances = new ArrayList<Object>();
 
 		try {
 			ResultSetMetaData meta = rs.getMetaData();
