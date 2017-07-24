@@ -3,6 +3,7 @@ package prerna.sablecc;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,6 +38,8 @@ import org.codehaus.jackson.map.ObjectWriter;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
+import au.com.bytecode.opencsv.CSVReader;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 
@@ -57,6 +60,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
+import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -3483,126 +3487,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 	}
-	
-	public String getSchemaDetails(String connectionUrl, String username, String password)
-			throws SQLException, JsonGenerationException, JsonMappingException, IOException {
-
-		String url = connectionUrl;
-		String driverType = Utility.getRDBMSDriverType(url);
-		Connection con = null;
-		try {
-			// instantiate the correct rdbms driver depending on type
-			if (driverType.equals("mysql")) {
-				Class.forName("com.mysql.jdbc.Driver");
-			} else if (driverType.equals("oracle")) {
-				Class.forName("oracle.jdbc.driver.OracleDriver");
-			} else if (driverType.equals("sqlserver")) {
-				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-			} else if (driverType.equals("db2")) {
-				Class.forName("com.ibm.db2.jcc.DB2Driver");
-			} else if (driverType.equals("h2")) {
-				Class.forName("org.h2.Driver");
-			} else {
-				System.out.println(">>>Invalid connection string");
-			}
-
-			// build connection
-			con = DriverManager.getConnection(url, username, password);
-		} catch (ClassNotFoundException e) {
-			System.out.println(">>>JDBC Driver not found, please ensure you have drivers installed.");
-			e.printStackTrace();
-		}
-
-		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
-
-		DatabaseMetaData meta = con.getMetaData();
-		ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
-		while (tables.next()) {
-			ArrayList<String> primaryKeys = new ArrayList<String>();
-			HashMap<String, String> colDetails = new HashMap<String, String>();
-			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
-
-			String table = tables.getString("table_name");
-			ResultSet keys = meta.getPrimaryKeys(null, null, table);
-			while (keys.next()) {
-				primaryKeys.add(keys.getString("column_name"));
-
-			}
-			keys = meta.getColumns(null, null, table, null);
-			while (keys.next()) {
-				colDetails = new HashMap<String, String>();
-				colDetails.put("name", keys.getString("column_name"));
-				String dataType = keys.getString("type_name");
-				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
-				colDetails.put("type", dataType);
-				allCols.add(colDetails);
-			}
-			tableDetails.put(table, allCols);
-		}
-
-		// construct return hashmap
-		HashMap<String, Object> returnMap = new HashMap<String, Object>();
-		for (String key : tableDetails.keySet()) {
-			if (key.equals("TITLE")) {
-				System.out.println("DEBdfUG!!!!");
-			}
-			ArrayList<HashMap> newCols = new ArrayList();
-			ArrayList<HashMap> allCols = tableDetails.get(key);
-			for (HashMap<String, String> col : allCols) {
-				HashMap<String, String> colInfo = new HashMap<String, String>();
-				colInfo.put("name", con.getCatalog() + "__" + key + "__" + col.get("name"));
-				colInfo.put("type", col.get("type"));
-				newCols.add(colInfo);
-			}
-			returnMap.put(con.getCatalog() + "__" + key, newCols);
-		}
-		List<String> dbName = new ArrayList<String>();
-		dbName.add(con.getCatalog());
-		returnMap.put("Database Name", dbName);
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-		this.hasReturnData = true;
-		this.returnData = ow.writeValueAsString(returnMap);
-		con.close();
-		return (String) this.returnData;
-	}
-
-	public String getSchemaDetailsForLocal(String engineName)
-			throws JsonGenerationException, JsonMappingException, IOException {
-		IEngine engine = Utility.getEngine(engineName);
-		List<String> concepts = DomainValues.getConceptList(engine);
-		// tablename: [{name, type}]
-		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
-
-		for (String conceptURI : concepts) {
-			String cleanConcept = DomainValues.determineCleanConceptName(conceptURI, engine);
-			if (cleanConcept.equals("Concept")) {
-				continue;
-			}
-			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
-			HashMap<String, String> colInfo = new HashMap<String, String>();
-			colInfo.put("name", cleanConcept);
-			String dataType = engine.getDataTypes(conceptURI);
-			dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
-			colInfo.put("type", dataType);
-			allCols.add(colInfo);
-			List<String> properties = DomainValues.getPropertyList(engine, conceptURI);
-			for (String prop : properties) {
-				String cleanProp = DomainValues.determineCleanPropertyName(prop, engine);
-				HashMap<String, String> propInfo = new HashMap<String, String>();
-				propInfo.put("name", cleanProp);
-				dataType = engine.getDataTypes(prop);
-				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
-				propInfo.put("type", dataType);
-				allCols.add(propInfo);
-			}
-			tableDetails.put(cleanConcept, allCols);
-		}
-
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-		this.hasReturnData = true;
-		this.returnData = ow.writeValueAsString(tableDetails);
-		return (String) this.returnData;
-	}
 
 	/**
 	 * Method overloading to cast types passed by front end pkqls
@@ -4079,141 +3963,96 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					System.out.println(">>>JDBC Driver not found, please ensure you have drivers installed.");
 					e.printStackTrace();
 				}
-				ArrayList<String> colInfo = (ArrayList<String>) config.get(connectionUrl);
-				for (String col : colInfo) {
-					String[] parts = col.split("__");
-					String db = parts[0];
-					String tableName = parts[1];
-					String columnName = parts[2];
+				
+				for (String table : dataSelection.keySet()) {
+					HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
+					for (String column : allColumns.keySet()) {
+						Boolean selectedValue = (Boolean) allColumns.get(column);
+						if (selectedValue) {
+							// build sql query - write only unique values
+							StringBuilder sb = new StringBuilder();
+							sb.append("SELECT DISTINCT ");
+							sb.append(column);
+							sb.append(" FROM ");
+							sb.append(table);
+							sb.append(";");
+							String query = sb.toString();
 
-					// build sql query - write only unique values
-					StringBuilder sb = new StringBuilder();
-					sb.append("SELECT DISTINCT ");
-					sb.append(columnName);
-					sb.append(" FROM ");
-					sb.append(tableName);
-					sb.append(";");
-					String query = sb.toString();
+							// execute query against db
+							Statement stmt = null;
 
-					// execute query against db
-					Statement stmt = null;
-
-					try {
-						stmt = con.createStatement();
-						ResultSet rs = stmt.executeQuery(query);
-						String fileName = parts[0] + ";" + parts[1] + ";" + parts[2];
-						String testFilePath = outputFolder + fileName + ".txt";
-						testFilePath = testFilePath.replace("\\", "/");
-						String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-								+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
-						minHashFilePath = minHashFilePath.replace("\\", "/");
-						runR("library(textreuse)");
-						runR("source(" + "\"" + minHashFilePath + "\"" + ");");
-						List<Object> instances = Utility.getInstancesFromRs(rs);
-						stmt.close();
-					} catch (SQLException e) {
-						e.printStackTrace();
+							try {
+								stmt = con.createStatement();
+								ResultSet rs = stmt.executeQuery(query);
+								String fileName = con.getCatalog()  + ";" + table + ";" + column;
+								String testFilePath = outputFolder +"\\"+ fileName + ".txt";
+								testFilePath = testFilePath.replace("\\", "/");
+								List<Object> instances = Utility.getInstancesFromRs(rs);
+								encodeInstances(testFilePath, instances);
+								stmt.close();
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
+						}
 					}
 				}
 				con.close();
 
 			}
+			else if (connectorType.toUpperCase().equals("FILE")) {
+				//process csv file reading
+				String filePath = (String) connectorData.get("filePath");
+				//read csv into string[]
+				CSVReader csv = new CSVReader(new FileReader(new File(filePath)));
+				List<String[]> rowData = csv.readAll(); //get all rows
+				String[] headers = rowData.get(0);
+				List<String> selectedCols = new ArrayList<String>();
+				for(String col : dataSelection.keySet()) {
+					//make a list of selected columns
+					HashMap<String, Object> colInfo = (HashMap<String, Object>) dataSelection.get(col);
+					for (String cols : colInfo.keySet()) {
+						if((Boolean)colInfo.get(cols) == true) {
+							selectedCols.add(cols);
+						}
+					}
+				}
+				
+				//iterate through selected columns and only grab those instances where the indices match
+				for(String col : selectedCols) {
+					//find the index of the selected column in the header array 
+					int index = -1;
+					for (String header : headers) {
+						if(header.toUpperCase().equals(col.toUpperCase())) {
+							index = Arrays.asList(headers).indexOf(header);
+							System.out.println(index);
+						}
+					}
+					
+					//get instance values 
+					if (index != -1) {
+						HashSet<Object> instances = new HashSet<Object>(); //use hashset to get distinct values
+						for (int j = 0; j < rowData.size(); j++) {
+							if (j == 1) {
+								continue;
+							}
 
-			
+							else {
+								instances.add(rowData.get(j)[index]);
+							}
+
+						}
+						//TODO: encode instances and write txt files!!!!!
+						String testFilePath = outputFolder + "\\" + col + ".txt";
+						testFilePath = testFilePath.replace("\\", "/");
+						encodeInstances(testFilePath, instances);
+					}
+					
+				}
+				
+			}
 		}
+		
 
-//		// write text files for all connections
-//		for (Object url : config.keySet()) {
-//			String connectionUrl = (String) url;
-//			HashMap<String, Object> urlInfo = (HashMap<String, Object>) config.get(url);
-//			// bifurcation in processing occurs if input is an engine or jdbc
-//
-//			String schemaType = (String) urlInfo.get("databaseType"); 
-//			if (schemaType.equalsIgnoreCase("external")) {
-//				// process if jdbc connection
-//				Connection con = null;
-//				String driverType = Utility.getRDBMSDriverType(connectionUrl);
-//
-//				try {
-//					// instantiate the correct rdbms driver depending on type
-//					if (driverType.equals("mysql")) {
-//						Class.forName("com.mysql.jdbc.Driver");
-//					} else if (driverType.equals("oracle")) {
-//						Class.forName("oracle.jdbc.driver.OracleDriver");
-//					} else if (driverType.equals("sqlserver")) {
-//						Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-//					} else if (driverType.equals("db2")) {
-//						Class.forName("com.ibm.db2.jcc.DB2Driver");
-//					} else if (driverType.equals("h2")) {
-//						Class.forName("org.h2.Driver");
-//					} else {
-//						System.out.println(">>>Invalid connection string");
-//					}
-//
-//					// build connection
-//
-//					con = DriverManager.getConnection(connectionUrl, "sa", "");
-//
-//				} catch (ClassNotFoundException e) {
-//					System.out.println(">>>JDBC Driver not found, please ensure you have drivers installed.");
-//					e.printStackTrace();
-//				}
-//				ArrayList<String> colInfo = (ArrayList<String>) config.get(connectionUrl);
-//				for (String col : colInfo) {
-//					String[] parts = col.split("__");
-//					String db = parts[0];
-//					String tableName = parts[1];
-//					String columnName = parts[2];
-//
-//					// build sql query - write only unique values
-//					StringBuilder sb = new StringBuilder();
-//					sb.append("SELECT DISTINCT ");
-//					sb.append(columnName);
-//					sb.append(" FROM ");
-//					sb.append(tableName);
-//					sb.append(";");
-//					String query = sb.toString();
-//
-//					// execute query against db
-//					Statement stmt = null;
-//
-//					try {
-//						stmt = con.createStatement();
-//						ResultSet rs = stmt.executeQuery(query);
-//						String fileName = parts[0] + ";" + parts[1] + ";" + parts[2];
-//						String testFilePath = outputFolder + fileName + ".txt";
-//						testFilePath = testFilePath.replace("\\", "/");
-//						String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-//								+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
-//						minHashFilePath = minHashFilePath.replace("\\", "/");
-//						runR("library(textreuse)");
-//						runR("source(" + "\"" + minHashFilePath + "\"" + ");");
-//						List<Object> instances = Utility.getInstancesFromRs(rs);
-//						StringBuilder rsb = new StringBuilder();
-//
-//						// construct R dataframe
-//						String dfName = "df.xray";
-//						runR(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
-//						for (int i = 0; i < instances.size(); i++) {
-//							// ugh why doesn't R have zero-based indexing
-//							rsb.append(dfName + "[" + (i + 1) + ",1" + "]");
-//							rsb.append("<-");
-//							rsb.append("\"" + instances.get(i) + "\"");
-//							rsb.append(";");
-//
-//						}
-//						runR(rsb.toString());
-//						runR("encode_instances(" + dfName + "," + "\"" + testFilePath + "\"" + ");");
-//
-//						stmt.close();
-//					} catch (SQLException e) {
-//						e.printStackTrace();
-//					}
-//				}
-//				con.close();
-//
-//			}
-//		}
 		String baseMatchingFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "XrayCompatibility";
 		baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
 
@@ -4306,17 +4145,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		storeVariable("GRID_NAME", rFrameName);
 		synchronizeFromR();
 
-		// List<Object[]> returnArray = new ArrayList<Object[]>();
-		// returnArray.add(dataframe.getColumnHeaders());
-		//
-		// for (Object[] obj : dataframe.getData()) {
-		// returnArray.add(obj);
-		// }
-		//
-		// ObjectWriter ow = new
-		// ObjectMapper().writer().withDefaultPrettyPrinter();
-		// this.returnData = ow.writeValueAsString(returnArray);
-
 		// TODO save to local master?
 
 		// // Persist the data into a database
@@ -4337,6 +4165,219 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return "";
 		// return null;
 	}
+	
+
+	public String getSchemaForExternal(String connectionUrl, String username, String password) throws SQLException, JsonGenerationException, JsonMappingException, IOException {
+		String url = connectionUrl;
+		String driverType = Utility.getRDBMSDriverType(url);
+		Connection con = null;
+
+		try {
+			if (driverType.equals("mysql")) {
+				Class.forName("com.mysql.jdbc.Driver");
+			} else if (driverType.equals("oracle")) {
+				Class.forName("oracle.jdbc.driver.OracleDriver");
+			} else if (driverType.equals("sqlserver")) {
+				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+			} else if (driverType.equals("db2")) {
+				Class.forName("com.ibm.db2.jcc.DB2Driver");
+			} else if (driverType.equals("h2")) {
+				Class.forName("org.h2.Driver");
+			} else {
+				System.out.println(">>>Invalid connection string");
+			}
+
+			// build connection
+			con = DriverManager.getConnection(url, username, password);
+
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
+		// [colDetails]
+		HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
+		// [(obj_table,
+		// fromCol,
+		// toCol)]
+
+		DatabaseMetaData meta = con.getMetaData();
+		ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
+		while (tables.next()) {
+			ArrayList<String> primaryKeys = new ArrayList<String>();
+			HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
+			// ,
+			// type:
+			// ,
+			// isPK:
+			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
+			HashMap<String, String> fkDetails = new HashMap<String, String>();
+			ArrayList<HashMap> allRels = new ArrayList<HashMap>();
+
+			String table = tables.getString("table_name");
+			System.out.println("Table: " + table);
+			ResultSet keys = meta.getPrimaryKeys(null, null, table);
+			while (keys.next()) {
+				primaryKeys.add(keys.getString("column_name"));
+
+				System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
+			}
+
+			System.out.println("COLUMNS " + primaryKeys);
+			keys = meta.getColumns(null, null, table, null);
+			while (keys.next()) {
+				colDetails = new HashMap<String, Object>();
+				colDetails.put("name", keys.getString("column_name"));
+				colDetails.put("type", keys.getString("type_name"));
+				if (primaryKeys.contains(keys.getString("column_name"))) {
+					colDetails.put("isPK", true);
+				} else {
+					colDetails.put("isPK", false);
+				}
+				allCols.add(colDetails);
+
+				System.out.println(
+						"\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
+			}
+			tableDetails.put(table, allCols);
+
+			System.out.println("FOREIGN KEYS");
+			keys = meta.getExportedKeys(null, null, table);
+			while (keys.next()) {
+				fkDetails = new HashMap<String, String>();
+				fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
+				fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
+				fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
+				allRels.add(fkDetails);
+
+				System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") + " -> "
+						+ keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
+			}
+			relations.put(table, allRels);
+		}
+
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		ret.put("databaseName", con.getCatalog());
+		ret.put("tables", tableDetails);
+		ret.put("relationships", relations);
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		this.hasReturnData = true;
+		this.returnData = ow.writeValueAsString(ret);
+		return (String) this.returnData;
+	}
+	
+	public String getSchemaForLocal(String engineName)
+			throws JsonGenerationException, JsonMappingException, IOException {
+		IEngine engine = Utility.getEngine(engineName);
+		List<String> concepts = DomainValues.getConceptList(engine);
+		QueryStruct qs = engine.getDatabaseQueryStruct();
+		Map<String, Map<String, List>> relations = qs.getRelations();
+		System.out.println(Arrays.toString(relations.entrySet().toArray()));
+
+		// get relations
+		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
+		//structure is Title = {inner.join={Genre, Studio, Nominated}}
+		
+		
+		
+		for(String concept : concepts) {
+			concept = DomainValues.determineCleanConceptName(concept, engine);
+			if(concept.equals("Concept")) {
+				continue;
+			}
+			//check if concept is in the relationship hashmap, if not just add an empty list 
+			List<String> conceptRelations = new ArrayList<String>();
+			for (String key : relations.keySet()) {
+				if (concept.equalsIgnoreCase(key)) {
+					conceptRelations = relations.get(key).get("inner.join"); //TODO check if this changes 
+				} 
+			}
+			relationshipMap.put(concept, conceptRelations);
+			
+		}
+		
+		
+
+		// tablename: [{name, type}]
+		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
+
+		for (String conceptURI : concepts) {
+			String cleanConcept = DomainValues.determineCleanConceptName(conceptURI, engine);
+			//ignore default concept value
+			if (cleanConcept.equals("Concept")) {
+				continue;
+			}
+			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
+			HashMap<String, String> colInfo = new HashMap<String, String>();
+			colInfo.put("name", cleanConcept);
+			String dataType = engine.getDataTypes(conceptURI);
+			dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+			colInfo.put("type", dataType);
+			allCols.add(colInfo);
+			List<String> properties = DomainValues.getPropertyList(engine, conceptURI);
+			for (String prop : properties) {
+				String cleanProp = DomainValues.determineCleanPropertyName(prop, engine);
+				HashMap<String, String> propInfo = new HashMap<String, String>();
+				propInfo.put("name", cleanProp);
+				dataType = engine.getDataTypes(prop);
+				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+				propInfo.put("type", dataType);
+				allCols.add(propInfo);
+			}
+			tableDetails.put(cleanConcept, allCols);
+		}
+		
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		ret.put("databaseName", engine.getEngineName());
+		ret.put("tables", tableDetails);
+		ret.put("relationships", relationshipMap);
+		
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		this.hasReturnData = true;
+		this.returnData = ow.writeValueAsString(ret);
+		return (String) this.returnData;
+	}
+	
+	public String getSchemaForCSV(String filePath) throws JsonGenerationException, JsonMappingException, IOException {
+		CSVFileHelper cv = new CSVFileHelper();
+		cv.parse(filePath);
+		String[] headers = cv.getAllCSVHeaders();
+		String[] types = cv.predictTypes();
+		
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		//generate db name
+		String[] parts = filePath.split("\\\\");
+		String dbName = parts[parts.length-1].replace(".", "_");
+		// C:\\..\\file.csv -> file_csv
+		ret.put("databaseName", dbName);
+		
+		//construct empty relationship map (assuming flat table)
+		HashMap<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
+		for(String concept : headers) {
+			relationshipMap.put(concept, new ArrayList<String>()); //return empty list for FE
+		}
+		
+		ret.put("relationships", relationshipMap);
+		
+		//add column details
+		//since it's a flat table we don't need to worry about concept/property relationships
+		HashMap<String, HashMap> tableDetails = new HashMap<String, HashMap>();
+		for(int i = 0; i < headers.length; i++) {
+			HashMap<String, String> colDetails = new HashMap<String, String>();
+			colDetails.put("name", headers[i]);
+			String dataType = IMetaData.convertToDataTypeEnum(types[i]).toString();
+			colDetails.put("type", dataType);
+			tableDetails.put(headers[i], colDetails);
+		}
+		
+		ret.put("tables", tableDetails);
+		
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		this.hasReturnData = true;
+		this.returnData = ow.writeValueAsString(ret);
+		return (String) this.returnData;
+		
+	}
 	private void encodeInstances(String filePath, List<Object> instances) {
 		String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
 				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
@@ -4353,11 +4394,36 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		for (int j = 0; j < instances.size(); j++) {
 			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
 			rsb.append("<-");
-			rsb.append("\"" + instances.get(j) + "\"");
+			rsb.append("" + instances.get(j).toString() + "");
 			rsb.append(";");
 
 		}
 		rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 		runR(rsb.toString());
+	}
+	
+	private void encodeInstances(String filePath, HashSet<Object> instances) {
+		String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+		minHashFilePath = minHashFilePath.replace("\\", "/");
+		
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("library(textreuse);");
+		rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
+
+		// construct R dataframe
+		String dfName = "df.xray";
+		rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
+		int j = 0;
+		for (Object value: instances) {
+			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
+			rsb.append("<-");
+			rsb.append("" + value.toString() + "");
+			rsb.append(";");
+			j++;
+
+		}
+		rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
+		runR(rsb.toString());		
 	}
 }
