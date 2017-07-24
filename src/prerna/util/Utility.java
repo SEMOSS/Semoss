@@ -3016,18 +3016,8 @@ public class Utility {
 		List<Object> instances = new ArrayList<Object>();
 
 		try {
-			ResultSetMetaData meta = rs.getMetaData();
-			int numberOfColumns = meta.getColumnCount();
-			String dataHeaders = "\"" + meta.getColumnName(1) + "\"";
-			for (int i = 2; i < numberOfColumns + 1; i++) {
-				dataHeaders += ",\"" + meta.getColumnName(i).replaceAll("\"", "\\\"") + "\"";
-			}
-
 			while (rs.next()) {
-				String row = "\"" + rs.getString(1).replaceAll("\"", "\\\"") + "\"";
-				for (int i = 2; i < numberOfColumns + 1; i++) {
-					row += ",\"" + rs.getString(i).replaceAll("\"", "\\\"") + "\"";
-				}
+				String row = rs.getString(1).replaceAll("\"", "\\\"");
 				instances.add(row.toString());
 			}
 
