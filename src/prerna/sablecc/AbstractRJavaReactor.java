@@ -62,6 +62,7 @@ import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -3933,36 +3934,15 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			else if (connectorType.toUpperCase().equals("EXTERNAL")) {
 				// process if jdbc connection
 				String connectionUrl = (String)connectorData.get("connectionString");
-				String userName = (String) connectorData.get("userName");
+				String port = (String) connectorData.get("port");
+				String host = (String) connectorData.get("host");
+				String schema = (String) connectorData.get("schema");
+				String username = (String) connectorData.get("userName");
 				String password = (String) connectorData.get("password");
-				Connection con = null;
-				String driverType = Utility.getRDBMSDriverType(connectionUrl);
-
-				try {
-					// instantiate the correct rdbms driver depending on type
-					if (driverType.equals("mysql")) {
-						Class.forName("com.mysql.jdbc.Driver");
-					} else if (driverType.equals("oracle")) {
-						Class.forName("oracle.jdbc.driver.OracleDriver");
-					} else if (driverType.equals("sqlserver")) {
-						Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-					} else if (driverType.equals("db2")) {
-						Class.forName("com.ibm.db2.jcc.DB2Driver");
-					} else if (driverType.equals("h2")) {
-						Class.forName("org.h2.Driver");
-					} else {
-						System.out.println(">>>Invalid connection string");
-					}
-
-					// build connection
-					
-					//TODO needs to use userName and password
-					con = DriverManager.getConnection(connectionUrl, "sa", "");
-
-				} catch (ClassNotFoundException e) {
-					System.out.println(">>>JDBC Driver not found, please ensure you have drivers installed.");
-					e.printStackTrace();
-				}
+				String newDBName = (String) connectorData.get("databaseName");
+				String type = (String) connectorData.get("type");
+				System.out.println("");
+		        Connection con = buildConnection(type, host, port, username, password, schema);
 				
 				for (String table : dataSelection.keySet()) {
 					HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
@@ -3984,7 +3964,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 							try {
 								stmt = con.createStatement();
 								ResultSet rs = stmt.executeQuery(query);
-								String fileName = con.getCatalog()  + ";" + table + ";" + column;
+								String fileName = newDBName + ";" + table + ";" + column;
 								String testFilePath = outputFolder +"\\"+ fileName + ".txt";
 								testFilePath = testFilePath.replace("\\", "/");
 								List<Object> instances = Utility.getInstancesFromRs(rs);
@@ -4166,107 +4146,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// return null;
 	}
 	
-
-	public String getSchemaForExternal(String connectionUrl, String username, String password) throws SQLException, JsonGenerationException, JsonMappingException, IOException {
-		String url = connectionUrl;
-		String driverType = Utility.getRDBMSDriverType(url);
-		Connection con = null;
-
-		try {
-			if (driverType.equals("mysql")) {
-				Class.forName("com.mysql.jdbc.Driver");
-			} else if (driverType.equals("oracle")) {
-				Class.forName("oracle.jdbc.driver.OracleDriver");
-			} else if (driverType.equals("sqlserver")) {
-				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-			} else if (driverType.equals("db2")) {
-				Class.forName("com.ibm.db2.jcc.DB2Driver");
-			} else if (driverType.equals("h2")) {
-				Class.forName("org.h2.Driver");
-			} else {
-				System.out.println(">>>Invalid connection string");
-			}
-
-			// build connection
-			con = DriverManager.getConnection(url, username, password);
-
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-
-		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
-		// [colDetails]
-		HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
-		// [(obj_table,
-		// fromCol,
-		// toCol)]
-
-		DatabaseMetaData meta = con.getMetaData();
-		ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
-		while (tables.next()) {
-			ArrayList<String> primaryKeys = new ArrayList<String>();
-			HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
-			// ,
-			// type:
-			// ,
-			// isPK:
-			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
-			HashMap<String, String> fkDetails = new HashMap<String, String>();
-			ArrayList<HashMap> allRels = new ArrayList<HashMap>();
-
-			String table = tables.getString("table_name");
-			System.out.println("Table: " + table);
-			ResultSet keys = meta.getPrimaryKeys(null, null, table);
-			while (keys.next()) {
-				primaryKeys.add(keys.getString("column_name"));
-
-				System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
-			}
-
-			System.out.println("COLUMNS " + primaryKeys);
-			keys = meta.getColumns(null, null, table, null);
-			while (keys.next()) {
-				colDetails = new HashMap<String, Object>();
-				colDetails.put("name", keys.getString("column_name"));
-				colDetails.put("type", keys.getString("type_name"));
-				if (primaryKeys.contains(keys.getString("column_name"))) {
-					colDetails.put("isPK", true);
-				} else {
-					colDetails.put("isPK", false);
-				}
-				allCols.add(colDetails);
-
-				System.out.println(
-						"\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
-			}
-			tableDetails.put(table, allCols);
-
-			System.out.println("FOREIGN KEYS");
-			keys = meta.getExportedKeys(null, null, table);
-			while (keys.next()) {
-				fkDetails = new HashMap<String, String>();
-				fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
-				fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
-				fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
-				allRels.add(fkDetails);
-
-				System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") + " -> "
-						+ keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
-			}
-			relations.put(table, allRels);
-		}
-
-		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put("databaseName", con.getCatalog());
-		ret.put("tables", tableDetails);
-		ret.put("relationships", relations);
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-		this.hasReturnData = true;
-		this.returnData = ow.writeValueAsString(ret);
-		con.close();
-		return (String) this.returnData;
-	}
-	
 	public String getSchemaForLocal(String engineName)
 			throws JsonGenerationException, JsonMappingException, IOException {
 		IEngine engine = Utility.getEngine(engineName);
@@ -4395,11 +4274,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		for (int j = 0; j < instances.size(); j++) {
 			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
 			rsb.append("<-");
-			if (instances.get(j) instanceof String) {
-				rsb.append("\"" + instances.get(j).toString() + "\"");
-			} else {
-				rsb.append("" + instances.get(j).toString() + "");
-			}
+			rsb.append("\"" + instances.get(j).toString() + "\"");
 			rsb.append(";");
 
 		}
@@ -4433,180 +4308,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	}
 	
 	public String getSchemaForExternal(String type, String host, String port, String username, String password, String schema) throws SQLException, JsonGenerationException, JsonMappingException, IOException {
-        Connection con = null;
+        Connection con = buildConnection(type, host, port, username, password, schema);
         String url = "";
-        try {
-               if (type.equals("MySQL")) {
-                      Class.forName("com.mysql.jdbc.Driver");
-                     // Connection URL format:
-                     // jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
-                     url = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-                     con = DriverManager.getConnection(url + "?user=" + username + "&password=" + new String(password));
-               } else if (type.equals("Oracle")) {
-                      Class.forName("oracle.jdbc.driver.OracleDriver");
-
-                     // Connection URL format:
-                     // jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema
-                     // name]
-                     url = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-               } else if (type.equals("SQL_Server")) {
-                      Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-
-                     // Connection URL format:
-                     // jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>
-                     url = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-               } else if (type.equals("DB2")) {
-                      Class.forName("com.ibm.db2.jcc.DB2Driver");
-                     
-                     // Connection URL format:
-                     // jdbc:db2://<hostname>[:port]/<databasename>
-                     url = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("ASTER_DB")) {
-                      Class.forName("com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver");
-                     url = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("SAP_HANA")) {
-                      Class.forName("com.sap.db.jdbc.Driver");
-                     url = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-               } else if (type.equals("MARIA_DB")) {
-                      Class.forName("org.mariadb.jdbc.Driver");
-                     url = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("H2_DB")) {
-                     Class.forName("org.h2.Driver");
-                     //Local db
-                     if(host.contains("C:")) {
-                         url = "jdbc:h2:HOST/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-
-                     } else {
-                     url = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     }
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("TERADATA")) {
-                      Class.forName("com.teradata.jdbc.TeraDriver");
-                     url = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("POSTGRES")) {
-                      Class.forName("org.postgresql.Driver");
-                     url = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("DERBY")) {
-                      Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                     url = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("CASSANDRA")) {
-                      Class.forName("com.github.adejanovski.cassandra.jdbc.CassandraDriver");
-                     url = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               } else if (type.equals("IMPALA")) {
-                      Class.forName("com.cloudera.impala.jdbc3.Driver");
-                     url = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-               } else if (type.equals("PHOENIX")) {
-                      Class.forName("org.apache.phoenix.jdbc.PhoenixDriver");
-                     url = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                     if (port != null && !port.isEmpty()) {
-                            url = url.replace(":PORT", ":" + port);
-                     } else {
-                            url = url.replace(":PORT", "");
-                     }
-
-                     con = DriverManager.getConnection(url, username, new String(password));
-
-               }
-
-        } catch (ClassNotFoundException e) {
-               e.printStackTrace();
-               System.out.println(">>>>>DRIVER NOT FOUND. PLEASE ENSURE YOU HAVE ACCESS TO JDBC DRIVER");
-        }
         
         HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
         // [colDetails]
@@ -4670,7 +4373,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
                relations.put(table, allRels);
         }
         
-        con.close();
 
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("databaseName", con.getCatalog());
@@ -4679,8 +4381,190 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         this.hasReturnData = true;
         this.returnData = ow.writeValueAsString(ret);
+        con.close();
+
         return (String) this.returnData;
         
   }
+
+	private Connection buildConnection(String type, String host, String port, String username, String password,
+			String schema) throws SQLException, JsonGenerationException, JsonMappingException, IOException {
+        Connection con = null;
+        String url = "";
+
+		try {
+            if (type.equals("MySQL")) {
+                   Class.forName("com.mysql.jdbc.Driver");
+                  // Connection URL format:
+                  // jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
+                  url = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+                  con = DriverManager.getConnection(url + "?user=" + username + "&password=" + new String(password));
+            } else if (type.equals("Oracle")) {
+                   Class.forName("oracle.jdbc.driver.OracleDriver");
+
+                  // Connection URL format:
+                  // jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema
+                  // name]
+                  url = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+            } else if (type.equals("SQL_Server")) {
+                   Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+
+                  // Connection URL format:
+                  // jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>
+                  url = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+            } else if (type.equals("DB2")) {
+                   Class.forName("com.ibm.db2.jcc.DB2Driver");
+                  
+                  // Connection URL format:
+                  // jdbc:db2://<hostname>[:port]/<databasename>
+                  url = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("ASTER_DB")) {
+                   Class.forName("com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver");
+                  url = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("SAP_HANA")) {
+                   Class.forName("com.sap.db.jdbc.Driver");
+                  url = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+            } else if (type.equals("MARIA_DB")) {
+                   Class.forName("org.mariadb.jdbc.Driver");
+                  url = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("H2_DB")) {
+                  Class.forName("org.h2.Driver");
+                  //Local db
+                  if(host.contains("C:")) {
+                      url = "jdbc:h2:HOST/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+
+                  } else {
+                  url = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  }
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("TERADATA")) {
+                   Class.forName("com.teradata.jdbc.TeraDriver");
+                  url = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("POSTGRES")) {
+                   Class.forName("org.postgresql.Driver");
+                  url = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("DERBY")) {
+                   Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+                  url = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("CASSANDRA")) {
+                   Class.forName("com.github.adejanovski.cassandra.jdbc.CassandraDriver");
+                  url = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            } else if (type.equals("IMPALA")) {
+                   Class.forName("com.cloudera.impala.jdbc3.Driver");
+                  url = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+            } else if (type.equals("PHOENIX")) {
+                   Class.forName("org.apache.phoenix.jdbc.PhoenixDriver");
+                  url = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+                  if (port != null && !port.isEmpty()) {
+                         url = url.replace(":PORT", ":" + port);
+                  } else {
+                         url = url.replace(":PORT", "");
+                  }
+
+                  con = DriverManager.getConnection(url, username, new String(password));
+
+            }
+
+     } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            System.out.println(">>>>>DRIVER NOT FOUND. PLEASE ENSURE YOU HAVE ACCESS TO JDBC DRIVER");
+     }
+		return con;
+	}
 
 }
