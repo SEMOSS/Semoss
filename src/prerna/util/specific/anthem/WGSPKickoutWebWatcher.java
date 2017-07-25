@@ -360,7 +360,12 @@ public class WGSPKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
 		return dateFormatter.parse(fileName.substring(12, 22));
 	}
-
+	
+	@Override
+	protected String[] giveFiles() {
+		return new File(folderToWatch).list();
+	}
+	
 	@Override
 	protected String giveFullHeaderString() {
 		return fullHeaderString;
