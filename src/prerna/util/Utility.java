@@ -3017,7 +3017,11 @@ public class Utility {
 
 		try {
 			while (rs.next()) {
-				String row = rs.getString(1).replaceAll("\"", "\\\"");
+				Object value = rs.getString(1);
+				String row = "";
+				if (value != null) {
+					row = ((String) value).replaceAll("\"", "\\\"");
+				}
 				instances.add(row.toString());
 			}
 
