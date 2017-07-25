@@ -3489,49 +3489,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	}
 
-	/**
-	 * Method overloading to cast types passed by front end pkqls
-	 */
-	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, double candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, candidateThreshold, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, int candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, similarityThreshold, (double) candidateThreshold, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, int candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, (double) candidateThreshold, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, int candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, double candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, .7, (double) candidateThreshold, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, int similarityThreshold, String candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, String candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, (double) similarityThreshold, .15, matchingSameDB);
-	}
-
-	public String runXrayCompatibility(String selectedInfoJson, String similarityThreshold, String candidateThreshold, boolean matchingSameDB)
-			throws JsonParseException, JsonMappingException, SQLException, IOException {
-		return runXrayCompatibility(selectedInfoJson, .7, .15, matchingSameDB);
-	}
-	
 	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, double candidateThreshold, boolean matchingSameDB)
 			throws SQLException, JsonParseException, JsonMappingException, IOException {
 
@@ -3596,6 +3553,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 					String columnName = parts[2];
 
 					// build sql query - write only unique values
+					
 					StringBuilder sb = new StringBuilder();
 					sb.append("SELECT DISTINCT ");
 					sb.append(columnName);
@@ -4344,83 +4302,100 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR(rsb.toString());		
 	}
 	
-	public String getSchemaForExternal(String type, String host, String port, String username, String password, String schema) throws SQLException, JsonGenerationException, JsonMappingException, IOException {
-        Connection con = buildConnection(type, host, port, username, password, schema);
-        String url = "";
-        
-        HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
-        // [colDetails]
-        HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
-        // [(obj_table,
-        // fromCol,
-        // toCol)]
+	public String getSchemaForExternal(String type, String host, String port, String username, String password, String schema) throws SQLException  {
+		Connection con = null;
+		try {
+			con = buildConnection(type, host, port, username, password, schema);
+			String url = "";
 
-        DatabaseMetaData meta = con.getMetaData();
-        ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
-        while (tables.next()) {
-               ArrayList<String> primaryKeys = new ArrayList<String>();
-               HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
-               // ,
-               // type:
-               // ,
-               // isPK:
-               ArrayList<HashMap> allCols = new ArrayList<HashMap>();
-               HashMap<String, String> fkDetails = new HashMap<String, String>();
-               ArrayList<HashMap> allRels = new ArrayList<HashMap>();
+			HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
+			// [colDetails]
+			HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
+			// [(obj_table,
+			// fromCol,
+			// toCol)]
 
-               String table = tables.getString("table_name");
-               System.out.println("Table: " + table);
-               ResultSet keys = meta.getPrimaryKeys(null, null, table);
-               while (keys.next()) {
-                      primaryKeys.add(keys.getString("column_name"));
+			DatabaseMetaData meta = con.getMetaData();
+			ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
+			while (tables.next()) {
+				ArrayList<String> primaryKeys = new ArrayList<String>();
+				HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
+				// ,
+				// type:
+				// ,
+				// isPK:
+				ArrayList<HashMap> allCols = new ArrayList<HashMap>();
+				HashMap<String, String> fkDetails = new HashMap<String, String>();
+				ArrayList<HashMap> allRels = new ArrayList<HashMap>();
 
-                      System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
-               }
+				String table = tables.getString("table_name");
+				System.out.println("Table: " + table);
+				ResultSet keys = meta.getPrimaryKeys(null, null, table);
+				while (keys.next()) {
+					primaryKeys.add(keys.getString("column_name"));
 
-               System.out.println("COLUMNS " + primaryKeys);
-               keys = meta.getColumns(null, null, table, null);
-               while (keys.next()) {
-                     colDetails = new HashMap<String, Object>();
-                     colDetails.put("name", keys.getString("column_name"));
-                     colDetails.put("type", keys.getString("type_name"));
-                     if (primaryKeys.contains(keys.getString("column_name"))) {
-                            colDetails.put("isPK", true);
-                     } else {
-                            colDetails.put("isPK", false);
-                     }
-                     allCols.add(colDetails);
+					System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
+				}
 
-                     System.out.println(
-                                  "\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
-               }
-               tableDetails.put(table, allCols);
+				System.out.println("COLUMNS " + primaryKeys);
+				keys = meta.getColumns(null, null, table, null);
+				while (keys.next()) {
+					colDetails = new HashMap<String, Object>();
+					colDetails.put("name", keys.getString("column_name"));
+					colDetails.put("type", keys.getString("type_name"));
+					if (primaryKeys.contains(keys.getString("column_name"))) {
+						colDetails.put("isPK", true);
+					} else {
+						colDetails.put("isPK", false);
+					}
+					allCols.add(colDetails);
 
-               System.out.println("FOREIGN KEYS");
-               keys = meta.getExportedKeys(null, null, table);
-               while (keys.next()) {
-                     fkDetails = new HashMap<String, String>();
-                     fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
-                     fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
-                     fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
-                     allRels.add(fkDetails);
+					System.out.println(
+							"\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
+				}
+				tableDetails.put(table, allCols);
 
-                      System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") + " -> "
-                                  + keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
-               }
-               relations.put(table, allRels);
-        }
-        
+				System.out.println("FOREIGN KEYS");
+				keys = meta.getExportedKeys(null, null, table);
+				while (keys.next()) {
+					fkDetails = new HashMap<String, String>();
+					fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
+					fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
+					fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
+					allRels.add(fkDetails);
 
-        HashMap<String, Object> ret = new HashMap<String, Object>();
-        ret.put("databaseName", con.getCatalog());
-        ret.put("tables", tableDetails);
-        ret.put("relationships", relations);
-        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-        this.hasReturnData = true;
-        this.returnData = ow.writeValueAsString(ret);
-        con.close();
+					System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") + " -> "
+							+ keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
+				}
+				relations.put(table, allRels);
+			}
+			HashMap<String, Object> ret = new HashMap<String, Object>();
+			ret.put("databaseName", con.getCatalog());
+			ret.put("tables", tableDetails);
+			ret.put("relationships", relations);
+			ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+			this.hasReturnData = true;
+			this.returnData = ow.writeValueAsString(ret);
+			con.close();
 
-        return (String) this.returnData;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (JsonGenerationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (con != null) {
+				con.close();
+			}
+		}
+
+		return (String) this.returnData;
         
   }
 
@@ -4430,7 +4405,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         String url = "";
 
 		try {
-            if (type.equals("MySQL")) {
+            if (type.equals("MYSQL")) {
                    Class.forName("com.mysql.jdbc.Driver");
                   // Connection URL format:
                   // jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
