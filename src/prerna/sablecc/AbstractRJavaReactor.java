@@ -4068,16 +4068,30 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		boolean matchingSameDB = false;
 
 		if(parameters != null){
-			Double similarity = (Double) parameters.get("similarity");
-			if(similarity != null) {
-			similarityThreshold = similarity.doubleValue();
+			Object sim = parameters.get("similarity");
+			Double similarity = null;
+			if (sim instanceof Integer) {
+				similarity = (double) ((Integer) sim).intValue();
+			} else {
+				similarity = (Double) sim;
 			}
-			Double candidate = (Double) parameters.get("candidate");
-			if(candidate != null) {
+			if (similarity != null) {
+				similarityThreshold = similarity.doubleValue();
+			}
+			Object cand = parameters.get("candidate");
+
+			Double candidate = null;
+			
+			if (cand instanceof Integer) {
+				candidate = (double) ((Integer) cand).intValue();
+			} else {
+				candidate = (Double) cand;
+			}
+			if (candidate != null) {
 				candidateThreshold = candidate.doubleValue();
 			}
 			Boolean matchDB = (Boolean) parameters.get("matchSameDb");
-			if(matchDB != null) {
+			if (matchDB != null) {
 				matchingSameDB = matchDB.booleanValue();
 			}
 		}
@@ -4293,7 +4307,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		for (int j = 0; j < instances.size(); j++) {
 			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
 			rsb.append("<-");
-			rsb.append("\"" + instances.get(j).toString() + "\"");
+			if(instances.get(j)==null) {
+				rsb.append("\"" + "" + "\"");
+			} else {
+				rsb.append("\"" + instances.get(j).toString() + "\"");
+			} 
 			rsb.append(";");
 
 		}
