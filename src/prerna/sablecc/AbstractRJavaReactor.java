@@ -3867,7 +3867,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// runs the full xray compatibility from the new UI
 		HashMap<String, Object> config = new ObjectMapper().readValue(configFileJson, HashMap.class);
-		HashMap<String, Object> parameters = new HashMap();
+		HashMap<String, Object> parameters = (HashMap<String, Object>) config.get("parameters");
 		// TODO regenerate?
 		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\XrayCompatibility" + "\\"
 				+ Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
@@ -4061,14 +4061,38 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		int nMinhash;
 		int nBands;
 		int instancesThreshold = 1;
+		//TODO get parameters from front end
 		double similarityThreshold = -1;
 		double candidateThreshold = -1;
+		String matchingSameDBR = "FALSE";
+		boolean matchingSameDB = false;
+
+		if(parameters != null){
+			Double similarity = (Double) parameters.get("similarity");
+			if(similarity != null) {
+			similarityThreshold = similarity.doubleValue();
+			}
+			Double candidate = (Double) parameters.get("candidate");
+			if(candidate != null) {
+				candidateThreshold = candidate.doubleValue();
+			}
+			Boolean matchDB = (Boolean) parameters.get("matchSameDb");
+			if(matchDB != null) {
+				matchingSameDB = matchDB.booleanValue();
+			}
+		}
+
 		if (similarityThreshold < 0 || similarityThreshold > 1) {
 			similarityThreshold = 0.01;
 		}
 
 		if (candidateThreshold < 0 || candidateThreshold > 1) {
 			candidateThreshold = 0.01;
+		}
+		
+		// check if user wants to compare columns from the same database
+		if (matchingSameDB) {
+			matchingSameDBR = "TRUE";
 		}
 
 		// set other parameters
@@ -4108,12 +4132,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		runR("source(\"" + utilityScriptPath + "\");");
 		runR(rFrameName + " <- data.frame()");
 
-		// check if user wants to compare columns from the same database
-		String matchingSameDBR = "FALSE";
-		boolean matchingSameDB = false;
-		if (matchingSameDB) {
-			matchingSameDBR = "TRUE";
-		}
+
 
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
