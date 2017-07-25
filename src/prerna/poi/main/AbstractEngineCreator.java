@@ -130,6 +130,8 @@ public class AbstractEngineCreator {
 	private void connectToExternalRDBMSEngine(String schema, String dbName) {
 		engine = new RDBMSNativeEngine();
 		engine.setEngineName(dbName);
+		//create insights db
+		createNewInsightsDatabase(dbName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
