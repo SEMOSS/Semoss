@@ -3867,7 +3867,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 		// runs the full xray compatibility from the new UI
 		HashMap<String, Object> config = new ObjectMapper().readValue(configFileJson, HashMap.class);
-
+		HashMap<String, Object> parameters = new HashMap();
 		// TODO regenerate?
 		String metadataFile = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\XrayCompatibility" + "\\"
 				+ Constants.R_TEMP_FOLDER + "\\instanceCount.csv";
@@ -4064,11 +4064,11 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		double similarityThreshold = -1;
 		double candidateThreshold = -1;
 		if (similarityThreshold < 0 || similarityThreshold > 1) {
-			similarityThreshold = 0.7;
+			similarityThreshold = 0.01;
 		}
 
 		if (candidateThreshold < 0 || candidateThreshold > 1) {
-			candidateThreshold = 0.15;
+			candidateThreshold = 0.01;
 		}
 
 		// set other parameters
