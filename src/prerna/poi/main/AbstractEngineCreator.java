@@ -131,7 +131,8 @@ public class AbstractEngineCreator {
 		engine = new RDBMSNativeEngine();
 		engine.setEngineName(dbName);
 		//create insights db
-		createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		engine.setInsightDatabase(insightDatabase);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
