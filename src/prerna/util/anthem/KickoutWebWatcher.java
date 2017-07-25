@@ -15,11 +15,11 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 	private String timeDbName;
 	private String timeCsv; // Empty csv with 1 row
 	private String timePropFile;
-	
+
 	private boolean timeDbExists = false;
-	
+
 	private static final String ERROR_ID_KEY = "ERROR_ID";
-	
+
 	public KickoutWebWatcher() {
 		errorCodeDbName = DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_ERROR_CODE_DB_NAME");
 		errorCodeCsv = DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_ERROR_CODE_CSV");
@@ -28,7 +28,7 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 		timeCsv = DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_TIME_CSV");
 		timePropFile = DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_TIME_PROP_FILE");
 	}
-	
+
 	@Override
 	protected String giveDbName() {
 		return DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_DB_NAME");
@@ -38,7 +38,7 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 	protected String givePropFile() {
 		return DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_PROP_FILE");
 	}
-	
+
 	@Override
 	protected String giveProcessedDbName() {
 		return DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_PROCESSED_DB_NAME");
@@ -61,29 +61,29 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 	@Override
 	protected void initialize() {
-				
+
 		// First create a new database for error code description and severities
 		// If it doesn't already exist
 		// Returns true if the engine for the error code database exists
 		if (!loadEngineIfExists(errorCodeDbName)) {
-			
+
 			// This is data that is not contained in the reports,
 			// and is just a one-time add
 			createErrorCodeDB();
 		}
-				
+
 		// Returns true if the engine for the time database exists
 		if (loadEngineIfExists(timeDbName)) {
 			timeDbExists = true;
-		}		
+		}
 	}
-			
+
 	@Override
 	protected Map<String, String> populateValueMap(String zipFileName, String excelFileName) {
-		
+
 		// Grab the system name from the excel file
 		String systemName = excelFileName.substring(11, 13);
-		
+
 		// Grab the date and time from the zip file
 		String date = zipFileName.substring(12, 22); // yyyy-MM-dd
 		String time = zipFileName.substring(23, 31).replace('.', ':'); // hh:mm:ss
@@ -93,19 +93,19 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 		// Map to store data not found in the csv but specified in the prop file
 		Map<String, String> valueMap = new HashMap<String, String>();
-		
+
 		// Needed for concatenated unique id
 		valueMap.put(ZIP_KEY, zipFileName);
 		valueMap.put(XLS_SYS_KEY, systemName);
 		valueMap.put(ERROR_ID_KEY, ZIP_KEY + "+" + XLS_SYS_KEY + "+" + ROW_KEY);
-		
+
 		// Needed for kickout time
 		valueMap.put(TIMESTAMP_KEY, timestamp);
-		
+
 		// Needed for sql date and time objects
 		valueMap.put(DATE_KEY, date);
 		valueMap.put(TIME_KEY, time);
-		
+
 		// Needed for parsed date and time
 		valueMap.put(YEAR_KEY, parsedDate[0]);
 		valueMap.put(MONTH_KEY, parsedDate[1]);
@@ -118,18 +118,18 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 
 	@Override
 	protected Map<String, String> populateTypeMap(String zipFileName, String excelFileName) {
-		
+
 		// Map to store the data types (defaults to string otherwise)
 		// Uses SEMOSS UI types (see AbstractEngineCreator createSqlTypes)
 		Map<String, String> typeMap = new HashMap<String, String>();
-		
+
 		// Needed for kickout time
 		typeMap.put(TIMESTAMP_KEY, TIMESTAMP_TYPE);
-		
+
 		// Needed for sql date and time objects
 		typeMap.put(DATE_KEY, DATE_TYPE);
 		typeMap.put(TIME_KEY, TIME_TYPE);
-		
+
 		// Needed for parsed date and time
 		typeMap.put(YEAR_KEY, YEAR_TYPE);
 		typeMap.put(MONTH_KEY, MONTH_TYPE);
@@ -137,14 +137,16 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 		typeMap.put(HOUR_KEY, HOUR_TYPE);
 		typeMap.put(MINUTE_KEY, MINUTE_TYPE);
 		typeMap.put(SECOND_KEY, SECOND_TYPE);
-		
+
 		return typeMap;
 	}
 
 	@Override
-	protected void ingestMetadataIntoSeparateDB(Map<String, String> valueMap, Map<String, String> typeMap, boolean createIndexes) {
-		
-		// Specify the options necessary to load data from the csv file into SEMOSS
+	protected void ingestMetadataIntoSeparateDB(Map<String, String> valueMap, Map<String, String> typeMap,
+			boolean createIndexes) {
+
+		// Specify the options necessary to load data from the csv file into
+		// SEMOSS
 		ImportOptions options = new ImportOptions();
 		options.setDbName(timeDbName);
 		options.setImportType(ImportOptions.IMPORT_TYPE.CSV);
@@ -152,20 +154,21 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 		options.setDbType(ImportOptions.DB_TYPE.RDBMS);
 		options.setBaseFolder(baseFolder);
 		options.setAutoLoad(false);
-		
+
 		// Here don't allow duplicates,
 		// so that the same kickout time isn't added for each excel file
 		options.setAllowDuplicates(false);
 		options.setFileLocation(timeCsv);
 		options.setPropertyFiles(timePropFile);
-		
+
 		// Set the maps that store metadata from the file names
 		options.setObjectValueMap(valueMap);
 		options.setObjectTypeMap(typeMap);
 		options.setRowKey(ROW_KEY);
 		options.setCreateIndexes(createIndexes);
-		
-		// Create new if the database does not yet exist, otherwise add to existing
+
+		// Create new if the database does not yet exist, otherwise add to
+		// existing
 		ImportDataProcessor importer = new ImportDataProcessor();
 		if (!timeDbExists) {
 			options.setImportMethod(ImportOptions.IMPORT_METHOD.CREATE_NEW);
@@ -174,7 +177,7 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 				timeDbExists = true;
 			} catch (Exception e) {
 				e.printStackTrace();
-				logger.error("Failed to create the database " + timeDbName + " with " + valueMap.get(TIMESTAMP_KEY));
+				LOGGER.error("Failed to create the database " + timeDbName + " with " + valueMap.get(TIMESTAMP_KEY));
 			}
 		} else {
 			options.setImportMethod(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING);
@@ -182,19 +185,20 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 				importer.runProcessor(options);
 			} catch (Exception e) {
 				e.printStackTrace();
-				logger.error("Failed to add " + valueMap.get(TIMESTAMP_KEY) + " to " + timeDbName);
+				LOGGER.error("Failed to add " + valueMap.get(TIMESTAMP_KEY) + " to " + timeDbName);
 			}
 		}
 	}
-	
-	// Uses ImportDataProcessor for this database, as it needs to be exposed to the user
+
+	// Uses ImportDataProcessor for this database, as it needs to be exposed to
+	// the user
 	private void createErrorCodeDB() {
 		ImportDataProcessor importer = new ImportDataProcessor();
 		ImportOptions options = new ImportOptions();
 		options.setDbName(errorCodeDbName);
 		options.setImportType(ImportOptions.IMPORT_TYPE.CSV);
 		options.setRDBMSDriverType(dbType);
-		options.setDbType(ImportOptions.DB_TYPE.RDBMS);		
+		options.setDbType(ImportOptions.DB_TYPE.RDBMS);
 		options.setBaseFolder(baseFolder);
 		options.setAutoLoad(false);
 		options.setAllowDuplicates(true);
@@ -205,13 +209,23 @@ public class KickoutWebWatcher extends AbstractKickoutWebWatcher {
 			importer.runProcessor(options);
 		} catch (Exception e) {
 			e.printStackTrace();
-			logger.error("Failed to create " + errorCodeDbName);
+			LOGGER.error("Failed to create " + errorCodeDbName);
 		}
+	}
+
+	@Override
+	protected void executeJobs() {
+		// Right now, nothing to execute
+	}
+
+	@Override
+	protected void scheduleJobs() {
+		// Right now, nothing to schedule		
 	}
 	
 	// Test case
 	public static void main(String[] args) {
-		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");		
+		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
 		KickoutWebWatcher kww = new KickoutWebWatcher();
 		kww.setFolderToWatch(DIHelper.getInstance().getProperty("AnthemWebWatcher_DIR"));
 		kww.setExtension(DIHelper.getInstance().getProperty("AnthemWebWatcher_EXT"));

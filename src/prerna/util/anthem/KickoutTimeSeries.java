@@ -1,13 +1,61 @@
 package prerna.util.anthem;
 
+import static org.quartz.JobBuilder.newJob;
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+import static org.quartz.TriggerBuilder.newTrigger;
+
 import java.util.HashMap;
 import java.util.Map;
 
+import org.quartz.JobDetail;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+
+import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector;
+import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector.AnomDirection;
 import prerna.util.DIHelper;
 
 public class KickoutTimeSeries extends AbstractKickoutWebWatcher {
 	
+	private JobDetail anomalyJob;
+	
+	private static final String TIME_COLUMN = DATE_KEY;
+	private static final String SERIES_COLUMN = "NUM_ERRORS";
+	private static final String AGGREGATE_FUNCTION = "sum";
+	private static final double MAX_ANOMS = 0.1;
+	private static final AnomDirection DIRECTION = AnomDirection.POSITIVE;
+	private static final double ALPHA = 0.05;
+	private static final int PERIOD = 7;
+	private static final boolean KEEP_EXISTING_COLUMNS = false;
+	
 	private static final String TIMESERIES_ID_KEY = "TIMESERIES_ID";
+	
+	public KickoutTimeSeries() {
+		
+		// Derive the parameters passed into the job
+		// First get the proper direction
+		String stringDirection = AnomalyDetector.determineStringDirectionFromAnomDirection(DIRECTION);
+		
+		// Define the import pkql
+		String importPkql = "data.import ( api: " + dbName + " . query ( [ c: " + TIMESERIES_ID_KEY + " , c: " + TIMESERIES_ID_KEY
+				+ "__" + TIME_COLUMN + " , c: " + TIMESERIES_ID_KEY + "__" + SERIES_COLUMN + " ] ) ) ;";
+		
+		// Pass in data to the job
+		// TODO 
+//		anomalyJob = newJob(DetectAnomaliesJob.class)
+//				.withIdentity("anomaly_detection", "kickout_timeseries")
+//				.usingJobData("dbName", dbName)
+//				.usingJobData("importPkql", importPkql)
+//			    .usingJobData("timeColumn", TIME_COLUMN)
+//			    .usingJobData("seriesColumn", SERIES_COLUMN)
+//			    .usingJobData("aggregateFunction", AGGREGATE_FUNCTION)
+//			    .usingJobData("maxAnoms", MAX_ANOMS)
+//			    .usingJobData("direction", stringDirection)
+//			    .usingJobData("alpha", ALPHA)
+//			    .usingJobData("period", PERIOD)
+//			    .usingJobData("keepExistingColumns", KEEP_EXISTING_COLUMNS)
+//				.build();
+	}
 	
 	@Override
 	protected String giveDbName() {
@@ -108,6 +156,47 @@ public class KickoutTimeSeries extends AbstractKickoutWebWatcher {
 	protected void ingestMetadataIntoSeparateDB(Map<String, String> valueMap, Map<String, String> typeMap, boolean createIndexes) {
 		// Nothing to do here, don't want to ingest metadata into a separate db		
 	}
+
+	@Override
+	protected void executeJobs() {
+		try {
+			scheduler.triggerJob(anomalyJob.getKey());
+		} catch (SchedulerException e) {
+			LOGGER.error("Failed to trigger anomaly detection");
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	protected void scheduleJobs() {
+		try {
+			
+			// First boolean is for replace
+			// Second is storeNonDurableWhileAwaitingScheduling, from 
+			// http://www.quartz-scheduler.org/api/2.2.1/org/quartz/Scheduler.html#addJob(org.quartz.JobDetail, boolean):
+			// "With the storeNonDurableWhileAwaitingScheduling parameter set to
+			// true, a non-durable job can be stored. Once it is scheduled, it
+			// will resume normal non-durable behavior (i.e. be deleted once
+			// there are no remaining associated triggers)."
+//			scheduler.addJob(anomalyJob, true, true);
+			
+			// Create a new trigger that fires every 1 second forever
+			// TODO
+			Trigger trigger = newTrigger()
+					.withIdentity("anomaly_detection_trigger", "kickout_timeseries")
+					.startNow()
+					.withSchedule(simpleSchedule()
+							.withIntervalInSeconds(60 * 60 * 24)
+							.repeatForever())
+					.build();
+			
+			// Schedule our instance of HelloJob to fire using our trigger
+			scheduler.scheduleJob(anomalyJob, trigger);
+		} catch (SchedulerException e) {
+			LOGGER.error("Failed to schedule anomaly detection");
+			e.printStackTrace();
+		}
+	}
 	
 	// Test case
 	public static void main(String[] args) {
@@ -118,5 +207,5 @@ public class KickoutTimeSeries extends AbstractKickoutWebWatcher {
 		kts.setMonitor(new Object());
 		new Thread(kts).start();
 	}
-
+	
 }
