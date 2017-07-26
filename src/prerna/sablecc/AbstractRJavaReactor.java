@@ -4068,28 +4068,35 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 		// set other parameters
-		if (candidateThreshold <= 0.03) {
-			nMinhash = 3640;
-			nBands = 1820;
-		} else if (candidateThreshold <= 0.05) {
-			nMinhash = 1340;
-			nBands = 670;
-		} else if (candidateThreshold <= 0.1) {
-			nMinhash = 400;
-			nBands = 200;
-		} else if (candidateThreshold <= 0.2) {
-			nMinhash = 200;
-			nBands = 100;
-		} else if (candidateThreshold <= 0.4) {
-			nMinhash = 210;
-			nBands = 70;
-		} else if (candidateThreshold <= 0.5) {
-			nMinhash = 200;
-			nBands = 50;
-		} else {
-			nMinhash = 200;
-			nBands = 40;
-		}
+	       if (candidateThreshold <= 0.03) {
+               nMinhash = 3640;
+               nBands = 1820;
+        } else if (candidateThreshold <= 0.02) {
+               nMinhash = 8620;
+               nBands = 4310;
+        } else if (candidateThreshold <= 0.01) {
+               nMinhash = 34480;
+               nBands = 17240;
+        } else if (candidateThreshold <= 0.05) {
+               nMinhash = 1340;
+               nBands = 670;
+        } else if (candidateThreshold <= 0.1) {
+               nMinhash = 400;
+               nBands = 200;
+        } else if (candidateThreshold <= 0.2) {
+               nMinhash = 200;
+               nBands = 100;
+        } else if (candidateThreshold <= 0.4) {
+               nMinhash = 210;
+               nBands = 70;
+        } else if (candidateThreshold <= 0.5) {
+               nMinhash = 200;
+               nBands = 50;
+        } else {
+               nMinhash = 200;
+               nBands = 40;
+        }
+
 
 		// Parameters for R script
 		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
@@ -4182,7 +4189,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			HashMap<String, String> colInfo = new HashMap<String, String>();
 			colInfo.put("name", cleanConcept);
 			String dataType = engine.getDataTypes(conceptURI);
-			dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+			if(dataType != null) {
+				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+			}
+			else {
+				dataType = IMetaData.DATA_TYPES.STRING.toString();
+			}
 			colInfo.put("type", dataType);
 			allCols.add(colInfo);
 			List<String> properties = DomainValues.getPropertyList(engine, conceptURI);
@@ -4191,6 +4203,12 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				HashMap<String, String> propInfo = new HashMap<String, String>();
 				propInfo.put("name", cleanProp);
 				dataType = engine.getDataTypes(prop);
+				if(dataType != null) {
+					dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+				}
+				else {
+					dataType = IMetaData.DATA_TYPES.STRING.toString();
+				}
 				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
 				propInfo.put("type", dataType);
 				allCols.add(propInfo);
