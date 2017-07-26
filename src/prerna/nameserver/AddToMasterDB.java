@@ -41,6 +41,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.Vector;
 
+import org.apache.derby.client.am.SqlException;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.BindingSet;
@@ -68,7 +69,6 @@ import prerna.util.Utility;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hp.hpl.jena.vocabulary.RDFS;
-import com.ibm.db2.jcc.am.SqlException;
 
 public class AddToMasterDB extends ModifyMasterDB {
 
@@ -132,7 +132,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		getConnection(localMaster);
 		try {
 			conn.createStatement().execute(createNew + insertString);
-		} catch (SqlException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 			conn.close();
 		}
