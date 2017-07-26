@@ -397,7 +397,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ################################################
   # Rename columns for matching database
   ##################################################
-  colnames(dt) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table_id", "source_column_id", "target_database", "target_table_id", "target_column_id", "source_table", "target_table", "source_property", "target_property", "match_id", "is_table_source", "is_table_target", "is_relation_source", "is_relation_target", "PKI")
+  colnames(dt) <- c("Score", "Source_Instances", "Source_Total_Count", "Target_Total_Count", "Source_Has_Columns", "Target_Has_Columns", "Target_Instances", "Source_Database", "Source_Table_Id", "Source_Column_Id", "Target_Database", "Target_Table_Id", "Target_Column_Id", "Source_Table", "Target_Table", "Source_Property", "Target_Property", "Match_Id", "Is_Table_Source", "Is_Table_Target", "Is_Relation_Source", "Is_Relation_Target", "PKI")
 
   ################################################
   # Rename columns for dataframe returned
@@ -407,34 +407,34 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   #########################################################
   # Merge concept and property as one value to be displayed
   #########################################################
-  source_column <- NA
-  source.property.values <- dt$source_property
+  Source_Column <- NA
+  source.property.values <- dt$Source_Property
 
   for (i in seq_along(source.property.values)) {
 	if(is.na(source.property.values[i])) {
-		source_column[i] = dt$source_table[i]
+		Source_Column[i] = dt$Source_Table[i]
 	} 
 	else {
-		source_column[i] = source.property.values[i]
+		Source_Column[i] = source.property.values[i]
 	}
   }
   
-  dt<-cbind(dt, source_column)
+  dt<-cbind(dt, Source_Column)
   
   
-  target_column <- NA
-  target.property.values <- dt$target_property
+  Target_Column <- NA
+  target.property.values <- dt$Target_Property
 
   for (i in seq_along(target.property.values)) {
 	if(is.na(target.property.values[i])) {
-		target_column[i] = dt$target_table[i]
+		Target_Column[i] = dt$Target_Table[i]
 	} 
 	else {
-		target_column[i] = target.property.values[i]
+		Target_Column[i] = target.property.values[i]
 	}
   }
   
-  dt<-cbind(dt, target_column)
+  dt<-cbind(dt, Target_Column)
   
   ##################################################
   # Write all the tables
