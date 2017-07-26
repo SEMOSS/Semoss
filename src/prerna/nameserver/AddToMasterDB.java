@@ -33,6 +33,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
@@ -67,6 +68,7 @@ import prerna.util.Utility;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hp.hpl.jena.vocabulary.RDFS;
+import com.ibm.db2.jcc.am.SqlException;
 
 public class AddToMasterDB extends ModifyMasterDB {
 
@@ -110,6 +112,32 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 	public AddToMasterDB() {
 		super();
+	}
+	
+	public void addXrayConfig(String config, String fileName) throws SQLException {
+		// make statements
+		// create table to local master
+		String tableName = "XRAYCONFIGS";
+		String[] colNames = new String[] { "ID", "FILENAME", "CONFIG" };
+		String[] types = new String[] { "VARCHAR(100)", "VARCHAR(800)", "VARCHAR(20000)" };
+		// TODO change to ID
+		
+		String createNew = makeCreate("XRAYCONFIGS", colNames, types) + ";";
+		String insertString = makeInsert(tableName, colNames, types,
+				new Object[] { UUID.randomUUID().toString(), "\'" + fileName + "\'", "\'" + config + "\'" });
+		insertString += ";";
+
+		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		System.out.println(createNew + insertString);
+		getConnection(localMaster);
+		try {
+			conn.createStatement().execute(createNew + insertString);
+		} catch (SqlException e) {
+			e.printStackTrace();
+			conn.close();
+		}
+		conn.close();
+
 	}
 
 	public boolean registerEngineLocal(Properties prop) {
