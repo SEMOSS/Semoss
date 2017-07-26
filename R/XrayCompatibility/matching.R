@@ -16,13 +16,13 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   corpus <- tryCatch({
     TextReuseCorpus(dir = path, tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)
   }, error = function(e) {
-    return("error")
+   	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
+    return(df)
   })
   
   # Return an empty frame if there was an error
   if (!is.list(corpus)) {
-    df <- data.frame(item_engine = character(1), item_concept = character(1), match_engine = character(1), match_concept = character(1), score = numeric(1), stringsAsFactors = FALSE)
-    df[1, 1] <- "(No Concepts Found)"
+	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
     return(df)
   }
 
@@ -36,13 +36,13 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   m <- tryCatch({
     pairwise_compare(mycorpus, ratio_of_matches, directional = TRUE)
   }, error = function(e) {
-    return("error")
+   	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
+    return(df)
   })
 
   # Return an empty frame if there was an error
   if (!is.matrix(m)) {
-    df <- data.frame(source_database = character(1), source_table = character(1), source_column = character(1), target_database = character(1), target_table = character(1), target_column = character(1), score = numeric(1), source_instances = numeric(1), target_instances = numeric(1), stringsAsFactors = FALSE)
-    df[1, 1] <- "(No Matches Found)"
+	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
     return(df)
   }
   
@@ -333,8 +333,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	#check for empty df
 	size <- dim(dt)
 	if(size[1] == 0) {
-	  df <- data.frame(source_database = character(1), source_table = character(1), source_column = character(1), target_database = character(1), target_table = character(1), target_column = character(1), score = numeric(1), source_instances = numeric(1), target_instances = numeric(1), stringsAsFactors = FALSE)
-      df[1, 1] <- "(No Matches Found)"
+	  df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
       return(df)
 	}
   }
