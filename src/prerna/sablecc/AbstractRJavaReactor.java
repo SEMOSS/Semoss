@@ -3940,6 +3940,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			else if (connectorType.toUpperCase().equals("FILE")) {
 				//process csv file reading
 				String filePath = (String) connectorData.get("filePath");
+				String[] csvFileName = filePath.split("\\\\");
+				String fileName = csvFileName[csvFileName.length - 1].replace(".csv", "");
 				//read csv into string[]
 				CSVReader csv = new CSVReader(new FileReader(new File(filePath)));
 				List<String[]> rowData = csv.readAll(); //get all rows
@@ -3980,7 +3982,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 						}
 						//TODO: encode instances and write txt files!!!!!
-						String testFilePath = outputFolder + "\\" + col + ".txt";
+						String testFilePath = outputFolder + "\\" + fileName + ";"+ col + ".txt";
 						testFilePath = testFilePath.replace("\\", "/");
 						encodeInstances(testFilePath, instances);
 					}
@@ -4311,7 +4313,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		for (Object value: instances) {
 			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
 			rsb.append("<-");
-			rsb.append("" + value.toString() + "");
+			rsb.append("\"" + value.toString() + "\"");
 			rsb.append(";");
 			j++;
 
