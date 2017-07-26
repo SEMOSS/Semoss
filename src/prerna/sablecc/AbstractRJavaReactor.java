@@ -4281,7 +4281,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// construct R dataframe
 		String dfName = "df.xray";
 		rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
-
 		for (int j = 0; j < instances.size(); j++) {
 			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
 			rsb.append("<-");
@@ -4310,16 +4309,20 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		String dfName = "df.xray";
 		rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
 		int j = 0;
-		for (Object value: instances) {
+		for (Object value : instances) {
 			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
 			rsb.append("<-");
-			rsb.append("\"" + value.toString() + "\"");
+			if (value == null) {
+				rsb.append("\"" + "" + "\"");
+			} else {
+				rsb.append("\"" + value.toString() + "\"");
+			}
 			rsb.append(";");
 			j++;
 
 		}
 		rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
-		runR(rsb.toString());		
+		runR(rsb.toString());
 	}
 	
 	public String getSchemaForExternal(String type, String host, String port, String username, String password, String schema) throws SQLException  {
