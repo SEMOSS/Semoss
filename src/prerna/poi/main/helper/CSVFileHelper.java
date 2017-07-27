@@ -77,7 +77,8 @@ public class CSVFileHelper {
 		settings.setNullValue("");
 		settings.getFormat().setDelimiter(delimiter);
 		settings.setEmptyValue("");
-		settings.setSkipEmptyLines(true);
+		settings.setSkipEmptyLines(true); 	
+		settings.getFormat().setLineSeparator("\n");
 		// override default values
 		settings.setMaxColumns(maxColumns);
 		settings.setMaxCharsPerColumn(maxCharsPerColumn);
