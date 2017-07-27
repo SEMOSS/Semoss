@@ -1288,4 +1288,46 @@ public class MasterDatabaseUtility {
 		}
 		return conceptsList;
 	}	
+	
+	public static HashMap<String, Object> getXrayConfigList() {
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = ((RDBMSNativeEngine) engine).makeConnection();
+		HashMap<String, Object> configMap = new HashMap<String, Object>();
+		try {
+			String query = "select distinct ID, FILENAME FROM XRAYCONFIGS;";
+			ResultSet rs = conn.createStatement().executeQuery(query);
+			ArrayList<HashMap<String, Object>> configList = new ArrayList<>();
+			while (rs.next()) {
+				HashMap<String, Object> rsMap = new HashMap<>();
+				String id = rs.getString(1);
+				String fileName = rs.getString(2);
+				rsMap.put("id", id);
+				rsMap.put("fileName", fileName);
+				configList.add(rsMap);
+			}
+			configMap.put("configList", configList);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return configMap;
+
+	}
+	public static HashMap<String, Object> getXrayConfigFile(String configFileID) {
+		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = ((RDBMSNativeEngine) engine).makeConnection();
+		HashMap<String, Object> configMap = new HashMap<String, Object>();
+		try {
+			String query = "select CONFIG XRAYCONFIGS WHERE ID = \'" + configFileID + "\';";
+			ResultSet rs = conn.createStatement().executeQuery(query);
+			while (rs.next()) {
+				HashMap<String, Object> rsMap = new HashMap<>();
+				String config = rs.getString(1);
+				rsMap.put("config", config);
+
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return configMap;
+	}
 }
