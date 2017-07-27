@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -64,6 +66,7 @@ import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.poi.main.helper.XLFileHelper;
 import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -3906,7 +3909,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
+
 		ArrayList<Object> connectors = (ArrayList<Object>) config.get("connectors");
 		for (int i = 0; i < connectors.size(); i++) {
 			HashMap<String, Object> connection = (HashMap<String, Object>) connectors.get(i);
@@ -3919,46 +3922,45 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				for (String table : dataSelection.keySet()) {
 					HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
 					for (String column : allColumns.keySet()) {
-						Boolean selectedValue = (Boolean) allColumns.get(column); 
-						if(selectedValue) {
-						if (table.equals(column)) {
-							String fileName = engineName + ";" + table + ";";
-							String testFilePath = outputFolder + "\\" + fileName + ".txt";
-							testFilePath = testFilePath.replace("\\", "/");
-							String uri = DomainValues.getConceptURI(table, engine, true);
-							List<Object> instances;
-							if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
-								instances = DomainValues.retrieveCleanConceptValues(uri, engine);
+						Boolean selectedValue = (Boolean) allColumns.get(column);
+						if (selectedValue) {
+							if (table.equals(column)) {
+								String fileName = engineName + ";" + table + ";";
+								String testFilePath = outputFolder + "\\" + fileName + ".txt";
+								testFilePath = testFilePath.replace("\\", "/");
+								String uri = DomainValues.getConceptURI(table, engine, true);
+								List<Object> instances;
+								if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
+									instances = DomainValues.retrieveCleanConceptValues(uri, engine);
+								} else {
+									instances = DomainValues.retrieveCleanConceptValues(table, engine);
+								}
+								encodeInstances(testFilePath, instances);
 							} else {
-								instances = DomainValues.retrieveCleanConceptValues(table, engine);
+								String fileName = engineName + ";" + table + ";" + column;
+								String testFilePath = outputFolder + "\\" + fileName + ".txt";
+								testFilePath = testFilePath.replace("\\", "/");
+								String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+										+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+								minHashFilePath = minHashFilePath.replace("\\", "/");
+								String conceptUri = DomainValues.getConceptURI(table, engine, true);
+								String propUri = DomainValues.getPropertyURI(column, table, engine, false);
+								List<Object> instances;
+								if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
+									instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
+								} else {
+									instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
+								}
+								encodeInstances(testFilePath, instances);
+
 							}
-							encodeInstances(testFilePath, instances);
-						} else {
-							String fileName = engineName + ";" + table + ";" + column;
-							String testFilePath = outputFolder + "\\" + fileName + ".txt";
-							testFilePath = testFilePath.replace("\\", "/");
-							String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-									+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
-							minHashFilePath = minHashFilePath.replace("\\", "/");
-							String conceptUri = DomainValues.getConceptURI(table, engine, true);
-							String propUri = DomainValues.getPropertyURI(column, table, engine, false);
-							List<Object> instances;
-							if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
-								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
-							} else {
-								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
-							}
-							encodeInstances(testFilePath, instances);
-							
-						}
 						}
 
 					}
 				}
-			}
-			else if (connectorType.toUpperCase().equals("EXTERNAL")) {
+			} else if (connectorType.toUpperCase().equals("EXTERNAL")) {
 				// process if jdbc connection
-				String connectionUrl = (String)connectorData.get("connectionString");
+				String connectionUrl = (String) connectorData.get("connectionString");
 				String port = (String) connectorData.get("port");
 				String host = (String) connectorData.get("host");
 				String schema = (String) connectorData.get("schema");
@@ -3966,9 +3968,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				String password = (String) connectorData.get("password");
 				String newDBName = (String) connectorData.get("databaseName");
 				String type = (String) connectorData.get("type");
-				System.out.println("");
-		        Connection con = buildConnection(type, host, port, username, password, schema);
-				
+				Connection con = buildConnection(type, host, port, username, password, schema);
+
 				for (String table : dataSelection.keySet()) {
 					HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
 					for (String column : allColumns.keySet()) {
@@ -3990,7 +3991,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 								stmt = con.createStatement();
 								ResultSet rs = stmt.executeQuery(query);
 								String fileName = newDBName + ";" + table + ";" + column;
-								String testFilePath = outputFolder +"\\"+ fileName + ".txt";
+								String testFilePath = outputFolder + "\\" + fileName + ".txt";
 								testFilePath = testFilePath.replace("\\", "/");
 								List<Object> instances = Utility.getInstancesFromRs(rs);
 								encodeInstances(testFilePath, instances);
@@ -4003,62 +4004,129 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				}
 				con.close();
 
-			}
-			else if (connectorType.toUpperCase().equals("FILE")) {
-				//process csv file reading
+			} else if (connectorType.toUpperCase().equals("FILE")) {
+
+				// process csv file reading
 				String filePath = (String) connectorData.get("filePath");
-				String[] csvFileName = filePath.split("\\\\");
-				String fileName = csvFileName[csvFileName.length - 1].replace(".csv", "");
-				//read csv into string[]
-				CSVReader csv = new CSVReader(new FileReader(new File(filePath)));
-				List<String[]> rowData = csv.readAll(); //get all rows
-				String[] headers = rowData.get(0);
-				List<String> selectedCols = new ArrayList<String>();
-				for(String col : dataSelection.keySet()) {
-					//make a list of selected columns
-					HashMap<String, Object> colInfo = (HashMap<String, Object>) dataSelection.get(col);
-					for (String cols : colInfo.keySet()) {
-						if((Boolean)colInfo.get(cols) == true) {
-							selectedCols.add(cols);
-						}
+				String extension = FilenameUtils.getExtension(filePath);
+				if (extension.equals("csv") || extension.equals("txt")) {
+					String[] csvFileName = filePath.split("\\\\");
+					String fileName = csvFileName[csvFileName.length - 1].replace(".csv", "");
+					// read csv into string[]
+					char delimiter = ','; // TODO get from user
+					CSVReader csv;
+					if (delimiter == '\t') {
+						csv = new CSVReader(new FileReader(new File(filePath)));
+					} else {
+						csv = new CSVReader(new FileReader(new File(filePath)));
 					}
-				}
-				
-				//iterate through selected columns and only grab those instances where the indices match
-				for(String col : selectedCols) {
-					//find the index of the selected column in the header array 
-					int index = -1;
-					for (String header : headers) {
-						if(header.toUpperCase().equals(col.toUpperCase())) {
-							index = Arrays.asList(headers).indexOf(header);
-							System.out.println(index);
-						}
-					}
-					
-					//get instance values 
-					if (index != -1) {
-						HashSet<Object> instances = new HashSet<Object>(); //use hashset to get distinct values
-						for (int j = 0; j < rowData.size(); j++) {
-							if (j == 1) {
-								continue;
+					List<String[]> rowData = csv.readAll(); // get all rows
+					String[] headers = rowData.get(0);
+					List<String> selectedCols = new ArrayList<String>();
+					for (String col : dataSelection.keySet()) {
+						// make a list of selected columns
+						HashMap<String, Object> colInfo = (HashMap<String, Object>) dataSelection.get(col);
+						for (String cols : colInfo.keySet()) {
+							if ((Boolean) colInfo.get(cols) == true) {
+								selectedCols.add(cols);
 							}
+						}
+					}
 
-							else {
+					// iterate through selected columns and only grab those
+					// instances where the indices match
+					for (String col : selectedCols) {
+						// find the index of the selected column in the header
+						// array
+						int index = -1;
+						for (String header : headers) {
+							if (header.toUpperCase().equals(col.toUpperCase())) {
+								index = Arrays.asList(headers).indexOf(header);
+								System.out.println(index);
+							}
+						}
+
+						// get instance values
+						if (index != -1) {
+							HashSet<Object> instances = new HashSet<Object>(); // use
+																				// hashset
+																				// to
+																				// get
+																				// distinct
+																				// values
+							for (int j = 0; j < rowData.size(); j++) {
+								if (j == 1) {
+									continue;
+								}
+
+								else {
+									instances.add(rowData.get(j)[index]);
+								}
+
+							}
+							String testFilePath = outputFolder + "\\" + fileName + ";" + col + ".txt";
+							testFilePath = testFilePath.replace("\\", "/");
+							encodeInstances(testFilePath, instances);
+						}
+
+					}
+
+				} else if (extension.equals("xls") || extension.equals("xlsx")) {
+					XLFileHelper xl = new XLFileHelper();
+					xl.parse(filePath);
+					String sheetName = (String) connectorData.get("worksheet");
+
+					// put all row data into a List<String[]>
+					List<String[]> rowData = new ArrayList<String[]>();
+
+					String[] row = null;
+					while ((row = xl.getNextRow(sheetName)) != null) {
+						rowData.add(row);
+					} // values
+
+					String[] headers = xl.getHeaders(sheetName);
+					List<String> selectedCols = new ArrayList<String>();
+					for (String col : dataSelection.keySet()) {
+						// make a list of selected columns
+						HashMap<String, Object> colInfo = (HashMap<String, Object>) dataSelection.get(col);
+						for (String cols : colInfo.keySet()) {
+							if ((Boolean) colInfo.get(cols) == true) {
+								selectedCols.add(cols);
+							}
+						}
+					}
+
+					for (String col : selectedCols) {
+						// find the index of the selected column in the header
+						// array
+						int index = -1;
+						for (String header : headers) {
+							if (header.toUpperCase().equals(col.toUpperCase())) {
+								index = Arrays.asList(headers).indexOf(header);
+								System.out.println(index);
+							}
+						}
+
+						// get instance values
+						if (index != -1) {
+							HashSet<Object> instances = new HashSet<Object>();
+							for (int j = 0; j < rowData.size(); j++) {
+
 								instances.add(rowData.get(j)[index]);
-							}
 
+							}
+							String testFilePath = outputFolder + "\\" + sheetName + ";" + col + ".txt";
+							testFilePath = testFilePath.replace("\\", "/");
+							encodeInstances(testFilePath, instances);
 						}
-						//TODO: encode instances and write txt files!!!!!
-						String testFilePath = outputFolder + "\\" + fileName + ";"+ col + ".txt";
-						testFilePath = testFilePath.replace("\\", "/");
-						encodeInstances(testFilePath, instances);
+
 					}
-					
+
 				}
-				
+
 			}
+
 		}
-		
 
 		String baseMatchingFolder = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "XrayCompatibility";
 		baseMatchingFolder = baseMatchingFolder.replace("\\", "/");
@@ -4088,13 +4156,13 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		int nMinhash;
 		int nBands;
 		int instancesThreshold = 1;
-		//TODO get parameters from front end
+		// TODO get parameters from front end
 		double similarityThreshold = -1;
 		double candidateThreshold = -1;
 		String matchingSameDBR = "FALSE";
 		boolean matchingSameDB = false;
 
-		if(parameters != null){
+		if (parameters != null) {
 			Object sim = parameters.get("similarity");
 			Double similarity = null;
 			if (sim instanceof Integer) {
@@ -4108,7 +4176,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			Object cand = parameters.get("candidate");
 
 			Double candidate = null;
-			
+
 			if (cand instanceof Integer) {
 				candidate = (double) ((Integer) cand).intValue();
 			} else {
@@ -4130,42 +4198,41 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		if (candidateThreshold < 0 || candidateThreshold > 1) {
 			candidateThreshold = 0.01;
 		}
-		
+
 		// check if user wants to compare columns from the same database
 		if (matchingSameDB) {
 			matchingSameDBR = "TRUE";
 		}
 
 		// set other parameters
-	       if (candidateThreshold <= 0.03) {
-               nMinhash = 3640;
-               nBands = 1820;
-        } else if (candidateThreshold <= 0.02) {
-               nMinhash = 8620;
-               nBands = 4310;
-        } else if (candidateThreshold <= 0.01) {
-               nMinhash = 34480;
-               nBands = 17240;
-        } else if (candidateThreshold <= 0.05) {
-               nMinhash = 1340;
-               nBands = 670;
-        } else if (candidateThreshold <= 0.1) {
-               nMinhash = 400;
-               nBands = 200;
-        } else if (candidateThreshold <= 0.2) {
-               nMinhash = 200;
-               nBands = 100;
-        } else if (candidateThreshold <= 0.4) {
-               nMinhash = 210;
-               nBands = 70;
-        } else if (candidateThreshold <= 0.5) {
-               nMinhash = 200;
-               nBands = 50;
-        } else {
-               nMinhash = 200;
-               nBands = 40;
-        }
-
+		if (candidateThreshold <= 0.03) {
+			nMinhash = 3640;
+			nBands = 1820;
+		} else if (candidateThreshold <= 0.02) {
+			nMinhash = 8620;
+			nBands = 4310;
+		} else if (candidateThreshold <= 0.01) {
+			nMinhash = 34480;
+			nBands = 17240;
+		} else if (candidateThreshold <= 0.05) {
+			nMinhash = 1340;
+			nBands = 670;
+		} else if (candidateThreshold <= 0.1) {
+			nMinhash = 400;
+			nBands = 200;
+		} else if (candidateThreshold <= 0.2) {
+			nMinhash = 200;
+			nBands = 100;
+		} else if (candidateThreshold <= 0.4) {
+			nMinhash = 210;
+			nBands = 70;
+		} else if (candidateThreshold <= 0.5) {
+			nMinhash = 200;
+			nBands = 50;
+		} else {
+			nMinhash = 200;
+			nBands = 40;
+		}
 
 		// Parameters for R script
 		String rFrameName = "this.dt.name.is.reserved.for.semantic.matching";
@@ -4179,8 +4246,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		// Source the LSH function from the utility script
 		runR("source(\"" + utilityScriptPath + "\");");
 		runR(rFrameName + " <- data.frame()");
-
-
 
 		// Run locality sensitive hashing to generate matches
 		runR(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + corpusDirectory + "\", " + nMinhash + ", "
@@ -4212,6 +4277,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return "";
 		// return null;
 	}
+
 	public String getXrayConfigList() throws JsonGenerationException, JsonMappingException, IOException {
 		HashMap<String, Object> configMap = MasterDatabaseUtility.getXrayConfigList();
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
@@ -4307,6 +4373,48 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		this.returnData = ow.writeValueAsString(ret);
 		return (String) this.returnData;
 	}
+	
+	public String getSchemaForXL(String filePath, String sheetName)
+			throws JsonGenerationException, JsonMappingException, IOException {
+		HashMap<String, Object> ret = new HashMap<String, Object>();
+		XLFileHelper helper = new XLFileHelper();
+		helper.parse(filePath);
+		ret.put("databaseName", FilenameUtils.getName(filePath).replace(".", "_"));
+
+		// store the suggested data types
+		Map<String, Map<String, String>> dataTypes = new Hashtable<String, Map<String, String>>();
+		Map<String, String> sheetDataMap = new LinkedHashMap<String, String>();
+		String[] columnHeaders = helper.getHeaders(sheetName);
+		String[] predicatedDataTypes = helper.predictRowTypes(sheetName);
+
+		HashMap<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
+		for (String concept : columnHeaders) {
+			relationshipMap.put(concept, new ArrayList<String>());
+		}
+
+		ret.put("relationships", relationshipMap);
+
+		dataTypes.put(sheetName, sheetDataMap);
+
+		HashMap<String, HashMap> tableDetails = new HashMap<String, HashMap>();
+		for (int i = 0; i < columnHeaders.length; i++) {
+			HashMap<String, String> colDetails = new HashMap<String, String>();
+			colDetails.put("name", columnHeaders[i]);
+			String dataType = Utility.getCleanDataType(predicatedDataTypes[i]);
+			colDetails.put("type", dataType);
+			tableDetails.put(columnHeaders[i], colDetails);
+		}
+
+		ret.put("tables", tableDetails);
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		this.hasReturnData = true;
+		this.returnData = ow.writeValueAsString(ret);
+
+		return (String) this.returnData;
+
+	}
+
+	
 	
 	public String getSchemaForCSV(String filePath) throws JsonGenerationException, JsonMappingException, IOException {
 		CSVFileHelper cv = new CSVFileHelper();
