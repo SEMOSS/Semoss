@@ -120,7 +120,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		String tableName = "XRAYCONFIGS";
 		String[] colNames = new String[] { "ID", "FILENAME", "CONFIG" };
 		String[] types = new String[] { "VARCHAR(100)", "VARCHAR(800)", "VARCHAR(20000)" };
-		// TODO change to ID
 		
 		String createNew = makeCreate("XRAYCONFIGS", colNames, types) + ";";
 		String insertString = makeInsert(tableName, colNames, types,
@@ -131,13 +130,47 @@ public class AddToMasterDB extends ModifyMasterDB {
 		System.out.println(createNew + insertString);
 		getConnection(localMaster);
 		try {
-			conn.createStatement().execute(createNew + insertString);
+			conn.createStatement().execute(createNew);
+			conn.createStatement().execute(insertString);
 		} catch (SQLException e) {
 			e.printStackTrace();
-			conn.close();
 		}
-		conn.close();
 
+	}
+	public void updateConceptualNamesForXray(String sourceDB, String sourceColumn, String targetColumn) {
+		try {
+			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+			getConnection(localMaster);
+			String engineIDQuery = "SELECT ID FROM ENGINE WHERE ENGINENAME = '" + sourceDB + "' "
+					+ "ORDER BY  MODIFIEDDATE DESC LIMIT 1;";
+			// execute query
+			ResultSet engineIDRS = conn.createStatement().executeQuery(engineIDQuery);
+			if (engineIDRS.next()) {
+				String id = engineIDRS.getString(1);
+
+				String localConceptIDQuery = "SELECT LOCALCONCEPTID FROM ENGINECONCEPT " + "WHERE ENGINE = '" + id
+						+ "' AND PHYSICALNAME = '" + sourceColumn + "';";
+				ResultSet localConceptIDRS = conn.createStatement().executeQuery(localConceptIDQuery);
+				
+				if (localConceptIDRS.next()) {
+					// execute query
+					String localConceptID = localConceptIDRS.getString(1);
+
+					// UPDATE conceptual name
+//					String update = "UPDATE CONCEPT SET CONCEPTUALNAME = '" + targetColumn
+//							+ "' WHERE LOCALCONCEPTID = '" + localConceptID + "';";
+//					int updated = conn.createStatement().executeUpdate(update);
+
+//					System.out.println("Succefully updated " + updated + " rows sourceDB " + sourceDB
+//							+ " source column " + sourceColumn + "targetColumn " + targetColumn);
+
+				}
+
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public boolean registerEngineLocal(Properties prop) {
