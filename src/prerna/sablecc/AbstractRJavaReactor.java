@@ -58,6 +58,8 @@ import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.nameserver.AddToMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -66,6 +68,7 @@ import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -3488,7 +3491,71 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		}
 
 	}
+	
+	public void updateOWL(String sourceDB, String sourceColumn, String targetDB, String targetColumn) {
+		IEngine sourceEngine = Utility.getEngine(sourceDB);
+		IEngine targetEngine = Utility.getEngine(targetDB);
+		if (sourceEngine != null && targetEngine != null) {
+			OWLER sourceOWL = new OWLER(sourceEngine, sourceEngine.getOWL());
+			String sourceConceptualURI = DomainValues.getConceptURI(sourceColumn, sourceEngine, true);
+			String sourcePhysicalURI = sourceEngine.getPhysicalUriFromConceptualUri(sourceConceptualURI);
 
+			String targetConceptualURI = DomainValues.getConceptURI(targetColumn, targetEngine, true);
+			String tagetPhysicalURI = targetEngine.getPhysicalUriFromConceptualUri(targetConceptualURI);
+
+			if (sourceOWL != null) {
+				String owlStr = sourceOWL.getOwlAsString();
+				String sourceConceptualREGEX = "\\\"";
+				String[] sourceURIparts = sourceConceptualURI.split("/");
+				for (int i = 0; i < sourceURIparts.length; i++) {
+					if (sourceURIparts[i].length() > 0) {
+						sourceConceptualREGEX += sourceURIparts[i];
+						if (i < sourceURIparts.length - 1) {
+							sourceConceptualREGEX += "\\/";
+						}
+					} else {
+						sourceConceptualREGEX += "\\/";
+					}
+
+				}
+				sourceConceptualREGEX += "\\\"";
+				String pattern = sourceConceptualREGEX;
+
+				// Create a Pattern object
+				Pattern r = Pattern.compile(pattern);
+
+				// Now create matcher object.
+				Matcher m = r.matcher(owlStr);
+				if (m.find()) {
+					String newOwlStr = m.replaceAll("\"" + targetConceptualURI + "\"");
+					sourceOWL.getOwlPath();
+					try {
+						PrintWriter writer = new PrintWriter(sourceOWL.getOwlPath(), "UTF-8");
+						writer.print(newOwlStr);
+						writer.close();
+//						try {
+//							sourceOWL.commit();
+//							sourceOWL.export();
+							sourceEngine.setOWL(sourceOWL.getOwlPath());
+							
+//						} catch (IOException e) {
+//							e.printStackTrace();
+//						}
+						//sourceOWL.closeOwl();
+					} catch (IOException e) {
+						// do something
+					}
+
+					System.out.println("Replaced OWL");
+
+				} else {
+					System.out.println("Unable tosafd update OWL");
+				}
+			}
+		}
+	}
+	
+	
 	public String runXrayCompatibility(String selectedInfoJson, double similarityThreshold, double candidateThreshold, boolean matchingSameDB)
 			throws SQLException, JsonParseException, JsonMappingException, IOException {
 
@@ -4145,6 +4212,20 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return "";
 		// return null;
 	}
+	public String getXrayConfigList() throws JsonGenerationException, JsonMappingException, IOException {
+		HashMap<String, Object> configMap = MasterDatabaseUtility.getXrayConfigList();
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		this.hasReturnData = true;
+		this.returnData = ow.writeValueAsString(configMap);
+		return (String) this.returnData;
+	}
+	public String getXrayConfigFile(String configFileID) throws JsonGenerationException, JsonMappingException, IOException {
+		HashMap<String, Object> configMap = MasterDatabaseUtility.getXrayConfigFile(configFileID);
+		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+		this.hasReturnData = true;
+		this.returnData = ow.writeValueAsString(configMap);
+		return (String) this.returnData;
+	}
 	
 	public String getSchemaForLocal(String engineName)
 			throws JsonGenerationException, JsonMappingException, IOException {
@@ -4152,8 +4233,6 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		List<String> concepts = DomainValues.getConceptList(engine);
 		QueryStruct qs = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = qs.getRelations();
-		System.out.println(Arrays.toString(relations.entrySet().toArray()));
-
 		// get relations
 		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
 		//structure is Title = {inner.join={Genre, Studio, Nominated}}
