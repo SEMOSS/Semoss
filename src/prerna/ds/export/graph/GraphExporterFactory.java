@@ -22,7 +22,11 @@ public class GraphExporterFactory {
 		if(frame instanceof TinkerFrame) {
 			graphExporter = new TinkerFrameGraphExporter((TinkerFrame) frame);
 		} else if(frame instanceof H2Frame) {
-			graphExporter = new RdbmsGraphExporter((H2Frame) frame);
+			if( ((H2Frame) frame).hasPrimKey()) {
+				graphExporter = new FlatRdbmsGraphExporter((H2Frame) frame);
+			} else {
+				graphExporter = new RdbmsGraphExporter((H2Frame) frame);
+			}
 		} else if(frame instanceof RDataTable) {
 			graphExporter = new RGraphExporter((RDataTable) frame);
 		} else if(frame instanceof NativeFrame) {
