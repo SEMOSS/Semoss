@@ -1312,22 +1312,19 @@ public class MasterDatabaseUtility {
 		return configMap;
 
 	}
-	public static HashMap<String, Object> getXrayConfigFile(String configFileID) {
+	public static String getXrayConfigFile(String configFileID) {
 		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = ((RDBMSNativeEngine) engine).makeConnection();
-		HashMap<String, Object> configMap = new HashMap<String, Object>();
+		String configFile = "";
 		try {
 			String query = "select CONFIG XRAYCONFIGS WHERE ID = \'" + configFileID + "\';";
 			ResultSet rs = conn.createStatement().executeQuery(query);
 			while (rs.next()) {
-				HashMap<String, Object> rsMap = new HashMap<>();
-				String config = rs.getString(1);
-				rsMap.put("config", config);
-
+				configFile = rs.getString(1);
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		return configMap;
+		return configFile;
 	}
 }
