@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,51 +12,42 @@ import prerna.ds.h2.H2Frame;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
-public class RdbmsGraphExporter extends AbstractTableGraphExporter {
+public class FlatRdbmsGraphExporter extends RdbmsGraphExporter {
 
-	protected H2Frame frame;
-
-	// we need to keep track of which vertices
-	// have an alias that ends up being the same
-	// since this will result in 2 vertices being painted
-	// on the FE
-	protected Map<String, Set<String>> aliasMap;
+	// we need to keep track of a full row of the grid
+	// in order to return correctly the relationships to their row number
+	private Object[] rowEdge;
+	private int curRowEdgeIndex = 0;
+	private String[] frameHeaders = null;
+	private String[] frameHeaderAlias = null;
 	
-	protected ResultSet edgeRs;
-	protected ResultSet nodeRs;
-
-	public RdbmsGraphExporter() {
+	public FlatRdbmsGraphExporter() {
 		
 	}
 	
-	public RdbmsGraphExporter(H2Frame frame) {
+	public FlatRdbmsGraphExporter(H2Frame frame) {
 		this.frame = frame;
-		if(this.frame.hasPrimKey()) {
-			throw new IllegalArgumentException("Please use PKQL routine 'data.frame.setEdgeHash()' to properly define how to export the data as a graph");
-		}
-		// parent class handles the abstraction of the edge hash and determining
-		// which single vertex and relationship to push into the nodeRs and edgeRs
-		Map<String, Set<String>> edgeHash = frame.getEdgeHash();
-		// we only use the parse edge hash to get the relationships
-		// for rdbms, to account for header duplicates, the below method
-		// will always override the vertices iterator
-		parseEdgeHash(edgeHash);
-		processDupHeaders(frame.getColumnHeaders(), frame.getColumnAliasName());
+		this.frameHeaders = this.frame.getColumnHeaders();
+		this.frameHeaderAlias = this.frame.getColumnAliasName();
+		// this will store in aliasMap an alias -> set of columns
+		processDupHeaders(this.frameHeaders, this.frameHeaderAlias);
 	}
-
+	
 	protected void processDupHeaders(String[] columnHeaders, String[] columnAliasName) {
 		this.aliasMap = generateDupAliasMap(columnHeaders, columnAliasName);
+		// account for the additional column we need to add for each row of data
+		Set<String> aliasSet = new HashSet<String>();
+		aliasSet.add(ROW_ID);
+		this.aliasMap.put(ROW_ID, aliasSet);
 		// need to override the vertices iterator to only use the alias
 		this.verticesIterator = aliasMap.keySet().iterator();
 	}
-
+	
 	@Override
 	public boolean hasNextEdge() {
 		// first time, everything is null
-		if(this.edgeRs == null && relationshipIterator.hasNext()) {
-			this.curRelationship = relationshipIterator.next();
-			this.aliasCurRelationship = getAliasRelationship();
-			this.edgeRs = createEdgeRs(curRelationship);
+		if(this.edgeRs == null && this.frameHeaders.length > 1) {
+			this.edgeRs = createEdgeRs(this.frameHeaders);
 			// so we made it, run this again to 
 			// see if this relationship has values to return
 			return hasNextEdge();
@@ -66,36 +58,40 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 			if(this.edgeRs == null) {
 				return false;
 			}
-			// next time, need to check if this iterator still
-			// has things we need to output
-			boolean hasNext = false;
-			try {
-				hasNext = this.edgeRs.next();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-			if(hasNext) {
-				// still have more
-				return true;
-			} else {
+			if(this.rowEdge == null){
 				try {
-					this.edgeRs.close();
+					// does the iterator have another row
+					boolean hasNext = this.edgeRs.next();
+					if(hasNext) {
+						// yup, flush it out
+						this.rowEdge = new Object[this.frameHeaders.length+1];
+						for(int i = 0; i <= this.frameHeaders.length; i++) {
+							this.rowEdge[i] = this.edgeRs.getObject(i+1);
+						}
+						// reset the index we are using for each get next edge
+						this.curRowEdgeIndex = 0;
+						return true;
+					} else {
+						// we dont have anything
+						this.edgeRs.close();
+					}
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-				// okay, we are done with this one
-				// got to see if there is another relationship to try
-				if(this.relationshipIterator.hasNext()) {
-					this.curRelationship = relationshipIterator.next();
-					this.aliasCurRelationship = getAliasRelationship();
-					this.edgeRs = createEdgeRs(curRelationship);
-					// since we got to try and see if this has a next
-					// do this by recursively calling this method
-					return hasNextEdge();
-				} else {
-					// well, we got nothing
-					return false;
-				}
+
+				// we only get here if in the above
+				// we closed the rs
+				return false;
+			} else if(this.rowEdge.length == this.curRowEdgeIndex + 1) {
+				// we went through the entire row
+				// null out the rowEdge
+				// and flush out the next edgeRs
+				this.rowEdge = null;
+				return hasNextEdge();
+			} else {
+				// we have more things to flush out from the current row edge
+				// so return true
+				return true;
 			}
 		}
 	}
@@ -104,15 +100,9 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 	public Map<String, Object> getNextEdge() {
 		// TODO: Figure out how to do edge properties and stuff
 		// till then, this is a really easy return
-		Object sourceVal = null;
-		Object targetVal = null;
-		try {
-			sourceVal = this.edgeRs.getObject(1);
-			targetVal = this.edgeRs.getObject(2);
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		Object sourceVal = this.rowEdge[this.curRowEdgeIndex];
+		Object targetVal = this.rowEdge[this.rowEdge.length-1];
+
 		// if we still have a null
 		if(sourceVal == null) {
 			sourceVal = "EMPTY";
@@ -121,8 +111,8 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 			targetVal = "EMPTY";
 		}
 
-		String source = this.aliasCurRelationship[0] + "/" + sourceVal;
-		String target = this.aliasCurRelationship[1] + "/" + targetVal;
+		String source = this.frameHeaderAlias[this.curRowEdgeIndex] + "/" + sourceVal;
+		String target = ROW_ID + "/" + targetVal;
 
 		Map<String, Object> relationshipMap = new HashMap<String, Object>();
 		relationshipMap.put("source", source);
@@ -133,6 +123,9 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		Map<String, Object> propMap = new HashMap<String, Object>();
 		relationshipMap.put("propHash", propMap);
 
+		// update row index
+		this.curRowEdgeIndex++;
+		
 		return relationshipMap;
 	}
 
@@ -248,6 +241,8 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		for(int i = 1; i < selectors.length; i++) {
 			sql.append(", ").append(selectors[i]);
 		}
+		// add the row num
+		sql.append(", ROWNUM() ");
 		sql.append(" FROM ").append(frame.getTableName());
 		String sqlFilter = frame.getSqlFilter();
 		if(sqlFilter != null && !sqlFilter.isEmpty()) {
@@ -273,7 +268,17 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 	 */
 	private String createQueryString(String selector) {
 		StringBuilder sql = new StringBuilder();
-		if(this.aliasMap.containsKey(selector)) {
+		// ACCOUNT FOR FLAT ID SINCE WE DO NOT HAVE A PROPER EDGE HASH
+		if(selector.equals(ROW_ID)) {
+			sql.append("SELECT DISTINCT ROWNUM() AS ").append(ROW_ID);
+			sql.append(" FROM ").append(frame.getTableName());
+			String sqlFilter = frame.getSqlFilter();
+			if(sqlFilter != null && !sqlFilter.isEmpty()) {
+				sql.append(frame.getSqlFilter());
+			}
+		} 
+		// SAME AS NORMAL RDBMS GRAPH EXPORTER
+		else if(this.aliasMap.containsKey(selector)) {
 			sql.append("SELECT DISTINCT ");
 			Set<String> actualSelectors = aliasMap.get(selector);
 			boolean first = true;
@@ -306,12 +311,4 @@ public class RdbmsGraphExporter extends AbstractTableGraphExporter {
 		}
 		return sql.toString();
 	}
-	
-	private String[] getAliasRelationship() {
-		String[] aliasCurRelationship = new String[2];
-		aliasCurRelationship[0] = frame.getAliasForUniqueName(this.curRelationship[0]);
-		aliasCurRelationship[1] = frame.getAliasForUniqueName(this.curRelationship[1]);
-		return aliasCurRelationship;
-	}
-	
 }
