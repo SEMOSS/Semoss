@@ -3531,7 +3531,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				Matcher m = r.matcher(owlStr);
 				if (m.find()) {
 					String newOwlStr = m.replaceAll("\"" + targetConceptualURI + "\"");
-					sourceOWL.getOwlPath();
+					String sourceOwlPath = sourceOWL.getOwlPath();
 					try {
 						PrintWriter writer = new PrintWriter(sourceOWL.getOwlPath(), "UTF-8");
 						writer.print(newOwlStr);
@@ -3540,6 +3540,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 //							sourceOWL.commit();
 //							sourceOWL.export();
 							sourceEngine.setOWL(sourceOWL.getOwlPath());
+							sourceOWL.export();
+							
+						
 							
 //						} catch (IOException e) {
 //							e.printStackTrace();
@@ -4286,10 +4289,10 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return (String) this.returnData;
 	}
 	public String getXrayConfigFile(String configFileID) throws JsonGenerationException, JsonMappingException, IOException {
-		HashMap<String, Object> configMap = MasterDatabaseUtility.getXrayConfigFile(configFileID);
+		String configFile = MasterDatabaseUtility.getXrayConfigFile(configFileID);
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		this.hasReturnData = true;
-		this.returnData = ow.writeValueAsString(configMap);
+		this.returnData = configFile;
 		return (String) this.returnData;
 	}
 	
