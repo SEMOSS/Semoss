@@ -52,7 +52,7 @@ public class SEMOSSVertex{
 	transient public Hashtable <String, SEMOSSVertex> edgeHash = new Hashtable<String,SEMOSSVertex>();
 	
 	// hash of URIs
-	transient Hashtable <String, String>uriHash = new Hashtable<String,String>();
+	transient Hashtable <String, String> uriHash = new Hashtable<String,String>();
 	
 	// Tree structure in memory as a hashtable
 	// the hashtable is typically of the following format
@@ -66,7 +66,7 @@ public class SEMOSSVertex{
 	transient Vector <SEMOSSEdge> inEdge = new Vector<SEMOSSEdge>();
 	transient Vector <SEMOSSEdge> outEdge = new Vector<SEMOSSEdge>();
 	
-	transient static final Logger logger = LogManager.getLogger(SEMOSSVertex.class.getName());
+	private static transient final Logger logger = LogManager.getLogger(SEMOSSVertex.class.getName());
 	
 	// TODO need to find a way to identify the source i.e. put that as a property
 	
@@ -341,19 +341,20 @@ public class SEMOSSVertex{
 		logger.debug(instanceName + "<>" + propValue);
 
 		// need to write the routine for conversion here
-		
+
 		boolean converted = false;
-		try
+		if(propValue instanceof Literal)
 		{
-			if(propValue instanceof Literal)
+			try
 			{
 				//logger.info("This is a literal impl >>>>>> "  + ((Literal)propValue).doubleValue());
 				propHash.put(instanceName, ((Literal)propValue).doubleValue());
 				converted = true;
+			} catch(Exception ex)
+			{
+				propHash.put(instanceName, ((Literal)propValue).stringValue());
+				converted = true;
 			}
-		}catch(Exception ex)
-		{
-			logger.debug(ex);
 		}
 		try
 		{
