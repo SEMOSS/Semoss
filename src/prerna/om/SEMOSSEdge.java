@@ -54,7 +54,7 @@ public class SEMOSSEdge {
 
 	transient Hashtable uriHash = new Hashtable();
 	public Hashtable <String, Object> propHash = new Hashtable();
-	static final Logger logger = LogManager.getLogger(SEMOSSEdge.class.getName());
+	private static transient final Logger logger = LogManager.getLogger(SEMOSSEdge.class.getName());
 	
 	/**
 	 * 	
@@ -158,17 +158,18 @@ public class SEMOSSEdge {
 		// TODO incorporate the same for jena too
 		
 		boolean converted = false;
-		try
+		if(propValue instanceof Literal)
 		{
-			if(propValue instanceof Literal)
+			try
 			{
 				//logger.info("This is a literal impl >>>>>> "  + ((Literal)propValue).doubleValue());
 				propHash.put(instanceName, ((Literal)propValue).doubleValue());
 				converted = true;
+			} catch(Exception ex)
+			{
+				propHash.put(instanceName, ((Literal)propValue).stringValue());
+				converted = true;
 			}
-		}catch(RuntimeException ex)
-		{
-			logger.debug(ex);
 		}
 		try
 		{
