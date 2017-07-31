@@ -977,11 +977,11 @@ public abstract class AbstractEngine implements IEngine {
 			if(isDbQuery != null) {
 				param.setMultiSelect((boolean) isMultiSelect);
 			}
-			Object componentFilter = dataRow[3];
+			Object componentFilter = dataRow[7];
 			if(componentFilter != null && !componentFilter.toString().isEmpty()) {
 				param.setComponentFilterId(componentFilter.toString());
 			}
-			Object paramId = dataRow[3];
+			Object paramId = dataRow[8];
 			if(paramId != null && !paramId.toString().isEmpty()) {
 				param.setParamID(paramId.toString());
 			}
