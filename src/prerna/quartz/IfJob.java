@@ -9,8 +9,8 @@ import org.quartz.SchedulerException;
 
 public class IfJob implements org.quartz.Job {
 
-	public static final String IN_BOOLEAN_KEY = LinkedDataKeys.BOOLEAN;
-	public static final String IN_IF_TRUE_JOB = LinkedDataKeys.IF_TRUE_JOB;
+	public static final String IN_BOOLEAN_KEY = CommonDataKeys.BOOLEAN;
+	public static final String IN_IF_TRUE_JOB = CommonDataKeys.IF_TRUE_JOB;
 
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
