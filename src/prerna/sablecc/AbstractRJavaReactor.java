@@ -2517,7 +2517,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			System.out.println(pkqlCommandSource.toString());
 			System.out.println("Running PKQL...");
 
-			Insight insightSource = InsightUtility.createInsight(engineSource);
+			Insight insightSource = InsightUtility.createTemporaryInsight();
 			InsightUtility.runPkql(insightSource, pkqlCommandSource.toString());
 			ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
 			allSourceInstances = data.getData();
@@ -2584,7 +2584,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			System.out.println(pkqlCommandTarget.toString());
 			System.out.println("Running PKQL...");
 
-			Insight insightTarget = InsightUtility.createInsight(engineTarget);
+			Insight insightTarget = InsightUtility.createTemporaryInsight();
 			InsightUtility.runPkql(insightTarget, pkqlCommandTarget.toString());
 			ITableDataFrame data = (ITableDataFrame) insightTarget.getDataMaker();
 			allTargetInstances = data.getData();
@@ -2888,7 +2888,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 				pkqlSource.append("] ) ) ) ;");
 				System.out.println(pkqlSource.toString());
 				System.out.println("Running PKQL...");
-				Insight insightSource = InsightUtility.createInsight(engineSource);
+				Insight insightSource = InsightUtility.createTemporaryInsight();
 				InsightUtility.runPkql(insightSource, pkqlSource.toString());
 				ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
 				if (!data.isEmpty()) {
@@ -2972,7 +2972,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			System.out.println(pkqlCommandTarget.toString());
 			System.out.println("Running PKQL...");
 
-			Insight insightTarget = InsightUtility.createInsight(engineTarget);
+			Insight insightTarget = InsightUtility.createTemporaryInsight();
 			InsightUtility.runPkql(insightTarget, pkqlCommandTarget.toString());
 			ITableDataFrame data = (ITableDataFrame) insightTarget.getDataMaker();
 			allTargetInstances = data.getData();
@@ -3230,7 +3230,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         System.out.println(pkqlCommandSource.toString());
         System.out.println("Running PKQL...");
 
-        Insight insightSource = InsightUtility.createInsight(engineSource);
+        Insight insightSource = InsightUtility.createTemporaryInsight();
         InsightUtility.runPkql(insightSource, pkqlCommandSource.toString());
         ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
         allSourceInstances = data.getData();
@@ -3279,7 +3279,7 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
         System.out.println(pkqlCommandTarget.toString());
         System.out.println("Running PKQL...");
 
-        Insight insightTarget = InsightUtility.createInsight(engineTarget);
+        Insight insightTarget = InsightUtility.createTemporaryInsight();
         InsightUtility.runPkql(insightTarget, pkqlCommandTarget.toString());
         ITableDataFrame dataTarget = (ITableDataFrame) insightTarget.getDataMaker();
         allTargetInstances = dataTarget.getData();

@@ -10,9 +10,9 @@ import prerna.om.InsightStore;
 
 public class GetDataFromInsightJob implements org.quartz.Job {
 
-	public static final String IN_INSIGHT_ID_KEY = LinkedDataKeys.INSIGHT_ID;
+	public static final String IN_INSIGHT_ID_KEY = CommonDataKeys.INSIGHT_ID;
 
-	public static final String OUT_DATA_FRAME_KEY = LinkedDataKeys.DATA_FRAME;
+	public static final String OUT_DATA_FRAME_KEY = CommonDataKeys.DATA_FRAME;
 
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {

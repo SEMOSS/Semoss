@@ -128,7 +128,6 @@ public class WebWatcherTest extends AbstractFileWatcher {
 		importRecipe += "panel[0].viz ( Line , [ label= c: " + TIME_COLUMN + " , value= m: Average ( [ c: "
 				+ SERIES_COLUMN + " ] [ c: " + TIME_COLUMN + " ] ) ] , { \"offset\" : 0 , \"limit\" : 1000 } ) ; ";
 		chain1DataMap.put(CreateInsightJob.IN_RECIPE_KEY, importRecipe);
-		chain1DataMap.put(CreateInsightJob.IN_ENGINE_NAME_KEY, ENGINE_NAME);
 
 		// Anomaly params
 		chain1DataMap.put(DetectAnomaliesJob.IN_TIME_COLUMN_KEY, TIME_COLUMN);
