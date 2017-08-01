@@ -849,11 +849,13 @@ public class Translation extends DepthFirstAdapter {
 		IScriptReactor previousReactor = (IScriptReactor) thisReactorHash.get(PKQLEnum.OUTPUT_DATA);
 
 		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
-		// runner.setDataMap(webData);
 		this.runner.setReturnData(webData);
-//		this.runner.setFeData(feData);
-//		this.runner.setNewColumns(newColumns);
-		
+		// ugh... in case there are places where there are other panel.viz's
+		// we need to make sure we set the information that is returned into this runner
+		// because the OutputDataReactor used a different runner to get the webData information
+		this.runner.setNewColumns((Map<String, String>) webData.get("newColumns"));
+		this.runner.setReturnData(webData.get("pkqlData"));
+		this.runner.setFeData((Map<String, Map<String, Object>>) webData.get("feData"));
 		
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
 		if(dm != null) {
