@@ -8,6 +8,10 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -20,7 +24,12 @@ import prerna.util.DIHelper;
 
 public class PkslConsole {
 
-	private static Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.TRANSIENT).setPrettyPrinting().create();
+	private static Gson gson = new GsonBuilder()
+			.disableHtmlEscaping()
+			.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+			.registerTypeAdapter(Double.class, new NumberAdaptor())
+			.setPrettyPrinting()
+			.create();
 
 	public static void main(String[] args){
 		TestUtilityMethods.loadDIHelper();
@@ -90,11 +99,40 @@ public class PkslConsole {
 //		coreEngine.openDB(engineProp);
 //		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
 		
-
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineName("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+	}
+}
+
+/**
+ * Generation of new NumberAdaptor to not send NaN/Infinity to the FE
+ * since they are invalid JSON values
+ */
+class NumberAdaptor extends TypeAdapter<Double>{
+
+	@Override 
+	public Double read(JsonReader in) throws IOException {
+		if (in.peek() == JsonToken.NULL) {
+			in.nextNull();
+			return null;
+		}
+		return in.nextDouble();
+	}
+
+	@Override 
+	public void write(JsonWriter out, Double value) throws IOException {
+		if (value == null) {
+			out.nullValue();
+			return;
+		}
+		double doubleValue = value.doubleValue();
+		if(Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
+			out.nullValue();
+		} else {
+			out.value(value);
+		}
 	}
 }
