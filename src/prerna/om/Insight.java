@@ -146,7 +146,6 @@ public class Insight {
 
 	public Map<String, Object> runPkql(String pkslString) {
 		PKQLRunner runner = getPkqlRunner();
-		runner.setInsightId(pkslString);
 		try {
 			LOGGER.info("Running >>> " + pkslString);
 			// we need to account for the fact that the data.output

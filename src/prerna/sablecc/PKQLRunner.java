@@ -459,6 +459,10 @@ public class PKQLRunner {
 		return this.masterFeMap;
 	}
 	
+	public void setFeData(Map<String, Map<String, Object>> masterFeMap) {
+		this.masterFeMap = masterFeMap;
+	}
+	
 	public IDataMaker getDataFrame() {
 		if(this.translation != null) {
 			return this.translation.getDataFrame();
