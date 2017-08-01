@@ -68,7 +68,9 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 		{
 			IEngine engine = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = ((RDBMSNativeEngine)engine).makeConnection();
-			if( ((RDBMSNativeEngine)engine).getTableCount() >= 7)
+			// need to do the check for the first time if it is so.. 
+			// concept, engineconcept, relation, enginerelation, kvstore
+			if( ((RDBMSNativeEngine)engine).getTableCount() >= 6)
 			{
 				
 				String relationDelete = "delete from enginerelation where engine in (select id from engine where enginename='" + engineName +"')";
