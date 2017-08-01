@@ -12,7 +12,7 @@ import prerna.sablecc.PKQLRunner;
 
 public class DetectAnomaliesJob implements org.quartz.Job {
 
-	public static final String IN_DATA_FRAME_KEY = LinkedDataKeys.DATA_FRAME;
+	public static final String IN_DATA_FRAME_KEY = CommonDataKeys.DATA_FRAME;
 	public static final String IN_TIME_COLUMN_KEY = "anomalyTimeColumn";
 	public static final String IN_SERIES_COLUMN_KEY = "anomalySeriesColumn";
 	public static final String IN_AGGREGATE_FUNCTION_KEY = "anomalyAggregateFunction";
@@ -22,7 +22,7 @@ public class DetectAnomaliesJob implements org.quartz.Job {
 	public static final String IN_PERIOD_KEY = "anomalyPeriod";
 	public static final String IN_KEEP_EXISTING_COLUMNS_KEY = "anomalyKeepExistingColumns";
 
-	public static final String OUT_DATA_FRAME_KEY = LinkedDataKeys.DATA_FRAME;
+	public static final String OUT_DATA_FRAME_KEY = CommonDataKeys.DATA_FRAME;
 
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {

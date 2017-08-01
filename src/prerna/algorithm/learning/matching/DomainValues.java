@@ -409,7 +409,7 @@ public class DomainValues {
 				Vector<String> concepts = (Vector) joins.get(join);
 				for (String endConcept : concepts) {
 					HashSet<String> uniqueConceptValues = new HashSet<String>();
-					Insight insightSource = InsightUtility.createInsight(engineName);
+					Insight insightSource = InsightUtility.createTemporaryInsight();
 					StringBuilder pkqlCommand = new StringBuilder();
 					pkqlCommand.append("data.frame('grid'); ");
 					pkqlCommand.append("data.import ( api: " + engineName + " ");

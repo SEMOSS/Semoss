@@ -134,7 +134,11 @@ public class TSAnomalyNotification {
 
 		// For testing add another pkql
 		anomalyEmailDataMap.put(CreateInsightJob.IN_RECIPE_KEY, importRecipe);
-		anomalyEmailDataMap.put(CreateInsightJob.IN_ENGINE_NAME_KEY, engineName);
+		
+		// TODO no longer need the engine name if we are creating a new insight
+		// Can remove engine name all together from this class
+		// Unless we want to pull a saved insight
+//		anomalyEmailDataMap.put(CreateInsightJob.IN_ENGINE_NAME_KEY, engineName);
 
 		// Anomaly params
 		anomalyEmailDataMap.put(DetectAnomaliesJob.IN_TIME_COLUMN_KEY, timeColumn);
