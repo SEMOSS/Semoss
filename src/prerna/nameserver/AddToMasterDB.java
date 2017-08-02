@@ -1412,11 +1412,14 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// TODO Auto-generated method stub
 		java.util.Date retDate = null;
 		Connection conn = ((RDBMSNativeEngine)this.masterEngine).makeConnection();
-		if(((RDBMSNativeEngine)this.masterEngine).getTableCount() > 0)
+		
+		String tableName = "engine";
+		
+		if(((RDBMSNativeEngine)this.masterEngine).isTablePresent(tableName))
 		{
 			try
 			{
-				String query = "select modifieddate from engine e "
+				String query = "select modifieddate from " + tableName + " e "
 							+ "where "
 							+ "e.enginename = '" + engineName + "'";
 				
