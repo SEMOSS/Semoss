@@ -17,6 +17,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PkslOperationTypes;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
@@ -68,7 +70,8 @@ public class MergeDataReactor extends AbstractReactor {
 		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
 		this.planner.addProperty("FRAME", "FRAME", importedFrame);
 
-		return null;
+		NounMetadata noun = new NounMetadata(importedFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME_DATA_CHANGE);
+		return noun;
 	}
 
 	private QueryStruct2 getQueryStruct() {
