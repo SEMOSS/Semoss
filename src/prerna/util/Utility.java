@@ -1519,11 +1519,25 @@ public class Utility {
 			//	    		retObject[0] = "int";
 			//	    		retObject[1] = retO;
 			//	    	}
-			else if((retO = getDouble(input)) != null )
+			// I need to get the result
+			// if the input had . then I need to remove that from length
+			// A8988,8787.123 - 89888787.123 <= A8988,8787.123/2
+			
+			
+			// if not I need to compare directly
+			
+			
+			else if(( (retO = getDouble(input)) != null ) && 
+					(
+					(input.contains(".") && input.length() - ((retO + "").length() -2) <= (input.length()/2)) 
+					|| 
+					(!input.contains(".") && input.length() - ((retO + "").length()) <= (input.length()/2))
+		            )
+		            )
 			{
-				retObject = new Object[2];
-				retObject[0] = "double";
-				retObject[1] = retO;
+					retObject = new Object[2];
+					retObject[0] = "double";
+					retObject[1] = retO;
 			}
 			else if((retO = getDate(input)) != null )// try dates ? - yummy !!
 			{
@@ -1670,6 +1684,7 @@ public class Utility {
 		
 		// try to do some basic clean up if it fails and try again
 		try {
+			input = input.replaceAll("[^0-9.-]+", ""); // replaces everything but numbers - and . values
 			Double num = Double.parseDouble(input);
 			return num;
 		} catch(NumberFormatException e) {
@@ -1682,6 +1697,7 @@ public class Utility {
 	//    	//has digits, followed by optional period followed by digits
 	//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
 	//    }
+	
 
 	public static String[] castToTypes(String [] thisOutput, String [] types)
 	{
@@ -1710,6 +1726,10 @@ public class Utility {
 						if(thisOutput[outIndex].length() >= 800)
 							thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
 						values[outIndex] = thisOutput[outIndex];
+					}
+					else if(types[outIndex].equalsIgnoreCase("Double"))
+					{
+						
 					}
 				}
 			}

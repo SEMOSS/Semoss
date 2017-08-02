@@ -70,19 +70,20 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 			Connection conn = ((RDBMSNativeEngine)engine).makeConnection();
 			// need to do the check for the first time if it is so.. 
 			// concept, engineconcept, relation, enginerelation, kvstore
-			if( ((RDBMSNativeEngine)engine).getTableCount() >= 6)
-			{
-				
 				String relationDelete = "delete from enginerelation where engine in (select id from engine where enginename='" + engineName +"')";
 				String conceptDelete = "delete from engineconcept where engine in (select id from engine where enginename='" + engineName +"')";
 				String engineDelete = "delete from engine where enginename='" + engineName +"'";
 				String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
 				
-				conn.createStatement().execute(relationDelete);
-				conn.createStatement().execute(conceptDelete);
-				conn.createStatement().execute(engineDelete);
-				conn.createStatement().execute(kvDelete);
-			}			
+				if(( (RDBMSNativeEngine)engine).isTablePresent("enginerelation"))
+					conn.createStatement().execute(relationDelete);
+				if(( (RDBMSNativeEngine)engine).isTablePresent("engineconcept"))
+					conn.createStatement().execute(conceptDelete);
+				if(( (RDBMSNativeEngine)engine).isTablePresent("engine"))
+					conn.createStatement().execute(engineDelete);
+				if(( (RDBMSNativeEngine)engine).isTablePresent("kvstore"))
+					conn.createStatement().execute(kvDelete);
+
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();
