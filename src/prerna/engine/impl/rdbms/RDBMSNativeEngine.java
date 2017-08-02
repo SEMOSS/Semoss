@@ -36,6 +36,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -82,6 +83,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private boolean useConnectionPooling = false;
 	int tableCount = 0;
 	PersistentHash conceptIdHash = null;
+	Hashtable tablePresent = new Hashtable();
 
 	@Override
 	public void openDB(String propFile)
@@ -710,6 +712,24 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public int getTableCount()
 	{
 		return this.tableCount;
+	}
+	
+	public boolean isTablePresent(String tableName)
+	{
+		getConnection();
+		int count = 0;
+		try {
+			String checkQuery = "select count(*) from information_schema.tables where table_schema='PUBLIC' and table_name = 'CONCEPT'";
+			ResultSet rs = engineConn.createStatement().executeQuery(checkQuery);
+			while(rs.next())
+				count = rs.getInt(1);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return count > 0;
+		
 	}
 	
 	public PersistentHash getConceptIdHash()

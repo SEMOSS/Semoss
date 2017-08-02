@@ -546,6 +546,42 @@ public class POIReader extends AbstractFileReader {
 		}
 		return "";
 	}
+	
+	private void addCount(String key, Hashtable <String, Integer> hash)
+	{
+		Integer count = 0;
+		if(hash.containsKey(key))
+			count = hash.get(key);
+		count++;
+		hash.put(key, count);
+	}
+
+	private String findBiggest(Hashtable <String, Integer> hash)
+	{
+		String retType = null;
+		Integer hugeCount = null;
+		Enumeration <String> keys = hash.keys();
+		while(keys.hasMoreElements())
+		{
+			String key = keys.nextElement();
+			int thisCount = hash.get(key);
+			if(hugeCount == null)
+			{
+				retType = key;
+				hugeCount = thisCount;
+			}
+			else
+			{
+				if(thisCount > hugeCount)
+				{
+					retType = key;
+					hugeCount = thisCount;
+				}
+			}
+		}
+		return retType;
+	}
+
 
 	public String[] predictRowTypes(Sheet lSheet)
 	{
@@ -560,6 +596,9 @@ public class POIReader extends AbstractFileReader {
 		// we know the first col is always null as it is not used
 		for(int i = 1; i < numCells; i++) {
 			String type = null;
+
+			Hashtable <String, Integer> countHash = new Hashtable<String, Integer>();
+
 			ROW_LOOP : for(int j = 1; j < numRows; j++) {
 				Row row = lSheet.getRow(j);
 				if(row != null) {
@@ -570,9 +609,11 @@ public class POIReader extends AbstractFileReader {
 							continue ROW_LOOP;
 						}
 						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
+						addCount(newTypePred, countHash);
+
 						if(newTypePred.contains("VARCHAR")) {
 							type = newTypePred;
-							break ROW_LOOP;
+							//break ROW_LOOP;
 						}
 
 						// need to also add the type null check for the first row
@@ -590,7 +631,7 @@ public class POIReader extends AbstractFileReader {
 								// TODO: need to figure out what to handle this case
 								// for now, making assumption to put it as a string
 								type = "VARCHAR(800)";
-								break ROW_LOOP;
+								//break ROW_LOOP;
 							}
 						} else {
 							// type is the same as the new predicated type
@@ -604,7 +645,10 @@ public class POIReader extends AbstractFileReader {
 				// no data for column....
 				types[i] = "varchar(255)";
 			} else {
-				types[i] = type;
+				if(countHash.size() == 1)
+					types[i] = countHash.keys().nextElement();
+				else
+					types[i] = findBiggest(countHash);
 			}
 		}
 
