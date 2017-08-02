@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -261,6 +262,15 @@ public class CSVFileHelper {
 		}
 		return orderedHeaders;
 	}
+	
+	private void addCount(String key, Hashtable <String, Integer> hash)
+	{
+		Integer count = 0;
+		if(hash.containsKey(key))
+			count = hash.get(key);
+		count++;
+		hash.put(key, count);
+	}
 
 
 	/**
@@ -277,15 +287,20 @@ public class CSVFileHelper {
 			//			getNextRow();
 			String type = null;
 			String[] row = null;
+			// need something that keeps the count of number of different things
+			Hashtable <String, Integer> countHash = new Hashtable<String, Integer>();
+			
 			WHILE_LOOP : while(rowCounter < NUM_ROWS_TO_PREDICT_TYPES && ( row = parser.parseNext()) != null) {
 				String val = row[0];
 				if(val.isEmpty()) {
 					continue;
 				}
 				String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
+				addCount(newTypePred, countHash);
 				if(newTypePred.contains("VARCHAR")) {
 					type = newTypePred;
-					break WHILE_LOOP;
+					//addCount(newTypePred, countHash);
+					//break WHILE_LOOP;
 				}
 
 				// need to also add the type null check for the first row
@@ -303,7 +318,7 @@ public class CSVFileHelper {
 						// TODO: need to figure out what to handle this case
 						// for now, making assumption to put it as a string
 						type = "VARCHAR(800)";
-						break WHILE_LOOP;
+						//break WHILE_LOOP;
 					}
 				} else {
 					// type is the same as the new predicated type
@@ -312,18 +327,47 @@ public class CSVFileHelper {
 				}
 				
 				rowCounter++;
-			}
+			}// this is the end of while loop
 			// if an entire column is empty, type will be null
 			// why someone has a csv file with an empty column, i do not know...
 			if(type == null) {
 				type = "VARCHAR(800)";
 			}
-			types[counter] = type;
+			if(countHash.size() == 1)
+				types[counter] = countHash.keys().nextElement();
+			else
+				types[counter] = findBiggest(countHash);
 			counter++;
-		}
+		}// this is the end of column loop
 
 		reset(true);
 		return types;
+	}
+	
+	private String findBiggest(Hashtable <String, Integer> hash)
+	{
+		String retType = null;
+		Integer hugeCount = null;
+		Enumeration <String> keys = hash.keys();
+		while(keys.hasMoreElements())
+		{
+			String key = keys.nextElement();
+			int thisCount = hash.get(key);
+			if(hugeCount == null)
+			{
+				retType = key;
+				hugeCount = thisCount;
+			}
+			else
+			{
+				if(thisCount > hugeCount)
+				{
+					retType = key;
+					hugeCount = thisCount;
+				}
+			}
+		}
+		return retType;
 	}
 
 //	public String getHTMLBasedHeaderChanges() {
