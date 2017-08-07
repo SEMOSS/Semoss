@@ -1684,7 +1684,7 @@ public class Utility {
 		
 		// try to do some basic clean up if it fails and try again
 		try {
-			input = input.replaceAll("[^E0-9.-]+", ""); // replaces everything but numbers - and . values
+			input = input.replaceAll("[^0-9.-]+", ""); // replaces everything but numbers - and . values
 			Double num = Double.parseDouble(input);
 			return num;
 		} catch(NumberFormatException e) {
