@@ -8,6 +8,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -41,10 +43,6 @@ import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import au.com.bytecode.opencsv.CSVReader;
-
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.matching.DomainValues;
@@ -60,18 +58,15 @@ import prerna.ds.util.IFileIterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.XLFileHelper;
-import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -3506,69 +3501,14 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	}
 	
-	public void updateOWL(String sourceDB, String sourceColumn, String targetDB, String targetColumn) {
+	public void addLogicalNames(String sourceDB, String sourceColumn, String targetDB, String targetColumn) {
 		IEngine sourceEngine = Utility.getEngine(sourceDB);
 		IEngine targetEngine = Utility.getEngine(targetDB);
 		if (sourceEngine != null && targetEngine != null) {
-			OWLER sourceOWL = new OWLER(sourceEngine, sourceEngine.getOWL());
-			String sourceConceptualURI = DomainValues.getConceptURI(sourceColumn, sourceEngine, true);
-			String sourcePhysicalURI = sourceEngine.getPhysicalUriFromConceptualUri(sourceConceptualURI);
+			// local masterDB
+			 boolean successSource = MasterDatabaseUtility.addLogicalName(sourceDB, sourceColumn,targetColumn);
+			 boolean successTarget = MasterDatabaseUtility.addLogicalName(targetDB, targetColumn, sourceColumn);
 
-			String targetConceptualURI = DomainValues.getConceptURI(targetColumn, targetEngine, true);
-			String tagetPhysicalURI = targetEngine.getPhysicalUriFromConceptualUri(targetConceptualURI);
-
-			if (sourceOWL != null) {
-				String owlStr = sourceOWL.getOwlAsString();
-				String sourceConceptualREGEX = "\\\"";
-				String[] sourceURIparts = sourceConceptualURI.split("/");
-				for (int i = 0; i < sourceURIparts.length; i++) {
-					if (sourceURIparts[i].length() > 0) {
-						sourceConceptualREGEX += sourceURIparts[i];
-						if (i < sourceURIparts.length - 1) {
-							sourceConceptualREGEX += "\\/";
-						}
-					} else {
-						sourceConceptualREGEX += "\\/";
-					}
-
-				}
-				sourceConceptualREGEX += "\\\"";
-				String pattern = sourceConceptualREGEX;
-
-				// Create a Pattern object
-				Pattern r = Pattern.compile(pattern);
-
-				// Now create matcher object.
-				Matcher m = r.matcher(owlStr);
-				if (m.find()) {
-					String newOwlStr = m.replaceAll("\"" + targetConceptualURI + "\"");
-					String sourceOwlPath = sourceOWL.getOwlPath();
-					try {
-						PrintWriter writer = new PrintWriter(sourceOWL.getOwlPath(), "UTF-8");
-						writer.print(newOwlStr);
-						writer.close();
-//						try {
-//							sourceOWL.commit();
-//							sourceOWL.export();
-							sourceEngine.setOWL(sourceOWL.getOwlPath());
-							sourceOWL.export();
-							
-						
-							
-//						} catch (IOException e) {
-//							e.printStackTrace();
-//						}
-						//sourceOWL.closeOwl();
-					} catch (IOException e) {
-						// do something
-					}
-
-					System.out.println("Replaced OWL");
-
-				} else {
-					System.out.println("Unable tosafd update OWL");
-				}
-			}
 		}
 	}
 	
@@ -4470,60 +4410,65 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 		return (String) this.returnData;
 		
 	}
+
 	private void encodeInstances(String filePath, List<Object> instances) {
-		String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
-		minHashFilePath = minHashFilePath.replace("\\", "/");
-		
-		StringBuilder rsb = new StringBuilder();
-		rsb.append("library(textreuse);");
-		rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
+		if (instances.size() > 1) {
+			String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+			minHashFilePath = minHashFilePath.replace("\\", "/");
 
-		// construct R dataframe
-		String dfName = "df.xray";
-		rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
-		for (int j = 0; j < instances.size(); j++) {
-			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
-			rsb.append("<-");
-			if(instances.get(j)==null) {
-				rsb.append("\"" + "" + "\"");
-			} else {
-				rsb.append("\"" + instances.get(j).toString() + "\"");
-			} 
-			rsb.append(";");
+			StringBuilder rsb = new StringBuilder();
+			rsb.append("library(textreuse);");
+			rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
 
-		}
-		rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
-		runR(rsb.toString());
-	}
-	
-	private void encodeInstances(String filePath, HashSet<Object> instances) {
-		String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
-				+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
-		minHashFilePath = minHashFilePath.replace("\\", "/");
-		
-		StringBuilder rsb = new StringBuilder();
-		rsb.append("library(textreuse);");
-		rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
+			// construct R dataframe
+			String dfName = "df.xray";
+			rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
+			for (int j = 0; j < instances.size(); j++) {
+				rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
+				rsb.append("<-");
+				if (instances.get(j) == null) {
+					rsb.append("\"" + "" + "\"");
+				} else {
+					rsb.append("\"" + instances.get(j).toString() + "\"");
+				}
+				rsb.append(";");
 
-		// construct R dataframe
-		String dfName = "df.xray";
-		rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
-		int j = 0;
-		for (Object value : instances) {
-			rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
-			rsb.append("<-");
-			if (value == null) {
-				rsb.append("\"" + "" + "\"");
-			} else {
-				rsb.append("\"" + value.toString() + "\"");
 			}
-			rsb.append(";");
-			j++;
-
+			rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
+			runR(rsb.toString());
 		}
-		rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
-		runR(rsb.toString());
+	}
+
+	private void encodeInstances(String filePath, HashSet<Object> instances) {
+		if (instances.size() > 1) {
+			String minHashFilePath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"
+					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+			minHashFilePath = minHashFilePath.replace("\\", "/");
+
+			StringBuilder rsb = new StringBuilder();
+			rsb.append("library(textreuse);");
+			rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
+
+			// construct R dataframe
+			String dfName = "df.xray";
+			rsb.append(dfName + "<-data.frame(instances=character(), stringsAsFactors = FALSE);");
+			int j = 0;
+			for (Object value : instances) {
+				rsb.append(dfName + "[" + (j + 1) + ",1" + "]");
+				rsb.append("<-");
+				if (value == null) {
+					rsb.append("\"" + "" + "\"");
+				} else {
+					rsb.append("\"" + value.toString() + "\"");
+				}
+				rsb.append(";");
+				j++;
+
+			}
+			rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
+			runR(rsb.toString());
+		}
 	}
 	
 	public String getSchemaForExternal(String type, String host, String port, String username, String password, String schema) throws SQLException  {
