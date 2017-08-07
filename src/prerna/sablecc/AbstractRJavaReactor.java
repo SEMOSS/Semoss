@@ -1876,7 +1876,18 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			ex.printStackTrace();
 		}
 	}
-	
+
+	public void doLayout(String layout, double scale) {
+		String graphName = (String) retrieveVariable("GRAPH_NAME");
+		// the color is saved as color
+		try {
+			eval("xy_layout <- " + layout + "(" + graphName + ")*" + scale);
+			synchronizeXY("xy_layout");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
 	/**
 	 * Identifies matching concepts for federation from the semicolon-delimited
 	 * list of engines.
