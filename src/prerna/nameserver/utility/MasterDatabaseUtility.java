@@ -4,32 +4,19 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Vector;
-
-import org.openrdf.model.vocabulary.OWL;
-import org.openrdf.model.vocabulary.RDF;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
-
-import com.hp.hpl.jena.vocabulary.RDFS;
-import com.mchange.v1.identicator.IdHashMap;
 
 /**
  * @author pkapaleeswaran
@@ -1025,7 +1012,7 @@ public class MasterDatabaseUtility {
 		for(int logIndex = 0;logIndex < conceptLogicalNames.size();logIndex++)
 		{
 			conceptString.append("'" + conceptLogicalNames.get(logIndex) + "'");
-			if(logIndex > 0)
+			if(logIndex <conceptLogicalNames.size() - 1)
 				conceptString.append(",");
 		}
 		conceptString.append(")");
@@ -1326,5 +1313,98 @@ public class MasterDatabaseUtility {
 			ex.printStackTrace();
 		}
 		return configFile;
+	}
+
+	/**
+	 * Adds logical name to concept from engine
+	 * @param engineName
+	 * @param concept
+	 * @param logicalName
+	 * @return
+	 */
+	public static boolean addLogicalName(String engineName, String concept, String logicalName) {
+		IEngine master = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = ((RDBMSNativeEngine) master).makeConnection();
+		try {
+			String duplicateQueryCheck = "select localconceptid, conceptualname, logicalname, "
+					+ "domainname, globalid from concept "
+					+ "where localconceptid in (select localconceptid from engineconcept "
+					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
+					+ "and conceptualname = \'" + concept + "\' and logicalname = \'"+logicalName+"\';";
+			// get source engineid and source conceptid
+			
+			ResultSet dupCheck = masterConn.createStatement().executeQuery(duplicateQueryCheck);
+			int size = 0;
+			if (dupCheck != null) {
+				dupCheck.beforeFirst();
+				dupCheck.last();
+				size = dupCheck.getRow();
+			}
+			if (size == 0) {
+				String sourceLogicalInfo = "select localconceptid, conceptualname, logicalname, "
+						+ "domainname, globalid from concept "
+						+ "where localconceptid in (select localconceptid from engineconcept "
+						+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
+						+ "and conceptualname = \'" + concept + "\';";
+				ResultSet sourceLogicalRS = masterConn.createStatement().executeQuery(sourceLogicalInfo);
+				while (sourceLogicalRS.next()) {
+					String localConceptID = sourceLogicalRS.getString(1);
+					String conceptualName = sourceLogicalRS.getString(2);
+					String oldLogicalName = sourceLogicalRS.getString(3);
+					String domainName = sourceLogicalRS.getString(4);
+					String globalID = sourceLogicalRS.getString(5);
+					if (conceptualName.equals(concept)) {
+						// insert target CN as logical name
+						String insertString = "insert into concept " + "values(\'" + localConceptID + "\', \'"
+								+ conceptualName + "\', \'" + logicalName + "\', \'" + domainName + "\', \'"
+								+ globalID.toString() + "\');";
+						int validInsert = masterConn.createStatement().executeUpdate(insertString);
+						if (validInsert > 0) {
+							try {
+								((RDBMSNativeEngine) master).commitRDBMS();
+								return true;
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+
+					} else {
+						System.out.println(";/");
+
+					}
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public static boolean updateEngineModifiedDate(Date date, String engineName) {
+		IEngine master = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = ((RDBMSNativeEngine) master).makeConnection();
+		
+		String update = "update engine set modifieddate = \'" + new java.sql.Timestamp(date.getTime())
+				+ "\' where engineName = \'" + engineName + "\';";
+		int validUpdate;
+		try {
+			validUpdate = masterConn.createStatement().executeUpdate(update);
+			if (validUpdate > 0) {
+				try {
+					((RDBMSNativeEngine) master).commitRDBMS();
+					return true;
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			return true;
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return false;
+		
 	}
 }

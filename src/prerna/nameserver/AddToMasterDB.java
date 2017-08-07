@@ -41,7 +41,6 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.Vector;
 
-import org.apache.derby.client.am.SqlException;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.BindingSet;
@@ -50,6 +49,10 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.hp.hpl.jena.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
@@ -65,10 +68,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.hp.hpl.jena.vocabulary.RDFS;
 
 public class AddToMasterDB extends ModifyMasterDB {
 
@@ -136,41 +135,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 			e.printStackTrace();
 		}
 
-	}
-	public void updateConceptualNamesForXray(String sourceDB, String sourceColumn, String targetColumn) {
-		try {
-			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-			getConnection(localMaster);
-			String engineIDQuery = "SELECT ID FROM ENGINE WHERE ENGINENAME = '" + sourceDB + "' "
-					+ "ORDER BY  MODIFIEDDATE DESC LIMIT 1;";
-			// execute query
-			ResultSet engineIDRS = conn.createStatement().executeQuery(engineIDQuery);
-			if (engineIDRS.next()) {
-				String id = engineIDRS.getString(1);
-
-				String localConceptIDQuery = "SELECT LOCALCONCEPTID FROM ENGINECONCEPT " + "WHERE ENGINE = '" + id
-						+ "' AND PHYSICALNAME = '" + sourceColumn + "';";
-				ResultSet localConceptIDRS = conn.createStatement().executeQuery(localConceptIDQuery);
-				
-				if (localConceptIDRS.next()) {
-					// execute query
-					String localConceptID = localConceptIDRS.getString(1);
-
-					// UPDATE conceptual name
-//					String update = "UPDATE CONCEPT SET CONCEPTUALNAME = '" + targetColumn
-//							+ "' WHERE LOCALCONCEPTID = '" + localConceptID + "';";
-//					int updated = conn.createStatement().executeUpdate(update);
-
-//					System.out.println("Succefully updated " + updated + " rows sourceDB " + sourceDB
-//							+ " source column " + sourceColumn + "targetColumn " + targetColumn);
-
-				}
-
-			}
-		}
-		catch (SQLException e) {
-			e.printStackTrace();
-		}
 	}
 
 	public boolean registerEngineLocal(Properties prop) {
