@@ -4393,8 +4393,9 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	
 	
-	public String getSchemaForCSV(String filePath) throws JsonGenerationException, JsonMappingException, IOException {
+	public String getSchemaForCSV(String filePath, String delimiter) throws JsonGenerationException, JsonMappingException, IOException {
 		CSVFileHelper cv = new CSVFileHelper();
+		cv.setDelimiter(delimiter.charAt(0));
 		cv.parse(filePath);
 		String[] headers = cv.getAllCSVHeaders();
 		String[] types = cv.predictTypes();
