@@ -3505,24 +3505,30 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	}
 	
+	/**
+	 * Used for X-ray matching results
+	 * 
+	 * @param json
+	 *            [ { "Source_Column": "db", "Source_Database": "col",
+	 *            "Target_Column": "col", "Target_Database": "db" }, {...} ]
+	 */
 	public void addLogicalNames(String json) {
 		Gson gson = new Gson();
-		Type type = new TypeToken<List<String[]>>() {
+		Type type = new TypeToken<List<HashMap<String, String>>>() {
 		}.getType();
-		List<String[]> values = gson.fromJson(json, type);
+		List<HashMap<String, String>> values = gson.fromJson(json, type);
 
 		if (values != null) {
-			for (String[] row : values) {
-				String sourceDB = row[0];
-				String sourceColumn = row[1];
-				String targetDB = row[2];
-				String targetColumn = row[3];
+			for (HashMap<String, String> row : values) {
+				String sourceDB = row.get("Source_Database");
+				String sourceColumn = row.get("Source_Column");
+				String targetDB = row.get("Target_Database");
+				String targetColumn = row.get("Target_Column");
 				IEngine sourceEngine = Utility.getEngine(sourceDB);
 				IEngine targetEngine = Utility.getEngine(targetDB);
 				if (sourceEngine != null && targetEngine != null) {
 					MasterDatabaseUtility.addLogicalName(sourceDB, sourceColumn, targetColumn);
 					MasterDatabaseUtility.addLogicalName(targetDB, targetColumn, sourceColumn);
-
 				}
 			}
 		}
