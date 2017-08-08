@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -41,6 +42,10 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
+
+import com.google.api.client.util.Types;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import au.com.bytecode.opencsv.CSVReader;
 import prerna.algorithm.api.IMetaData;
@@ -3501,15 +3506,28 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 
 	}
 	
-	public void addLogicalNames(String sourceDB, String sourceColumn, String targetDB, String targetColumn) {
-		IEngine sourceEngine = Utility.getEngine(sourceDB);
-		IEngine targetEngine = Utility.getEngine(targetDB);
-		if (sourceEngine != null && targetEngine != null) {
-			// local masterDB
-			 boolean successSource = MasterDatabaseUtility.addLogicalName(sourceDB, sourceColumn,targetColumn);
-			 boolean successTarget = MasterDatabaseUtility.addLogicalName(targetDB, targetColumn, sourceColumn);
+	public void addLogicalNames(String json) {
+		Gson gson = new Gson();
+		Type type = new TypeToken<List<String[]>>() {
+		}.getType();
+		List<String[]> values = gson.fromJson(json, type);
 
+		if (values != null) {
+			for (String[] row : values) {
+				String sourceDB = row[0];
+				String sourceColumn = row[1];
+				String targetDB = row[2];
+				String targetColumn = row[3];
+				IEngine sourceEngine = Utility.getEngine(sourceDB);
+				IEngine targetEngine = Utility.getEngine(targetDB);
+				if (sourceEngine != null && targetEngine != null) {
+					MasterDatabaseUtility.addLogicalName(sourceDB, sourceColumn, targetColumn);
+					MasterDatabaseUtility.addLogicalName(targetDB, targetColumn, sourceColumn);
+
+				}
+			}
 		}
+
 	}
 	
 	
