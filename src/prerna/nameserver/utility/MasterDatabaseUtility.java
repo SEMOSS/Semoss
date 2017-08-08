@@ -1294,7 +1294,7 @@ public class MasterDatabaseUtility {
 			}
 			configMap.put("configList", configList);
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			//TODO 
 		}
 		return configMap;
 
