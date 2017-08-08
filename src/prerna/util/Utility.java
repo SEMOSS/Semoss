@@ -44,7 +44,6 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.NumberFormat;
@@ -105,7 +104,6 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
@@ -1684,11 +1682,18 @@ public class Utility {
 		
 		// try to do some basic clean up if it fails and try again
 		try {
-			input = input.replaceAll("[^0-9.-]+", ""); // replaces everything but numbers - and . values
+			input = input.replaceAll("[^0-9.-]+E", ""); // replaces everything but numbers - and . and E values
 			Double num = Double.parseDouble(input);
 			return num;
-		} catch(NumberFormatException e) {
-			return null;
+		} catch(NumberFormatException e1) {
+			// okay, try to remove the E now
+			try {
+				input = input.replaceAll("[^0-9.-]+", ""); // replaces everything but numbers - and . values
+				Double num = Double.parseDouble(input);
+				return num;
+			} catch(NumberFormatException e2) {
+				return null;
+			}
 		}
 	}
 
