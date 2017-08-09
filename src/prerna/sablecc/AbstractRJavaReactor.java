@@ -3512,27 +3512,49 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 	 *            [ { "Source_Column": "db", "Source_Database": "col",
 	 *            "Target_Column": "col", "Target_Database": "db" }, {...} ]
 	 */
-	public void addLogicalNames(String json) {
+	public String addLogicalNames(String json) {
 		Gson gson = new Gson();
 		Type type = new TypeToken<List<HashMap<String, String>>>() {
 		}.getType();
 		List<HashMap<String, String>> values = gson.fromJson(json, type);
-
+		String errorMessage = "Unable to extend all selected data. Check log for errors.";
+		String successMessage = "Success you can now extend data!";
+		boolean all = false;
 		if (values != null) {
+			all = true;
 			for (HashMap<String, String> row : values) {
 				String sourceDB = row.get("Source_Database");
 				String sourceColumn = row.get("Source_Column");
+				sourceColumn = "bad";
 				String targetDB = row.get("Target_Database");
 				String targetColumn = row.get("Target_Column");
+				targetColumn = "bad";
 				IEngine sourceEngine = Utility.getEngine(sourceDB);
 				IEngine targetEngine = Utility.getEngine(targetDB);
 				if (sourceEngine != null && targetEngine != null) {
-					MasterDatabaseUtility.addLogicalName(sourceDB, sourceColumn, targetColumn);
-					MasterDatabaseUtility.addLogicalName(targetDB, targetColumn, sourceColumn);
+					boolean sourceSuccess = MasterDatabaseUtility.addLogicalName(sourceDB, sourceColumn, targetColumn);
+					if (!sourceSuccess) {
+						LOGGER.info("Unable to extend data for Soure Database :" + sourceDB + " using " + sourceColumn
+								+ " and " + targetColumn);
+					}
+					boolean targetSuccess = MasterDatabaseUtility.addLogicalName(targetDB, targetColumn, sourceColumn);
+					if (!targetSuccess) {
+						LOGGER.info("Unable to extend data for Soure Database :" + targetDB + " using " + targetColumn
+								+ " and " + sourceColumn);
+					}
+					all = all && sourceSuccess && targetSuccess;
 				}
 			}
-		}
+			this.hasReturnData = true;
 
+		}
+		if (all) {
+			this.returnData = successMessage;
+			return successMessage;
+		} else {
+			this.returnData = errorMessage;
+			return errorMessage;
+		}
 	}
 	
 	
