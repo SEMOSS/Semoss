@@ -3525,10 +3525,8 @@ public abstract class AbstractRJavaReactor extends AbstractJavaReactor {
 			for (HashMap<String, String> row : values) {
 				String sourceDB = row.get("Source_Database");
 				String sourceColumn = row.get("Source_Column");
-				sourceColumn = "bad";
 				String targetDB = row.get("Target_Database");
 				String targetColumn = row.get("Target_Column");
-				targetColumn = "bad";
 				IEngine sourceEngine = Utility.getEngine(sourceDB);
 				IEngine targetEngine = Utility.getEngine(targetDB);
 				if (sourceEngine != null && targetEngine != null) {
