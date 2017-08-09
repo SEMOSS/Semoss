@@ -1304,7 +1304,7 @@ public class MasterDatabaseUtility {
 		Connection conn = ((RDBMSNativeEngine) engine).makeConnection();
 		String configFile = "";
 		try {
-			String query = "select CONFIG XRAYCONFIGS WHERE ID = \'" + configFileID + "\';";
+			String query = "select CONFIG FROM XRAYCONFIGS WHERE ID = \'" + configFileID + "\';";
 			ResultSet rs = conn.createStatement().executeQuery(query);
 			while (rs.next()) {
 				configFile = rs.getString(1);
