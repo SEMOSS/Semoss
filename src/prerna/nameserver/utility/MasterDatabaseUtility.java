@@ -1339,6 +1339,7 @@ public class MasterDatabaseUtility {
 				dupCheck.beforeFirst();
 				dupCheck.last();
 				size = dupCheck.getRow();
+				return true;
 			}
 			if (size == 0) {
 				String sourceLogicalInfo = "select localconceptid, conceptualname, logicalname, "
@@ -1364,13 +1365,9 @@ public class MasterDatabaseUtility {
 								((RDBMSNativeEngine) master).commitRDBMS();
 								return true;
 							} catch (Exception e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}
-
-					} else {
-						System.out.println(";/");
 
 					}
 				}
