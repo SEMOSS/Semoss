@@ -349,14 +349,19 @@ public class DomainValues {
 
 	public static Vector<Object> retrieveCleanConceptValues(String uri, IEngine engine) {
 		Vector<Object> conceptValues = engine.getEntityOfType(uri);
-		Vector<Object> cleanConceptValues = new Vector<Object>();
-		for(Object concept : conceptValues) {
-			String[] splitConcept = ((String)concept).split("/");
-			String cleanConcept = splitConcept[splitConcept.length-1];
-			cleanConceptValues.add(cleanConcept);
+		if(conceptValues!=null) {
+			Vector<Object> cleanConceptValues = new Vector<Object>();
+			for(Object concept : conceptValues) {
+				String[] splitConcept = ((String)concept).split("/");
+				String cleanConcept = splitConcept[splitConcept.length-1];
+				cleanConceptValues.add(cleanConcept);
+			}
+			return cleanConceptValues;
+			
+		} else {
+			return new Vector<Object>();
 		}
 		
-		return cleanConceptValues;
 	} 
 	// Test case
 	public static void main(String[] args) {
