@@ -16,8 +16,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   corpus <- tryCatch({
     TextReuseCorpus(dir = path, tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)
   }, error = function(e) {
-   	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
-    return(df)
+    return("error")
   })
   
   # Return an empty frame if there was an error
