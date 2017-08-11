@@ -1330,16 +1330,13 @@ public class MasterDatabaseUtility {
 					+ "domainname, globalid from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
 					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\' and logicalname = \'"+logicalName+"\';";
-			// get source engineid and source conceptid
-			
+					+ "and conceptualname = \'" + concept + "\' and logicalname = \'"+logicalName+"\';";			
 			ResultSet dupCheck = masterConn.createStatement().executeQuery(duplicateQueryCheck);
 			int size = 0;
 			if (dupCheck != null) {
 				dupCheck.beforeFirst();
 				dupCheck.last();
 				size = dupCheck.getRow();
-				return true;
 			}
 			if (size == 0) {
 				String sourceLogicalInfo = "select localconceptid, conceptualname, logicalname, "
@@ -1371,6 +1368,9 @@ public class MasterDatabaseUtility {
 
 					}
 				}
+			}
+			else {
+				return true;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
