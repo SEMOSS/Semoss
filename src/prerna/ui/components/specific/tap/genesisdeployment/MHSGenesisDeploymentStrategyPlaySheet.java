@@ -28,20 +28,15 @@
 package prerna.ui.components.specific.tap.genesisdeployment;
 
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Map;
-
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -53,8 +48,6 @@ import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
 import prerna.ui.components.specific.tap.InputPanelPlaySheet;
-import prerna.ui.components.specific.tap.genesisdeployment.MhsGenesisDeploymentSavingsProcessor;
-import prerna.ui.components.specific.tap.genesisdeployment.MhsGenesisSiteDeploymentSavingsPlaySheet;
 import prerna.util.DIHelper;
 
 
@@ -69,6 +62,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 
 	// store the system deployment savings over time
 	private H2Frame systemDeploymentSavings;
+	private String[] systemDeploymentSavingsHeaders;
 
 	// store the s deployment savings over time
 	private H2Frame siteDeploymentSavings;
@@ -453,16 +447,17 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		// deployment savings
 		// so each row represents a system and its savings
 		// across each FY
-		String[] headers = new String[numColumns+1];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
-		headers[0] = "System";
-		dataTypes.put("System", "String");
+		this.systemDeploymentSavingsHeaders = new String[numColumns+1];
+		String[] dataTypes = new String[numColumns+1];
+		this.systemDeploymentSavingsHeaders[0] = "System";
+		dataTypes[0] = "String";
 		for(int i = 0; i < numColumns; i++) {
-			headers[i+1] = "FY" + (15 + i);
-			dataTypes.put(headers[i+1], "Number");
+			this.systemDeploymentSavingsHeaders[i+1] = "FY" + (15 + i);
+			dataTypes[i+1] = "Number";
 		}
-		this.systemDeploymentSavings = new H2Frame(headers);
-		this.systemDeploymentSavings.mergeDataTypeMap(dataTypes);
+		this.systemDeploymentSavings = new H2Frame();
+		
+		this.systemDeploymentSavings.addNewColumn(this.systemDeploymentSavingsHeaders, dataTypes, this.systemDeploymentSavings.getTableName());
 
 		// just going to go through and add all the different type of savings
 		addLocallyDeployedSystemSavings();
@@ -471,8 +466,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 		addFixedSustainmentCostForAllLocallyDeployedSystems();
 		
 		// this will add the column and row totals
-		MhsGenesisDeploymentSavingsProcessor.calculateColAndRowTotals(this.systemDeploymentSavings);
-		headers = this.systemDeploymentSavings.getColumnHeaders();
+		MhsGenesisDeploymentSavingsProcessor.calculateColAndRowTotals(this.systemDeploymentSavings, this.systemDeploymentSavingsHeaders);
 
 		// iterate through the results for testing
 		// iterate through the results for testing
@@ -643,7 +637,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 				
 				// this will handle the specific system and values and perform the consolidation
 				// if the system is already stored in the frame
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.systemDeploymentSavings, system, newValues, endYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.systemDeploymentSavings, system, newValues, endYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -676,7 +670,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 				if(system.equals("CHCS")) {
 					modEndYear = "FY" + ( Integer.parseInt(endYear.substring(2)) + 1 );
 				}
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -707,7 +701,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 				if(system.equals("CHCS")) {
 					modEndYear = "FY" + ( Integer.parseInt(endYear.substring(2)) + 1 );
 				}
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -737,21 +731,21 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper();
 
-		String engineProp = "C:\\workspace\\Semoss\\db\\TAP_Core_Data.smss";
+		String engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Core_Data.smss";
 		IEngine coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineName("TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss\\db\\TAP_Site_Data.smss";
+		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Site_Data");
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineName("TAP_Site_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss\\db\\TAP_Portfolio.smss";
+		engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Portfolio.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Portfolio");
 		coreEngine.openDB(engineProp);

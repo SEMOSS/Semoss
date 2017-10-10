@@ -44,4 +44,6 @@ public interface IEngineWrapper {
 	void setEngine(IEngine engine);
 	
 	Map<String, Object> getResponseMeta();
+	
+	void cleanUp();
 }

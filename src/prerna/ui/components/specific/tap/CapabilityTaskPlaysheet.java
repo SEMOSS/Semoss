@@ -32,6 +32,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
@@ -91,9 +92,9 @@ public class CapabilityTaskPlaysheet extends BrowserPlaySheet {
 		
 		Hashtable <String, Integer> capHash = new Hashtable<String, Integer>();
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext()) {	
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			venName = (String) listElement[0];
 			
 			// since I know all of this is just one vendor, I am not going to worry much here

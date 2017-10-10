@@ -8,15 +8,15 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.LazyTranslation;
-import prerna.sablecc2.PkslUtility;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.PixelUtility;
+import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.planner.AbstractLoadClient;
 
 public class LoadGraphClient extends AbstractLoadClient {
 
 	private static final Logger LOGGER = LogManager.getLogger(LoadGraphClient.class.getName());
 
-	protected PKSLPlanner createPlanner() {
+	protected PixelPlanner createPlanner() {
 		long start = System.currentTimeMillis();
 
 		// generate our lazy translation
@@ -59,7 +59,7 @@ public class LoadGraphClient extends AbstractLoadClient {
 				// skip adding self reflection pksls
 				// i.e. x = (x);
 				if(!AbstractPlannerReactor.isSimpleAssignment(pkslString)) {
-					PkslUtility.addPkslToTranslation(plannerT, pkslString);
+					PixelUtility.addPixelToTranslation(plannerT, pkslString);
 				}
 			}
 			//else we just want to add the value of the constant/decimal directly to the planner

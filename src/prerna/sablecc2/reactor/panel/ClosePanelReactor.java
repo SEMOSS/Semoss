@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.panel;
 
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ClosePanelReactor extends AbstractReactor {
@@ -13,10 +13,9 @@ public class ClosePanelReactor extends AbstractReactor {
 		// first input is the name of the panel
 		String panelId = this.curRow.get(0).toString();
 		InsightPanel panelToDelete = this.insight.getInsightPanels().remove(panelId);
-		boolean success = true;
 		if(panelToDelete == null) {
-			success = false;
+			throw new IllegalArgumentException("Could not find panelId = " + panelId + " to close.");
 		}
-		return new NounMetadata(success, PkslDataTypes.BOOLEAN, PkslOperationTypes.PANEL_CLOSE);
+		return new NounMetadata(panelId, PixelDataType.CONST_STRING, PixelOperationType.PANEL_CLOSE);
 	}
 }

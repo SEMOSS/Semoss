@@ -10,7 +10,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.TinkerFrameStatRoutine;
 import prerna.util.ArrayUtilityMethods;
 
 public class MathTransformation extends AbstractTransformation {
@@ -68,16 +67,16 @@ public class MathTransformation extends AbstractTransformation {
 		
 		//create a routine which will do the group by and add the values to the tinker graph
 		Map<String, Object> map = null;
-		for(String key : functionMap.keySet()){
-			TinkerFrameStatRoutine routine = new TinkerFrameStatRoutine();
-			map = (Map<String, Object>)functionMap.get(key);
-			if(!map.containsKey("exists")){
-				map.put("GroupBy", groupByCols);
-				routine.setSelectedOptions(map);
-				
-				dm.performAnalyticTransformation(routine);
-			}
-		}
+//		for(String key : functionMap.keySet()){
+//			TinkerFrameStatRoutine routine = new TinkerFrameStatRoutine();
+//			map = (Map<String, Object>)functionMap.get(key);
+//			if(!map.containsKey("exists")){
+//				map.put("GroupBy", groupByCols);
+//				routine.setSelectedOptions(map);
+//				
+////				dm.performAnalyticTransformation(routine);
+//			}
+//		}
 	}
 
 	@Override

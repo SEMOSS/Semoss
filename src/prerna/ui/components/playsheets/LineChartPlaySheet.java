@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -72,9 +73,9 @@ public class LineChartPlaySheet extends BrowserPlaySheet{
 			}
 		}
 
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext()) {
-			Object[] elemValues = it.next();
+			Object[] elemValues = it.next().getValues();
 			
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
 			elementHash.put("xAxis",  "");

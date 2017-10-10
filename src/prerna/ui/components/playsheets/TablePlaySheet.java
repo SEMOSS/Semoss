@@ -40,7 +40,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.TinkerFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightStore;
 import prerna.sablecc.PKQLEnum;
@@ -52,7 +52,6 @@ import prerna.ui.components.GridTableRowSorter;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -238,7 +237,7 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 		if(this.dmComponent == null){
 			this.dmComponent = new DataMakerComponent(this.engine, this.query);
 		}
-		this.dataFrame = new TinkerFrame();
+		this.dataFrame = new H2Frame();
 		this.dataFrame.processDataMakerComponent(this.dmComponent);
 	}
 
@@ -264,12 +263,6 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	}
 
 	@Override
-	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
 	public Map getDataMakerOutput(String... selectors) {
 		if(this.dataFrame != null) {
 			return this.dataFrame.getDataMakerOutput(selectors);
@@ -289,11 +282,6 @@ public class TablePlaySheet extends AbstractPlaySheet implements IDataMaker{
 	@Override
 	public IDataMaker getDefaultDataMaker(){
 		return this;
-	}
-
-	@Override
-	public List<Object> getActionOutput() {
-		return null;
 	}
 
 	@Override

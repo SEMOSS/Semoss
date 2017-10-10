@@ -9,7 +9,7 @@ import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.JavaExecutable;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
@@ -44,14 +44,14 @@ public abstract class OpBasicMath extends OpReactor {
 			// example is median when you need to compute an 
 			// average between entity at index i and i+1
 			if(result == Math.rint(result)) {
-				retNoun = new NounMetadata((int) result, PkslDataTypes.CONST_INT);
+				retNoun = new NounMetadata((int) result, PixelDataType.CONST_INT);
 			} else {
 				// not a valid integer
 				// return as a double
-				retNoun = new NounMetadata(result, PkslDataTypes.CONST_DECIMAL);
+				retNoun = new NounMetadata(result, PixelDataType.CONST_DECIMAL);
 			}
 		} else {
-			retNoun = new NounMetadata(result, PkslDataTypes.CONST_DECIMAL);
+			retNoun = new NounMetadata(result, PixelDataType.CONST_DECIMAL);
 		}
 		return retNoun;
 	}
@@ -60,19 +60,19 @@ public abstract class OpBasicMath extends OpReactor {
 		Object[] evaluatedNouns = new Object[nouns.length];
 		for(int i = 0; i < nouns.length; i++) {
 			NounMetadata val = nouns[i];
-			PkslDataTypes valType = val.getNounType();
-			if(valType == PkslDataTypes.CONST_DECIMAL) {
+			PixelDataType valType = val.getNounType();
+			if(valType == PixelDataType.CONST_DECIMAL) {
 				this.returnInteger = false;
 				evaluatedNouns[i] = ((Number) val.getValue()).doubleValue();
-			} else if(valType == PkslDataTypes.CONST_INT) {
+			} else if(valType == PixelDataType.CONST_INT) {
 				evaluatedNouns[i] = ((Number) val.getValue()).intValue(); 
-			} else if(valType == PkslDataTypes.COLUMN) {
+			} else if(valType == PixelDataType.COLUMN) {
 				// at this point, we have already checked if this is a 
 				// variable, so it better exist on the frame
 				// TODO: expose int vs. double on the frame
 				this.returnInteger = false;	
 				evaluatedNouns[i] = evaluateString(this.operation, val);
-			} else if(valType == PkslDataTypes.CONST_STRING) {
+			} else if(valType == PixelDataType.CONST_STRING) {
 				String valueStr = val.getValue().toString(); 
 				if(valueStr.toUpperCase().trim().equals("NONE")) {
 					evaluatedNouns[i] = 0.0;
@@ -181,7 +181,7 @@ public abstract class OpBasicMath extends OpReactor {
 			if(nextInput instanceof JavaExecutable) {
 				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
 			} else {
-				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PixelDataType.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

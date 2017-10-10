@@ -7,8 +7,8 @@ import java.util.Vector;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ConnectedConceptsReactor extends AbstractReactor {
@@ -27,7 +27,7 @@ public class ConnectedConceptsReactor extends AbstractReactor {
 		}
 		
 		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConceptsRDBMS(conceptLogicals);
-		return new NounMetadata(connectedConceptsData, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.CONNECTED_CONCEPTS);
+		return new NounMetadata(connectedConceptsData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CONNECTED_CONCEPTS);
 	}
 
 }

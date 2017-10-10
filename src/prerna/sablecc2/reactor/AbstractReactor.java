@@ -12,20 +12,20 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
+import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
 
 	public Insight insight = null;
-	public PKSLPlanner planner = null;
+	public PixelPlanner planner = null;
 	
 	protected String operationName = null;
 	protected String signature = null;
@@ -33,7 +33,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	protected String curNoun = null;
 	protected IReactor parentReactor = null;
-	protected Vector<IReactor> childReactor = new Vector<IReactor>();
+	public Vector<IReactor> childReactor = new Vector<IReactor>();
 	protected NounStore store = null;
 	protected IReactor.TYPE type = IReactor.TYPE.FLATMAP;
 	protected IReactor.STATUS status = null;
@@ -45,15 +45,16 @@ public abstract class AbstractReactor implements IReactor {
 	protected Vector <String> outputTypes = null;
 	
 	protected Hashtable <String, Object> propStore = new Hashtable<String, Object>();
-	protected ITableDataFrame frame = null;
 	
 	protected Lambda runner = null;
 	
 	protected String[] defaultOutputAlias;
 	boolean evaluate = false;
 	
+	protected String jobId;
+	
 	@Override
-	public void setPKSL(String operation, String fullOperation) {
+	public void setPixel(String operation, String fullOperation) {
 		this.operationName = operation;
 		this.signature = fullOperation;
 		this.originalSignature = signature;
@@ -70,17 +71,12 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public void setFrame(ITableDataFrame frame) {
-		this.frame = frame;
-	}
-	
-	@Override
 	public void setInsight(Insight insight) {
 		this.insight = insight;
 	}
 
 	@Override
-	public String[] getPKSL() {
+	public String[] getPixel() {
 		String [] output = new String[3];
 		output[0] = operationName;
 		output[1] = signature;
@@ -124,7 +120,7 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public void setPKSLPlanner(PKSLPlanner planner) {
+	public void setPixelPlanner(PixelPlanner planner) {
 		this.planner = planner;
 	}
 	
@@ -199,7 +195,7 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	public void modifySignatureFromLambdas() {
-		List <NounMetadata> lamList = curRow.getNounsOfType(PkslDataTypes.LAMBDA);
+		List <NounMetadata> lamList = curRow.getNounsOfType(PixelDataType.LAMBDA);
 		// replace all the values that is inside this. this could be a recursive call
 		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++) {
 			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
@@ -210,7 +206,7 @@ public abstract class AbstractReactor implements IReactor {
 
 			//The result of a reactor could be a var, if we are doing string replacing we should just replace with the value of that var instead of the var itself
 			//reason being the variable is not initialized in the java runtime class through this flow
-			if(result.getNounType() == PkslDataTypes.COLUMN) {
+			if(result.getNounType() == PixelDataType.COLUMN) {
 				NounMetadata resultValue = planner.getVariableValue(result.getValue().toString());
 				if(resultValue != null) {
 					result = resultValue;
@@ -220,9 +216,9 @@ public abstract class AbstractReactor implements IReactor {
 			// if we have a double
 			// we dont want it to print with the exponential
 			Object replaceValue = result.getValue();
-			PkslDataTypes replaceType = result.getNounType();
-			if(replaceType == PkslDataTypes.CONST_DECIMAL || 
-					replaceType == PkslDataTypes.CONST_INT) {
+			PixelDataType replaceType = result.getNounType();
+			if(replaceType == PixelDataType.CONST_DECIMAL || 
+					replaceType == PixelDataType.CONST_INT) {
 				// big decimal is easiest way i have seen to do this formatting
 				replaceValue = new BigDecimal( ((Number) replaceValue).doubleValue()).toPlainString();
 			} else {
@@ -264,7 +260,7 @@ public abstract class AbstractReactor implements IReactor {
 		// we definitely need to define based on the type
 		
 		if(parentReactor != null) {
-			NounMetadata data = new NounMetadata(this, PkslDataTypes.LAMBDA);
+			NounMetadata data = new NounMetadata(this, PixelDataType.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
 		}
 	}
@@ -303,7 +299,7 @@ public abstract class AbstractReactor implements IReactor {
 		if(this.asName != null) {
 			List<NounMetadata> outputs = new Vector<>();
 			for(String alias : this.asName) {
-				NounMetadata aliasNoun = new NounMetadata(alias, PkslDataTypes.ALIAS);
+				NounMetadata aliasNoun = new NounMetadata(alias, PixelDataType.ALIAS);
 				outputs.add(aliasNoun);
 			}
 			return outputs;
@@ -315,7 +311,7 @@ public abstract class AbstractReactor implements IReactor {
 	public void updatePlan() {
 		// at this point, the inner child is still just part of a 
 		// larger parent
-		// we only need to update the plan when the full pksl
+		// we only need to update the plan when the full pixel
 		// is loaded
 		if(this.parentReactor != null) {
 			return;
@@ -331,8 +327,8 @@ public abstract class AbstractReactor implements IReactor {
 			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
 				
 				NounMetadata noun = inputs.get(inputIndex);
-				PkslDataTypes type = noun.getNounType();
-				if(type == PkslDataTypes.COLUMN) {
+				PixelDataType type = noun.getNounType();
+				if(type == PixelDataType.COLUMN) {
 					strInputs.add(noun.getValue() + "");
 				}
 			}
@@ -344,8 +340,8 @@ public abstract class AbstractReactor implements IReactor {
 			List<String> strOutputs = new Vector<String>();
 			for(int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
 				NounMetadata noun = outputs.get(outputIndex);
-				PkslDataTypes type = noun.getNounType();
-				if(type == PkslDataTypes.COLUMN) {
+				PixelDataType type = noun.getNounType();
+				if(type == PixelDataType.COLUMN) {
 					strOutputs.add(noun.getValue() + "");
 				}
 			}
@@ -357,7 +353,7 @@ public abstract class AbstractReactor implements IReactor {
 		// no need to add this to the plan
 //		if(inputs != null || outputs != null) {
 //			// store the reactor itself onto the planner
-//			this.planner.addProperty(this.signature, PKSLPlanner.REACTOR_CLASS, this);
+//			this.planner.addProperty(this.signature, PixelPlanner.REACTOR_CLASS, this);
 //		}
 	}
 	
@@ -369,5 +365,19 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public String getOriginalSignature() {
 		return this.originalSignature;
+	}
+	
+	@Override
+	public Logger getLogger(String className)
+	{
+		NounMetadata job = planner.getVariable("$JOB_ID");
+		NounMetadata insight = planner.getVariable("$INSIGHT_ID");
+		if(job != null) {
+			this.jobId = job.getValue() +"";
+			Logger retLogger = new InMemoryConsole(this.jobId, className);
+			return retLogger;
+		} else {
+			return LogManager.getLogger(className);
+		}
 	}
 }

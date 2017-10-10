@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.storage;
 import java.util.Iterator;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 
@@ -30,7 +30,7 @@ public class MapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 		String[] header = new String[]{key.toString()};
 		Object[] data = new Object[]{value.getValue()};
 		
-		return new HeadersDataRow(header, data, data);
+		return new HeadersDataRow(header, data);
 	}
 	
 }

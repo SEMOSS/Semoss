@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.JavaExecutable;
@@ -54,11 +54,11 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 	 * If the noun is a list, it will recursively execute each noun in that list
 	 */
 	private NounMetadata executeNoun(NounMetadata noun) {
-		PkslDataTypes nounType = noun.getNounType();
+		PixelDataType nounType = noun.getNounType();
 		NounMetadata evaluatedNoun;
-		if(nounType == PkslDataTypes.LAMBDA) {
+		if(nounType == PixelDataType.LAMBDA) {
 			evaluatedNoun = ((IReactor) noun.getValue()).execute();
-		} else if(nounType == PkslDataTypes.COLUMN) {
+		} else if(nounType == PixelDataType.COLUMN) {
 			// column might be a variable that is already stored
 			// if it is, do a replacement with the assignment noun
 			NounMetadata assignmentNoun = this.planner.getVariableValue((String)noun.getValue());
@@ -67,7 +67,7 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 			} else {
 				evaluatedNoun = noun;
 			}
-		} else if(nounType == PkslDataTypes.VECTOR) {
+		} else if(nounType == PixelDataType.VECTOR) {
 			
 			//For each noun in the list we also want to execute
 			List<NounMetadata> nounVector = (List<NounMetadata>)noun.getValue();
@@ -75,7 +75,7 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 			for(NounMetadata nextNoun : nounVector) {
 				evaluatedNounVector.add(executeNoun(nextNoun));
 			}
-			evaluatedNoun = new NounMetadata(evaluatedNounVector, PkslDataTypes.VECTOR);
+			evaluatedNoun = new NounMetadata(evaluatedNounVector, PixelDataType.VECTOR);
 		} else {
 			evaluatedNoun = noun;
 		}
@@ -89,7 +89,7 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 		List<NounMetadata> outputs = super.getOutputs();
 		if(outputs == null || outputs.size() == 0) {
 			outputs = new Vector<NounMetadata>();
-			NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.CONST_DECIMAL);
+			NounMetadata output = new NounMetadata(this.signature, PixelDataType.CONST_DECIMAL);
 			outputs.add(output);
 		}
 		return outputs;
@@ -127,7 +127,7 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 			} else {
 				
 				//if string add quotes
-				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PixelDataType.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

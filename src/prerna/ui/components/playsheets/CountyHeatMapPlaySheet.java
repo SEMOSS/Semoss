@@ -34,6 +34,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -67,11 +68,11 @@ public class CountyHeatMapPlaySheet extends BrowserPlaySheet {
 		
 		//Possibly filter out all US Facilities from the query?
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{	
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			String colName;
 			Double value;
 			for (int j = 0; j < var.length; j++) 

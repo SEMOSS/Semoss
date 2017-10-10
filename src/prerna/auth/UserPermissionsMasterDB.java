@@ -92,8 +92,9 @@ public class UserPermissionsMasterDB {
 		String query = "INSERT INTO Engine VALUES (NULL, '" + engineName + "');";
 		Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, false);
 		int id = -1;
+		ResultSet rs = null;
 		try {
-			ResultSet rs = stmt.getGeneratedKeys();
+			rs = stmt.getGeneratedKeys();
 			while (rs.next()) 
 			{
 			   id = rs.getInt(1);
@@ -104,8 +105,16 @@ public class UserPermissionsMasterDB {
 		} catch(SQLException e) {
 			e.printStackTrace();
 			return false;
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
-		
+
 		//Add the user to the permissions table as the owner for the engine
 		query = "INSERT INTO EnginePermission VALUES (NULL, " + id + ", '" + userId + "', " + EnginePermission.OWNER.getId() + ");";
 		Statement stmt2 = securityDB.execUpdateAndRetrieveStatement(query, true);
@@ -113,7 +122,7 @@ public class UserPermissionsMasterDB {
 			securityDB.commit();
 			return true;
 		}
-		
+
 		return false;
 	}
 	
@@ -432,12 +441,11 @@ public class UserPermissionsMasterDB {
 	public Boolean addGroup(String userId, String groupName, ArrayList<String> users) {
 		String query = "INSERT INTO UserGroup VALUES (NULL, '" + groupName + "', '" + userId + "');";
 		Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, false);
-		
 		int id = -1;
+		ResultSet rs = null;
 		try {
-			ResultSet rs = stmt.getGeneratedKeys();
-			while (rs.next()) 
-			{
+			rs = stmt.getGeneratedKeys();
+			while (rs.next()) {
 			   id = rs.getInt(1);
 			   if(id < 1) {
 				   return false;
@@ -446,6 +454,14 @@ public class UserPermissionsMasterDB {
 		} catch(SQLException e) {
 			e.printStackTrace();
 			return false;
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		for(String user : users) {

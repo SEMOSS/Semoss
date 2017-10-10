@@ -36,7 +36,8 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.solr.RawSolrSelectWrapper;
 import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
-import prerna.engine.impl.tinker.TinkerSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class WrapperManager {
@@ -48,25 +49,82 @@ public class WrapperManager {
 	// I need to make this completely through reflection
 	// I will do that later
 
-	public static WrapperManager manager = null;
-	static Logger LOGGER = Logger.getLogger(prerna.rdf.engine.wrappers.WrapperManager.class);
+	private static final Logger LOGGER = Logger.getLogger(WrapperManager.class);
+	private static WrapperManager manager = null;
 
-	protected WrapperManager()
-	{
+	private WrapperManager() {
 
 	}
 
-	public static WrapperManager getInstance()
-	{
+	public static WrapperManager getInstance() {
 		// cant get lazier than this :)
-		if(manager == null)
-		{
+		if(manager == null) {
 			manager = new WrapperManager();
-			// some other routine to load it
 		}
 		return manager;
 	}
+	
+	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct2 qs) {
+		IRawSelectWrapper returnWrapper = null;
+		boolean genQueryString = true;
+		switch(engine.getEngineType()) {
+		case SESAME : {
+			returnWrapper = new RawSesameSelectWrapper();
+			break;
+		}
+		case JENA : {
+			returnWrapper = new RawJenaSelectWrapper();
+			break;
+		}
+		case RDBMS : {
+			returnWrapper = new RawRDBMSSelectWrapper();
+			break;
+		}
+//		case SEMOSS_SESAME_REMOTE : {
+//			//TODO: need to build out RemoteSesameSelectWrapper
+//			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//			 */
+//			returnWrapper = new RemoteSesameSelectWrapper();
+//			break;
+//		}
+//		case TINKER : {
+//			genQueryString = false;
+//			returnWrapper = new RawTinkerSelectWrapper();
+//			break;
+//		}
+//		case SOLR : {
+//			genQueryString = false;
+//			returnWrapper = new RawSolrSelectWrapper();
+//		}
+		default: {
 
+		}
+		}
+
+		if(genQueryString) {
+			long start = System.currentTimeMillis();
+			IQueryInterpreter2 interpreter = engine.getQueryInterpreter2();
+			interpreter.setQueryStruct(qs);
+			String query = interpreter.composeQuery();
+			LOGGER.debug("Executing query on engine " + engine.getEngineName());
+			returnWrapper.setEngine(engine);
+			returnWrapper.setQuery(query);
+			returnWrapper.execute();
+			long end = System.currentTimeMillis();
+			LOGGER.info("Engine execution time = " + (end-start) + "ms");
+		} 
+//		else {
+//			returnWrapper.setEngine(engine);
+//			returnWrapper.setQueryStruct(qs);
+//			returnWrapper.execute();
+//		}
+
+		return returnWrapper;
+	}
+	
 	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) {
 		IRawSelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
@@ -82,16 +140,16 @@ public class WrapperManager {
 			returnWrapper = new RawRDBMSSelectWrapper();
 			break;
 		}
-		case SEMOSS_SESAME_REMOTE : {
-			//TODO: need to build out RemoteSesameSelectWrapper
-			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			 */
-			returnWrapper = new RemoteSesameSelectWrapper();
-			break;
-		}
+//		case SEMOSS_SESAME_REMOTE : {
+//			//TODO: need to build out RemoteSesameSelectWrapper
+//			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
+//			 */
+//			returnWrapper = new RemoteSesameSelectWrapper();
+//			break;
+//		}
 		case TINKER : {
 			returnWrapper = new RawTinkerSelectWrapper();
 			break;
@@ -109,6 +167,7 @@ public class WrapperManager {
 		return returnWrapper;
 	}
 
+	@Deprecated
 	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct qs) {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
@@ -186,9 +245,6 @@ public class WrapperManager {
 			returnWrapper = new RDBMSSelectWrapper();
 			break;
 			//TBD
-		}
-		case TINKER : {
-			returnWrapper = new TinkerSelectWrapper();
 		}
 		default: {
 

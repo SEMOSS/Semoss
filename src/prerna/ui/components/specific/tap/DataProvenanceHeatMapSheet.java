@@ -31,6 +31,7 @@ import java.awt.Dimension;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -58,10 +59,10 @@ public class DataProvenanceHeatMapSheet extends BrowserPlaySheet {
 		String xName = var[0];
 		String yName = var[1];
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext()) {	
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			String methodName = (String) listElement[0];
 			String groupName = (String) listElement[1];
 			methodName = methodName.replaceAll("\"", "");

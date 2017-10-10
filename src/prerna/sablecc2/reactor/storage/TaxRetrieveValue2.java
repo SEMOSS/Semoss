@@ -10,11 +10,11 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 
 public class TaxRetrieveValue2 extends AbstractReactor {
 
@@ -27,13 +27,13 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	/**
 	 * This reactor takes in 2 nouns store -> this points to the store name this
 	 * will automatically be replaced with the NounMetadata that is in the
-	 * pkslplanner
+	 * pixel planner
 	 * 
 	 * key -> the key that the value is stored under
 	 */
 	@Override
 	public NounMetadata execute() {
-		PKSLPlanner planner = getPlanner();
+		PixelPlanner planner = getPlanner();
 		Class<BaseJavaRuntime> javaClass = (Class<BaseJavaRuntime>) planner.getProperty("RUN_CLASS", "RUN_CLASS");
 		BaseJavaRuntime javaRunClass = null;
 		try {
@@ -63,17 +63,17 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 			String hashcode = aliasHashMap.get(alias);
 			Object value =  javaRunClass.getVariables().get(hashcode);
 			// return alias to the value associated with the hash
-			retStoreVar.put(alias, new NounMetadata(value, PkslDataTypes.CONST_STRING));
+			retStoreVar.put(alias, new NounMetadata(value, PixelDataType.CONST_STRING));
 		}
 		
-		return new NounMetadata(retStoreVar, PkslDataTypes.IN_MEM_STORE);
+		return new NounMetadata(retStoreVar, PixelDataType.IN_MEM_STORE);
 	}
 
-	private PKSLPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+	private PixelPlanner getPlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		PixelPlanner planner = null;
 		if (allNouns != null && !allNouns.isEmpty()) {
-			planner = (PKSLPlanner) allNouns.get(0);
+			planner = (PixelPlanner) allNouns.get(0);
 		}
 		return planner;
 	}
@@ -82,7 +82,7 @@ public class TaxRetrieveValue2 extends AbstractReactor {
 	public List<NounMetadata> getOutputs() {
 		// output is the signature
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		return outputs;
 	}

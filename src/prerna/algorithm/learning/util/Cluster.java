@@ -14,6 +14,30 @@ public class Cluster {
 	
 	private static final String EMPTY = "_____";
 	
+	/**
+	 * Cluster that auto-generates the weighting to be equal among
+	 */
+	public Cluster(String[] attributeNames, boolean[] isNumeric) {
+		Map<String, Double> numericalWeights = new HashMap<String, Double>();
+		Map<String, Double> categoricalWeights = new HashMap<String, Double>();
+		// making all columns equally weighted
+		int numAttributes = isNumeric.length;
+		for(int i = 0; i < numAttributes; i++) {
+			if(isNumeric[i]) {
+				numericalWeights.put(attributeNames[i], 1.0);
+			} else {
+				categoricalWeights.put(attributeNames[i], 1.0);
+			}
+		}
+		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
+		this.numericalCluster = new NumericalCluster(numericalWeights);
+	}
+	
+	/**
+	 * Use custom weighting on the columns 
+	 * @param categoricalWeights
+	 * @param numericalWeights
+	 */
 	public Cluster(Map<String, Double> categoricalWeights, Map<String, Double> numericalWeights) {
 		this.categoricalCluster = new CategoricalCluster(categoricalWeights);
 		this.numericalCluster = new NumericalCluster(numericalWeights);

@@ -36,6 +36,7 @@ import java.util.Iterator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.om.GraphDataModel;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -63,10 +64,10 @@ public class ComparisonLineBarPlaySheet extends ColumnChartPlaySheet{
 		int lastCol = names.length - 1 ;
 		ArrayList<String> usedList = new ArrayList<String>();
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
-			Object[] elemValues = it.next();
+			Object[] elemValues = it.next().getValues();
 			for( int seriesVal = 1; seriesVal <= elemValues.length / 2; seriesVal++)
 			{
 				

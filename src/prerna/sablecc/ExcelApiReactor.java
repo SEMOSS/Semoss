@@ -8,6 +8,8 @@ import java.util.Vector;
 import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
+import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.IQuerySelector;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -54,11 +56,21 @@ public class ExcelApiReactor extends AbstractApiReactor {
 		if(this.mapOptions.containsKey(NEW_HEADERS_KEY)) {
 			this.newHeaders = (Map<String, String>) this.mapOptions.get(NEW_HEADERS_KEY);
 		}
+		ExcelQueryStruct xlQS = new ExcelQueryStruct();
+		xlQS.merge(this.qs);
+		
+		//set xlQS specific values 
+		xlQS.setExcelFilePath(this.fileName);
+		xlQS.setColumnTypes(this.dataTypeMap);
+		xlQS.setNewHeaderNames(this.newHeaders);
+		xlQS.setSheetName(this.sheetName);
+		this.qs = xlQS;
 		
 		// the qs is passed from AbstractApiReactor
-		this.put((String) getValue(PKQLEnum.API), new ExcelFileIterator(this.fileName, this.sheetName, this.qs, this.dataTypeMap, this.newHeaders));
+		this.put((String) getValue(PKQLEnum.API), new ExcelFileIterator(xlQS));
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
+		this.put(PKQLEnum.QUERY_STRUCT, xlQS);
 		
 		return null;
 	}

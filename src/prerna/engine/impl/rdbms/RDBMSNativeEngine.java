@@ -28,6 +28,7 @@
 package prerna.engine.impl.rdbms;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -37,11 +38,13 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
@@ -53,6 +56,8 @@ import org.openrdf.query.TupleQueryResult;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.SqlInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
@@ -72,6 +77,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
 	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
 	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
+	
+	public static final String USE_FILE = "USE_FILE";
+	public static final String DATA_FILE = "DATA_FILE";
 
 	static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class.getName());
 	DriverManager manager = null;
@@ -82,8 +90,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 	int tableCount = 0;
-	PersistentHash conceptIdHash = null;
+	public PersistentHash conceptIdHash = null;
 	Hashtable tablePresent = new Hashtable();
+	private String fileDB = null;
+	
+	private String password = null;
+	private String driver = null;
+	private String connectionURL = null;
+	private String userName = null;
+	private String createString = null;
 
 	@Override
 	public void openDB(String propFile)
@@ -105,83 +120,255 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// if not initiate the connection pool
 			if(prop == null) {
 				prop = loadProp(propFile);
-				if(!prop.containsKey("TEMP")) {
-					super.openDB(propFile);
+				if(!prop.containsKey("TEMP")) { // if this is not a temp then open the super
+					super.openDB(propFile); // this primarily loads the metahelper as well as the insights to get it going
 				}
 			}
-
+			
 			String tempEngineName = prop.getProperty(Constants.ENGINE);
 			String tempConnectionURL = prop.getProperty(Constants.TEMP_CONNECTION_URL);
 			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-			String userName = prop.getProperty(Constants.USERNAME);
-			String password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
+			userName = prop.getProperty(Constants.USERNAME);
+			password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
 			String dbTypeString = prop.getProperty(Constants.RDBMS_TYPE);
-			String driver = prop.getProperty(Constants.DRIVER);
-			useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
-			dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString)) : (SQLQueryUtil.DB_TYPE.H2_DB);			
+			driver = prop.getProperty(Constants.DRIVER);
 
-			if(dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
-				if(engineName != null) {
-					connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
-					try {
-						Class.forName(H2QueryUtil.DATABASE_DRIVER);
-						Connection c = DriverManager.getConnection(connectionURL, userName , password);
-						if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || !RDBMSUtility.isValidConnection(c)) {
+
+			// make a check to see if it is asking to use file
+			boolean useFile = false;
+			if(prop.containsKey(USE_FILE))
+				useFile = Boolean.valueOf(prop.getProperty(USE_FILE));
+			if(useFile)
+			{
+				// load everything from file
+				fileDB = prop.getProperty(DATA_FILE);
+				Map <String, String> paramHash = new Hashtable<String, String>();
+				
+				paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
+				paramHash.put("ENGINE", getEngineName());
+				fileDB = Utility.fillParam2(fileDB, paramHash);
+				
+
+				Vector <String> concepts = this.getConcepts();
+				// usually there should be only one, but just a check again
+				// need to account for concept being itself
+				if(concepts.size() > 2)
+				{
+					logger.fatal("RDBMS Engine suggests to use file, but there are more than one concepts i.e. this is not a flat file");
+					return;
+				}
+
+				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
+				Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
+				for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++)
+				{
+					List <String> propList = getProperties4Concept(conceptsArray[conceptIndex], false);
+					String [] propArray = propList.toArray(new String[propList.size()]);
+					
+					Map<String, String> typeMap = getDataTypes(propArray);
+					conceptAndType.putAll(typeMap);
+				}
+				
+				createString = makeCreateString(fileDB, conceptAndType);
+
+				String dbName = fileDB.replace(".csv", "");
+				dbName = dbName.replace(".tsv", "");
+				// delete the database if it exists to start with
+				
+				paramHash.put("database", dbName);
+				connectionURL = Utility.fillParam2(connectionURL, paramHash);
+
+				makeConnection(driver, userName, password, connectionURL, createString);
+				
+				
+				
+			}
+			else // this is the regular flow
+			{
+				
+				
+				useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
+				
+				dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString)) : (SQLQueryUtil.DB_TYPE.H2_DB);			
+	
+				if(dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
+					if(engineName != null) {
+						connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
+						try {
+							Class.forName(H2QueryUtil.DATABASE_DRIVER);
+							Connection c = DriverManager.getConnection(connectionURL, userName , password);
+							if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || !RDBMSUtility.isValidConnection(c)) {
+								connectionURL = resetH2ConnectionURL();
+							}
+							c.close();
+						} catch (ClassNotFoundException | SQLException e) {
+							logger.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + connectionURL);
 							connectionURL = resetH2ConnectionURL();
 						}
-						c.close();
-					} catch (ClassNotFoundException | SQLException e) {
-						logger.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + connectionURL);
-						connectionURL = resetH2ConnectionURL();
 					}
+					prop.setProperty(Constants.CONNECTION_URL, connectionURL);
 				}
-				prop.setProperty(Constants.CONNECTION_URL, connectionURL);
-			}
-
-			try {
-				Class.forName(driver);
-				//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
-				if((!dbType.equals(SQLQueryUtil.DB_TYPE.H2_DB)) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
-					if(useConnectionPooling){
-						dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
-						engineConn = getConnection();
-					} else {
-						engineConn = DriverManager.getConnection(tempConnectionURL, userName, password);
+	
+				try {
+					Class.forName(driver);
+					//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
+					if((!dbType.equals(SQLQueryUtil.DB_TYPE.H2_DB)) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
+						if(useConnectionPooling){
+							dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
+							engineConn = getConnection();
+						} else {
+							engineConn = DriverManager.getConnection(tempConnectionURL, userName, password);
+						}
+	
+						this.engineConnected = true;
+	
+						//if workflow is coming from ImportRDBMSProcessor (i.e. connect to external/existing db, no need to create new db)
+						String externalDB = prop.getProperty("SCHEMA");
+						if(externalDB == null || externalDB.isEmpty()){
+							//create database
+							createDatabase(tempEngineName);
+							//
+							closeEngine();
+						}
+						if(useConnectionPooling){
+							closeDataSource();
+						}
 					}
-
-					this.engineConnected = true;
-
-					//if workflow is coming from ImportRDBMSProcessor (i.e. connect to external/existing db, no need to create new db)
-					String externalDB = prop.getProperty("SCHEMA");
-					if(externalDB == null || externalDB.isEmpty()){
-						//create database
-						createDatabase(tempEngineName);
-						//
-						closeEngine();
+					if(!isConnected()){
+						if(useConnectionPooling){
+							dataSource = setupDataSource(driver, connectionURL, userName, password);
+							//						engineConn = getConnection();
+						} else if(userName != null && !userName.isEmpty()){
+							engineConn = DriverManager.getConnection(connectionURL, userName, password);
+						} else {
+							engineConn = DriverManager.getConnection(connectionURL);
+						}
+						this.engineConnected = true;
 					}
-					if(useConnectionPooling){
-						closeDataSource();
-					}
+				} catch (ClassNotFoundException | SQLException e) {
+					// TODO Auto-generated catch block
+					logger.error("Exception occured opening database", e);
+					this.engineConnected = false;
+				
 				}
-				if(!isConnected()){
-					if(useConnectionPooling){
-						dataSource = setupDataSource(driver, connectionURL, userName, password);
-						//						engineConn = getConnection();
-					} else if(userName != null && !userName.isEmpty()){
-						engineConn = DriverManager.getConnection(connectionURL, userName, password);
-					} else {
-						engineConn = DriverManager.getConnection(connectionURL);
-					}
-					this.engineConnected = true;
-				}
-			} catch (ClassNotFoundException | SQLException e) {
-				// TODO Auto-generated catch block
-				logger.error("Exception occured opening database", e);
-				this.engineConnected = false;
-			}
+			}// the block for loading the engine without the file
+		}
+	}	
+		
+	private void makeConnection(String driver, String userName,
+			String password, String url, String createString) {
+		
+		try {
+			Class.forName("org.h2.Driver");
+			engineConn = DriverManager.getConnection(url, userName, password);
+			engineConn.createStatement().execute(createString);
+			engineConnected = true;
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
+	
+	// you cant change owl right now
+	public void reloadFile()
+	{
+		try {
+			engineConn.close();
+			makeConnection(driver, userName, password, connectionURL, createString);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
 
+	private String makeCreateString(String fileName, Map <String, String> conceptTypes)
+	{
+		// if the fileName db exists delete it
+		// I also need to think about multi-user ?
+		// may be not, not until they move to the new version ok
+		String dbName = fileName;
+		dbName = fileName.replace(".csv", "");
+		dbName = fileName.replace(".tsv", "");
+		
+		try {
+			File file = new File(dbName + ".mv.db");
+			if(file.exists())
+				FileUtils.forceDelete(file);
+			file = new File(dbName + ".trace.db");
+			if(file.exists())
+				FileUtils.forceDelete(file);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		
+		StringBuffer dropTable = new StringBuffer("DROP TABLE IF EXISTS ");
+		
+		StringBuffer createString = new StringBuffer("CREATE TABLE ");
+		
+		StringBuffer selectString = new StringBuffer("SELECT ");
+		 
+		Iterator <String> keys = conceptTypes.keySet().iterator();
+		int count = 0;
+		while(keys.hasNext())
+		{
+			String name = keys.next();
+			String tableName = Utility.getInstanceName(name);
+			String type = conceptTypes.get(name);
+			name = Utility.getClassName(name);
+			
+			if(count == 0)
+			{
+				createString.append(tableName + " (");
+				dropTable.append(tableName + "; ");
+			}
+			type = type.replace("TYPE:", "");
+
+
+			StringBuffer tempSelect = new StringBuffer(""); 
+			
+			if(name.contains("UNIQUE_ROW_ID"))
+				tempSelect.append("ROWNUM()");
+			else
+			{
+				if(type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT") || type.equalsIgnoreCase("NUMBER"))
+					tempSelect.append("CONVERT(" + name + ", " +"Double)");
+				else if(type.equalsIgnoreCase("Integer"))
+					tempSelect.append("CONVERT(" + name + ", " +"Int)");
+				else if(type.equalsIgnoreCase("Date"))
+					tempSelect.append("CONVERT(" + name + ", " +"Date)");
+				else if(type.equalsIgnoreCase("Bigint") || type.equalsIgnoreCase("Long"))
+					tempSelect.append("CONVERT(" + name + ", " +"Bigint)");
+				else if(type.equalsIgnoreCase("boolean"))
+					tempSelect.append("CONVERT(" + name + ", " +"boolean)");
+				else //if(type.contains("varchar"))
+					tempSelect.append(name);
+			}
+			if(count == 0)
+			{
+				createString.append(name + " " + type);
+				selectString.append(tempSelect);
+			}
+			else
+			{
+				createString.append(", " + name + " " + type);
+				selectString.append(", " + tempSelect);
+			}
+			count++; 
+		}
+		
+		createString.append(") AS ").append(selectString).append(" from CSVREAD('" + fileName + "');");
+		
+		dropTable.append(createString);
+		
+		return dropTable.toString();
+	}
+	
 	//moving the logic for connection pooling from openDB() to this method 
 	private void poolConnection(){
 
@@ -235,6 +422,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private void createDatabase(String engineName){
 		insertData(SQLQueryUtil.initialize(dbType).getDialectCreateDatabase(engineName));
 	}
+	
 
 	@Override
 	// need to clean up the exception it will never be thrown
@@ -751,4 +939,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			e.printStackTrace();
 		}*/
 	}
+	
+	@Override
+	public IQueryInterpreter2 getQueryInterpreter2(){
+		return new SqlInterpreter2(this);
+	} 
 }

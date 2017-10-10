@@ -639,7 +639,8 @@ public class AOACostSavingsPlaySheet extends GridPlaySheet {
 
 
 		//format to send to Front-End
-		dataFrame = new H2Frame(new String[]{"Vendor", "Year", "Hardware", "Software", "Deployment", "Maintenance", "Modification", "Total"});
+		String[] newHeaders = new String[]{"Vendor", "Year", "Hardware", "Software", "Deployment", "Maintenance", "Modification", "Total"};
+		dataFrame = new H2Frame(newHeaders);
 		String vendorFE="";
 		String yearFE="";
 		int hardwareFE =0;
@@ -662,7 +663,7 @@ public class AOACostSavingsPlaySheet extends GridPlaySheet {
 						totalFE += vendorSavings.get(vendorFE).get(yearFE).get(TOTAL_KEY);
 						
 						Object[] row = new Object[]{vendorFE, yearFE, hardwareFE, softwareFE, deploymentFE, maintenanceFE, modificationFE, totalFE};
-						dataFrame.addRow(row);
+						dataFrame.addRow(row, newHeaders);
 						data.add(row);
 				}
 			}

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +17,6 @@ import com.github.mustachejava.MustacheFactory;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
-import prerna.om.InsightMessageStore;
 import prerna.sablecc.expressions.IExpressionBuilder;
 
 public abstract class AbstractReactor implements IScriptReactor {
@@ -232,7 +230,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 			options.put(AbstractTableDataFrame.DE_DUP, dedup);
 		}
 
-		Iterator iterator = frame.iterator(options);
+		Iterator iterator = frame.iterator();
 		if(iterator.hasNext())
 		{
 			//System.out.println(iterator.next());
@@ -241,9 +239,7 @@ public abstract class AbstractReactor implements IScriptReactor {
 	}
 
 	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
-		Map<String, Object> options = new Hashtable<String, Object>();
-		options.put(AbstractTableDataFrame.SELECTORS, columns);
-		return frame.scaledUniqueIterator(instance, options);
+		return frame.scaledUniqueIterator(instance, columns);
 	}
 
 	// move to utility
@@ -255,21 +251,6 @@ public abstract class AbstractReactor implements IScriptReactor {
 		return colArr;
 	}
 
-
-	//TODO:
-	//TODO:
-	//TODO:
-	//TODO:
-	//TODO:
-	//TODO:
-	// THIS IS ONLY HERE BECAUSE I DO NOT WANT TO GO THROUGH EVERY SINGLE REACTOR
-	// AND WRITE OUT WHAT IT DOES
-	// ... WILL EVENTUALLY DO THAT, BUT CURRENTLY JUST OVERRIDING THIS METHOD
-	// IN THE SPECIFIC REACTORS THAT I NEED TO USE
-//	public IPkqlMetadata getPkqlMetadata() {
-//		return null;
-//	}
-	
 	public String generateExplain(String template, HashMap<String, Object> values) {
 		String msg = "";
 		StringWriter writer = new StringWriter();
@@ -316,13 +297,5 @@ public abstract class AbstractReactor implements IScriptReactor {
 	@Override
 	public void setInsightId(String insightId) {
 		this.insightId = insightId;
-	}
-	
-	/**
-	 * Add a new message so we can know what the BE is currently working on
-	 * @param message
-	 */
-	protected void addMessage(String message) {
-		InsightMessageStore.getInstance().addNewMessage(this.insightId, message);
 	}
 }

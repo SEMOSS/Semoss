@@ -1,77 +1,82 @@
 package prerna.sablecc2.reactor.imports;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.interpreters.QueryStruct2;
-import prerna.query.interpreters.SQLInterpreter2;
-import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc.PKQLEnum;
+import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.QueryColumnSelector;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.QueryFilter;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Utility;
 
 public class MergeDataReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute()  {
-		// greedy exectuion
-		// will execute and add to the frame
-		// but will not return anything
-
-		QueryStruct2 queryStruct = getQueryStruct();
-		String engineName = queryStruct.getEngineName();
-
-		GenRowStruct allNouns = getNounStore().getNoun(NounStore.all); //should be only joins
-		ITableDataFrame frame = (ITableDataFrame)this.planner.getProperty("FRAME", "FRAME");
-
-		Importer curReactor = ImportFactory.getImporter(frame);
-
-		SQLInterpreter2 interp;
-		Iterator<IHeadersDataRow> iterator;
-		if(engineName != null) {
-			IEngine engine = Utility.getEngine(engineName.trim());
-			interp = new SQLInterpreter2(engine);
-			interp.setQueryStruct(queryStruct);
-			String importQuery = interp.composeQuery();
-			iterator = WrapperManager.getInstance().getRawWrapper(engine, importQuery);
-			curReactor.put(PKQLEnum.API + "_ENGINE", engineName.trim());
-		} else {
-			interp = new SQLInterpreter2();
-			interp.setQueryStruct(queryStruct);
-			String query = interp.composeQuery();
-			iterator = frame.query(query);
+		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		// this is greedy execution
+		// will not return anything
+		// but will update the frame in the pixel planner
+		QueryStruct2 qs = getQueryStruct();
+		List<Join> joins = this.curRow.getAllJoins();
+		// if we have an inner join, add the current values as a filter on the query
+		// important for performance on large dbs when the user has already 
+		// filtered to small subset
+		for(Join j : joins) {
+			String q = j.getQualifier();
+			String s = j.getSelector();
+			String type = j.getJoinType();
+			if(type.equals("inner.join") || type.equals("left.outer.join")) {
+				// we will add a filter frame existing values in frame
+				// but wait... need to make sure an existing filter isn't there
+				if(qs.hasFiltered(q)) {
+					continue;
+				}
+				QueryStruct2 filterQs = new QueryStruct2();
+				QueryColumnSelector column = new QueryColumnSelector(s);
+				filterQs.addSelector(column);
+				Iterator<IHeadersDataRow> it = frame.query(filterQs);
+				List<Object> values = new ArrayList<Object>();
+				while(it.hasNext()) {
+					values.add(it.next().getValues()[0]);
+				}
+				NounMetadata lNoun = new NounMetadata(q, PixelDataType.COLUMN);
+				NounMetadata rNoun = null;
+				if(frame.getMetaData().getHeaderTypeAsEnum(s) == IMetaData.DATA_TYPES.NUMBER) {
+					rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
+				} else {
+					rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
+				}
+				QueryFilter filter = new QueryFilter(lNoun, "==", rNoun);
+				qs.addFilter(filter);
+			}
 		}
-
-		//set values into the curReactor
-		curReactor.put("G", frame);
-		curReactor.put(PKQLEnum.API + "_EDGE_HASH", queryStruct.getReturnConnectionsHash());
-		curReactor.put(PKQLEnum.API + "_QUERY_NUM_CELLS", 1.0);
-
-		curReactor.put(PKQLEnum.API, iterator);
-		if(allNouns != null) {
-			Vector<Map<String, String>> joinCols = getJoinCols(allNouns);
-			curReactor.put(PKQLEnum.JOINS, joinCols);
-
+		
+		IImporter importer = ImportFactory.getImporter(frame, qs);
+		// we reassign the frame because it might have changed
+		// this only happens for native frame
+		frame = importer.mergeData(joins);
+		this.insight.setDataMaker(frame);
+		// need to clear the unique col count used by FE for determining the need for math
+		frame.clearCachedInfo();
+		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
+			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
+		} else if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 		}
-		curReactor.process();
-		ITableDataFrame importedFrame = (ITableDataFrame)curReactor.getValue("G");
-		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
-		this.planner.addProperty("FRAME", "FRAME", importedFrame);
-
-		NounMetadata noun = new NounMetadata(importedFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME_DATA_CHANGE);
-		return noun;
+		
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	private QueryStruct2 getQueryStruct() {
@@ -84,30 +89,47 @@ public class MergeDataReactor extends AbstractReactor {
 
 		return queryStruct;
 	}
-
-	private Vector<Map<String,String>> getJoinCols(GenRowStruct joins) {
-		Vector<Map<String, String>> joinCols = new Vector<>();
-		for(int i = 0; i < joins.size(); i++) {
-			if(joins.get(i) instanceof Join) {
-				Join join = (Join)joins.get(i);
-				String toCol = join.getQualifier();
-				String fromCol = join.getSelector();
-				String joinType = join.getJoinType();
-
-				Map<String, String> joinMap = new HashMap<>(1);
-				joinMap.put(PKQLEnum.TO_COL, toCol);
-				joinMap.put(PKQLEnum.FROM_COL, fromCol);
-				joinMap.put(PKQLEnum.REL_TYPE, joinType);
-
-				joinCols.add(joinMap);
-			}
-		}
-		return joinCols;
+	
+	private void storeCsvFileMeta(CsvQueryStruct qs, List<Join> joins) {
+		FileMeta fileMeta = new FileMeta();
+		fileMeta.setFileLoc(qs.getCsvFilePath());
+		fileMeta.setDataMap(qs.getColumnTypes());
+		fileMeta.setNewHeaders(qs.getNewHeaderNames());
+		fileMeta.setPixelString(this.originalSignature);
+		fileMeta.setSelectors(qs.getSelectors());
+		fileMeta.setType(FileMeta.FILE_TYPE.CSV);
+		this.insight.addFileUsedInInsight(fileMeta);
 	}
-
-	@Override
-	public List<NounMetadata> getOutputs() {
-		// nothing to return
-		return null;
+	
+	private void storeExcelFileMeta(ExcelQueryStruct qs, List<Join> joins) {
+		FileMeta fileMeta = new FileMeta();
+		fileMeta.setFileLoc(qs.getExcelFilePath());
+		fileMeta.setDataMap(qs.getColumnTypes());
+		fileMeta.setSheetName(qs.getSheetName());
+		fileMeta.setNewHeaders(qs.getNewHeaderNames());
+		fileMeta.setSelectors(qs.getSelectors());
+		fileMeta.setTableJoin(joins);
+		fileMeta.setPixelString(this.originalSignature);
+		fileMeta.setType(FileMeta.FILE_TYPE.EXCEL);
+		this.insight.addFileUsedInInsight(fileMeta);
+	}
+	
+	/**
+	 * Flush the task data into an array
+	 * This assumes you have table data!!!
+	 * @param taskData
+	 * @return
+	 */
+	private List<Object> flushJobData(ITask taskData) {
+		List<Object> flushedOutCol = new ArrayList<Object>();
+		// iterate through the task to get the table data
+		List<Object[]> data = taskData.flushOutIteratorAsGrid();
+		int size = data.size();
+		// assumes we are only flushing out the first column
+		for(int i = 0; i < size; i++) {
+			flushedOutCol.add(data.get(i)[0]);
+		}
+		
+		return flushedOutCol;
 	}
 }

@@ -123,5 +123,11 @@ public class JenaSelectCheater extends AbstractWrapper implements IConstructWrap
 		}
 	}
 
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }

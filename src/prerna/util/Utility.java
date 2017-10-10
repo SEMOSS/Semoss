@@ -37,14 +37,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -76,6 +77,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -236,6 +238,31 @@ public class Utility {
 
 		return query;
 	}
+	
+	/**
+	 * Gets the param hash and replaces certain queries
+	 * @param 	Original query
+	 * @param 	Hashtable of format [String to be replaced] [Replacement]
+
+	 * @return 	If applicable, returns the replaced query */
+	public static String fillParam2(String query, Map<String, String> paramHash) {
+		// NOTE: this process always assumes only one parameter is selected
+		// Hashtable is of pattern <String to be replaced> <replacement>
+		// key will be surrounded with @ just to be in sync
+		LOGGER.debug("Param Hash is " + paramHash);
+
+		Iterator keys = paramHash.keySet().iterator();
+		while(keys.hasNext()) {
+			String key = (String)keys.next();
+			String value = paramHash.get(key);
+			LOGGER.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			if(!value.equalsIgnoreCase(Constants.EMPTY))
+				query = query.replace("@" + key + "@", value);
+		}
+
+		return query;
+	}
+
 
 	/**
 	 * Splits up a URI into tokens based on "/" character and uses logic to return the instance name.
@@ -1517,32 +1544,19 @@ public class Utility {
 			//	    		retObject[0] = "int";
 			//	    		retObject[1] = retO;
 			//	    	}
-			// I need to get the result
-			// if the input had . then I need to remove that from length
-			// A8988,8787.123 - 89888787.123 <= A8988,8787.123/2
 			
-			
-			// if not I need to compare directly
-			
-			
-			else if(( (retO = getDouble(input)) != null ) && 
-					(
-					(input.contains(".") && input.length() - ((retO + "").length() -2) <= (input.length()/2)) 
-					|| 
-					(!input.contains(".") && input.length() - ((retO + "").length()) <= (input.length()/2))
-		            )
-		            )
-			{
-					retObject = new Object[2];
-					retObject[0] = "double";
-					retObject[1] = retO;
-			}
 			else if((retO = getDate(input)) != null )// try dates ? - yummy !!
 			{
 				retObject = new Object[2];
 				retObject[0] = "date";
 				retObject[1] = retO;
 
+			}
+			else if((retO = getDouble(input)) != null )
+			{
+				retObject = new Object[2];
+				retObject[0] = "double";
+				retObject[1] = retO;
 			}
 			else if((retO = getCurrency(input)) != null )
 			{
@@ -1567,10 +1581,29 @@ public class Utility {
 	public static String getDate(String input)
 	{
 		String[] date_formats = {
+				// year, month, day
 				"yyyy-MM-dd",
+				"yyyy-MM-d",
+				"yyyy-M-dd",
+				"yyyy-M-d",
+				// day, month, year
+				"dd-MM-yyyy",
+				"d-MM-yyyy",
+				"dd-M-yyyy",
+				"d-M-yyyy",
+				// year / month / day
+				"yyyy/MM/dd",
+				"yyyy/MM/d",
+				"yyyy/M/dd",
+				"yyyy/M/d",
+				// day, month, year
+				"dd/MM/yyyy",
+				"d/MM/yyyy",
+				"dd/M/yyyy",
+				"d/M/yyyy",
+
 				//"dd/MM/yyyy",
 				"MM/dd/yyyy",
-				//"dd-MM-yyyy",
 				"yyyy/MM/dd", 
 				"yyyy MMM dd",
 				"yyyy dd MMM",
@@ -1581,6 +1614,7 @@ public class Utility {
 				"MMM dd",
 				"dd MMM yyyy",
 				"MMM yyyy",
+				"dd/MM/yyyy"
 				};
 
 		String output_date = null;
@@ -1588,8 +1622,10 @@ public class Utility {
 		for (String formatString : date_formats)
 		{
 			try
-			{    
-				Date mydate = new SimpleDateFormat(formatString).parse(input);
+			{
+				SimpleDateFormat sdf = new SimpleDateFormat(formatString);
+				sdf.setLenient(false);
+				Date mydate = sdf.parse(input);
 				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
 				output_date = outdate.format(mydate);
 				itsDate = true;
@@ -1597,6 +1633,24 @@ public class Utility {
 			}
 			catch (ParseException e) {
 				//System.out.println("Next!");
+			}
+		}
+		
+		if(output_date == null) {
+			try {
+				Date x = DateUtils.parseDate(input, date_formats);
+				System.out.println(x);
+			} catch (ParseException e1) {
+				e1.printStackTrace();
+			}
+			
+			SimpleDateFormat sdf = new SimpleDateFormat("d-MM-yyyy");
+			sdf.setLenient(false);
+			try {
+				Date d = sdf.parse(input);
+				System.out.println(d);
+			} catch (ParseException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -1682,18 +1736,10 @@ public class Utility {
 		
 		// try to do some basic clean up if it fails and try again
 		try {
-			input = input.replaceAll("[^0-9.-]+E", ""); // replaces everything but numbers - and . and E values
 			Double num = Double.parseDouble(input);
 			return num;
-		} catch(NumberFormatException e1) {
-			// okay, try to remove the E now
-			try {
-				input = input.replaceAll("[^0-9.-]+", ""); // replaces everything but numbers - and . values
-				Double num = Double.parseDouble(input);
-				return num;
-			} catch(NumberFormatException e2) {
-				return null;
-			}
+		} catch(NumberFormatException e) {
+			return null;
 		}
 	}
 
@@ -1702,7 +1748,6 @@ public class Utility {
 	//    	//has digits, followed by optional period followed by digits
 	//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
 	//    }
-	
 
 	public static String[] castToTypes(String [] thisOutput, String [] types)
 	{
@@ -1731,10 +1776,6 @@ public class Utility {
 						if(thisOutput[outIndex].length() >= 800)
 							thisOutput[outIndex] = thisOutput[outIndex].substring(0,798);
 						values[outIndex] = thisOutput[outIndex];
-					}
-					else if(types[outIndex].equalsIgnoreCase("Double"))
-					{
-						
 					}
 				}
 			}
@@ -1857,7 +1898,7 @@ public class Utility {
 		origDataType = origDataType.toUpperCase();
 
 		if(isNumericType(origDataType)) {
-			return "DOUBLE";
+			return "NUMBER";
 		}
 
 		if(isDateType(origDataType)) {
@@ -3032,30 +3073,36 @@ public class Utility {
 		return f;
 	}
 	
-	public static String getRDBMSDriverType(String url) {
-        String[] parts = url.split(":");
-        return parts[1];
-  }
-
-	public static List<Object> getInstancesFromRs(ResultSet rs) {
-		List<Object> instances = new ArrayList<Object>();
-
+	public static String encodeURIComponent(String s) {
 		try {
-			while (rs.next()) {
-				Object value = rs.getString(1);
-				String row = "";
-				if (value != null) {
-					row = ((String) value).replaceAll("\"", "\\\"");
-				}
-				instances.add(row.toString());
-			}
-
-		} catch (SQLException e) {
+			s = URLEncoder.encode(s, "UTF-8")
+					.replaceAll("\\+", "%20")
+					.replaceAll("\\%21","!")
+					.replaceAll("\\%27","'")
+					.replaceAll("\\%28","(")
+					.replaceAll("\\%29",")")
+					.replaceAll("\\%7E","~");
+		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
-
-		return instances;
+		return s;
 	}
+	
+	public static String decodeURIComponent(String s) {
+		try {
+			String newS = s.replaceAll("\\%20", "+")
+					.replaceAll("!","%21")
+					.replaceAll("'","%27")
+					.replaceAll("\\(","%28")
+					.replaceAll("\\)","%29")
+					.replaceAll("~","%7E");
+			s = URLDecoder.decode(newS, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return s;
+	}
+	
 	
 	
 //	/**

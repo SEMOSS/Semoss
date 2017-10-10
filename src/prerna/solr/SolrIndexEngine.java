@@ -108,6 +108,7 @@ public class SolrIndexEngine {
 	public static final String USER_ID = "user_id";
 	public static final String LAYOUT = "layout";
 	public static final String IMAGE = "image";
+	public static final String IMAGE_URL = "image_url";
 
 	// Schema Field Names For Instance Core
 	public static final String VALUE = "value";

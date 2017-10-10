@@ -8,10 +8,10 @@ import java.util.Random;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.ClassMaker;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 
 public class RuntimeClassTest extends AbstractReactor {
 
@@ -133,11 +133,11 @@ public class RuntimeClassTest extends AbstractReactor {
 		return method.toString();
 	}
 	
-	private PKSLPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+	private PixelPlanner getPlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		PixelPlanner planner = null;
 		if(allNouns != null) {
-			planner = (PKSLPlanner) allNouns.get(0);
+			planner = (PixelPlanner) allNouns.get(0);
 			return planner;
 		} else {
 			return this.planner;

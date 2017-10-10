@@ -153,4 +153,10 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 		}
 		return sjss;
 	}
+
+	@Override
+	public String[] getTypes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

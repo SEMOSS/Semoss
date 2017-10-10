@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -102,12 +103,12 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 
 		String name = names[labelIdx];
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			
 			if(seriesIdx != -1) {
 				name = listElement[seriesIdx].toString();
@@ -148,22 +149,23 @@ public class ScatterChartPlaySheet extends BrowserPlaySheet{
 	
 	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
-		String[] names = dataFrame.getColumnHeaders();
+		String[] qsNames = dataFrame.getQsHeaders();
+		String[] frameNames = dataFrame.getColumnHeaders();
 
 		int offset = 0;
-		if(!dataFrame.isNumeric(names[1])) {
-			alignHash.put(seriesString, names[0]);
+		if(!dataFrame.isNumeric(qsNames[1])) {
+			alignHash.put(seriesString, frameNames[0]);
 			offset = 1;
 		}
 		
-		alignHash.put(labelString, names[0 + offset]);
-		alignHash.put(xString, names[1 + offset]);
-		if(names.length > 2 + offset)
-			alignHash.put(yString, names[2 + offset]);
-		if(names.length > 3 + offset)
-			alignHash.put(zString, names[3 + offset]);
-		if(offset == 0 && names.length > 4)
-			alignHash.put(heatString, names[4 + offset]);
+		alignHash.put(labelString, frameNames[0 + offset]);
+		alignHash.put(xString, frameNames[1 + offset]);
+		if(frameNames.length > 2 + offset)
+			alignHash.put(yString, frameNames[2 + offset]);
+		if(frameNames.length > 3 + offset)
+			alignHash.put(zString, frameNames[3 + offset]);
+		if(offset == 0 && frameNames.length > 4)
+			alignHash.put(heatString, frameNames[4 + offset]);
 		return alignHash;
 	}
 	

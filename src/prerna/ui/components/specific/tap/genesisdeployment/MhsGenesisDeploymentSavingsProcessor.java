@@ -27,12 +27,9 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap.genesisdeployment;
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -43,7 +40,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IMetaData;
-import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -86,10 +82,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	 * @param instance					The specific system or site
 	 * @param newValues					The new values we are adding
 	 * @param endYear					The endYear which these values should be applied to
+	 * @param headers					The headers for the frame
 	 */
-	public static void updateCostValues(H2Frame frame, String instance, double[] newValues, String endYear) {
+	public static void updateCostValues(H2Frame frame, String instance, double[] newValues, String endYear, String[] headers) {
 		try {
-			String[] headers = frame.getColumnHeaders();
 			String mainColName = headers[0];
 
 			// see if system/site already exists in table
@@ -148,7 +144,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				for(int i = fyIndex; i < numColumns; i++) {
 					newValuesWithInstance[i+1] = newValues[i];
 				}
-				frame.addRow(newValuesWithInstance);
+				frame.addRow(newValuesWithInstance, headers);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -156,10 +152,9 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	}
 	
 	// method to append the column and row totals
-	public static void calculateColAndRowTotals(H2Frame frame) {
+	public static void calculateColAndRowTotals(H2Frame frame, String[] headers) {
 		// assumption that first column is either systems or sites
 		
-		String[] headers = frame.getColumnHeaders();
 		String mainColName = headers[0];
 		
 		// first, calculate the row totals
@@ -170,15 +165,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		rowTotal.append(" FROM ").append(frame.getTableName());
 		
 		String[] newHeaders = new String[2];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] dataTypes = new String[2];
 		newHeaders[0] = mainColName;
 		newHeaders[1] = "Total";
-		dataTypes.put(newHeaders[0], "String");
-		dataTypes.put(newHeaders[1], "Number");
+		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[1] = IMetaData.DATA_TYPES.NUMBER.toString();
 
 		// we will merge the new headers into our existing frame
-		frame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(newHeaders), dataTypes);
-		
+		frame.addNewColumn(newHeaders, dataTypes, frame.getTableName());
+
 		ResultSet it = frame.execQuery(rowTotal.toString());
 		try {
 			// create an update statement to set the systems which are centrally deployed to true
@@ -194,7 +189,6 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		}
 		
 		// now calculate the column totals
-		headers = frame.getColumnHeaders();
 		StringBuilder colTotals = new StringBuilder("SELECT SUM(").append(headers[1]).append(")");
 		for(int i = 2; i < headers.length; i++) {
 			colTotals.append(", SUM(").append(headers[i]).append(")");
@@ -345,14 +339,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// need to create the metadata for the new column
 		String[] headers = new String[2];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Last_Wave_For_System";
-		dataTypes.put(headers[0], "String");
-		dataTypes.put(headers[1], "String");
+		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(headers), dataTypes);
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		try {
 			// create an update statement to set the systems last wave
@@ -370,7 +364,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		return mainSustainmentFrame;	
 	}
 
-	private H2Frame appendLastWaveForSite(H2Frame mainSustainmentFrame2) {
+	private H2Frame appendLastWaveForSite(H2Frame mainSustainmentFrame) {
 		List<String> waveOrder = DHMSMDeploymentHelper.getWaveOrder(tapSite);
 
 		Map<String, List<String>> sitesInMultipleWavesHash = DHMSMDeploymentHelper.getSitesAndMultipleWaves(tapSite);
@@ -380,14 +374,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// need to create the metadata for the new column
 		String[] headers = new String[2];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] dataTypes = new String[2];
 		headers[0] = "HostSiteAndFloater";
 		headers[1] = "Last_Wave_For_Site";
-		dataTypes.put(headers[0], "String");
-		dataTypes.put(headers[1], "String");
+		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(headers), dataTypes);
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		try {
 			// create an update statement to set all the values to false as default
@@ -414,14 +408,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	private H2Frame appendSiteSpecific(H2Frame mainSustainmentFrame, H2Frame systemSiteSustainmentFrame) {
 		// need to create the metadata for the new column
 		String[] headers = new String[2];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Site_Specific";
-		dataTypes.put(headers[0], "String");
-		dataTypes.put(headers[1], "String");
+		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(headers), dataTypes);
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		try {
 			// create an update statement to set all the values to false as default
@@ -454,14 +448,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	private H2Frame appendCentralDeployment(H2Frame mainSustainmentFrame) {
 		// need to create the metadata for the new column
 		String[] headers = new String[2];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Central_Deployment";
-		dataTypes.put(headers[0], "String");
-		dataTypes.put(headers[1], "String");
+		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(headers), dataTypes);
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		StringBuilder centralDeployedSystems = new StringBuilder();
 		centralDeployedSystems.append("SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'} } ");
@@ -496,14 +490,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	private H2Frame appendSystemSiteCount(H2Frame mainSustainmentFrame) {
 		// need to create the metadata for the new column
 		String[] headers = new String[2];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Num_Sites";
-		dataTypes.put(headers[0], "String");
-		dataTypes.put(headers[1], "Number");
+		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[1] = IMetaData.DATA_TYPES.NUMBER.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(headers), dataTypes);
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		StringBuilder sysNumSitesQuery = new StringBuilder();
 		sysNumSitesQuery.append("SELECT ?System (COUNT(?HostSite) AS ?NumSites) WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} } GROUP BY ?System ");
@@ -551,7 +545,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		tempDataType.put("System", IMetaData.DATA_TYPES.STRING);
 		tempDataType.put("FY", IMetaData.DATA_TYPES.STRING);
 		tempDataType.put("Cost", IMetaData.DATA_TYPES.NUMBER);
-		H2Frame tempFrame = new H2Frame(tempHeaders);
+		H2Frame tempFrame = new H2Frame();
+		tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getTableName());
 		tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
 
 		int numFYs = inflationArr.length;
@@ -579,19 +574,22 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		// based on writing this, the schedule wont have any savings till fy18
 		// so think this is fine
 		String[] headers = new String[systemSustainmentFrameSize];
-		String[] newColumnsForFrame = new String[systemSustainmentFrameSize-1];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
+		String[] newColumnsForFrame = new String[systemSustainmentFrameSize - 1];
+		String[] dataTypes = new String[systemSustainmentFrameSize];
 		headers[0] = "System";
-		dataTypes.put(headers[0], "String");
-		for(int i = 0; i < numFYs; i++) {
-			headers[i+1] = "FY" + (15 + i);
-			newColumnsForFrame[i] = headers[i+1];
-			dataTypes.put(headers[i+1], "Number");
+		dataTypes[0] = "String";
+
+		// add new columns to h2 frame
+		for (int i = 0; i < numFYs; i++) {
+			headers[i + 1] = "FY" + (15 + i);
+			newColumnsForFrame[i] = headers[i + 1];
+			dataTypes[i + 1] = "Number";
 		}
 
-		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.mergeEdgeHash(TinkerMetaHelper.createPrimKeyEdgeHash(headers), dataTypes);
-		PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(newColumnsForFrame, new String[]{"System"});
+		// we will add the new headers into our existing frame
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+
+		PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(newColumnsForFrame, new String[] { "System" });
 
 		try {
 			// loop through and create the appropriate query on the tempframe for each system
@@ -599,7 +597,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			final String baseSysQuery = "SELECT * FROM " + tempFrameName + " WHERE SYSTEM = ";
 
 			int numSystems = systemsWithCostList.size();
-			for(int sysIndex = 0; sysIndex < numSystems; sysIndex++) {
+			for (int sysIndex = 0; sysIndex < numSystems; sysIndex++) {
 				String systemName = systemsWithCostList.get(sysIndex);
 				LOGGER.info("Running query for system = " + systemName);
 				// this array will contain the values we want to insert into the 
@@ -702,7 +700,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// create a new frame
 		String[] waveSiteSystemHeaders = new String[]{"Wave","HostSiteAndFloater","System"};
-		H2Frame mainSustainmentFrame = new H2Frame(waveSiteSystemHeaders);
+		H2Frame mainSustainmentFrame2 = new H2Frame(waveSiteSystemHeaders);
 		// execute the query
 		IEngine tapSite = Utility.getEngine("TAP_Site_Data");
 		Map<String, IMetaData.DATA_TYPES> dataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
@@ -711,14 +709,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes.put("System", IMetaData.DATA_TYPES.STRING);
 		IRawSelectWrapper rawWrapper = WrapperManager.getInstance().getRawWrapper(tapSite, waveSiteSystemBuilder.toString());
 		// add the data into the frame
-		mainSustainmentFrame.addRowsViaIterator(rawWrapper, dataTypes);
+		mainSustainmentFrame2.addRowsViaIterator(rawWrapper, dataTypes);
 
 		LOGGER.info("Done creating wavesSiteSystemFrame");
-		return mainSustainmentFrame;
+		return mainSustainmentFrame2;
 	}
 
 	/**
 	 * Get the filtered list of hp systems we want to use for this analysis
+	 * 
 	 * @return
 	 */
 	private String getHPSystemFilterString() {
@@ -751,17 +750,17 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			// based on writing this, the schedule wont have any savings till fy18
 			// so think this is fine
 			String[] headers = new String[systemSustainmentFrameSize];
-			Map<String, String> dataTypes = new Hashtable<String, String>();
+			String[] dataTypes = new String[systemSustainmentFrameSize];
 			headers[0] = "System";
 			headers[1] = "Site";
-			dataTypes.put(headers[0], "String");
-			dataTypes.put(headers[1], "String");
-			for(int i = 0; i < numFYs; i++) {
-				headers[i+2] = "FY" + (15 + i);
-				dataTypes.put(headers[i+2], "Number");
+			dataTypes[0] = "String";
+			dataTypes[1] = "String";
+			for (int i = 0; i < numFYs; i++) {
+				headers[i + 2] = "FY" + (15 + i);
+				dataTypes[i + 2] = "Number";
 			}
-			this.systemSiteSustainmentFrame = new H2Frame(headers); 
-			this.systemSiteSustainmentFrame.mergeDataTypeMap(dataTypes);
+			this.systemSiteSustainmentFrame = new H2Frame();
+			this.systemSiteSustainmentFrame.addNewColumn(headers, dataTypes, this.systemSiteSustainmentFrame.getTableName());
 
 			IEngine tapPortfolio = Utility.getEngine("TAP_Portfolio");
 			String[] systemSiteSustainmentQueryArr = new String[2];
@@ -877,7 +876,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 						// okay, we are done accounting for inflation
 						// now we just need to insert the row
-						this.systemSiteSustainmentFrame.addRow(sysCostValues);
+						this.systemSiteSustainmentFrame.addRow(sysCostValues, headers);
 					}
 
 					// drop the intermediary temp frame

@@ -12,7 +12,7 @@ import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.JavaExecutable;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.util.Utility;
 
 public class Filter implements JavaExecutable {
@@ -22,7 +22,7 @@ public class Filter implements JavaExecutable {
 	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '?like'
 	private GenRowStruct lComparison = null; //the column we want to filter
 	private GenRowStruct rComparison = null; //the values to bind the filter on
-	private PKSLPlanner planner = null;
+	private PixelPlanner planner = null;
 	
 	public Filter(GenRowStruct lComparison, String comparator, GenRowStruct rComparison)
 	{
@@ -53,7 +53,7 @@ public class Filter implements JavaExecutable {
 	 * @param planner
 	 * @return
 	 */
-	public boolean evaluate(PKSLPlanner planner) {
+	public boolean evaluate(PixelPlanner planner) {
 		this.planner = planner;
 		FilterEvaluator c = getFilterEvaluator();
 		//set left var
@@ -89,7 +89,7 @@ public class Filter implements JavaExecutable {
 		//else create a new one, store it, return
 		else {
 			evaluator = buildFilterEvaluator(stringMethod);
-//			NounMetadata newEvaluator = new NounMetadata(evaluator, PkslDataTypes.CACHED_CLASS);
+//			NounMetadata newEvaluator = new NounMetadata(evaluator, PixelDataTypes.CACHED_CLASS);
 //			this.planner.addVariable(classId, newEvaluator);
 		}
 		
@@ -174,8 +174,8 @@ public class Filter implements JavaExecutable {
 	 */
 	private String getIfExpressionString(NounMetadata noun, String key) {
 		Object type = noun.getValue();
-		PkslDataTypes metaType = noun.getNounType();
-		if(metaType == PkslDataTypes.LAMBDA) {
+		PixelDataType metaType = noun.getNounType();
+		if(metaType == PixelDataType.LAMBDA) {
 			// lambda means it is some other reactor (ex. sum) 
 			// that is embedded within this filter
 			// just execute it and get the value
@@ -183,8 +183,8 @@ public class Filter implements JavaExecutable {
 			// if the type is not a string, then it is assumed to be a number
 			// so we just return it as a string
 			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
-			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounType();
-			if(lambdaType == PkslDataTypes.CONST_STRING) {
+			PixelDataType lambdaType = ((NounMetadata) lambdaVal).getNounType();
+			if(lambdaType == PixelDataType.CONST_STRING) {
 //				return "\"" + lambdaVal.getValue() + "\"";
 				return getStringExpression(key);
 			} else {
@@ -193,13 +193,13 @@ public class Filter implements JavaExecutable {
 			}
 		}
 		// any other case is a constant
-		else if(metaType == PkslDataTypes.CONST_STRING) {
+		else if(metaType == PixelDataType.CONST_STRING) {
 //			return "\"" + type.toString() + "\"";
 			return getStringExpression(key);
 		} 
 		// in case it is a column
 		// need to check if this is actually a variable
-		else if(metaType == PkslDataTypes.COLUMN) {
+		else if(metaType == PixelDataType.COLUMN) {
 			if(planner.hasVariable(type.toString())) {
 				NounMetadata varNoun = planner.getVariableValue(type.toString());
 				// in case the variable itself points to a lambda
@@ -246,8 +246,8 @@ public class Filter implements JavaExecutable {
 	 */
 	private void setIfExpression(FilterEvaluator evaluator, NounMetadata noun, String key) {
 		Object type = noun.getValue();
-		PkslDataTypes metaType = noun.getNounType();
-		if(metaType == PkslDataTypes.LAMBDA) {
+		PixelDataType metaType = noun.getNounType();
+		if(metaType == PixelDataType.LAMBDA) {
 			// lambda means it is some other reactor (ex. sum) 
 			// that is embedded within this filter
 			// just execute it and get the value
@@ -255,20 +255,20 @@ public class Filter implements JavaExecutable {
 			// if the type is not a string, then it is assumed to be a number
 			// so we just return it as a string
 			NounMetadata lambdaVal = ((AbstractReactor) type).execute();
-			PkslDataTypes lambdaType = ((NounMetadata) lambdaVal).getNounType();
-			if(lambdaType == PkslDataTypes.CONST_STRING) {
+			PixelDataType lambdaType = ((NounMetadata) lambdaVal).getNounType();
+			if(lambdaType == PixelDataType.CONST_STRING) {
 				evaluator.setVar(key, lambdaVal.getValue().toString());
 			} else {
 				evaluator.setVar(key, lambdaVal.getValue());
 			}
 		}
 		// any other case is a constant
-		else if(metaType == PkslDataTypes.CONST_STRING) {
+		else if(metaType == PixelDataType.CONST_STRING) {
 			evaluator.setVar(key, type.toString());
 		} 
 		// in case it is a column
 		// need to check if this is actually a variable
-		else if(metaType == PkslDataTypes.COLUMN) {
+		else if(metaType == PixelDataType.COLUMN) {
 			if(planner.hasVariable(type.toString())) {
 				NounMetadata varNoun = planner.getVariableValue(type.toString());
 				// in case the variable itself points to a lambda

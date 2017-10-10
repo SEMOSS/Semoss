@@ -10,11 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.rosuda.REngine.Rserve.RserveException;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
-import prerna.sablecc.AbstractRJavaReactor;
 import prerna.sablecc.PKQLRunner;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
@@ -208,18 +205,18 @@ public abstract class InsightCache implements ICache {
 	}
 	
 	private void cacheRData(PKQLRunner pkqlRunner, String baseFile) {
-		String rDataFile = baseFile + R_EXTENSION;
-		if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
-			String rScript = "save(list=ls(), file=\"" + rDataFile.replace("\\", "/") + "\")";
-			try {
-				((org.rosuda.REngine.Rserve.RConnection) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN)).eval(rScript);
-			} catch (RserveException e) {
-				e.printStackTrace();
-			}
-		} else if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE) != null) {
-			String rScript = "save(list=ls(), file=\"" + rDataFile.replace("\\", "/") + "\")";
-			((org.rosuda.JRI.Rengine) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE)).eval(rScript);
-		}
+//		String rDataFile = baseFile + R_EXTENSION;
+//		if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
+//			String rScript = "save(list=ls(), file=\"" + rDataFile.replace("\\", "/") + "\")";
+//			try {
+//				((org.rosuda.REngine.Rserve.RConnection) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN)).eval(rScript);
+//			} catch (RserveException e) {
+//				e.printStackTrace();
+//			}
+//		} else if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE) != null) {
+//			String rScript = "save(list=ls(), file=\"" + rDataFile.replace("\\", "/") + "\")";
+//			((org.rosuda.JRI.Rengine) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE)).eval(rScript);
+//		}
 	}
 	
 	/////////////// END CACHEING CODE ///////////////
@@ -300,40 +297,40 @@ public abstract class InsightCache implements ICache {
 	}
 	
 	public void getRCache(Insight in) {
-		if(!"ON".equals(cacheMode)) return;
-		
-		// determine the cache location
-		String cacheLoc = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in) + R_EXTENSION;
-		File rFile = new File(cacheLoc);
-		if(rFile.exists() && rFile.isFile()) {
-			boolean foundRConnection = false;
-			PKQLRunner pkqlRunner = in.getPkqlRunner();
-			if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
-				foundRConnection = true;
-				String rScript = "load(\"" + rFile.getAbsolutePath().replace("\\", "/") + "\")";
-				try {
-					((org.rosuda.REngine.Rserve.RConnection) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN)).eval(rScript);
-				} catch (RserveException e) {
-					e.printStackTrace();
-				}
-			} else if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE) != null) {
-				foundRConnection = true;
-				String rScript = "load(\"" + rFile.getAbsolutePath().replace("\\", "/") + "\")";
-				((org.rosuda.JRI.Rengine) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE)).eval(rScript);
-			}
-			
-			// if we did not find a connection, we need to make one
-			// and then we need to set it in the runner so it is used by the insight
-			if(!foundRConnection) {
-				String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
-				boolean useJri = false;
-				if(useJriStr != null) {
-					useJri = Boolean.valueOf(useJriStr);
-				}
-				
-				RCacheUtility.generateNewRSessionAndLoadWorkspace(pkqlRunner, rFile.getAbsolutePath(), useJri);		
-			}
-		}
+//		if(!"ON".equals(cacheMode)) return;
+//		
+//		// determine the cache location
+//		String cacheLoc = getBaseFolder(in) + FILE_SEPARATOR + createUniqueId(in) + R_EXTENSION;
+//		File rFile = new File(cacheLoc);
+//		if(rFile.exists() && rFile.isFile()) {
+//			boolean foundRConnection = false;
+//			PKQLRunner pkqlRunner = in.getPkqlRunner();
+//			if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
+//				foundRConnection = true;
+//				String rScript = "load(\"" + rFile.getAbsolutePath().replace("\\", "/") + "\")";
+//				try {
+//					((org.rosuda.REngine.Rserve.RConnection) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_CONN)).eval(rScript);
+//				} catch (RserveException e) {
+//					e.printStackTrace();
+//				}
+//			} else if(pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE) != null) {
+//				foundRConnection = true;
+//				String rScript = "load(\"" + rFile.getAbsolutePath().replace("\\", "/") + "\")";
+//				((org.rosuda.JRI.Rengine) pkqlRunner.getVariableValue(AbstractRJavaReactor.R_ENGINE)).eval(rScript);
+//			}
+//			
+//			// if we did not find a connection, we need to make one
+//			// and then we need to set it in the runner so it is used by the insight
+//			if(!foundRConnection) {
+//				String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
+//				boolean useJri = false;
+//				if(useJriStr != null) {
+//					useJri = Boolean.valueOf(useJriStr);
+//				}
+//				
+//				RCacheUtility.generateNewRSessionAndLoadWorkspace(pkqlRunner, rFile.getAbsolutePath(), useJri);		
+//			}
+//		}
 	}
 	
 	/////////////// END UN-CACHEING CODE ///////////////

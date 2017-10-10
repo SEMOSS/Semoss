@@ -6,7 +6,6 @@ import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.engine.impl.r.RSingleton;
-import prerna.sablecc.AbstractRJavaReactor;
 import prerna.sablecc.PKQLRunner;
 import prerna.util.Utility;
 
@@ -68,7 +67,7 @@ public final class RCacheUtility {
 			// evaluate the rScript to load the workspace
 			retEngine.eval(rScript);
 			// store in pkql runner
-			pkqlRunner.setVariableValue(AbstractRJavaReactor.R_ENGINE, retEngine);
+//			pkqlRunner.setVariableValue(AbstractRJavaReactor.R_ENGINE, retEngine);
 		} else {
 			RConnection retCon = null;
 			String port = null;
@@ -106,8 +105,8 @@ public final class RCacheUtility {
 				e.printStackTrace();
 			}
 			// store in pkql runner
-			pkqlRunner.setVariableValue(AbstractRJavaReactor.R_CONN, retCon);
-			pkqlRunner.setVariableValue(AbstractRJavaReactor.R_PORT, port);
+//			pkqlRunner.setVariableValue(AbstractRJavaReactor.R_CONN, retCon);
+//			pkqlRunner.setVariableValue(AbstractRJavaReactor.R_PORT, port);
 		}
 		
 	}

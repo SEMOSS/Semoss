@@ -26,6 +26,7 @@ public class RInterpreter implements IQueryInterpreter {
 	// keep the columns to export
 	private String selectors = "";
 	
+	
 	@Override
 	public void setQueryStruct(QueryStruct qs) {
 		this.qs = qs;
@@ -38,7 +39,7 @@ public class RInterpreter implements IQueryInterpreter {
 	public void setColDataTypes(Map<String, IMetaData.DATA_TYPES> colDataTypes) {
 		this.colDataTypes = colDataTypes;
 	}
-
+	
 	@Override
 	public String composeQuery() {
 		if(colDataTypes == null) {
@@ -102,12 +103,55 @@ public class RInterpreter implements IQueryInterpreter {
 			filterCriteria.append(" & ");
 		}
 		
-		if(comparator.equals("=") || comparator.equals("==")) {
-			filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
+		//query is different if the data is date data type
+		//for dates, the query needs to be written as datatable$col == X | datatable$col == Y | datatable$col == Z
+		if (colDataTypes.get(colName) == IMetaData.DATA_TYPES.DATE) {
+			if (comparator.equals("=") || comparator.equals("==")) {
+				filterCriteria.append("(");
+				for (int i = 0; i < vector.size(); i++) {
+					filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
+					.append("==").append(formatFilterValue(vector.get(i), colDataTypes.get(colName)));
+					if ((i+1) < vector.size()) {
+						filterCriteria.append(" | ");
+					}
+				}
+				filterCriteria.append(")");
+
+			} else if (comparator.equals("!=")) {
+				for (int i = 0; i < vector.size(); i++) {
+					filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
+					.append("!=").append(formatFilterValue(vector.get(i), colDataTypes.get(colName)));
+					if ((i+1) < vector.size()) {
+						filterCriteria.append(" & ");
+					}
+				}
+			}
+			else {
+				filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
+				.append(" ").append(comparator).append(" ").append( createRColVec(vector, colDataTypes.get(colName))  );
+			}
+		}
+		
+		//compose query for all situations where the data type is not a date
+		//query should be of the form: 
+		//for a single item:  datatable$col == X
+		//for multiple conditions: datatable$col %in% c(X, Y, Z)
+		else if(comparator.equals("=") || comparator.equals("==")) {
+			if (vector.size() > 1) {
+				filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
 				.append(" %in% ").append( createRColVec(vector, colDataTypes.get(colName))  );
+			} else {
+				filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
+				.append(" == ").append( formatFilterValue(vector.get(0), colDataTypes.get(colName))  );
+			}
 		} else if(comparator.equals("!=")) {
-			filterCriteria.append("!( ").append(this.dataTableName).append("$").append(colName).append(" ")
+			if (vector.size() > 1) {
+				filterCriteria.append("!( ").append(this.dataTableName).append("$").append(colName).append(" ")
 				.append(" %in% ").append( createRColVec(vector, colDataTypes.get(colName)) ).append(")");
+			} else {
+				filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
+				.append(" != ").append( formatFilterValue(vector.get(0), colDataTypes.get(colName))  );
+			}
 		} else {
 			// these are some math operations
 			filterCriteria.append(this.dataTableName).append("$").append(colName).append(" ")
@@ -148,6 +192,24 @@ public class RInterpreter implements IQueryInterpreter {
 		}
 		str.append(")");
 		return str.toString();
+	}
+
+	private String formatFilterValue(Object value, IMetaData.DATA_TYPES dataType) {
+		if(IMetaData.DATA_TYPES.STRING == dataType || IMetaData.DATA_TYPES.DATE == dataType) {
+			return "\"" + value + "\"";
+		} else {
+			// just in case this is not defined yet...
+			// see the type of the value and add it in based on that
+			if(dataType == null) {
+				if(value instanceof String) {
+					return "\"" + value + "\"";
+				} else {
+					return value + "";
+				}
+			} else {
+				return value + "";
+			}
+		}
 	}
 	
 //	private String createStringRColVec(String[] selectors) {

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class NegReactor extends AbstractReactor implements JavaExecutable {
 
@@ -32,16 +32,16 @@ public class NegReactor extends AbstractReactor implements JavaExecutable {
 	 * @return
 	 */
 	private NounMetadata createAdditiveInverseNoun(NounMetadata noun) {
-		if(noun.getNounType() == PkslDataTypes.CONST_INT) {
-			noun = new NounMetadata(-1 * ((Number) noun.getValue()).intValue(), PkslDataTypes.CONST_INT);
-		} else if(noun.getNounType() == PkslDataTypes.CONST_DECIMAL) {
-			noun = new NounMetadata(-1.0 * ((Number) noun.getValue()).doubleValue(), PkslDataTypes.CONST_DECIMAL);
-		} else if(noun.getNounType() == PkslDataTypes.COLUMN) {
+		if(noun.getNounType() == PixelDataType.CONST_INT) {
+			noun = new NounMetadata(-1 * ((Number) noun.getValue()).intValue(), PixelDataType.CONST_INT);
+		} else if(noun.getNounType() == PixelDataType.CONST_DECIMAL) {
+			noun = new NounMetadata(-1.0 * ((Number) noun.getValue()).doubleValue(), PixelDataType.CONST_DECIMAL);
+		} else if(noun.getNounType() == PixelDataType.COLUMN) {
 			NegEvaluator neg = new NegEvaluator();
-			neg.setPKSLPlanner(this.planner);
+			neg.setPixelPlanner(this.planner);
 			neg.In();
 			neg.getCurRow().add(noun);
-			noun = new NounMetadata(neg, PkslDataTypes.LAMBDA);
+			noun = new NounMetadata(neg, PixelDataType.LAMBDA);
 		}
 
 		// ugh.. you messed up at this point

@@ -11,7 +11,6 @@ import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 
 import prerna.algorithm.learning.unsupervised.anomaly.AnomalyDetector.AnomDirection;
-import prerna.quartz.CreateInsightJob;
 import prerna.quartz.DetectAnomaliesJob;
 import prerna.quartz.GetDataFromInsightJob;
 import prerna.quartz.IfJob;
@@ -120,7 +119,7 @@ public class TSAnomalyNotification {
 
 		// Specify the chain of jobs
 		List<Class<? extends Job>> anomalySequence = new ArrayList<Class<? extends Job>>();
-		anomalySequence.add(CreateInsightJob.class);
+//		anomalySequence.add(CreateInsightJob.class);
 		anomalySequence.add(GetDataFromInsightJob.class);
 		anomalySequence.add(DetectAnomaliesJob.class);
 		anomalySequence.add(DetermineIfAnomalyJob.class);
@@ -133,11 +132,7 @@ public class TSAnomalyNotification {
 		anomalyEmailDataMap.put(JobChain.IN_SEQUENCE, anomalySequence);
 
 		// For testing add another pkql
-		anomalyEmailDataMap.put(CreateInsightJob.IN_RECIPE_KEY, importRecipe);
-		
-		// TODO no longer need the engine name if we are creating a new insight
-		// Can remove engine name all together from this class
-		// Unless we want to pull a saved insight
+//		anomalyEmailDataMap.put(CreateInsightJob.IN_RECIPE_KEY, importRecipe);
 //		anomalyEmailDataMap.put(CreateInsightJob.IN_ENGINE_NAME_KEY, engineName);
 
 		// Anomaly params

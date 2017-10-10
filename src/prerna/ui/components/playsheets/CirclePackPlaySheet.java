@@ -36,6 +36,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.engine.api.IHeadersDataRow;
+
 /**
  * The Play Sheet for creating a CirclePack diagram using names and children.
  */
@@ -67,9 +69,9 @@ public class CirclePackPlaySheet extends BrowserPlaySheet {
 		Map<String, Map> currentMap;
 
 		// loop through the list
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext()) {
-			Object[] listElements = it.next();
+			Object[] listElements = it.next().getValues();
 
 			// if there is no data, go to the next one in the list
 			if (listElements == null || listElements.length == 0) {

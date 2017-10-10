@@ -1,0 +1,144 @@
+package prerna.sablecc2.om.task;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngineWrapper;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Utility;
+
+public class BasicIteratorTask extends AbstractTask {
+
+	private QueryStruct2 qs;
+	private long startLimit = -1;
+	private long startOffset = -1;
+	private transient Iterator<IHeadersDataRow> iterator;
+	
+	public BasicIteratorTask(QueryStruct2 qs) {
+		this.qs = qs;
+		// this is important so we dont override
+		// the existing limit of the query
+		// within the query optimization
+		this.startLimit = this.qs.getLimit();
+		this.startOffset = this.qs.getOffset();
+	}
+	
+	public BasicIteratorTask(Iterator<IHeadersDataRow> iterator) {
+		this.iterator = iterator;
+	}
+	
+	public BasicIteratorTask(QueryStruct2 qs, Iterator<IHeadersDataRow> iterator) {
+		this(qs);
+		this.iterator = iterator;
+	}
+	
+	@Override
+	public boolean hasNext() {
+		if(this.iterator == null && this.qs == null) {
+			return false;
+		} else if( this.qs != null && this.iterator == null) {
+			generateIterator(this.qs);
+		}
+		
+		if(this.iterator == null) {
+			return false;
+		}
+		return iterator.hasNext();
+	}
+	
+	@Override
+	public IHeadersDataRow next() {
+		if(this.iterator == null) {
+			throw new NoSuchElementException("Could not find additional elements for iterator");
+		}
+		return iterator.next();
+	}
+	
+	@Override
+	public void setHeaderInfo(List<Map<String, Object>> headerInfo) {
+		this.headerInfo = headerInfo;
+		//TODO: bad :(
+		//need to create a proper iterate object that will get this info
+		//instead of how it is set up which takes it from the QS
+		if(this.headerInfo != null) {
+			String[] types = null;
+			if(this.iterator instanceof IRawSelectWrapper) {
+				types = ((IRawSelectWrapper) this.iterator).getTypes();
+			}
+			if(types != null) {
+				for(int i = 0; i < headerInfo.size(); i++) {
+					headerInfo.get(i).put("type", Utility.getCleanDataType(types[i]));
+				}
+			}
+		}
+	}
+	
+	@Override
+	public void cleanUp() {
+		if(this.iterator instanceof IEngineWrapper) {
+			IEngineWrapper x = ((IEngineWrapper) this.iterator);
+			x.cleanUp();
+		}
+	}
+	
+	@Override
+	public void reset() {
+		cleanUp();
+		if(this.qs != null) {
+			this.qs.setLimit(startLimit);
+			this.qs.setOffSet(this.startOffset);
+			this.internalOffset = 0;
+			generateIterator(this.qs);
+		}
+	}
+	
+	private void generateIterator(QueryStruct2 qs) {
+		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE) {
+			IEngine engine = Utility.getEngine(qs.getEngineName());
+			iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		} else {
+			ITableDataFrame frame = qs.getFrame();
+			frame.setLogger(this.logger);
+			iterator = frame.query(qs);
+		}
+		setHeaderInfo(qs.getHeaderInfo());
+		setSortInfo(qs.getSortInfo());
+	}
+	
+	public void optimizeQuery(int collectNum) {
+		// already have a limit defined
+		// just continue;
+		if(this.startLimit > 0) {
+			return;
+		}
+		if(this.qs != null && !(this.qs instanceof HardQueryStruct) ) {
+			if(collectNum < 0) {
+				// from this point on
+				// we will just collect everything
+				this.qs.setLimit(-1);
+			} else {
+				this.qs.setLimit(collectNum);
+			}
+			long offset = 0;
+			if(this.startOffset > 0) {
+				offset = this.startOffset;
+			}
+			this.qs.setOffSet(offset + this.internalOffset);
+			generateIterator(this.qs);
+		}
+	}
+	
+	//TODO: come back to this and why it is used
+	@Deprecated
+	public Iterator getIterator() {
+		return this.iterator;
+	}
+}

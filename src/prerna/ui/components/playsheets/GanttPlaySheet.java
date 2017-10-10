@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -62,11 +63,11 @@ public class GanttPlaySheet extends BrowserPlaySheet {
 		ArrayList taskNames = new ArrayList();
 		
 		String[] var = dataFrame.getColumnHeaders();
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{	
 			LinkedHashMap elementHash = new LinkedHashMap();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			String colName;
 			Double value;
 			String elementConcatName = "";

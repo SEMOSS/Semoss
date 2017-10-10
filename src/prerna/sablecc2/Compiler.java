@@ -244,7 +244,7 @@ public class Compiler
 
 		// Apply the translation.
 		Insight in = new Insight();
-		Map<String, Object> reuslts = in.runPksl(expression);
+		Map<String, Object> reuslts = in.runPixel(expression);
 		System.out.println(reuslts);
 	}
 }

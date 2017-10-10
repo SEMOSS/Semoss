@@ -4,43 +4,34 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 
-/**
- * 
- * This class is responsible for collecting data from a job and returning it
- *
- */
-public class CollectReactor extends AbstractReactor {
+public class CollectReactor extends TaskBuilderReactor {
 
-	private static final String INCLUDE_META_KEY = "includeMeta";
+	/**
+	 * This class is responsible for collecting data from a task and returning it
+	 */
+	
+	private static final String INCLUDE_META_KEY = "meta";
 	private static final String NUM_COLLECT_KEY = "limit";
 
+	private int limit = 0;
+	
 	public NounMetadata execute() {
-		Job job = getJob();
-		int collectThisMany = getTotalToCollect();
-		boolean collectMeta = collectMeta();
-		Object data = job.collect(collectThisMany, collectMeta);
-		NounMetadata result = new NounMetadata(data, PkslDataTypes.FORMATTED_DATA_SET, PkslOperationTypes.JOB_DATA);
+		this.limit = getTotalToCollect();
+		this.task = getTask();
+		buildTask();
+		Object data = this.task.collect(this.limit, collectMeta());
+		NounMetadata result = new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		return result;
 	}
 	
-	//This gets the Job collect reactor needs to collect from
-	private Job getJob() {
-		Job job;
-		
-		List<Object> jobs = curRow.getColumnsOfType(PkslDataTypes.JOB);
-		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
-		if(jobs == null || jobs.size() == 0) {
-			job = (Job) getNounStore().getNoun(PkslDataTypes.JOB.toString()).get(0);
-		} else {
-			job = (Job) curRow.getColumnsOfType(PkslDataTypes.JOB).get(0);
-		}
-		return job;
+	@Override
+	protected void buildTask() {
+		this.task.optimizeQuery(this.limit);
 	}
 	
 	//returns how much do we need to collect
@@ -61,6 +52,7 @@ public class CollectReactor extends AbstractReactor {
 		return 500;
 	}
 	
+	//return if we should get the metadata for the task
 	private boolean collectMeta() {
 		// try the key
 		GenRowStruct includeMetaGrs = store.getNoun(INCLUDE_META_KEY);
@@ -69,7 +61,7 @@ public class CollectReactor extends AbstractReactor {
 		}
 		
 		// try the cur row
-		List<NounMetadata> booleanNouns = this.curRow.getNounsOfType(PkslDataTypes.BOOLEAN);
+		List<NounMetadata> booleanNouns = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
 		if(booleanNouns != null && !booleanNouns.isEmpty()) {
 			return (boolean) booleanNouns.get(0).getValue();
 		}
@@ -79,12 +71,11 @@ public class CollectReactor extends AbstractReactor {
 	
 	@Override
 	public List<NounMetadata> getOutputs() {
-		
 		List<NounMetadata> outputs = super.getOutputs();
 		if(outputs != null) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.FORMATTED_DATA_SET, PkslOperationTypes.JOB_DATA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		outputs.add(output);
 		return outputs;
 	}

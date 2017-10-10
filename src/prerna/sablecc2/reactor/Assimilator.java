@@ -9,7 +9,7 @@ import java.util.Vector;
 import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class Assimilator extends AbstractReactor implements JavaExecutable {
 
@@ -34,7 +34,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 
 		// noun object to return
 		// need to cast to get the type of the NounMetadata object
-		NounMetadata noun = new NounMetadata(newInstance, PkslDataTypes.LAMBDA);
+		NounMetadata noun = new NounMetadata(newInstance, PixelDataType.LAMBDA);
 		return noun;
 		
 //		Object retVal = newInstance.execute();
@@ -72,16 +72,16 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		uniqueInputs.addAll(inputColumns);
 		for(String input : uniqueInputs) {
 			NounMetadata data = planner.getVariableValue(input);			
-			PkslDataTypes dataType = data.getNounType();
-			if(dataType == PkslDataTypes.CONST_DECIMAL) {
+			PixelDataType dataType = data.getNounType();
+			if(dataType == PixelDataType.CONST_DECIMAL) {
 				evaluator.allIntValue = false;
 				evaluator.setVar(input, data.getValue());
-			} else if(dataType == PkslDataTypes.CONST_INT) {
+			} else if(dataType == PixelDataType.CONST_INT) {
 				evaluator.setVar(input, data.getValue());
-			} else if(dataType == PkslDataTypes.CONST_STRING) {
+			} else if(dataType == PixelDataType.CONST_STRING) {
 				evaluator.containsStringValue = true;
 				evaluator.setVar(input, data.getValue());
-			} else if(dataType == PkslDataTypes.LAMBDA){
+			} else if(dataType == PixelDataType.LAMBDA){
 				// in case the variable points to another reactor
 				// that we need to get the value from
 				// evaluate the lambda
@@ -89,10 +89,10 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				Object rVal = data.getValue();
 				if(rVal instanceof IReactor) {
 					NounMetadata newNoun = ((IReactor) rVal).execute(); 
-					PkslDataTypes newDataType = data.getNounType();
-					if(newDataType == PkslDataTypes.CONST_DECIMAL) {
+					PixelDataType newDataType = data.getNounType();
+					if(newDataType == PixelDataType.CONST_DECIMAL) {
 						evaluator.setVar(input, newNoun.getValue());
-					} else if(newDataType == PkslDataTypes.CONST_STRING) {
+					} else if(newDataType == PixelDataType.CONST_STRING) {
 						evaluator.containsStringValue = true;
 						evaluator.setVar(input, newNoun.getValue());
 					}
@@ -198,27 +198,27 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				// this only happens when a variable is being used but isn't defined
 				throw new IllegalArgumentException("Undefined variable : " + input);
 			}
-			PkslDataTypes dataType = data.getNounType();
-			if(dataType == PkslDataTypes.CONST_DECIMAL) {
+			PixelDataType dataType = data.getNounType();
+			if(dataType == PixelDataType.CONST_DECIMAL) {
 				expressionBuilder.append("double ").append(input).append(" = ").append("((Number)super.vars.get("+"\""+input+"\")).doubleValue()").append(";");
-			} else if(dataType == PkslDataTypes.CONST_INT) {
+			} else if(dataType == PixelDataType.CONST_INT) {
 				expressionBuilder.append("int ").append(input).append(" = ").append("((Number)super.vars.get("+"\""+input+"\")).intValue()").append(";");
-			} else if(dataType == PkslDataTypes.CONST_STRING) {
+			} else if(dataType == PixelDataType.CONST_STRING) {
 				this.containsStringValue = true;
 				expressionBuilder.append("String ").append(input).append(" = ").append("(String)super.vars.get("+"\""+input+"\")").append(";");
-			} else if(dataType == PkslDataTypes.LAMBDA){
+			} else if(dataType == PixelDataType.LAMBDA){
 				// in case the variable points to another reactor
 				// that we need to get the value from
 				// evaluate the lambda
 				// object better be a reactor to run
 				Object rVal = data.getValue();
 				if(rVal instanceof IReactor) {
-					PkslDataTypes newDataType = data.getNounType();
-					if(newDataType == PkslDataTypes.CONST_DECIMAL) {
+					PixelDataType newDataType = data.getNounType();
+					if(newDataType == PixelDataType.CONST_DECIMAL) {
 						expressionBuilder.append("double ").append(input).append(" = ").append("((Number)super.vars.get("+"\""+input+"\")).doubleValue()").append(";");
-					} else if(newDataType == PkslDataTypes.CONST_INT) {
+					} else if(newDataType == PixelDataType.CONST_INT) {
 						expressionBuilder.append("int ").append(input).append(" = ").append("((Number)super.vars.get("+"\""+input+"\")).intValue()").append(";");
-					} else if(newDataType == PkslDataTypes.CONST_STRING) {
+					} else if(newDataType == PixelDataType.CONST_STRING) {
 						this.containsStringValue = true;
 						expressionBuilder.append("String ").append(input).append(" = ").append("(String)super.vars.get("+"\""+input+"\")").append(";");
 					}
@@ -240,7 +240,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		}
 
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		return outputs;
 	}

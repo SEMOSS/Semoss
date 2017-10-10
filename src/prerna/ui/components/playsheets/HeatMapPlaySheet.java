@@ -32,6 +32,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -85,11 +86,11 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 		String xName = var[xIdx];
 		String yName = var[yIdx];
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			Object[] listElement = it.next();		
+			Object[] listElement = it.next().getValues();		
 			String methodName = listElement[xIdx].toString();
 			String groupName = listElement[yIdx].toString();
 			String key = methodName +"-"+groupName;

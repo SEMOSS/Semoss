@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -117,8 +118,9 @@ public class Me {
 	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
 	{
 		String fileName = semossHome + "/setPath.bat";
+		BufferedWriter bw = null;
 		try{
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
+			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
 			String path = "\nset path=%path%"; 
 			path = path + ";" + semossHome;
 			path = path + ";" + rHome;
@@ -134,10 +136,16 @@ public class Me {
 			bw.write(rlibPath);
 			bw.write("\necho R_LIBS IS %R_LIBS%");
 			bw.flush();
-			bw.close();
-		}catch(Exception ex)
-		{
-			
+		} catch(IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(bw != null) {
+					bw.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -145,9 +153,10 @@ public class Me {
 	{
 		//-Djava.library.path=C:\Users\pkapaleeswaran\Documents\R\win-library\3.1\rJava\jri\x64;"C:\Program Files\R\R-3.2.4revised\bin\x64"
 		String fileName = semossHome + "/../tomcat/bin/" + "setenv.bat";
+		BufferedWriter bw = null;
 		try {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
+			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
 			
 			String options = "-Djava.library.path=\"" + rHome + "\";\"" + jriHome + "\"";
 			// should we also set the memory here ?
@@ -155,28 +164,39 @@ public class Me {
 			//options = options + " " + "-Xms256m -Xmx512m";
 			bw.write("set JAVA_OPTS=" + options);
 			bw.flush();
-			bw.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try {
+				if(bw != null) {
+					bw.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		
 	}
 	
-	public void writeConfigureFile(String homePath, String port)
-	{
+	public void writeConfigureFile(String homePath, String port) {
+		BufferedWriter writer = null;
 		try {
-			BufferedWriter writer = new BufferedWriter(new FileWriter(homePath + "/configured.txt"));
+			writer = new BufferedWriter(new FileWriter(homePath + "/configured.txt"));
 			writer.write("Port = " + port);
 			writer.write("SEMOSS Web = " + "http://localhost:" + port + "/SemossWeb/");
 			writer.flush();
 			writer.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			try {
+				if(writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		
-		
 	}
 	
 	public void changeTomcatXML(String homePath, String port) throws Exception
@@ -249,20 +269,39 @@ public class Me {
 		if(found) return port+"";
 				
 		port--;
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		InputStreamReader is = null;
+		BufferedReader br = null;
 		String portStr = null;
-		if(!found) {
-			System.out.println("Unable to find an open port. Please provide a port.");
-			 try {
-				portStr = br.readLine();
+		try {
+			is = new InputStreamReader(System.in);
+			br = new BufferedReader(is);
+			if(!found) {
+				System.out.println("Unable to find an open port. Please provide a port.");
+				 try {
+					portStr = br.readLine();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				System.out.println("Using port: " + portStr);
+			} else {
+				portStr = port+"";
+			}
+		} finally {
+			try {
+				if(is != null) {
+					is.close();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("Using port: " + portStr);
-		} else {
-			portStr = port+"";
+			try {
+				if(br != null) {
+					br.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		
 		return portStr;
 	}
 	
@@ -309,29 +348,62 @@ public class Me {
 		System.out.println("Web Config " + appPath);
 		System.out.println("Web Config 2 " + altPath);
 		
-		String inout = null;
+		String input = null;
 		
-		BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(appPath)));
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(altPath)));
-		
-		inout = br.readLine();
-		
-		while(inout != null)
-		{
-			//System.out.println(inout);
-			if(inout.contains(".constant('PORT'"))
-				inout = ".constant('PORT','" + port + "')";
-			bw.write(inout+"\n");
+		BufferedReader br = null;
+		InputStreamReader isr = null;
+		FileInputStream fis = null;
+		BufferedWriter bw = null;
+		OutputStreamWriter osw = null;
+		FileOutputStream fos = null;
+		try {
+			fis = new FileInputStream(appPath);
+			isr = new InputStreamReader(fis);
+			br = new BufferedReader(isr);
+			fos = new FileOutputStream(altPath);
+			osw = new OutputStreamWriter(fos);
+			bw = new BufferedWriter(osw);
 			
-			inout = br.readLine();
+			input = br.readLine();
+			while(input != null)
+			{
+				if(input.contains(".constant('PORT'")) {
+					input = ".constant('PORT','" + port + "')";
+				}
+				bw.write(input+"\n");
+				input = br.readLine();
+			}
+			
+			bw.flush();
+			bw.close();
+			br.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(fis != null) {
+					fis.close();
+				}
+				if(isr != null) {
+					isr.close();
+				}
+				if(br != null) {
+					br.close();
+				}
+				if(fos != null) {
+					fos.close();
+				}
+				if(osw != null) {
+					osw.close();
+				}
+				if(bw != null) {
+					bw.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		
-		bw.flush();
-		bw.close();
-		br.close();
-		
 		replaceFiles(appPath, altPath);
-		
 		
 		// the embed app.config
 		appPath = homePath + "/../tomcat/webapps/SemossWeb/embed/app.config.js";
@@ -339,25 +411,55 @@ public class Me {
 //		appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
 //		altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
 
-		inout = null;
-		
-		br = new BufferedReader(new InputStreamReader(new FileInputStream(appPath)));
-		bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(altPath)));
-		
-		inout = br.readLine();
-		
-		while(inout != null)
-		{
-			if(inout.contains(".constant('PORT'"))
-				inout = ".constant('PORT','" + port + "')";
-			bw.write(inout+"\n");
+		input = null;
+		try {
+			fis = new FileInputStream(appPath);
+			isr = new InputStreamReader(fis);
+			br = new BufferedReader(isr);
+			fos = new FileOutputStream(altPath);
+			osw = new OutputStreamWriter(fos);
+			bw = new BufferedWriter(osw);
 			
-			inout = br.readLine();
+			input = br.readLine();
+			while(input != null)
+			{
+				if(input.contains(".constant('PORT'")) {
+					input = ".constant('PORT','" + port + "')";
+				}
+				bw.write(input+"\n");
+				input = br.readLine();
+			}
+			
+			bw.flush();
+			bw.close();
+			br.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(fis != null) {
+					fis.close();
+				}
+				if(isr != null) {
+					isr.close();
+				}
+				if(br != null) {
+					br.close();
+				}
+				if(fos != null) {
+					fos.close();
+				}
+				if(osw != null) {
+					osw.close();
+				}
+				if(bw != null) {
+					bw.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		bw.flush();
-		bw.close();
-		br.close();
-
+		
 		replaceFiles(appPath, altPath);
 		
 		// the playsheet app.config
@@ -366,26 +468,56 @@ public class Me {
 		//				appPath = homePath + "/Webcontent/dev/olddev/app/scripts/config.js";
 		//				altPath = homePath + "/Webcontent/dev/olddev/app/scripts/config2.js";
 
-		inout = null;
-
-		br = new BufferedReader(new InputStreamReader(new FileInputStream(appPath)));
-		bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(altPath)));
-
-		inout = br.readLine();
-
-		while(inout != null)
-		{
-			if(inout.contains(".constant('PORT'"))
-				inout = ".constant('PORT','" + port + "')";
-			bw.write(inout+"\n");
-
-			inout = br.readLine();
+		input = null;
+		
+		try {
+			fis = new FileInputStream(appPath);
+			isr = new InputStreamReader(fis);
+			br = new BufferedReader(isr);
+			fos = new FileOutputStream(altPath);
+			osw = new OutputStreamWriter(fos);
+			bw = new BufferedWriter(osw);
+			
+			input = br.readLine();
+			while(input != null)
+			{
+				if(input.contains(".constant('PORT'")) {
+					input = ".constant('PORT','" + port + "')";
+				}
+				bw.write(input+"\n");
+				input = br.readLine();
+			}
+			
+			bw.flush();
+			bw.close();
+			br.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(fis != null) {
+					fis.close();
+				}
+				if(isr != null) {
+					isr.close();
+				}
+				if(br != null) {
+					br.close();
+				}
+				if(fos != null) {
+					fos.close();
+				}
+				if(osw != null) {
+					osw.close();
+				}
+				if(bw != null) {
+					bw.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		
-		bw.flush();
-		bw.close();
-		br.close();
-
 		replaceFiles(appPath, altPath);	
 	}
 

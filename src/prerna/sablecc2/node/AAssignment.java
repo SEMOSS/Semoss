@@ -9,7 +9,7 @@ public final class AAssignment extends PAssignment
 {
     private PWordOrId _wordOrId_;
     private TEqual _equal_;
-    private PScriptchain _scriptchain_;
+    private PScript _script_;
 
     public AAssignment()
     {
@@ -19,14 +19,14 @@ public final class AAssignment extends PAssignment
     public AAssignment(
         @SuppressWarnings("hiding") PWordOrId _wordOrId_,
         @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PScriptchain _scriptchain_)
+        @SuppressWarnings("hiding") PScript _script_)
     {
         // Constructor
         setWordOrId(_wordOrId_);
 
         setEqual(_equal_);
 
-        setScriptchain(_scriptchain_);
+        setScript(_script_);
 
     }
 
@@ -36,7 +36,7 @@ public final class AAssignment extends PAssignment
         return new AAssignment(
             cloneNode(this._wordOrId_),
             cloneNode(this._equal_),
-            cloneNode(this._scriptchain_));
+            cloneNode(this._script_));
     }
 
     @Override
@@ -95,16 +95,16 @@ public final class AAssignment extends PAssignment
         this._equal_ = node;
     }
 
-    public PScriptchain getScriptchain()
+    public PScript getScript()
     {
-        return this._scriptchain_;
+        return this._script_;
     }
 
-    public void setScriptchain(PScriptchain node)
+    public void setScript(PScript node)
     {
-        if(this._scriptchain_ != null)
+        if(this._script_ != null)
         {
-            this._scriptchain_.parent(null);
+            this._script_.parent(null);
         }
 
         if(node != null)
@@ -117,7 +117,7 @@ public final class AAssignment extends PAssignment
             node.parent(this);
         }
 
-        this._scriptchain_ = node;
+        this._script_ = node;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class AAssignment extends PAssignment
         return ""
             + toString(this._wordOrId_)
             + toString(this._equal_)
-            + toString(this._scriptchain_);
+            + toString(this._script_);
     }
 
     @Override
@@ -145,9 +145,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._scriptchain_ == child)
+        if(this._script_ == child)
         {
-            this._scriptchain_ = null;
+            this._script_ = null;
             return;
         }
 
@@ -170,9 +170,9 @@ public final class AAssignment extends PAssignment
             return;
         }
 
-        if(this._scriptchain_ == oldChild)
+        if(this._script_ == oldChild)
         {
-            setScriptchain((PScriptchain) newChild);
+            setScript((PScript) newChild);
             return;
         }
 

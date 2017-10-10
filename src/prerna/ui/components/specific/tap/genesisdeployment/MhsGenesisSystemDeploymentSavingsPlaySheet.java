@@ -1,11 +1,8 @@
 package prerna.ui.components.specific.tap.genesisdeployment;
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -16,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.TablePlaySheet;
@@ -29,6 +27,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 	// store the system deployment savings over time
 	private H2Frame systemDeploymentSavings;
+	private String[] systemDeploymentSavingsHeaders;
 
 	// frame to keep track of waves to sites to systems to fys containing inflated costs
 	protected H2Frame mainSustainmentFrame;
@@ -336,16 +335,17 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		// deployment savings
 		// so each row represents a system and its savings
 		// across each FY
-		String[] headers = new String[numColumns+1];
+		this.systemDeploymentSavingsHeaders = new String[numColumns+1];
 		Map<String, String> dataTypes = new Hashtable<String, String>();
-		headers[0] = "System";
+		this.systemDeploymentSavingsHeaders[0] = "System";
 		dataTypes.put("System", "String");
 		for(int i = 0; i < numColumns; i++) {
-			headers[i+1] = "FY" + (15 + i);
-			dataTypes.put(headers[i+1], "Number");
+			this.systemDeploymentSavingsHeaders[i+1] = "FY" + (15 + i);
+			dataTypes.put(this.systemDeploymentSavingsHeaders[i+1], "Number");
 		}
-		this.systemDeploymentSavings = new H2Frame(headers);
-		this.systemDeploymentSavings.mergeDataTypeMap(dataTypes);
+		this.systemDeploymentSavings = new H2Frame(this.systemDeploymentSavingsHeaders);
+		//TODO
+		//this.systemDeploymentSavings.mergeDataTypeMap(dataTypes);
 
 		// just going to go through and add all the different type of savings
 		addLocallyDeployedSystemSavings();
@@ -354,8 +354,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		addFixedSustainmentCostForAllLocallyDeployedSystems();
 		
 		// this will add the column and row totals
-		MhsGenesisDeploymentSavingsProcessor.calculateColAndRowTotals(this.systemDeploymentSavings);
-		headers = this.systemDeploymentSavings.getColumnHeaders();
+		MhsGenesisDeploymentSavingsProcessor.calculateColAndRowTotals(this.systemDeploymentSavings, this.systemDeploymentSavingsHeaders);
 
 		// iterate through the results for testing
 		// iterate through the results for testing
@@ -363,7 +362,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 		// iterate through the results for testing
 		// iterate through the results for testing
 		LOGGER.info("Testing data...");
-		Iterator<Object[]> it = this.systemDeploymentSavings.iterator();
+		Iterator<IHeadersDataRow> it = this.systemDeploymentSavings.iterator();
 		
 		//Printing out to csv
 //		System.out.println(">>> " + Arrays.toString( headers ) );
@@ -526,7 +525,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				
 				// this will handle the specific system and values and perform the consolidation
 				// if the system is already stored in the frame
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.systemDeploymentSavings, system, newValues, endYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.systemDeploymentSavings, system, newValues, endYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -559,7 +558,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				if(system.equals("CHCS")) {
 					modEndYear = "FY" + ( Integer.parseInt(endYear.substring(2)) + 1 );
 				}
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -590,7 +589,7 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 				if(system.equals("CHCS")) {
 					modEndYear = "FY" + ( Integer.parseInt(endYear.substring(2)) + 1 );
 				}
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(systemDeploymentSavings, system, newValues, modEndYear, this.systemDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

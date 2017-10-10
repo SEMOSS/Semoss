@@ -5,7 +5,7 @@ import java.util.List;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class AsReactor extends AbstractReactor {
 	
@@ -16,7 +16,7 @@ public class AsReactor extends AbstractReactor {
 	
 	public NounMetadata execute() {
 		String alias = (String) curRow.get(0);
-		NounMetadata noun = new NounMetadata(alias, PkslDataTypes.ALIAS);
+		NounMetadata noun = new NounMetadata(alias, PixelDataType.ALIAS);
 		return noun;
 	}
 
@@ -45,7 +45,7 @@ public class AsReactor extends AbstractReactor {
 			// get the columns on as
 			parentReactor.setAs(asNames);
 			
-			NounMetadata asNoun = new NounMetadata(parentReactor, PkslDataTypes.LAMBDA);
+			NounMetadata asNoun = new NounMetadata(parentReactor, PixelDataType.LAMBDA);
 			this.planner.addVariable(asNames[0], asNoun);
 		}		
 	}

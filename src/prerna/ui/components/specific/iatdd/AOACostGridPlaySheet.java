@@ -8,6 +8,7 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class AOACostGridPlaySheet extends GridPlaySheet {
@@ -30,9 +31,9 @@ public class AOACostGridPlaySheet extends GridPlaySheet {
 			origDataFrame = dataFrame;
 		}
 		String[] headers = origDataFrame.getColumnHeaders();
-		Iterator<Object[]> it = origDataFrame.iterator();	
+		Iterator<IHeadersDataRow> it = origDataFrame.iterator();	
 		while(it.hasNext()) {
-			Object[] row = it.next();
+			Object[] row = it.next().getValues();
 
 			//getting all the costs per product per vendor  
 			String vendor = (String) row [0];
@@ -126,7 +127,8 @@ public class AOACostGridPlaySheet extends GridPlaySheet {
 		}
 
 		//format to send to Front-End
-		dataFrame = new H2Frame(new String[]{headers[0], headers[2], headers[3], headers[4], headers[5], headers[6]});
+		String[] newHeaders = new String[]{headers[0], headers[2], headers[3], headers[4], headers[5], headers[6]};
+		dataFrame = new H2Frame(newHeaders);
 		for(String vendor : vendorHash.keySet()) {
 			Double license = vendorHash.get(vendor).get(LICENSE_KEY);
 			Double hardware = vendorHash.get(vendor).get(HARDWARE_KEY);
@@ -134,7 +136,7 @@ public class AOACostGridPlaySheet extends GridPlaySheet {
 			Double maintenance = vendorHash.get(vendor).get(MAINTENANCE_KEY);
 			Double modification = vendorHash.get(vendor).get(MODIFICATION_KEY);
 			Object[] row = new Object[]{vendor, license, hardware, deployment, maintenance, modification};
-			dataFrame.addRow(row);
+			dataFrame.addRow(row, newHeaders);
 			Hashtable<String, Object> rowValues = new Hashtable<String, Object>();
 			rowValues.put(headers[0], vendor);
 			rowValues.put(headers[2], license);

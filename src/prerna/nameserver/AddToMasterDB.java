@@ -33,7 +33,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
@@ -61,6 +60,7 @@ import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -111,30 +111,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 	public AddToMasterDB() {
 		super();
-	}
-	
-	public void addXrayConfig(String config, String fileName) throws SQLException {
-		// make statements
-		// create table to local master
-		String tableName = "XRAYCONFIGS";
-		String[] colNames = new String[] { "ID", "FILENAME", "CONFIG" };
-		String[] types = new String[] { "VARCHAR(100)", "VARCHAR(800)", "VARCHAR(20000)" };
-		
-		String createNew = makeCreate("XRAYCONFIGS", colNames, types) + ";";
-		String insertString = makeInsert(tableName, colNames, types,
-				new Object[] { UUID.randomUUID().toString(), "\'" + fileName + "\'", "\'" + config + "\'" });
-		insertString += ";";
-
-		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		System.out.println(createNew + insertString);
-		getConnection(localMaster);
-		try {
-			conn.createStatement().execute(createNew);
-			conn.createStatement().execute(insertString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
 	}
 
 	public boolean registerEngineLocal(Properties prop) {
@@ -1376,14 +1352,11 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// TODO Auto-generated method stub
 		java.util.Date retDate = null;
 		Connection conn = ((RDBMSNativeEngine)this.masterEngine).makeConnection();
-		
-		String tableName = "engine";
-		
-		if(((RDBMSNativeEngine)this.masterEngine).isTablePresent(tableName))
+		if(((RDBMSNativeEngine)this.masterEngine).getTableCount() > 0)
 		{
 			try
 			{
-				String query = "select modifieddate from " + tableName + " e "
+				String query = "select modifieddate from engine e "
 							+ "where "
 							+ "e.enginename = '" + engineName + "'";
 				
@@ -1400,6 +1373,47 @@ public class AddToMasterDB extends ModifyMasterDB {
 			}
 		}
 		return retDate;
+	}
+	/**
+	 * Creates a new table xrayconfigs
+	 * inserts filesName and config file string
+	 * 
+	 * @param config
+	 * @param fileName
+	 */
+	public void addXrayConfig(String config, String fileName) {
+		// make statements
+		// create table to local master
+		String tableName = "xrayconfigs";
+		String[] colNames = new String[] { "filename", "config" };
+		String[] types = new String[] { "VARCHAR(800)", "VARCHAR(20000)" };
+		
+		String createNew = makeCreate("XRAYCONFIGS", colNames, types) + ";";
+		// check if fileName exists
+
+
+		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		getConnection(localMaster);
+		try {
+			conn.createStatement().execute(createNew);
+			String configFile = MasterDatabaseUtility.getXrayConfigFile(fileName);
+			if (configFile.length() > 0) {
+				//create update statement
+				String update = "UPDATE xrayconfigs SET config = '"+config+"' WHERE fileName = '"+fileName+"';";
+				int updateCount = conn.createStatement().executeUpdate(update);
+
+			} else {
+				//make new insert
+				String insertString = makeInsert(tableName, colNames, types,
+						new Object[] { "\'" + fileName + "\'", "\'" + config + "\'" });
+				insertString += ";";
+				conn.createStatement().execute(insertString);
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 	}
 	
 }
