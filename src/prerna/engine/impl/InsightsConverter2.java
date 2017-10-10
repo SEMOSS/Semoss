@@ -6,7 +6,6 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,12 +13,6 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.openrdf.query.algebra.Avg;
-import org.openrdf.query.algebra.Count;
-import org.openrdf.query.algebra.Max;
-import org.openrdf.query.algebra.Min;
-import org.openrdf.query.algebra.Sum;
-import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
@@ -180,7 +173,7 @@ public class InsightsConverter2 {
 			String engineName = dmc.getEngineName();
 			String query = dmc.getQuery();
 			
-			List<String> pkqlStrings = new Vector<String>();
+			List<String> pixelStrings = new Vector<String>();
 			
 			/*
 			 * Two cases
@@ -201,16 +194,16 @@ public class InsightsConverter2 {
 				int size = transList.size();
 				for(int i = 0; i < size; i++) {
 					String expression = transList.get(i).getProperties().get(PKQLTransformation.EXPRESSION) + "";
-					pkqlStrings.add(expression);
+					pixelStrings.add(expression);
 				}
 				
 				// cool, we have the strings
 				// just save it now
 				
 				StringBuilder updateQ = new StringBuilder("UPDATE QUESTION_ID SET QUESTION_PKQL=(");
-				int numPixels = pkqlStrings.size();
+				int numPixels = pixelStrings.size();
 				for(int i = 0; i < numPixels; i++) {
-					updateQ.append("'").append(pkqlStrings.get(i).replace("'", "''")).append("'");
+					updateQ.append("'").append(pixelStrings.get(i).replace("'", "''")).append("'");
 					if(i+1 != numPixels) {
 						updateQ.append(",");
 					}
@@ -229,12 +222,12 @@ public class InsightsConverter2 {
 					!query.equals("@@") && 
 					!query.trim().toUpperCase().startsWith("NULL") && 
 					!query.trim().toUpperCase().startsWith("NONE") && 
-					!layout.startsWith("prerna.ui.components.")
+					!layout.startsWith("prerna.ui.components.") && 
+					!layout.startsWith("perna.grayedout")
 					){
 				// we can create a data.import statement
 				
 				Set<String> returnVariables = null;
-				Set<String> aggregationValues = null;
 				
 				if( (engineType == ENGINE_TYPE.JENA || engineType == ENGINE_TYPE.SESAME)) {
 					// let us try to see if we should convert any data types to numbers
@@ -242,10 +235,6 @@ public class InsightsConverter2 {
 						SPARQLParser parser = new SPARQLParser();
 						ParsedQuery parsedQuery = parser.parseQuery(query, null);
 						returnVariables = parsedQuery.getTupleExpr().getBindingNames(); 
-
-						FindAggregationVisitor aggregationVisitor = new FindAggregationVisitor();
-						parsedQuery.getTupleExpr().visit(aggregationVisitor);
-						aggregationValues = aggregationVisitor.getValue();
 					} catch (Exception e) {
 						LOGGER.info("ID = " + id + " IS NOT VALID PKQL INSIGHT");
 						// TODO: for right now, update the field to be null since i'm updating the logic
@@ -255,18 +244,38 @@ public class InsightsConverter2 {
 					}
 					
 					// add this for sparql queries
-					pkqlStrings.add("data.frame('grid');");
-					pkqlStrings.add("data.import(api:" + engineName + ".query(<query>" + query + "</query>));");
-					if(aggregationValues != null) {
-						for(String colName : aggregationValues) {
-							// cause of sparql
-							// we will get intermediary variable names used in the aggregation values
-							// but we dont want to add those to the pixels string
-							if(returnVariables.contains(colName)) {
-								pkqlStrings.add("data.frame.changeType(c:" + colName + ", 'NUMBER');");
+					// START 1 - SETTING UP THE INSIGHT
+					pixelStrings.add("AddPanel(0);");
+					pixelStrings.add("Panel(0)|AddPanelEvents({\"onSingleClick\":{\"Unfilter\":[{\"panel\":\"\",\"query\""
+							+ ":\"<encode>UnfilterFrame(<Frame>__<SelectedColumn>);</encode>\",\"options\":{},\"refresh\":true}]},"
+							+ "\"onBrush\":{\"Filter\":[{\"panel\":\"\",\"query\":\"<encode>if(IsEmpty(<SelectedValues>), "
+							+ "UnfilterFrame(<Frame>__<SelectedColumn>), SetFrameFilter(<Frame>__<SelectedColumn>==<SelectedValues>));</encode>\","
+							+ "\"options\":{},\"refresh\":true}]}});");
+					pixelStrings.add("Panel(0)|RetrievePanelEvents();");
+					pixelStrings.add("CreateFrame(grid).as(['FRAME']);");
+					// END START 1
+					// START 2 - IMPORTING THE DATA AND SET VIEW TO VISUALIZATION
+					pixelStrings.add("Database(" + engineName + ") | Query(\"" + query.replace("\"", "'") + "\") | Import();");
+					pixelStrings.add("Panel(0)|SetPanelView (\"visualization\");");
+					// END START 2
+					// START 3 - QUERYING THE DATA AND COLLECTING RESULTS
+					StringBuilder sb = new StringBuilder("Frame() | Select(");
+					// part a - get the initial results
+					{
+						int total = returnVariables.size();
+						int counter = 0;
+						for(String colName : returnVariables) {
+							sb.append("f$").append(colName);
+							if(counter + 1 != total) {
+								sb.append(",");
 							}
+							counter++;
 						}
 					}
+					if(layout.equals("WorldMap")) {
+						layout = "Map";
+					}
+					sb.append(") | Format(type=['table']) | TaskOptions({'0': {\"layout\":\"" + layout + "\", \"alignment\" : {");
 					
 					/*
 					 * This is super annoying
@@ -277,62 +286,54 @@ public class InsightsConverter2 {
 					 * so i need to have special logic for all the different ones to do this now
 					 */
 					
-					StringBuilder panelViz = new StringBuilder("panel[0].viz (").append(layout).append(" ,[");
 					if(layout.equals("Grid")) {
+						sb.append("\"label\" : [");
 						int counter = 0;
 						int total = returnVariables.size();
 						for(String colName : returnVariables) {
-							panelViz.append("value= c:" + colName);
+							sb.append("\"").append(colName).append("\"");
 							if(counter + 1 != total) {
-								panelViz.append(",");
+								sb.append(",");
 							}
 							counter++;
 						}
-					} else if(layout.equals("Pie") || layout.equals("Radial") || layout.equals("Column") ) {
+						sb.append("]");
+					} else if(layout.equals("Pie") || layout.equals("Radial") || layout.equals("Column") || layout.equals("Line") ) {
 						int counter = 0;
 						int total = returnVariables.size();
-						for(String colName : returnVariables) {
-							if(counter == 0) {
-								panelViz.append("label= c:" + colName);
-							} else {
-								panelViz.append("value= c:" + colName);
-							}
-							if(counter + 1 != total) {
-								panelViz.append(",");
-							}
-							counter++;
-						}
-					} else if(layout.equals("Line")) {
-						int counter = 0;
-						int total = returnVariables.size();
+						boolean added = false;
 						for(String colName : returnVariables) {
 							if(counter == 0) {
-								panelViz.append("label= c:" + colName);
+								sb.append("\"label\" : [\"" + colName + "\"] , ");
 							} else {
-								panelViz.append("value= c:" + colName);
-							}
-							if(counter + 1 != total) {
-								panelViz.append(",");
+								if(!added) {
+									sb.append("'value': [");
+								}
+								sb.append("\"").append(colName).append("\"");
+								if(counter + 1 != total) {
+									sb.append(",");
+								}
 							}
 							counter++;
 						}
+						sb.append("]");
 					} else if(layout.equals("Scatter")) {
 						int counter = 0;
 						int total = returnVariables.size();
 						for(String colName : returnVariables) {
 							if(counter == 0) {
-								panelViz.append("label= c:" + colName);
+								sb.append("\"label\" : [\"" + colName + "\"]");
 							} else if(counter == 1) {
-								panelViz.append("x= c:" + colName);
+								sb.append("\"x\" : [\"" + colName + "\"]");
 							} else if(counter == 2) {
-								panelViz.append("y= c:" + colName);
+								sb.append("\"y\" : [\"" + colName + "\"]");
 							} else if(counter == 3) {
-								panelViz.append("size= c:" + colName);
+								sb.append("\"size\" : [\"" + colName + "\"]");
 							} else if(counter == 4) {
-								panelViz.append("color= c:" + colName);
+								sb.append("\"color\" : [\"" + colName + "\"]");
 							}
 							if(counter + 1 != total) {
-								panelViz.append(",");
+								sb.append(",");
 							}
 							counter++;
 						}
@@ -341,54 +342,50 @@ public class InsightsConverter2 {
 						int total = returnVariables.size();
 						for(String colName : returnVariables) {
 							if(counter == 0) {
-								panelViz.append("x= c:" + colName);
+								sb.append("\"x\" : [\"" + colName + "\"]");
 							} else if(counter == 1) {
-								panelViz.append("y= c:" + colName);
+								sb.append("\"y\" : [\"" + colName + "\"]");
 							} else if(counter == 2) {
-								panelViz.append("heat= c:" + colName);
+								sb.append("\"heat\" : [\"" + colName + "\"]");
 							}
 							if(counter + 1 != total) {
-								panelViz.append(",");
+								sb.append(",");
 							}
 							counter++;
 						}
-					} else if(layout.equals("WorldMap")) {
+					} else if(layout.equals("Map")) {
 						int counter = 0;
 						int total = returnVariables.size();
 						for(String colName : returnVariables) {
 							if(counter == 0) {
-								panelViz.append("label= c:" + colName);
+								sb.append("\"label\" : [\"" + colName + "\"]");
 							} else if(counter == 1) {
-								panelViz.append("latitude= c:" + colName);
+								sb.append("\"latitude\" : [\"" + colName + "\"]");
 							} else if(counter == 2) {
-								panelViz.append("longitude= c:" + colName);
+								sb.append("\"longitude\" : [\"" + colName + "\"]");
 							} else if(counter == 3) {
-								panelViz.append("size= c:" + colName);
+								sb.append("\"size\" : [\"" + colName + "\"]");
 							} else if(counter == 4) {
-								panelViz.append("color= c:" + colName);
+								sb.append("\"color\" : [\"" + colName + "\"]");
 							}
 							if(counter + 1 != total) {
-								panelViz.append(",");
+								sb.append(",");
 							}
 							counter++;
 						}
 					}
 					
-					panelViz.append("], { 'offset' : 0 , 'limit' : 1000 } ) ;");
-					pkqlStrings.add(panelViz.toString());
+					sb.append("} } }) | Collect(500);");
+					pixelStrings.add(sb.toString());
+					// END START 3
 				} else {
-					// we have rdbms
-					// just add everything
-					
-					pkqlStrings.add("data.frame('grid');");
-					pkqlStrings.add("data.import(api:" + engineName + ".query(<query>" + query + "</query>));");
-					pkqlStrings.add("panel[0].viz ( Grid , [ ] , { 'offset' : 0 , 'limit' : 1000 } ) ; ");
+					return;
 				}
 				
 				StringBuilder updateQ = new StringBuilder("UPDATE QUESTION_ID SET QUESTION_PKQL=(");
-				int numPixels = pkqlStrings.size();
+				int numPixels = pixelStrings.size();
 				for(int i = 0; i < numPixels; i++) {
-					updateQ.append("'").append(pkqlStrings.get(i).replace("'", "''")).append("'");
+					updateQ.append("'").append(pixelStrings.get(i).replace("'", "''")).append("'");
 					if(i+1 != numPixels) {
 						updateQ.append(",");
 					}
@@ -436,36 +433,36 @@ public class InsightsConverter2 {
 }
 
 
-/**
- * Class to parse through and get the aggregated values that need to be cast to doubles
- *
- */
-class FindAggregationVisitor extends QueryModelVisitorBase<Exception> {
-	
-	public Set<String> values = new HashSet<String>();
-
-	public Set<String> getValue(){
-		return values;
-	}
-	
-	@Override
-	public void meet(Avg node) {
-		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
-	}
-	@Override
-	public void meet(Max node) {
-		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
-	}
-	@Override
-	public void meet(Min node) {
-		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
-	}
-	@Override
-	public void meet(Sum node) {
-		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
-	}
-	@Override
-	public void meet(Count node) {
-		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
-	}
-}
+///**
+// * Class to parse through and get the aggregated values that need to be cast to doubles
+// *
+// */
+//class FindAggregationVisitor extends QueryModelVisitorBase<Exception> {
+//	
+//	public Set<String> values = new HashSet<String>();
+//
+//	public Set<String> getValue(){
+//		return values;
+//	}
+//	
+//	@Override
+//	public void meet(Avg node) {
+//		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
+//	}
+//	@Override
+//	public void meet(Max node) {
+//		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
+//	}
+//	@Override
+//	public void meet(Min node) {
+//		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
+//	}
+//	@Override
+//	public void meet(Sum node) {
+//		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
+//	}
+//	@Override
+//	public void meet(Count node) {
+//		values.add(node.getArg().getParentNode().getParentNode().getSignature().replace("ExtensionElem (", "").replace(")", ""));
+//	}
+//}
