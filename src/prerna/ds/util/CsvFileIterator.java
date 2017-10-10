@@ -58,6 +58,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 		} else {
 			setUnknownTypes();
 			setSelectors(qs.getSelectors());
+			qs.setColumnTypes(this.dataTypeMap);
 		}
 
 		this.getNextRow(); // this will get the first row of the file
@@ -141,7 +142,13 @@ public class CsvFileIterator extends AbstractFileIterator {
 
 	private void setSelectors(List<IQuerySelector> selectors) {
 		if (selectors.isEmpty()) {
-			return; // if no selectors, return everything
+			// if no selectors, return everything
+			String[] allHeaders = this.helper.getHeaders();
+			for(int i = 0; i < allHeaders.length; i++) {
+				QueryColumnSelector newSelector = new QueryColumnSelector("DND__" + allHeaders[i]);
+				this.qs.addSelector(newSelector);
+			}
+			return; 
 		}
 	
 		int numSelectors = selectors.size();
