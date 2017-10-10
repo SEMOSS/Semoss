@@ -11,9 +11,13 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
+import prerna.query.querystruct.GenRowFilters;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.QueryFilter;
 
 public class RandomSampleReactor extends MathReactor {
 	
@@ -64,7 +68,12 @@ public class RandomSampleReactor extends MathReactor {
 		List<Object> filterValues = new ArrayList<>();
 		if(sampleColumn != null){
 			filterValues.add(colValue);
-			dataFrame.filter(sampleColumn, filterValues);
+			NounMetadata valNoun = new NounMetadata(filterValues, PixelDataType.CONST_STRING);
+			NounMetadata colNoun = new NounMetadata(dataFrame.getTableName() + "__" + sampleColumn, PixelDataType.COLUMN);
+			QueryFilter qf = new QueryFilter(colNoun, "==", valNoun);
+			GenRowFilters grf = new GenRowFilters();
+			grf.addFilters(qf);
+			dataFrame.setFilter(grf);
 		}
 
 		Iterator itr = getTinkerData(columns, dataFrame, false);

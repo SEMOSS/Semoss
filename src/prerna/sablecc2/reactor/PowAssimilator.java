@@ -10,13 +10,11 @@ import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class PowAssimilator extends Assimilator {
 
 	private static final Logger LOGGER = LogManager.getLogger(PowAssimilator.class.getName());
-
-	private boolean allIntValue = true;
 
 	private String lSignature;
 	private String rSignature;
@@ -49,17 +47,12 @@ public class PowAssimilator extends Assimilator {
 			rSignature = rSignature.substring(1, rSignature.length()-1).trim();
 		}
 		
-		// need to see if we are dealing with any non-integer values
-		if(this.curRow.getNounsOfType(PkslDataTypes.CONST_DECIMAL).size() > 0) {
-			this.allIntValue = false;
-		}
-
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
 		// keep a string to generate the method to execute that will
 		// return an object that runs the expression
 		StringBuilder expressionBuilder = new StringBuilder();
-		expressionBuilder.append("public Object execute(){");
+		expressionBuilder.append("public Object getExpressionValue(){");
 		// we need to grab any variables and define them at the top of the method
 		appendVariables(expressionBuilder);
 		// now that the variables are defined
@@ -76,26 +69,13 @@ public class PowAssimilator extends Assimilator {
 
 		try {
 			AssimilatorEvaluator newInstance = (AssimilatorEvaluator) newClass.newInstance();
-			Object retVal = newInstance.execute();
+			noun = newInstance.execute();
 			// to avoid java error which cannot be caught
 			// if the return is null
 			// we will throw the exception here
 			// which means we could not evaluate the signature
-			if(retVal == null) {
+			if(noun == null) {
 				throw new IllegalArgumentException("Error!!! Could not properly evaluate expression = " + this.signature);
-			}
-			
-			if(this.allIntValue) {
-				Number result = (Number) retVal;
-				if(result.doubleValue() == Math.rint(result.doubleValue())) {
-					noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
-				} else {
-					// not a valid integer
-					// return as a double
-					noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
-				}
-			} else {
-				noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
@@ -121,19 +101,19 @@ public class PowAssimilator extends Assimilator {
 				// this only happens when a variable is being used but isn't defined
 				throw new IllegalArgumentException("Undefined variable : " + input);
 			}
-			PkslDataTypes dataType = data.getNounType();
+			PixelDataType dataType = data.getNounType();
 			// we have a double that is stored
-			if(dataType == PkslDataTypes.CONST_DECIMAL) {
+			if(dataType == PixelDataType.CONST_DECIMAL) {
 				expressionBuilder.append("double ").append(input).append(" = ").append(data.getValue()).append(";");
 			}
 			// we have an integer that is stored
-			else if(dataType == PkslDataTypes.CONST_INT) {
+			else if(dataType == PixelDataType.CONST_INT) {
 				expressionBuilder.append("int ").append(input).append(" = ").append(data.getValue()).append(";");
 			}
 			// we have a lambda
 			// so we execute and return the operation output
 			// TODO: this should no longer be needed since getVariableValue will evaluate a lambda
-			else if(dataType == PkslDataTypes.LAMBDA){
+			else if(dataType == PixelDataType.LAMBDA){
 				// in case the variable points to another reactor
 				// that we need to get the value from
 				// evaluate the lambda
@@ -141,10 +121,10 @@ public class PowAssimilator extends Assimilator {
 				Object rVal = data.getValue();
 				if(rVal instanceof IReactor) {
 					NounMetadata newNoun = ((IReactor) rVal).execute(); 
-					PkslDataTypes newDataType = data.getNounType();
-					if(newDataType == PkslDataTypes.CONST_DECIMAL) {
+					PixelDataType newDataType = data.getNounType();
+					if(newDataType == PixelDataType.CONST_DECIMAL) {
 						expressionBuilder.append("double ").append(input).append(" = ").append(newNoun.getValue()).append(";");
-					} else if(newDataType == PkslDataTypes.CONST_INT) {
+					} else if(newDataType == PixelDataType.CONST_INT) {
 						expressionBuilder.append("int ").append(input).append(" = ").append(newNoun.getValue()).append(";");
 					}
 				} else {
@@ -170,37 +150,30 @@ public class PowAssimilator extends Assimilator {
 		}
 
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		return outputs;
 	}
 	
 	@Override
 	public String getJavaSignature() {
-		String javaSig = this.signature;
 		// replace all the values that is inside this. this could be a recursive call
 		for(int i = 0; i < curRow.size(); i++) {
 			NounMetadata thisLambdaMeta = curRow.getNoun(i);
 			
 			Object nextValue = (Object)thisLambdaMeta.getValue();
 			
-			String replaceValue;
-			if(nextValue instanceof JavaExecutable) {
+			String strToFind = null;
+			String replaceValue = null;
+			if(nextValue instanceof JavaExecutable && nextValue instanceof IReactor) {
 				 replaceValue = ((JavaExecutable)nextValue).getJavaSignature();
+				 strToFind = ((IReactor)nextValue).getOriginalSignature();
 			} else {
 				continue;
 			}
 			
-			String rSignature;
-			if(nextValue instanceof IReactor) {
-				rSignature = ((IReactor)nextValue).getSignature();
-			} else {
-				continue;
-			}
-
-			javaSig = modifyJavaSignature(javaSig, rSignature, replaceValue);
+			modifySignature(strToFind, replaceValue);
 		}
-		return "0";
-//		return javaSig;
+		return "new Double(Math.pow( 1.0 * " + lSignature + ", 1.0 * " + rSignature + "));";
 	}
 }

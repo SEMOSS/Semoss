@@ -7,10 +7,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.om.Insight;
-import prerna.sablecc2.node.APlainRow;
-import prerna.sablecc2.node.POthercol;
+import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.POtherOpInput;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
@@ -19,11 +19,9 @@ import prerna.sablecc2.reactor.IfReactor;
 
 public class GreedyTranslation extends LazyTranslation {
 
-	private static final Logger LOGGER = LogManager.getLogger(GreedyTranslation.class.getName());
+	protected PixelRunner runner;
 
-	protected PKSLRunner runner;
-
-	public GreedyTranslation(PKSLRunner runner, Insight insight) {
+	public GreedyTranslation(PixelRunner runner, Insight insight) {
 		super(insight);
 		if(insight.getDataMaker() != null) {
 			this.planner.addProperty("FRAME", "FRAME", insight.getDataMaker());
@@ -31,52 +29,58 @@ public class GreedyTranslation extends LazyTranslation {
 		this.runner = runner;
 	}
 	
-    @Override
-    public void caseAPlainRow(APlainRow node)
-    {
-        inAPlainRow(node);
+	@Override
+	public void caseAOperation(AOperation node) {
+        inAOperation(node);
+        if(node.getId() != null)
+        {
+            node.getId().apply(this);
+        }
         if(node.getLPar() != null)
         {
-            node.getLPar().apply(this);
+        	node.getLPar().apply(this);
         }
-        if(node.getColDef() != null)
+        if(node.getOpInput() != null)
         {
-            node.getColDef().apply(this);
+        	node.getOpInput().apply(this);
         }
         {
         	if(curReactor instanceof IfReactor) {
         		boolean caseBool = ((IfReactor) curReactor).getBooleanEvaluation();
         		// case bool tells us if we should run the true case or the false case
         		// index 0 is the true case, index 1 is the false case
-    			List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
+    			List<POtherOpInput> copy = new ArrayList<POtherOpInput>(node.getOtherOpInput());
         		if(!caseBool) {
     	            if(copy.size() >= 2) {
-    	            	POthercol e = copy.get(1);
+    	            	POtherOpInput e = copy.get(1);
     	            	e.apply(this);
     	            } else {
     	            	// wtf.. why would have you have more????
     	            	// syntax must always be if(boolean, true case, [optional] false case)
     	            }
         		} else {
-        			POthercol e = copy.get(0);
+        			POtherOpInput e = copy.get(0);
         			e.apply(this);
         		}
-        	}
-        	else {
-	            List<POthercol> copy = new ArrayList<POthercol>(node.getOthercol());
-	            for(POthercol e : copy)
-	            {
-	                e.apply(this);
-	            }
+        	} else {
+        		List<POtherOpInput> copy = new ArrayList<POtherOpInput>(node.getOtherOpInput());
+        		for(POtherOpInput e : copy)
+        		{
+        			e.apply(this);
+        		}
         	}
         }
         if(node.getRPar() != null)
         {
-            node.getRPar().apply(this);
+        	node.getRPar().apply(this);
         }
-        outAPlainRow(node);
-    }
-    
+        if(node.getAsop() != null)
+        {
+        	node.getAsop().apply(this);
+        }
+        outAOperation(node);
+	}
+
     protected void deInitReactor()
     {
     	// couple of things I need to do here
@@ -103,8 +107,6 @@ public class GreedyTranslation extends LazyTranslation {
     	// b. FlatMap operation - This means something else being added
     	// c. It also needs to follow George's logic in terms of breaking it into components
     	
-    	
-    	
     	if(curReactor != null)
     	{
 	    	Object parent = curReactor.Out();
@@ -113,7 +115,7 @@ public class GreedyTranslation extends LazyTranslation {
 	    	if(parent instanceof Assimilator) {
 	    		// if our parent is an assimilator
 	    		// we want to not execute but put the curReactor as a lamda
-	    		((Assimilator) parent).getCurRow().add(new NounMetadata(curReactor, PkslDataTypes.LAMBDA));
+	    		((Assimilator) parent).getCurRow().add(new NounMetadata(curReactor, PixelDataType.LAMBDA));
 	    		// when the assimilator executes
 	    		// it will call super.execute
 	    		// which will evaluate this reactor and do a string replace
@@ -127,8 +129,8 @@ public class GreedyTranslation extends LazyTranslation {
 	    		output = curReactor.execute();
 	    	} catch(Exception e) {
 	    		e.printStackTrace();
-	    		//should we make an error noun?
-	    	}
+				throw new IllegalArgumentException(e.getMessage());
+			}
 	    	this.planner = ((AbstractReactor)curReactor).planner;
 	    	
 	    	//set the curReactor
@@ -140,8 +142,8 @@ public class GreedyTranslation extends LazyTranslation {
 	    	
 	    	// we will merge up to the parent if one is present
 	    	// otherwise, we will store the result in the planner for future use
-	    	// the beginning of the pksl command the beginning of each pipe is an independent routine and doesn't have a parent
-	    	// these will push their output to the result in the pksl planner
+	    	// the beginning of the pixel command the beginning of each pipe is an independent routine and doesn't have a parent
+	    	// these will push their output to the result in the pixel planner
 	    	// if a routine does have children, we will push the to the result directly to the parent
 	    	// so the out of the parent can utilize it for its execution
 	    	// ( ex. Select(Studio, Sum(Movie_Budget) where the Sum is a child of the Select reactor )
@@ -160,23 +162,22 @@ public class GreedyTranslation extends LazyTranslation {
     	}
     }
 	
-	protected void postProcess(String pkslExpression) {
+	protected void postProcess(String pixelExpression) {
 		// get the noun meta result
 		// set that in the runner for later retrieval
 		// if it is a frame
 		// set it as the frame for the runner
 		NounMetadata noun = planner.getVariableValue("$RESULT");
 		if(noun != null) {
-			this.runner.addResult(pkslExpression, noun);
+			this.runner.addResult(pixelExpression, noun, this.isMeta);
 			// if there was a previous result
 			// remove it
 			this.planner.removeVariable("$RESULT");
 		} 
 		else {
-			this.runner.addResult(pkslExpression, new NounMetadata("no output", PkslDataTypes.CONST_STRING));
+			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);
 		}
 		curReactor = null;
 		prevReactor = null;
-		lastOperation = null;
 	}
 }

@@ -190,31 +190,41 @@ public final class ZipDatabase {
 	}
 
 	private static void addFolderToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
-		FileInputStream fis = new FileInputStream(file);
 		ZipEntry zipEntry = new ZipEntry(file.getParent().substring(file.getParent().lastIndexOf("\\") + 1) + FILE_SEPARATOR + file.getName());
 		zos.putNextEntry(zipEntry);
 
-		int length;
-		while ((length = fis.read(buffer)) >= 0) {
-			zos.write(buffer, 0, length);
+		FileInputStream fis = null;
+		try {
+			int length;
+			fis = new FileInputStream(file);
+			while ((length = fis.read(buffer)) >= 0) {
+				zos.write(buffer, 0, length);
+			}
+		} finally {
+			if(fis != null) {
+				fis.close();
+			}
 		}
-
 		zos.closeEntry();
-		fis.close();
 	}
 
 	private static void addToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
-		FileInputStream fis = new FileInputStream(file);
 		ZipEntry zipEntry = new ZipEntry(file.getName());
 		zos.putNextEntry(zipEntry);
 
-		int length;
-		while ((length = fis.read(buffer)) >= 0) {
-			zos.write(buffer, 0, length);
+		FileInputStream fis = null;
+		try {
+			int length;
+			fis = new FileInputStream(file);
+			while ((length = fis.read(buffer)) >= 0) {
+				zos.write(buffer, 0, length);
+			}
+		} finally {
+			if(fis != null) {
+				fis.close();
+			}
 		}
-
 		zos.closeEntry();
-		fis.close();
 	}
 
 }

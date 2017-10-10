@@ -1,5 +1,5 @@
 # Function to run locality sensitive hashing match
-run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold, delimiter, matchingSameDB, rdbmsPath, metadataPath){
+run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold, delimiter, matchingSameDB, outputFolder){
   
   # Library the necessary packages
   library(textreuse)
@@ -21,7 +21,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   
   # Return an empty frame if there was an error
   if (!is.list(corpus)) {
-	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
+	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Match_Count = numeric(1), stringsAsFactors = FALSE)
     return(df)
   }
 
@@ -35,13 +35,13 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   m <- tryCatch({
     pairwise_compare(mycorpus, ratio_of_matches, directional = TRUE)
   }, error = function(e) {
-   	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
+	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Match_Count = numeric(1), stringsAsFactors = FALSE)
     return(df)
   })
 
   # Return an empty frame if there was an error
   if (!is.matrix(m)) {
-	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
+	df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Match_Count = numeric(1), stringsAsFactors = FALSE)
     return(df)
   }
   
@@ -54,14 +54,6 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   wordcounts <- wordcount(corpus)
   df$item_instances <- NA
   
-  # Used to get total instance count
-  df$item_total_count <- NA
-  df$match_total_count <- NA
-  metadata<-read.csv(metadataPath, header = TRUE, sep = ",")
-  df$item_has_properties <- NA
-  df$match_has_properties <- NA
-
-
   df$match_instances <- NA
   for (r in 1:nrow(df)) {
 	item.file.name <- df[r, 1][[1]]
@@ -92,38 +84,6 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	values <- strsplit(match.file.name, ";")
 	match.file.name <-paste0(values[[1]][1],';', values[[1]][2])
 	match.file.name <- paste0(match.file.name, ";")
-	}
-	
-	item.total.count <- metadata[metadata$sourceFileName == item.file.name,][[2]]
-	match.total.count <- metadata[metadata$sourceFileName == match.file.name,][[2]]
-	if(length(item.total.count) == 0) {
-		df$item_total_count[r] = 0
-	} 
-	else {
-	    df$item_total_count[r] = item.total.count
-	}
-	
-	if(length(match.total.count) == 0) {
-		df$match_total_count[r] = 0
-	} 
-	else {
-	    df$match_total_count[r] = match.total.count
-	}
-	
-	item.has.properties <- metadata[metadata$sourceFileName == item.file.name,][[3]]
-	if(length(item.has.properties) == 0) {
-		df$item_has_properties[r] = 0
-	}
-	else {
-	df$item_has_properties[r] = item.has.properties
-	}
-	
-	match.has.properties <- metadata[metadata$sourceFileName == match.file.name,][[3]]
-	if(length(match.has.properties) == 0) {
-		df$match_has_properties[r] = 0
-	}
-	else {
-	df$match_has_properties[r] = match.has.properties
 	}
   }
   
@@ -247,16 +207,16 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ##################################################
   
   # Start with the item engine/concepts
-  unique.ecp <- dt[, c("item_engine", "item_concept", "item_concept_original", "item_property", "item_property_original", "item_instances", "item_total_count", "item_has_properties")]
+  unique.ecp <- dt[, c("item_engine", "item_concept", "item_concept_original", "item_property", "item_property_original", "item_instances")]
   
   # Temporarily change the column names to match
-  colnames(unique.ecp) <- c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances", "match_total_count", "match_has_properties")
+  colnames(unique.ecp) <- c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances")
   
   # Append match engine and concpets
-  unique.ecp <- rbind(unique.ecp, dt[, c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances", "match_total_count", "match_has_properties")])
+  unique.ecp <- rbind(unique.ecp, dt[, c("match_engine", "match_concept", "match_concept_original", "match_property", "match_property_original", "match_instances")])
   
   # Change the names to just engine and concept
-  colnames(unique.ecp) <- c("engine", "concept_id", "concept", "property_id", "property", "instances", "total_count", "has_properties")
+  colnames(unique.ecp) <- c("engine", "concept_id", "concept", "property_id", "property", "instances")
   
   # Remove duplicated values
   setkeyv(unique.ecp, c("engine", "concept_id", "property_id"))
@@ -268,7 +228,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ##################################################
   match <- dt[, c("match", "score")]
   colnames(match) <- c("match_id", "score")
-  colnames(dt) <- c("score","item_instances", "item_total_count", "match_total_count", "item_has_properties", "match_has_properties", "match_instances","item_engine","item_concept_id","item_property_id","match_engine","match_concept_id","match_property_id","item_concept","match_concept","item_property","match_property","match_id")
+  colnames(dt) <- c("score","item_instances", "match_instances","item_engine","item_concept_id","item_property_id","match_engine","match_concept_id","match_property_id","item_concept","match_concept","item_property","match_property","match_id")
 
   ##################################################
   # Add dummy nodes to make sure there is data to generate the metamodel properly
@@ -289,11 +249,11 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   p.p <- paste0(s.p.id, match.separator, s.p.id)
   
   # unique.ecp
-  # ("engine", "concept_id", "concept", "property_id", "property", "instances", "total_count", "has_properties")
-  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, NA, NA, 0, 0, 0)))
-  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, NA, NA, 0, 0, 0)))
-  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, s.p.id, s.p, 0, 0, 0)))
-  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, t.p.id, t.p, 0, 0, 0)))
+  # ("engine", "concept_id", "concept", "property_id", "property", "instances")
+  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, NA, NA, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, NA, NA, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(s.e, s.c.id, s.c, s.p.id, s.p, 0)))
+  unique.ecp <- rbindlist(list(unique.ecp, list(t.e, t.c.id, t.c, t.p.id, t.p, 0)))
   
   # match
   # ("match_id", "score")
@@ -395,12 +355,12 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   ################################################
   # Rename columns for matching database
   ##################################################
-  colnames(dt) <- c("Score", "Source_Instances", "Source_Total_Count", "Target_Total_Count", "Source_Has_Columns", "Target_Has_Columns", "Target_Instances", "Source_Database", "Source_Table_Id", "Source_Column_Id", "Target_Database", "Target_Table_Id", "Target_Column_Id", "Source_Table", "Target_Table", "Source_Property", "Target_Property", "Match_Id", "Is_Table_Source", "Is_Table_Target", "Is_Relation_Source", "Is_Relation_Target", "PKI")
+  colnames(dt) <- c("Score", "Source_Instances", "Target_Instances", "Source_Database", "Source_Table_Id", "Source_Column_Id", "Target_Database", "Target_Table_Id", "Target_Column_Id", "Source_Table", "Target_Table", "Source_Property", "Target_Property", "Match_Id", "Is_Table_Source", "Is_Table_Target", "Is_Relation_Source", "Is_Relation_Target", "PKI")
 
   ################################################
   # Rename columns for dataframe returned
   ##################################################
-  colnames(df) <- c("score", "source_instances", "source_total_count", "target_total_count", "source_has_columns", "target_has_columns", "target_instances", "source_database", "source_table", "source_column", "target_database", "target_table", "target_column", "PKI")  
+  colnames(df) <- c("Score", "Source_Instances", "Target_Instances", "Source_Database", "Source_Table", "Source_Column", "Target_Database", "Target_Table", "Target_Column", "PKI")
   
   #########################################################
   # Merge concept and property as one value to be displayed
@@ -434,14 +394,20 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   
   dt<-cbind(dt, Target_Column)
   
+  
+  ##################################################
+  # Adding match count column
+  ##################################################
+  dt$Match_Count <- round(dt$Score * dt$Source_Instances)
+  
   ##################################################
   # Write all the tables
   ##################################################
   
-  write.csv(dt, paste0(rdbmsPath, "\\", "0_flat_table.csv"), row.names = FALSE, na = "")
+  write.csv(dt, paste0(outputFolder, "\\", "0_flat_table.csv"), row.names = FALSE, na = "")
   
   # Finally return the data frame
-  write.csv(df, paste0(rdbmsPath, "\\", "final.csv"), row.names = FALSE, na = "")
+  write.csv(df, paste0(outputFolder, "\\", "final.csv"), row.names = FALSE, na = "")
 
   return(dt)
 }

@@ -34,6 +34,7 @@ import java.util.Vector;
 import prerna.ds.QueryStruct;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
+import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public interface IExplorable {
@@ -100,6 +101,8 @@ public interface IExplorable {
 	Vector<Object> getParamOptions(String parameterURI);
 
 	IQueryInterpreter getQueryInterpreter();
+	
+	IQueryInterpreter2 getQueryInterpreter2();
 	
 	/**
 	 * Returns the list of concepts as defined by the OWL file

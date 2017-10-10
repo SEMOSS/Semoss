@@ -125,7 +125,7 @@ public class ExpressionGenerator {
 			leftGroups = leftBuilder.getGroupBySelectors();
 		} else if(ArrayUtilityMethods.arrayContainsValue(headers, leftObj.toString())) {
 			// selector is a header
-			leftSelector = new RColumnSelector(leftObj.toString());
+			leftSelector = new RColumnSelector(frame, leftObj.toString());
 		} else {
 			// selector is a constant
 			leftSelector = new RConstantSelector(leftObj);
@@ -142,7 +142,7 @@ public class ExpressionGenerator {
 			rightGroups = rightBuilder.getGroupBySelectors();
 		} else if(ArrayUtilityMethods.arrayContainsValue(headers, rightObj.toString())) {
 			// selector is a header
-			rightSelector = new RColumnSelector(rightObj.toString());
+			rightSelector = new RColumnSelector(frame, rightObj.toString());
 		} else {
 			// selector is a constant
 			rightSelector = new RConstantSelector(rightObj);

@@ -10,6 +10,10 @@ public class FormatFactory {
 			return new TableFormatter();
 		}
 		
+		case "GRID": {
+			return new TableFormatter();
+		}
+		
 		case "GRAPH": {
 			return new GraphFormatter();
 		}
@@ -22,10 +26,18 @@ public class FormatFactory {
 			return new KeyValueFormatter();
 		}
 		
+		case "CLUSTERGRAMMAR": {
+			return new ClustergramFormatter();
+		}
+		
+		case "CLUSTERGRAM" : {
+			return new ClustergramFormatter();
+		}
+		
 		default : {
 			return new TableFormatter();
 		}
-		}
 		
+		}
 	}
 }

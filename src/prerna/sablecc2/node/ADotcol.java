@@ -8,7 +8,6 @@ import prerna.sablecc2.analysis.*;
 public final class ADotcol extends PDotcol
 {
     private TFrameid _frameid_;
-    private TDot _dot_;
     private TId _columnName_;
 
     public ADotcol()
@@ -18,13 +17,10 @@ public final class ADotcol extends PDotcol
 
     public ADotcol(
         @SuppressWarnings("hiding") TFrameid _frameid_,
-        @SuppressWarnings("hiding") TDot _dot_,
         @SuppressWarnings("hiding") TId _columnName_)
     {
         // Constructor
         setFrameid(_frameid_);
-
-        setDot(_dot_);
 
         setColumnName(_columnName_);
 
@@ -35,7 +31,6 @@ public final class ADotcol extends PDotcol
     {
         return new ADotcol(
             cloneNode(this._frameid_),
-            cloneNode(this._dot_),
             cloneNode(this._columnName_));
     }
 
@@ -70,31 +65,6 @@ public final class ADotcol extends PDotcol
         this._frameid_ = node;
     }
 
-    public TDot getDot()
-    {
-        return this._dot_;
-    }
-
-    public void setDot(TDot node)
-    {
-        if(this._dot_ != null)
-        {
-            this._dot_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._dot_ = node;
-    }
-
     public TId getColumnName()
     {
         return this._columnName_;
@@ -125,7 +95,6 @@ public final class ADotcol extends PDotcol
     {
         return ""
             + toString(this._frameid_)
-            + toString(this._dot_)
             + toString(this._columnName_);
     }
 
@@ -136,12 +105,6 @@ public final class ADotcol extends PDotcol
         if(this._frameid_ == child)
         {
             this._frameid_ = null;
-            return;
-        }
-
-        if(this._dot_ == child)
-        {
-            this._dot_ = null;
             return;
         }
 
@@ -161,12 +124,6 @@ public final class ADotcol extends PDotcol
         if(this._frameid_ == oldChild)
         {
             setFrameid((TFrameid) newChild);
-            return;
-        }
-
-        if(this._dot_ == oldChild)
-        {
-            setDot((TDot) newChild);
             return;
         }
 

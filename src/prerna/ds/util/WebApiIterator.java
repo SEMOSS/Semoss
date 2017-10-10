@@ -10,7 +10,7 @@ import java.util.Set;
 
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.poi.main.helper.AmazonApiHelper;
 import prerna.poi.main.helper.ImportApiHelper;
 import prerna.poi.main.helper.WebAPIHelper;

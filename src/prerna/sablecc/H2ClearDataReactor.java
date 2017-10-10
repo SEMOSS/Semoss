@@ -4,7 +4,6 @@ import java.util.Iterator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
-import prerna.om.Dashboard;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
@@ -19,11 +18,11 @@ public class H2ClearDataReactor extends AbstractReactor {
 	@Override
 	public Iterator process() {
 		H2Frame frame = (H2Frame) myStore.get(PKQLEnum.G);
-		if (frame.isJoined()) {
-			Dashboard dashboard = frame.getJoiner().getDashboard();
-			dashboard.dropDashboard();
-			dashboard.clearData();
-		}
+//		if (frame.isJoined()) {
+//			Dashboard dashboard = frame.getJoiner().getDashboard();
+//			dashboard.dropDashboard();
+//			dashboard.clearData();
+//		}
 		ITableDataFrame newFrame = (ITableDataFrame) Utility.getDataMaker(null, frame.getClass().getSimpleName());
 		newFrame.setUserId(frame.getUserId());
 		for (int i = 0; i <= frame.getDataId(); i++) {

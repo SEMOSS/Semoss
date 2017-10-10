@@ -1,0 +1,225 @@
+package prerna.query.querystruct;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.Vector;
+
+import prerna.sablecc2.om.QueryFilter;
+import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
+
+public class GenRowFilters {
+
+	/*
+	 * This class is used to store filters within the QueryStruct2
+	 * Idea is to allow for more complex filtering scenarios
+	 */
+	
+	// keep the list of filter objects to execute
+	private List<QueryFilter> filterVec = new Vector<QueryFilter>();
+	
+	// keep the list of filtered columns instead of iterating through
+	private Set<String> filteredColumns = new HashSet<String>();
+	
+	public GenRowFilters() {
+		
+	}
+
+	public List<QueryFilter> getFilters() {
+		return this.filterVec;
+	}
+	
+	public void addFilters(QueryFilter newFilter) {
+		this.filterVec.add(newFilter);
+		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
+	}
+
+	public boolean hasFilter(String column) {
+		return this.filteredColumns.contains(column);
+	}
+
+	public boolean isEmpty() {
+		return this.filterVec.isEmpty();
+	}
+	
+	/**
+	 * Overriding toString for debugging
+	 */
+	public String toString() {
+		StringBuilder toString = new StringBuilder();
+		int numFilters = filterVec.size();
+		for(int i = 0; i < numFilters; i++) {
+			toString.append(filterVec.get(i)).append("\t");
+		}
+		return toString.toString();
+	}
+
+	public void merge(QueryFilter filter) {
+		GenRowFilters grf = new GenRowFilters();
+		grf.addFilters(filter);
+		merge(grf);
+	}
+	
+	public void merge(GenRowFilters incomingFilters) {
+		if(incomingFilters == null || incomingFilters.size() == 0) {
+			return;
+		}
+		// incoming filters will add to the existing filters that are present
+		// all variables pertaining to the main set of filters will start with m_
+		// all variables pertaining to the incoming filters will start with i_
+		
+		List<QueryFilter> newFiltersToAppend = new Vector<QueryFilter>();
+		Set<String> newColumnsToFilter = new HashSet<String>();
+		
+		NEW_FILTERS_LOOP : for(QueryFilter i_filter : incomingFilters.filterVec) {
+			// get the new filter
+			Set<String> i_usedCols = i_filter.getAllUsedColumns();
+			String i_comparator = i_filter.getComparator();
+			
+			// we can only merge if there is only 1 column used
+			// if 2 cols are used, it just gets added to the gen row filter
+			if(i_usedCols.size() != 1) {
+				// add this filter to the existing QueryFilter
+				newFiltersToAppend.add(i_filter);
+				newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
+				// continue through the loop
+				continue;
+			}
+			
+			// compare this new filter will all the existing filters
+			// if we find something where we need to merge
+			// we will figure out how to merge
+			// else, we will just add it
+			for(QueryFilter m_filter : this.filterVec) {
+				// get the columns for the existing filter
+				Set<String> m_usedCols = m_filter.getAllUsedColumns();
+				String m_comparator = m_filter.getComparator();
+				
+				// remember i_usedCols only contains a single column
+				// so m_usedCol must also have that exact same column to merge
+				// and, they must have the exact same comparator
+				if(i_usedCols.containsAll(m_usedCols) && i_comparator.equals(m_comparator)) {
+					// we can merge!
+					m_filter.merge(i_filter);
+					
+					// break out of the existing filters loop
+					// since we have already merged it
+					continue NEW_FILTERS_LOOP;
+				}
+			}
+			
+			// if we came to this point, we were not able to merge
+			// so add it to the list to append
+			newFiltersToAppend.add(i_filter);
+			newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
+		}
+		
+		// now loop through and add all the new filters
+		this.filterVec.addAll(newFiltersToAppend);
+		this.filteredColumns.addAll(newColumnsToFilter);
+	}
+	
+	public int size() {
+		return this.filterVec.size();
+	}
+
+	/**
+	 * Remove any filters that touch a specific column
+	 * @param columnName
+	 * @return boolean 		did we remove any filters
+	 */
+	public boolean removeColumnFilter(String column) {
+		if(this.filteredColumns.contains(column)) {
+			// we have an existing filter that affects this column
+			// get an iterator so we can remove while we iterate
+			boolean recreateFilterCols = false;
+			Iterator<QueryFilter> filterIt = this.filterVec.iterator();
+			while(filterIt.hasNext()) {
+				QueryFilter filter = filterIt.next();
+				if(filter.containsColumn(column)) {
+					filterIt.remove();
+					this.filteredColumns.remove(column);
+					if(QueryFilter.determineFilterType(filter) == FILTER_TYPE.COL_TO_COL) {
+						recreateFilterCols = true;
+					}
+				}
+			}
+			
+			if(recreateFilterCols) {
+				this.filteredColumns.clear();
+				for(QueryFilter filter : this.filterVec) {
+					this.filteredColumns.addAll(filter.getAllUsedColumns());
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * Iterate through a list of columns to remove the filters
+	 * @param columns
+	 */
+	public void removeColumnFilters(Collection<String> columns) {
+		for(String column : columns) {
+			removeColumnFilter(column);
+		}
+	}
+	
+	/**
+	 * Remove all filters
+	 */
+	public void removeAllFilters() {
+		this.filterVec.clear();
+		this.filteredColumns.clear();
+	}
+	
+	/**
+	 * Get all filtered columns used in this filter
+	 * @return
+	 */
+	public Set<String> getAllFilteredColumns() {
+		return this.filteredColumns;
+	}
+	
+	/**
+	 * Create a copy of the filter
+	 * @return
+	 */
+	public GenRowFilters copy() {
+		GenRowFilters copy = new GenRowFilters();
+		for(QueryFilter filter : this.filterVec) {
+			QueryFilter fCopy = filter.copy();
+			copy.addFilters(fCopy);
+		}
+		return copy;
+	}
+	
+	/**
+	 * Get all the QueryFilter objects pertaining to a specific column
+	 * @param column
+	 * @return
+	 */
+	public List<QueryFilter> getAllQueryFiltersContainingColumn(String column) {
+		List<QueryFilter> filterList = new Vector<QueryFilter>();
+		// since we already store all the filtered columns
+		// if what is passed is not in the list
+		// return an empty list
+		// else
+		// loop through and get all the queryfilter objects that touch this column
+		if(!this.filteredColumns.contains(column)) {
+			return filterList;
+		}
+		for(QueryFilter f : this.filterVec) {
+			if(f.containsColumn(column)) {
+				filterList.add(f);
+			}
+		}
+		
+		return filterList;
+	}
+	
+}

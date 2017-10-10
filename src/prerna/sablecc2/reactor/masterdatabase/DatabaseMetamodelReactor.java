@@ -5,8 +5,8 @@ import java.util.Map;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DatabaseMetamodelReactor extends AbstractReactor {
@@ -22,7 +22,7 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 		}
 		String engineName = eGrs.get(0).toString();
 		Map<String, Object[]> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineName);
-		return new NounMetadata(metamodelObject, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_METAMODEL);
+		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
 	}
 
 }

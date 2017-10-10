@@ -1,10 +1,12 @@
 package prerna.sablecc2;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import prerna.sablecc2.analysis.DepthFirstAdapter;
-import prerna.sablecc2.node.AFrameop;
-import prerna.sablecc2.node.AOperationFormula;
+import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.reactor.ReactorFactory;
 
 public class ValidatorTranslation extends DepthFirstAdapter {
@@ -21,14 +23,8 @@ public class ValidatorTranslation extends DepthFirstAdapter {
 		return implementedReactorChecks.get(false);
 	}
 	
-	public void inAOperationFormula(AOperationFormula node) {
-		String reactorId = node.getId().toString().trim();
-		boolean isImplemented = ReactorFactory.hasReactor(reactorId);
-		implementedReactorChecks.get(isImplemented).add(reactorId);
-		
-	}
-	
-	public void inAFrameop(AFrameop node) {
+	@Override
+	public void inAOperation(AOperation node) {
 		String reactorId = node.getId().toString().trim();
 		boolean isImplemented = ReactorFactory.hasReactor(reactorId);
 		implementedReactorChecks.get(isImplemented).add(reactorId);

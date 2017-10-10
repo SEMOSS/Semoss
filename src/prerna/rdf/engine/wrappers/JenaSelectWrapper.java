@@ -134,4 +134,10 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 			return Utility.getInstanceName(node + "");
 		}
 	}
+
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -3,13 +3,17 @@ package prerna.sablecc.expressions.r.builder;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.ds.r.RDataTable;
 import prerna.sablecc.expressions.IExpressionSelector;
 
 public class RColumnSelector implements IExpressionSelector {
 
+	private RDataTable frame;
 	private String columnName;
 	
-	public RColumnSelector(String columnName) {
+	public RColumnSelector(RDataTable frame, String columnName) {
+		this.frame = frame;
 		this.columnName = columnName;
 	}
 	
@@ -22,7 +26,15 @@ public class RColumnSelector implements IExpressionSelector {
 	
 	@Override
 	public String toString() {
-		return columnName;
+		String tableName = frame.getTableName();
+		String uniqueName = tableName + "__" + columnName;
+		if(frame.getMetaData().getHeaderTypeAsEnum(uniqueName, tableName) == DATA_TYPES.DATE) {
+			StringBuilder builder = new StringBuilder();
+			builder.append("format(").append(columnName).append(", '%m/%d/%Y')");
+			return builder.toString();
+		} else {
+			return columnName;
+		}
 	}
 
 	@Override

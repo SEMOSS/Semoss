@@ -6,8 +6,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
@@ -20,12 +18,6 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Utility;
 
 public class RBuilder extends AbstractRBuilder {
-
-	private static final Logger LOGGER = LogManager.getLogger(RBuilder.class.getName());
-
-//	private static final String CREATE_DATA_TABLE_METHOD = "createEmptyDataTable.123456";
-//	private static final String ADD_ROW_TO_DATA_TABLE_METHOD = "appendToDataTable.123456";
-//	private static final String REMOVE_EMPTY_ROWS = "removeEmptyRows.123456";
 
 	// holds the connection for RDataFrame to the instance of R running
 	private RConnection retCon;
@@ -42,7 +34,7 @@ public class RBuilder extends AbstractRBuilder {
 	public RBuilder() throws RserveException {
 		RConnection masterCon = RSingleton.getConnection();
 		this.port = Utility.findOpenPort();
-		LOGGER.info("Starting it on port.. " + port);
+		this.logger.info("Starting it on port.. " + port);
 		// need to find a way to get a common name
 		masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
 		this.retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
@@ -69,38 +61,30 @@ public class RBuilder extends AbstractRBuilder {
 	}
 
 	private void loadDefaultLibraries() throws RserveException {
-		// load in the data.table package
-//		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
-//		this.retCon.eval("library(data.table)");
-//		LOGGER.info("SUCCESS!");
-		// load in the sqldf package to run sql queries
-		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
-		this.retCon.eval("library(sqldf)");
-		LOGGER.info("SUCCESS!");
 		// load all the libraries
-		LOGGER.info("TRYING TO LOAD PACAKGE: splitstackshape");
+		this.logger.info("TRYING TO LOAD PACAKGE: splitstackshape");
 		this.retCon.eval("library(splitstackshape);");
-		LOGGER.info("SUCCESS!");
+		this.logger.info("SUCCESS!");
 		// data table
-		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
+		this.logger.info("TRYING TO LOAD PACAKGE: data.table");
 		this.retCon.eval("library(data.table);");
-		LOGGER.info("SUCCESS!");
+		this.logger.info("SUCCESS!");
 		// xlsx
-		LOGGER.info("TRYING TO LOAD PACAKGE: xlsx");
+		this.logger.info("TRYING TO LOAD PACAKGE: xlsx");
 		this.retCon.eval("library(xlsx);");
-		LOGGER.info("SUCCESS!");
+		this.logger.info("SUCCESS!");
 		// reshape2
-		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
+		this.logger.info("TRYING TO LOAD PACAKGE: reshape2");
 		this.retCon.eval("library(reshape2);");
-		LOGGER.info("SUCCESS!");
+		this.logger.info("SUCCESS!");
 		// rjdbc
-		LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
+		this.logger.info("TRYING TO LOAD PACAKGE: RJDBC");
 		this.retCon.eval("library(RJDBC);");
-		LOGGER.info("SUCCESS!");
+		this.logger.info("SUCCESS!");
 		// stringr
-		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
+		this.logger.info("TRYING TO LOAD PACAKGE: stringr");
 		this.retCon.eval("library(stringr);");
-		LOGGER.info("SUCCESS!");
+		this.logger.info("SUCCESS!");
 	}
 	
 	protected String getTableName() {
@@ -223,7 +207,8 @@ public class RBuilder extends AbstractRBuilder {
 	 * @return
 	 */
 	public boolean isEmpty() {
-		REXP result = executeR( addTryEvalToScript( "exists(" + this.dataTableName + ")" ) );
+		//TO DO - test to determine need for quotes around dataTableName
+		REXP result = executeR( addTryEvalToScript( "exists(\'" + this.dataTableName + "\')" ) );
 		try {
 			// we get the boolean expression as an integer
 			// 1 = TRUE, 0 = FALSE
@@ -368,8 +353,49 @@ public class RBuilder extends AbstractRBuilder {
 							values[idx] = data[i];
 						}
 					}
-				} else {
-					LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+				}
+				
+				else if (val instanceof String)
+				{
+					String data = (String) val;
+					if (retArr.size() == 0)
+					{
+						Object[] values = new Object[numColumns];
+						values[idx] = data;
+						retArr.add(values);
+					} else {
+						Object[] values = retArr.get(0);
+						values[idx] = data;
+					}
+				}
+				
+				else if (val instanceof Double){
+					Double data = (Double) val;
+					if (retArr.size() == 0) {
+						Object [] values = new Object[numColumns];
+						values[idx] = data;
+						retArr.add(values);
+					} else {
+						Object[] values = retArr.get(0);
+						values [idx] = data;
+					}	
+				}
+				else if (val instanceof Integer){
+					Integer data = (Integer) val;
+					if (retArr.size() == 0) 
+					{
+						Object [] values = new Object [numColumns];
+						values[idx] = data;
+						retArr.add(values);
+					} else {
+						Object [] values = retArr.get(0);
+						values [idx] = data;
+					}
+				}
+				
+				
+				else {
+					logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
 				}
 			}
 		} catch (REXPMismatchException e) {
@@ -382,7 +408,7 @@ public class RBuilder extends AbstractRBuilder {
 	protected Object[] getBulkSingleColumn(String rScript) {
 		REXP rs = executeR(rScript);
 		try {
-			// need to break this out into individual componenets
+			// need to break this out into individual components
 			Object result = rs.asNativeJavaObject();
 			if(result instanceof Object[]) {
 				return (Object[]) result;
@@ -401,7 +427,7 @@ public class RBuilder extends AbstractRBuilder {
 				}
 				return retObj;
 			} else {
-				LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
 			}
 		} catch(Exception e) {
 			
@@ -475,5 +501,30 @@ public class RBuilder extends AbstractRBuilder {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	protected String[] getColumnType(String varName) {
+		REXP typesR = executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)");
+		String[] typesRString = null;
+		try {
+			typesRString =  typesR.asStrings();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return typesRString;
+	}
+	
+	@Override
+	public int getIntFromScript(String rScript){
+		REXP result = executeR(rScript);
+		int number = 0;
+		try {
+			number = result.asInteger();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return number;
 	}
 }

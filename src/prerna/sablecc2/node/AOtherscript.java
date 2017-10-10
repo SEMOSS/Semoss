@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 public final class AOtherscript extends POtherscript
 {
     private TCustom _custom_;
-    private PScript _script_;
+    private PExpr _expr_;
 
     public AOtherscript()
     {
@@ -17,12 +17,12 @@ public final class AOtherscript extends POtherscript
 
     public AOtherscript(
         @SuppressWarnings("hiding") TCustom _custom_,
-        @SuppressWarnings("hiding") PScript _script_)
+        @SuppressWarnings("hiding") PExpr _expr_)
     {
         // Constructor
         setCustom(_custom_);
 
-        setScript(_script_);
+        setExpr(_expr_);
 
     }
 
@@ -31,7 +31,7 @@ public final class AOtherscript extends POtherscript
     {
         return new AOtherscript(
             cloneNode(this._custom_),
-            cloneNode(this._script_));
+            cloneNode(this._expr_));
     }
 
     @Override
@@ -65,16 +65,16 @@ public final class AOtherscript extends POtherscript
         this._custom_ = node;
     }
 
-    public PScript getScript()
+    public PExpr getExpr()
     {
-        return this._script_;
+        return this._expr_;
     }
 
-    public void setScript(PScript node)
+    public void setExpr(PExpr node)
     {
-        if(this._script_ != null)
+        if(this._expr_ != null)
         {
-            this._script_.parent(null);
+            this._expr_.parent(null);
         }
 
         if(node != null)
@@ -87,7 +87,7 @@ public final class AOtherscript extends POtherscript
             node.parent(this);
         }
 
-        this._script_ = node;
+        this._expr_ = node;
     }
 
     @Override
@@ -95,7 +95,7 @@ public final class AOtherscript extends POtherscript
     {
         return ""
             + toString(this._custom_)
-            + toString(this._script_);
+            + toString(this._expr_);
     }
 
     @Override
@@ -108,9 +108,9 @@ public final class AOtherscript extends POtherscript
             return;
         }
 
-        if(this._script_ == child)
+        if(this._expr_ == child)
         {
-            this._script_ = null;
+            this._expr_ = null;
             return;
         }
 
@@ -127,9 +127,9 @@ public final class AOtherscript extends POtherscript
             return;
         }
 
-        if(this._script_ == oldChild)
+        if(this._expr_ == oldChild)
         {
-            setScript((PScript) newChild);
+            setExpr((PExpr) newChild);
             return;
         }
 

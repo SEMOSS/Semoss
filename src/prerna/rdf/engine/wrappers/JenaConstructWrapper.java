@@ -86,4 +86,10 @@ public class JenaConstructWrapper extends AbstractWrapper implements IConstructW
 		return si.hasNext();
 	}
 
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

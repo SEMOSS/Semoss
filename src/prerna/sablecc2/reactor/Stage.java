@@ -8,7 +8,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Utility;
 
 public class Stage extends Hashtable <String, Hashtable> {
@@ -259,10 +259,10 @@ public class Stage extends Hashtable <String, Hashtable> {
 		if(values.size() > 0)
 		{
 			// predict what the type is
-			PkslDataTypes type = values.vector.get(1).getNounType();
+			PixelDataType type = values.vector.get(1).getNounType();
 			String pad = "";
 			StringBuffer filterVectorString = new StringBuffer();
-			if(type == PkslDataTypes.CONST_STRING)
+			if(type == PixelDataType.CONST_STRING)
 			{
 				pad = "\"";
 				filterVectorString.append("strVector = new Vector();\n");

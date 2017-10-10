@@ -3,13 +3,13 @@ package prerna.sablecc2.reactor.planner;
 import java.util.Iterator;
 import java.util.List;
 
-import prerna.sablecc2.PkslUtility;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.util.ArrayUtilityMethods;
 
 public abstract class AbstractLoadClient extends AbstractReactor {
@@ -26,15 +26,15 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	 * 
 	 * This abtract method is defined by the child class to have control as to what type of planner to create, all other operations are the same
 	 */
-	protected abstract PKSLPlanner createPlanner();
+	protected abstract PixelPlanner createPlanner();
 	
 	@Override
 	public NounMetadata execute()
 	{
 		// run through all the results in the iterator
 		// and append them into a new plan
-		PKSLPlanner newPlan = createPlanner();
-		return new NounMetadata(newPlan, PkslDataTypes.PLANNER);
+		PixelPlanner newPlan = createPlanner();
+		return new NounMetadata(newPlan, PixelDataType.PLANNER);
 	}
 	
 	/**
@@ -45,11 +45,11 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	 * 
 	 * This method will directly add the variable to the planner instead of adding an assignment pksl
 	 */
-	protected void addVariable(PKSLPlanner planner, String assignment, Object value) {
+	protected void addVariable(PixelPlanner planner, String assignment, Object value) {
 		if(assignment.equals(value.toString())) return;
 		if(assignment.equals(value.toString())) return;
 		
-		NounMetadata noun = PkslUtility.getNoun(value);
+		NounMetadata noun = PixelUtility.getNoun(value);
 		planner.addVariable(assignment, noun);
 	}
 	
@@ -121,14 +121,14 @@ public abstract class AbstractLoadClient extends AbstractReactor {
 	 * @return
 	 */
 	protected Iterator getIterator() {
-		List<Object> jobs = this.curRow.getColumnsOfType(PkslDataTypes.JOB);
-		if(jobs != null && jobs.size() > 0) {
-			Job job = (Job)jobs.get(0);
-			return job.getIterator();
+		List<Object> tasks = this.curRow.getValuesOfType(PixelDataType.TASK);
+		if(tasks != null && tasks.size() > 0) {
+			BasicIteratorTask task = (BasicIteratorTask)tasks.get(0);
+			return task.getIterator();
 		}
 
-		Job job = (Job) this.store.getNoun(PkslDataTypes.JOB.toString()).get(0);
-		return job.getIterator();
+		BasicIteratorTask task = (BasicIteratorTask) this.store.getNoun(PixelDataType.TASK.toString()).get(0);
+		return task.getIterator();
 	}
 
 	/**

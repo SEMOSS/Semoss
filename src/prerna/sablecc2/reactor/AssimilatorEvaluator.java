@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 /**
  * This is just a internal class
@@ -28,18 +28,18 @@ public abstract class AssimilatorEvaluator extends AbstractReactor {
 		NounMetadata noun = null;
 		Object retVal = getExpressionValue();
 		if(containsStringValue) {
-			noun = new NounMetadata(retVal.toString(), PkslDataTypes.CONST_STRING);
+			noun = new NounMetadata(retVal.toString(), PixelDataType.CONST_STRING);
 		} else if(allIntValue) {
 			Number result = (Number) retVal;
 			if(result.doubleValue() == Math.rint(result.doubleValue())) {
-				noun = new NounMetadata( ((Number) retVal).intValue(), PkslDataTypes.CONST_INT);
+				noun = new NounMetadata( ((Number) retVal).intValue(), PixelDataType.CONST_INT);
 			} else {
 				// not a valid integer
 				// return as a double
-				noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
+				noun = new NounMetadata( ((Number) retVal).doubleValue(), PixelDataType.CONST_DECIMAL);
 			}
 		} else {
-			noun = new NounMetadata( ((Number) retVal).doubleValue(), PkslDataTypes.CONST_DECIMAL);
+			noun = new NounMetadata( ((Number) retVal).doubleValue(), PixelDataType.CONST_DECIMAL);
 		}
 
 		return noun;

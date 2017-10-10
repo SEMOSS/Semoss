@@ -97,7 +97,7 @@ public class RVizReactor extends AbstractVizReactor{
 				String val = term.toString().trim();
 				if(ArrayUtilityMethods.arrayContainsValue(headers, val)) {
 					// we have a header to return
-					selector = new RColumnSelector(val);
+					selector = new RColumnSelector(frame, val);
 				} else {
 					// we have a constant to return
 					selector = new RConstantSelector(val);

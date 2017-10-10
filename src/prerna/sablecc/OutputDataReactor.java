@@ -1,6 +1,5 @@
 package prerna.sablecc;
 
-import java.io.File;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -11,12 +10,9 @@ import com.google.gson.reflect.TypeToken;
 import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.solr.SolrDocumentExportWriter;
-import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Utility;
 
@@ -103,18 +99,18 @@ public class OutputDataReactor extends AbstractReactor {
 				
 				//Don't cache dashboards for now...too many issues with that
 				//need to resolve updating insight ID for dashboards, as well as old insight IDs of insights stored in varMap
-				if(!(insightObj.getDataMaker() instanceof Dashboard)) {
-					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, insightOutput);
-
-					if(saveFileLocation != null) {
-						saveFileLocation = saveFileLocation + "_Solr.txt";
-						File solrFile = new File(saveFileLocation);
-						String solrId = SolrIndexEngine.getSolrIdFromInsightEngineId(insightObj.getEngineName(), insightObj.getRdbmsId());
-						SolrDocumentExportWriter writer = new SolrDocumentExportWriter(solrFile);
-						writer.writeSolrDocument(SolrIndexEngine.getInstance().getInsight(solrId));
-						writer.closeExport();
-					}
-				}
+//				if(!(insightObj.getDataMaker() instanceof Dashboard)) {
+//					String saveFileLocation = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).cacheInsight(insightObj, insightOutput);
+//
+//					if(saveFileLocation != null) {
+//						saveFileLocation = saveFileLocation + "_Solr.txt";
+//						File solrFile = new File(saveFileLocation);
+//						String solrId = SolrIndexEngine.getSolrIdFromInsightEngineId(insightObj.getEngineName(), insightObj.getRdbmsId());
+//						SolrDocumentExportWriter writer = new SolrDocumentExportWriter(solrFile);
+//						writer.writeSolrDocument(SolrIndexEngine.getInstance().getInsight(solrId));
+//						writer.closeExport();
+//					}
+//				}
 				
 			} catch (Exception ex) { //need to specify the different exceptions 
 				ex.printStackTrace();

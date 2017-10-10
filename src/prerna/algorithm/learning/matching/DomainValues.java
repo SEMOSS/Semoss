@@ -218,8 +218,9 @@ public class DomainValues {
 		}
 	}
 	private static void writeToFile(String filePath, HashSet<String> domainValues) {
+		FileWriter fileWriter = null;
 		try {
-			FileWriter fileWriter = new FileWriter(filePath);
+			fileWriter = new FileWriter(filePath);
 			for (String s : domainValues) {
 
 				// Replace everything that is not a letter, number, or space
@@ -231,9 +232,17 @@ public class DomainValues {
 					fileWriter.write(s.replaceAll("[^A-Za-z0-9 ]", "_") + "\n");
 				}
 			}
-			fileWriter.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				if(fileWriter != null) {
+					fileWriter.close();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 	/**
@@ -414,7 +423,7 @@ public class DomainValues {
 				Vector<String> concepts = (Vector) joins.get(join);
 				for (String endConcept : concepts) {
 					HashSet<String> uniqueConceptValues = new HashSet<String>();
-					Insight insightSource = InsightUtility.createTemporaryInsight();
+					Insight insightSource = InsightUtility.createInsight(engineName);
 					StringBuilder pkqlCommand = new StringBuilder();
 					pkqlCommand.append("data.frame('grid'); ");
 					pkqlCommand.append("data.import ( api: " + engineName + " ");

@@ -18,13 +18,11 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.algorithm.impl.BaseReducerReactor;
-import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IScriptReactor;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.nameserver.utility.MetamodelVertex;
-import prerna.om.Dashboard;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc.analysis.DepthFirstAdapter;
@@ -821,10 +819,10 @@ public class Translation extends DepthFirstAdapter {
 		Map<String, Object> webData = (Map<String, Object>) previousReactor.getValue("webData");
 		this.runner.addNewInsight(webData);
 
-		if (curReactor.getValue("G") instanceof Dashboard) {
-			Dashboard dash = (Dashboard) curReactor.getValue("G");
-			dash.setInsightOutput((String) webData.get("insightID"), webData);
-		}
+//		if (curReactor.getValue("G") instanceof Dashboard) {
+//			Dashboard dash = (Dashboard) curReactor.getValue("G");
+//			dash.setInsightOutput((String) webData.get("insightID"), webData);
+//		}
 		curReactor.set(PKQLEnum.OPEN_DATA, previousReactor.getValue(PKQLEnum.OPEN_DATA));
 	}
 	
@@ -857,6 +855,7 @@ public class Translation extends DepthFirstAdapter {
 		this.runner.setReturnData(webData.get("pkqlData"));
 		this.runner.setFeData((Map<String, Map<String, Object>>) webData.get("feData"));
 		
+		
 		IDataMaker dm = (IDataMaker) curReactor.getValue("G");
 		if(dm != null) {
 			this.frame = dm;
@@ -864,10 +863,10 @@ public class Translation extends DepthFirstAdapter {
 			Map<String, String> frameReactorNames = frame.getScriptReactors();
 			this.reactorNames.putAll(frameReactorNames);		
 		}
-		if (curReactor.getValue("G") instanceof Dashboard) {
-			Dashboard dash = (Dashboard) curReactor.getValue("G");
-			dash.setInsightOutput((String) webData.get("insightID"), webData);
-		}
+//		if (curReactor.getValue("G") instanceof Dashboard) {
+//			Dashboard dash = (Dashboard) curReactor.getValue("G");
+//			dash.setInsightOutput((String) webData.get("insightID"), webData);
+//		}
 		curReactor.set(PKQLEnum.OUTPUT_DATA, previousReactor.getValue(PKQLEnum.OUTPUT_DATA));
 	}
 	
@@ -1407,10 +1406,10 @@ public class Translation extends DepthFirstAdapter {
 		//TOOD: this is really crappy!!!!
 		//unless I instantiate a frame on Insight creation... which I don't want to do
 		//there is nothing where the FE creates a dashboard :/
-		if (!reactorNames.containsKey(PKQLEnum.DASHBOARD_ADD)) {
-			this.frame = new Dashboard();
-			this.reactorNames.putAll(this.frame.getScriptReactors());
-		}
+//		if (!reactorNames.containsKey(PKQLEnum.DASHBOARD_ADD)) {
+//			this.frame = new Dashboard();
+//			this.reactorNames.putAll(this.frame.getScriptReactors());
+//		}
 		
 		initReactor(PKQLEnum.DASHBOARD_ADD);
 		String nodeStr = node + "";
@@ -1449,29 +1448,29 @@ public class Translation extends DepthFirstAdapter {
 	}
 
 	public void outADashboardConfig(ADashboardConfig node) {
-		System.out.println("out a dashboard config");
-
-		Dashboard dm = (Dashboard) this.frame;
-
-		String json = node.getJson().toString();
-		json = json.replace("<json>", "");
-		json = json.replace("</json>", "");
-		
-		dm.setConfig(json);
-		runner.addToDashBoardData("config", json);
-		
-//		try {
-//			Map object = new Gson().fromJson(json, HashMap.class);
-//			dm.setConfig(object);
-////			runner.setReturnData(object);
-//			runner.addToDashBoardData("config", object);
-//		} catch (Exception e) {
-//			dm.setConfig(json);
-////			runner.setReturnData(json);
-//			runner.addToDashBoardData("config", json);
-//		}
-
-		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
+//		System.out.println("out a dashboard config");
+//
+//		Dashboard dm = (Dashboard) this.frame;
+//
+//		String json = node.getJson().toString();
+//		json = json.replace("<json>", "");
+//		json = json.replace("</json>", "");
+//		
+//		dm.setConfig(json);
+//		runner.addToDashBoardData("config", json);
+//		
+////		try {
+////			Map object = new Gson().fromJson(json, HashMap.class);
+////			dm.setConfig(object);
+//////			runner.setReturnData(object);
+////			runner.addToDashBoardData("config", object);
+////		} catch (Exception e) {
+////			dm.setConfig(json);
+//////			runner.setReturnData(json);
+////			runner.addToDashBoardData("config", json);
+////		}
+//
+//		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
 	// **************************************** END JOIN OPERATIONS
@@ -1602,9 +1601,9 @@ public class Translation extends DepthFirstAdapter {
 		this.frame = (IDataMaker) curReactor.getValue(PKQLEnum.G);
 		
 		// we need to set the connection in the PKQLRunner so we can call it via Java Reactor
-		if(this.frame instanceof RDataTable) {
-			this.runner.setVariableValue(BaseJavaReactor.R_CONN, ((RDataTable) this.frame).getConnection());
-		}
+//		if(this.frame instanceof RDataTable) {
+//			this.runner.setVariableValue(BaseJavaReactor.R_CONN, ((RDataTable) this.frame).getConnection());
+//		}
 		
 		// set the script reactors for this new frame
 		this.reactorNames = frame.getScriptReactors();
@@ -2442,7 +2441,7 @@ public class Translation extends DepthFirstAdapter {
     public void inAEmptyWordOrNum(AEmptyWordOrNum node)
     {
     	TNull nullVal = (TNull) node.getNull();
-		curReactor.put(PKQLEnum.WORD_OR_NUM, AbstractTableDataFrame.VALUE.NULL);
+//		curReactor.put(PKQLEnum.WORD_OR_NUM, AbstractTableDataFrame.VALUE.NULL);
     }
     
     public void outAVariableWordOrNum(AVariableWordOrNum node)

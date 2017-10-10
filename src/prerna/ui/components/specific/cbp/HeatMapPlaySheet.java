@@ -31,6 +31,7 @@ import java.awt.Dimension;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -60,11 +61,11 @@ public class HeatMapPlaySheet extends BrowserPlaySheet{
 	{
 		Hashtable<String, Hashtable<String, Object>> dataHash = new Hashtable<String, Hashtable<String, Object>>();
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 
 			if (!((String)listElement[3]).contains("blank") && !((String)listElement[1]).contains("blank") 
 					&& !((String)listElement[1]).contains("#N-A")&& !((String)listElement[1]).contains("#VALUE!") )

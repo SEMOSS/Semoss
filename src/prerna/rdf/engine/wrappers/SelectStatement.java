@@ -166,6 +166,12 @@ public class SelectStatement  implements ISelectStatement {
 		return null;
 	}
 
+	@Override
+	public String[] getRawHeaders() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;

@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.util.CsvFileIterator;
-import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
+import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.IQuerySelector;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -45,14 +47,27 @@ public class CsvApiReactor extends AbstractApiReactor {
 			this.newHeaders = (Map<String, String>) this.mapOptions.get(NEW_HEADERS_KEY);
 		}
 		
+		this.qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE);
+		CsvQueryStruct csvQs = new CsvQueryStruct();
+		//copy qs values to csvQS
+		csvQs.merge(this.qs);
+		
+		//set csvQS specific values
+		csvQs.setCsvFilePath(fileName);
+		csvQs.setDelimiter(',');
+		csvQs.setColumnTypes(this.dataTypeMap);
+		csvQs.setNewHeaderNames(this.newHeaders);
+		this.qs = csvQs;
+		
 		// pass in delimiter as a comma and return the FileIterator which uses the QS (if not empty) to 
 		// to determine what selectors to send
-		
 		// the qs is passed from AbstractApiReactor
-		this.put((String) getValue(PKQLEnum.API), CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.STRING, fileName, ',', this.qs, this.dataTypeMap, this.newHeaders));
+		CsvFileIterator csvIt = new CsvFileIterator (csvQs);
+		this.put((String) getValue(PKQLEnum.API), csvIt);
+		
 		this.put("RESPONSE", "success");
 		this.put("STATUS", PKQLRunner.STATUS.SUCCESS);
-		
+		this.put(PKQLEnum.QUERY_STRUCT, csvQs);
 		return null;
 	}
 	

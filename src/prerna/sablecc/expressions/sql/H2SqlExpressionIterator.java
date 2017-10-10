@@ -173,18 +173,18 @@ public class H2SqlExpressionIterator implements Iterator<Object[]> {
 				// this is super annoying...
 				// TODO: need to come back to the interface and figure out how to return 
 				// the names we want to show and not the view table names
-				if(frame.isJoined()) {
-					List<String> cleanColsUsed = new Vector<String>();
-					String tname = frame.getTableName();
-					for(String colUsed : colsUsed) {
-						// this is because we know the column is the original table it came from
-						// concat with underscore concat with the column name in the frame
-						cleanColsUsed.add(colUsed.replace(tname + "_", ""));
-					} 
-					operationMap.put("calculatedBy", cleanColsUsed);
-				} else {
+//				if(frame.isJoined()) {
+//					List<String> cleanColsUsed = new Vector<String>();
+//					String tname = frame.getTableName();
+//					for(String colUsed : colsUsed) {
+//						// this is because we know the column is the original table it came from
+//						// concat with underscore concat with the column name in the frame
+//						cleanColsUsed.add(colUsed.replace(tname + "_", ""));
+//					} 
+//					operationMap.put("calculatedBy", cleanColsUsed);
+//				} else {
 					operationMap.put("calculatedBy", colsUsed);
-				}
+//				}
 				
 
 				if(selector instanceof SqlMathSelector) {

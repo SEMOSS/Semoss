@@ -28,13 +28,13 @@ public class InsightAdministrator {
 	 * Insert a new insight into the engine
 	 * @param insightName
 	 * @param layout
-	 * @param pkqlRecipeToSave
+	 * @param pixelRecipeToSave
 	 * @return
 	 */
-	public String addInsight(String insightName, String layout, String[] pkqlRecipeToSave) {
+	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave) {
 		LOGGER.info("Adding new question with name :::: " + insightName);
 		LOGGER.info("Adding new question with layout :::: " + layout);
-		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pkqlRecipeToSave));
+		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
 		
 		insightName = escapeForSQLStatement(insightName);
 		layout = escapeForSQLStatement(layout);
@@ -53,10 +53,10 @@ public class InsightAdministrator {
 				.append("'").append(layout).append("', (");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
-		int numPksls = pkqlRecipeToSave.length;
-		for(int i = 0; i < numPksls; i++) {
-			insertQuery.append("'").append(escapeForSQLStatement(pkqlRecipeToSave[i])).append("'");
-			if(i+1 != numPksls) {
+		int numPixels = pixelRecipeToSave.length;
+		for(int i = 0; i < numPixels; i++) {
+			insertQuery.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
+			if(i+1 != numPixels) {
 				insertQuery.append(",");
 			}
 		}
@@ -75,13 +75,13 @@ public class InsightAdministrator {
 	 * @param existingRdbmsId
 	 * @param insightName
 	 * @param layout
-	 * @param pkqlRecipeToSave
+	 * @param pixelRecipeToSave
 	 */
-	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pkqlRecipeToSave) {
+	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave) {
 		LOGGER.info("Modifying insert id :::: " + existingRdbmsId);
 		LOGGER.info("Adding new question with name :::: " + insightName);
 		LOGGER.info("Adding new question with layout :::: " + layout);
-		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pkqlRecipeToSave));
+		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
 		
 		insightName = escapeForSQLStatement(insightName);
 		layout = escapeForSQLStatement(layout);
@@ -92,10 +92,10 @@ public class InsightAdministrator {
 				.append(COL_QUESTION_PKQL).append("=(");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
-		int numPksls = pkqlRecipeToSave.length;
-		for(int i = 0; i < numPksls; i++) {
-			updateQuery.append("'").append(escapeForSQLStatement(pkqlRecipeToSave[i])).append("'");
-			if(i+1 != numPksls) {
+		int numPixels = pixelRecipeToSave.length;
+		for(int i = 0; i < numPixels; i++) {
+			updateQuery.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
+			if(i+1 != numPixels) {
 				updateQuery.append(",");
 			}
 		}

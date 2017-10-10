@@ -147,7 +147,12 @@ public class TinkerGraphDataModel {
 		edgeHash.put(type, new HashSet<String>());
 		Map<String, String> dataTypeMap = new Hashtable<String, String>();
 		dataTypeMap.put(type, "STRING");
-		tf.mergeEdgeHash(edgeHash, dataTypeMap);
+		//TODO: come back to this
+		//TODO: come back to this
+		//TODO: come back to this
+		//TODO: come back to this
+		//TODO: come back to this
+//		tf.mergeEdgeHash(edgeHash, dataTypeMap);
 		
 		// need to pass in a map
 		// this would be where we would take advantage of using display names
@@ -169,7 +174,9 @@ public class TinkerGraphDataModel {
 		// since we are always adding a subject -> object from a consturct wrapper
 		// there is no way to know if the connection has been made on the meta level
 		// so we need to add it here every time
-		tf.connectTypes(typeOut, typeIn, null);
+		tf.getMetaData().addVertex(typeOut);
+		tf.getMetaData().addVertex(typeIn);
+		tf.getMetaData().addRelationship(typeOut, typeIn, "inner.join");
 
 		String[] headers = {typeOut, typeIn};
 		String[] cleanValues = {Utility.getInstanceName(outVert), Utility.getInstanceName(inVert)};

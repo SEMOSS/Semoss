@@ -13,10 +13,10 @@ public class ProposalGenerator {
 		int atomicsToCreate = 1000;
 		int pkslsToCreate = 30000;
 		
-		PkslGenerator generator = new PkslGenerator();
+		PixelGenerator generator = new PixelGenerator();
 		Map<String, String> aliases = generateAliases(atomicsToCreate);
 		generator.setConstants(aliases.keySet().toArray(new String[0]));
-		Map<String, String> pksls = generator.getRandomPksls(pkslsToCreate);
+		Map<String, String> pksls = generator.getRandomPixels(pkslsToCreate);
 		
 		String proposalName = "Custom";
 		String headerLine = "Alias,Hashcode,Value,Type,ProposalName";

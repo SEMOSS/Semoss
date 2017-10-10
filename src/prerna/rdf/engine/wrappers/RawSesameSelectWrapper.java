@@ -1,6 +1,7 @@
 package prerna.rdf.engine.wrappers;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -10,10 +11,12 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
+import org.openrdf.query.parser.ParsedQuery;
+import org.openrdf.query.parser.sparql.SPARQLParser;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.util.Utility;
 
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
@@ -22,6 +25,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	
 	private TupleQueryResult tqr = null;
 	private int numColumns = 0;
+	private String[] types;
 	
 	@Override
 	public void execute() {
@@ -166,5 +170,42 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		return "";
 	}
 
-	
+	@Override
+	public String[] getTypes() {
+		if(this.types == null) {
+			try {
+				SPARQLParser parser = new SPARQLParser();
+				ParsedQuery parsedQuery = parser.parseQuery(query, null);
+
+				CustomSparqlAggregationParser aggregationVisitor = new CustomSparqlAggregationParser();
+				parsedQuery.getTupleExpr().visit(aggregationVisitor);
+				Set<String> aggregationValues = aggregationVisitor.getValue();
+				
+				this.types = new String[this.numColumns];
+				for(int i = 0; i < this.numColumns; i++) {
+					if(aggregationValues.contains(this.displayVar[i])) {
+						this.types[i] = "NUMBER";
+					} else {
+						this.types[i] = "STRING";
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				this.types = new String[this.numColumns];
+				for(int i = 0; i < this.numColumns; i++) {
+					this.types[i] = "STRING";
+				}
+			}
+		}
+		return this.types;
+	}
+
+	@Override
+	public void cleanUp() {
+		try {
+			tqr.close();
+		} catch (QueryEvaluationException e) {
+			e.printStackTrace();
+		}
+	}
 }

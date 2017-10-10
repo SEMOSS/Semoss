@@ -22,6 +22,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
+import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
@@ -583,6 +584,12 @@ public class MetaHelper implements IExplorable {
 	public void setInsightDatabase(IEngine insightDatabase) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public IQueryInterpreter2 getQueryInterpreter2() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
