@@ -6,19 +6,9 @@ import org.rosuda.JRI.Rengine;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 
-
-
 public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	protected Rengine engine;
-	
-//	/**
-//	 * Have this be protected since we want the control to be based on the 
-//	 * RJavaTranslator to determine which class to generate
-//	 */
-//	protected RJavaJriTranslator() {
-//		//startR();
-//	}
 	
 	@Override
 	public void startR() {
