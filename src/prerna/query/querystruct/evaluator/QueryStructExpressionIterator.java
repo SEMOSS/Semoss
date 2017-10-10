@@ -8,14 +8,16 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.IQuerySelector;
 import prerna.query.querystruct.QueryAggregationEnum;
 import prerna.query.querystruct.QueryColumnSelector;
 import prerna.query.querystruct.QueryMathSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.rdf.engine.wrappers.AbstractWrapper;
 
-public class QueryStructExpressionIterator implements Iterator<IHeadersDataRow> {
+public class QueryStructExpressionIterator extends AbstractWrapper implements IRawSelectWrapper {
 
 	/**
 	 * It is really difficult to figure out the traversals in order to perform multiple math routines
@@ -88,9 +90,6 @@ public class QueryStructExpressionIterator implements Iterator<IHeadersDataRow> 
 				this.mathOperation.add(mSelector.getMath());
 			}
 			//TODO: doing the base case
-			//TODO: doing the base case
-			//TODO: doing the base case
-			//TODO: doing the base case
 			this.uniqueSelectorNames.add(selector.getQueryStructName());
 			this.headers[i] = selector.getAlias();
 		}
@@ -107,7 +106,6 @@ public class QueryStructExpressionIterator implements Iterator<IHeadersDataRow> 
 			calculateProcessedData();
 		}
 	}
-	
 
 	private void calculateProcessedData() {
 		this.processedData = new Vector<IHeadersDataRow>();
@@ -176,7 +174,38 @@ public class QueryStructExpressionIterator implements Iterator<IHeadersDataRow> 
 		}
 		return gStr.toString();
 	}
+	
+	@Override
+	public void execute() {
+
+	}
+	
+	@Override
+	public void cleanUp() {
+		
+	}
+
+	@Override
+	public String[] getDisplayVariables() {
+		return this.headers;
+	}
+
+	@Override
+	public String[] getPhysicalVariables() {
+		return this.headers;
+	}
+
+	@Override
+	public String[] getTypes() {
+		int size = this.headers.length;
+		String[] types = new String[size];
+		for(int i = 0; i < size; i++) {
+			if(this.mathIndex.contains(new Integer(i))) {
+				types[i] = "NUMBER";
+			} else {
+				types[i] = "STRING";
+			}
+		}
+		return types;
+	}
 }
-
-
-
