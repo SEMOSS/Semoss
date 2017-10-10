@@ -1853,9 +1853,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseARcol(ARcol node)
     {
         inARcol(node);
-        if(node.getNumber() != null)
+        if(node.getColumnName() != null)
         {
-            node.getNumber().apply(this);
+            node.getColumnName().apply(this);
         }
         if(node.getFrameprefix() != null)
         {

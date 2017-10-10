@@ -75,10 +75,6 @@ public interface IExplorable {
 	// gets all the params
 	Vector<SEMOSSParam> getParams(String insightName);
 
-	// sets the dreamer properties file
-	// REFAC: Not sure we need this anymore 
-	void setDreamer(String dreamer);
-	
 	// sets the owl
 	void setOWL(String owl);
 	
