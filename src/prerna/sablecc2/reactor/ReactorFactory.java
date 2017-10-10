@@ -51,6 +51,7 @@ import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
+import prerna.sablecc2.reactor.imports.DirectJdbcConnection;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -222,6 +223,8 @@ public class ReactorFactory {
 		reactorHash.put("Database", DatabaseReactor.class); 
 		reactorHash.put("FileRead", FileSourceReactor.class); 
 		reactorHash.put("TextInput", TextInputReactor.class); 
+		reactorHash.put("JDBCConnection", DirectJdbcConnection.class);
+
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class); 
