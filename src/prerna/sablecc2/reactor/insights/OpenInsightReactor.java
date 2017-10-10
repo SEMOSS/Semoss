@@ -38,6 +38,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// keys below match those in solr
 			insightMap.put("core_engine", newInsight.getEngineName());
 			insightMap.put("core_engine_id", newInsight.getRdbmsId());
+			insightMap.put("layout", ((OldInsight) newInsight).getOutput());
 			return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
 		}
 		// yay... not legacy
