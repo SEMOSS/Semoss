@@ -1155,7 +1155,7 @@ public abstract class AbstractEngine implements IEngine {
 					in = new OldInsight(this, dataMakerName, layout);
 					in.setRdbmsId(rdbmsId);
 					in.setInsightName(insightName);
-					in.setOutput(layout);
+					((OldInsight) in).setOutput(layout);
 					((OldInsight) in).setMakeup(insightDefinition);
 //					in.setPerspective(perspective);
 //					in.setOrder(order);
@@ -1172,7 +1172,6 @@ public abstract class AbstractEngine implements IEngine {
 					}
 					in.setPixelRecipe(pixelList);
 					// I need this for dashboard
-					in.setOutput(layout);
 				}
 				insightV.insertElementAt(in, counts.remove(0));
 			}
