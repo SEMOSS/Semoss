@@ -429,7 +429,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		List<GraphTraversal<Object, Object>> propTraversals = new Vector<GraphTraversal<Object, Object>>();
 		List<String> propTraversalSelect = new Vector<String>();
 		// iterate through nodes using propHash
-		Vector<String> propList = (Vector<String>) propHash.get(startName);
+		List<String> propList = (List<String>) propHash.get(startName);
 		if (propList != null) {
 			for (String property : propList) { // iterate through properties
 				// define the match traversal
