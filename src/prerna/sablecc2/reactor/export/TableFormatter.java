@@ -40,5 +40,12 @@ public class TableFormatter extends AbstractFormatter {
 	public String getFormatType() {
 		return "TABLE";
 	}
-
+	
+	public String[] getHeaders() {
+		return this.headers;
+	}
+	
+	public List<Object[]> getData() {
+		return this.data;
+	}
 }

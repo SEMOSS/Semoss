@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -71,10 +72,10 @@ public class PieChartPlaySheet extends BrowserPlaySheet{
 			}
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
-			Object[] elemValues = it.next();
+			Object[] elemValues = it.next().getValues();
 			for( int j = 0; j < seriesIndices.length; j++)
 			{
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();

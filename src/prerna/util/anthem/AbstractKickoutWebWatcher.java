@@ -26,10 +26,6 @@ import java.util.stream.Collectors;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.impl.StdSchedulerFactory;
-import org.quartz.listeners.JobChainingJobListener;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -38,7 +34,6 @@ import prerna.engine.api.IEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.ui.components.ImportDataProcessor;
 import prerna.util.AbstractFileWatcher;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
@@ -46,9 +41,7 @@ import prerna.util.sql.SQLQueryUtil;
 
 public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
-	// Allow subclasses to access the dbName, 
-	// for instance to do a data.import pkql
-	protected String dbName;
+	private String dbName;
 	private String propFile;
 	private String processedDbName;
 	private String xlsToCsvScript;
@@ -69,9 +62,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	// Type of database is used for everything but the processed database (H2)
 	protected SQLQueryUtil.DB_TYPE dbType;
 
-	// Used to schedule jobs related to the kickout web watcher like anomaly reporting
-	protected Scheduler scheduler;
-	
 	private H2QueryUtil h2Util = new H2QueryUtil();
 	private boolean dbExists = false;
 	
@@ -119,7 +109,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	protected static final String SECOND_KEY = "KO_SECOND";
 	protected static final String SECOND_TYPE = "NUMBER";
 		
-	protected static final Logger LOGGER = LogManager.getLogger(AbstractKickoutWebWatcher.class.getName());
+	protected static final Logger logger = LogManager.getLogger(AbstractKickoutWebWatcher.class.getName());
 	
 	public AbstractKickoutWebWatcher() {
 		
@@ -139,19 +129,12 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		processDelay = Long.parseLong(DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_PROCESS_DELAY"));
 		holdOnIndexing = Boolean.parseBoolean(DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_HOLD_ON_INDEXING"));
 		isMariaDB = Boolean.parseBoolean(DIHelper.getInstance().getProperty("ANTHEM_KICKOUT_MARIA_DB"));
-		baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		processedDbUrl = h2Util.getConnectionURL(baseFolder, processedDbName);
 		if (isMariaDB) {
 			dbType = SQLQueryUtil.DB_TYPE.MARIA_DB;
 		} else {
 			dbType = SQLQueryUtil.DB_TYPE.H2_DB;
-		}
-		try {
-			scheduler = StdSchedulerFactory.getDefaultScheduler();
-			JobChainingJobListener chainListener = new JobChainingJobListener("name");
-		} catch (SchedulerException e) {
-			LOGGER.error("Failed to initialize the scheduler");
-			e.printStackTrace();
 		}
 	}
 	
@@ -169,7 +152,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		try {
 			Class.forName(H2QueryUtil.DATABASE_DRIVER);
 		} catch (ClassNotFoundException e) {
-			LOGGER.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + processedDbUrl);
+			logger.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + processedDbUrl);
 			e.printStackTrace();
 		}
 		
@@ -235,10 +218,10 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			// Otherwise will throw an error when trying to add to existing database
 			boolean loadingEngine = true;
 			while (loadingEngine) {
-				LOGGER.info(">>>>>Attempting to load the engine " + dbName);
+				logger.info(">>>>>Attempting to load the engine " + dbName);
 				IEngine engine = Utility.getEngine(dbName);
 				if(engine == null) {
-					LOGGER.info(">>>>>The engine " + dbName + " failed to load, waiting 30s before attempting again");
+					logger.info(">>>>>The engine " + dbName + " failed to load, waiting 30s before attempting again");
 					try {
 						Thread.sleep(30000); // Wait 30s
 					} catch (InterruptedException e) {
@@ -246,7 +229,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 					}
 				} else {
 					loadingEngine = false;
-					LOGGER.info(">>>>>The engine " + dbName + " has loaded");
+					logger.info(">>>>>The engine " + dbName + " has loaded");
 				}
 			}
 			return true;
@@ -261,7 +244,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		
 		// Track how long it takes to process the zip file for testing purposes
 		long start = System.currentTimeMillis();
-		LOGGER.info("Processing " + zipFileName);
+		logger.info("Processing " + zipFileName);
 					
 		// Retrieve the file names from the zip file
 		// Stop here if no file names are retrieved
@@ -270,7 +253,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			candidateExcelFileNames = retrieveFileNames(zipFilePath);
 		} catch (ZipException e) {
 			e.printStackTrace();
-			LOGGER.error("Failed to retrieve file names from " + zipFileName);
+			logger.error("Failed to retrieve file names from " + zipFileName);
 			return;
 		}
 		
@@ -278,8 +261,9 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		List<String> excelFileNames = new ArrayList<String>();
 		for (String candidate : candidateExcelFileNames) {
 			
-			// Check to make sure that the candidate is an excel
-			if (candidate.toUpperCase().endsWith(".XLS")) {
+			// Check to make sure that the candidate has an extension,
+			// Sometimes a folder shows up in the kickout reports
+			if (candidate.contains(".")) {
 				int extensionIndex = candidate.lastIndexOf(".");
 				
 				// Only consider files that are accepted and are not on the ignore list
@@ -293,14 +277,14 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 						fileSize = retrieveFileSize(zipFilePath, candidate);
 					} catch (ZipException e) {
 						e.printStackTrace();
-						LOGGER.error("Failed to retrieve file size of " + candidate + " from " + zipFileName);
+						logger.error("Failed to retrieve file size of " + candidate + " from " + zipFileName);
 						continue;
 					}
 					if (fileSize > sizeCutoff) {
 						excelFileNames.add(candidate);
 					} else {
-						LOGGER.info("Will not process " + candidate + "; file size too small");
-						LOGGER.info("Size of excel file: " + fileSize + ", size cutoff: " + sizeCutoff);
+						logger.info("Will not process " + candidate + "; file size too small");
+						logger.info("Size of excel file: " + fileSize + ", size cutoff: " + sizeCutoff);
 					}
 				}
 			}
@@ -311,7 +295,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		// If the user changes what reports to accept in RDF_Map.prop later,
 		// they may still be able to ingest reports from this zip
 		if (excelFileNames.size() == 0) {
-			LOGGER.info("The zip file " + zipFileName + " contains no accepted KO reports (see RDF_Map.prop for accepted reports)");
+			logger.info("The zip file " + zipFileName + " contains no accepted KO reports (see RDF_Map.prop for accepted reports)");
 			return;
 		}
 		
@@ -325,21 +309,21 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		
 		// First ingest each error report, then flush metadata
 		for (String excelFileName : excelFileNames) {
-			LOGGER.info("Processing " + excelFileName);
+			logger.info("Processing " + excelFileName);
 			
 			// Try to unzip the individual excel file
 			// If unzipping fails, continue to the next excel file
 			long startedUnzipping = System.currentTimeMillis();
-			LOGGER.info("Unzipping the excel file");
+			logger.info("Unzipping the excel file");
 			try {
 				unzipFile(zipFilePath, excelFileName, xlsTempDir);
 			} catch (ZipException e) {
 				e.printStackTrace();
-				LOGGER.error("Failed to unzip " + excelFileName + " from " + zipFileName);
+				logger.error("Failed to unzip " + excelFileName + " from " + zipFileName);
 				continue;
 			}
 			long finishedUnzipping = System.currentTimeMillis();
-			LOGGER.info("Elapsed time unzipping the excel file: " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(finishedUnzipping - startedUnzipping)) + " sec");
+			logger.info("Elapsed time unzipping the excel file: " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(finishedUnzipping - startedUnzipping)) + " sec");
 			
 			// Get the full paths for both the excel and csv files
 			int extensionIndex = excelFileName.lastIndexOf(".");
@@ -349,16 +333,16 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			// Try to convert the excel to csv
 			// If converting fails, continue to the next excel file
 			long startedConverting = System.currentTimeMillis();
-			LOGGER.info("Converting excel to csv");
+			logger.info("Converting excel to csv");
 			try {
 				excelToCsv(excelFilePath, csvFilePath);
 			} catch (Exception e) {
 				e.printStackTrace();
-				LOGGER.error("Failed to create " + csvFilePath);
+				logger.error("Failed to create " + csvFilePath);
 				continue;
 			}
 			long finishedConverting = System.currentTimeMillis();
-			LOGGER.info("Elapsed time converting excel to csv: " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(finishedConverting - startedConverting)) + " sec");
+			logger.info("Elapsed time converting excel to csv: " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(finishedConverting - startedConverting)) + " sec");
 			
 			// Index based on case
 			boolean createIndexes;
@@ -382,18 +366,18 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			
 			// Try ingesting the csv into the database
 			// If ingesting fails, continue to the next excel file
-			LOGGER.info("Ingesting csv into database");
+			logger.info("Ingesting csv into database");
 			long startedIngesting = System.currentTimeMillis();		
 			try {
 				ingest(csvFilePath, zipFileName, excelFileName, createIndexes);
 			} catch (Exception e) {
 				
 				// Stack trace printed in ingest method
-				LOGGER.error("Failed to ingest " + csvFilePath);
+				logger.error("Failed to ingest " + csvFilePath);
 				continue;
 			}
 			long finishedIngesting = System.currentTimeMillis();
-			LOGGER.info("Elapsed time ingesting csv into database: " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(finishedIngesting - startedIngesting)) + " sec");							
+			logger.info("Elapsed time ingesting csv into database: " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(finishedIngesting - startedIngesting)) + " sec");							
 				
 			// Mark the zip file as processed, if not already marked
 			if (!zipAddedToProcessedDB) {
@@ -404,21 +388,15 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			// Add some information about the error report into the processed db
 			insertReportIntoProcessedDB(zipFileName, excelFileName);	
 		}
-		LOGGER.info("Elapsed time processing " + zipFileName + ": " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start)) + " sec");
+		logger.info("Elapsed time processing " + zipFileName + ": " + Long.toString(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start)) + " sec");
 	}
 	
 	// Check to see whether the zip file has already been processed
 	private boolean needToProcess(String zipFileName) {
 		
-		// If the file is not a zip file, then there is no need to process
-		if (!zipFileName.endsWith(extension)) {
-			LOGGER.info("The file " + zipFileName + " is not a zip file");
-			return false;
-		}
-		
 		// If the zip file is not accepted, no need to process
 		if (!acceptZips.contains(zipFileName.substring(0, 5))) {
-			LOGGER.info("The zip file " + zipFileName + " is not accepted");
+			logger.info("The zip file " + zipFileName + " is not accepted");
 			return false;
 		}
 		
@@ -447,16 +425,16 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 						if (!alreadyProcessed) {
 							needToProcess = true;
 						} else {
-							LOGGER.info("The zip file " + zipFileName + " has already been processed");
+							logger.info("The zip file " + zipFileName + " has already been processed");
 						}
 					}
 				} catch (SQLException e) {
 					e.printStackTrace();
-					LOGGER.error("Failed to execute or close the query " + processedQuery + " at " + processedDbUrl);
+					logger.error("Failed to execute or close the query " + processedQuery + " at " + processedDbUrl);
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
-				LOGGER.error("Failed to connect to or close " + processedDbUrl);
+				logger.error("Failed to connect to or close " + processedDbUrl);
 			}
 		} else {
 			
@@ -500,7 +478,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 				dbExists = true;
 			} catch (Exception e) {
 				e.printStackTrace();
-				LOGGER.error("Failed to create the database " + dbName + " with " + csvFilePath);
+				logger.error("Failed to create the database " + dbName + " with " + csvFilePath);
 				
 				// Throw a new exception so that process() knows not to count the report as processed
 				throw new Exception();
@@ -511,7 +489,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 				importer.runProcessor(options);
 			} catch (Exception e) {
 				e.printStackTrace();
-				LOGGER.error("Failed to add " + csvFilePath + " to " + dbName);
+				logger.error("Failed to add " + csvFilePath + " to " + dbName);
 
 				// Throw a new exception so that process() knows not to count the report as processed
 				throw new Exception();
@@ -528,7 +506,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 	protected abstract void ingestMetadataIntoSeparateDB(Map<String, String> valueMap, Map<String, String> typeMap, boolean createIndexes);
 	
 	// Really does return a list of strings
-	// TODO some of these are static methods
 	@SuppressWarnings("unchecked")
 	private List<String> retrieveFileNames(String zipFilePath) throws ZipException {
 		ZipFile zipFile = new ZipFile(zipFilePath);
@@ -564,8 +541,8 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 			// so forget about any progress that may have been logged in an existing processed database
 			String dropZipSql = "DROP TABLE IF EXISTS " + ZIP_TABLE;
 			String dropReportSql = "DROP TABLE IF EXISTS " + REPORT_TABLE;
-			String createZipTableSql = "CREATE TABLE " + ZIP_TABLE + "(" + ZIP_COLUMN + " VARCHAR(255) PRIMARY KEY, " + ZIP_TIME_COLUMN + " VARCHAR(255), " + ZIP_SIZE_COLUMN + " BIGINT)";
-			String createReportTableSql = "CREATE TABLE " + REPORT_TABLE + "(" + REPORT_COLUMN + " VARCHAR(255) PRIMARY KEY, " + REPORT_TIME_COLUMN + " VARCHAR(255), " + REPORT_SIZE_COLUMN + " BIGINT, " + REPORT_SYS_COLUMN + " VARCHAR(255), " + ZIP_COLUMN + " VARCHAR(255), FOREIGN KEY (" + ZIP_COLUMN + ") REFERENCES " + ZIP_TABLE + "(" + ZIP_COLUMN + "))";		
+			String createZipTableSql = "CREATE TABLE " + ZIP_TABLE + "(" + ZIP_COLUMN + " VARCHAR(255) PRIMARY KEY, " + ZIP_TIME_COLUMN + " VARCHAR(255), " + ZIP_SIZE_COLUMN + " INT)";
+			String createReportTableSql = "CREATE TABLE " + REPORT_TABLE + "(" + REPORT_COLUMN + " VARCHAR(255) PRIMARY KEY, " + REPORT_TIME_COLUMN + " VARCHAR(255), " + REPORT_SIZE_COLUMN + " INT, " + REPORT_SYS_COLUMN + " VARCHAR(255), " + ZIP_COLUMN + " VARCHAR(255), FOREIGN KEY (" + ZIP_COLUMN + ") REFERENCES " + ZIP_TABLE + "(" + ZIP_COLUMN + "))";		
 			try (Statement statement = dbConnection.createStatement()) {
 				statement.execute(dropZipSql);
 				statement.execute(dropReportSql);
@@ -573,11 +550,11 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 				statement.execute(createReportTableSql);
 			} catch (SQLException e) {
 				e.printStackTrace();
-				LOGGER.error("Failed to create new tables in " + processedDbUrl);
+				logger.error("Failed to create new tables in " + processedDbUrl);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
-			LOGGER.error("Failed to connect to or close " + processedDbUrl);
+			logger.error("Failed to connect to or close " + processedDbUrl);
 		}
 	}
 	
@@ -595,11 +572,11 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 				statement.execute(zipInsertSql);
 			} catch (SQLException e) {
 				e.printStackTrace();
-				LOGGER.error("Failed insert values into " + ZIP_TABLE + " at " + processedDbUrl);
+				logger.error("Failed insert values into " + ZIP_TABLE + " at " + processedDbUrl);
 			}			
 		} catch (SQLException e) {
 			e.printStackTrace();
-			LOGGER.error("Failed to connect to or close " + processedDbUrl);
+			logger.error("Failed to connect to or close " + processedDbUrl);
 		}					
 	}
 	
@@ -618,32 +595,17 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 				statement.execute(reportInsertSql);
 			} catch (SQLException e) {
 				e.printStackTrace();
-				LOGGER.error("Failed insert values into " + REPORT_TABLE + " at " + processedDbUrl);
+				logger.error("Failed insert values into " + REPORT_TABLE + " at " + processedDbUrl);
 			}			
 		} catch (SQLException e) {
 			e.printStackTrace();
-			LOGGER.error("Failed to connect to or close " + processedDbUrl);
+			logger.error("Failed to connect to or close " + processedDbUrl);
 		}					
 	}
-	
-	// TODO logic for running jobs
-	protected abstract void executeJobs();
-	
-	protected abstract void scheduleJobs();
 	
 	@Override
 	public void run() {
 		loadFirst();
-		
-		// After load first, start up the scheduler and schedule jobs
-		// In case jobs depend on configuration set up by loadFirst 
-		try {
-			scheduler.start();
-		} catch (SchedulerException e) {
-			LOGGER.error("Failed to start scheduler");
-			e.printStackTrace();
-		}
-		scheduleJobs();
 		
 		// If the user wants to hold on indexing,
 		// then create indexes after the last excel file has been ingested
@@ -683,7 +645,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 							{
 								if(needToProcess(newFile)) {
 									process(newFile);
-									executeJobs();
 								}
 								
 							}catch(RuntimeException ex)
@@ -691,20 +652,20 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 								ex.printStackTrace();
 							}
 						}else
-							LOGGER.info("Ignoring File " + newFile);
+							logger.info("Ignoring File " + newFile);
 					}
 				}
 				key2.reset();
 			}
 		}catch(RuntimeException ex)
 		{
-			LOGGER.debug(ex);
+			logger.debug(ex);
 			// do nothing - I will be working it in the process block
 		} catch (InterruptedException ex) {
-			LOGGER.debug(ex);
+			logger.debug(ex);
 			// do nothing - I will be working it in the process block
 		} catch (IOException ex) {
-			LOGGER.debug(ex);
+			logger.debug(ex);
 			// do nothing - I will be working it in the process block
 		}
 		// End code taken from AbstractFileWatcher

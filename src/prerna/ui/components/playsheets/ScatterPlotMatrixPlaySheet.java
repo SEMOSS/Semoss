@@ -47,7 +47,6 @@ public class ScatterPlotMatrixPlaySheet extends BrowserPlaySheet{
 				ignoreCols.add(names[i]);
 			}
 		}
-		dataFrame.setColumnsToSkip(ignoreCols);
 
 		Hashtable<String, Object> allHash = new Hashtable<String, Object>();
 		allHash.put("one-row", false);

@@ -13,19 +13,19 @@ public class Join {
 	private String relName = null;
 	int count = 0;
 	
-	public Join(String lCol, String comparator, String rCol)
+	public Join(String lCol, String joinType, String rCol)
 	{
 		this.selector = lCol;
 		this.qualifier = rCol;
-		this.joinType = comparator;
+		this.joinType = joinType;
 	}
 
 	
-	public Join(String lCol, String comparator, String rCol, String relName) 
+	public Join(String lCol, String joinType, String rCol, String relName) 
 	{
 		this.selector = lCol;
 		this.qualifier = rCol;
-		this.joinType = comparator;
+		this.joinType = joinType;
 		this.relName = relName;
 	}
 

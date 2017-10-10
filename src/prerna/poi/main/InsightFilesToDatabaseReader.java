@@ -20,7 +20,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.sablecc.meta.FilePkqlMetadata;
+import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -62,7 +62,7 @@ public class InsightFilesToDatabaseReader {
 		this.baseDirectory = DIHelper.getInstance().getProperty("BaseFolder");
 		
 		// get the data frame object
-		List<FilePkqlMetadata> filesMeta = in.getFilesUsedInInsight();
+		List<FileMeta> filesMeta = in.getFilesUsedInInsight();
 		
 		// we need to collect 2 groups of information
 		// one is for csv files
@@ -77,7 +77,7 @@ public class InsightFilesToDatabaseReader {
 	}
 	
 	private IEngine processExcelFiles(
-			List<FilePkqlMetadata> filesMeta, 
+			List<FileMeta> filesMeta, 
 			String engineName, 
 			IEngine engine) 
 			throws IOException
@@ -85,9 +85,9 @@ public class InsightFilesToDatabaseReader {
 		String fileLocation = "";
 		List<Map<String, Map<String, String[]>>> dataTypeMapList = new Vector<Map<String, Map<String, String[]>>>();
 		List<Map<String, Map<String, String>>> userDefinedHeadersList = new Vector<Map<String, Map<String, String>>>();
-		for(FilePkqlMetadata meta : filesMeta) {
+		for(FileMeta meta : filesMeta) {
 			// this processing will only work for excel files
-			if(meta.getType() != FilePkqlMetadata.FILE_TYPE.EXCEL) {
+			if(meta.getType() != FileMeta.FILE_TYPE.EXCEL) {
 				continue;
 			}
 			fileLocation += meta.getFileLoc() + ";";
@@ -155,7 +155,8 @@ public class InsightFilesToDatabaseReader {
 			options.setDbName(engineName);
 			options.setFileLocation(fileLocation);
 			options.setBaseUrl("");
-
+			options.setCleanString(true);
+			
 			String smssLocation = null;
 			// if engine doesn't exist
 			// create necessary files
@@ -245,13 +246,13 @@ public class InsightFilesToDatabaseReader {
 		return engine;
 	}
 
-	private IEngine processCsvFiles(List<FilePkqlMetadata> filesMeta, String engineName) throws IOException {
+	private IEngine processCsvFiles(List<FileMeta> filesMeta, String engineName) throws IOException {
 		String fileLocation = "";
 		List<Map<String, String[]>> dataTypeMapList = new Vector<Map<String, String[]>>();
 		Map<String, Map<String, String>> userDefinedHeadersMap = new Hashtable<String, Map<String, String>>();
-		for(FilePkqlMetadata meta : filesMeta) {
+		for(FileMeta meta : filesMeta) {
 			// this processing will only work for csv files
-			if(meta.getType() != FilePkqlMetadata.FILE_TYPE.CSV) {
+			if(meta.getType() != FileMeta.FILE_TYPE.CSV) {
 				continue;
 			}
 			fileLocation += meta.getFileLoc() + ";";
@@ -304,6 +305,12 @@ public class InsightFilesToDatabaseReader {
 			propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
 			propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
 
+			if(fileLocation.isEmpty()) // check to see if they passed the file
+				propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
+			else // if the file location is not empty at this point use it to point to the RDBMS file - I also want some other check to say, if the user asked me to create a h2 do it
+				propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS, fileLocation);
+			// need to go back and clean the prop writer
+
 			// need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
@@ -319,7 +326,8 @@ public class InsightFilesToDatabaseReader {
 			options.setOwlFileLocation(owlPath);
 			options.setRDBMSDriverType(SQLQueryUtil.DB_TYPE.H2_DB);
 			options.setAllowDuplicates(true);			
-
+			options.setCleanString(true);
+			
 			RDBMSFlatCSVUploader uploader = new RDBMSFlatCSVUploader();
 			uploader.setAutoLoad(false);
 			uploader.setDataTypeMapList(dataTypeMapList);

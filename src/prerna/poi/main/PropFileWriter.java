@@ -70,6 +70,11 @@ public class PropFileWriter {
 	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default 
 
 	// TODO Change variable names, should we change default.properties to default.smss?
+	public void runWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.DB_TYPE dbType) throws IllegalArgumentException, FileNotFoundException, IOException 
+	{
+		runWriter(dbName, dbPropFile, questionFile, dbType, null); // overloaded method to satisfy the file csv
+	}
+
 	/**
 	 * Uses the name of a new database to create the custom map, smss, and question sheet files for the engine If user does not specify specific
 	 * files, the default files in db/Default will be used This also creates the path to save the OWL file
@@ -85,7 +90,7 @@ public class PropFileWriter {
 	 * @throws FileNotFoundException
 	 * @throws IOException 
 	 */
-	public void runWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.DB_TYPE dbType)
+	public void runWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.DB_TYPE dbType, String fileName)
 			throws IllegalArgumentException, FileNotFoundException, IOException {
 		if (dbName == null) {
 			throw new IllegalArgumentException("Database name is invalid.");
@@ -95,7 +100,8 @@ public class PropFileWriter {
 		engineDirectory = new File(baseDirectory + System.getProperty("file.separator") + engineDirectoryName);
 		try {
 			// make the new folder to store everything in
-			engineDirectory.mkdir();
+			if(!engineDirectory.exists())
+				engineDirectory.mkdir();
 			// define the owlFile location
 			this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 			if(owlFile.contains("\\")) {
@@ -126,7 +132,7 @@ public class PropFileWriter {
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
 				propFileName = baseDirectory + System.getProperty("file.separator") + defaultDBPropName;
-				writeCustomDBProp(propFileName, dbName, dbType);
+				writeCustomDBProp(propFileName, dbName, dbType, fileName);
 			} else {
 				if(((new File(dbPropFile)).getPath().contains(engineDirectory.getPath()))) {
 					FileUtils.copyFileToDirectory(new File(dbPropFile), engineDirectory, true);
@@ -157,6 +163,21 @@ public class PropFileWriter {
 	 * @throws FileReaderException
 	 */
 	private void writeCustomDBProp(String defaultName, String dbname, ImportOptions.DB_TYPE dbType) throws IOException {
+		writeCustomDBProp(defaultName,dbname, dbType, null);
+	}
+
+	/**
+	 * Creates the contents of the SMSS file in a temp file for the engine Adds file locations of the database, custom map, questions, and OWl files
+	 * for the engine Adds the file locations to the contents of the default SMSS file which contains constant information about the database
+	 * 
+	 * @param defaultName
+	 *            String containing the path to the Default SMSS file
+	 * @param dbname
+	 *            String containing the name of the new database
+	 * @throws FileReaderException
+	 */
+	private void writeCustomDBProp(String defaultName, String dbname, ImportOptions.DB_TYPE dbType, String fileName) throws IOException {
+		
 		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname + ".jnl";
 		// move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
@@ -192,7 +213,18 @@ public class PropFileWriter {
 				pw.write(Constants.PASSWORD + "\t" + queryUtil.getDefaultDBPassword() + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 				if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
-					pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");			
+					if(fileName == null)
+						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
+					if(fileName != null)
+					{
+						pw.write("USE_FILE" + "\ttrue\n");
+						fileName = fileName.replace(baseFolder, "@BaseFolder@");
+						fileName = fileName.replace(dbname, "@ENGINE@");
+						// strip the stupid ;
+						fileName = fileName.replace(";", "");
+						pw.write("DATA_FILE" + "\t" + fileName+"\n");
+						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL2() + "\n");
+					}
 				} else {
 					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
 				}

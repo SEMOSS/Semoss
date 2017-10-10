@@ -2,7 +2,6 @@ package prerna.ds.util;
 
 import java.util.UUID;
 
-import prerna.ds.AbstractTableDataFrame;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -21,43 +20,6 @@ public class RdbmsFrameUtility {
 		if (Character.isDigit(header.charAt(0)))
 			header = "c_" + header;
 		return header;
-	}
-	
-	public static String getComparatorStringValue(AbstractTableDataFrame.Comparator comparator) {
-		
-		if(AbstractTableDataFrame.Comparator.EQUAL.equals(comparator)) {
-			return "=";
-		} else if(AbstractTableDataFrame.Comparator.GREATER_THAN.equals(comparator)) {
-			return ">";
-		} else if(AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL.equals(comparator)) {
-			return ">=";
-		} else if(AbstractTableDataFrame.Comparator.LESS_THAN.equals(comparator)) {
-			return "<";
-		} else if(AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL.equals(comparator)) {
-			return "<=";
-		} else if(AbstractTableDataFrame.Comparator.NOT_EQUAL.equals(comparator)) {
-			return "!=";
-		} else {
-			return null;
-		}
-	}
-	
-	public static AbstractTableDataFrame.Comparator getStringComparatorValue(String comparator) {
-		if("=".equals(comparator)) {
-			return AbstractTableDataFrame.Comparator.EQUAL;
-		} else if(">".equals(comparator)) {
-			return AbstractTableDataFrame.Comparator.GREATER_THAN;
-		} else if(">=".equals(comparator)) {
-			return AbstractTableDataFrame.Comparator.GREATER_THAN_EQUAL;
-		} else if("<".equals(comparator)) {
-			return AbstractTableDataFrame.Comparator.LESS_THAN;
-		} else if("<=".equals(comparator)) {
-			return AbstractTableDataFrame.Comparator.LESS_THAN_EQUAL;
-		} else if("!=".equals(comparator)) {
-			return AbstractTableDataFrame.Comparator.NOT_EQUAL;
-		} else {
-			return null;
-		}
 	}
 	
 	// get a new unique table name

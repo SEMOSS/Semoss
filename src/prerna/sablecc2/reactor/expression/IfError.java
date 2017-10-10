@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.expression;
 import java.util.List;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.JavaExecutable;
 
 public class IfError extends OpBasic {
@@ -26,9 +26,9 @@ public class IfError extends OpBasic {
 		
 		if(tryObj instanceof JavaExecutable) {
 			tryString = ((JavaExecutable)tryObj).getJavaSignature();
-		} else if(tryInput.getNounType() == PkslDataTypes.CONST_DECIMAL) {
+		} else if(tryInput.getNounType() == PixelDataType.CONST_DECIMAL) {
 			tryString = tryObj.toString();
-		} else if(tryInput.getNounType() == PkslDataTypes.CONST_STRING) {
+		} else if(tryInput.getNounType() == PixelDataType.CONST_STRING) {
 			tryString = "\""+tryObj.toString()+"\"";
 		} else {
 			tryString = tryObj.toString();
@@ -41,9 +41,9 @@ public class IfError extends OpBasic {
 		if(defaultObj instanceof JavaExecutable) {
 			defaultString = ((JavaExecutable)tryObj).getJavaSignature();
 			
-		} else if(defaultInput.getNounType() == PkslDataTypes.CONST_DECIMAL) {
+		} else if(defaultInput.getNounType() == PixelDataType.CONST_DECIMAL) {
 			
-		} else if(defaultInput.getNounType() == PkslDataTypes.CONST_STRING) {
+		} else if(defaultInput.getNounType() == PixelDataType.CONST_STRING) {
 			
 		} else {
 			

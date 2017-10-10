@@ -75,7 +75,6 @@ import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1299,18 +1298,6 @@ public class GraphDataModel implements IDataMaker {
 		}
 	}
 
-	@Override
-	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public List<Object> getActionOutput() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	@Override
 	public Map getDataMakerOutput(String... selectors) {
 		Hashtable retHash = new Hashtable();

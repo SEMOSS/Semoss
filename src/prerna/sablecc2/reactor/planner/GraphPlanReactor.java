@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.planner;
 
-import static prerna.sablecc2.reactor.PKSLPlanner.TINKER_NAME;
-import static prerna.sablecc2.reactor.PKSLPlanner.TINKER_TYPE;
+import static prerna.sablecc2.reactor.PixelPlanner.TINKER_NAME;
+import static prerna.sablecc2.reactor.PixelPlanner.TINKER_TYPE;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -16,9 +16,9 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.util.Utility;
 
 public class GraphPlanReactor extends AbstractReactor {
@@ -30,7 +30,7 @@ public class GraphPlanReactor extends AbstractReactor {
 		return null;
 	}
 	
-	private Map createVertStores2(PKSLPlanner planner) {
+	private Map createVertStores2(PixelPlanner planner) {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
 		
@@ -108,11 +108,11 @@ public class GraphPlanReactor extends AbstractReactor {
 		return semossVert;
 	}
 	
-	private PKSLPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+	private PixelPlanner getPlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		PixelPlanner planner = null;
 		if(allNouns != null) {
-			planner = (PKSLPlanner) allNouns.get(0);
+			planner = (PixelPlanner) allNouns.get(0);
 			return planner;
 		} else {
 			return this.planner;

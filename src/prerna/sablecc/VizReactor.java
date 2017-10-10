@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.OwlTemporalEngineMeta;
 
 /**
  * 
@@ -64,7 +65,7 @@ public class VizReactor extends AbstractVizReactor {
 		}
 
 		Iterator<Object[]> it = getTinkerData(columns, frame, true);
-		
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		List<Map<String, Object>> tableKeys = new Vector<Map<String, Object>>();
 		// add in the rest of the columns, non group and non function
 		for (int i = 0; i < columns.size(); i++) {
@@ -72,7 +73,7 @@ public class VizReactor extends AbstractVizReactor {
 			Map<String, Object> keyMap = new HashMap<>();
 			keyMap.put("varKey", column);
 			keyMap.put("uri", column);
-			keyMap.put("type", frame.getDataType(column).toString());
+			keyMap.put("type", metaData.getHeaderTypeAsString(column, null).toString());
 			keyMap.put("operation", new HashMap<>());
 			keyMap.put("vizType", colVizTypes.get(i).replace("=", ""));
 

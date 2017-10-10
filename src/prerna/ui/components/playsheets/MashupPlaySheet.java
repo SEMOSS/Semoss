@@ -39,7 +39,6 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 /**
@@ -144,18 +143,6 @@ public class MashupPlaySheet extends AbstractPlaySheet implements IDataMaker {
 			List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame) {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Object> getActionOutput() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override

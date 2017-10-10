@@ -78,4 +78,13 @@ public class SesameConstructWrapper extends AbstractWrapper implements IConstruc
 		
 		return retBool;
 	}
+
+	@Override
+	public void cleanUp() {
+		try {
+			gqr.close();
+		} catch (QueryEvaluationException e) {
+			e.printStackTrace();
+		}
+	}
 }

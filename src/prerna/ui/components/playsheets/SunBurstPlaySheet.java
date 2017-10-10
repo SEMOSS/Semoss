@@ -30,6 +30,7 @@ import java.util.Set;
 import javax.swing.DefaultListModel;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -65,10 +66,10 @@ public class SunBurstPlaySheet extends BrowserPlaySheet {
 		Map<String, Map<String, Map>> rootMap = new HashMap<String, Map<String, Map>>();
 		Map<String, Map> currentMap;
 
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		// loop through the list
 		while(it.hasNext()) {
-			Object[] listElements = it.next();
+			Object[] listElements = it.next().getValues();
 
 			// if there is no data, go to the next one in the list
 			if (listElements == null || listElements.length == 0) {

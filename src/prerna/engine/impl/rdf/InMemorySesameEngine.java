@@ -43,7 +43,6 @@ import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.NumericLiteralImpl;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
 import org.openrdf.query.GraphQueryResult;
@@ -57,6 +56,7 @@ import org.openrdf.query.Update;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
+import org.openrdf.repository.UnknownTransactionStateException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
@@ -93,8 +93,6 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		this.rc = rc;
 		sc = ((SailRepositoryConnection) rc).getSailConnection();
 		vf = rc.getValueFactory();
-
-
 	}
 	
 	/**
@@ -303,77 +301,107 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		return connected;
 	}
 	
-//	public void addStatement(String subject, String predicate, Object object, boolean concept)
 	public void addStatement(Object[] args)
 	{
 		String subject = args[0]+"";
 		String predicate = args[1]+"";
 		Object object = args[2];
 		Boolean concept = (Boolean) args[3];
-		//System.out.println("Updating Triple " + subject + "<>" + predicate + "<>" + object);
 		try {
-			URI newSub = null;
-			URI newPred = null;
-			Value newObj = null;
-			String subString = null;
-			String predString = null;
-			String objString = null;
-			String sub = subject.trim();
-			String pred = predicate.trim();
-					
-			//subString = Utility.cleanString(sub, false);
-			//System.out.println("Came here");
-			newSub = vf.createURI(subject);
+			if(!rc.isActive()) {
+				rc.begin();
+			}
+			// subject and predicate must be URIs
+			URI newSub = vf.createURI(subject);
+			URI newPred = vf.createURI(predicate);
 			
-			//predString = Utility.cleanString(pred, false);
-			newPred = vf.createURI(predicate);
-			
-			if(!concept)
-			{
-				if(object.getClass() == new Double(1).getClass())
-				{
-					logger.info("Found Double " + object);
+			if(!concept) {
+				if(object.getClass() == new Double(1).getClass()) {
+					logger.debug("Found Double " + object);
 					sc.addStatement(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
-				}
-				else if(object.getClass() == new Date(1).getClass())
-				{
-					logger.info("Found Date " + object);
+				} else if(object.getClass() == new Date(1).getClass()) {
+					logger.debug("Found Date " + object);
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
 					sc.addStatement(newSub, newPred, vf.createLiteral(date, datatype));
-				}
-				else
-				{
-					logger.info("Found String " + object);
+				} else {
+					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
 					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.addStatement(newSub, newPred, vf.createLiteral(cleanValue));
 				} 
-			}
-			else
-			{
-				//System.out.println(newSub + "<<>><<>>" + newPred + "<<>>" + object);
-				if(object instanceof Literal)
+			} else {
+				if(object instanceof Literal) {
 					sc.addStatement(newSub, newPred, (Literal)object);
-				else if(object instanceof URI)
+				} else if(object instanceof URI) {
 					sc.addStatement(newSub, newPred, (URI)object);
-				else if(object instanceof Value)
+				} else if(object instanceof Value) {
 					sc.addStatement(newSub, newPred, (Value)object);
-				else
+				} else {
 					sc.addStatement(newSub, newPred, vf.createURI(object+""));
-				//else if(object instanceof URI && object.toString().startsWith("http://"))
-				//	sc.addStatement(newSub, newPred, (URI)object);
-
+				}
 			}
-				
 		} catch (SailException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnknownTransactionStateException e) {
+			e.printStackTrace();
+		} catch (RepositoryException e) {
 			e.printStackTrace();
 		}
 	}
 
+	public void removeStatement(Object[] args)
+	{
+		String subject = args[0]+"";
+		String predicate = args[1]+"";
+		Object object = args[2];
+		Boolean concept = (Boolean) args[3];
+		try {
+			if(!rc.isActive()) {
+				rc.begin();
+			}
+			// subject and predicate must be URIs
+			URI newSub = vf.createURI(subject);
+			URI newPred = vf.createURI(predicate);
+			
+			if(!concept) {
+				if(object.getClass() == new Double(1).getClass()) {
+					logger.debug("Found Double " + object);
+					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
+				} else if(object.getClass() == new Date(1).getClass()) {
+					logger.debug("Found Date " + object);
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+					String date = df.format(object);
+					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
+					sc.removeStatements(newSub, newPred, vf.createLiteral(date, datatype));
+				} else {
+					logger.debug("Found String " + object);
+					String value = object + "";
+					// try to see if it already has properties then add to it
+					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					sc.removeStatements(newSub, newPred, vf.createLiteral(cleanValue));
+				} 
+			} else {
+				if(object instanceof Literal) {
+					sc.removeStatements(newSub, newPred, (Literal)object);
+				} else if(object instanceof URI) {
+					sc.removeStatements(newSub, newPred, (URI)object);
+				} else if(object instanceof Value) {
+					sc.removeStatements(newSub, newPred, (Value)object);
+				} else {
+					sc.removeStatements(newSub, newPred, vf.createURI(object+""));
+				}
+			}
+		} catch (SailException e) {
+			e.printStackTrace();
+		} catch (UnknownTransactionStateException e) {
+			e.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * Processes the passed ASK SPARQL query against the engine.  The query must be in the structure of an ASK query and the 

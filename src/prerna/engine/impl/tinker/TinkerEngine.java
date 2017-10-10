@@ -21,11 +21,12 @@ import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.query.interpreters.GremlinInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -37,7 +38,6 @@ public class TinkerEngine extends AbstractEngine {
 	private static final Logger LOGGER = LogManager.getLogger(BigDataEngine.class.getName());
 
 	public Graph g = null;
-	private QueryStruct queryStruct;
 	private boolean isNeo4j = false;
 
 	public void openDB(String propFile) {
@@ -147,6 +147,11 @@ public class TinkerEngine extends AbstractEngine {
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		return new TinkerQueryInterpreter(this);
+	}
+	
+	@Override
+	public IQueryInterpreter2 getQueryInterpreter2() {
+		return new GremlinInterpreter2(this.g);
 	}
 
 	@Override

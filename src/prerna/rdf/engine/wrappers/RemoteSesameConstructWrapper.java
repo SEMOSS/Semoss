@@ -114,4 +114,9 @@ public class RemoteSesameConstructWrapper extends AbstractWrapper implements ICo
 		return thisSt;
 	}
 
+	@Override
+	public void cleanUp() {
+		remoteWrapperProxy.cleanUp();
+	}
+
 }

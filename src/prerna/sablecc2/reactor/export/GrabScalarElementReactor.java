@@ -1,0 +1,70 @@
+package prerna.sablecc2.reactor.export;
+
+import java.util.List;
+
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
+
+public class GrabScalarElementReactor extends AbstractReactor {
+
+	/**
+	 * This class is responsible for collecting the first element from a task and returning it as a noun
+	 */
+	
+	private static final String CLEAN_UP_KEY = "cleanUp";
+	
+	@Override
+	public NounMetadata execute() {
+		ITask task = getTask();
+		if(task == null) {
+			throw new IllegalArgumentException("Could not find task to retrieve data from!");
+		}
+		String stringType = (String) task.getHeaderInfo().get(0).get("type");
+		
+		PixelDataType nounType = null;
+		Object nounValue = task.next().getValues()[0];
+		if(Utility.isNumericType(stringType)) {
+			nounType = PixelDataType.CONST_DECIMAL;
+		} else {
+			nounType = PixelDataType.CONST_STRING;
+		}
+		
+		boolean cleanUp = cleanUp();
+		if(cleanUp) {
+			task.cleanUp();
+			this.insight.getTaskStore().removeTask(task.getId());
+		}
+		
+		return new NounMetadata(nounValue, nounType);
+	}
+
+	//This gets the task to collect from
+	private ITask getTask() {
+		ITask task;
+		
+		List<Object> tasks = curRow.getValuesOfType(PixelDataType.TASK);
+		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
+		if(tasks == null || tasks.size() == 0) {
+			task = (ITask) getNounStore().getNoun(PixelDataType.TASK.toString()).get(0);
+		} else {
+			task = (ITask) curRow.getValuesOfType(PixelDataType.TASK).get(0);
+		}
+		return task;
+	}
+	
+	private boolean cleanUp() {
+		GenRowStruct cleanUpGrs = this.store.getNoun(CLEAN_UP_KEY);
+		if(cleanUpGrs != null && !cleanUpGrs.isEmpty()) {
+			boolean cleanUp = (boolean) cleanUpGrs.get(0);
+			return cleanUp;
+		}
+		
+		// default is to stop the iterator and clean up
+		return true;
+	}
+	
+}

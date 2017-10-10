@@ -1,0 +1,156 @@
+package prerna.sablecc2.reactor.insights.dashboard;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import prerna.engine.api.IEngine;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
+
+public class DashboardInsightConfigReactor extends AbstractReactor {
+	
+	private static final String INSIGHT_KEY = "insights";
+	private static final String OLD_ID_KEY = "oldIds";
+	private static final String LAYOUT_KEY = "layout";
+	
+	@Override
+	public NounMetadata execute() {
+		List<String> insightStrings = getInsights();
+		List<String> oldIds = getOldIds();
+		int numInsights = insightStrings.size();
+		if(numInsights != oldIds.size()) {
+			throw new IllegalArgumentException("Saved dashboard does not contain equal number of insights and ids");
+		}
+		
+		List<Map<String, String>> insightConfig = new ArrayList<Map<String, String>>();
+		for(int i = 0; i < numInsights; i++) {
+			Map<String, String> insightMap = new HashMap<String, String>();
+			// return to the FE the recipe
+			Insight insight = getInsight(insightStrings.get(i));
+			insightMap.put("name", insight.getInsightName());
+			// keys below match those in solr
+			insightMap.put("core_engine", insight.getEngineName());
+			insightMap.put("core_engine_id", insight.getRdbmsId());
+			insightMap.put("recipe", getInsightRecipe(insight));
+			// the old id -> needed to properly update the dashboard config
+			insightMap.put("oldId", oldIds.get(i));
+			// and make a new insight for them to run this recipe on
+			// this is used so they can automatically update the config 
+			// without waiting on a new id to come back
+			Insight newInsight = new Insight();
+			InsightStore.getInstance().put(newInsight);
+			insightMap.put("newId", newInsight.getInsightId());
+			
+			// add to list
+			insightConfig.add(insightMap);
+		}
+		
+		Map<String, Object> dashboardInsightConfig = new HashMap<String, Object>();
+		dashboardInsightConfig.put("insightConfig", insightConfig);
+		dashboardInsightConfig.put("layoutConfig", deEncodeString(getLayout()));
+		return new NounMetadata(dashboardInsightConfig, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DASHBOARD_INSIGHT_CONFIGURATION);
+	}
+	
+	private Insight getInsight(String engineName_rdbmsId_concat) {
+		String[] split = engineName_rdbmsId_concat.split("__");
+		String engineName = split[0];
+		String rdbmsId = split[1];
+		// get the engine so i can get the new insight
+		IEngine engine = Utility.getEngine(engineName);
+		if(engine == null) {
+			throw new IllegalArgumentException("Could not find engine " + engineName);
+		}
+		List<Insight> in = engine.getInsight(rdbmsId + "");
+		if(in == null || in.size() == 0) {
+			throw new IllegalArgumentException("Could not find insight with id " + rdbmsId + " within the engine " + engineName);
+		}
+		Insight insight = in.get(0);
+		return insight;
+	}
+	
+	private String getInsightRecipe(Insight insight) {
+		List<String> recipeSteps = insight.getPixelRecipe();
+		
+		StringBuilder bigRecipe = new StringBuilder();
+		int size = recipeSteps.size();
+		int i = 0;
+		for(; i < size; i++) {
+			bigRecipe.append(recipeSteps.get(i));
+		}
+		
+		return bigRecipe.toString();
+	}
+	
+	private String deEncodeString(String s) {
+		String decodedText = null;
+		try {
+			decodedText = URLDecoder.decode(s, "UTF-8").replaceAll("\\%20", "+");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return decodedText;
+	}
+	
+	////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Getters from the noun store
+	 */
+	
+	private List<String> getInsights() {
+		GenRowStruct insightGrs = this.store.getNoun(INSIGHT_KEY);
+		if(insightGrs == null) {
+			throw new IllegalArgumentException("Saved dashboard does not contain any insights");
+		}
+		int size = insightGrs.size();
+		if(size == 0) {
+			throw new IllegalArgumentException("Saved dashboard does not contain any insights");
+		}
+		List<String> insightsUsed = new ArrayList<String>();
+		for(int index = 0; index < size; index++) {
+			insightsUsed.add(insightGrs.get(index).toString());
+		}
+		return insightsUsed;
+	}
+	
+	private List<String> getOldIds() {
+		GenRowStruct oldIdGrs = this.store.getNoun(OLD_ID_KEY);
+		if(oldIdGrs == null) {
+			throw new IllegalArgumentException("Saved dashboard does not contain the old insight ids");
+		}
+		int size = oldIdGrs.size();
+		if(size == 0) {
+			throw new IllegalArgumentException("Saved dashboard does not contain the old insight ids");
+		}
+		List<String> oldIds = new ArrayList<String>();
+		for(int index = 0; index < size; index++) {
+			oldIds.add(oldIdGrs.get(index).toString());
+		}
+		return oldIds;
+	}
+	
+	private String getLayout() {
+		GenRowStruct layoutGrs = this.store.getNoun(LAYOUT_KEY);
+		if(layoutGrs == null) {
+			throw new IllegalArgumentException("Saved dashboard needs a layout config");
+		}
+		int size = layoutGrs.size();
+		if(size == 0) {
+			throw new IllegalArgumentException("Saved dashboard needs a layout config");
+		}
+		return layoutGrs.get(0).toString().trim();
+	}
+}

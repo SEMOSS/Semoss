@@ -3,7 +3,8 @@ package prerna.sablecc2.reactor;
 import java.util.Iterator;
 import java.util.List;
 
-import prerna.algorithm.api.ITableDataFrame;
+import org.apache.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
@@ -17,6 +18,12 @@ public interface IReactor {
 	// is this a map or a reduce
 	enum TYPE{MAP, FLATMAP, REDUCE};
 	
+	
+	public static final String SIBLING = "SIBLING";
+	public static final String PARENT = "PARENT";
+	public static final String CHILD = "CHILD";
+	public static final String LAST_KEY = "LAST_KEY";
+
 	/**********************************
 	 * To Be implemented by each reactor
 	 * ******************************/
@@ -46,9 +53,9 @@ public interface IReactor {
 	 *******************************************/
 	// sets the name of the operation and the signature
 	// full operation includes the nouns
-	void setPKSL(String operation, String fullOperation);
+	void setPixel(String operation, String fullOperation);
 	
-	String[] getPKSL();
+	String[] getPixel();
 	
 	// add previous reactor as its dependency -- is this the same as the parent reactor
 	// assimilated into the composition parent reactor
@@ -102,7 +109,7 @@ public interface IReactor {
 	void setName(String name);
 	
 	// sets the pksl planner
-	void setPKSLPlanner(PKSLPlanner planner);
+	void setPixelPlanner(PixelPlanner planner);
 	
 	// sets the string for alias i.e. as
 	void setAs(String [] asName);
@@ -122,9 +129,6 @@ public interface IReactor {
 	// reduce call implement if the type is reduce
 	Object reduce(Iterator iterator);
 	
-	// sets the data frame
-	void setFrame(ITableDataFrame frame);
-	
 	// gets the signature
 	String getSignature();
 
@@ -135,6 +139,8 @@ public interface IReactor {
 	void modifySignatureFromLambdas();
 
 	void setInsight(Insight insight);
+	
+	Logger getLogger(String name);
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor

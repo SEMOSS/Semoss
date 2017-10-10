@@ -35,7 +35,7 @@ public class TinkerImportDataReactor extends ImportDataReactor{
 			for(Map<String,String> join : joins) {
 				String fromCol = join.get(PKQLEnum.FROM_COL);
 				// here we replace the to column with the actual instance name
-				fromCol = frame.getValueForUniqueName(fromCol);
+//				fromCol = frame.getValueForUniqueName(fromCol);
 				join.put(PKQLEnum.FROM_COL, fromCol);
 			}
 		}

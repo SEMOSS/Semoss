@@ -41,6 +41,7 @@ import javax.swing.JButton;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.ChartControlPanel;
 import prerna.ui.main.listener.impl.ColumnChartGroupedStackedListener;
 import prerna.util.Constants;
@@ -104,10 +105,10 @@ public class ColumnChartPlaySheet extends BrowserPlaySheet{
 		}
 
 		//series name - all objects in that series (x : ... , y : ...)
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
-			Object[] elemValues = it.next();
+			Object[] elemValues = it.next().getValues();
 			
 			for (int j = 0; j < seriesIndices.length; j++){
 				ArrayList<Hashtable<String,Object>> seriesArray = new ArrayList<Hashtable<String,Object>>();

@@ -26,3 +26,7 @@ install.packages("fuzzyjoin")
 
 # Fuzzy matching
 install.packages("stringdist")
+
+# Semantic matching
+install.packages("plyr")
+install.packages("WikidataR")

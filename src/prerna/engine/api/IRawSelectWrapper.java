@@ -4,10 +4,12 @@ import java.util.Iterator;
 
 public interface IRawSelectWrapper extends IEngineWrapper, Iterator {
 
-	public IHeadersDataRow next();
+	IHeadersDataRow next();
 	
-	public String [] getDisplayVariables();
+	String [] getDisplayVariables();
 	
-	public String [] getPhysicalVariables();
+	String [] getPhysicalVariables();
+
+	String[] getTypes();
 
 }

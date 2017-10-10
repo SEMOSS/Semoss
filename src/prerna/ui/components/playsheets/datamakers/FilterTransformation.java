@@ -20,6 +20,9 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.ds.h2.H2Frame;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.Utility;
 
@@ -53,30 +56,39 @@ public class FilterTransformation extends AbstractTransformation {
 
 	@Override
 	public void runMethod() {
-		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
+		String colHeader = this.props.get(COLUMN_HEADER_KEY) + "";
 		List<Object> values = ((List<Object>) this.props.get(VALUES_KEY));
-		
-		if(values == null){
+
+		if (values == null) {
 			LOGGER.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
-			if(dm instanceof ITableDataFrame){
-				Iterator<Object> uniqIterator = ((ITableDataFrame) dm).uniqueValueIterator(props.get(COLUMN_HEADER_KEY) + "", false);
+			if (dm instanceof ITableDataFrame) {
+				QueryStruct2 qs2 = new QueryStruct2();
+				Iterator<IHeadersDataRow> uniqIterator = null;
+				if (dm instanceof H2Frame) {
+					qs2.addSelector(((ITableDataFrame) dm).getTableName(), props.get(COLUMN_HEADER_KEY).toString());
+					uniqIterator = ((ITableDataFrame) dm).query(qs2);
+				} else {
+					// tinker
+					qs2.addSelector(props.get(COLUMN_HEADER_KEY).toString(), QueryStruct.PRIM_KEY_PLACEHOLDER);
+					uniqIterator = ((ITableDataFrame) dm).query(qs2);
+				}
 				values = new Vector<Object>();
-				while(uniqIterator.hasNext()) {
+				while (uniqIterator.hasNext()) {
 					values.add(uniqIterator.next());
 				}
 			}
 		}
-		
+        
 		// if this is a pre-transformation
-		if(preTrans){
+		if (preTrans) {
 			// if there is metamodel data, add this as a filter and let query builder do its thing
 			QueryStruct builderData = this.dmc.getQueryStruct();
-			if(builderData != null) {
+			if (builderData != null) {
 				addFilterToComponentData(colHeader, new ArrayList<>(values), builderData);
 			} else {
 				// there is no metamodel data
 				// need to fill the query with the selected value
-				// this doesn't allow for multiselect from the UI 
+				// this doesn't allow for multiselect from the UI
 				String query = this.dmc.getQuery();
 				query = Utility.normalizeParam(query);
 				Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
@@ -87,10 +99,12 @@ public class FilterTransformation extends AbstractTransformation {
 		}
 		// if it is post trans
 		// we need to call filter by reflection on the data maker
-		else{
+		else {
 			runFilterMethod(colHeader, new ArrayList<>(values));
 		}
 	}
+
+
 	
 	/**
 	 * Appends the filtering into the metamodel data within the component

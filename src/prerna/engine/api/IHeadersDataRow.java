@@ -1,13 +1,13 @@
 package prerna.engine.api;
 
-import java.util.Iterator;
-
 public interface IHeadersDataRow{
 
 	public int getRecordLength();
 	
 	public String[] getHeaders();
-	
+
+	public String[] getRawHeaders();
+
 	public Object[] getValues();
 	
 	public Object[] getRawValues();

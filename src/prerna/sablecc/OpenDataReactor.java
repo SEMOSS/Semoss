@@ -70,7 +70,7 @@ public class OpenDataReactor extends AbstractReactor {
 			
 			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
 			Map<String, Object> webData = getWebData(uploaded);
-			webData.put("recipe", insightObj.getPkslRecipe());
+			webData.put("recipe", insightObj.getPixelRecipe());
 			webData.put("insightID", id);
 			webData.put("core_engine", engine);
 			webData.put("core_engine_id", engine_id);
@@ -86,7 +86,7 @@ public class OpenDataReactor extends AbstractReactor {
 //				Map<String, Object> insightOutput = run.runWeb();//runSavedRecipe();
 				
 				Map<String, Object> webData = getWebData(insightOutput);
-				webData.put("recipe", insightObj.getPkslRecipe());
+				webData.put("recipe", insightObj.getPixelRecipe());
 				webData.put("core_engine", engine);
 				webData.put("core_engine_id", engine_id);
 				myStore.put("webData", webData);

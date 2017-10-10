@@ -1,12 +1,17 @@
 package prerna.sablecc2;
 
 import java.math.BigDecimal;
+import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
+import prerna.query.querystruct.QueryColumnSelector;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
@@ -16,24 +21,26 @@ import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AComparisonExpr;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
-import prerna.sablecc2.node.AEmbeddedAssignment;
+import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
+import prerna.sablecc2.node.AEmbeddedScriptchainExpr;
 import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
-import prerna.sablecc2.node.AFrameop;
-import prerna.sablecc2.node.AFrameopRegTerm;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
+import prerna.sablecc2.node.AJavaOp;
 import prerna.sablecc2.node.AList;
 import prerna.sablecc2.node.AMap;
-import prerna.sablecc2.node.AMapScalarList;
+import prerna.sablecc2.node.AMapEntry;
+import prerna.sablecc2.node.AMapList;
+import prerna.sablecc2.node.AMapVar;
+import prerna.sablecc2.node.AMetaScriptstart;
 import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
 import prerna.sablecc2.node.ANegTerm;
-import prerna.sablecc2.node.AOperationFormula;
-import prerna.sablecc2.node.AOpformulaRegTerm;
+import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
@@ -45,55 +52,53 @@ import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
+import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
-import prerna.sablecc2.reactor.MapListReactor;
-import prerna.sablecc2.reactor.MapReactor;
 import prerna.sablecc2.reactor.NegReactor;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.expression.OpFilter;
+import prerna.sablecc2.reactor.map.MapListReactor;
+import prerna.sablecc2.reactor.map.MapReactor;
+import prerna.sablecc2.reactor.qs.QueryExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.QueryStructReactor;
+import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class LazyTranslation extends DepthFirstAdapter {
 
 	private static final Logger LOGGER = LogManager.getLogger(LazyTranslation.class.getName());
 	
+	public PixelPlanner planner;
 	protected Insight insight;
-	public PKSLPlanner planner;
-
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
-
+	protected boolean isMeta = false;
+	
+	public enum TypeOfOperation {PIPELINE, COMPOSITION};
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
-	//TODO: should probably use this instead of just commenting out the code in default in/out
-	protected boolean printTraceData = false;
-	public enum TypeOfOperation {PIPELINE, COMPOSITION};
-	
-	// there really will be 2 versions of this
-	// one for overall and one as the user does it
-	// for now.. this is just how the user does it
-	protected String lastOperation = null;
-	
 	public LazyTranslation() {
-		this.planner = new PKSLPlanner();
+		this.planner = new PixelPlanner();
 	}
 	
 	public LazyTranslation(Insight insight) {
 		this.insight = insight;
-		this.planner = new PKSLPlanner();
+		this.planner = new PixelPlanner();
 		this.planner.setVarStore(this.insight.getVarStore());
 	}
 	
-	protected void postProcess(String pkslExpression) {
+	protected void postProcess(String pixelExpression) {
 		// do nothing
 		// only the lazy implements this
 	}
@@ -103,11 +108,12 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAOutputRoutine(AOutputRoutine node) {
 		defaultIn(node);
+		this.isMeta = false;
 	}
 	
 	@Override
 	public void outAOutputRoutine(AOutputRoutine node) {
-		defaultIn(node);
+		defaultOut(node);
         // we do this in case someone is doing an embedded assignment 
         // instead of just doing a normal assignment...
         if(!(curReactor instanceof AssignmentReactor)) {
@@ -122,11 +128,40 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	@Override
 	public void outAAssignRoutine(AAssignRoutine node) {
-		defaultIn(node);
+		defaultOut(node);
         // we do this in case someone is dumb and is doing an embedded assignment 
         // instead of just doing a normal assignment...
     	postProcess(node.toString().trim());
 	}
+	
+	@Override
+	public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
+		defaultIn(node);
+		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
+		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
+    	initReactor(embeddedScriptReactor);
+	}
+	
+	@Override
+	public void outAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
+		defaultOut(node);
+		deInitReactor();
+		// if no parent, that means this embedded script
+		// is the only thing
+		if(curReactor == null) {
+			postProcess(node.toString().trim());
+		}
+	}
+	
+	@Override
+	public void inAMetaScriptstart(AMetaScriptstart node) {
+		this.isMeta = true;
+	}
+	
+	//////////////////////////////////////////
+	//////////////////////////////////////////
+	// Below is consolidated into a single command type
+	// called "Operation"
 	
     // all the operation sits here - these are the script starting points
     // everything from here on is primarily an assimilation
@@ -140,81 +175,26 @@ public class LazyTranslation extends DepthFirstAdapter {
     // if either one of these, it needs to execute that before we can execute this one
     // not sure how to keep the output in some kind of no named variable
 	
-	@Override
-	 public void inAFrameopRegTerm(AFrameopRegTerm node) {
-		defaultIn(node);
-    	LOGGER.debug("In a frameop term!");
-        // once I am in here I am again in the realm of composition
-        this.operationType = TypeOfOperation.COMPOSITION;
-	}
-	
-	@Override
-	public void outAFrameopRegTerm(AFrameopRegTerm node) {
-		defaultOut(node);
-    	LOGGER.debug("Out a frameop term!");
-        this.operationType = TypeOfOperation.PIPELINE;
-	}
-	
-	@Override
-	public void inAOpformulaRegTerm(AOpformulaRegTerm node) {
-		defaultIn(node);
-    	LOGGER.debug("In a operational formula script");
-        this.operationType = TypeOfOperation.COMPOSITION;
-	}
-	
-	@Override
-	public void outAOpformulaRegTerm(AOpformulaRegTerm node) {
-		defaultOut(node);
-        LOGGER.debug("Out a operational formula script");
-        this.operationType = TypeOfOperation.PIPELINE;
-	}
 
-    /************************************ SECOND is basically secondary operations ***********************/
-    /**** Part 1 - those things that can originate their own genrowstruct ***********/    
-    // these things need to check to see if these can extend existing script or should it be its own thing
-    
 	@Override
-	public void inANegTerm(ANegTerm node) {
-		if(curReactor instanceof Assimilator)
-        {
-        	return;
-        }
+	public void inAOperation(AOperation node) {
 		defaultIn(node);
-    	IReactor negReactor = new NegReactor();
-    	negReactor.setPKSL(node.getTerm().toString().trim(), node.toString().trim());
-    	initReactor(negReactor);
-	}
-	
-	@Override
-	public void outANegTerm(ANegTerm node) {
-		if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
-	    	deInitReactor();
-		}
-	}
-	
-    // first of which is a frame operation
-    public void inAFrameop(AFrameop node)
-    {
-    	defaultIn(node);
-        LOGGER.debug("Starting a frame operation");
+        LOGGER.debug("Starting an operation");
         
-        // create a sample reactor
-//        IReactor frameReactor = new SampleReactor();
-//        frameReactor.setPKSL(node.getId()+"", node+"");
         String reactorId = node.getId().toString().trim();
         IReactor frameReactor = getReactor(reactorId, node.toString().trim());
         initReactor(frameReactor);
         syncResult();
-     }
-
-    public void outAFrameop(AFrameop node)
-    {
-        // I realize I am not doing anything with the output.. this will come next
-    	defaultOut(node);
+	}
+	
+	@Override
+	public void outAOperation(AOperation node) {
+		defaultOut(node);
+        LOGGER.debug("Ending operation");
     	// if we have an if reactor
     	// we will not deInit and just add this as a lambda within
     	// the if statement and only deinit when necessary
-    	if(curReactor.getParentReactor() instanceof IfReactor)
+        if(curReactor.getParentReactor() instanceof IfReactor)
     	{
     		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
     		curReactor = curReactor.getParentReactor();
@@ -225,8 +205,42 @@ public class LazyTranslation extends DepthFirstAdapter {
     	{
     		deInitReactor();
     	}
-    	this.lastOperation = node + "";
+	}
+	
+    private void syncResult() {
+    	// after we init the new reactor
+        // we will add the result of the last reactor 
+        // into the noun store of this new reactor
+    	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
+    	if(prevResult != null) {
+    		PixelDataType nounName = prevResult.getNounType();
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
+    		genRow.add(prevResult);
+    		// then we will remove the result from the planner
+        	this.planner.removeVariable("$RESULT");
+    	}
     }
+	
+    /************************************ SECOND is basically secondary operations ***********************/
+	
+	@Override
+	public void inANegTerm(ANegTerm node) {
+		if(curReactor instanceof Assimilator)
+        {
+        	return;
+        }
+		defaultIn(node);
+    	IReactor negReactor = new NegReactor();
+    	negReactor.setPixel(node.getTerm().toString().trim(), node.toString().trim());
+    	initReactor(negReactor);
+	}
+	
+	@Override
+	public void outANegTerm(ANegTerm node) {
+		if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
+	    	deInitReactor();
+		}
+	}
 
     // setting the as value on a frame
     public void inAAsop(AAsop node)
@@ -240,7 +254,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		opReactor = new prerna.sablecc2.reactor.AsReactor();
     	}
     	LOGGER.debug("In the AS Component of frame op");
-    	opReactor.setPKSL("as", node.getAsOp() + "");
+    	opReactor.setPixel("as", node.getAsOp() + "");
     	initReactor(opReactor);
     }
 
@@ -250,120 +264,69 @@ public class LazyTranslation extends DepthFirstAdapter {
     	LOGGER.debug("OUT the AS Component of frame op");
     	deInitReactor();
     }
+    
+    @Override
+    public void inAJavaOp(AJavaOp node) {
+    	defaultIn(node);
+    	IReactor opReactor = new JavaReactor();
+    	initReactor(opReactor);
+    	opReactor.getCurRow().addLiteral(node.getJava().getText().trim());
+    }
+    
+    @Override
+    public void outAJavaOp(AJavaOp node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
 
+    @Override
     public void inAAssignment(AAssignment node)
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getWordOrId().toString().trim(), node.toString().trim());
+        assignmentReactor.setPixel(node.getWordOrId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
     }
 
+    @Override
     public void outAAssignment(AAssignment node)
     {
     	deInitReactor();
         defaultOut(node);
     }
     
-    public void inAEmbeddedAssignment(AEmbeddedAssignment node)
-    {
+    @Override
+    public void inAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node) {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPKSL(node.getId().toString().trim(), node.toString().trim());
+        assignmentReactor.setPixel(node.getId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
     }
-
-    public void outAEmbeddedAssignment(AEmbeddedAssignment node)
-    {
+    
+    @Override
+    public void outAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node) {
     	deInitReactor();
         defaultOut(node);
     }
-    
+
+    @Override
     public void inAGeneric(AGeneric node) {
     	defaultIn(node);
     	IReactor genReactor = new GenericReactor();
-        genReactor.setPKSL("PKSL", (node + "").trim());
+        genReactor.setPixel("PKSL", (node + "").trim());
         genReactor.setProp("KEY", node.getId().toString().trim());
         initReactor(genReactor);
     }
 
+    @Override
     public void outAGeneric(AGeneric node) {
     	defaultOut(node);
     	deInitReactor();
     }
-
-    // second is a simpler operation
-    // something(a,b,c,d) <-- note the absence of square brackets, really not needed
-    public void inAOperationFormula(AOperationFormula node)
-    {
-    	defaultIn(node);
-        LOGGER.debug("Starting a formula operation " + node.getId());
-        // I feel like mostly it would be this and not frame op
-        // I almost feel I should remove the frame op col def
-        IReactor opReactor = getReactor(node.getId().toString().trim(), node.toString().trim());
-        initReactor(opReactor);
-        syncResult();
-    }
-
-    private void syncResult() {
-    	// after we init the new reactor
-        // we will add the result of the last reactor 
-        // into the noun store of this new reactor
-    	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
-    	if(prevResult != null) {
-    		PkslDataTypes nounName = prevResult.getNounType();
-    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
-    		genRow.add(prevResult);
-    		// then we will remove the result from the planner
-        	this.planner.removeVariable("$RESULT");
-    	}
-    }
-    
-    public void outAOperationFormula(AOperationFormula node)
-    {
-    	defaultOut(node);
-    	String nodeKey = node.toString().trim();
-    	if(node.getPlainRow() != null) {
-	    	String childKey = node.getPlainRow().toString().trim();
-	    	Object childOutput = curReactor.getProp(childKey);
-	    	
-	    	if(childOutput != null) {
-	    		curReactor.setProp(nodeKey, childOutput);
-	    	}
-    	}
-    	// if we have an if reactor
-    	// we will not deInit and just add this as a lambda within
-    	// the if statement and only deinit when necessary
-    	if(curReactor.getParentReactor() instanceof IfReactor)
-    	{
-            curReactor.setPKSLPlanner(planner);
-    		curReactor.getParentReactor().getCurRow().addLambda(curReactor);
-    		curReactor = curReactor.getParentReactor();
-    	}
-    	// if this is not a child of an if
-    	// just execute as normal
-    	else
-    	{
-    		deInitReactor();
-    	}
-        this.lastOperation = node + "";
-    }
-    
-//    public void inAROp(AROp node) {
-//		RReactor reactor = new RReactor();
-//		initReactor(reactor);
-//		String nodeExpr = node.getR().toString().trim();
-//		NounMetadata noun = new NounMetadata(nodeExpr, PkslDataTypes.RCODE);
-//		curReactor.getNounStore().makeNoun("RCODE").add(noun, PkslDataTypes.RCODE);
-//    }
-//
-//    public void outAROp(AROp node) {
-//    	deInitReactor();
-//    }
-    
-    
+	
     // accumulating secondary structures
     // the values of each of these are generic rows
+    @Override
     public void inASelectNoun(ASelectNoun node)
     {
         defaultIn(node);
@@ -384,6 +347,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         curReactor.curNoun(nounName);
     }
 
+    @Override
     public void outASelectNoun(ASelectNoun node)
     {
         defaultOut(node);
@@ -393,6 +357,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 
     
     // all the utility method, which merely accumulate the data in some fashion later to be used by other functions
+    @Override
     public void inARcol(ARcol node)
     {
         defaultIn(node);
@@ -401,19 +366,21 @@ public class LazyTranslation extends DepthFirstAdapter {
         curReactor.getCurRow().addColumn(column);
     }
 
+    @Override
     public void outARcol(ARcol node)
     {
         defaultOut(node);
     }
     
+    @Override
     public void inAIdWordOrId(AIdWordOrId node)
     {
     	defaultIn(node);
     	String column = (node.getId()+"").trim();
     	
     	//how do we determine the difference between a column and a variable?
-    	//something could be a column but not loaded into a frame yet...i.e. select pksl in import
-    	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pksls one by one into the graph in any order
+    	//something could be a column but not loaded into a frame yet...i.e. select pixel in import
+    	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pixels one by one into the graph in any order
     	if(curReactor != null) {
 	    	curReactor.getCurRow().addColumn(column);
 	    	curReactor.setProp(node.toString().trim(), column);
@@ -424,26 +391,28 @@ public class LazyTranslation extends DepthFirstAdapter {
     			// i guess we should return the actual column from the frame?
     			// TODO: build this out
     			// for now, will just return the column name again... 
-    			NounMetadata noun = new NounMetadata(column, PkslDataTypes.CONST_STRING);
+    			NounMetadata noun = new NounMetadata(column, PixelDataType.CONST_STRING);
         		this.planner.addVariable("$RESULT", noun);
     		}
     	}
     }
     
+    @Override
     public void inAWordWordOrId(AWordWordOrId node)
     {
         defaultIn(node);
         String trimmedWord = node.getWord().toString().trim();
-        String word = PkslUtility.removeSurroundingQuotes(trimmedWord);
+        String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
         if(curReactor != null) {
 	        curReactor.getCurRow().addLiteral(word);
 	        curReactor.setProp(node.toString().trim(), word);
         } else {
-        	NounMetadata noun = new NounMetadata(word, PkslDataTypes.CONST_STRING);
+        	NounMetadata noun = new NounMetadata(word, PixelDataType.CONST_STRING);
     		this.planner.addVariable("$RESULT", noun);
         }
     }
     
+    @Override
     public void inABooleanScalar(ABooleanScalar node) {
     	defaultIn(node);
     	String booleanStr = node.getBoolean().toString().trim();
@@ -452,7 +421,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	        curReactor.getCurRow().addBoolean(bool);
 	        curReactor.setProp(node.toString().trim(), booleanStr);
         } else {
-        	NounMetadata noun = new NounMetadata(bool, PkslDataTypes.CONST_STRING);
+        	NounMetadata noun = new NounMetadata(bool, PixelDataType.CONST_STRING);
     		this.planner.addVariable("$RESULT", noun);
         }
     }
@@ -491,9 +460,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 //    	}
     	NounMetadata noun = null;
     	if(isDouble) {
-    		noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+    		noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
     	} else {
-    		noun = new NounMetadata(retNum.intValue(), PkslDataTypes.CONST_INT);
+    		noun = new NounMetadata(retNum.intValue(), PixelDataType.CONST_INT);
     	}
     	if(curReactor != null) {
     		curReactor.getCurRow().add(noun);
@@ -530,7 +499,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	// plain string will always modify to a integer even if we return double value
 	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
     	} else {
-    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
     		this.planner.addVariable("$RESULT", noun);
     	}
     }
@@ -563,7 +532,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 ////    			}
 ////    		}
 ////    	}
-//    	NounMetadata noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+//    	NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataTypes.CONST_DECIMAL);
 //    	if(curReactor != null) {
 //    		curReactor.getCurRow().add(noun);
 //	    	// modify the parent such that the signature has the correct
@@ -598,24 +567,45 @@ public class LazyTranslation extends DepthFirstAdapter {
 //	    	// plain string will always modify to a integer even if we return double value
 //	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
 //    	} else {
-//    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PkslDataTypes.CONST_DECIMAL);
+//    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataTypes.CONST_DECIMAL);
 //    		this.planner.addVariable("$RESULT", noun);
 //    	}
 //    }
-    
+
+    @Override
     public void inADotcol(ADotcol node)
     {
     	defaultIn(node);
-        // I need to do the work in terms of finding what is the column name
-        String column = (node.getFrameid()+ "." + node.getColumnName()).trim();
-        curReactor.getCurRow().addColumn(column);
+    	ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+    	if(frame != null) {
+    		String colName = node.getColumnName().toString().trim();
+    		String tableName = frame.getTableName();
+    		if(curReactor != null) {
+    			String qsName = null;
+    			if(tableName != null) {
+        			qsName = tableName + "__" + colName;
+        		} else {
+        			qsName = colName;
+        		}
+    			curReactor.getCurRow().addColumn(qsName);
+    		} else {
+    			// well, this means the person just typed f$Title (for example)
+    			// i guess we should just return the first 500 records of the column...
+    			QueryStruct2 qs = new QueryStruct2();
+    			QueryColumnSelector col = new QueryColumnSelector();
+    			col.setTable(tableName);
+    			col.setColumn(colName);
+    			qs.addSelector(col);
+    			Iterator<IHeadersDataRow> iterator = frame.query(qs);
+    			ITask task = new BasicIteratorTask(qs, iterator);
+    			this.insight.getTaskStore().addTask(task);
+    			Map<String, Object> data = task.collect(500, false);
+    			this.planner.addVariable("$RESULT", new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+    		}
+    	}
     }
 
-    public void outADotcol(ADotcol node)
-    {
-        defaultOut(node);
-    }
-    
+    @Override
     public void inAProp(AProp node)
     {
     	defaultIn(node);
@@ -624,6 +614,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         curReactor.setProp(key, propValue);
     }
     
+    @Override
     public void inACodeNoun(ACodeNoun node)
     {
         defaultIn(node);
@@ -634,6 +625,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         curReactor.setProp("CODE", code);
     }
 
+    @Override
     public void outACodeNoun(ACodeNoun node)
     {
         defaultOut(node);
@@ -691,6 +683,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	deInitReactor();
     }
 
+    @Override
     public void caseAComparisonExpr(AComparisonExpr node)
     {
         inAComparisonExpr(node);
@@ -709,40 +702,50 @@ public class LazyTranslation extends DepthFirstAdapter {
         outAComparisonExpr(node);
     }
     
-    /**************************************************
-     *	Expression Methods
-     **************************************************/
-
+    @Override
     public void inAList(AList node)
     {
         defaultIn(node);
         IReactor opReactor = new VectorReactor();
         opReactor.setName("Vector");
-        opReactor.setPKSL("Vector", node.toString().trim());
+        opReactor.setPixel("Vector", node.toString().trim());
         initReactor(opReactor);
         
     }
 
+    @Override
     public void outAList(AList node)
     {
     	deInitReactor();
         defaultOut(node);
     }
     
+    @Override
     public void inAFormula(AFormula node) {
         defaultIn(node);
     }
 
+    @Override
     public void outAFormula(AFormula node) {
         defaultOut(node);
     }
     
+    /**************************************************
+     *	Expression Methods
+     **************************************************/
+
     @Override
     public void inAPlusBaseExpr(APlusBaseExpr node) {
-        if(curReactor instanceof Assimilator)
-        {
+        if(curReactor instanceof Assimilator) {
+        	return;
+        } else if(curReactor instanceof QueryStructReactor) {
+        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        	qAssm.setMathExpr("+");
+        	qAssm.setPixel("EXPR", node.toString().trim());
+    		initReactor(qAssm);	
         	return;
         }
+        
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -750,7 +753,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "+");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);	
     }
     
@@ -766,10 +769,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inAMinusBaseExpr(AMinusBaseExpr node) {
-        if(curReactor instanceof Assimilator)
-        {
+    	if(curReactor instanceof Assimilator) {
+        	return;
+        } else if(curReactor instanceof QueryStructReactor) {
+        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        	qAssm.setMathExpr("-");
+        	qAssm.setPixel("EXPR", node.toString().trim());
+    		initReactor(qAssm);	
         	return;
         }
+    	
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -786,7 +795,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -801,10 +810,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inADivBaseExpr(ADivBaseExpr node) {
-        if(curReactor instanceof Assimilator)
-        {
+    	if(curReactor instanceof Assimilator) {
+        	return;
+        } else if(curReactor instanceof QueryStructReactor) {
+        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        	qAssm.setMathExpr("/");
+        	qAssm.setPixel("EXPR", node.toString().trim());
+    		initReactor(qAssm);	
         	return;
         }
+    	
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -812,7 +827,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "/");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -827,10 +842,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inAMultBaseExpr(AMultBaseExpr node) {
-        if(curReactor instanceof Assimilator)
-        {
+    	if(curReactor instanceof Assimilator) {
+        	return;
+        } else if(curReactor instanceof QueryStructReactor) {
+        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        	qAssm.setMathExpr("*");
+        	qAssm.setPixel("EXPR", node.toString().trim());
+    		initReactor(qAssm);	
         	return;
         }
+    	
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -838,7 +859,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "*");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -859,7 +880,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	PowAssimilator powAssm = new PowAssimilator();
     	powAssm.setExpressions(node.getBase().toString().trim(), node.getExponent().toString().trim());
-    	powAssm.setPKSL("EXPR", node.toString().trim());
+    	powAssm.setPixel("EXPR", node.toString().trim());
     	initReactor(powAssm);	
     }
     
@@ -874,10 +895,16 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inAModBaseExpr(AModBaseExpr node) {
-        if(curReactor instanceof Assimilator)
-        {
+    	if(curReactor instanceof Assimilator) {
+        	return;
+        } else if(curReactor instanceof QueryStructReactor) {
+        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        	qAssm.setMathExpr("%");
+        	qAssm.setPixel("EXPR", node.toString().trim());
+    		initReactor(qAssm);	
         	return;
         }
+    	
     	defaultIn(node);
 		Assimilator assm = new Assimilator();
 		
@@ -894,7 +921,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		String rightKey = node.getRight().toString().trim();
 		initExpressionToReactor(assm, leftKey, rightKey, "-");
 		
-		assm.setPKSL("EXPR", node.toString().trim());
+		assm.setPixel("EXPR", node.toString().trim());
 		initReactor(assm);
     }
     
@@ -909,13 +936,13 @@ public class LazyTranslation extends DepthFirstAdapter {
 
     private void initExpressionToReactor(IReactor reactor, String left, String right, String operation) {
     	GenRowStruct leftGenRow = reactor.getNounStore().makeNoun("LEFT");
-		leftGenRow.add(left, PkslDataTypes.CONST_STRING);
+		leftGenRow.add(left, PixelDataType.CONST_STRING);
     
     	GenRowStruct rightGenRow = reactor.getNounStore().makeNoun("RIGHT");
-    	rightGenRow.add(right, PkslDataTypes.CONST_STRING);
+    	rightGenRow.add(right, PixelDataType.CONST_STRING);
     
     	GenRowStruct operator = reactor.getNounStore().makeNoun("OPERATOR");
-    	operator.add(operation, PkslDataTypes.CONST_STRING);
+    	operator.add(operation, PixelDataType.CONST_STRING);
     }
     
     /**************************************************
@@ -925,25 +952,32 @@ public class LazyTranslation extends DepthFirstAdapter {
 
     protected void initReactor(IReactor reactor)
     {
-        // make a check to see if the curReactor is not null
-        if(curReactor != null)
-        {
-    		// yes I know they do the same thing.. 
-        	// but I am atleast checking the operation type before doing it
-        	if(operationType == TypeOfOperation.COMPOSITION) {
-	        	reactor.setParentReactor(curReactor);
-	        	curReactor.setChildReactor(reactor);
-        	} else {
-	        	reactor.setParentReactor(curReactor);
-	        	curReactor.setChildReactor(reactor);
-        	}
-        }
-        curReactor = reactor;
-        curReactor.setInsight(this.insight);
-        curReactor.setPKSLPlanner(this.planner);
-        curReactor.In();
+    	// make a check to see if the curReactor is not null
+    	IReactor parentReactor = curReactor;
+    	if(parentReactor != null) {
+    		reactor.setParentReactor(parentReactor);
+    		parentReactor.setChildReactor(reactor);
+    	}
+    	curReactor = reactor;
+    	curReactor.setInsight(this.insight);
+    	curReactor.setPixelPlanner(this.planner);
+    	curReactor.In();
+
+    	// need to account for embedded script reactors
+    	// since i do not want it to the be the parent
+    	if(parentReactor instanceof EmbeddedScriptReactor) {
+    		// since the in/out will push things into the embedded script
+    		// we need to now push the last value and sync it to the new reactor
+    		int numInputs = parentReactor.getCurRow().size();
+    		if(numInputs > 0) {
+    			NounMetadata lastNoun = parentReactor.getCurRow().getNoun(numInputs-1);
+        		PixelDataType lastNounName = lastNoun.getNounType();
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounName.toString());
+        		genRow.add(lastNoun);
+    		}
+    	}
     }
-    
+
 	protected void deInitReactor()
 	{
 		if(curReactor != null)
@@ -954,6 +988,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				curReactor.updatePlan();
 			} catch(Exception e) {
 				LOGGER.error(e.getMessage());
+				throw new IllegalArgumentException(e.getMessage());
 			}
 			// get the parent
 			Object parent = curReactor.Out();
@@ -998,18 +1033,36 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAMapScalarList(AMapScalarList node) {
+    public void inAMapList(AMapList node) {
     	defaultIn(node);
     	MapListReactor mapListR = new MapListReactor();
     	initReactor(mapListR);
     }
     
     @Override
-    public void outAMapScalarList(AMapScalarList node) {
+    public void outAMapList(AMapList node) {
     	defaultOut(node);
     	deInitReactor();
     }
     
+    @Override
+    public void inAMapEntry(AMapEntry node) {
+    	String mapKey = PixelUtility.removeSurroundingQuotes(node.getKey().getText());
+    	this.curReactor.getCurRow().addLiteral(mapKey);
+    }
+    
+    @Override
+    public void inAMapVar(AMapVar node) {
+    	String variable = node.getVar().toString().trim();
+    	NounMetadata value = null;
+    	if(this.planner.hasVariable(variable)) {
+    		value = this.planner.getVariableValue(variable);
+    	} else {
+    		value = new NounMetadata("{" + variable + "}", PixelDataType.CONST_STRING);
+    	}
+    	this.curReactor.getCurRow().add(value);
+    }
+        
 	//////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
     
@@ -1020,10 +1073,10 @@ public class LazyTranslation extends DepthFirstAdapter {
      * @return
      * 
      * Return the reactor based on the reactorId
-     * Sets the PKSL operations in the reactor
+     * Sets the pixel operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame)getDataMaker(), curReactor);
+    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) getDataMaker(), curReactor);
     }
     
     public void defaultIn(Node node)

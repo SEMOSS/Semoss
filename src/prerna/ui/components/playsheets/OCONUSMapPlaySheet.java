@@ -38,12 +38,13 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.JSValue;
+
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.JSValue;
 
 /**
  * The Play Sheet for Outside the Continental United States (OCONUS) geo-location data. Visualizes Latitude/Longitude
@@ -116,11 +117,11 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 		
 		String name = names[labelIdx];
 		// Possibly filter out all US Facilities from the query?
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
 		while(it.hasNext()) {
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			String colName;
 			Double value;
 			
@@ -165,23 +166,24 @@ public class OCONUSMapPlaySheet extends BrowserPlaySheet {
 	
 	public Hashtable<String, String> getAlignHash() {
 		Hashtable<String, String> alignHash = new Hashtable<String, String>();
-		String[] names = dataFrame.getColumnHeaders();
+		String[] qsNames = dataFrame.getQsHeaders();
+		String[] frameNames = dataFrame.getColumnHeaders();
 		
 		int offset = 0;
-		if(!dataFrame.isNumeric(names[1])) {
-			alignHash.put(seriesString, names[0]);
+		if(!dataFrame.isNumeric(qsNames[1])) {
+			alignHash.put(seriesString, frameNames[0]);
 			offset = 1;
 		}
-		alignHash.put(labelString, names[0 + offset]);
-		alignHash.put(latString, names[1 + offset]);
-		if(names.length > 2 + offset)
-			alignHash.put(lonString, names[2 + offset]);
-		if(names.length > 3 + offset)
-			alignHash.put(sizeString, names[3 + offset]);
-		if(names.length > 4 + offset)
-			alignHash.put(seriesString, names[4 + offset]);
-		if(names.length > 5 + offset)
-			alignHash.put(timeString, names[5+ offset]);
+		alignHash.put(labelString, frameNames[0 + offset]);
+		alignHash.put(latString, frameNames[1 + offset]);
+		if(frameNames.length > 2 + offset)
+			alignHash.put(lonString, frameNames[2 + offset]);
+		if(frameNames.length > 3 + offset)
+			alignHash.put(sizeString, frameNames[3 + offset]);
+		if(frameNames.length > 4 + offset)
+			alignHash.put(seriesString, frameNames[4 + offset]);
+		if(frameNames.length > 5 + offset)
+			alignHash.put(timeString, frameNames[5+ offset]);
 		return alignHash;
 	}
 	

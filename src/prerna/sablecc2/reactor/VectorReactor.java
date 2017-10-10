@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class VectorReactor extends AbstractReactor implements JavaExecutable{
 
@@ -17,7 +17,7 @@ public class VectorReactor extends AbstractReactor implements JavaExecutable{
 			NounMetadata noun = curRow.getNoun(i);
 			list.add(noun);
 		}
-		return new NounMetadata(list, PkslDataTypes.VECTOR);
+		return new NounMetadata(list, PixelDataType.VECTOR);
 	}
 
 	public String getJavaSignature() {
@@ -34,7 +34,7 @@ public class VectorReactor extends AbstractReactor implements JavaExecutable{
 			if(nextInput instanceof JavaExecutable) {
 				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
 			} else {
-				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PixelDataType.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

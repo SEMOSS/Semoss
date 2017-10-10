@@ -5,8 +5,8 @@ import java.util.Set;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DatabaseConceptsReactors extends AbstractReactor {
@@ -22,7 +22,7 @@ public class DatabaseConceptsReactors extends AbstractReactor {
 		}
 		String engineName = eGrs.get(0).toString();
 		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engineName);
-		return new NounMetadata(conceptsWithinEngineList, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_CONCEPTS);
+		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPTS);
 	}
 
 }

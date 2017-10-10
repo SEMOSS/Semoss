@@ -1,13 +1,15 @@
 package prerna.sablecc2.reactor.imports;
 
-import java.util.Map;
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.interpreters.QueryStruct2;
+import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ImportDataReactor extends AbstractReactor {
@@ -16,31 +18,31 @@ public class ImportDataReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// this is greedy execution
 		// will not return anything
-		// but will update the frame in the pksl planner
-		QueryStruct2 queryStruct = getQueryStruct();
-		ITableDataFrame frame = (ITableDataFrame) this.planner.getProperty("FRAME", "FRAME");
+		// but will update the frame in the pixel planner
+		QueryStruct2 qs = getQueryStruct();
+		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+
+		// set the logger into the frame
+		Logger logger = getLogger(frame.getClass().getName());
+		frame.setLogger(logger);
 		
-		Extractor extractor = new Extractor(queryStruct);
-		Map<String, Object> extractedData = extractor.extractData();
-		Importer importer = (Importer) ImportFactory.getImporter(frame);
+		// insert the data
+		IImporter importer = ImportFactory.getImporter(frame, qs);
+		importer.insertData();
+		// need to clear the unique col count used by FE for determining the need for math
+		frame.clearCachedInfo();
 		
-		//set values into the curReactor
-		importer.put("G", frame);
-		for(String key : extractedData.keySet()) {
-			Object data = extractedData.get(key);
-			importer.put(key, data);
+		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
+			storeCsvFileMeta((CsvQueryStruct) qs);
+		} else if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			storeExcelFileMeta((ExcelQueryStruct) qs);
 		}
-		importer.process();
 		
-		ITableDataFrame importedFrame = (ITableDataFrame)importer.getValue("G");
-		System.out.println("IMPORTED FRAME CREATED WITH ROW COUNT: "+importedFrame.getNumRows());
-		this.planner.addProperty("FRAME", "FRAME", importedFrame);
-		
-		return new NounMetadata(importedFrame, PkslDataTypes.FRAME, PkslOperationTypes.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	private QueryStruct2 getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
@@ -52,6 +54,29 @@ public class ImportDataReactor extends AbstractReactor {
 			}
 		}
 		return queryStruct;
+	}
+
+	private void storeCsvFileMeta(CsvQueryStruct qs) {
+		FileMeta fileMeta = new FileMeta();
+		fileMeta.setFileLoc(qs.getCsvFilePath());
+		fileMeta.setDataMap(qs.getColumnTypes());
+		fileMeta.setNewHeaders(qs.getNewHeaderNames());
+		fileMeta.setPixelString(this.originalSignature);
+		fileMeta.setSelectors(qs.getSelectors());
+		fileMeta.setType(FileMeta.FILE_TYPE.CSV);
+		this.insight.addFileUsedInInsight(fileMeta);
+	}
+	
+	private void storeExcelFileMeta(ExcelQueryStruct qs) {
+		FileMeta fileMeta = new FileMeta();
+		fileMeta.setFileLoc(qs.getExcelFilePath());
+		fileMeta.setDataMap(qs.getColumnTypes());
+		fileMeta.setSheetName(qs.getSheetName());
+		fileMeta.setNewHeaders(qs.getNewHeaderNames());
+		fileMeta.setSelectors(qs.getSelectors());
+		fileMeta.setPixelString(this.originalSignature);
+		fileMeta.setType(FileMeta.FILE_TYPE.EXCEL);
+		this.insight.addFileUsedInInsight(fileMeta);
 	}
 }
 

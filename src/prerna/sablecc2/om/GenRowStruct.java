@@ -18,7 +18,7 @@ public class GenRowStruct {
 	
 	public Vector<NounMetadata> vector = new Vector<>();
 	
-	public void add(Object value, PkslDataTypes type) {
+	public void add(Object value, PixelDataType type) {
 		if(value instanceof NounMetadata) {
 			vector.add((NounMetadata) value);
 		} else {
@@ -32,45 +32,45 @@ public class GenRowStruct {
 	}
 	
 	public void addLiteral(String literal) {
-		add(literal, PkslDataTypes.CONST_STRING);
+		add(literal, PixelDataType.CONST_STRING);
 	}
 	
 	public void addBoolean(Boolean bool) {
-		add(bool, PkslDataTypes.BOOLEAN);
+		add(bool, PixelDataType.BOOLEAN);
 	}
 	
 	public void addDecimal(Double literal)
 	{
-		add(literal, PkslDataTypes.CONST_DECIMAL);
+		add(literal, PixelDataType.CONST_DECIMAL);
 	}
 	
 	public void addInteger(Integer literal)
 	{
-		add(literal, PkslDataTypes.CONST_INT);
+		add(literal, PixelDataType.CONST_INT);
 	}
 	
 	public void addColumn(String column)
 	{
-		add(column.trim(), PkslDataTypes.COLUMN);
+		add(column.trim(), PixelDataType.COLUMN);
 	}
 	
 	public void addMap(Map<Object, Object> map) {
-		add(map, PkslDataTypes.MAP);
+		add(map, PixelDataType.MAP);
 	}
 	
 	public void addComparator(String comparator) {
-		add(comparator, PkslDataTypes.COMPARATOR);
+		add(comparator, PixelDataType.COMPARATOR);
 	}
 	
 	// other than the actual expression
 	// I need to run through to find what the input columns are in order for me to run through and add to selectors
 	// while, I am doing this for sql expression here, we could replace sql expression and the same story kicks in
 	public void addSQLE(String sqlE, String [] inputColumns) {
-		add(sqlE, PkslDataTypes.SQLE);
+		add(sqlE, PixelDataType.SQLE);
 	}
 
 	public void addE(Expression e) {
-		add(e, PkslDataTypes.E);
+		add(e, PixelDataType.E);
 		isAllSQL = false;
 	}
 	
@@ -78,7 +78,7 @@ public class GenRowStruct {
 	// imagine the case of if where this could be a full operational formula that needs to be executed
 	// however this could be the if part or the else part
 	public void addLambda(IReactor reactor) {
-		add(reactor, PkslDataTypes.LAMBDA);
+		add(reactor, PixelDataType.LAMBDA);
 		isAllSQL = false;
 	}
 
@@ -89,16 +89,28 @@ public class GenRowStruct {
 
 	public void addRelation(String leftCol, String joinType, String rightCol) {
 		Join join = new Join(leftCol, joinType, rightCol);
-		add(join, PkslDataTypes.JOIN);
+		add(join, PixelDataType.JOIN);
 	}
 	
 	public void addRelation(String leftCol, String joinType, String rightCol, String relationshipName) {
 		Join join = new Join(leftCol, joinType, rightCol, relationshipName);
-		add(join, PkslDataTypes.JOIN);
+		add(join, PixelDataType.JOIN);
 	}
 
 	public void merge(GenRowStruct anotherRow) {
 		vector.addAll(anotherRow.vector);
+	}
+	
+	/**
+	 * Just flush out all the values
+	 * @return
+	 */
+	public List<Object> getAllValues() {
+		List<Object> values = new Vector<Object>();
+		for(NounMetadata n : this.vector) {
+			values.add(n.getValue());
+		}
+		return values;
 	}
 	
 	// gets all of a particular type
@@ -107,14 +119,25 @@ public class GenRowStruct {
 	{
 		List<String> retVector = new ArrayList<>();
 		for(NounMetadata noun : vector) {
-			if(noun.getNounType() == PkslDataTypes.COLUMN) {
+			if(noun.getNounType() == PixelDataType.COLUMN) {
 				retVector.add((String)noun.getValue());
 			}
 		}
 		return retVector;
 	}
 	
-	public List<Object> getColumnsOfType(PkslDataTypes type) {
+	public List<Join> getAllJoins()
+	{
+		List<Join> retVector = new ArrayList<>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounType() == PixelDataType.JOIN) {
+				retVector.add((Join)noun.getValue());
+			}
+		}
+		return retVector;
+	}
+	
+	public List<Object> getValuesOfType(PixelDataType type) {
 		List<Object> retVector = new Vector<Object>();
 		for(NounMetadata noun : vector) {
 			if(noun.getNounType() == type) {
@@ -124,7 +147,7 @@ public class GenRowStruct {
 		return retVector;
 	}
 	
-	public List<NounMetadata> getNounsOfType(PkslDataTypes type) {
+	public List<NounMetadata> getNounsOfType(PixelDataType type) {
 		List<NounMetadata> retVector = new Vector<NounMetadata>();
 		for(NounMetadata noun : vector) {
 			if(noun.getNounType() == type) {
@@ -137,8 +160,8 @@ public class GenRowStruct {
 	public List<Object> getAllNumericColumns() {
 		List<Object> retVector = new Vector<Object>();
 		for(NounMetadata noun : vector) {
-			if(noun.getNounType() == PkslDataTypes.CONST_DECIMAL || 
-					noun.getNounType() == PkslDataTypes.CONST_INT) {
+			if(noun.getNounType() == PixelDataType.CONST_DECIMAL || 
+					noun.getNounType() == PixelDataType.CONST_INT) {
 				retVector.add(noun.getValue());
 			}
 		}
@@ -157,7 +180,7 @@ public class GenRowStruct {
 		return this.vector.get(i);
 	}
 	
-	public PkslDataTypes getMeta(int i) {
+	public PixelDataType getMeta(int i) {
 		return this.vector.get(i).getNounType();
 	}
 

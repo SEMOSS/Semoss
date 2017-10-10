@@ -5,7 +5,7 @@ import java.util.List;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class GenericReactor extends AbstractReactor {
 
@@ -33,8 +33,8 @@ public class GenericReactor extends AbstractReactor {
 		int numNouns = allNouns.size();
 		for(int nounIdx = 0; nounIdx < numNouns; nounIdx++) {
 			Object nounValue = allNouns.get(nounIdx);
-			PkslDataTypes nounType = allNouns.getMeta(nounIdx);
-			if(nounType == PkslDataTypes.COLUMN) {
+			PixelDataType nounType = allNouns.getMeta(nounIdx);
+			if(nounType == PixelDataType.COLUMN) {
 				NounMetadata value = this.planner.getVariableValue((String)nounValue);
 				if(value != null) {
 					thisStruct.add(value);

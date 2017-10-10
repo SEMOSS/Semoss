@@ -4,21 +4,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.QueryFilter;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.JavaExecutable;
+import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 
 public class OpFilter extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-		if(this.parentReactor instanceof QueryFilterReactor) {
+		if(this.parentReactor instanceof QueryFilterReactor || this.parentReactor instanceof AbstractFilterReactor) {
 			// we want to return a filter object
 			// so it can be integrated with the query struct
 			QueryFilter filter = generateFilterObject();
-			return new NounMetadata(filter, PkslDataTypes.FILTER);
+			return new NounMetadata(filter, PixelDataType.FILTER);
 		}
 		
 		// there are 3 things being passed
@@ -60,7 +62,7 @@ public class OpFilter extends OpBasic {
 			throw new IllegalArgumentException("Cannot handle comparator " + comparator);
 		}
 		
-		return new NounMetadata(evaluation, PkslDataTypes.BOOLEAN);
+		return new NounMetadata(evaluation, PixelDataType.BOOLEAN);
 	}
 	
 	public String getJavaSignature() {
@@ -73,7 +75,7 @@ public class OpFilter extends OpBasic {
 		boolean needCheckType = false;
 		if(leftSideValue instanceof JavaExecutable) {
 			leftString = ((JavaExecutable)leftSideValue).getJavaSignature();
-		} else if(leftSide.getNounType() == PkslDataTypes.CONST_STRING) {
+		} else if(leftSide.getNounType() == PixelDataType.CONST_STRING) {
 			leftString = "\""+leftSideValue.toString()+"\"";
 		} else {
 			leftString = leftSideValue.toString();
@@ -89,7 +91,7 @@ public class OpFilter extends OpBasic {
 		String rightString;
 		if(rightSideValue instanceof JavaExecutable) {
 			rightString = ((JavaExecutable)rightSideValue).getJavaSignature();
-		} else if(rightSide.getNounType() == PkslDataTypes.CONST_STRING ) {
+		} else if(rightSide.getNounType() == PixelDataType.CONST_STRING ) {
 			needCheckType = true;
 			rightString = "\""+rightSideValue.toString()+"\"";
 		} else {
@@ -128,7 +130,7 @@ public class OpFilter extends OpBasic {
 		for(NounMetadata noun : this.nouns) {
 			// if we are at the comparator
 			// store it and we are done for this loop
-			if(noun.getNounType() == PkslDataTypes.COMPARATOR) {
+			if(noun.getNounType() == PixelDataType.COMPARATOR) {
 				comparator = noun.getValue().toString().trim();
 				foundComparator = true;
 				continue;
@@ -145,7 +147,14 @@ public class OpFilter extends OpBasic {
 			}
 		}
 		
-		QueryFilter filter = new QueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
+		QueryFilter filter = null;
+		if(!lSet.isEmpty() && !rSet.isEmpty()) {
+			filter = new QueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
+		} else {
+			// TODO: throw warning that the filter for the query is invalid!
+			// reason for warning is because for param insights where FE will
+			// pass an empty set when the user selects all for a specific filter
+		}
 		return filter;
 	}
 	
@@ -159,14 +168,77 @@ public class OpFilter extends OpBasic {
 		if(nouns.size() > 1) {
 			List<Object> values = new Vector<Object>();
 			for(int i = 0; i < nouns.size(); i++) {
-				values.add(nouns.get(i).getValue());
+				NounMetadata subNoun = nouns.get(i);
+				if(subNoun.getNounType() == PixelDataType.TASK) {
+					values.addAll(flushJobData((ITask) subNoun.getValue()));
+				} else {
+					if(subNoun.getValue() instanceof List) {
+						values.addAll( (List) subNoun.getValue());
+					} else {
+						values.add(subNoun.getValue());
+					}
+				}
 			}
-			noun = new NounMetadata(values, nouns.get(0).getNounType());
+			noun = new NounMetadata(values, predictTypeFromObject(values));
 		} else {
 			noun = nouns.get(0);
+			if(noun.getNounType() == PixelDataType.TASK) {
+				List<Object> values = flushJobData((ITask) noun.getValue());
+				noun = new NounMetadata(values, predictTypeFromObject(values));
+			}
 		}
 		
 		return noun;
+	}
+	
+	/**
+	 * Flush the task data into an array
+	 * This assumes you have table data!!!
+	 * @param taskData
+	 * @return
+	 */
+	private List<Object> flushJobData(ITask taskData) {
+		List<Object> flushedOutCol = new ArrayList<Object>();
+		// iterate through the task to get the table data
+		List<Object[]> data = taskData.flushOutIteratorAsGrid();
+		int size = data.size();
+		// assumes we are only flushing out the first column
+		for(int i = 0; i < size; i++) {
+			flushedOutCol.add(data.get(i)[0]);
+		}
+		
+		return flushedOutCol;
+	}
+	
+	/**
+	 * We got to predict the type of the values when we have a bunch to merge
+	 * @param obj
+	 * @return
+	 */
+	private PixelDataType predictTypeFromObject(List<Object> obj) {
+		int size = obj.size();
+		if(size == 0) {
+			return PixelDataType.CONST_STRING;
+		}
+		
+		Object firstVal = null;
+		int counter = 0;
+		while(firstVal == null && counter < size) {
+			firstVal = obj.get(counter);
+			counter++;
+		}
+		
+		if(firstVal instanceof Double) {
+			return PixelDataType.CONST_DECIMAL;
+		} else if(firstVal instanceof Integer) {
+			return PixelDataType.CONST_INT;
+		} else if(firstVal instanceof String) {
+			return PixelDataType.CONST_STRING;
+		} else if(firstVal instanceof Boolean) {
+			return PixelDataType.BOOLEAN;
+		}
+		
+		return PixelDataType.CONST_STRING;
 	}
 	
 }

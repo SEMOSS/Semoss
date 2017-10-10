@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class SampleReactor extends AbstractReactor {
 
@@ -110,8 +111,8 @@ public class SampleReactor extends AbstractReactor {
 				GenRowStruct struct = store.nounRow.get(singleKey);
 				inputs.addAll(struct.getAllColumns());
 				// merge the filters and joins as well
-				filters.addAll(struct.getColumnsOfType(PkslDataTypes.FILTER)); 
-				joins.addAll(struct.getColumnsOfType(PkslDataTypes.JOIN));
+				filters.addAll(struct.getValuesOfType(PixelDataType.FILTER)); 
+				joins.addAll(struct.getValuesOfType(PixelDataType.JOIN));
 			}
 			
 		
@@ -146,10 +147,11 @@ public class SampleReactor extends AbstractReactor {
 			
 			// put the fields now
 			// assumes this is java
+			ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
 			for(int colIndex = 0;colIndex < inputs.size() && frame != null;colIndex++)
 			{
 				String thisCol = inputs.elementAt(colIndex);
-				IMetaData.DATA_TYPES thisType = frame.getDataType(thisCol);
+				IMetaData.DATA_TYPES thisType = frame.getMetaData().getHeaderTypeAsEnum(thisCol, null);
 				if(thisType == IMetaData.DATA_TYPES.STRING)
 					method.append("String " + thisCol + " = (String)row.getField(" + thisCol + "); \n");
 				else if(thisType == IMetaData.DATA_TYPES.NUMBER)
@@ -236,8 +238,8 @@ public class SampleReactor extends AbstractReactor {
 			GenRowStruct struct = store.nounRow.get(singleKey);
 			List <String> inputs = struct.getAllColumns();
 			// merge the filters and joins as well
-			List <Object> filters = struct.getColumnsOfType(PkslDataTypes.FILTER); 
-			List <Object> joins = struct.getColumnsOfType(PkslDataTypes.JOIN);
+			List <Object> filters = struct.getValuesOfType(PixelDataType.FILTER); 
+			List <Object> joins = struct.getValuesOfType(PixelDataType.JOIN);
 			
 			// need a better way to do it
 			if(asName == null)

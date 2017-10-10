@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AMapEntry extends PMapEntry
 {
-    private PScalar _key_;
+    private TWord _key_;
     private TColon _colon_;
     private PValues _val_;
 
@@ -17,7 +17,7 @@ public final class AMapEntry extends PMapEntry
     }
 
     public AMapEntry(
-        @SuppressWarnings("hiding") PScalar _key_,
+        @SuppressWarnings("hiding") TWord _key_,
         @SuppressWarnings("hiding") TColon _colon_,
         @SuppressWarnings("hiding") PValues _val_)
     {
@@ -45,12 +45,12 @@ public final class AMapEntry extends PMapEntry
         ((Analysis) sw).caseAMapEntry(this);
     }
 
-    public PScalar getKey()
+    public TWord getKey()
     {
         return this._key_;
     }
 
-    public void setKey(PScalar node)
+    public void setKey(TWord node)
     {
         if(this._key_ != null)
         {
@@ -160,7 +160,7 @@ public final class AMapEntry extends PMapEntry
         // Replace child
         if(this._key_ == oldChild)
         {
-            setKey((PScalar) newChild);
+            setKey((TWord) newChild);
             return;
         }
 

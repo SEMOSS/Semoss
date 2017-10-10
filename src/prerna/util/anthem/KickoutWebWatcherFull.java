@@ -151,18 +151,8 @@ public class KickoutWebWatcherFull extends AbstractKickoutWebWatcher {
 			importer.runProcessor(options);
 		} catch (Exception e) {
 			e.printStackTrace();
-			LOGGER.error("Failed to create " + errorCodeDbName);
+			logger.error("Failed to create " + errorCodeDbName);
 		}
-	}
-
-	@Override
-	protected void executeJobs() {
-		// Right now, nothing to execute		
-	}
-	
-	@Override
-	protected void scheduleJobs() {
-		// Right now, nothing to schedule		
 	}
 	
 	// Test case

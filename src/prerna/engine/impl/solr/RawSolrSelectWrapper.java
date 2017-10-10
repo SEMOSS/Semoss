@@ -11,7 +11,7 @@ import org.apache.solr.common.SolrDocumentList;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 
 public class RawSolrSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
@@ -72,7 +72,7 @@ public class RawSolrSelectWrapper extends AbstractWrapper implements IRawSelectW
 	public IHeadersDataRow next() {
 		if(returnCount) {
 			Object[] dataRow = new Object[]{totalCount * getReturnHeaders(false).length};
-			HeadersDataRow row = new HeadersDataRow(new String[]{"NUM_FOUND"}, dataRow, dataRow);
+			HeadersDataRow row = new HeadersDataRow(new String[]{"NUM_FOUND"}, dataRow);
 			curIndex++;
 			return row;
 		}
@@ -91,7 +91,7 @@ public class RawSolrSelectWrapper extends AbstractWrapper implements IRawSelectW
 		this.curIndex++;
 		
 		// return the row
-		HeadersDataRow row = new HeadersDataRow(displayVar, values, values);
+		HeadersDataRow row = new HeadersDataRow(displayVar, values);
 		return row;
 	}
 
@@ -134,6 +134,18 @@ public class RawSolrSelectWrapper extends AbstractWrapper implements IRawSelectW
 		}
 		returnHeaders = dV.toArray(new String[dV.size()]);
 		return returnHeaders;
+	}
+
+	@Override
+	public String[] getTypes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
