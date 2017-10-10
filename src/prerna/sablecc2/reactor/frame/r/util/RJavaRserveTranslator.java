@@ -1,9 +1,13 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import org.rosuda.JRI.REXP;
+import org.rosuda.REngine.Rserve.RConnection;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
+	protected RConnection retCon;
+	protected String port;
+	
 	/**
 	 * Have this be protected since we want the control to be based on the 
 	 * RJavaTranslator to determine which class to generate
@@ -42,5 +46,17 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		return null;
 	}
 
-	
+	@Override
+	public void setConnection(RConnection connection) {
+		if(connection != null) {
+			this.retCon = connection;
+		}
+	}
+
+	@Override
+	public void setPort(String port) {
+		if(this.port != null) {
+			this.port = port;
+		}
+	}
 }

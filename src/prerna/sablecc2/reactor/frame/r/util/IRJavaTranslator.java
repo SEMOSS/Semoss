@@ -1,8 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import org.apache.log4j.Logger;
-
-
+import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.om.Insight;
 
@@ -55,5 +54,9 @@ public interface IRJavaTranslator {
 	 * @return
 	 */
 	String getString(String script);
+	
+	void setConnection(RConnection connection);
+	
+	void setPort(String port);
 	
 }

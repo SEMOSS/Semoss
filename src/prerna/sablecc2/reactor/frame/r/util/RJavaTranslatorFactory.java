@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -56,6 +58,15 @@ public class RJavaTranslatorFactory {
 			newInstance = (IRJavaTranslator) translatorClass.newInstance();
 			newInstance.setInsight(insight);
 			newInstance.setLogger(logger);
+			
+			// TODO: until we get everythign using this
+			// let us pass the r connection info
+			// if we have an r data table
+			ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
+			if(dm instanceof RDataTable) {
+				newInstance.setConnection(((RDataTable) dm).getConnection());
+				newInstance.setPort(((RDataTable) dm).getPort());
+			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
