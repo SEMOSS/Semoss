@@ -1155,6 +1155,7 @@ public abstract class AbstractEngine implements IEngine {
 					in = new OldInsight(this, dataMakerName, layout);
 					in.setRdbmsId(rdbmsId);
 					in.setInsightName(insightName);
+					in.setOutput(layout);
 					((OldInsight) in).setMakeup(insightDefinition);
 //					in.setPerspective(perspective);
 //					in.setOrder(order);
