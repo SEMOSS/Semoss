@@ -153,14 +153,6 @@ public class MetaHelper implements IExplorable {
 		return from;
 	}
 
-
-
-	@Override
-	public void setDreamer(String dreamer) {
-		// TODO Auto-generated method stub
-
-	}
-
 	@Override
 	public void setOWL(String owl) {
 		// TODO Auto-generated method stub

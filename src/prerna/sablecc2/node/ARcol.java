@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 public final class ARcol extends PRcol
 {
     private TFrameprefix _frameprefix_;
-    private TNumber _number_;
+    private TId _columnName_;
 
     public ARcol()
     {
@@ -17,12 +17,12 @@ public final class ARcol extends PRcol
 
     public ARcol(
         @SuppressWarnings("hiding") TFrameprefix _frameprefix_,
-        @SuppressWarnings("hiding") TNumber _number_)
+        @SuppressWarnings("hiding") TId _columnName_)
     {
         // Constructor
         setFrameprefix(_frameprefix_);
 
-        setNumber(_number_);
+        setColumnName(_columnName_);
 
     }
 
@@ -31,7 +31,7 @@ public final class ARcol extends PRcol
     {
         return new ARcol(
             cloneNode(this._frameprefix_),
-            cloneNode(this._number_));
+            cloneNode(this._columnName_));
     }
 
     @Override
@@ -65,16 +65,16 @@ public final class ARcol extends PRcol
         this._frameprefix_ = node;
     }
 
-    public TNumber getNumber()
+    public TId getColumnName()
     {
-        return this._number_;
+        return this._columnName_;
     }
 
-    public void setNumber(TNumber node)
+    public void setColumnName(TId node)
     {
-        if(this._number_ != null)
+        if(this._columnName_ != null)
         {
-            this._number_.parent(null);
+            this._columnName_.parent(null);
         }
 
         if(node != null)
@@ -87,7 +87,7 @@ public final class ARcol extends PRcol
             node.parent(this);
         }
 
-        this._number_ = node;
+        this._columnName_ = node;
     }
 
     @Override
@@ -95,7 +95,7 @@ public final class ARcol extends PRcol
     {
         return ""
             + toString(this._frameprefix_)
-            + toString(this._number_);
+            + toString(this._columnName_);
     }
 
     @Override
@@ -108,9 +108,9 @@ public final class ARcol extends PRcol
             return;
         }
 
-        if(this._number_ == child)
+        if(this._columnName_ == child)
         {
-            this._number_ = null;
+            this._columnName_ = null;
             return;
         }
 
@@ -127,9 +127,9 @@ public final class ARcol extends PRcol
             return;
         }
 
-        if(this._number_ == oldChild)
+        if(this._columnName_ == oldChild)
         {
-            setNumber((TNumber) newChild);
+            setColumnName((TId) newChild);
             return;
         }
 
