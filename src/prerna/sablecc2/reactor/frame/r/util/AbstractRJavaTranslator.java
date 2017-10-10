@@ -18,5 +18,4 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
-	
 }

@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.Rengine;
+import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -126,5 +127,15 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	public String getString(String script) {
 		String stringVal = ((REXP)executeR(script)).asString();
 		return stringVal;
+	}
+
+	@Override
+	public void setConnection(RConnection connection) {
+		logger.info("JRI does not use RConnection object");
+	}
+
+	@Override
+	public void setPort(String port) {
+		logger.info("JRI does not require a port");
 	}
 }
