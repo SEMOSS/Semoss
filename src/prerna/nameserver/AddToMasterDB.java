@@ -601,8 +601,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 		String originalType = "";
 		if(helper != null) {
 			dataType = helper.getDataTypes(Uri);
-			originalType = dataType;
-			dataType = dataType.replace("TYPE:", "");
+			if(dataType == null) {
+				originalType = "STRING";
+				dataType = "STRING";
+			} else {
+				originalType = dataType;
+				dataType = dataType.replace("TYPE:", "");
+			}
 		}
 
 		if(dataType.equalsIgnoreCase("STRING") || dataType.toUpperCase().contains("VARCHAR"))
