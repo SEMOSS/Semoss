@@ -62,8 +62,6 @@ public class GraphFormatter extends AbstractFormatter {
 	private static final String PROP_HASH = "propHash";
 	private static final String GRAPH_META = "graphMeta";
 
-	private static final String NULL = "EMPTY_VALUE";
-	
 	public GraphFormatter() {
 		this.nodesMapList = new ArrayList<Map<String, Object>>();
 		this.edgesMapList = new ArrayList<Map<String, Object>>();
@@ -87,26 +85,12 @@ public class GraphFormatter extends AbstractFormatter {
 	}
 
 	private void processNodes(String[] headers, Object[] values) {
-//		//TODO remove unnecessary headers
-//		Set<Integer> headerIndex = new HashSet<Integer>();
-//		if(this.indexConnections != null) {
-//			for(Integer[] connection: indexConnections) {
-//				int start = connection[0];
-//				int end = connection[1];
-//				headerIndex.add(start);
-//				headerIndex.add(end);
-//				
-//			}
-//		}
-//		Object[] selectedHeaders = (Object[]) headerIndex.toArray();
-//		// TODO end of removal
-		
 		// add the node information
 		for(int i = 0; i < headers.length; i++) {
 			String vertexType = headers[i];
 			Object vertexLabel = values[i];
 			if(vertexLabel == null) {
-				vertexLabel = NULL;
+				continue;
 			}
 			String uri = vertexType + "/" + vertexLabel;
 
@@ -169,11 +153,11 @@ public class GraphFormatter extends AbstractFormatter {
 				if (upHeaderIndex >= 0 && downHeaderIndex >= 0) {
 					Object sValue = values[upHeaderIndex];
 					if(sValue == null) {
-						sValue = NULL;
+						continue;
 					}
 					Object tValue = values[downHeaderIndex];
 					if(tValue == null) {
-						tValue = NULL;
+						continue;
 					}
 					String source = headers[upHeaderIndex] + "/" + sValue;
 					String target = headers[downHeaderIndex] + "/" + tValue;
