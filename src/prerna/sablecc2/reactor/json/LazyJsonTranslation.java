@@ -382,18 +382,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         // not sure if I need anything else right now
         curReactor.closeNoun("s");
     }
-
     
-    // all the utility method, which merely accumulate the data in some fashion later to be used by other functions
-    @Override
-    public void inARcol(ARcol node)
-    {
-        defaultIn(node);
-        // I need to do the work in terms of finding what is the column name
-        String column = node.getFrameprefix()+ "." + node.getNumber();
-        curReactor.getCurRow().addColumn(column);
-    }
-
     @Override
     public void outARcol(ARcol node)
     {
@@ -609,15 +598,27 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inADotcol(ADotcol node)
     {
     	defaultIn(node);
+    	processColumnReference(node.getColumnName().toString().trim());
+    }
+
+    @Override
+    public void inARcol(ARcol node)
+    {
+    	defaultIn(node);
+    	processColumnReference(node.getColumnName().toString().trim());
+    }
+
+    private void processColumnReference(String colName) {
     	ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
     	if(frame != null) {
-    		String colName = node.getColumnName().toString().trim();
     		String tableName = frame.getTableName();
     		if(curReactor != null) {
     			String qsName = null;
     			if(tableName != null) {
-        			qsName = tableName + "__" + colName;
-        		}
+    				qsName = tableName + "__" + colName;
+    			} else {
+    				qsName = colName;
+    			}
     			curReactor.getCurRow().addColumn(qsName);
     		} else {
     			// well, this means the person just typed f$Title (for example)
@@ -628,7 +629,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     			col.setColumn(colName);
     			qs.addSelector(col);
     			Iterator<IHeadersDataRow> iterator = frame.query(qs);
-    			ITask task = new BasicIteratorTask(iterator);
+    			ITask task = new BasicIteratorTask(qs, iterator);
     			this.insight.getTaskStore().addTask(task);
     			Map<String, Object> data = task.collect(500, false);
     			this.planner.addVariable("$RESULT", new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));

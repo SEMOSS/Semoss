@@ -117,8 +117,6 @@ public abstract class AbstractEngine implements IEngine {
 	protected String connectionURLEnd = ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	protected String insightUsername = "sa";
 
-	private String dreamer;
-	private String ontology;
 	private String owl;
 	private String insightDatabaseLoc;
 
@@ -189,37 +187,20 @@ public abstract class AbstractEngine implements IEngine {
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
 				}
-				// update explore an instance query!!!
-				updateExploreInstanceQuery(insightRDBMS);
-//				else { // RDBMS Question engine has not been made. Must do conversion
-//					// set the necessary fun stuff
-//					createInsights(baseFolder);
-//				}
-				
-				// this is for some legacy insights
-				// hope this doesn't stay here forever...
-				// TODO: can i accurately remove this now???
-				// TODO: can i accurately remove this now???
-				// TODO: can i accurately remove this now???
-				// TODO: can i accurately remove this now???
-				// TODO: can i accurately remove this now???
-				// TODO: need to figure out how I can set the default insights
-				// 		for a given database!
-				//		need to update this ...
-//				Utility.updateOldInsights(this);
-				
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
 				String updatedInsights = prop.getProperty(Constants.PKQL_UPDATE);
 				if(updatedInsights == null) {
-					updateToPKQLInsights();
+					updateToPixelInsights();
 					Utility.updateSMSSFile(propFile, Constants.PKQL_UPDATE, "true");
 				} else if(!Boolean.parseBoolean(updatedInsights)){
-					updateToPKQLInsights();
+					updateToPixelInsights();
 					Utility.changePropMapFileValue(propFile, Constants.PKQL_UPDATE, "true");
 				}
+				// update explore an instance query!!!
+				updateExploreInstanceQuery(insightRDBMS);
 				
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
@@ -227,11 +208,6 @@ public abstract class AbstractEngine implements IEngine {
 					logger.info("Loading OWL: " + owlFile);
 					setOWL(baseFolder + "/" + owlFile);
 				}
-//				String ontoFile = prop.getProperty(Constants.ONTOLOGY);
-//				if (ontoFile != null) {
-//					logger.info("Loading Ontology: " + ontoFile);
-//					setOntology(baseFolder + "/" + ontoFile);
-//				}
 				// load properties object for db
 				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
 				if (genEngPropFile != null) {
@@ -239,49 +215,21 @@ public abstract class AbstractEngine implements IEngine {
 				}
 			}
 			this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
-//			this.owlHelper.loadTransformedNodeNames();
-			//this.loadTransformedNodeNames();
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} 
-//		catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
 	}
 	
-//	public void createInsights(String baseFolder) throws FileNotFoundException, IOException {
-//		InsightsConverter converter = new InsightsConverter();
-//		this.insightRDBMS = converter.generateNewInsightsRDBMS(this.engineName);
-//		converter.setEngine(this);
-//		converter.setEngineName(prop.getProperty(Constants.ENGINE));
-//		converter.setSMSSLocation(propFile);
-//		
-//		// Use the xml if the prop file has that defined
-//		if (prop.containsKey(Constants.INSIGHTS)){
-//			logger.info("LOADING XML QUESTIONS FOR DB ::: " + this.getEngineName());
-//			String xmlFilePath = prop.getProperty(Constants.INSIGHTS);
-//			converter.loadQuestionsFromXML(baseFolder + "\\" + xmlFilePath); // this does questions and parameters now
-//		}
-//		// else we will use the prop file
-//		else if (prop.containsKey(Constants.DREAMER)){
-//			String dreamerLoc = baseFolder + "/" + prop.getProperty(Constants.DREAMER);
-//			logger.info("LOADING PROP FILE QUESTIONS FOR DB ::: " + this.getEngineName());
-//			logger.info("question prop file loc is " + dreamerLoc);
-//			Properties dreamerProps = loadProp(dreamerLoc);
-//			converter.loadQuestionsFromPropFile(dreamerProps);
-//		}
-//		else {
-//			logger.fatal("NO QUESTION SHEET DEFINED ON SMSS");
-//			logger.fatal("cannot start " + this.getEngineName() + " without question file");
-//		}
-//		//update smss location
-//		if(!RECREATE_INSIGHTS) {
-//			converter.updateSMSSFile();
-//		}
-//	}
-
+	@Deprecated
+	private void updateToPixelInsights() {
+		InsightsConverter2 converter = new InsightsConverter2(this);
+		try {
+			converter.modifyInsightsDatabase();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+	}
+	
 	@Deprecated
 	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
 		boolean tableExists = false;
@@ -376,15 +324,6 @@ public abstract class AbstractEngine implements IEngine {
 		}
 	}
 
-	private void updateToPKQLInsights() {
-		InsightsConverter2 converter = new InsightsConverter2(this);
-		try {
-			converter.modifyInsightsDatabase();
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		}
-	}
-	
 	@Override
 	public void closeDB() {
 		if(this.baseDataEngine != null) {
@@ -544,31 +483,10 @@ public abstract class AbstractEngine implements IEngine {
 		return this.baseDataHash;
 	}
 
-	// sets the dreamer
-	public void setDreamer(String dreamer) {
-		this.dreamer = dreamer;
-	}
-
-	// sets the dreamer
-//	public void setOntology(String ontology) {
-//		logger.debug("Ontology file is " + ontology);
-//		this.ontology = ontology;
-//
-//		if (ontoProp == null) {
-//			ontoProp = new Properties();
-//			try {
-//				ontoProp = loadProp(ontology);
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//		}
-//	}
-
 	public void setOWL(String owl) {
 		this.owl = owl;
 		createBaseRelationEngine();
 		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
-//		this.owlHelper.loadTransformedNodeNames();
 	}
 
 	public void setProperties(Properties prop) {
@@ -739,28 +657,6 @@ public abstract class AbstractEngine implements IEngine {
 		return owlHelper.getConceptualUriFromPhysicalUri(physicalURI);
 	}
 	
-//	/**
-//	 * query the owl to get the display name or the physical name
-//	 */
-//	public String getTransformedNodeName(String nodeURI, boolean getDisplayName){
-//		//String returnNodeURI = nodeURI;
-//		
-//		//these validation peices are seperated out intentionally for readability.
-//		if(owlHelper == null)
-//			return nodeURI;
-//		return owlHelper.getTransformedNodeName(nodeURI, getDisplayName);
-//	}
-//
-//	public void setTransformedNodeNames(Hashtable transformedNodeNames){
-//		owlHelper.setTransformedNodeNames(transformedNodeNames);
-//	}
-//	
-//	@Override
-//	public void loadTransformedNodeNames(){
-//		owlHelper.loadTransformedNodeNames();
-//	}
-	
-	
 	/**
 	 * Runs a select query on the base data engine of this engine
 	 */
@@ -869,13 +765,6 @@ public abstract class AbstractEngine implements IEngine {
 				//try deleting each file individually
 				logger.debug("Deleting insight file " + insightLoc);
 				insightFile.delete();
-
-//				String ontoLoc = baseFolder + "/" + this.getProperty(Constants.ONTOLOGY);
-//				if(ontoLoc != null){
-//					logger.debug("Deleting onto file " + ontoLoc);
-//					File ontoFile = new File(ontoLoc);
-//					ontoFile.delete();
-//				}
 
 				String owlLoc = baseFolder + "/" + this.getProperty(Constants.OWL);
 				if(owlLoc != null){
@@ -1167,7 +1056,6 @@ public abstract class AbstractEngine implements IEngine {
 						if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
 							if (type.contains(":")) {
 								String[] typeArray = type.split(":");
-								String table = typeArray[0];
 								type = typeArray[1];
 								//if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
 								//paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
@@ -1183,12 +1071,6 @@ public abstract class AbstractEngine implements IEngine {
 						uris = this.getCleanSelect(paramQuery);
 					} else {
 						uris = this.baseDataEngine.getCleanSelect(paramQuery);
-//						Vector<Object> baseUris = this.baseDataEngine.getCleanSelect(paramQuery);
-//						if(baseUris != null) {
-//							for(Object baseUri : baseUris) {
-//								uris.add(this.getTransformedNodeName(baseUri + "", true));
-//							}
-//						}
 					}
 				}else { 
 					// anything that is get Entity of Type must be on db
@@ -1293,8 +1175,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	public String getInsightDefinition()
-	{
+	public String getInsightDefinition() {
 		StringBuilder stringBuilder = new StringBuilder();
 		// call script command to get everything necessary to recreate rdbms engine on the other side//
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, "SCRIPT");
@@ -1305,7 +1186,6 @@ public abstract class AbstractEngine implements IEngine {
 			System.out.println(ss.getRPropHash().toString());//
 			stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
 		}
-//		this.insightRDBMS.execQuery("SCRIPT TO 'C:\\Users\\bisutton\\workspace\\script.txt'");
 		return stringBuilder.toString();
 	}
 	
@@ -1330,7 +1210,6 @@ public abstract class AbstractEngine implements IEngine {
 	
 	@Override
 	public String getDataTypes(String uri) {
-//		String cleanUri = getTransformedNodeName(uri, false);
 		return this.owlHelper.getDataTypes(uri);
 	}
 	
