@@ -131,12 +131,11 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		}
 		retMap.put("unfilterValues", unFilterValues);
 		
-		// if the unfilter values is empty
-		// or the current filters doesn't use the column
+		// if the current filters doesn't use the column
 		// there is no values that are unchecked to select
 		// i.e. nothing is done that is filtered that the user can undo for this column
 		List<Object> filterValues = new ArrayList<Object>();
-		if(baseFilters.getAllFilteredColumns().contains(tableCol) && !unFilterValues.isEmpty()) {
+		if(baseFilters.getAllFilteredColumns().contains(tableCol)) {
 			
 			boolean validExistingFilters = true;
 			// if we did add a word filter, we only want to execute if there is another filter present
