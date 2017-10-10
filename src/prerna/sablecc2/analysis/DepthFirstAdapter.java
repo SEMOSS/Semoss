@@ -1851,9 +1851,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getFrameprefix().apply(this);
         }
-        if(node.getNumber() != null)
+        if(node.getColumnName() != null)
         {
-            node.getNumber().apply(this);
+            node.getColumnName().apply(this);
         }
         outARcol(node);
     }

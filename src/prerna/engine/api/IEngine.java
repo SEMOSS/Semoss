@@ -34,7 +34,7 @@ import java.util.Vector;
  * so that they can be used without first recognizing what specific engine class it is.  A lot of different classes call on 
  * IEngine to refer to a specific engine, including, most notably, ProcessQueryListener.
  */
-public interface IEngine extends IExplorable{
+public interface IEngine extends IExplorable {
 	
 	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, TINKER, SOLR};
 	

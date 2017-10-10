@@ -234,7 +234,7 @@ anotherjsonkeyvalue = comma jsonkeyvalue;
  r_op = r;
 
  // reference - this means the 4th column in the current frame
- rcol = frameprefix number; // f$4
+ rcol = frameprefix [column_name]:id; // f$Title
  dotcol = frameid [column_name]:id; // f.Title
  
  ///////////////////////////////////////////////////////////////////////
