@@ -83,7 +83,7 @@ public class TextInputReactor extends QueryStructReactor {
 			String encodedString = fGrs.get(0).toString();
 			fileInfo = Utility.decodeURIComponent(encodedString);
 		} else {
-			throw new IllegalArgumentException("Need to specify " + FILE_INFO + "=[fileData] in pixel command");
+			throw new IllegalArgumentException("Need to specify " + FILE_INFO + "=[\"<encode>fileData</encode>\"] in pixel command");
 		}
 		return fileInfo;
 	}
