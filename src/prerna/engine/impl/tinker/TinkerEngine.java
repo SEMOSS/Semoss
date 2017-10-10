@@ -37,7 +37,7 @@ public class TinkerEngine extends AbstractEngine {
 
 	private static final Logger LOGGER = LogManager.getLogger(BigDataEngine.class.getName());
 
-	public Graph g = null;
+	private Graph g = null;
 	private boolean isNeo4j = false;
 
 	public void openDB(String propFile) {
@@ -199,8 +199,6 @@ public class TinkerEngine extends AbstractEngine {
 				long endTime = System.currentTimeMillis();
 				LOGGER.info("Successfully saved Neo4jFrame to file: " + baseFolder + "/db/" + this.engineName + "/" + this.engineName + "(" + (endTime - startTime) + " ms)");
 			}
-
-		
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
