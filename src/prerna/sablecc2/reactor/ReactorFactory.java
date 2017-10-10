@@ -126,6 +126,7 @@ import prerna.sablecc2.reactor.qs.QueryStructReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.StandardDeviationReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
+import prerna.sablecc2.reactor.qs.TextInputReactor;
 import prerna.sablecc2.reactor.qs.UniqueCountReactor;
 import prerna.sablecc2.reactor.qs.UniqueGroupConcatReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
@@ -220,6 +221,7 @@ public class ReactorFactory {
 		// specifies that our pksl operations after this point are dealing with the specified database
 		reactorHash.put("Database", DatabaseReactor.class); 
 		reactorHash.put("FileRead", FileSourceReactor.class); 
+		reactorHash.put("TextInput", TextInputReactor.class); 
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class); 
