@@ -84,10 +84,6 @@ public class Insight {
 	// dont know how else to shift to this
 	protected boolean isOldInsight = false;
 	
-	// I need to keep track of the layout here
-	// otherwise, dashboard will not work...
-	protected String layout;
-
 	/* 
 	 * TODO: find a better way of doing this
 	 * keep a list of all the files that are used to create this insight
@@ -615,23 +611,9 @@ public class Insight {
 		return "0";
 	}
 	
-	// need this for dashboard!
-	public String getOutput() {
-		return this.layout;
-	}
-	
-	public void setOutput(String output) {
-		this.layout = output;
-	}
-	
 	public TaskStore getTaskStore() {
 		return this.taskStore;
 	}
-	
-	// this is for the way current dashboards are done
-//	public void setParentInsight(Insight parentInsight) {
-//		this.setParentInsight = parentInsight;
-//	}
 	
 	public void setFilesUsedInInsight(List<FileMeta> filesUsed) {
 		this.filesUsedInInsight = filesUsed;
