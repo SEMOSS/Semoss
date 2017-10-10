@@ -191,13 +191,13 @@ public abstract class AbstractEngine implements IEngine {
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
-				String updatedInsights = prop.getProperty(Constants.PKQL_UPDATE);
+				String updatedInsights = prop.getProperty(Constants.PIXEL_UPDATE);
 				if(updatedInsights == null) {
 					updateToPixelInsights();
-					Utility.updateSMSSFile(propFile, Constants.PKQL_UPDATE, "true");
+					Utility.updateSMSSFile(propFile, Constants.PIXEL_UPDATE, "true");
 				} else if(!Boolean.parseBoolean(updatedInsights)){
 					updateToPixelInsights();
-					Utility.changePropMapFileValue(propFile, Constants.PKQL_UPDATE, "true");
+					Utility.changePropMapFileValue(propFile, Constants.PIXEL_UPDATE, "true");
 				}
 				// update explore an instance query!!!
 				updateExploreInstanceQuery(insightRDBMS);
