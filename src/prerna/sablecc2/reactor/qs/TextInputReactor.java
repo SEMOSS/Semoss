@@ -23,17 +23,13 @@ public class TextInputReactor extends QueryStructReactor {
 	private static final String DELIMITER = "delim";
 
 	/**
-	 * FileRead args 
+	 * TextInput args 
 	 * 
-	 * FILE=["filePath"]
-	 * 
-	 * for csv must add delim = ["delimiter"]
-	 * for excel must add sheetName = ["sheetName"]
+	 * FILE_INFO=["fileInfo"]
+	 * DELIMITER = ["delimiter"]
 	 * 
 	 * to set dataTypes 
 	 *     dataTypesMap = [{"column", "type"}]
-	 * to set newHeaders
-	 *     newHeaders = [{"oldColumn", "newColumn"}] 
 	 */
 
 	@Override
