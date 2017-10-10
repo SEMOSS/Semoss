@@ -79,6 +79,7 @@ public class OldInsight extends Insight {
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
 	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	private String uiOptions;
+	protected String layout;
 
 	private transient IDataMaker dataMaker;										// defines how to make the data for the insight
 	
@@ -549,6 +550,14 @@ public class OldInsight extends Insight {
 		} else {
 			return this.dataMaker.getClass().getSimpleName();
 		}
+	}
+	
+	public String getOutput() {
+		return this.layout;
+	}
+	
+	public void setOutput(String output) {
+		this.layout = output;
 	}
 	
 	/**
