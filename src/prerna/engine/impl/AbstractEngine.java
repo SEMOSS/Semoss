@@ -265,13 +265,14 @@ public abstract class AbstractEngine implements IEngine {
 					+ "Select(<concept>) | Collect(50);\", \"dependsOn\":[ \"concept\" ] } } ], \"execute\":\"button\" } ]} </encode>\" ) ;";	
 			
 			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
-			IRawSelectWrapper it = null;
+			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
+			IRawSelectWrapper it1 = null;
+			String oldId = null;
 			try {
-				it = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an instance of a selected node type'");
-				if(it.hasNext()) {
-					InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
+				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an instance of a selected node type'");
+				if(it1.hasNext()) {
 					// drop the old insight
-					String oldId = it.next().getValues()[0].toString();
+					oldId = it1.next().getValues()[0].toString();
 					admin.dropInsight(oldId);
 					try {
 						List<String> rList = new Vector<String>();
@@ -281,8 +282,26 @@ public abstract class AbstractEngine implements IEngine {
 							| IOException e1) {
 						e1.printStackTrace();
 					}
+				}
+			} catch(Exception e) {
+				// if we have a db that doesn't actually have this table (forms, local master, etc.)
+			} finally {
+				if(it1 != null) {
+					it1.cleanUp();
+				}
+			}
+			
+			IRawSelectWrapper it2 = null;
+			try {
+				it2 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an Instance(s) of a Selected Node'");
+				if(!it2.hasNext()) {
 					// add the new insight
 					String insightIdToSave = admin.addInsight("Explore an Instance(s) of a Selected Node", "Graph", new String[]{newPixel});
+		
+					if(oldId != null) {
+						insightRDBMS.insertData("UPDATE QUESTION_ID SET ID=" + oldId + " WHERE ID=" + insightIdToSave);
+						insightIdToSave = oldId;
+					}
 					
 					Map<String, Object> solrInsights = new HashMap<>();
 					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
@@ -297,11 +316,11 @@ public abstract class AbstractEngine implements IEngine {
 					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
 					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, Integer.parseInt(insightIdToSave));
 					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
-	
+		
 					// TODO: figure out which engines are used within this insight
 					solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
 					solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
-	
+		
 					// the image will be updated in a later thread
 					// for now, just send in an empty string
 					// save image url to recreate image later
@@ -315,10 +334,10 @@ public abstract class AbstractEngine implements IEngine {
 					}
 				}
 			} catch(Exception e) {
-				// if we have a db that doesn't actually have this table (forms, local master, etc.)
+				e.printStackTrace();
 			} finally {
-				if(it != null) {
-					it.cleanUp();
+				if(it2 != null) {
+					it2.cleanUp();
 				}
 			}
 		}
