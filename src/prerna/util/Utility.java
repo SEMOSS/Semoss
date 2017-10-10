@@ -1624,7 +1624,6 @@ public class Utility {
 			try
 			{
 				SimpleDateFormat sdf = new SimpleDateFormat(formatString);
-				sdf.setLenient(false);
 				Date mydate = sdf.parse(input);
 				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
 				output_date = outdate.format(mydate);
@@ -1636,24 +1635,6 @@ public class Utility {
 			}
 		}
 		
-		if(output_date == null) {
-			try {
-				Date x = DateUtils.parseDate(input, date_formats);
-				System.out.println(x);
-			} catch (ParseException e1) {
-				e1.printStackTrace();
-			}
-			
-			SimpleDateFormat sdf = new SimpleDateFormat("d-MM-yyyy");
-			sdf.setLenient(false);
-			try {
-				Date d = sdf.parse(input);
-				System.out.println(d);
-			} catch (ParseException e) {
-				e.printStackTrace();
-			}
-		}
-
 		return output_date;	
 	}
 
@@ -1704,7 +1685,7 @@ public class Utility {
 		try {
 			outDate = outdate_formatter.parse(output_date);
 		} catch (ParseException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 
 		return outDate;
