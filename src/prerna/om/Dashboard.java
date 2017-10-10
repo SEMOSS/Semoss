@@ -8,12 +8,11 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.DataFrameJoiner;
+//import prerna.ds.DataFrameJoiner;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 public class Dashboard implements IDataMaker {
@@ -21,7 +20,7 @@ public class Dashboard implements IDataMaker {
 	private static final Logger LOGGER = LogManager.getLogger(Dashboard.class.getName());
 	private String insightID;
 	private String userID;
-	private DataFrameJoiner joiner;
+//	private DataFrameJoiner joiner;
 	
 	// insight id -> frame id
 	private Map<String, String[]> insight2frameMap = new HashMap<>();
@@ -33,7 +32,7 @@ public class Dashboard implements IDataMaker {
 	private Map<String, Map<String, Object>> insightOutputMap = new HashMap<>();
 	
 	public Dashboard() {
-		joiner = new DataFrameJoiner(this);
+		//joiner = new DataFrameJoiner(this);
 	}
 	
 	@Override
@@ -41,8 +40,6 @@ public class Dashboard implements IDataMaker {
 		
 		processPreTransformations(component, component.getPreTrans());
 		processPostTransformations(component, component.getPostTrans());
-		processActions(component, component.getActions());
-			
 	}
 
 	@Override
@@ -83,8 +80,8 @@ public class Dashboard implements IDataMaker {
 		List insightList = new ArrayList();
 		
 			
-		List<Insight> insights = this.joiner.getInsights();
-		Map<String, List<String>> joinedInsightMap = this.joiner.getJoinedInsightMap();
+		List<Insight> insights = null;//this.joiner.getInsights();
+		Map<String, List<String>> joinedInsightMap = null;//this.joiner.getJoinedInsightMap();
 		
 //		List<String> insightIDs = new ArrayList<>();
 //		for(Insight insight : insights) {
@@ -130,16 +127,6 @@ public class Dashboard implements IDataMaker {
 		return returnHash;
 	}
 	
-	@Override
-	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
-		return null;
-	}
-
-	@Override
-	public List<Object> getActionOutput() {
-		return null;
-	}
-
 	@Override
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = new HashMap<>();
@@ -224,7 +211,7 @@ public class Dashboard implements IDataMaker {
 	}
 	
 	public void unjoinInsights(List<Insight> insights) {
-		joiner.unjoinInsights(insights);
+		//joiner.unjoinInsights(insights);
 	}
 	
 	/**
@@ -235,7 +222,7 @@ public class Dashboard implements IDataMaker {
 	 */
 	public void addInsights(List<Insight> insights) {
 		for(Insight insight : insights) {
-			joiner.addInsight(insight);
+			//joiner.addInsight(insight);
 		}
 	}
 
@@ -248,7 +235,7 @@ public class Dashboard implements IDataMaker {
 	}
 	
 	public void dropDashboard() {
-		this.joiner = new DataFrameJoiner(this);
+		//this.joiner = new DataFrameJoiner(this);
 	}
 	
 	public void clearData() {
@@ -257,19 +244,22 @@ public class Dashboard implements IDataMaker {
 		insight2frameMap = new HashMap<>();
 		config = new HashMap<>();
 		insightOutputMap = new HashMap<>();
-		joiner = new DataFrameJoiner(this);
+		//joiner = new DataFrameJoiner(this);
 	}
 
 	public List<Insight> getInsights() {
-		return this.joiner.getInsights();
+		//return this.joiner.getInsights();
+		return null;
 	}
 	
 	public boolean isJoined(Insight insight) {
-		return this.joiner.isJoined(insight);
+		//return this.joiner.isJoined(insight);
+		return false;
 	}
 
 	public void removeInsight(Insight insight) {
-		this.joiner.removeInsight(insight);
+		//this.joiner.removeInsight(insight);
+		
 	}
 	
 	/************************************* END JOINING LOGIC **************************************/

@@ -6,9 +6,9 @@ import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.storage.TaxUtility;
 
 public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
@@ -26,15 +26,15 @@ public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
 		// store them in a list
 		List<String> pkslsToAdd = getPkslStrings(pksls);		
 		
-		PKSLPlanner basePlanner = getPlanner();
+		PixelPlanner basePlanner = getPlanner();
 		Class<BaseJavaRuntime> javaRunClass = (Class<BaseJavaRuntime>) basePlanner.getProperty("RUN_CLASS", "RUN_CLASS");
 		RuntimeJavaClassBuilder builder = new RuntimeJavaClassBuilder();
 		builder.setSuperClass(javaRunClass);
 		builder.addEquations(pkslsToAdd);
 		Class<BaseJavaRuntime> updatedRunClass = builder.generateUpdateClass();
-		PKSLPlanner updatedPlan = new PKSLPlanner();
+		PixelPlanner updatedPlan = new PixelPlanner();
 		updatedPlan.addProperty("RUN_CLASS", "RUN_CLASS", updatedRunClass);
-		return new NounMetadata(updatedPlan, PkslDataTypes.PLANNER);
+		return new NounMetadata(updatedPlan, PixelDataType.PLANNER);
 	}
 	
 	/**
@@ -42,12 +42,12 @@ public class UpdateGraphPlannerReactor2 extends AbstractPlannerReactor {
 	 * 
 	 * @return
 	 */
-	protected PKSLPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
+	protected PixelPlanner getPlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
 		if (allNouns != null && allNouns.size() > 0) {
 			Object firstParam = allNouns.get(0);
 			if (firstParam != null) {
-				PKSLPlanner basePlan = (PKSLPlanner) firstParam;
+				PixelPlanner basePlan = (PixelPlanner) firstParam;
 				return basePlan;
 			}
 		}

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -14,10 +13,14 @@ import com.google.gson.internal.StringMap;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.UserPermissionsMasterDB;
-import prerna.ds.QueryStruct;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.QueryFilter;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -38,7 +41,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	// these are the params that are parsed from the abstract that is used by the specific instances
 	// of abstract api reactor
 	protected String engineName = null;
-	protected QueryStruct qs = null;
+	protected QueryStruct2 qs = null;
 	protected Map<Object, Object> mapOptions = null;
 	protected boolean useCheater = false;
 	
@@ -101,6 +104,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		IDataMaker dm = (IDataMaker) myStore.get("G");
 		if(dm != null && dm instanceof ITableDataFrame) {
 			ITableDataFrame frame = (ITableDataFrame)dm;
+			OwlTemporalEngineMeta meta = frame.getMetaData();
 			/*
 			 * We try to add implicit filters based on the values already existing within the frame
 			 * In addition, you can push filtering based on values existing within the frame
@@ -153,7 +157,10 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 							if(addFilter) {
 								// need to get the type of the column in the new database
 								// if we have different types, we cannot add the implicit filter
-								DATA_TYPES dataType = frame.getDataType(fromColumn);
+
+//								DATA_TYPES dataType = frame.getDataType(fromColumn);
+								
+								DATA_TYPES dataType = Utility.convertStringToDataType(meta.getHeaderTypeAsString(fromColumn, null));
 								// TODO: need to expose this for other things aside from engine
 								IEngine engine = Utility.getEngine(this.engineName);
 								if(engine != null) {
@@ -213,7 +220,9 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 			this.useCheater  = true;
 		}
 
-		this.qs = new QueryStruct();
+		this.qs = new QueryStruct2();
+		this.qs.setEngineName(this.engineName);
+		this.put(PKQLEnum.QUERY_STRUCT, this.qs);
 		processQueryStruct(selectors, filters, joins, limit, offset);
 		
 		Map<String, Set<String>> edgeHash = this.qs.getReturnConnectionsHash();
@@ -224,35 +233,35 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	}
 	
 	public void addTableValuesAsFilter(ITableDataFrame frame, Vector <Hashtable> filters, String fromColumn, String toColumn) {
-		for(Hashtable filter : filters) {
-			if(filter.get(PKQLEnum.FROM_COL).equals(toColumn) && filter.get(PKQLEnum.COMPARATOR).equals("=")) {
-				return; //we don't want to add filters if they already exist in the query struct
-			}
-		}
-
-		//figure out which is the new column and which already exists in the table
-		Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
-		List<Object> filterInstances = new Vector<Object>();
-
-		//collect all the filter values
-		while(rowIt.hasNext()){
-			Object val = rowIt.next();
-			if(val != null) {
-				filterInstances.add(val);
-			}
-		}
-
-		if(filterInstances.size() == 0) {
-			// well, you want to join on something that doesn't even exist on the frame
-			// no point in trying to execute this...
-			throw new IllegalArgumentException("Cannot perform this operation since no values exist for column join variable.");
-		}
-
-		Hashtable joinfilter = new Hashtable();
-		joinfilter.put(PKQLEnum.FROM_COL, toColumn);
-		joinfilter.put("TO_DATA", filterInstances);
-		joinfilter.put(PKQLEnum.COMPARATOR, "=");
-		filters.add(joinfilter);
+//		for(Hashtable filter : filters) {
+//			if(filter.get(PKQLEnum.FROM_COL).equals(toColumn) && filter.get(PKQLEnum.COMPARATOR).equals("=")) {
+//				return; //we don't want to add filters if they already exist in the query struct
+//			}
+//		}
+//
+//		//figure out which is the new column and which already exists in the table
+//		Iterator<Object> rowIt = frame.uniqueValueIterator(fromColumn, false);
+//		List<Object> filterInstances = new Vector<Object>();
+//
+//		//collect all the filter values
+//		while(rowIt.hasNext()){
+//			Object val = rowIt.next();
+//			if(val != null) {
+//				filterInstances.add(val);
+//			}
+//		}
+//
+//		if(filterInstances.size() == 0) {
+//			// well, you want to join on something that doesn't even exist on the frame
+//			// no point in trying to execute this...
+//			throw new IllegalArgumentException("Cannot perform this operation since no values exist for column join variable.");
+//		}
+//
+//		Hashtable joinfilter = new Hashtable();
+//		joinfilter.put(PKQLEnum.FROM_COL, toColumn);
+//		joinfilter.put("TO_DATA", filterInstances);
+//		joinfilter.put(PKQLEnum.COMPARATOR, "=");
+//		filters.add(joinfilter);
 	}
 
 	public void processQueryStruct(Vector <String> selectors, Vector <Hashtable> filters, Vector <Hashtable> joins, int limit, int offset)
@@ -278,7 +287,8 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				if(paramValues != null && paramValues.get(Constants.TYPE).equals(thisSelector)) {
 					Vector<String> filterValues = new Vector<String>();
 					filterValues.add(paramValues.get(Constants.VALUE).toString());
-					this.qs.addFilter(thisSelector, "=", filterValues);
+					this.qs.addFilter(new QueryFilter(new NounMetadata(thisSelector, PixelDataType.COLUMN),
+							"==", new NounMetadata(filterValues, PixelDataType.CONST_STRING)));
 				}
 			}
 		}
@@ -318,7 +328,9 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 						}
 						if(!filterExists) {
 							ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
-							this.qs.addFilter(s, "=", rlsValues);
+//							this.qs.addFilter(s, "=", rlsValues);
+							this.qs.addFilter(new QueryFilter(new NounMetadata(s, PixelDataType.COLUMN),
+									"==", new NounMetadata(rlsValues, PixelDataType.CONST_STRING)));
 						}
 					}
 				}
@@ -330,7 +342,9 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				for(String col : rowLevelFilters.get(table).keySet()) {
 					if(!selectors.contains(table + "__" + col)) {
 						ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
-						this.qs.addFilter(table + "__" + col, "=", rlsValues);
+//						this.qs.addFilter(table + "__" + col, "=", rlsValues);
+						this.qs.addFilter(new QueryFilter(new NounMetadata(table + "__" + col, PixelDataType.COLUMN),
+								"==", new NounMetadata(rlsValues, PixelDataType.CONST_STRING)));
 					}
 				}
 			}
@@ -394,7 +408,9 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 					}
 				}
 				
-				this.qs.addFilter(fromCol, comparator, filterData);
+//				this.qs.addFilter(fromCol, comparator, filterData);
+				this.qs.addFilter(new QueryFilter(new NounMetadata(fromCol, PixelDataType.COLUMN),
+						comparator, new NounMetadata(filterData, PixelDataType.CONST_STRING)));
 			}
 		}
 		for(int joinIndex = 0;joinIndex < joins.size();joinIndex++)

@@ -83,9 +83,14 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		try {
 			// create the engine and the owler
 			openRdbmsEngineWithoutConnection(engineName);
+			Map<String, String> paramHash = new Hashtable<String, String>();
+			paramHash.put("BaseFolder", DIHelper.getInstance().getProperty(Constants.BASE_FOLDER));
+			paramHash.put("ENGINE", engineName);
+
 			for(int i = 0; i < files.length;i++)
 			{
 				String fileName = files[i];
+				fileName = Utility.fillParam2(fileName, paramHash);
 				// cause of stupid split adding empty values
 				if(fileName.isEmpty()) {
 					continue;
@@ -102,7 +107,8 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 					dataTypeMap = dataTypeMapList.get(i); 
 				}
 				// note that the csvHelper gets created in processTable
-				processTable(fileName, dataTypeMap);
+				//processTable(fileName, dataTypeMap);
+				processTable(fileName, null);
 			}
 			// add indexes for faster searching
 			addIndexes();
@@ -180,6 +186,9 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 					dataTypeMap = dataTypeMapList.get(i);
 				}
 				// note that the csvHelper gets created in processTable
+				// this call is not needed
+				// I do not know if the file was changed.. so I am going to let it generate it at this point
+				// I will change it later
 				processTable(fileName, dataTypeMap);
 			}
 			// add indexes for faster searching

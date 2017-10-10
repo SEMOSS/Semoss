@@ -12,7 +12,7 @@ import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class Lambda implements Iterator{
 	
@@ -78,9 +78,9 @@ public class Lambda implements Iterator{
 				if(values.size() > 0)
 				{
 					// predict what the type is
-					PkslDataTypes type = values.vector.get(1).getNounType();
+					PixelDataType type = values.vector.get(1).getNounType();
 					String pad = "";
-					if(type == PkslDataTypes.CONST_STRING)
+					if(type == PixelDataType.CONST_STRING)
 					{
 						Vector <String> strVector = new Vector<String>();
 						// now make this into a vector
@@ -109,8 +109,16 @@ public class Lambda implements Iterator{
 				qs.addRelation(join.getSelector() , join.getQualifier(), join.getJoinType());
 			}
 		}
-		if(frame != null)
-			thisIterator = frame.query(qs);
+		if(frame != null) {
+			//TODO: UPDATE FOR NEW QS
+			//TODO: UPDATE FOR NEW QS
+			//TODO: UPDATE FOR NEW QS
+			//TODO: UPDATE FOR NEW QS
+			//TODO: UPDATE FOR NEW QS
+			//TODO: UPDATE FOR NEW QS
+
+//			thisIterator = frame.query(qs);
+		}
 	}
 	
 	public void addInputs()

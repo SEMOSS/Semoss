@@ -1,11 +1,14 @@
 package prerna.ds.util;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import prerna.ds.AbstractTableDataFrame;
+import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.sablecc2.om.Join;
 
 public class RdbmsQueryBuilder {
 
@@ -30,6 +33,175 @@ public class RdbmsQueryBuilder {
 		createString.append(");");
 
 		return createString.toString();
+	}
+	
+	/**
+	 * Create the syntax to merge 2 tables together
+	 * @param returnTableName			The return table name
+	 * @param returnTableTypes 
+	 * @param leftTableName				The left table
+	 * @param leftTableTypes			The {header -> type} of the left table
+	 * @param rightTableName			The right table name
+	 * @param rightTableTypes			The {header -> type} of the right table
+	 * @param joins						The joins between the right and left table
+	 * @return
+	 */
+	public static String createNewTableFromJoiningTables(
+			String returnTableName, 
+			String leftTableName, 
+			Map<String, DATA_TYPES> leftTableTypes,
+			String rightTableName, 
+			Map<String, DATA_TYPES> rightTableTypes, 
+			List<Join> joins) 
+	{
+		final String LEFT_TABLE_ALIAS = "A";
+		final String RIGHT_TABLE_ALIAS = "B";
+		
+		// 1) get the join portion of the sql syntax
+		
+		// keep a list of the right table join cols
+		// so we know not to include them in the new table
+		Set<String> rightTableJoinCols = new HashSet<String>();
+		
+		StringBuilder joinString = new StringBuilder();
+		int numJoins = joins.size();
+		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
+			Join j = joins.get(jIdx);
+			String leftTableJoinCol = j.getSelector();
+			if(leftTableJoinCol.contains("__")) {
+				leftTableJoinCol = leftTableJoinCol.split("__")[1];
+			}
+			String rightTableJoinCol = j.getQualifier();
+			if(rightTableJoinCol.contains("__")) {
+				rightTableJoinCol = rightTableJoinCol.split("__")[1];
+			}
+			
+			// keep track of join columns on the right table
+			rightTableJoinCols.add(rightTableJoinCol);
+			
+			String joinType = j.getJoinType();
+			String joinSql = null;
+			if(joinType.equalsIgnoreCase("inner.join")) {
+				joinSql = "INNER JOIN";
+			} else if(joinType.equalsIgnoreCase("left.outer.join")) {
+				joinSql = "LEFT OUTER JOIN";
+			} else if(joinType.equalsIgnoreCase("right.outer.join")) {
+				joinSql = "RIGHT OUTER JOIN";
+			} else if(joinType.equalsIgnoreCase("outer.join")) {
+				joinSql = "FULL OUTER JOIN";
+			} else {
+				joinSql = "INNER JOIN";
+			}
+			
+			if(jIdx != 0) {
+				joinString.append(" AND ");
+			} else {
+				joinString.append(joinSql).append(" ").append(rightTableName)
+							.append(" AS ").append(RIGHT_TABLE_ALIAS)
+							.append(" ON (");
+			}
+			
+			// need to make sure the data types are good to go
+			IMetaData.DATA_TYPES leftColType = leftTableTypes.get(leftTableName + "__" + leftTableJoinCol);
+			// the right column types are not tablename__colname...
+			IMetaData.DATA_TYPES rightColType = rightTableTypes.get(rightTableJoinCol);
+			
+			if(leftColType == rightColType) {
+				joinString.append(" ")
+						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
+						.append(" = ")
+						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
+			} else {
+				if(leftColType == IMetaData.DATA_TYPES.NUMBER && rightColType == IMetaData.DATA_TYPES.STRING) {
+					// one is a number
+					// other is a string
+					// convert the string to a number
+					joinString.append(" ")
+						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
+						.append(" = CAST(")
+						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
+						.append(" AS DOUBLE)");
+				} else if(rightColType == IMetaData.DATA_TYPES.NUMBER && leftColType == IMetaData.DATA_TYPES.STRING) {
+					// one is a number
+					// other is a string
+					// convert the string to a number
+					joinString.append(" CAST(")
+						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
+						.append(" AS DOUBLE) =")
+						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
+				} else {
+					// not sure... just make everything a string
+					joinString.append(" CAST(")
+					.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
+					.append(" AS VARCHAR(800)) = CAST(")
+					.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
+					.append(" AS VARCHAR(800))");
+				}
+			}
+		}
+		joinString.append(")");
+		
+		// 2) get the create table and the selector portions
+		
+		StringBuilder sql = new StringBuilder();
+		sql.append("CREATE TABLE ").append(returnTableName).append(" AS ( SELECT ");
+		
+		// select all the columns from the left side
+		Set<String> leftTableHeaders = leftTableTypes.keySet();
+		int counter = 0;
+		int size = leftTableHeaders.size();
+		for(String leftTableCol : leftTableHeaders) {
+			if(leftTableCol.contains("__")) {
+				leftTableCol = leftTableCol.split("__")[1];
+			}
+			sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
+			if(counter + 1 < size) {
+				sql.append(", ");
+			}
+			counter++;
+		}
+		
+		// select the columns from the right side which are not part of the join!!!
+		Set<String> rightTableHeaders = rightTableTypes.keySet();
+		for(String rightTableCol : rightTableHeaders) {
+			if(rightTableCol.contains("__")) {
+				rightTableCol = rightTableCol.split("__")[1];
+			}
+			if(rightTableJoinCols.contains(rightTableCol)) {
+				counter++;
+				continue;
+			}
+			sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
+			counter++;
+		}
+		
+		// 3) combine everything
+		
+		sql.append(" FROM ").append(leftTableName).append(" AS ").append(LEFT_TABLE_ALIAS).append(" ")
+				.append(joinString.toString()).append(" )");
+
+		return sql.toString();
+	}
+	
+	/**
+	 * Column names must match between the 2 tables!
+	 * @param leftTableName
+	 * @param mergeTable
+	 * @param columnNames
+	 * @return
+	 */
+	public static String makeMergeIntoQuery(String leftTableName, String mergeTable, String[] columnNames) {
+		StringBuilder sql = new StringBuilder("MERGE INTO ");
+		sql.append(leftTableName).append(" KEY(").append(columnNames[0]);
+		for(int i = 1; i < columnNames.length; i++) {
+			sql.append(",").append(columnNames[i]);
+		}
+		sql.append(") (SELECT ").append(columnNames[0]);
+		for(int i = 1; i < columnNames.length; i++) {
+			sql.append(",").append(columnNames[i]);
+		}
+		sql.append(" FROM ").append(mergeTable).append(")");
+		return sql.toString();
 	}
 	
 	
@@ -90,7 +262,7 @@ public class RdbmsQueryBuilder {
 			functionString += column;
 		}
 
-		functionString += "FROM " + tableName;
+		functionString += " FROM " + tableName;
 		return functionString;
 	}
 	
@@ -370,85 +542,6 @@ public class RdbmsQueryBuilder {
 	/******************************
 	 * FILTER QUERIES
 	 ******************************/
-	
-	
-	/**
-	 * 
-	 * @param filterHash
-	 * @param filterComparator
-	 * @return
-	 */
-	public static String makeFilterSubQuery(Map<String, List<Object>> filterHash, Map<String, AbstractTableDataFrame.Comparator> filterComparator) {
-		// need translation of filter here
-		String filterStatement = "";
-		if (filterHash.keySet().size() > 0) {
-
-			List<String> filteredColumns = new ArrayList<String>(filterHash.keySet());
-			for (int x = 0; x < filteredColumns.size(); x++) {
-
-				String header = filteredColumns.get(x);
-				String tableHeader = header;
-
-				AbstractTableDataFrame.Comparator comparator = filterComparator.get(header);
-
-				switch (comparator) {
-				case EQUAL: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = getQueryStringList(filterValues);
-					filterStatement += tableHeader + " in " + listString;
-					break;
-				}
-				case NOT_EQUAL: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = getQueryStringList(filterValues);
-					filterStatement += tableHeader + " not in " + listString;
-					break;
-				}
-				case LESS_THAN: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = filterValues.get(0).toString();
-					filterStatement += tableHeader + " < " + listString;
-					break;
-				}
-				case GREATER_THAN: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = filterValues.get(0).toString();
-					filterStatement += tableHeader + " > " + listString;
-					break;
-				}
-				case GREATER_THAN_EQUAL: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = filterValues.get(0).toString();
-					filterStatement += tableHeader + " >= " + listString;
-					break;
-				}
-				case LESS_THAN_EQUAL: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = filterValues.get(0).toString();
-					filterStatement += tableHeader + " <= " + listString;
-					break;
-				}
-				default: {
-					List<Object> filterValues = filterHash.get(header);
-					String listString = getQueryStringList(filterValues);
-
-					filterStatement += tableHeader + " in " + listString;
-				}
-				}
-
-				// put appropriate ands
-				if (x < filteredColumns.size() - 1) {
-					filterStatement += " AND ";
-				}
-			}
-
-			if (filterStatement.length() > 0) {
-				filterStatement = " WHERE " + filterStatement;
-			}
-		}
-
-		return filterStatement;
-	}
 	
 	public static String getQueryStringList(List<Object> values) {
 		String listString = "(";

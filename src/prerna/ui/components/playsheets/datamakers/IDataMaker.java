@@ -13,20 +13,25 @@ import java.util.Map;
  */
 public interface IDataMaker {
 
-	enum DATA_FRAME_REACTORS {IMPORT_DATA, COL_ADD};
-	
+	@Deprecated
 	void processDataMakerComponent(DataMakerComponent component);
 
+	@Deprecated
 	void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms);
 
+	@Deprecated
 	void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms, IDataMaker... dataFrame);
 
+	@Deprecated
 	Map<String, Object> getDataMakerOutput(String... selectors);
 
-	List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker);
-	
-	List<Object> getActionOutput();
+//	@Deprecated
+//	List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker);
+//	
+//	@Deprecated
+//	List<Object> getActionOutput();
 
+	@Deprecated
 	Map<String, String> getScriptReactors();
 	
 	/**

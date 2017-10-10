@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -23,6 +22,7 @@ import com.google.gson.reflect.TypeToken;
 import cern.colt.Arrays;
 import prerna.cache.ICache;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RDataTable;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 import prerna.sablecc.expressions.r.builder.RExpressionIterator;
@@ -232,6 +232,7 @@ public class PKQLRunner {
 				result.put("result", retResponse);
 			}
 		} else if(response instanceof RExpressionBuilder) {
+			RDataTable frame = (RDataTable) this.translation.getDataFrame();
 			RExpressionBuilder builder = (RExpressionBuilder) response;
 			
 			// need to have a bifurcation when the expression is just a single scalar value
@@ -245,13 +246,13 @@ public class PKQLRunner {
 					// use the existing columns to join on
 					List<String> joinCols = builder.getAllTableColumnsUsed();
 					for(String joinCol : joinCols) {
-						RColumnSelector selector = new RColumnSelector(joinCol);
+						RColumnSelector selector = new RColumnSelector(frame, joinCol);
 						builder.addSelector(selector);
 					}
 				} else {
 					// use the group columns to join on
 					for(String group : groups) {
-						RColumnSelector selector = new RColumnSelector(group);
+						RColumnSelector selector = new RColumnSelector(frame, group);
 						builder.addSelector(selector);
 					}
 				}
@@ -686,20 +687,20 @@ public class PKQLRunner {
 	 * Used to clean up any files/connections started and still stored within the runner
 	 */
 	public void cleanUp() {
-		if(getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
-			try {
-				( (RConnection) getVariableValue(AbstractRJavaReactor.R_CONN) ).shutdown();
-			} catch (RserveException e) {
-				LOGGER.info("R Connection is already closed...");
-			}
-		}
-		
-		if(getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS) != null) {
-			List<String> graphDirs = (List<String>) getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS);
-			for(String dir : graphDirs) {
-				ICache.deleteFolder(dir);
-			}
-		}		
+//		if(getVariableValue(AbstractRJavaReactor.R_CONN) != null) {
+//			try {
+//				( (RConnection) getVariableValue(AbstractRJavaReactor.R_CONN) ).shutdown();
+//			} catch (RserveException e) {
+//				LOGGER.info("R Connection is already closed...");
+//			}
+//		}
+//		
+//		if(getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS) != null) {
+//			List<String> graphDirs = (List<String>) getVariableValue(AbstractRJavaReactor.R_GRAQH_FOLDERS);
+//			for(String dir : graphDirs) {
+//				ICache.deleteFolder(dir);
+//			}
+//		}		
 	}
 	
 }

@@ -1,6 +1,8 @@
 package prerna.sablecc2.om;
 
+import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Set;
 
 
@@ -34,11 +36,15 @@ public class NounStore {
 	// adds the noun
 	public void addNoun(String nounName, GenRowStruct struct)
 	{
+		// initialize to the current struct
 		GenRowStruct curStruct = struct;
+		
 		// see if the noun exists first
+		// make the curstruct to be the actual struct
 		if(nounRow.containsKey(nounName))
 		{
 			curStruct = nounRow.get(nounName);
+			// I am creating a new one here
 			curStruct.merge(struct);
 		}	
 		nounRow.put(nounName, curStruct);
@@ -107,7 +113,14 @@ public class NounStore {
 	public GenRowStruct makeNoun(String noun)
 	{
 		GenRowStruct newRow = new GenRowStruct();
-		addNoun(noun, newRow);
+		
+		// for now.. I will not keep the caridnality
+		if(nounRow.containsKey(noun))
+			newRow = nounRow.get(noun);
+		else
+		{
+			addNoun(noun, newRow);
+		}
 		return newRow;
 	}
 	
@@ -123,5 +136,29 @@ public class NounStore {
 		}
 		
 		return s;
+	}
+	
+	// need someway to get the actual store / data
+	public Hashtable<String, Object> getDataHash()
+	{
+		Hashtable<String, Object> retHash = new Hashtable<String, Object>();
+		
+		// see if there are keys
+		// if there 
+		Enumeration <String> keys = nounRow.keys();
+		while(keys.hasMoreElements())
+		{
+			String thisKey = keys.nextElement();
+			List <Object> values = nounRow.get(thisKey).getAllValues();
+			
+			Object finalValue = values;
+			if(values.size() == 1)
+				finalValue = values.get(0);
+
+			retHash.put(thisKey, finalValue);
+			
+		}
+		
+		return retHash;
 	}
 }

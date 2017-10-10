@@ -9,7 +9,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class OpMatch extends OpBasic {
 
@@ -21,20 +21,19 @@ public class OpMatch extends OpBasic {
 		}
 		boolean comparingNumbers = false;
 		
-		boolean isString = this.curRow.getNoun(0).getNounType().equals(PkslDataTypes.CONST_STRING);
+		boolean isString = this.curRow.getNoun(0).getNounType().equals(PixelDataType.CONST_STRING);
 		// figure out
 		// if sort needs to do a number sort
 		// or do a string sort
 		// if we have 1 string -> assumption is all are string values
 		// return -1 if match not found
-		List<NounMetadata> intGrs = this.curRow.getNounsOfType(PkslDataTypes.CONST_INT);
+		List<NounMetadata> intGrs = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
 		
-		//System.out.println("!!!!!!!!" + this.curRow.getNoun(0).getNounName().equals(PkslDataTypes.CONST_STRING));
 		if (intGrs != null && intGrs.size() > offset) {
 			comparingNumbers = true;
 		}
 		if (!comparingNumbers) {
-			List<NounMetadata> doubleGrs = this.curRow.getNounsOfType(PkslDataTypes.CONST_DECIMAL);
+			List<NounMetadata> doubleGrs = this.curRow.getNounsOfType(PixelDataType.CONST_DECIMAL);
 			if (doubleGrs != null && doubleGrs.size() > 0) {
 				comparingNumbers = true;
 			}
@@ -61,7 +60,7 @@ public class OpMatch extends OpBasic {
 			matchValIndex = evaluateIntegers(objArrList, matchValIndex, index, objInput);
 		}
 
-		NounMetadata match = new NounMetadata(matchValIndex, PkslDataTypes.CONST_INT);
+		NounMetadata match = new NounMetadata(matchValIndex, PixelDataType.CONST_INT);
 		return match;
 	}
 

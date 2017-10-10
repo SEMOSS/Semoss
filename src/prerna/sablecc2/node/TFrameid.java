@@ -9,12 +9,12 @@ public final class TFrameid extends Token
 {
     public TFrameid()
     {
-        super.setText("f");
+        super.setText("f.");
     }
 
     public TFrameid(int line, int pos)
     {
-        super.setText("f");
+        super.setText("f.");
         setLine(line);
         setPos(pos);
     }

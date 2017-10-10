@@ -222,5 +222,14 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 		}
 		return var;
 	}
+
+	@Override
+	public void cleanUp() {
+		try {
+			tqr.close();
+		} catch (QueryEvaluationException e) {
+			e.printStackTrace();
+		}
+	}
 	
 }

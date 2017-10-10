@@ -7,8 +7,8 @@ import java.util.Vector;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
-import prerna.sablecc2.om.PkslOperationTypes;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DatabaseConceptPropertiesReactors extends AbstractReactor {
@@ -33,7 +33,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 		}
 		
 		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptPropertiesRDBMS(conceptLogicals, engineFilter);
-		return new NounMetadata(conceptProperties, PkslDataTypes.CUSTOM_DATA_STRUCTURE, PkslOperationTypes.DATABASE_CONCEPT_PROPERTIES);
+		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
 
 }

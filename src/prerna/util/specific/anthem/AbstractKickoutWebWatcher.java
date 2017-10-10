@@ -184,7 +184,7 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		openOtherMaps();
 
 		// Loop through and process each of the files
-		String[] fileNames = giveFiles();
+		String[] fileNames = new File(folderToWatch).list();
 		for (String fileName : fileNames) {
 			if (needToProcess(fileName)) {
 				process(fileName);
@@ -337,8 +337,6 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 
 	// Implementation specific methods
 
-	protected abstract String[] giveFiles();
-	
 	protected abstract String giveFullHeaderString();
 
 	protected abstract void addOther();
@@ -414,34 +412,10 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		errorKeyFirstDateMap.put(errorKey, firstDate);
 		errorKeyLastDateMap.put(errorKey, lastDate);
 	}
-	
+
 	// For all the records that have not yet been added to the archive,
 	// check whether they should be archived
-	// Was getting an IllegalStateException sometimes when adding the archivable data
-	// The try catch should take care of the issue
 	protected void putArchivableData(Date kickoutDate) {
-		try {
-			attemptArchivable(kickoutDate);
-		} catch (IllegalStateException e) {
-			e.printStackTrace();
-			LOGGER.error("MVStore exception occured. Will restart the MVStore and attempt again");
-			
-			// Commit and close
-			mvStore.commit();
-			mvStore.close();
-			
-			// Reopen the store and maps
-			openStore();
-			openMaps();
-			openOtherMaps();
-			
-			// Attempt only once more
-			attemptArchivable(kickoutDate);
-			LOGGER.info("Successfully recovered from MVStore exception");
-		}
-	}
-	
-	private void attemptArchivable(Date kickoutDate) throws IllegalStateException {
 		Set<String> unarchivedRecords = new HashSet<String>();
 		unarchivedRecords.addAll(allRecordsMap.keySet());
 		unarchivedRecords.removeAll(addToArchiveMap.keySet());
@@ -609,13 +583,13 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 							// held to save
 							Thread.sleep(processDelay * 1000);
 							try {
-								
-								// Open the store and maps
-								openStore();
-								openMaps();
-								openOtherMaps();
-								
 								if (needToProcess(newFile)) {
+
+									// Open the store and maps
+									openStore();
+									openMaps();
+									openOtherMaps();
+
 									process(newFile);
 
 									// TODO

@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ import com.google.gson.Gson;
 import prerna.algorithm.api.IMetaData;
 import prerna.cache.ICache;
 import prerna.ds.RdbmsTableMetaData;
-import prerna.ds.h2.H2Iterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
@@ -539,100 +537,6 @@ public class H2Builder2 {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-		}
-	}
-	
-	
-	/**
-	 * This method is responsible for processing the data associated with an
-	 * iterator and adding it to the H2 table
-	 * 
-	 * @param iterator
-	 * @param oldHeaders
-	 * @param newHeaders
-	 * @param types
-	 * @param joinType
-	 */
-	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
-
-		types = cleanTypes(types);
-		String newTableName = RdbmsFrameUtility.getNewTableName();
-		generateTable(iterator, newHeaders, types, newTableName);
-
-		// create table if doesn't exist
-		try {
-			runQuery("CREATE TABLE IF NOT EXISTS " + getReadTable());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		// add the data
-		if (joinType.equals(Join.FULL_OUTER)) {
-			processAlterData(newTableName, newHeaders, oldHeaders, Join.LEFT_OUTER);
-		} else {
-			processAlterData(newTableName, newHeaders, oldHeaders, joinType);
-		}
-
-		// if we are doing a full outer join (which h2 does not natively have)
-		// we have done the left outer join above
-		// now just add the rows we are missing via a merge query for each row
-		// not efficient but don't see another way to do it
-		// Ex: merge into table (column1, column2) key (column1, column2) values
-		// ('value1', 'value2')
-		// TODO: change this to be a union of right outer and left outer instead
-		// of inserting values
-		if (joinType.equals(Join.FULL_OUTER)) {
-
-			try {
-				Statement stmt = getConnection().createStatement();
-				String selectQuery = RdbmsQueryBuilder.makeSelect(newTableName, Arrays.asList(newHeaders), false) + makeFilterSubQuery();
-				ResultSet rs = stmt.executeQuery(selectQuery);
-				H2Iterator h2iterator = new H2Iterator(rs);
-
-				String mergeQuery = "MERGE INTO " + getTableName();
-				String columns = "(";
-				for (int i = 0; i < newHeaders.length; i++) {
-					if (i != 0) {
-						columns += ", ";
-					}
-					columns += newHeaders[i];
-
-				}
-				columns += ")";
-
-				mergeQuery += columns + " KEY " + columns;
-
-				while (h2iterator.hasNext()) {
-					Object[] row = h2iterator.next();
-					String values = " VALUES(";
-					for (int i = 0; i < row.length; i++) {
-						if (i != 0) {
-							values += ", ";
-						}
-						values += " '" + row[i].toString() + "' ";
-					}
-					values += ")";
-					try {
-						runQuery(mergeQuery + values);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		try {
-			runQuery(RdbmsQueryBuilder.makeDropTable(newTableName));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		// shift to on disk if number of records is getting large
-		if (this.tableMetaData.isInMem() && getNumRecords() > LIMIT_SIZE) {
-			// let the method determine where the new schema will be
-			convertFromInMemToPhysical(null);
 		}
 	}
 

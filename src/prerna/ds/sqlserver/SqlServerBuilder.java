@@ -6,21 +6,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.h2.H2Builder;
-import prerna.ds.h2.H2Iterator;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
 
@@ -98,115 +92,7 @@ public class SqlServerBuilder extends H2Builder {
 		}
 		return null;
 	}
-	
-	public Iterator buildIterator(Map<String, Object> options) {
-		String tableName = getReadTable();
 
-		String sortDir = (String) options.get(AbstractTableDataFrame.SORT_BY_DIRECTION);
-
-		// dedup = true indicates remove duplicates
-		// TODO: rename de_dup to something more meaningful for cases outside of
-		// tinkergraph
-		Boolean dedup = (Boolean) options.get(AbstractTableDataFrame.DE_DUP);
-		if (dedup == null)
-			dedup = false;
-
-		Boolean ignoreFilters = (Boolean) options.get(AbstractTableDataFrame.IGNORE_FILTERS);
-		if (ignoreFilters == null)
-			ignoreFilters = false;
-
-		// how many rows to get
-		Integer limit = (Integer) options.get(AbstractTableDataFrame.LIMIT);
-
-		// at which row to start
-		Integer offset = (Integer) options.get(AbstractTableDataFrame.OFFSET);
-
-		// column to sort by
-		String sortBy = (String) options.get(AbstractTableDataFrame.SORT_BY);
-
-		// selectors to gather
-		List<String> selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
-		if(selectors.isEmpty()) {
-			selectors = Arrays.asList(getHeaders(this.tableName));
-		}
-		selectors = cleanHeaders(selectors);
-		
-		
-		boolean hasLimit = false;
-		boolean hasOffset = false;
-		boolean hasSort = false;
-		if(offset != null && offset > 0) {
-			hasOffset = true;
-		} 
-		if (limit != null && limit > 0) {
-			hasLimit = true;
-		}
-		if (sortBy != null) {
-			sortBy = cleanHeader(sortBy);
-			// add an index to the table to make the sort much faster
-			// note h2 view does not support index
-			addColumnIndex(tableName, sortBy);
-			hasSort = true;
-		} else {
-			if(hasLimit && hasOffset) {
-				// to do limit/offset in Sql Server, we must have an order by
-				// so just order the first column
-				sortBy = selectors.get(0);
-				addColumnIndex(tableName, sortBy);
-				hasSort = true;
-			}
-		}
-		
-		String selectQuery = RdbmsQueryBuilder.makeSelect(tableName, selectors, dedup);
-		// we have a limit but no offset, we got to add a top
-		if(hasLimit && !hasOffset) {
-			if(dedup) {
-				selectQuery = selectQuery.replace("SELECT DISTINCT ", "SELECT DISTINCT TOP(" + limit + ") ");
-			} else {
-				selectQuery = selectQuery.replace("SELECT ", "SELECT TOP(" + limit + ") ");
-			}
-		}
-		if(!ignoreFilters) {
-			selectQuery += makeFilterSubQuery();
-		}
-
-		// temporary filters to apply only to this iterator
-		Map<String, List<Object>> temporalBindings = (Map<String, List<Object>>) options.get(AbstractTableDataFrame.TEMPORAL_BINDINGS);
-		Map<String, AbstractTableDataFrame.Comparator> compHash = new HashMap<String, AbstractTableDataFrame.Comparator>();
-		for (String key : temporalBindings.keySet()) {
-			compHash.put(key, AbstractTableDataFrame.Comparator.EQUAL);
-		}
-
-		// create a new filter substring and add/replace old filter substring
-		String temporalFiltering = makeFilterSubQuery(temporalBindings, compHash); // default comparator is equals
-		if (temporalFiltering != null && temporalFiltering.length() > 0) {
-			if (selectQuery.contains(" WHERE ")) {
-				temporalFiltering = temporalFiltering.replaceFirst(" WHERE ", "");
-				selectQuery = selectQuery + temporalFiltering;
-			} else {
-				selectQuery = selectQuery + temporalFiltering;
-			}
-		}
-
-		if(hasSort) {
-			selectQuery += " ORDER BY " + sortBy + " ASC ";
-		}
-		
-		if(hasLimit && hasOffset) {
-			selectQuery += " OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY";
-		} else if(hasOffset && !hasLimit){
-			selectQuery += " OFFSET " + offset;
-		}
-
-		long startTime = System.currentTimeMillis();
-		System.out.println("TABLE NAME IS: " + this.tableName);
-		System.out.println("RUNNING QUERY : " + selectQuery);
-		ResultSet rs = executeQuery(selectQuery);
-		long endTime = System.currentTimeMillis();
-		LOGGER.info("Executed Select Query on H2 FRAME: " + (endTime - startTime) + " ms");
-		return new H2Iterator(rs);
-	}
-	
 	public boolean isEmpty(String tableName) {
 		// first check if the table exists
 		if (tableExists(tableName)) {

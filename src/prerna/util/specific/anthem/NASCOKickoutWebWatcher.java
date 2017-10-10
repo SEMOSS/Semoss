@@ -8,15 +8,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +41,6 @@ import prerna.ui.components.ImportDataProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import weka.core.logging.Logger;
 
 public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 
@@ -79,8 +75,8 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	private static final String PROP_KEY_IN_RDF_MAP = "NASCO_KO_Map";
 
 	// Only load delta files
-	// private static final String ZIP_DELTA = "DELTA";
-	// private static final String REPORT_DELTA = "DTL";
+	//private static final String ZIP_DELTA = "DELTA";
+	//private static final String REPORT_DELTA = "DTL";
 
 	// For convenience
 	// Just in case surround everything with quotes in case there is a
@@ -110,8 +106,8 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		headerString.append(lastDateColName);
 		headerString.append(DLMTR);
 		headerString.append(String.join(DLMTR, headerAlias));
-		// headerString.append(DLMTR);
-		// headerString.append(errorCodeColName);
+		//headerString.append(DLMTR);
+		//headerString.append(errorCodeColName);
 		headerString.append(NWLN);
 		fullHeaderString = headerString.toString();
 
@@ -138,7 +134,6 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 			for (String systemAlias : systemAliases) {
 				importRecipeString.append(" , c: Kickout_Date__" + systemAlias);
 			}
-			importRecipeString.append(" , c: Kickout_Date__" + timeseriesTotalColName);
 			importRecipeString.append(" ] ) ) ; ");
 
 			// Email params
@@ -158,20 +153,16 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 			boolean bodyIsHtml = Boolean.parseBoolean(props.getProperty("body.is.html"));
 
 			// Create the email job
-			LOGGER.info("Create the email job");
 			JobDataMap emailDataMap = TSAnomalyNotification.generateEmailJobDataMap(smtpServer, smtpPort, from, to,
 					subject, body, bodyIsHtml);
 			JobDetail emailJob = newJob(SendEmailJob.class).withIdentity(EMAIL_JOB_NAME, TS_ANOM_NOTIF_JOB_GROUP)
 					.usingJobData(emailDataMap).build();
 
 			// Initialize the anomaly detector
-			LOGGER.info("Initialize the anomaly detector");
 			TSAnomalyNotification.Builder tsAnomalyBuilder = new TSAnomalyNotification.Builder(timeseriesDbName,
 					importRecipeString.toString(), timeseriesDateColName, timeseriesTotalColName, emailJob);
 
 			// Add optional params if present
-			LOGGER.info("Adding optional params ");
-
 			if (props.containsKey("aggregate.function")) {
 				tsAnomalyBuilder.aggregateFunction(props.getProperty("aggregate.function"));
 			}
@@ -191,56 +182,67 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 			if (props.containsKey("keep.existing.columns")) {
 				tsAnomalyBuilder.keepExistingColumns(Boolean.parseBoolean(props.getProperty("keep.existing.columns")));
 			}
-
-			LOGGER.info("Added optional params ");
 			TSAnomalyNotification generator = tsAnomalyBuilder.build();
-
-			LOGGER.info("Starting generator");
-
 			tsAnomNotifJobDataMap = generator.generateJobDataMap();
-
-			LOGGER.info("started generator");
 		}
 	}
 
 	@Override
 	public void process(String fileName) {
-
+		
 		LOGGER.info("NASCO logs:::");
 
 		try {
 			Date kickoutDate = determineKickoutDate(fileName);
 
 			// Store the number of critical errors per system
-			Map<String, Integer> nCriticalBySystem = new HashMap<String, Integer>();
+			//Map<String, Integer> nCriticalBySystem = new HashMap<String, Integer>();
 
-			File fileHeader = new File(folderToWatch + "\\" + fileName);
-
-			String reportFileName = fileHeader.getName();
-
-			// Determine if the report needs to be processed
-			int extensionIndex = reportFileName.lastIndexOf(".");
-			String delta = reportFileName.substring(extensionIndex - 3, extensionIndex);
-			String system = reportFileName.substring(extensionIndex - 9, extensionIndex - 7);
-			// String system="NA";
-
-			boolean needToProcess = false;
-
-			LOGGER.info("NASCO Processing " + reportFileName);
-			needToProcess = true;
-			// }
-			int nNewCritical = 0;
-
-			if (needToProcess) {
-				InputStream stream = new FileInputStream(fileHeader);
-				InputStreamReader reader = new InputStreamReader(stream);
-				BufferedReader bufferedReader = new BufferedReader(reader);
-				nCriticalBySystem = saveToStore(bufferedReader, kickoutDate);
-			}
-
+			// Loop through the spreadsheets and stream the records out
+			//ZipFile zipFile = new ZipFile(folderToWatch + "/" + fileName);
+			//@SuppressWarnings("unchecked")
+			//List<FileHeader> fileHeaders = zipFile.getFileHeaders();
+			//for (FileHeader fileHeader : fileHeaders) {
+				File fileHeader = new File(folderToWatch + "\\" + fileName);
+				
+				String reportFileName = fileHeader.getName();
+				
+				// Determine if the report needs to be processed
+				int extensionIndex = reportFileName.lastIndexOf(".");
+				String delta = reportFileName.substring(extensionIndex - 3, extensionIndex);
+				String system = reportFileName.substring(extensionIndex - 9, extensionIndex - 7);
+				//String system="NA";
+				
+				boolean needToProcess = false;
+				
+				//if (ignoreSystems.contains(system)) {
+				//	LOGGER.info("NASCO Will not process " + reportFileName + ": The file's source system, " + system
+				//			+ ", is set to be ignored");
+				//} //else if (!delta.equals(REPORT_DELTA)) {
+				//	LOGGER.info("NASCO Will not process " + reportFileName + ": The file is not a delta report");
+				//} 
+				//else {
+					LOGGER.info("NASCO Processing " + reportFileName);
+					needToProcess = true;
+				//}
+				int nNewCritical=0;
+				
+				if (needToProcess) {
+					// Get a reader for the file
+					//InputStream stream = zipFile.getInputStream(fileHeader);
+					//InputStreamReader reader = new InputStreamReader(stream);
+					//BufferedReader bufferedReader = new BufferedReader(reader);
+					InputStream stream = new FileInputStream(fileHeader);
+					InputStreamReader reader = new InputStreamReader(stream);
+					BufferedReader bufferedReader = new BufferedReader(reader);
+					nNewCritical = saveToStore(bufferedReader, kickoutDate);
+					//nCriticalBySystem.put(system, nNewCritical);
+					//nCriticalBySystem.put(kickoutDate.toString(), nNewCritical);
+				}
+			//}
 			putArchivableData(kickoutDate);
-			putTimeseriesData(kickoutDate, nCriticalBySystem);
-
+			//putTimeseriesData(kickoutDate, nCriticalBySystem);
+			putTimeseriesData(kickoutDate, nNewCritical);
 			processedMap.put(fileName, kickoutDate);
 
 			// Commit the store now that everything has been processed
@@ -254,31 +256,30 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		}
 	}
 
-	protected Map<String, Integer> saveToStore(BufferedReader reader, Date kickoutDate) throws IOException {
+	protected int saveToStore(BufferedReader reader, Date kickoutDate) throws IOException {
 
 		// Keep track of the number of critical errors as we loop through
 		int nNewCritical = 0;
-		Map<String, Integer> nCriticalBySystem = new HashMap<String, Integer>();
-		int softErrorCount = 0;
-		int hardErrorCount = 0;
 		try {
 
-			// Read in the header first and skip it
+			// Read in the header first
 			String line = reader.readLine();
-			int nCol = headerAlias.length; // 32
+			int nCol = headerAlias.length;
 
 			// Read the file and publish
 			while ((line = reader.readLine()) != null) {
 
+				// Create the record and clean the entries
+				// Sometimes when there is missing data at the end of the
+				// record,
+				// the raw length is less than the number of columns
+//				String[] splitLine = line.split(",");
 				String[] splitLine = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
 				int rawLength = splitLine.length;
-
+				//LOGGER.info("NASCO NASCO_KO data input length is : "+splitLine.length);
 				String[] rawRecord = new String[nCol];
 				for (int i = 0; i < nCol; i++) {
-
-					if (i == 20 || i == 21) {
-						rawRecord[i] = formatDate(splitLine[i].trim().replaceAll(",", " ").replaceAll("\"", ""));
-					} else if (i < rawLength) {
+					if (i < rawLength) {
 						rawRecord[i] = splitLine[i].trim().replaceAll(",", " ").replaceAll("\"", "");
 					} else {
 
@@ -288,14 +289,22 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				}
 
 				// Determine the error code
-				String errorCode;
+				/*String errorCode;
 				boolean critical = false;
-				if (rawRecord[nCol - 2].trim().equalsIgnoreCase("S")) {
-					// LOGGER.info("NASCO error_code is "+rawRecord[nCol - 2]);
-					softErrorCount += 1;
+				if (!rawRecord[nCol - 4].trim().isEmpty()) {
+
+					// Critical
+					errorCode = rawRecord[nCol - 4];
+					critical = true;
+				} else if (!rawRecord[nCol - 3].trim().isEmpty()) {
+
+					// Review
+					errorCode = rawRecord[nCol - 3];
 				} else {
-					hardErrorCount += 1;
-				}
+
+					// Informational
+					errorCode = rawRecord[nCol - 2];
+				}*/
 
 				// Comma separated string with each element in quotes
 				String rawRecordString = String.join(DLMTR, rawRecord);
@@ -306,9 +315,12 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				// Determine the first date
 				Date firstDate = determineFirstDate(rawKey, kickoutDate);
 
+				//LOGGER.info("NASCO process First Date is : "+firstDate);
 				// The last date is always the kickout date
 				Date lastDate = kickoutDate;
 
+				//LOGGER.info("NASCO process First Date is : "+lastDate);
+				
 				// The error includes the first date for uniqueness
 				String errorKey = generateKey(rawRecordString + dateFormatter.format(firstDate));
 
@@ -322,9 +334,16 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				fullRecordString.append(dateFormatter.format(lastDate));
 				fullRecordString.append(DLMTR);
 				fullRecordString.append(rawRecordString);
+				//fullRecordString.append(DLMTR);
+				//fullRecordString.append(errorCode);
 				fullRecordString.append(NWLN);
 				putRecordData(rawKey, errorKey, firstDate, lastDate, fullRecordString.toString());
 
+				//LOGGER.info("NASCO process NASCO_KO Data is : "+fullRecordString.toString());
+
+				// If the error is critical and this is the first time observing
+				// this error, then count it as a new critical error
+				//if (critical && firstDate.equals(kickoutDate)) {
 				if (firstDate.equals(kickoutDate)) {
 					nNewCritical += 1;
 				}
@@ -337,39 +356,14 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		mvStore.commit();
 
 		// Return the number of critical errors for this file
-		nCriticalBySystem.put("S", softErrorCount);
-		nCriticalBySystem.put("H", hardErrorCount);
-
-		return nCriticalBySystem;
+		return nNewCritical;
 	}
 
-	protected static String formatDate(String date) {
-
-		String finalString = "";
-		String dateNumber = "";
-		if (!date.isEmpty()) {
-			try {
-				dateNumber = Long.toString(new BigDecimal(date).longValue()).substring(0, 8);
-				if (dateNumber.substring(6, 8).equals("00")) {
-					return dateNumber = dateNumber.substring(0, 4) + "-" + dateNumber.substring(4, 6);
-				}
-				DateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-				SimpleDateFormat newFormat = new SimpleDateFormat("yyyy-MM-dd");
-				finalString = newFormat.format((Date) formatter.parse(dateNumber));
-			} catch (Exception e) {
-				return "";
-			}
-		}
-
-		return finalString;
-	}
-	
 	protected Date determineKickoutDate(String fileName) throws ParseException {
 		DateFormat dateFormatter = new SimpleDateFormat("yyyyMMdd");
-		int dateEndIndex = fileName.lastIndexOf(".");
-		LOGGER.info(
-				"NASCO Date for the File " + fileName + " is " + fileName.substring(dateEndIndex - 8, dateEndIndex));
-		return dateFormatter.parse(fileName.substring(dateEndIndex - 8, dateEndIndex));
+		int dateEndIndex=fileName.lastIndexOf(".");
+		LOGGER.info("NASCO Date for the File " + fileName + " is "+fileName.substring(dateEndIndex-8, dateEndIndex));
+		return dateFormatter.parse(fileName.substring(dateEndIndex-8, dateEndIndex));
 	}
 
 	@Override
@@ -385,7 +379,7 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 	@Override
 	protected boolean needToProcess(String fileName) {
 		try {
-
+			
 			// Right off the bat check whether it ends in the extension;
 			// if a folder cannot determine the kickout date
 			if (!fileName.endsWith(extension)) {
@@ -399,10 +393,9 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 				} else if (kickoutDate.before(ignoreBeforeDate)) {
 					LOGGER.info("NASCO Will not sss " + fileName + ": The file was kicked out before "
 							+ dateFormatter.format(ignoreBeforeDate));
-				} // else if (!fileName.substring(0, 5).equals(ZIP_DELTA)) {
-					// LOGGER.info("NASCO Will not process " + fileName + ": The
-					// file is not a delta load");
-					// }
+				} //else if (!fileName.substring(0, 5).equals(ZIP_DELTA)) {
+				//	LOGGER.info("NASCO Will not process " + fileName + ": The file is not a delta load");
+				//} 
 				else {
 					LOGGER.info("NASCO Processing " + fileName);
 					needToProcess = true;
@@ -448,8 +441,7 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		headerString.append(QT);
 		headerString.append(timeseriesDateColName);
 		headerString.append(DLMTR);
-		headerString.append(String.join(DLMTR, systemAliases));
-		headerString.append(DLMTR);
+		//headerString.append(String.join(DLMTR, systemAliases));
 		headerString.append(timeseriesTotalColName);
 		headerString.append(NWLN);
 		try {
@@ -467,13 +459,11 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 					waitForEngineToLoad(timeseriesDbName);
 
 					// Add to existing db
-					LOGGER.info("in adding to the existing database");
 					options.setImportMethod(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING);
 					importer.runProcessor(options);
 				} else {
 
 					// Create new db
-					LOGGER.info("in create new database");
 					options.setImportMethod(ImportOptions.IMPORT_METHOD.CREATE_NEW);
 					importer.runProcessor(options);
 				}
@@ -509,9 +499,8 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 		scheduler.triggerJob(tsAnomNotifJob.getKey());
 	}
 
-	// private void putTimeseriesData(Date kickoutDate, int nNewCritical) {
-	private void putTimeseriesData(Date kickoutDate, Map<String, Integer> nCriticalBySystem) {
-		String[] nCriticalArray = new String[systems.length];
+	private void putTimeseriesData(Date kickoutDate, int nNewCritical) {
+		/*String[] nCriticalArray = new String[systems.length];
 		int total = 0;
 		for (int i = 0; i < systems.length; i++) {
 			if (nCriticalBySystem.containsKey(systems[i])) {
@@ -521,43 +510,57 @@ public class NASCOKickoutWebWatcher extends AbstractKickoutWebWatcher {
 			} else {
 				nCriticalArray[i] = Integer.toString(0);
 			}
-		}
+		}*/
 		StringBuilder timeseriesRowString = new StringBuilder();
 		timeseriesRowString.append(QT);
 		timeseriesRowString.append(dateFormatter.format(kickoutDate));
 		timeseriesRowString.append(DLMTR);
-		timeseriesRowString.append(String.join(DLMTR, nCriticalArray));
-		timeseriesRowString.append(DLMTR);
-		timeseriesRowString.append(Integer.toString(total));
+		timeseriesRowString.append(nNewCritical);
+		//timeseriesRowString.append(String.join(DLMTR, nCriticalArray));
+		//timeseriesRowString.append(DLMTR);
+		//timeseriesRowString.append(Integer.toString(total));
 		timeseriesRowString.append(NWLN);
 		allTimeseriesMap.put(kickoutDate, timeseriesRowString.toString());
-		LOGGER.info("NASCO TIME_SERIES count for " + kickoutDate + " is " + timeseriesRowString.toString());
+		LOGGER.info("NASCO TIME_SERIES count for "+kickoutDate+" is "+ timeseriesRowString.toString());
 		addToTimeseriesMap.put(kickoutDate, timeseriesRowString.toString());
 	}
 
-	@Override
-	public String[] giveFiles() {
+	public static void main(String[] args) {
 
-		HashMap<Integer, String> fileMap = new HashMap<Integer, String>();
+        // TODO Auto-generated method stub
 
-		for (String file : new File(folderToWatch).list()) {
+        int nNewCritical = 0;
 
-			if (file.toUpperCase().endsWith(".CSV")) {
-				fileMap.put(Integer.parseInt(file.substring(file.lastIndexOf("_") + 1, file.lastIndexOf("."))), file);
-			}
-		}
+        String header = "Enterprise_ID;NPI;Tax_Suffix;License_Suffix;First_Name;Last_Name;Middle_Name;Check_Name;Primary_Specialty_Code_1;Primary_Specialty_Code_2;Primary_Specialty_Code_3;Primary_Specialty_Code_4;Primary_Address_Type_Code;Practice;Practice_Address_Line_1;Practice_Address_Line_2;Practice_City;Practice_State;Practice_Postal_Code;Practice_Extended_Postal_Code;Practice_Effective_Date;Practice_Termination_Date;Remit_Address_Line_1;Remit_Address_Line_2;Remit_City;Remit_State;Remit_Postal_Code;Remit_Extended_Postal_Code;Network_ID;Reimbursement;Error_Code;Error_Description";
+        String[] headerAlias = header.split(";");
+        int nCol = headerAlias.length;
+        
+        // Read in the header first
+//        String line = "26141939,1487720967,582420343004,52291989019,Bruce,Bosse,E,MRI AND IMAGING OF N FULTON LL,,,,,178,13D04AF6DAB322696D4B1BDFFDD04AD9,1400 HEMBREE RD STE 150,,ROSWELL,GA,30076,5711,20110101000000,20150718000000,PO BOX 932391,,ATLANTA,GA,31193,2391,HMOF,SPEC2093,H,Provider does not have a specialty (primary or secondary) tied to a Practice address";
+        String line = "26894163,1265639249,811347662001,52595552002,JUAN,GELDRES,,\"MAK ANESTHESIA TCH, LLC\",P0N612VX0X,,,,178,FD07F475EE36DCB49060FF7DAEB7CFB8,201 HOSPITAL RD,,CANTON,GA,30114,2408,20110630000000,99991231000000,1635 OLD 41 HWY N STE,112-328,KENNESAW,GA,30152,4481,BVSP,SPEC7103,H,Network is active but contract is termed";
+        //        int nCol = 34;
 
-		ArrayList<Integer> sortedKeys = new ArrayList<Integer>(fileMap.keySet());
-		Collections.sort(sortedKeys);
+        // Read the file and publish
 
-		ArrayList<String> sortedFile = new ArrayList<String>();
+//        String[] splitLine = line.split(",");
+        String[] splitLine = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+        int rawLength = splitLine.length;
+        // LOGGER.info("NASCO NASCO_KO data input length is :
+        // "+splitLine.length);
+        String[] rawRecord = new String[nCol];
+        for (int i = 0; i < nCol; i++) {
+              if (i < rawLength) {
+                    rawRecord[i] = splitLine[i].trim();
+              } else {
 
-		for (Integer date : sortedKeys) {
-			sortedFile.add(fileMap.get(date));
-		}
-		// String[] sortedFileArray = new String[sortedFile.size()];
-		// sortedFileArray = sortedFile.toArray(sortedFileArray);
-		return sortedFile.toArray(new String[sortedFile.size()]);
+                    // Avoids a null pointer when calculating the error code
+                    rawRecord[i] = "";
+              }
+        }
+
+        for (String string : rawRecord) {
+              System.out.println(string);      
+        }
 	}
-
+	
 }

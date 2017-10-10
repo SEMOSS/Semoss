@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.interpreters.QueryStruct2;
+import prerna.query.querystruct.QueryStruct2;
 
 public interface InMemStore<K, V> {
 

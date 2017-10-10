@@ -4,8 +4,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RFactor;
 import org.rosuda.JRI.RVector;
@@ -13,8 +11,6 @@ import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
 public class RBuilderJRI extends AbstractRBuilder {
-
-	private static final Logger LOGGER = LogManager.getLogger(RBuilderJRI.class.getName());
 
 	// holds the connection for RDataFrame to the instance of R running
 	private Rengine retCon;
@@ -30,10 +26,10 @@ public class RBuilderJRI extends AbstractRBuilder {
 			} else {
 				this.retCon = new Rengine(null, true, null);
 			}
-			LOGGER.info("Successfully created engine.. ");
+			this.logger.info("Successfully created engine.. ");
+			// only need to load the libraries once
+			loadDefaultLibraries();
 		}
-		loadDefaultLibraries();
-
 	}
 
 	public RBuilderJRI(String dataTableName) {
@@ -44,77 +40,60 @@ public class RBuilderJRI extends AbstractRBuilder {
 	}
 
 	private void loadDefaultLibraries() {
-//		// load in the data.table package
-//		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
-//		REXP retObj = this.retCon.eval("library(data.table)");
-//		if(retObj == null) {
-//			LOGGER.info(">>> FAILURE!");
-//		} else {
-//			LOGGER.info("SUCCESS!");
-//		}
-		// load in the sqldf package to run sql queries
 		String OS = System.getProperty("os.name").toLowerCase();
-		
-		LOGGER.info("TRYING TO LOAD PACAKGE: sqldf");
-		REXP retObj = this.retCon.eval("library(sqldf)");
+		// load splitstackshape
+		this.logger.info("TRYING TO LOAD PACAKGE: splitstackshape");
+		REXP retObj = this.retCon.eval("library(splitstackshape);");
 		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
+			this.logger.info(">>> FAILURE!");
 		} else {
-			LOGGER.info("SUCCESS!");
-		}		
-		// load all the splitstackshape
-		LOGGER.info("TRYING TO LOAD PACAKGE: splitstackshape");
-		retObj = this.retCon.eval("library(splitstackshape);");
-		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
-		} else {
-			LOGGER.info("SUCCESS!");
+			this.logger.info("SUCCESS!");
 		}		
 		// data table
-		LOGGER.info("TRYING TO LOAD PACAKGE: data.table");
+		this.logger.info("TRYING TO LOAD PACAKGE: data.table");
 		retObj = this.retCon.eval("library(data.table);");
 		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
+			this.logger.info(">>> FAILURE!");
 		} else {
-			LOGGER.info("SUCCESS!");
+			this.logger.info("SUCCESS!");
 		}
 		
 		if(!OS.contains("mac")) {
 			// xlsx
-			LOGGER.info("TRYING TO LOAD PACAKGE: xlsx");
+			this.logger.info("TRYING TO LOAD PACAKGE: xlsx");
 			retObj = this.retCon.eval("library(xlsx);");
 			if(retObj == null) {
-				LOGGER.info(">>> FAILURE!");
+				this.logger.info(">>> FAILURE!");
 			} else {
-				LOGGER.info("SUCCESS!");
+				this.logger.info("SUCCESS!");
 			}	
 					
 			// rjdbc
-			LOGGER.info("TRYING TO LOAD PACAKGE: RJDBC");
+			this.logger.info("TRYING TO LOAD PACAKGE: RJDBC");
 			retObj = this.retCon.eval("library(RJDBC);");
 			if(retObj == null) {
-				LOGGER.info(">>> FAILURE!");
+				this.logger.info(">>> FAILURE!");
 			} else {
-				LOGGER.info("SUCCESS!");
+				this.logger.info("SUCCESS!");
 			}
 		}
 		
 		// reshape2
-		LOGGER.info("TRYING TO LOAD PACAKGE: reshape2");
+		this.logger.info("TRYING TO LOAD PACAKGE: reshape2");
 		retObj = this.retCon.eval("library(reshape2);");
 		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
+			this.logger.info(">>> FAILURE!");
 		} else {
-			LOGGER.info("SUCCESS!");
+			this.logger.info("SUCCESS!");
 		}
 		
 		// stringr
-		LOGGER.info("TRYING TO LOAD PACAKGE: stringr");
+		this.logger.info("TRYING TO LOAD PACAKGE: stringr");
 		retObj = this.retCon.eval("library(stringr);");
 		if(retObj == null) {
-			LOGGER.info(">>> FAILURE!");
+			this.logger.info(">>> FAILURE!");
 		} else {
-			LOGGER.info("SUCCESS!");
+			this.logger.info("SUCCESS!");
 		}	
 	}
 
@@ -129,13 +108,13 @@ public class RBuilderJRI extends AbstractRBuilder {
 
 	@Override
 	protected RConnection getConnection() {
-		LOGGER.info("JRI implementation does not have a rcon...");
+		this.logger.debug("JRI implementation does not have a rcon...");
 		return null;
 	}
 	
 	@Override
 	protected String getPort() {
-		LOGGER.info("JRI implementation does not have a port...");
+		this.logger.debug("JRI implementation does not have a port...");
 		return null;
 	}
 	
@@ -214,30 +193,35 @@ public class RBuilderJRI extends AbstractRBuilder {
 		REXP rs = executeR(rScript);
 		RVector rVec = rs.asVector();
 		Vector names = rVec.getNames();
-		int numReturn = names.size();
+		int numColumns = headerOrdering.length;
+		int[] headerIndex = new int[numColumns];
+		for(int i = 0; i < numColumns; i++) {
+			headerIndex[i] = names.indexOf(headerOrdering[i]);
+		}
 		
-		Object[] retArr = new Object[numReturn];
-		for(int idx = 0; idx < numReturn; idx++) {
+		Object[] retArr = new Object[numColumns];
+		for(int colNum = 0; colNum < numColumns; colNum++) {
+			int idx = headerIndex[colNum];
 			REXP val = rVec.at(idx);
 			int typeInt = val.getType();
 			if(typeInt == REXP.XT_DOUBLE) {
-				retArr[idx] = val.asDouble();
+				retArr[colNum] = val.asDouble();
 			} else if(typeInt == REXP.XT_ARRAY_DOUBLE) {
-				retArr[idx] = val.asDoubleArray()[0];
+				retArr[colNum] = val.asDoubleArray()[0];
 			} else if(typeInt == REXP.XT_INT) {
-				retArr[idx] = val.asInt();
+				retArr[colNum] = val.asInt();
 			} else if(typeInt == REXP.XT_ARRAY_INT) {
-				retArr[idx] = val.asIntArray()[0];
+				retArr[colNum] = val.asIntArray()[0];
 			} else if(typeInt == REXP.XT_STR) {
-				retArr[idx] = val.asString();
+				retArr[colNum] = val.asString();
 			} else if(typeInt == REXP.XT_ARRAY_STR) {
-				retArr[idx] = val.asStringArray()[0];
+				retArr[colNum] = val.asStringArray()[0];
 			} else if(typeInt == REXP.XT_BOOL) {
-				retArr[idx] = val.asBool();
+				retArr[colNum] = val.asBool();
 			} else if(typeInt == REXP.XT_FACTOR) {
-				retArr[idx] = val.asFactor().at(0);
+				retArr[colNum] = val.asFactor().at(0);
 			} else {
-				retArr[idx] = val;
+				retArr[colNum] = val;
 			}
 		}
 		
@@ -247,18 +231,19 @@ public class RBuilderJRI extends AbstractRBuilder {
 
 	@Override
 	protected List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		// we do not need the header ordering
-		// it is only needed for the RServe version of R
-		// this will return based on the same order as the rScript
-		
 		REXP rs = executeR(rScript);
 		RVector rVec = rs.asVector();
 		Vector names = rVec.getNames();
-		int numColumns = names.size();
-		
+
+		int numColumns = headerOrdering.length;
+		int[] headerIndex = new int[numColumns];
+		for(int i = 0; i < numColumns; i++) {
+			headerIndex[i] = names.indexOf(headerOrdering[i]);
+		}
 		List<Object[]> retArr = new Vector<Object[]>(500);
 		
-		for(int idx = 0; idx < numColumns; idx++) {
+		for(int colNum = 0; colNum < numColumns; colNum++) {
+			int idx = headerIndex[colNum];
 			REXP val = rVec.at(idx);
 			int typeInt = val.getType();
 			if(typeInt == REXP.XT_ARRAY_DOUBLE) {
@@ -266,13 +251,13 @@ public class RBuilderJRI extends AbstractRBuilder {
 				if(retArr.size() == 0) {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = new Object[numColumns];
-						values[idx] = data[i];
+						values[colNum] = data[i];
 						retArr.add(values);
 					}
 				} else {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = retArr.get(i);
-						values[idx] = data[i];
+						values[colNum] = data[i];
 					}
 				}
 			} else if(typeInt == REXP.XT_ARRAY_INT) {
@@ -280,13 +265,13 @@ public class RBuilderJRI extends AbstractRBuilder {
 				if(retArr.size() == 0) {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = new Object[numColumns];
-						values[idx] = data[i];
+						values[colNum] = data[i];
 						retArr.add(values);
 					}
 				} else {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = retArr.get(i);
-						values[idx] = data[i];
+						values[colNum] = data[i];
 					}
 				}
 			} else if(typeInt == REXP.XT_ARRAY_STR) {
@@ -294,13 +279,13 @@ public class RBuilderJRI extends AbstractRBuilder {
 				if(retArr.size() == 0) {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = new Object[numColumns];
-						values[idx] = data[i];
+						values[colNum] = data[i];
 						retArr.add(values);
 					}
 				} else {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = retArr.get(i);
-						values[idx] = data[i];
+						values[colNum] = data[i];
 					}
 				}
 			} else if(typeInt == REXP.XT_FACTOR) {
@@ -308,17 +293,33 @@ public class RBuilderJRI extends AbstractRBuilder {
 				if(retArr.size() == 0) {
 					for(int i = 0; i < data.size(); i++) {
 						Object[] values = new Object[numColumns];
-						values[idx] = data.at(i);
+						values[colNum] = data.at(i);
 						retArr.add(values);
 					}
 				} else {
 					for(int i = 0; i < data.size(); i++) {
 						Object[] values = retArr.get(i);
-						values[idx] = data.at(i);
+						values[colNum] = data.at(i);
 					}
 				}
-			} else {
-				LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+			} else if (typeInt == REXP.XT_STR) {
+				String[] data = val.asStringArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[colNum] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[colNum] = data[i];
+					}
+				}
+			}
+			
+			else {
+				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
 			}
 		}
 		
@@ -353,7 +354,7 @@ public class RBuilderJRI extends AbstractRBuilder {
 			}
 			return retObj;
 		} else {
-			LOGGER.info("ERROR ::: Could not identify the return type for this iterator!!!");
+			logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
 		}
 
 		return null;
@@ -425,4 +426,18 @@ public class RBuilderJRI extends AbstractRBuilder {
 		return typesR.asStringArray();
 	}
 	
+	@Override
+	public String[] getColumnType(String varName) {
+		
+		REXP typesR = executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)");
+		System.out.println(executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)"));
+		return typesR.asStringArray();
+	}
+	
+	@Override
+	public int getIntFromScript(String rScript){
+		REXP result = executeR(rScript);
+		int number = result.asInt();
+		return number;
+	}
 }

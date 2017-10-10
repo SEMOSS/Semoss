@@ -146,7 +146,7 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
 		try {
 			it.setCloseConenctionAfterExecution(true);
-			it.directExecutionViaConnection(con, query);
+			it.directExecutionViaConnection(con, query, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());

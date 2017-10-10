@@ -1,32 +1,38 @@
 Package prerna.sablecc2;
 
 Helpers
- alpha = [['a' .. 'z'] + ['A' .. 'Z']];
+ all = [0 .. 0xFFFF];
  letter_s = ['a' .. 'z'];
  letter_b = ['A' .. 'Z'];
  digit = ['0' .. '9'];
  underscore = '_';
- alphanumeric = [0 .. 0xFFFF];
- quote = ('"' | ''');
- not_quote = [alphanumeric - ['"' + ''']];
- startjson = '<json>';
- endjson = '</json>';
- 
+ // words in double quotes
+ // allow for escaped double quotes
+ double_quote = '"';
+ escaped_double_quote = '\"';
+ not_double_quote = [all - '"'] | escaped_double_quote;
+ double_quote_word = double_quote not_double_quote* double_quote;
+ // words in single quotes
+ // does not allow for escaped single quotes
+ single_quote = ''';
+ not_single_quote = [all - '''];
+ single_quote_word = single_quote not_single_quote* single_quote;
+ url_unescaped_chars = ('-' | '_' | '.' | '!' | '~' | '*' | '+' | ''' | '(' | ')' | '%');
+ encoded_values = (letter_s | letter_b | digit | url_unescaped_chars);
+
 Tokens
+ meta = 'META';
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
- sort = ('up' | 'down' | 'asc' | 'dsc');
  id = (letter_s | letter_b | digit | underscore)*;
  dot = '.';
- code_alpha='<c>' alphanumeric* '</c>';
  semicolon = ';';
  colon = ':';
  plus = '+';
  minus = '-';
  mod = '%';
  pow = '^';
- quote = ('"' | ''' | '~');
- word = quote not_quote* quote;
+ word = (single_quote_word | double_quote_word);
  mult = '*';
  comma = ',';
  div = '/';
@@ -46,16 +52,16 @@ Tokens
  l_curl = '{';
  r_curl = '}';
  frameprefix = 'f$';
- frameid = 'f';
+ frameid = 'f.';
  blank = (' ' | 13 | 10);
- output = 'output';
- java = '<j>' alphanumeric* '</j>';
- r = '<j> runR(' alphanumeric* ')</j>';
+ code_alpha='<c>' encoded_values* '</c>';
+ java = '<j>' encoded_values* '</j>';
+ r = '<j> runR(' encoded_values* ')</j>';
  if = 'if';
  as_op = ('.as' | '.out');
  custom = '|';
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
-
+ 
 Ignored Tokens
 blank;
 
@@ -65,37 +71,39 @@ Productions
  ///////////////////////// START HIGHEST LEVEL /////////////////////////
  ///////////////////////////////////////////////////////////////////////
  
- configuration = routine*;
+ configuration = routine* ;
  
  // all routines are a series of scripts
  // or an assignment from the series of scripts
  routine = 
-	{output} scriptchain semicolon 
+	{output} script semicolon 
 	| {assign} assignment semicolon
 	;
  
- scriptchain = script otherscript*;
- otherscript = custom script;
+ // i need a way to allow for an embedded_script
+ // but i need it to not conflict with a formula
+ // so this is basically just enforcing that there is a pipe
+ mandatory_scriptchain = expr otherscript+;
+ 
+ script = scriptstart otherscript*;
+ scriptstart = {expression} expr | {meta} meta;
+ otherscript = custom expr;
 
  // an assignment if a word or number equal to
  // some kind of evaluation
- assignment = word_or_id equal scriptchain;
+ assignment = word_or_id equal script;
  
- // script is any expression
- // or an assignment
- script = {expression} expr 
-		| {embedded_assignment} embedded_assignment 
-		;
+ ///////////////////////////////////////////////////////////////////////
+ ///////////////////// JSON Pieces ////////////////////////////////////
+ //////////////////////////////////////////////////////////////////////
  
-  // if we have an assignment that is embedded within a script
- embedded_assignment = l_par id equal script r_par;
+ //jsonnode = l_curl jsonkeyvalue anotherjsonkeyvalue* r_curl;
+ 
  
  ///////////////////////////////////////////////////////////////////////
  ///////////////////////// END HIGHEST LEVEL ///////////////////////////
  ///////////////////////////////////////////////////////////////////////
- 
- 
- 
+  
  ///////////////////////////////////////////////////////////////////////
  //////////////////////////// COMPOSITES  //////////////////////////////
  ///////////////////////////////////////////////////////////////////////
@@ -106,6 +114,10 @@ Productions
  expr =
   {base_expr} base_expr
   | {comparison} [left]:base_expr comparator [right]:base_expr
+  // note that the embedded_assignment can be set to an inner script!
+  // or we can have a full inner script just for fun as well!
+  | {embedded_scriptchain} l_par mandatory_scriptchain r_par 
+  | {embedded_assignment} l_par id equal script r_par
   ;
  
  // expr component goes from a defined reactor all the way down to basic number/string
@@ -134,8 +146,7 @@ Productions
     {scalar} scalar
 	| {map} map
 	| {formula} formula
-	| {opformula} operation_formula
-	| {frameop} frameop
+	| {operation} operation
 	| {ref} rcol
 	| {dotcol} dotcol 
 	| {java_op} java_op 
@@ -154,34 +165,28 @@ Productions
  list = l_par expr other_expr+ r_par;
  other_expr = comma expr;
  
- // operational formula and frameop is how we define PKSL functions (reactors)
- // both use the same reactor, but they only differ in how data is pushed into the reactor
- // OPFORMULA ::: SUM(1,2,3)
- // FRAMEOP ::: Iterate(QUERYSTRUCT=[qs]); ---> where qs is a predefined variable
- operation_formula = id plain_row asop?;
- frameop = id l_par noun othernoun* r_par asop?;
+ // operation is how is how we define PKSL functions (reactors)
+ // previously had frameop and operation_formula
+ // now they are combined so you can have ID(a, b, x=[c]) all in one
+ operation = id l_par op_input? other_op_input* r_par asop?;
+ op_input = {noun} noun | {input} col_def;
+ other_op_input = comma op_input;
 
- // different ways to define col_def within operations
- // GENROW ::: [coldef1, coldef2, coldef3]
- // PLAINROW ::: (coldef1, coldef2, coldef3)
- gen_row = l_brac col_def othercol* r_brac; 
- plain_row = l_par col_def? othercol* r_par;
+ // when we need an array of arrays
+ gen_row = l_brac col_def? othercol* r_brac; 
+ othercol =  comma col_def;
  
  // col def is an expression, a prop, or a relationship
  col_def = {expr} expr 
 		| {prop} prop 
 		| {relation} relationship
 		;
- 
- // to have multiple cols within the gen_row and plain_row
- othercol =  comma col_def;
- 
- // NOUN ::: id = [coldef1, coldef2, coldef3...]
+  
+ // NOUN ::: id = [gen_row, gen_row, gen_row...]
  // generic is the catch all
  // then we have defined a few specific ones
  // code alpha is the only noun which differs
  noun = {select} selectors | {project} projectors | {labels} labels | {tooltips} tooltips | {others} generic | {props} props | {code} code_alpha;
- othernoun =  comma noun;
  
  generic = id equal gen_row;
  selectors = selectorid  gen_row;
@@ -203,6 +208,18 @@ Productions
  explicit_rel = l_par [lcol]:col_def [comma1]:comma rel_type [comma2]:comma [rcol]:col_def [comma3]:comma [relationship_name]:col_def r_par;
  
  ///////////////////////////////////////////////////////////////////////
+ /////////////////////// JSON composites //////////////////////////////
+ //////////////////////////////////////////////////////////////////////
+ 
+ 
+/*jsonarrayvalue = l_brac scalar* r_brac;
+jsonvalueoptions = {array} jsonarrayvalue | {scalar} scalar | {node} jsonnode;
+jsonkeyvalue = id colon jsonvalueoptions;
+anotherjsonkeyvalue = comma jsonkeyvalue;
+*/
+ 
+ 
+ ///////////////////////////////////////////////////////////////////////
  ////////////////////////// END COMPOSITES  ////////////////////////////
  ///////////////////////////////////////////////////////////////////////
  
@@ -218,7 +235,7 @@ Productions
 
  // reference - this means the 4th column in the current frame
  rcol = frameprefix number; // f$4
- dotcol = frameid dot [column_name]:id; // f.Title
+ dotcol = frameid [column_name]:id; // f.Title
  
  ///////////////////////////////////////////////////////////////////////
  //////////////////////////// END OTHER  ///////////////////////////////
@@ -229,23 +246,24 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  
  // map is a key : value
- // where the value is a scalar, vector of scalars, or another nested map
- map = l_curl map_entry other_map_entry* r_curl;
+ // where the value is a scalar, varaible, vector of scalars/variables, or another nested map
+ map = l_curl map_entry? other_map_entry* r_curl;
  
- map_entry = [key]:scalar colon [val]:values;
+ map_entry = [key]:word colon [val]:values;
  other_map_entry = [comma]:comma map_entry;
  
  // DO NOT USE THE BELOW FOR ANYTHING ASIDE FOR MAPS!
  // we already have a way to take vectors
  // this is just because we only want to maintain scalars and not allow for
  // evaluations in maps that are being stored on the BE
-
- values = {simple_scalar} scalar | {vector} map_scalar_list | {nested_map} map;
+ values = {simple} map_base_input | {list} map_list | {nested_map} map;
  
- // allow for an empty list
- // by making the first scalar optional and the other_scalar can be 0
- map_scalar_list = l_brac scalar? other_scalar* r_brac;
- other_scalar = comma scalar;
+ map_list = l_brac map_extended_input? map_list_extend* r_brac;
+ map_list_extend = comma map_extended_input;
+ 
+ map_extended_input = {list} map_list | {scalar} map_base_input | {nested_map} map;  
+ map_base_input = {map_var} map_var | {normal_scalar} scalar;
+ map_var = [start]:l_curl [var]:id [end]:r_curl;
  
  ///////////////////////////////////////////////////////////////////////
  /////////////////////////// END MAP ///////////////////////////////////

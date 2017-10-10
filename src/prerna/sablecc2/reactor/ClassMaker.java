@@ -41,6 +41,8 @@ public class ClassMaker {
 		pool.importPackage("org.apache.tinkerpop.gremlin.process.traversal");
 		pool.importPackage("org.apache.tinkerpop.gremlin.structure");
 		pool.importPackage("prerna.ds");
+		//TODO: this one is for HeadersDataRow
+		pool.importPackage("prerna.om");
 		cc = pool.makeClass(packageName + ".c" + className); // the only reason I do this is if the user wants to do seomthing else
 	}
 	
@@ -88,6 +90,10 @@ public class ClassMaker {
 		} catch (CannotCompileException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void addImport(String importPackage) {
+		pool.importPackage(importPackage);
 	}
 	
 	// gets the class back

@@ -1,27 +1,37 @@
 package prerna.ds.util;
 
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
-import prerna.ds.QueryStruct;
 import prerna.poi.main.helper.XLFileHelper;
+import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.IQuerySelector;
+import prerna.query.querystruct.QueryColumnSelector;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.QueryFilter;
+import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 public class ExcelFileIterator extends AbstractFileIterator {
 
 	private XLFileHelper helper;
+	private ExcelQueryStruct qs;
 	private int[] headerIndices;
 	private String sheetToLoad;
 	
-	public ExcelFileIterator(String fileLocation, String sheetToLoad, QueryStruct qs, Map<String, String> dataTypeMap, Map<String, String> newHeaders) {
+	public ExcelFileIterator(ExcelQueryStruct qs) {
+		this.qs = qs;
+		String fileLocation = qs.getExcelFilePath();
+		String sheetToLoad = qs.getSheetName();
+		Map<String, String>  dataTypesMap = qs.getColumnTypes();
+		Map<String, String> newHeaders = qs.getNewHeaderNames();
 		this.helper = new XLFileHelper();
 		this.helper.parse(fileLocation);	
 		this.sheetToLoad = sheetToLoad;
-		this.dataTypeMap = dataTypeMap;
+		this.dataTypeMap = dataTypesMap;
 		if(newHeaders != null && !newHeaders.isEmpty()) {
 			this.newHeaders = newHeaders;
 			Map<String, Map<String, String>> excelHeaderNames = new Hashtable<String, Map<String, String>>();
@@ -29,13 +39,13 @@ public class ExcelFileIterator extends AbstractFileIterator {
 			this.helper.modifyCleanedHeaders(excelHeaderNames);
 		}
 		
-		setSelectors(qs.selectors);
-		setFilters(qs.andfilters);
+		setSelectors(qs.getSelectors());
+		setFilters(qs.getFilters());
 		
-		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
+		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
 			this.types = new String[this.headers.length];
 			for(int j = 0; j < this.headers.length; j++) {
-				this.types[j] = dataTypeMap.get(this.headers[j]);
+				this.types[j] = dataTypesMap.get(this.headers[j]);
 			}
 		}
 		else {
@@ -55,48 +65,90 @@ public class ExcelFileIterator extends AbstractFileIterator {
 			this.dataTypeMap.put(this.headers[i], types[i]);
 		}
 	}
-
+	
+	
 	public void getNextRow() {
 		String[] row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
-		if(this.filters == null || this.filters.isEmpty()) {
+		
+		if(filters == null || filters.isEmpty()) {
 			this.nextRow = row;
 			return;
 		}
 		
 		String[] newRow = null;
-		while(newRow == null && (row != null)) {
-			for(int i = 0; i < row.length; i++) {
-				Set<Object> nextSet = this.filters.get(headers[i]);
-				if(nextSet != null ){
-					if(Utility.convertStringToDataType(this.dataTypeMap.get(headers[i])) == DATA_TYPES.STRING) {
-						if(nextSet.contains(Utility.cleanString(row[i], true))) {
-							newRow = row;
-						} else {
-							newRow = null;
-							break;
+		while (newRow == null && (row != null)) {
+
+			Set<String> allFilteredCols = this.filters.getAllFilteredColumns();
+			//isValid checks if the row meets all of the given filters 
+			boolean isValid = true;
+			for (String col : allFilteredCols) {
+				int rowIndex = Arrays.asList(headers).indexOf(col);
+				// check valid index
+				if (rowIndex >= 0) {
+					//list of all filters on a given column
+					List<QueryFilter> nextSet = this.filters.getAllQueryFiltersContainingColumn(col);
+					for (QueryFilter filter : nextSet) {
+						//get all filter information
+						FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
+						NounMetadata leftComp = filter.getLComparison();
+						NounMetadata rightComp = filter.getRComparison();
+						String comparator = filter.getComparator();
+
+						if (filterType == filterType.COL_TO_COL) {
+							//TODO
+							//isValid = isValid && filterColToCol(leftComp, rightComp, row, comparator, rowIndex);
+						} else if (filterType == filterType.COL_TO_VALUES) {
+							// Genre = ['Action'] example
+							isValid = isValid && filterColToValues(leftComp, rightComp, row, comparator, rowIndex);
+
+						} else if (filterType == filterType.VALUES_TO_COL) {
+							// here the left and rightcomps are reversed, so send them to the method in opposite order and reverse comparator
+							// 50000 > MovieBudget gets sent as MovieBudget < 50000
+							isValid = isValid && filterColToValues(rightComp, leftComp, row, QueryFilter.getReverseNumericalComparator(comparator), rowIndex);
+						} else if (filterType == filterType.VALUE_TO_VALUE) {
+							//?????????
+							
 						}
-					} else if(nextSet.contains(row[i])) {
-						newRow = row;
+
 					}
-					else {
-						newRow = null;
-						break;
-					}
+
 				}
+
 			}
-			if(newRow == null) {
+
+			if (isValid) {
+				newRow = row;
+				break;
+			} else {
+				newRow = null;
+			}
+
+			if (newRow == null) {
 				row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
 			}
+
 		}
-		
 		this.nextRow = newRow;
+
 	}
 
-	private void setSelectors(Map<String, List<String>> selectorSet) {
-		if(selectorSet.isEmpty()) {
+
+	private void setSelectors(List<IQuerySelector> qsSelectors) {
+		if(qsSelectors.isEmpty()) {
 			return; // if no selectors, return everything
 		}
-		String[] selectors = selectorSet.keySet().toArray(new String[]{});
+		int numSelectors = qsSelectors.size();
+
+		String[] selectors = new String[numSelectors];
+		
+		for(int i = 0; i < numSelectors; i++) {
+			QueryColumnSelector newSelector = (QueryColumnSelector) qsSelectors.get(i);
+			if(newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				throw new IllegalArgumentException("Cannot perform math on a excel import");
+			}
+			selectors[i] = newSelector.getAlias();
+		}
+		
 		String[] allHeaders = this.helper.getHeaders(this.sheetToLoad);
 		if(allHeaders.length != selectors.length) {
 			// order the selectors
@@ -130,5 +182,17 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	@Override
 	public void clearHelper() {
 		this.helper.clear();
+	}
+	
+	public XLFileHelper getHelper() {
+		return this.helper;
+	}
+	
+	public ExcelQueryStruct getQs() {
+		return this.qs;
+	}
+
+	public void setQs(ExcelQueryStruct qs) {
+		this.qs = qs;
 	}
 }

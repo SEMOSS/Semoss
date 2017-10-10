@@ -111,7 +111,8 @@
 		<field name="layout" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
 		<!-- need to keep track if this insight exists from a db or is a cached tinkerframe -->
 		<field name="image" type="string" indexed="false" stored="true" required="false" multiValued="false" />		
-				
+		<field name="image_url" type="string" indexed="false" stored="true" required="false" multiValued="false" />		
+
 		<!-- field for autocomplete -->
 		<field name="insight_suggest" type="text_suggest" indexed="true" stored="false" required="true" multiValued="true" termVectors="true" termPositions="true" termOffsets="true"/> 
 		<copyField source="name" dest="insight_suggest"/>

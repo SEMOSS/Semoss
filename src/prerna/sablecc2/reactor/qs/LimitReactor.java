@@ -1,13 +1,12 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.interpreters.QueryStruct2;
+import prerna.query.querystruct.QueryStruct2;
 
 public class LimitReactor extends QueryStructReactor {
 
 	@Override
 	QueryStruct2 createQueryStruct() {
-		Double l = (Double)curRow.get(0);
-		Integer limit = l.intValue();
+		Long limit = ( (Number) curRow.get(0)).longValue();
 		qs.setLimit(limit);
 		return qs;
 	}

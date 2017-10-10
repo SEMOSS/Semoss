@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class RetrieveValue extends AbstractReactor {
@@ -24,7 +24,7 @@ public class RetrieveValue extends AbstractReactor {
 	 * This reactor takes in 2 nouns
 	 * store -> this points to the store name
 	 * 			this will automatically be replaced with
-	 * 			the NounMetadata that is in the pkslplanner
+	 * 			the NounMetadata that is in the pixel planner
 	 * 
 	 * key ->	the key that the value is stored under
 	 */
@@ -61,7 +61,7 @@ public class RetrieveValue extends AbstractReactor {
 				retStoreVar.put(key, storeVariable.get(key));
 			}
 			
-			return new NounMetadata(retStoreVar, PkslDataTypes.IN_MEM_STORE);
+			return new NounMetadata(retStoreVar, PixelDataType.IN_MEM_STORE);
 		}
 	}
 	
@@ -73,13 +73,13 @@ public class RetrieveValue extends AbstractReactor {
 		}
 		
 		// could be passed as a $RESULT -> as STORE
-		storeGrs = this.store.getNoun(PkslDataTypes.IN_MEM_STORE.toString());
+		storeGrs = this.store.getNoun(PixelDataType.IN_MEM_STORE.toString());
 		if(storeGrs != null) {
 			return (InMemStore) storeGrs.get(0);
 		}
 		
 		// see if there is anything in curRow with store
-		List<NounMetadata> passedResults = this.curRow.getNounsOfType(PkslDataTypes.IN_MEM_STORE);
+		List<NounMetadata> passedResults = this.curRow.getNounsOfType(PixelDataType.IN_MEM_STORE);
 		if(passedResults != null && !passedResults.isEmpty()) {
 			return (InMemStore) passedResults.get(0).getValue();
 		}
@@ -92,7 +92,7 @@ public class RetrieveValue extends AbstractReactor {
 	public List<NounMetadata> getOutputs() {
 		// output is the signature
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		return outputs;
 	}

@@ -14,9 +14,9 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 
 public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 
@@ -26,8 +26,8 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 	public NounMetadata execute() {
 		long start = System.currentTimeMillis();
 
-		PKSLPlanner planner = getPlanner();
-		PKSLPlanner basePlanner = getBasePlanner();
+		PixelPlanner planner = getPlanner();
+		PixelPlanner basePlanner = getBasePlanner();
 		List<String> pksls = new LinkedList<String>();
 		Class<BaseJavaRuntime> superClass = null;
 		Map<String, String> mainMap = (Map) planner.getProperty("MAIN_MAP", "MAIN_MAP");
@@ -84,14 +84,14 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		LOGGER.info("****************    Build Class " + (endTime - startTime) + "ms      *************************");
 
 		planner.addProperty("RUN_CLASS", "RUN_CLASS", javaClass);
-		return new NounMetadata(planner, PkslDataTypes.PLANNER);
+		return new NounMetadata(planner, PixelDataType.PLANNER);
 	}
 
-	private PKSLPlanner getPlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
-		PKSLPlanner planner = null;
+	private PixelPlanner getPlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
+		PixelPlanner planner = null;
 		if (allNouns != null) {
-			planner = (PKSLPlanner) allNouns.get(0);
+			planner = (PixelPlanner) allNouns.get(0);
 			return planner;
 		} else {
 			return this.planner;
@@ -111,7 +111,7 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 		return superClass;
 	}
 
-	private List<String> buildFields(Map<String, String> mainMap, PKSLPlanner planner,
+	private List<String> buildFields(Map<String, String> mainMap, PixelPlanner planner,
 			RuntimeJavaClassBuilder builder) {
 		List<String> fields = new LinkedList<>();
 		Set<String> assignedFields = new HashSet<>();
@@ -119,19 +119,19 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 			if (!assignedFields.contains(assignment)) {
 				NounMetadata noun = planner.getVariableValue(assignment);
 				if (noun != null) {
-					PkslDataTypes nounType = noun.getNounType();
+					PixelDataType nounType = noun.getNounType();
 					Object nounValue = noun.getValue();
 					String field = "";
 					// String addToMapString = "{a(\"" + assignment + "\"," +
 					// assignment + ");}";
 					boolean isValidTypeFlag = false;
-					if (nounType == PkslDataTypes.CONST_DECIMAL || nounType == PkslDataTypes.CONST_INT) {
+					if (nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
 						field = "public double " + assignment + " = " + nounValue + ";";
 						isValidTypeFlag = true;
-					} else if (nounType == PkslDataTypes.CONST_STRING) {
+					} else if (nounType == PixelDataType.CONST_STRING) {
 						field = "public String " + assignment + " = \"" + nounValue + "\";";
 						isValidTypeFlag = true;
-					} else if (nounType == PkslDataTypes.BOOLEAN) {
+					} else if (nounType == PixelDataType.BOOLEAN) {
 						field = "public boolean " + assignment + " = " + nounValue + ";";
 						isValidTypeFlag = true;
 					}
@@ -196,12 +196,12 @@ public class ExecuteJavaGraphPlannerReactor extends AbstractPlannerReactor {
 	 * 
 	 * @return
 	 */
-	protected PKSLPlanner getBasePlanner() {
-		GenRowStruct allNouns = getNounStore().getNoun(PkslDataTypes.PLANNER.toString());
+	protected PixelPlanner getBasePlanner() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.PLANNER.toString());
 		if (allNouns != null && allNouns.size() > 1) {
 			Object secondParam = allNouns.get(1);
 			if (secondParam != null) {
-				PKSLPlanner basePlan = (PKSLPlanner) secondParam;
+				PixelPlanner basePlan = (PixelPlanner) secondParam;
 				return basePlan;
 			}
 		}

@@ -1,69 +1,96 @@
 package prerna.sablecc2.reactor.imports;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc.PKQLEnum;
-import prerna.sablecc.PKQLRunner.STATUS;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
-public class TinkerImporter extends Importer{
+public class TinkerImporter implements IImporter {
+
+	private TinkerFrame dataframe;
+	private QueryStruct2 qs;
+	private Iterator<IHeadersDataRow> it;
+	
+	// ugh... edge hash never seems to go away does it
+	Map<String, Set<String>> edgeHash;
+	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+		this.dataframe = dataframe;
+		this.qs = qs;
+		// generate the iterator
+		this.it = it;
+	}
+	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs) {
+		this.dataframe = dataframe;
+		this.qs = qs;
+		// generate the iterator
+		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+	}
 
 	@Override
-	public Iterator process() {
-		if(myStore.get(PKQLEnum.CHILD_ERROR) != null && (boolean) myStore.get(PKQLEnum.CHILD_ERROR)) {
-			myStore.put("STATUS", STATUS.ERROR);
-			String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
-			if(myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE) != null) {
-				myStore.put(nodeStr, myStore.get(PKQLEnum.CHILD_ERROR_MESSAGE));
+	public void insertData() {
+		// get the edge hash so we know how to add data connections
+		this.edgeHash = ImportUtility.getEdgeHash(this.qs);
+		// create the metadata
+		ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, this.edgeHash);
+				
+		Map<Integer, Set<Integer>> cardinality = null;
+		while(this.it.hasNext()) {
+			IHeadersDataRow row = it.next();
+			String[] headers = row.getHeaders();
+			if(cardinality == null) {
+				cardinality = Utility.getCardinalityOfValues(headers, this.edgeHash);
 			}
-			return null;
+			dataframe.addRelationship(headers, row.getValues(), cardinality);
 		}
-		// get the frame
-		TinkerFrame frame = (TinkerFrame) myStore.get("G");
+	}
+	
+	@Override
+	public void insertData(OwlTemporalEngineMeta metaData) {
+		this.dataframe.setMetaData(metaData);
+		// get the edge hash so we know how to add data connections
+		this.edgeHash = ImportUtility.getEdgeHash(this.qs);
+		Map<Integer, Set<Integer>> cardinality = null;
+		while(this.it.hasNext()) {
+			IHeadersDataRow row = it.next();
+			String[] headers = row.getHeaders();
+			if(cardinality == null) {
+				cardinality = Utility.getCardinalityOfValues(headers, this.edgeHash);
+			}
+			dataframe.addRelationship(headers, row.getValues(), cardinality);
+		}
+	}
 
-		// additional logic required for loops
-		// we need to also take into consideration a meta level header
-		// that doesn't match the actual instance name
-		// i.e. we create a meta level System_1 vertex
-		// but the instances are still only referenced as System
-		Vector<Map<String, String>> joins = (Vector<Map<String, String>>) myStore.get(PKQLEnum.JOINS);
-		if(joins!=null){
-			for(Map<String,String> join : joins) {
-				String fromCol = join.get(PKQLEnum.FROM_COL);
-				// here we replace the to column with the actual instance name
-				fromCol = frame.getValueForUniqueName(fromCol);
-				join.put(PKQLEnum.FROM_COL, fromCol);
+	@Override
+	public ITableDataFrame mergeData(List<Join> joins) {
+		// get the edge hash so we know how to add data connections
+		this.edgeHash = ImportUtility.getEdgeHash(this.qs);
+		// create the metadata
+		
+		//TODO: take into consideration the join column names
+		//TODO: take into consideration the join column names
+		//TODO: take into consideration the join column names
+		//TODO: take into consideration the join column names
+		//TODO: take into consideration the join column names
+
+		ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, this.edgeHash);
+				
+		Map<Integer, Set<Integer>> cardinality = null;
+		while(this.it.hasNext()) {
+			IHeadersDataRow row = it.next();
+			String[] headers = row.getHeaders();
+			if(cardinality == null) {
+				cardinality = Utility.getCardinalityOfValues(headers, this.edgeHash);
 			}
+			dataframe.addRelationship(headers, row.getValues(), cardinality);
 		}
-		
-		// use the import data reactor to go through the logic to get the necessary data 
-		super.process();
-		
-		// cardinality helps determine the relationship between the instance values in a column
-		// this is helpful in optimizing the extraction of the upstream node and downstream node when creating
-		// these vertices in the TinkerFrame
-		Map<Integer, Set<Integer>> cardinality = Utility.getCardinalityOfValues(this.newHeaders, this.edgeHash);;
-		
-		while(this.dataIterator.hasNext()){
-			IHeadersDataRow ss = this.dataIterator.next();
-			
-			if(isPrimKey) {
-				frame.addRow(ss.getValues(), this.newHeaders);
-			} else {
-				frame.addRelationship(this.newHeaders, ss.getValues(), cardinality, this.modifyNamesMap);
-			}
-		}
-		
-		// store the response string
-		inputResponseString(this.dataIterator, this.newHeaders);
-		// set status to success
-		myStore.put("STATUS", STATUS.SUCCESS);
-		
-		return null;
+		return this.dataframe;
 	}
 }

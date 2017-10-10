@@ -12,16 +12,18 @@ import java.util.Map;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.util.ConnectionUtils;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private Connection conn = null;
-	private ResultSet rs = null;
 	private Statement stmt = null;
-
+	private ResultSet rs = null;
+	private boolean closedConnection = false;
+	
 	private int numColumns = 0;
+	private String[] colTypeNames = null;
 	private int[] colTypes = null;
 
 	private IHeadersDataRow currRow = null;
@@ -59,6 +61,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public IHeadersDataRow next() {
+		if(currRow == null) {
+			hasNext();
+		}
 		// grab the current row we have
 		IHeadersDataRow retRow = currRow;
 		// set the reference to null so we can get a new one 
@@ -70,6 +75,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public boolean hasNext() {
+		if(this.closedConnection) {
+			return false;
+		}
 		try {
 			// if it is null, try and get the next row
 			// from the result set
@@ -131,13 +139,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 
 			// return the header row
-			return new HeadersDataRow(displayVar, row, row);
+			return new HeadersDataRow(var,displayVar, row, row);
 		} else {
-			this.rs.close();
-			this.stmt.close();
-			if(this.closeConnectionAfterExecution) {
-				this.conn.close();
-			}
+			cleanUp();
 		}
 
 		// no more results
@@ -155,6 +159,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// create the arrays to store the column types,
 			// the physical variable names and the display variable names
 			colTypes = new int[numColumns];
+			colTypeNames = new String[numColumns];
 			var = new String[numColumns];
 			displayVar = new String[numColumns];
 
@@ -162,6 +167,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				var[colIndex-1] = rsmd.getColumnName(colIndex);
 				displayVar[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
+				colTypeNames[colIndex-1] = rsmd.getColumnTypeName(colIndex);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -176,6 +182,11 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	@Override
 	public String[] getPhysicalVariables() {
 		return var;
+	}
+	
+	@Override
+	public String[] getTypes() {
+		return colTypeNames;
 	}
 
 	public ResultSetMetaData getMetaData() throws SQLException {
@@ -193,7 +204,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	 * @param conn
 	 * @param query
 	 */
-	public void directExecutionViaConnection(Connection conn, String query) {
+	public void directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) {
 		try {
 			this.conn = conn;
 			this.stmt = this.conn.createStatement();
@@ -201,8 +212,41 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			setVariables();
 		} catch(Exception e) {
 			e.printStackTrace();
-			ConnectionUtils.closeAllConnections(conn, rs, stmt);
+			if(closeIfFail) {
+				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+			}
 			throw new IllegalArgumentException(e.getMessage());
 		}
+	}
+
+	@Override
+	public void cleanUp() {
+		if(this.closedConnection) {
+			return;
+		}
+		try {
+			if(this.rs != null) {
+				this.rs.close();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		try {
+			if(this.stmt != null) {
+				this.stmt.close();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		if(this.closeConnectionAfterExecution) {
+			try {
+				if(this.conn != null) {
+					this.conn.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		this.closedConnection = true;
 	}
 }

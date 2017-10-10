@@ -6,8 +6,8 @@ import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.Job;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
@@ -68,8 +68,8 @@ public class AliasMatchTestReactor extends AbstractReactor {
 		Iterator<IHeadersDataRow> iterator = null;
 
 		if(allNouns != null) {
-			Job job = (Job)allNouns.get(0);
-			iterator = job.getIterator();
+			BasicIteratorTask task = (BasicIteratorTask)allNouns.get(0);
+			iterator = task.getIterator();
 		}
 		return iterator;
 	}
@@ -79,8 +79,8 @@ public class AliasMatchTestReactor extends AbstractReactor {
 		Iterator<IHeadersDataRow> iterator = null;
 
 		if(allNouns != null) {
-			Job job = (Job)allNouns.get(0);
-			iterator = job.getIterator();
+			BasicIteratorTask task = (BasicIteratorTask)allNouns.get(0);
+			iterator = task.getIterator();
 		}
 		return iterator;
 	}

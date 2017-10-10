@@ -31,12 +31,9 @@ import org.openrdf.sail.memory.MemoryStore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CacheFactory;
 import prerna.ds.QueryStruct;
-import prerna.ds.TableDataFrameFactory;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -613,29 +610,29 @@ public class OldInsight extends Insight {
 		return getDataMakerComponents().get(this.dmComponents.size() - 1);	
 	}
 	
-	/**
-	 * Process a list of actions on the last data maker component stored in cmComponents
-	 * @param postTrans					The list of actions to run
-	 * @param dataMaker					Additional dataMakers if required by the actions
-	 */
-	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) throws RuntimeException {
-		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
-		
-		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
-		for(ISEMOSSAction action : actions) {
-			actionsCopy.add(action.copy());
-		}
-		
-		List<Object> actionResults = getDataMaker().processActions(dmc, actionsCopy, dataMaker);
-		//TODO: extrapolate in datamakercomponent to take in a list
-		int lastAction = dmc.getActions().size() - 1;
-		for(int i = 0; i < actions.size(); i++) {
-			actions.get(i).setId(dmc.getId() + ":" + ACTION + (++lastAction));
-			getDataMakerComponents().get(this.dmComponents.size() - 1).addAction(actions.get(i));
-		}
-		
-		return actionResults;
-	}
+//	/**
+//	 * Process a list of actions on the last data maker component stored in cmComponents
+//	 * @param postTrans					The list of actions to run
+//	 * @param dataMaker					Additional dataMakers if required by the actions
+//	 */
+//	public List<Object> processActions(List<ISEMOSSAction> actions, IDataMaker... dataMaker) throws RuntimeException {
+//		DataMakerComponent dmc = getDataMakerComponents().get(this.dmComponents.size() - 1);
+//		
+//		List<ISEMOSSAction> actionsCopy = new Vector<ISEMOSSAction>(actions.size());
+//		for(ISEMOSSAction action : actions) {
+//			actionsCopy.add(action.copy());
+//		}
+//		
+//		List<Object> actionResults = getDataMaker().processActions(dmc, actionsCopy, dataMaker);
+//		//TODO: extrapolate in datamakercomponent to take in a list
+//		int lastAction = dmc.getActions().size() - 1;
+//		for(int i = 0; i < actions.size(); i++) {
+//			actions.get(i).setId(dmc.getId() + ":" + ACTION + (++lastAction));
+//			getDataMakerComponents().get(this.dmComponents.size() - 1).addAction(actions.get(i));
+//		}
+//		
+//		return actionResults;
+//	}
 	
 	/**
 	 * Undo a set of processes (components/transformations/actions) based on the IDs
@@ -743,30 +740,35 @@ public class OldInsight extends Insight {
 		// right now, assuming only one action is present
 		// TODO: should we update the interface to always return a map
 		// currently all actions return a map
-		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
-			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
-		} else if (this.layout.equals("Graph") || this.layout.equals("VivaGraph")) { //TODO: Remove hardcoded layout values
+//		if(dm.getActionOutput() != null && !dm.getActionOutput().isEmpty()) {
+//			retHash.putAll( (Map) getDataMaker().getActionOutput().get(0));
+//		} else 
+		if (this.layout.equals("Graph") || this.layout.equals("VivaGraph")) { //TODO: Remove hardcoded layout values
 			if(dm instanceof TinkerFrame) {
 				retHash.putAll(((TinkerFrame)getDataMaker()).getGraphOutput());
-			} else if(dm instanceof H2Frame) {
-				TinkerFrame tframe = TableDataFrameFactory.convertToTinkerFrameForGraph((H2Frame)dm);
-				retHash.putAll(tframe.getGraphOutput());
-			} else {
+			} 
+//			else if(dm instanceof H2Frame) {
+//				TinkerFrame tframe = TableDataFrameFactory.convertToTinkerFrameForGraph((H2Frame)dm);
+//				retHash.putAll(tframe.getGraphOutput());
+//			} 
+			else {
 				// this is for insights which are gdm
 				retHash.putAll(dm.getDataMakerOutput());
 			}
 		} else {
-			if(dm instanceof ITableDataFrame) {
+//			if(dm instanceof ITableDataFrame) {
+//				retHash.putAll(dm.getDataMakerOutput());
+//			} 
+//			else if(dm instanceof Dashboard) { 
+//				Dashboard dash = (Dashboard)dm;
+//				Gson gson = new Gson();
+//				retHash.put("config", dash.getConfig());
+////				dash.setInsightID(insightID);
+//				retHash.putAll(dm.getDataMakerOutput());
+//			}
+//			else {
 				retHash.putAll(dm.getDataMakerOutput());
-			} else if(dm instanceof Dashboard) { 
-				Dashboard dash = (Dashboard)dm;
-				Gson gson = new Gson();
-				retHash.put("config", dash.getConfig());
-//				dash.setInsightID(insightID);
-				retHash.putAll(dm.getDataMakerOutput());
-			} else {
-				retHash.putAll(dm.getDataMakerOutput());
-			}
+//			}
 		}
 		String uiOptions = getUiOptions();
 		if(!uiOptions.isEmpty()) {
@@ -891,102 +893,6 @@ public class OldInsight extends Insight {
 	public void setMainEngine(IEngine engine) {
 		this.mainEngine = engine;
 	} 
-	
-	public Map<String, Object> getInsightMetaModel() {
-		IDataMaker dataMaker = getDataMaker();
-		if(!(dataMaker instanceof ITableDataFrame)) {
-			throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore. The data maker is not of type ITableDataFrame.");
-		}
-		Hashtable<String, Object> returnHash = new Hashtable<String, Object>();
-		Map<String, Object> nodesHash = new Hashtable<String, Object>();
-		Map<String, Object> triplesHash = new Hashtable<String, Object>();
-		if(this.getDataMaker() instanceof ITableDataFrame){
-			ITableDataFrame tink = (ITableDataFrame) this.getDataMaker();
-			Map<String, Set<String>> edgeHash = tink.getEdgeHash();
-			Map<String, String> props = tink.getProperties();
-			
-			for(String sub: edgeHash.keySet()){
-				Map<String, Object> nodeObj = new HashMap<String, Object>();
-				Set<String> subEngineNameSet = tink.getEnginesForUniqueName(sub);
-				// this is for the FE s.t. it doesn't break when no engines are sent back
-				if(subEngineNameSet == null || subEngineNameSet.isEmpty()) {
-					subEngineNameSet = new HashSet<String>();
-					subEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
-				}
-				nodeObj.put("engineName", subEngineNameSet);
-				HashMap<String, String> engineToSubPhysicalMap = new HashMap<String, String>();
-				for (String engine : subEngineNameSet) {
-					String physicalUri = tink.getPhysicalUriForNode(sub, engine);
-					String engineDisplay = null;
-					if(physicalUri.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
-						String trimUri = physicalUri.replace("http://semoss.org/ontologies/Relation/Contains/", "");
-						//TODO: because of different storage between OWL for RDF and RDBMS
-						if(trimUri.contains("/")) {
-							engineDisplay = trimUri.substring(0, trimUri.indexOf("/"));
-						} else {
-							engineDisplay = trimUri;
-						}
-					} else {
-						engineDisplay = Utility.getInstanceName(physicalUri);
-					}
-					engineToSubPhysicalMap.put(engine, engineDisplay);
-				}
-				nodeObj.put("engineToPhysical", engineToSubPhysicalMap);
-				if(props.containsKey(sub)){
-					nodeObj.put("prop", props.get(sub));
-				}
-				nodesHash.put(sub, nodeObj);
-
-				Set<String> objs = edgeHash.get(sub);
-				for(String obj : objs){
-					Map<String, Object> nodeObj2 = new HashMap<String, Object>();
-					//						nodeObj2.put("uri", obj);
-					Set<String> objEngineNameSet = tink.getEnginesForUniqueName(obj);
-					// this is for the FE s.t. it doesn't break when no engines are sent back
-					if(objEngineNameSet == null || objEngineNameSet.isEmpty()) {
-						objEngineNameSet = new HashSet<String>();
-						objEngineNameSet.add(Constants.LOCAL_MASTER_DB_NAME);
-					}
-					nodeObj2.put("engineName", objEngineNameSet);
-					HashMap<String, String> engineToObjPhysicalMap = new HashMap<String, String>();
-					for (String engine : objEngineNameSet) {
-						String physicalUri = tink.getPhysicalUriForNode(obj, engine);
-						String engineDisplay = null;
-						if(physicalUri.startsWith("http://semoss.org/ontologies/Relation/Contains/")) {
-							String trimUri = physicalUri.replace("http://semoss.org/ontologies/Relation/Contains/", "");
-							//TODO: because of different storage between OWL for RDF and RDBMS
-							if(trimUri.contains("/")) {
-								engineDisplay = trimUri.substring(0, trimUri.indexOf("/"));
-							} else {
-								engineDisplay = trimUri;
-							}
-						} else {
-							engineDisplay = Utility.getInstanceName(physicalUri);
-						}
-						engineToObjPhysicalMap.put(engine, engineDisplay);
-					}
-					nodeObj2.put("engineToPhysical", engineToObjPhysicalMap);
-					if(props.containsKey(obj)){
-						nodeObj2.put("prop", props.get(obj));
-					}
-					nodesHash.put(obj, nodeObj2);
-
-					Map<String, String> nodeTriples = new Hashtable<String, String>();
-					nodeTriples.put("fromNode", sub);
-					nodeTriples.put("relationshipTriple", "fake");
-					nodeTriples.put("toNode", obj);
-					triplesHash.put(triplesHash.size()+"", nodeTriples);
-				}
-			}
-		}
-		//		}
-		returnHash.put("nodes", nodesHash); // Nodes that will be used to build the metamodel in Single-View
-		returnHash.put("triples", triplesHash);
-
-		returnHash.put("insightID", this.insightId);
-
-		return returnHash;
-	}
 	
 	public void recalcDerivedColumns(){
 		// iterate from the first DMC to find where the first derived column is

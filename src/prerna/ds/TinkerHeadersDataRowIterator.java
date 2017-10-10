@@ -1,20 +1,10 @@
 package prerna.ds;
 
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.rdf.HeadersDataRow;
-import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.om.HeadersDataRow;
 
 public class TinkerHeadersDataRowIterator implements Iterator<IHeadersDataRow> {
 	private TinkerIterator baseIterator;
@@ -37,7 +27,7 @@ public class TinkerHeadersDataRowIterator implements Iterator<IHeadersDataRow> {
 		if (hasNext()) {
 			Object[] values = baseIterator.next();
 			String[] headers = baseIterator.getHeaders();
-			HeadersDataRow nextData = new HeadersDataRow(headers, values, values);
+			HeadersDataRow nextData = new HeadersDataRow(headers, values);
 			return nextData;
 		}
 		throw new NoSuchElementException("No more elements in Array");

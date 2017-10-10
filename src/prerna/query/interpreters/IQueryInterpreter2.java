@@ -1,5 +1,9 @@
 package prerna.query.interpreters;
 
+import org.apache.log4j.Logger;
+
+import prerna.query.querystruct.QueryStruct2;
+
 public interface IQueryInterpreter2 {
 	
 	String SEARCH_COMPARATOR = "?like";
@@ -8,9 +12,9 @@ public interface IQueryInterpreter2 {
 
 	String composeQuery();
 
-	void setPerformCount(int performCount);
+	void setDistinct(boolean isDistinct);
 	
-	int isPerformCount();
+	boolean isDistinct();
 	
-	void clear();
+	void setLogger(Logger logger);
 }

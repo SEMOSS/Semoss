@@ -3,11 +3,12 @@ package prerna.sablecc2.reactor.qs;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.interpreters.QueryStruct2;
-import prerna.query.interpreters.QueryStructSelector;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.query.querystruct.IQuerySelector;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 /**
@@ -32,17 +33,17 @@ public abstract class QueryStructReactor extends AbstractReactor {
 
 	@Override
 	public Object Out() {
-		init();
 		return this.parentReactor;
 	}
 
 	@Override
 	public NounMetadata execute() {
+		init();
 		//build the query struct
 		QueryStruct2 qs = createQueryStruct();
-		setAlias(selectorAlias);
+		setAlias(qs.getSelectors(), selectorAlias);
 		//create the output and return
-		NounMetadata noun = new NounMetadata(qs, PkslDataTypes.QUERY_STRUCT);
+		NounMetadata noun = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		return noun;
 	}
 	
@@ -54,7 +55,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 	private void init() {
 		// this will happen when we have an explicit querystruct
 		// or one result piped a query struct to the current reactor
-		GenRowStruct qsInputParams = getNounStore().getNoun(PkslDataTypes.QUERY_STRUCT.toString());
+		GenRowStruct qsInputParams = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
 		if(qsInputParams != null) {
 			int numInputs = qsInputParams.size();
 			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
@@ -73,6 +74,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		
 		if(this.qs == null) {
 			this.qs = new QueryStruct2();
+			this.qs.setFrame((ITableDataFrame) this.insight.getDataMaker());
 		}
 	}
 	
@@ -85,17 +87,28 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		}
 	}
 	
-	private void setAlias(String[] selectorAlias2) {
+	protected static void setAlias(List<IQuerySelector> selectors, String[] selectorAlias) {
 		/*
 		 * Since multiple select reactors can each have an alias
 		 * we need to go back and add alias to the last selectors that were added
 		 * based on the index of the alias we are adding
 		 */
 		if(selectorAlias != null) {
-			List<QueryStructSelector> selectors = this.qs.selectors;
 			int numSelectors = selectors.size();
 			int numAlias = selectorAlias.length;
-			int startingPoint = numSelectors-numAlias;
+			int startingPoint = 0;
+			if(numAlias != numSelectors) {
+				// assume user is defining alias from left to right
+				// but got lazy half way through
+				// we we will set the numSelectors to be the number of aliases provided
+				if(numSelectors > numAlias) {
+					numSelectors = numAlias;
+				} else {
+					// this is awkward
+					// you have more aliases than selectors
+					// not sure why
+				}
+			}
 			int counter = 0;
 			for(int i = startingPoint; i < numSelectors; i++) {
 				selectors.get(i).setAlias(selectorAlias[counter]);
@@ -113,7 +126,7 @@ public abstract class QueryStructReactor extends AbstractReactor {
 		// and since out is called prior to update the planner
 		// the qs cannot be null
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.qs, PkslDataTypes.QUERY_STRUCT);
+		NounMetadata output = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
 		outputs.add(output);
 		return outputs;
 	}

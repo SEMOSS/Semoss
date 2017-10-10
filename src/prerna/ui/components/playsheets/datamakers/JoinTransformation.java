@@ -19,10 +19,10 @@ import com.google.gson.reflect.TypeToken;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.engine.api.IEngine;
+import prerna.ds.h2.H2Frame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.om.GraphDataModel;
-import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.query.querystruct.QueryStruct2;
 
 public class JoinTransformation extends AbstractTransformation {
 
@@ -77,47 +77,54 @@ public class JoinTransformation extends AbstractTransformation {
 	public void runMethod() {
 		// if its a graph data model, there is no joining necessary
 		// the process will always be that we continue to add to the gdm
-		if(dm instanceof GraphDataModel){
+		if (dm instanceof GraphDataModel) {
 			((GraphDataModel) dm).setOverlay(true);
 			return;
 		}
 
-		//the run method will either append to the component to limit the construction of the new component
-		//otherwise, it will perform the actual joining between two components
-		if(!preTransformation) {
+		// the run method will either append to the component to limit the
+		// construction of the new component
+		// otherwise, it will perform the actual joining between two components
+		if (!preTransformation) {
 			// need to get the added columns
 			processPostTransformation();
 		} else {
 			this.prevHeaders = Arrays.asList(((ITableDataFrame) dm).getColumnHeaders());
 			// if the table is currently empty, there is nothing to optimize on
-			if(this.prevHeaders.isEmpty()) {
+			if (this.prevHeaders.isEmpty()) {
 				return;
 			}
 			QueryStruct qs = dmc.getQueryStruct();
-			
-			//if stringmap already contains the filters, then it is a hard filter
-			//otherwise, add based on what is currently in the tree
-			if(qs != null && !qs.hasFiltered(props.get(COLUMN_TWO_KEY) + "")) {
-				Iterator<Object> rowIt = ((ITableDataFrame) dm).uniqueValueIterator((String) props.get(COLUMN_ONE_KEY), false);
-				List<Object> uris = new Vector<Object>();
-				while(rowIt.hasNext()){
-					uris.add("\""+rowIt.next() + "\"");
+
+			// if stringmap already contains the filters, then it is a hard filter
+			// otherwise, add based on what is currently in the tree
+			if (qs != null && !qs.hasFiltered(props.get(COLUMN_TWO_KEY) + "")) {
+				QueryStruct2 qs2 = new QueryStruct2();
+				Iterator<IHeadersDataRow> rowIt = null;
+				if (dm instanceof H2Frame) {
+					qs2.addSelector(((ITableDataFrame) dm).getTableName(), props.get(COLUMN_TWO_KEY).toString());
+					rowIt = ((ITableDataFrame) dm).query(qs2);
+				} else {
+					// tinker
+					qs2.addSelector(props.get(COLUMN_TWO_KEY).toString(), QueryStruct.PRIM_KEY_PLACEHOLDER);
+					rowIt = ((ITableDataFrame) dm).query(qs2);
 				}
-				
-//				IEngine engine = dmc.getEngine();
-//				String columnTwo = props.get(COLUMN_TWO_KEY).toString();
-//				String columnTwoLogical = Utility.getInstanceName(engine.getTransformedNodeName(Constants.CONCEPT_URI+columnTwo, true));
-//				qs.addFilter(columnTwoLogical, "=", uris );
-				
+
+				List<Object> uris = new Vector<Object>();
+				while (rowIt.hasNext()) {
+					uris.add("\"" + rowIt.next() + "\"");
+				}
+
 				String columnTwo = props.get(COLUMN_TWO_KEY).toString();
-				qs.addFilter(columnTwo, "=", uris );
-			} 
+				qs.addFilter(columnTwo, "=", uris);
+			}
 
 			// add the join as a post transformation
 			dmc.getPostTrans().add(0, this);
 			preTransformation = false;
 		}
-	}
+  }
+
 	
 	private void processPostTransformation(){
 		String[] allCols = ((ITableDataFrame) dm).getColumnHeaders();

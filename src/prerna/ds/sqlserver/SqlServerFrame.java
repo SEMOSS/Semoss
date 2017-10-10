@@ -50,6 +50,6 @@ public class SqlServerFrame extends H2Frame {
 		}
 		
 		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
-		this.mergeEdgeHash(edgeHash, dataTypeMap);
+//		this.mergeEdgeHash(edgeHash, dataTypeMap);
 	}
 }

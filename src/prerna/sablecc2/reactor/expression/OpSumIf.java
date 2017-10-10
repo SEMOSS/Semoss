@@ -6,7 +6,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class OpSumIf extends OpBasic {
 	
@@ -44,8 +44,8 @@ public class OpSumIf extends OpBasic {
 		BigDecimal sum = new BigDecimal(0);
 		
 		// first, lets get the criteria type
-		PkslDataTypes criteriaType = this.curRow.getMeta(1);
-		if(criteriaType == PkslDataTypes.CONST_STRING) {
+		PixelDataType criteriaType = this.curRow.getMeta(1);
+		if(criteriaType == PixelDataType.CONST_STRING) {
 			LOGGER.debug("Sumif evaluating for string input");
 			
 			// so this is a string input
@@ -125,7 +125,7 @@ public class OpSumIf extends OpBasic {
 					}
 				}
 			}
-		} else if(criteriaType == PkslDataTypes.CONST_INT || criteriaType == PkslDataTypes.CONST_DECIMAL) {
+		} else if(criteriaType == PixelDataType.CONST_INT || criteriaType == PixelDataType.CONST_DECIMAL) {
 			LOGGER.debug("Sumif evaluating for exact number");
 			
 			double criteriaDouble = ((Number) criteriaVal).doubleValue();
@@ -146,11 +146,11 @@ public class OpSumIf extends OpBasic {
 		NounMetadata retNoun = null;
 		double result = sum.doubleValue();
 		if(result == Math.rint(result)) {
-			retNoun = new NounMetadata((int) result, PkslDataTypes.CONST_INT);
+			retNoun = new NounMetadata((int) result, PixelDataType.CONST_INT);
 		} else {
 			// not a valid integer
 			// return as a double
-			retNoun = new NounMetadata(result, PkslDataTypes.CONST_DECIMAL);
+			retNoun = new NounMetadata(result, PixelDataType.CONST_DECIMAL);
 		}
 		
 		return retNoun;

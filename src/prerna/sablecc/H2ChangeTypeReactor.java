@@ -5,7 +5,6 @@ import java.util.List;
 
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.util.Utility;
 
 public class H2ChangeTypeReactor extends DataframeChangeTypeReactor {
 
@@ -18,13 +17,14 @@ public class H2ChangeTypeReactor extends DataframeChangeTypeReactor {
 	@Override
 	public Iterator process() {
 		H2Frame frame = (H2Frame) myStore.get("G");
+		String tableName = frame.getTableName();
 		
 		// column name and new type are passed in the pkql
 		this.columnName = ((List<String>) myStore.get(PKQLEnum.COL_DEF)).get(0);
 		this.newType = (String) myStore.get(PKQLEnum.WORD_OR_NUM);
 		// get the old type from the frame
-		this.oldType = Utility.convertDataTypeToString(frame.getDataType(this.columnName));
-		frame.changeDataType(columnName, newType);
+		this.oldType = frame.getMetaData().getHeaderTypeAsString(tableName + "__" + this.columnName, tableName);
+		frame.getMetaData().modifyDataTypeToProperty(tableName + "__" + this.columnName, tableName, this.newType);
 		
 		myStore.put("STATUS", STATUS.SUCCESS);
 		return null;

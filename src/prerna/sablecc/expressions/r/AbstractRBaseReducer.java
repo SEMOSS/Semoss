@@ -80,7 +80,7 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 			Vector<String> columns = (Vector<String>) myStore.get(PKQLEnum.COL_DEF);
 			
 			for(String col : columns) {
-				RColumnSelector cSelector = new RColumnSelector(col);
+				RColumnSelector cSelector = new RColumnSelector(rDataTable, col);
 				this.builder.addSelector(cSelector);
 			}
 			
@@ -116,11 +116,13 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 	 * @return
 	 */
 	private boolean addGroupBys(RExpressionBuilder builder) {
+		RDataTable rDataTable = (RDataTable) myStore.get("G");
+
 		boolean hasGroups = false;
 		Vector<String> groupBys = (Vector <String>) myStore.get(PKQLEnum.COL_CSV);
 		if(groupBys != null) {
 			for(String groupBy : groupBys) {
-				RColumnSelector gSelector = new RColumnSelector(groupBy);
+				RColumnSelector gSelector = new RColumnSelector(rDataTable, groupBy);
 				builder.addGroupBy(gSelector);
 				hasGroups = true;
 			}
