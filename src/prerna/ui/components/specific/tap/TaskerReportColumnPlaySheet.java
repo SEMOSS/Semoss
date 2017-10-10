@@ -54,7 +54,7 @@ public class TaskerReportColumnPlaySheet extends BrowserPlaySheet{
 	{
 		Hashtable allHash = new Hashtable();
 		//assume only one return
-		Object[] listElement = dataFrame.iterator().next();
+		Object[] listElement = dataFrame.iterator().next().getValues();
 		String serviceName = (String) listElement[0];
 		//assume three numbers to report
 		

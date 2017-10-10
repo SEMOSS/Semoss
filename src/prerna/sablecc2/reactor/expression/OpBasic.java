@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.expression;
 import java.util.List;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public abstract class OpBasic extends OpReactor {
 
@@ -41,13 +41,13 @@ public abstract class OpBasic extends OpReactor {
 	
 	protected Object evaluateNoun(NounMetadata val) {
 		Object obj;
-		PkslDataTypes valType = val.getNounType();
-		if(valType == PkslDataTypes.CONST_DECIMAL) {
+		PixelDataType valType = val.getNounType();
+		if(valType == PixelDataType.CONST_DECIMAL) {
 			this.allIntValue = false;
 			obj = ((Number) val.getValue()).doubleValue();
-		} else if(valType == PkslDataTypes.CONST_INT) {
+		} else if(valType == PixelDataType.CONST_INT) {
 			obj = ((Number) val.getValue()).intValue(); 
-		} else if(valType == PkslDataTypes.VECTOR) {
+		} else if(valType == PixelDataType.VECTOR) {
 			List<NounMetadata> nouns = (List<NounMetadata>)val.getValue();
 			Object[] objArray = new Object[nouns.size()];
 			for(int i = 0; i < nouns.size(); i++) {

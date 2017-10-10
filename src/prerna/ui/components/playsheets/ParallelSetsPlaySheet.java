@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -77,11 +78,11 @@ public class ParallelSetsPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{	
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			String colName;
 			Double value;
 			for (int j = 0; j < seriesIndices.length; j++) 

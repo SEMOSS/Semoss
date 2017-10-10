@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
@@ -99,11 +100,11 @@ public class HealthGridSheet extends BrowserPlaySheet{
 
 		double maxXAxis = 0.0;
 
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		int counter = 0;
 		while(it.hasNext()) {
 			Hashtable<String,Object> elementHash = new Hashtable<String,Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			
 			elementHash.put("label", listElement[0]);//system
 			elementHash.put("x", listElement[1]);//xvalue business value
@@ -115,6 +116,14 @@ public class HealthGridSheet extends BrowserPlaySheet{
 			elementHash.put("series", (listElement[7]).toString().replaceAll("\"", ""));//lifecycle
 			allData.add(elementHash);
 
+			if(listElement[1] instanceof String) {
+				try {
+					listElement[1] = Double.parseDouble(listElement[1].toString());
+				} catch(NumberFormatException e) {
+					listElement[1] = 0.0;
+				}
+			}
+			
 			if((Double)listElement[1]>maxXAxis)
 				maxXAxis=(Double)listElement[1];
 			

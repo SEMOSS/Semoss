@@ -226,4 +226,18 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 		}
 	}
 
+	@Override
+	public void cleanUp() {
+		try {
+			this.rs.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		try {
+			this.stmt.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
 }

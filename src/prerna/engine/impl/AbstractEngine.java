@@ -33,8 +33,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Clob;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -47,6 +53,7 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.ds.QueryStruct;
@@ -62,11 +69,14 @@ import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSParam;
 import prerna.om.SEMOSSVertex;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.SparqlInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
+import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -178,7 +188,9 @@ public abstract class AbstractEngine implements IEngine {
 					prop.put(Constants.USERNAME, insightUsername);
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
-				} 
+				}
+				// update explore an instance query!!!
+				updateExploreInstanceQuery(insightRDBMS);
 //				else { // RDBMS Question engine has not been made. Must do conversion
 //					// set the necessary fun stuff
 //					createInsights(baseFolder);
@@ -269,7 +281,101 @@ public abstract class AbstractEngine implements IEngine {
 //			converter.updateSMSSFile();
 //		}
 //	}
+
+	@Deprecated
+	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
+		boolean tableExists = false;
+		ResultSet rs = null;
+		try {
+			rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
+			if (rs.next()) {
+				  tableExists = true;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if(tableExists) {
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":[ { \"query\": \"CreateFrame(grid).as([\\\"FRAME100010\\\"]); "
+					+ "Database(" + this.engineName + ") | Select(<concept>) | Import(); Panel(<SMSS_PANEL_ID>) | SetPanelView(\\\"visualization\\\"); "
+					+ "SetFrameFilter((FRAME100010__<concept> == [<instance>])); Select(FRAME100010__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | "
+					+ "Format(type=['graph'], options=[{\\\"connections\\\": \\\"FRAME100010__<concept>.FRAME100010__<concept>\\\"}]) | "
+					+ "TaskOptions({\\\"<SMSS_PANEL_ID>\\\":{\\\"layout\\\": \\\"Graph\\\", \\\"alignment\\\": {\\\"start\\\": [\\\"<concept>\\\"], "
+					+ "\\\"end\\\":[\\\"<concept>\\\"]}}}) | Collect(500);\", \"label\":\"Explore an instance\", \"description\":\"Explore instances of a selected concept\", "
+					+ "\"params\":[ { \"paramName\":\"concept\", \"required\":true, \"view\":{ \"displayType\":\"dropdown\", \"label\":\"Select a Concept\", "
+					+ "\"description\":\"Select a concept that you will explore\" }, \"model\":{ \"query\":\"GetDatabaseConcepts(engine=[\\\"" + this.engineName + "\\\"]);\", \"dependsOn\":[] } }, "
+					+ "{ \"paramName\":\"instance\", \"required\":true, \"view\":{ \"displayType\":\"checklist\", \"label\":\"Select an Instance\", "
+					+ "\"description\":\"Select an instance to explore\" }, \"model\":{ \"query\": \"Database(" + this.engineName + ") | "
+					+ "Select(<concept>) | Collect(50);\", \"dependsOn\":[ \"concept\" ] } } ], \"execute\":\"button\" } ]} </encode>\" ) ;";	
+			
+			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
+			IRawSelectWrapper it = null;
+			try {
+				it = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an instance of a selected node type'");
+				if(it.hasNext()) {
+					InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
+					// drop the old insight
+					String oldId = it.next().getValues()[0].toString();
+					admin.dropInsight(oldId);
+					try {
+						List<String> rList = new Vector<String>();
+						rList.add(this.engineName + "_" + oldId);
+						SolrIndexEngine.getInstance().removeInsight(rList);
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+							| IOException e1) {
+						e1.printStackTrace();
+					}
+					// add the new insight
+					String insightIdToSave = admin.addInsight("Explore an Instance(s) of a Selected Node", "Graph", new String[]{newPixel});
+					
+					Map<String, Object> solrInsights = new HashMap<>();
+					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
+					Date date = new Date();
+					String currDate = dateFormat.format(date);
+					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an Instance(s) of a Selected Node");
+					solrInsights.put(SolrIndexEngine.TAGS, "Explore");
+					solrInsights.put(SolrIndexEngine.LAYOUT, "Graph");
+					solrInsights.put(SolrIndexEngine.CREATED_ON, currDate);
+					solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
+					solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
+					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
+					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, Integer.parseInt(insightIdToSave));
+					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
 	
+					// TODO: figure out which engines are used within this insight
+					solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
+					solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
+	
+					// the image will be updated in a later thread
+					// for now, just send in an empty string
+					// save image url to recreate image later
+					solrInsights.put(SolrIndexEngine.IMAGE, "");
+					solrInsights.put(SolrIndexEngine.IMAGE_URL, "");
+					try {
+						SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+							| IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+			} catch(Exception e) {
+				// if we have a db that doesn't actually have this table (forms, local master, etc.)
+			} finally {
+				if(it != null) {
+					it.cleanUp();
+				}
+			}
+		}
+	}
+
 	private void updateToPKQLInsights() {
 		InsightsConverter2 converter = new InsightsConverter2(this);
 		try {
@@ -546,10 +652,16 @@ public abstract class AbstractEngine implements IEngine {
 		return owlHelper.getOWLDefinition();
 	}
 
+	@Override
 	public IQueryInterpreter getQueryInterpreter(){
 		return new SPARQLInterpreter(this);
 	}
 
+	@Override
+	public IQueryInterpreter2 getQueryInterpreter2(){
+		return new SparqlInterpreter2(this);
+	}
+	
 	/**
 	 * Commits the base data engine
 	 */
@@ -841,12 +953,20 @@ public abstract class AbstractEngine implements IEngine {
 
 	@Override
 	public Vector<String> getPerspectives() {
-		return Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRDBMS, false);
+		Vector<String> perspectives = Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRDBMS, false);
+		if(perspectives.contains("")){
+			int index = perspectives.indexOf("");
+			perspectives.set(index, "Semoss-Base-Perspective");
+		}
+		return perspectives;
 	}
 
 	@Override
 	public Vector<String> getInsights(String perspective) {
 		String insightsInPerspective = null;
+		if(perspective.equals("Semoss-Base-Perspective")) {
+			perspective = null;
+		}
 		if(perspective != null && !perspective.isEmpty()) {
 			insightsInPerspective = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE = '" + perspective + "' ORDER BY QUESTION_ORDER";
 		} else {
@@ -1124,13 +1244,13 @@ public abstract class AbstractEngine implements IEngine {
 				String layout = values[4] + "";
 				String dataTableAlign = values[6] + "";
 				String dataMakerName = values[7] + "";
-				Object[] pksl = (Object[]) values[8];
+				Object[] pixel = (Object[]) values[8];
 				
 				String perspective = values[3] + "";
 				String order = values[5] + "";
 				
 				Insight in = null;
-				if(pksl == null || pksl.length == 0) {
+				if(pixel == null || pixel.length == 0) {
 					in = new OldInsight(this, dataMakerName, layout);
 					in.setRdbmsId(rdbmsId);
 					in.setInsightName(insightName);
@@ -1144,11 +1264,11 @@ public abstract class AbstractEngine implements IEngine {
 				} else {
 					in = new Insight(this.engineName, rdbmsId);
 					in.setInsightName(insightName);
-					List<String> pkslList = new Vector<String>();
-					for(int i = 0; i < pksl.length; i++) {
-						pkslList.add(pksl[i].toString().trim());
+					List<String> pixelList = new Vector<String>();
+					for(int i = 0; i < pixel.length; i++) {
+						pixelList.add(pixel[i].toString().trim());
 					}
-					in.setPkslRecipe(pkslList);
+					in.setPixelRecipe(pixelList);
 					// I need this for dashboard
 					in.setOutput(layout);
 				}

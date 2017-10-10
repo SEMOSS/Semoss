@@ -28,11 +28,11 @@ public class SqlExpressionBuilder extends AbstractExpressionBuilder {
 		builder.append("SELECT DISTINCT ").append(this.selectors.toString()).append(" FROM ");
 		
 		// determine if querying view or table
-		if(frame.isJoined()) {
-			builder.append(frame.getViewTableName());
-		} else {
+//		if(frame.isJoined()) {
+//			builder.append(frame.getViewTableName());
+//		} else {
 			builder.append(frame.getTableName());
-		}
+//		}
 		
 		// add filters
 		String filters = frame.getSqlFilter();

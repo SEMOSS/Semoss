@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.expression;
 import java.util.List;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.JavaExecutable;
 
 public class OpAnd extends OpBasic {
@@ -11,7 +11,7 @@ public class OpAnd extends OpBasic {
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
 		boolean result = eval(values);
-		return new NounMetadata(result, PkslDataTypes.BOOLEAN);
+		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
 	
 	public static boolean eval(Object...values) {
@@ -55,7 +55,7 @@ public class OpAnd extends OpBasic {
 			if(nextInput instanceof JavaExecutable) {
 				nextArgument = ((JavaExecutable)nextInput).getJavaSignature();
 			} else {
-				if(nextNoun.getNounType() == PkslDataTypes.CONST_STRING) {
+				if(nextNoun.getNounType() == PixelDataType.CONST_STRING) {
 					nextArgument = "\""+nextInput.toString() +"\"";
 				} else {
 					nextArgument = nextInput.toString();

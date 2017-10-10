@@ -33,6 +33,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -63,13 +64,13 @@ public class SankeyPlaySheet extends BrowserPlaySheet {
 		String[] var = this.dataFrame.getColumnHeaders(); //wrapper.getVariables();
 		int value = 1;
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext()) {
 			LinkedHashMap<String, Object> elementLinks = new LinkedHashMap<String, Object>();
 			LinkedHashMap<String, Object> elementSource = new LinkedHashMap<String, Object>();
 			LinkedHashMap<String, Object> elementTarget = new LinkedHashMap<String, Object>();
 			
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			elementLinks.put("source", listElement[0]);
 			elementLinks.put("target", listElement[1]);
 			elementSource.put("name", listElement[0]);

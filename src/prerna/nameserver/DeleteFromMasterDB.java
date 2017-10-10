@@ -28,22 +28,8 @@
 package prerna.nameserver;
 
 import java.sql.Connection;
-import java.util.List;
-import java.util.Vector;
 
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.sail.SailException;
-
-import com.hp.hpl.jena.vocabulary.RDFS;
-
-import cern.colt.Arrays;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -66,24 +52,27 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 		System.err.println("Removing engine from Local Master " + engineName);
 		try
 		{
-			IEngine engine = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-			Connection conn = ((RDBMSNativeEngine)engine).makeConnection();
-			// need to do the check for the first time if it is so.. 
-			// concept, engineconcept, relation, enginerelation, kvstore
+			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+			Connection conn = engine.makeConnection();
+			if( ((RDBMSNativeEngine)engine).getTableCount() >= 7)
+			{
+				
 				String relationDelete = "delete from enginerelation where engine in (select id from engine where enginename='" + engineName +"')";
 				String conceptDelete = "delete from engineconcept where engine in (select id from engine where enginename='" + engineName +"')";
 				String engineDelete = "delete from engine where enginename='" + engineName +"'";
 				String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
 				
-				if(( (RDBMSNativeEngine)engine).isTablePresent("enginerelation"))
-					conn.createStatement().execute(relationDelete);
-				if(( (RDBMSNativeEngine)engine).isTablePresent("engineconcept"))
-					conn.createStatement().execute(conceptDelete);
-				if(( (RDBMSNativeEngine)engine).isTablePresent("engine"))
-					conn.createStatement().execute(engineDelete);
-				if(( (RDBMSNativeEngine)engine).isTablePresent("kvstore"))
-					conn.createStatement().execute(kvDelete);
-
+				conn.createStatement().execute(relationDelete);
+				conn.createStatement().execute(conceptDelete);
+				conn.createStatement().execute(engineDelete);
+				conn.createStatement().execute(kvDelete);
+				
+				//TODO:
+				// PK -> I am putting this here as a fix for this so
+				// when we load a new db with this same name in the future
+				// it is good
+				engine.conceptIdHash = null;
+			}			
 		}catch(Exception ex)
 		{
 			ex.printStackTrace();

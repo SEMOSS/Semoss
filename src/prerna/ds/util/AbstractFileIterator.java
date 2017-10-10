@@ -1,17 +1,20 @@
 package prerna.ds.util;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Vector;
 
+import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
+import prerna.query.querystruct.GenRowFilters;
+import prerna.sablecc2.om.NounMetadata;
 import prerna.util.Utility;
 
-public abstract class AbstractFileIterator implements IFileIterator{
+public abstract class AbstractFileIterator implements IFileIterator {
 
 	/*
 	 * Trying to hold a common interface between loading via csv file
@@ -28,7 +31,7 @@ public abstract class AbstractFileIterator implements IFileIterator{
 	protected String[] types;
 	protected String[] nextRow;
 	
-	protected Map<String, Set<Object>> filters;
+	protected GenRowFilters filters;
 	protected Map<String, String> dataTypeMap;
 	protected Map<String, String> newHeaders;
 	protected int numRecords = -1;
@@ -146,17 +149,152 @@ public abstract class AbstractFileIterator implements IFileIterator{
 		return this.fileLocation;
 	}
 	
-	protected void setFilters(Map<String, Map<String, List>> andfilters) {
-		filters = new Hashtable<String, Set<Object>>();
-		for(String column : andfilters.keySet()) {
-			Map<String, List> filterValues = andfilters.get(column);
-			Set<Object> values = new HashSet<>();
-			for(String comparator : filterValues.keySet()) {
-				List vals = filterValues.get(comparator);
-				values.addAll(vals);
-			}
-			
-			this.filters.put(column, values);
+	protected void setFilters(GenRowFilters genRowFilters) {
+		filters = genRowFilters;
+		
+	}
+	
+	protected boolean filterColToValues(NounMetadata leftComp, NounMetadata rightComp, String[] row, String comparator, int rowIndex) {
+		List<Object> objects = new Vector<Object>();
+		// the filtered values will either come in as a list or a single object,
+		// convert everything to list
+		if (rightComp.getValue() instanceof List) {
+			objects.addAll((List) rightComp.getValue());
+		} else {
+			objects.add(rightComp.getValue());
 		}
+
+		boolean isValid = true;
+		String leftValue = leftComp.getValue().toString();
+		// get the data type of the filter (String, Number, or Date)
+		DATA_TYPES valType = IMetaData.convertToDataTypeEnum(dataTypeMap.get(headers[rowIndex]));
+		// Compare csv String row
+		Vector<String> stringVals = new Vector<String>();
+
+		// convert all filtered values to string to compare to csv values (which
+		// are all strings)
+		for (Object val : objects) {
+			stringVals.add(val.toString());
+		}
+		if (comparator.equals("==") || comparator.equals("=")) {
+
+			// equals case, see if the row value at the column index is
+			// contained in the list of filtered values
+			if (Utility.convertStringToDataType(this.dataTypeMap.get(leftValue)) == DATA_TYPES.STRING) {
+				if (stringVals.contains(Utility.cleanString(row[rowIndex], true))) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+			} else if (stringVals.contains(row[rowIndex])) {
+				// compare for non-string types
+				isValid = isValid && true;
+			} else {
+				isValid = isValid && false;
+			}
+		} else if (comparator.equals("!=")) {
+			// not equals case
+			if (Utility.convertStringToDataType(this.dataTypeMap.get(leftValue)) == DATA_TYPES.STRING) {
+
+				if (!stringVals.contains(Utility.cleanString(row[rowIndex], true))) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+			} else if (!stringVals.contains(row[rowIndex])) {
+				isValid = isValid && true;
+			} else {
+				isValid = isValid && false;
+			}
+		} else if (comparator.equals(">")) {
+			String filterVal = stringVals.get(0);
+			if (valType.equals(IMetaData.DATA_TYPES.NUMBER)) {
+				// parse strings (row value and filter value) into doubles for comparison
+				if (Utility.getDouble(row[rowIndex]) > Utility.getDouble(filterVal)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+			} else if (valType.equals(IMetaData.DATA_TYPES.STRING)) {
+				// invalid case - can't do MB > 'Test', needs to be numeric
+				isValid = false;
+			} else if (valType.equals(IMetaData.DATA_TYPES.DATE)) {
+				// get Java dates from string and compare
+				Date filterDate = Utility.getDateAsDateObj(filterVal);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				if (rowDate.after(filterDate)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+
+			}
+
+		} else if (comparator.equals("<")) {
+			String filterVal = stringVals.get(0);
+			if (valType.equals(IMetaData.DATA_TYPES.NUMBER)) {
+				// parse strings (row value and filter value) into doubles for comparison
+				if (Utility.getDouble(row[rowIndex]) < Utility.getDouble(filterVal)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+			} else if (valType.equals(IMetaData.DATA_TYPES.STRING)) {
+				// invalid case - can't do MB > 'Test', needs to be numeric
+				isValid = false;
+			} else if (valType.equals(IMetaData.DATA_TYPES.DATE)) {
+				// get Java dates from string and compare
+				Date filterDate = Utility.getDateAsDateObj(filterVal);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				if (rowDate.before(filterDate)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+
+			}
+		} else if (comparator.equals(">=")) {
+			String filterVal = stringVals.get(0);
+			if (valType.equals(IMetaData.DATA_TYPES.NUMBER)) {
+				if (Utility.getDouble(row[rowIndex]) >= Utility.getDouble(filterVal)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+			} else if (valType.equals(IMetaData.DATA_TYPES.STRING)) {
+				isValid = false;
+			} else if (valType.equals(IMetaData.DATA_TYPES.DATE)) {
+				Date filterDate = Utility.getDateAsDateObj(filterVal);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				if (rowDate.after(filterDate) || rowDate.equals(filterDate)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+
+			}
+		} else if (comparator.equals("<=")) {
+			String filterVal = stringVals.get(0);
+			if (valType.equals(IMetaData.DATA_TYPES.NUMBER)) {
+				if (Utility.getDouble(row[rowIndex]) <= Utility.getDouble(filterVal)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+			} else if (valType.equals(IMetaData.DATA_TYPES.STRING)) {
+				isValid = false;
+			} else if (valType.equals(IMetaData.DATA_TYPES.DATE)) {
+				Date filterDate = Utility.getDateAsDateObj(filterVal);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				if (rowDate.before(filterDate) || rowDate.equals(filterDate)) {
+					isValid = isValid && true;
+				} else {
+					isValid = isValid && false;
+				}
+
+			}
+		}
+
+		return isValid;
 	}
 }

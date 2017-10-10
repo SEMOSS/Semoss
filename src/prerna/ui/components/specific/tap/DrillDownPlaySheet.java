@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -58,10 +59,10 @@ public class DrillDownPlaySheet extends BrowserPlaySheet {
 		for(int i = 1;i<var.length;i++) {
 			Hashtable<String,ArrayList<String>> elementHash = new Hashtable<String,ArrayList<String>>();
 			
-			Iterator<Object[]> it = dataFrame.iterator();
+			Iterator<IHeadersDataRow> it = dataFrame.iterator();
 			while(it.hasNext()) {
 				ArrayList<String> listElementArray = new ArrayList<String>();
-				Object[] listElement = it.next();
+				Object[] listElement = it.next().getValues();
 				if (listElement[i]== null || ((String)listElement[i]).isEmpty()) {
 					continue;
 				}

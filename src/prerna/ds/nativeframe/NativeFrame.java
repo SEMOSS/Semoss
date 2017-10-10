@@ -1,29 +1,20 @@
 package prerna.ds.nativeframe;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.QueryStruct;
-import prerna.ds.TinkerFrame;
-import prerna.ds.TinkerMetaData;
-import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.SQLInterpreter2;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.QueryAggregationEnum;
+import prerna.query.querystruct.QueryColumnSelector;
+import prerna.query.querystruct.QueryMathSelector;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -31,342 +22,125 @@ import prerna.util.Utility;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
-	private static final Logger LOGGER = LogManager.getLogger(NativeFrame.class.getName());
-	NativeFrameBuilder builder;
+	public static final String DATA_MAKER_NAME = "NativeFrame";
 
-	//use this variable to store the current view query
-//	String currentViewQuery = "";
+	private QueryStruct2 qs;
 	
 	public NativeFrame() {
-		this.metaData = new TinkerMetaData();
-		this.builder = new NativeFrameBuilder();
-	}
-
-	// added as a path to get connection url for current dataframe
-	public NativeFrameBuilder getBuilder() {
-		return this.builder;
+		super();
+		this.qs = new QueryStruct2();
 	}
 
 	public void setConnection(String engineName) {
-		this.builder.setConnection(engineName);
-	}
-
-	@Override
-	public Integer getUniqueInstanceCount(String columnHeader) {
-		return builder.getColumn(columnHeader, true).length;
+		qs.setEngineName(engineName);
 	}
 
 	@Override
 	public Double getMax(String columnHeader) {
-		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
-			return builder.getStat(columnHeader, "MAX", false);
+		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == IMetaData.DATA_TYPES.NUMBER) {
+			QueryMathSelector selector = new QueryMathSelector();
+			QueryColumnSelector innerSelector = new QueryColumnSelector();
+			String[] split = columnHeader.split("__");
+			innerSelector.setTable(split[0]);
+			innerSelector.setColumn(split[1]);
+			selector.setInnerSelector(innerSelector);
+			selector.setMath(QueryAggregationEnum.MAX);
+
+			QueryStruct2 mQs = new QueryStruct2();
+			mQs.addSelector(selector);
+			// merge the base filters
+			mQs.mergeFilters(qs.getFilters());
+			// merge the additional filters added to frame
+			mQs.mergeFilters(this.grf);
+			// merge the joins
+			mQs.mergeRelations(qs.getRelations());
+
+			Iterator<IHeadersDataRow> it = query(mQs);
+			return ((Number) it.next().getValues()[1]).doubleValue();
 		}
 		return null;
 	}
 
 	@Override
 	public Double getMin(String columnHeader) {
-		if (this.metaData.getDataType(columnHeader).equals(IMetaData.DATA_TYPES.NUMBER)) {
-			return builder.getStat(columnHeader, "MIN", false);
+		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == IMetaData.DATA_TYPES.NUMBER) {
+			QueryMathSelector selector = new QueryMathSelector();
+			QueryColumnSelector innerSelector = new QueryColumnSelector();
+			String[] split = columnHeader.split("__");
+			innerSelector.setTable(split[0]);
+			innerSelector.setColumn(split[1]);
+			selector.setInnerSelector(innerSelector);
+			selector.setMath(QueryAggregationEnum.MIN);
+
+			QueryStruct2 mQs = new QueryStruct2();
+			mQs.addSelector(selector);
+			// merge the base filters
+			mQs.mergeFilters(qs.getFilters());
+			// merge the additional filters added to frame
+			mQs.mergeFilters(this.grf);
+			// merge the joins
+			mQs.mergeRelations(qs.getRelations());
+
+			Iterator<IHeadersDataRow> it = query(mQs);
+			return ((Number) it.next().getValues()[1]).doubleValue();
 		}
 		return null;
 	}
 
 	@Override
-	public Iterator<Object[]> iterator() {
-		return this.builder.buildIterator(getSelectors());
-	}
-
-	@Override
-	public Iterator<Object[]> iterator(Map<String, Object> options) {
-		String sortBy = (String) options.get(TinkerFrame.SORT_BY);
-		String actualSortBy = null;
-
-		List<String> selectors = (List<String>) options.get(TinkerFrame.SELECTORS);
-		List<String> selectorValues = new Vector<String>();
-		for (String name : selectors) {
-			if (name.startsWith(TinkerFrame.PRIM_KEY)) {
-				continue;
-			} else {
-				if (name.equals(sortBy)) {
-					actualSortBy = name;
-				}
-				String uniqueName = name; 
-				if (uniqueName == null)
-					uniqueName = name;
-				selectorValues.add(uniqueName);
-			}
-		}
-		options.put(TinkerFrame.SELECTORS, selectorValues);
-
-		Map<Object, Object> temporalBindings = (Map<Object, Object>) options.get(TinkerFrame.TEMPORAL_BINDINGS);
-		// clean values always put into list so bifurcation in logic doesn't
-		// need to exist elsewhere
-		Map<String, List<Object>> cleanTemporalBindings = new Hashtable<String, List<Object>>();
-		if (temporalBindings != null) {
-			for (Object key : temporalBindings.keySet()) {
-				String cleanKey = key+"";
-
-				Object val = temporalBindings.get(key);
-				List<Object> cleanVal = new Vector<Object>();
-				// if passed back a list
-				if (val instanceof Collection) {
-					Collection<? extends Object> collectionVal = (Collection<? extends Object>) val;
-					for (Object valObj : collectionVal) {
-						Object cleanObj = null;
-						String strObj = valObj.toString().trim();
-						String type = Utility.findTypes(strObj)[0] + "";
-						if (type.equalsIgnoreCase("Date")) {
-							cleanObj = Utility.getDate(strObj);
-						} else if (type.equalsIgnoreCase("Double")) {
-							cleanObj = Utility.getDouble(strObj);
-						} else {
-							cleanObj = Utility.cleanString(strObj, true, true,
-									false);
-						}
-						((Vector) cleanVal).add(cleanObj);
-					}
-					cleanTemporalBindings.put(cleanKey, cleanVal);
-				} else {
-					// this means it is a single value
-					Object cleanObj = null;
-					String strObj = val.toString().trim();
-					String type = Utility.findTypes(strObj)[0] + "";
-					if (type.equalsIgnoreCase("Date")) {
-						cleanObj = Utility.getDate(strObj);
-					} else if (type.equalsIgnoreCase("Double")) {
-						cleanObj = Utility.getDouble(strObj);
-					} else {
-						cleanObj = Utility.cleanString(strObj, true, true,
-								false);
-					}
-					cleanVal.add(cleanObj);
-					cleanTemporalBindings.put(cleanKey, cleanVal);
-				}
-			}
-		}
-		options.put(TinkerFrame.TEMPORAL_BINDINGS, cleanTemporalBindings);
-
-		// if(selectors != null) {
-		// List<String> h2selectors = new ArrayList<>();
-		// for(String selector : selectors) {
-		// h2selectors.add(H2HeaderMap.get(selector));
-		// }
-		// options.put(TinkerFrame.SELECTORS, h2selectors);
-		// }
-
-		if (actualSortBy != null) {
-			options.put(TinkerFrame.SORT_BY, actualSortBy);
-		}
-		return builder.buildIterator(options);
-	}
-
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
 		return null;
-	}
-
-	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
-		return Arrays.asList(builder.getColumn(columnHeader, true)).iterator();
 	}
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
-		return null;
+		QueryStruct2 newQs = new QueryStruct2();
+		QueryColumnSelector selector = new QueryColumnSelector();
+		String[] split = columnHeader.split("__");
+		selector.setTable(split[0]);
+		selector.setColumn(split[1]);
+		newQs.addSelector(selector);
+		// merge the base filters
+		newQs.mergeFilters(qs.getFilters());
+		// merge the additional filters added to frame
+		newQs.mergeFilters(this.grf);
+		// merge the joins
+		newQs.mergeRelations(qs.getRelations());
+
+		Iterator<IHeadersDataRow> it = query(newQs);
+		List<Object> values = new Vector<Object>();
+		while(it.hasNext()) {
+			values.add(it.next().getValues()[0]);
+		}
+		return values.toArray(new Double[]{});
 	}
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		Object[] array = builder.getColumn(columnHeader, false);
-		return array;
-	}
+		QueryStruct2 newQs = new QueryStruct2();
+		QueryColumnSelector selector = new QueryColumnSelector();
+		String[] split = columnHeader.split("__");
+		selector.setTable(split[0]);
+		selector.setColumn(split[1]);
+		newQs.addSelector(selector);
+		// merge the base filters
+		newQs.mergeFilters(qs.getFilters());
+		// merge the additional filters added to frame
+		newQs.mergeFilters(this.grf);
+		// merge the joins
+		newQs.mergeRelations(qs.getRelations());
 
-	/**
-	 * String columnHeader - the column on which to filter on filterValues - the
-	 * values that will remain in the
-	 */
-	@Override
-	public void filter(String columnHeader, List<Object> filterValues) {
-		if (filterValues != null && filterValues.size() > 0) {
-			this.metaData.setFiltered(columnHeader, true);
-			builder.setFilters(columnHeader, filterValues, AbstractTableDataFrame.Comparator.EQUAL);
+		Iterator<IHeadersDataRow> it = query(newQs);
+		List<Object> values = new Vector<Object>();
+		while(it.hasNext()) {
+			values.add(it.next().getValues()[0]);
 		}
+		return values.toArray();
 	}
-	
-	@Override
-	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
-		if(columnHeader == null || filterValues == null) return;
-
-		DATA_TYPES type = this.metaData.getDataType(columnHeader);
-		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
-
-
-		String[] comparators = filterValues.keySet().toArray(new String[]{});
-		for(int i = 0; i < comparators.length; i++) {
-			String comparator = comparators[i];
-			boolean override = i == 0;
-			List<Object> filters = filterValues.get(comparator);
-
-			comparator = comparator.trim();
-			if(comparator.equals("=")) {
-
-				if(override) builder.setFilters(columnHeader, filters, comparator);
-				else builder.addFilters(columnHeader, filters, comparator);
-
-			} else if(comparator.equals("!=")) { 
-
-				if(override) builder.setFilters(columnHeader, filters, comparator);
-				else builder.addFilters(columnHeader, filters, comparator);
-
-			} else if(comparator.equals("<")) {
-
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-
-			} else if(comparator.equals(">")) {
-
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-
-			} else if(comparator.equals("<=")) {
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-			} else if(comparator.equals(">=")) {
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-			} else {
-				// comparator not recognized...do equal by default? or do
-				// nothing? or throw error?
-			}
-			this.metaData.setFiltered(columnHeader, true);
-		}
-	}
-
-	@Override
-	public void unfilter(String columnHeader) {
-		this.metaData.setFiltered(columnHeader, false);
-		builder.removeFilter(columnHeader);
-	}
-
-	@Override
-	public void unfilter() {
-		builder.clearFilters();
-	}
-
-	@Override
-	public Object[] getFilterModel() {
-		List<String> selectors = this.getSelectors();
-		int length = selectors.size();
-		Map<String, List<Object>> filteredValues = new HashMap<String, List<Object>>(length);
-		Map<String, List<Object>> visibleValues = new HashMap<String, List<Object>>(length);
-		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>(length);
-		Iterator<Object[]> iterator = this.iterator();
-
-		// put instances into sets to remove duplicates
-		Set<Object>[] columnSets = new HashSet[length];
-		for (int i = 0; i < length; i++) {
-			columnSets[i] = new HashSet<Object>();
-		}
-		while (iterator.hasNext()) {
-			Object[] nextRow = iterator.next();
-			for (int i = 0; i < length; i++) {
-				columnSets[i].add(nextRow[i]);
-			}
-		}
-
-		//TODO: is this the same as filteredValues object?
-		Map<String, List<Object>> h2filteredValues = builder.getFilteredValues(getSelectors());
-
-		for (int i = 0; i < length; i++) {
-			// get filtered values
-			String h2key = selectors.get(i);//H2Builder.cleanHeader(selectors.get(i));
-			List<Object> values = h2filteredValues.get(h2key);
-			if (values != null) {
-				filteredValues.put(selectors.get(i), values);
-			} else {
-			filteredValues.put(selectors.get(i), new ArrayList<Object>());
-			}
-
-			// get unfiltered values
-			ArrayList<Object> unfilteredList = new ArrayList<Object>(columnSets[i]);
-			visibleValues.put(selectors.get(i), unfilteredList);
-
-			// store data type for header
-			// get min and max values for numerical columns
-			// TODO: need to include date type
-			if(this.metaData.getDataType(selectors.get(i)) == IMetaData.DATA_TYPES.NUMBER) {
-				Map<String, Double> minMax = new HashMap<String, Double>();
-
-				// sort unfiltered array to pull relative min and max of unfiltered data
-				Object[] unfilteredArray = unfilteredList.toArray();
-				Arrays.sort(unfilteredArray);
-				double absMin = getMin(selectors.get(i));
-				double absMax = getMax(selectors.get(i));
-				if(!unfilteredList.isEmpty()) {
-					minMax.put("min", (Double)unfilteredArray[0]);
-					minMax.put("max", (Double)unfilteredArray[unfilteredArray.length-1]);
-				}
-				minMax.put("absMin", absMin);
-				minMax.put("absMax", absMax);
-
-				// calculate how large each step in the slider should be
-				double difference = absMax - absMin;
-				double step = 1;
-				if(difference < 1) {
-					double tenthPower = Math.floor(Math.log10(difference));
-					if(tenthPower < 0) {
-						// ex. if difference is 0.009, step should be 0.001
-						step = Math.pow(10, tenthPower);
-					} else {
-						step = 0.1;
-					}
-				}
-				minMax.put("step", step);
-
-				minMaxValues.put(selectors.get(i), minMax);
-			}
-		}
-
-		return new Object[] { visibleValues, filteredValues, minMaxValues };
-	}
-
 
 	@Override
 	public String getDataMakerName() {
-		return "NativeFrame";
+		return DATA_MAKER_NAME;
 	}
 
 	@Override
@@ -390,76 +164,44 @@ public class NativeFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
 		
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.NativeApiReactor");
-//		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-//		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-//		reactorNames.put(PKQLEnum.R_API, "prerna.sablecc.RApiReactor");
-		
 		return reactorNames;
 	}
 	
-//	public void createView(String selectQuery) {
-//		selectQuery = selectQuery.trim().toUpperCase();
-//		if(selectQuery == null || !selectQuery.startsWith("SELECT")) {
-//			throw new IllegalArgumentException("Query must be a 'SELECT' query");
-//		}
-//		
-////		this.currentViewQuery = selectQuery;
-//		String partialSelect = selectQuery.substring(selectQuery.indexOf(" FROM ")+6, selectQuery.length());
-////		builder.setView(partialSelect);
-//		
-////		String viewTable = this.builder.getNewTableName();
-////		selectQuery = "("+selectQuery+")";
-//////		selectQuery = "CREATE OR REPLACE VIEW "+viewTable+" AS "+selectQuery;
-////		selectQuery = "CREATE TEMPORARY TABLE "+viewTable+" AS "+selectQuery;
-////		try {
-////			builder.runExternalQuery(selectQuery);
-////			builder.setView(viewTable);
-////		} catch (Exception e) {
-////			e.printStackTrace();
-////		}
-//	}
-	
-	public void mergeQueryStruct(QueryStruct qs) {
-		this.builder.mergeQueryStruct(qs);
-	}
-	
-	//doing the case for inner joins only
-	public void mergeQueryStructAndFilters(QueryStruct qs) {
-		this.builder.mergeDBFilters(qs.andfilters);
+	public void mergeQueryStruct(QueryStruct2 qs) {
+		this.qs.merge(qs);
 	}
 	
 	public String getEngineName() {
-		return builder.getEngineName();
+		return qs.getEngineName();
+	}
+	
+	public QueryStruct2 getQueryStruct() {
+		return this.qs;
 	}
 	
 	@Override
 	public boolean isEmpty() {
-		if(getSelectors().isEmpty()) {
-			return true;
-		} else {
-			return super.isEmpty();
-		}
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(this.qs.getEngineName()), this.qs);
+		return iterator.hasNext();
 	}
 	
 	@Override
-	public IQueryInterpreter2 getInterpreter() {
-		return new SQLInterpreter2();
+	public Iterator<IHeadersDataRow> query(String query) {
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(this.qs.getEngineName()), query);
+		return iterator;
+	}
+
+	@Override
+	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+		// we need to merge the hard filters that were added onto the frame
+		qs.mergeFilters(this.qs.getFilters());
+		qs.mergeRelations(this.qs.getRelations());
+		qs.mergeGroupBy(this.qs.getGroupBy());
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(this.qs.getEngineName()), qs);
+		return iterator;
 	}
 	
-//	public String getView() {
-//		return builder.getView();
-//	}
-	
-//	public void close() {
-//		try {
-////			this.builder.dropView();
-//			this.builder.getConnection().close();
-//		} catch (SQLException e) {
-//			e.printStackTrace();
-//		}
-//	}
-	
-	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE FOR NOW *************************************************/
+	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
 	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
@@ -471,32 +213,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow) {
-	}
-
-	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
-	}
-
-	@Override
-	public Map<String, Object[]> getFilterTransformationValues() {
-		return null;
-	}
-
-	@Override
 	public void removeColumn(String columnHeader) {
 	}
 	
 	@Override
-	public void addRow(Object[] rowCleanData) {
-	}
-
-	@Override
 	public void addRow(Object[] cleanCells, String[] headers) {
-	}
-
-	@Override
-	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
 	}
 
 	@Override

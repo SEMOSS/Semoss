@@ -37,6 +37,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -103,12 +104,12 @@ public class CONUSMapPlaySheet extends BrowserPlaySheet {
 			}
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		
 		while(it.hasNext())
 		{	
 			LinkedHashMap<String, Object> elementHash = new LinkedHashMap<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			String colName;
 			Double value;
 			for (int j = 0; j < var.length; j++) 

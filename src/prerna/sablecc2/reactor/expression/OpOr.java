@@ -1,14 +1,14 @@
 package prerna.sablecc2.reactor.expression;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class OpOr extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
 		boolean result = eval(values);
-		return new NounMetadata(result, PkslDataTypes.BOOLEAN);
+		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
 	
 	public boolean eval(Object...values) {

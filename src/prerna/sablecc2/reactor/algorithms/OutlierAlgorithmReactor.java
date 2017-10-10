@@ -1,0 +1,233 @@
+package prerna.sablecc2.reactor.algorithms;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.learning.util.DuplicationReconciliation;
+import prerna.algorithm.learning.util.DuplicationReconciliation.ReconciliationMode;
+import prerna.algorithm.learning.util.InstanceSimilarity;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.ArrayUtilityMethods;
+
+public class OutlierAlgorithmReactor extends AbstractReactor {
+	
+	private static final Logger LOGGER = LogManager.getLogger(OutlierAlgorithmReactor.class.getName());
+
+	private static final String INSTANCE_KEY = "instance";
+	private static final String NUMRUNS_KEY = "numRuns";
+	private static final String ATRIBUTES_KEY = "attributes";
+	private static final String SUBSETSIZE_KEY = "subsetSize";
+	
+	private static Random random = new Random();
+	private Map<String, DuplicationReconciliation> dups;
+	
+	/**
+	 * RunOutlier(instance = column, subsetSize = [numSubsetSize], numRuns = [numRuns], columns = attributeNamesList);
+	 */ 
+
+	@Override
+	public NounMetadata execute() {
+		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
+		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		// get inputs -> assume runOutlier(FRAME_COL, numSubsetSize, numRuns,
+		// [FRAME_COL1, ... , FRAME_COLN])
+		// or runOutlier(instance=[FRAME_COL], subsetSize = [numSubsetSize],
+		// numRuns = [numRuns], columns = [FRAME_COL1, ... , FRAME_COLN]
+		// initialize variables from pixel command
+		int numSubsetSize = getSubsetSize();
+		int numRuns = getNumRuns();
+		String instanceColumn = getInstanceCol();
+		List<String> attributeNamesList = getAttributeNames(instanceColumn);
+		String[] attributeNames = attributeNamesList.toArray(new String[]{});
+		int numAttributes = attributeNames.length;
+		int instanceIndex = attributeNamesList.indexOf(instanceColumn);
+
+		// running outliers algorithm
+		int numInstances = dataFrame.getUniqueInstanceCount(instanceColumn);
+		boolean[] isNumeric = new boolean[numAttributes];
+
+		// check which attributes are numeric
+		for (int i = 0; i < numAttributes; i++) {
+			isNumeric[i] = dataFrame.isNumeric(attributeNamesList.get(i));
+		}
+
+		// make sure parameters are valid
+		if (numSubsetSize > numInstances) {
+			throw new IllegalArgumentException("Subset size is larger than the number of instances.");
+		}
+
+		if (dups == null) {
+			dups = new HashMap<String, DuplicationReconciliation>();
+			for (int i = 0; i < numAttributes; i++) {
+				if (isNumeric[i])
+					dups.put(attributeNamesList.get(i), new DuplicationReconciliation(ReconciliationMode.MEAN));
+			}
+		}
+
+		// make sure numSampleSize isn't too big.
+		if (numSubsetSize > numInstances / 3) {
+			LOGGER.info("R (subset size) is too big!");
+			numSubsetSize = numInstances / 3;
+		}
+
+		int random_skip = numInstances / numSubsetSize;
+
+		for (int k = 0; k < numRuns; k++) {
+			// grab R random rows
+			Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
+			for (int i = 0; i < numSubsetSize; i++) {
+				// skip over a number between 0 and random_skip rows
+				int skip = random.nextInt(random_skip);
+				for (int j = 0; j < skip - 1; j++) {
+					it.next();
+				}
+				rSubset.add(it.next());
+			}
+
+			// for row in dataTable, grab R random rows
+			it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+			while (it.hasNext()) {
+				List<Object[]> instance = it.next();
+				Object instanceName = instance.get(0)[instanceIndex];
+				double maxSim = 0;
+				for (int i = 0; i < numSubsetSize; i++) {
+					List<Object[]> subsetInstance = rSubset.get(i);
+					Object subsetObj = subsetInstance.get(0)[instanceIndex];
+					if (subsetObj != null && instanceName != null) {
+						if (subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
+							continue;
+						}
+						double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric, attributeNames, dups);
+						if (maxSim < sim) {
+							maxSim = sim;
+						}
+					}
+				}
+				if (results.get(instanceName) == null) {
+					results.put(instanceName, maxSim);
+				} else {
+					double oldVal = results.get(instanceName);
+					results.put(instanceName, oldVal + maxSim);
+				}
+			}
+		}
+
+		int counter = 0;
+		String[] allColNames = dataFrame.getColumnHeaders();
+		String newColName = instanceColumn + "_Outlier";
+		while (ArrayUtilityMethods.arrayContainsValue(allColNames, newColName)) {
+			counter++;
+			newColName = instanceColumn + "_Outlier_" + counter;
+		}
+		// merge data back onto the frame
+		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, instanceColumn, newColName, "NUMBER", results);
+
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+
+	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
+		return frame.scaledUniqueIterator(instance, columns);
+	}
+	
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+	//////////////////////Input Methods///////////////////////////
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+
+	private List<String> getAttributeNames(String instanceColumn) {
+		List<String> retList = new ArrayList<String>();
+		retList.add(instanceColumn); // always add instance column to attribute list at index 0
+		
+		// check if attributeList was entered with key or not
+		GenRowStruct columnGrs = this.store.getNoun(ATRIBUTES_KEY);
+		if (columnGrs != null) {
+			for (NounMetadata noun : columnGrs.vector) {
+				String attribute = noun.getValue().toString();
+				if (!(attribute.equals(instanceColumn))) {
+					retList.add(attribute);
+				}
+			}
+		} else {
+			// grab lengths 3-> end columns
+			int rowLength = this.curRow.size();
+			for (int i = 3; i < rowLength; i++) {
+				NounMetadata colNoun = this.curRow.getNoun(i);
+				String attribute = colNoun.getValue().toString();
+				if (!(attribute.equals(instanceColumn))) {
+					retList.add(attribute);
+				}
+			}
+		}
+
+		return retList;
+	}
+
+	private String getInstanceCol() {
+		// check if the instance column is entered with a key
+		GenRowStruct instanceIndexGrs = this.store.getNoun(INSTANCE_KEY);
+		String instanceCol = "";
+		NounMetadata instanceIndexNoun;
+		if (instanceIndexGrs != null) {
+			instanceIndexNoun = instanceIndexGrs.getNoun(0);
+			instanceCol = (String) instanceIndexNoun.getValue();
+		} else {
+			// else, we assume it is the zero index in the current row -->
+			// runOutlier(FRAME_COL, numSubsetSize, numRuns, [FRAME_COL1, ... ,
+			// FRAME_COLN]);
+			instanceIndexNoun = this.curRow.getNoun(0);
+			instanceCol = (String) instanceIndexNoun.getValue();
+		}
+
+		return instanceCol;
+	}
+
+	private int getNumRuns() {
+		GenRowStruct numRunsGrs = this.store.getNoun(NUMRUNS_KEY);
+		int numRuns = -1;
+		NounMetadata numRunsNoun;
+		if (numRunsGrs != null) {
+			numRunsNoun = numRunsGrs.getNoun(0);
+			numRuns = ((Number) numRunsNoun.getValue()).intValue();
+		} else {
+			// else, we assume it is the second index in the current row -->
+			// runOutlier(FRAME_COL, numSubsetSize, numRuns, [FRAME_COL1, ... ,
+			// FRAME_COLN]);
+			numRunsNoun = this.curRow.getNoun(2);
+			numRuns = ((Number) numRunsNoun.getValue()).intValue();
+		}
+		return numRuns;
+
+	}
+
+	private int getSubsetSize() {
+		GenRowStruct subsetSizeGrs = this.store.getNoun(SUBSETSIZE_KEY);
+		int subsetSize = -1;
+		NounMetadata subsetSizeNoun;
+		if (subsetSizeGrs != null) {
+			subsetSizeNoun = subsetSizeGrs.getNoun(0);
+			subsetSize = ((Number) subsetSizeNoun.getValue()).intValue();
+		} else {
+			// else, we assume it is the first index in the current row -->
+			// runOutlier(FRAME_COL, numSubsetSize, numRuns, [FRAME_COL1, ... ,
+			// FRAME_COLN]);
+			subsetSizeNoun = this.curRow.getNoun(1);
+			subsetSize = ((Number) subsetSizeNoun.getValue()).intValue();
+		}
+		return subsetSize;
+	}
+
+}

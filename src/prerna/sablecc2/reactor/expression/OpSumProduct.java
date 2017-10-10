@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.expression;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class OpSumProduct extends OpBasic {
 
@@ -22,7 +22,7 @@ public class OpSumProduct extends OpBasic {
 			sum += prod;				
 		}
 		
-	    NounMetadata sumProduct = new NounMetadata(sum, PkslDataTypes.CONST_DECIMAL);
+	    NounMetadata sumProduct = new NounMetadata(sum, PixelDataType.CONST_DECIMAL);
         return sumProduct;
 	}
 

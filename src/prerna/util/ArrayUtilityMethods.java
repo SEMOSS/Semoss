@@ -160,7 +160,8 @@ public final class ArrayUtilityMethods {
 		int size = arr.length;
 		int index;
 		for(index = 0; index < size; index++) {
-			if(arr[index] != null && arr[index].equals(value)) {
+			// adding ignorecase here
+			if(arr[index] != null && arr[index].equalsIgnoreCase(value)) {
 				return index;
 			}
 		}

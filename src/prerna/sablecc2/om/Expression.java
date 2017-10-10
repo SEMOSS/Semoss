@@ -10,7 +10,7 @@ import javassist.CtClass;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 
 public class Expression {
 	
@@ -43,7 +43,7 @@ public class Expression {
 		return leftSide+" "+operation+" "+rightSide; 
 	}
 	
-	private String getVariablesString(PKSLPlanner planner, String[] inputs) {
+	private String getVariablesString(PixelPlanner planner, String[] inputs) {
 		return "";
 	}
 	

@@ -32,7 +32,8 @@ public class HeadersException {
 	public final static String DUP_HEADERS_KEY = "DUPLICATE_HEADERS";
 	public final static String ILLEGAL_HEADERS_KEY = "ILLEGAL_HEADERS";
 	public final static String ILLEGAL_CHARACTER_KEY = "ILLEGAL_CHARACTER_KEY";
-	
+	public final static String ILLEGAL_START_CHARACTER_KEY = "ILLEGAL_START_CHARACTER_KEY";
+
 	// the constructor
 	// responsible for loading in the prohibited headers
 	// requires DIHelper
@@ -83,6 +84,8 @@ public class HeadersException {
 		Set<String> illegalHeaders = comparisons.get(ILLEGAL_HEADERS_KEY);
 		// illegal characters will store headers which have any of the following: %+;@
 		Set<String> illCharacterHeaders = comparisons.get(ILLEGAL_CHARACTER_KEY);
+		// illegal start characters will store headers which do not start with a digit
+		Set<String> illegalStartHeaders = comparisons.get(ILLEGAL_START_CHARACTER_KEY);
 		
 		if(!duplicateHeaders.isEmpty()) {
 			foundError = true;
@@ -119,6 +122,18 @@ public class HeadersException {
 			}
 		}
 		
+		if(!illegalStartHeaders.isEmpty()) {
+			foundError = true;
+			errorMessage.append("<br>");
+			errorMessage.append("ERROR - Column name must start with a letter<br>");
+			// cause i'm ill son
+			int illCounter = 1;
+			for(String illHeader : illCharacterHeaders) {
+				errorMessage.append(illCounter + ") " + illHeader + "<br>");
+				illCounter++;
+			}
+		}
+		
 		if(foundError) {
 			throw new IOException(errorMessage.toString());
 		} 
@@ -144,7 +159,9 @@ public class HeadersException {
 		Set<String> currHeadersProcessed = new HashSet<String>();
 		// store the illegal headers... make it an ordered set
 		Set<String> illConcatHeaders = new TreeSet<String>();
-				
+		// store the headers that start with non-letters... make it an ordered set
+		Set<String> illealStartHeaders = new TreeSet<String>();
+		
 		int size = headers.length;
 		for(int headIdx = 0; headIdx < size; headIdx++) {
 			String thisHeader = headers[headIdx];
@@ -167,16 +184,21 @@ public class HeadersException {
 			// END ILLEGAL HEADERS
 			
 			// THIS IS THE PORTION OF CODE FOR ILLEGAL CHARACTERS
-			if(thisHeader.contains("+") || thisHeader.contains("%") || thisHeader.contains("@") || thisHeader.contains(";")) {
+			if(containsIllegalCharacter(thisHeader)) {
 				// we found an illegal value!
 				illConcatHeaders.add(thisHeader);
 			}
 			// END ILLEGAL CONCATENATIONS
+			
+			if(isIllegalStartCharacter(thisHeader)) {
+				illealStartHeaders.add(thisHeader);
+			}
 		}
 		
 		returnComparisonsMap.put(DUP_HEADERS_KEY, duplicateHeaders);
 		returnComparisonsMap.put(ILLEGAL_HEADERS_KEY, illegalHeaders);
 		returnComparisonsMap.put(ILLEGAL_CHARACTER_KEY, illConcatHeaders);
+		returnComparisonsMap.put(ILLEGAL_START_CHARACTER_KEY, illealStartHeaders);
 
 		return returnComparisonsMap;
 	}
@@ -264,6 +286,20 @@ public class HeadersException {
 		return checkHeader;
 	}
 	
+	public boolean isIllegalStartCharacter(String checkHeader) {
+		if(checkHeader.length() > 0) {
+			char start = checkHeader.charAt(0);
+			if(!Character.isLetter(start)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public String appendLetterAtBeginning(String origHeader) {
+		return "A" + origHeader;
+	}
+	
 	public String recursivelyFixHeaders(String origHeader, List<String> currCleanHeaders) {
 		boolean isAltered = false;
 		
@@ -288,7 +324,13 @@ public class HeadersException {
 			isAltered = true;
 		}
 		
-		// third, check for duplications
+		// third, check if header starts with a digit
+		if(isIllegalStartCharacter(origHeader)) {
+			origHeader = appendLetterAtBeginning(origHeader);
+			isAltered = true;
+		}
+		
+		// final, check for duplications
 		for(String currHead : currCleanHeaders) {
 			if(origHeader.equalsIgnoreCase(currHead)) {
 				origHeader = appendNumOntoHeader(origHeader);
@@ -332,7 +374,13 @@ public class HeadersException {
 			isAltered = true;
 		}
 		
-		// third, check for duplications
+		// third, check if header starts with a digit
+		if(isIllegalStartCharacter(origHeader)) {
+			origHeader = appendLetterAtBeginning(origHeader);
+			isAltered = true;
+		}
+				
+		// final, check for duplications
 		for(String currHead : currCleanHeaders) {
 			if(origHeader.equalsIgnoreCase(currHead)) {
 				origHeader = appendNumOntoHeader(origHeader);
@@ -362,4 +410,5 @@ public class HeadersException {
 		
 		return origHeader;
 	}
+
 }

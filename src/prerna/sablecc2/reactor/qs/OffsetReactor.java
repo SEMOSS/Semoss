@@ -1,13 +1,12 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.interpreters.QueryStruct2;
+import prerna.query.querystruct.QueryStruct2;
 
 public class OffsetReactor extends QueryStructReactor{
 
 	@Override
 	QueryStruct2 createQueryStruct() {
-		Double l = (Double)curRow.get(0);
-		Integer offset = l.intValue();
+		Long offset = ( (Number) curRow.get(0)).longValue();
 		qs.setOffSet(offset);
 		return qs;
 	}

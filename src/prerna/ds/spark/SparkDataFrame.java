@@ -4,35 +4,24 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.ArrayUtilityMethods;
+
 public class SparkDataFrame extends AbstractTableDataFrame{
 
 	SparkBuilder builder;
 	
 	public SparkDataFrame() {
 		builder = new SparkBuilder();
-		this.metaData = new TinkerMetaData();
-	}
-	@Override
-	public void addRow(Object[] rowCleanData) {
-		
-	}
-
-	@Override
-	public Integer getUniqueInstanceCount(String columnHeader) {
-		return null;
 	}
 
 	@Override
@@ -46,49 +35,19 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public int getNumRows() {
-		if(this.builder.frame == null) return 0;
-		
-		//will error out for big numbers...should change on interface level to be long?
-		return (int) builder.frame.count();
-		
-	}
-
-	@Override
-	public Iterator<Object[]> iterator() {
-		return new SparkFrameIterator(this.builder.frame);
-	}
-
-	@Override
-	public Iterator<Object[]> iterator(Map<String, Object> options) {
-		return new SparkFrameIterator(this.builder.buildIterator(options));
-	}
-
-	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
-		return new UniqueValueSparkFrameIterator(this.builder.getUniqueValues(columnHeader));
-	}
-
-	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void filter(String columnHeader, List<Object> filterValues) {
+	public void addFilter(GenRowFilters filter) {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
-	public void unfilter(String columnHeader) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void unfilter() {
+	public void setFilter(GenRowFilters filter) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -97,11 +56,6 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	public void removeColumn(String columnHeader) {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public Object[] getFilterModel() {
-		return null;
 	}
 
 	@Override
@@ -116,30 +70,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public void addRelationship(Map<String, Object> cleanRow) {
-		//does this apply to spark?
-	}
-
-	@Override
 	public void addRow(Object[] cleanCells, String[] headers) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Map<String, Object[]> getFilterTransformationValues() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -156,62 +87,62 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	
 	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, Map<String, String> logicalToValue, Vector<Map<String, String>> joins, String joinType) {
 		
-		//convert the new headers into value headers
-		String[] valueHeaders = new String[newHeaders.length];
-		if(logicalToValue == null) {
-			for(int i = 0; i < newHeaders.length; i++) {
-					valueHeaders[i] = this.metaData.getValueForUniqueName(newHeaders[i]);
-				}
-			} else {	
-				for(int i = 0; i < newHeaders.length; i++) {
-				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
-			}
-		}
-		
-		String[] types = new String[newHeaders.length];
-		for(int i = 0; i < newHeaders.length; i++) {
-			types[i] = convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
-		}
-		
-		String[] columnHeaders = getColumnHeaders();
-		
-		// my understanding
-		// need to get the list of columns that are currently inside the frame
-		// this is because mergeEdgeHash has already occured and added the headers into the metadata
-		// thus, columnHeaders has both the old headers and the new ones that we want to add
-		// thus, go through and only keep the list of headers that are not in the new ones
-		// but also need to add those that are in the joinCols in case 2 headers match
-		List<String> adjustedColHeadersList = new Vector<String>();
-		for(String header : columnHeaders) {
-			if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, header)) {
-				adjustedColHeadersList.add(this.metaData.getValueForUniqueName(header));
-			} else {
-				joinLoop : for(Map<String, String> join : joins) {
-					if(join.keySet().contains(header)) {
-						adjustedColHeadersList.add(this.metaData.getValueForUniqueName(header));
-						break joinLoop;
-					}
-				}
-			}
-		}
-		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[]{});
-		
-		//get the join type
-//		Join jType = Join.INNER;
-//		if(joinType != null) {
-//			if(joinType.toUpperCase().startsWith("INNER")) {
-//				jType = Join.INNER;
-//			} else if(joinType.toUpperCase().startsWith("OUTER")) {
-//				jType = Join.FULL_OUTER;
-//			} else if(joinType.toUpperCase().startsWith("LEFT")) {
-//				jType = Join.LEFT_OUTER;
-//			} else if(joinType.toUpperCase().startsWith("RIGHT")) {
-//				jType = Join.RIGHT_OUTER;
+//		//convert the new headers into value headers
+//		String[] valueHeaders = new String[newHeaders.length];
+//		if(logicalToValue == null) {
+//			for(int i = 0; i < newHeaders.length; i++) {
+//					valueHeaders[i] = this.metaData.getValueForUniqueName(newHeaders[i]);
+//				}
+//			} else {	
+//				for(int i = 0; i < newHeaders.length; i++) {
+//				valueHeaders[i] = logicalToValue.get(newHeaders[i]);
 //			}
-//
 //		}
-		
-		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, types, " inner join ");
+//		
+//		String[] types = new String[newHeaders.length];
+//		for(int i = 0; i < newHeaders.length; i++) {
+//			types[i] = convertDataTypeToString(this.metaData.getDataType(newHeaders[i]));
+//		}
+//		
+//		String[] columnHeaders = getColumnHeaders();
+//		
+//		// my understanding
+//		// need to get the list of columns that are currently inside the frame
+//		// this is because mergeEdgeHash has already occured and added the headers into the metadata
+//		// thus, columnHeaders has both the old headers and the new ones that we want to add
+//		// thus, go through and only keep the list of headers that are not in the new ones
+//		// but also need to add those that are in the joinCols in case 2 headers match
+//		List<String> adjustedColHeadersList = new Vector<String>();
+//		for(String header : columnHeaders) {
+//			if(!ArrayUtilityMethods.arrayContainsValueIgnoreCase(newHeaders, header)) {
+//				adjustedColHeadersList.add(this.metaData.getValueForUniqueName(header));
+//			} else {
+//				joinLoop : for(Map<String, String> join : joins) {
+//					if(join.keySet().contains(header)) {
+//						adjustedColHeadersList.add(this.metaData.getValueForUniqueName(header));
+//						break joinLoop;
+//					}
+//				}
+//			}
+//		}
+//		String[] adjustedColHeaders = adjustedColHeadersList.toArray(new String[]{});
+//		
+//		//get the join type
+////		Join jType = Join.INNER;
+////		if(joinType != null) {
+////			if(joinType.toUpperCase().startsWith("INNER")) {
+////				jType = Join.INNER;
+////			} else if(joinType.toUpperCase().startsWith("OUTER")) {
+////				jType = Join.FULL_OUTER;
+////			} else if(joinType.toUpperCase().startsWith("LEFT")) {
+////				jType = Join.LEFT_OUTER;
+////			} else if(joinType.toUpperCase().startsWith("RIGHT")) {
+////				jType = Join.RIGHT_OUTER;
+////			}
+////
+////		}
+//		
+//		this.builder.processIterator(iterator, adjustedColHeaders, valueHeaders, types, " inner join ");
 	}
 
 	public void processList(List<Object[]> list, String[] oldHeaders, String[] newHeaders, String[] types, String joinType) {
@@ -275,11 +206,6 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 		this.builder.mergeFrame(key, newCol);
 	}
 	
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
-		return null;
-	}
-	
 	public String convertDataTypeToString(IMetaData.DATA_TYPES type) {
 		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
 			return "double";
@@ -295,12 +221,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	public String getDataMakerName() {
 		return "SparkDataFrame";
 	}
-	@Override
-	public void filter(String columnHeader,
-			Map<String, List<Object>> filterValues) {
-		// TODO Auto-generated method stub
-		
-	}
+
 	@Override
 	public void resetDataId() {
 		// TODO Auto-generated method stub
@@ -311,8 +232,21 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 		// TODO Auto-generated method stub
 		
 	}
+
 	@Override
-	public IQueryInterpreter2 getInterpreter() {
+	public Iterator<IHeadersDataRow> query(String query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName, List<String> attributeUniqueHeaderName) {
 		// TODO Auto-generated method stub
 		return null;
 	}

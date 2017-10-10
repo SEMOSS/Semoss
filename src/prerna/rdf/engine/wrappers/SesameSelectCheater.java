@@ -186,4 +186,13 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 		return retBool;
 	}
 
+	@Override
+	public void cleanUp() {
+		try {
+			tqr.close();
+		} catch (QueryEvaluationException e) {
+			e.printStackTrace();
+		}
+	}
+
 }

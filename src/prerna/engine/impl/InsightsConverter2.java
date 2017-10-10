@@ -163,7 +163,7 @@ public class InsightsConverter2 {
 		LOGGER.info("STARTING TO PROCESS ID = " + id );
 
 		/*
-		 * If this is pkql (or pksl)
+		 * If this is pkql (or pixel)
 		 * Then there can only be 1 dmc
 		 * And every transformation must be a PKQLTransformation
 		 * And every one needs to be a PostTransformation
@@ -208,10 +208,10 @@ public class InsightsConverter2 {
 				// just save it now
 				
 				StringBuilder updateQ = new StringBuilder("UPDATE QUESTION_ID SET QUESTION_PKQL=(");
-				int numPksls = pkqlStrings.size();
-				for(int i = 0; i < numPksls; i++) {
+				int numPixels = pkqlStrings.size();
+				for(int i = 0; i < numPixels; i++) {
 					updateQ.append("'").append(pkqlStrings.get(i).replace("'", "''")).append("'");
-					if(i+1 != numPksls) {
+					if(i+1 != numPixels) {
 						updateQ.append(",");
 					}
 				}
@@ -261,7 +261,7 @@ public class InsightsConverter2 {
 						for(String colName : aggregationValues) {
 							// cause of sparql
 							// we will get intermediary variable names used in the aggregation values
-							// but we dont want to add those to the pksl string
+							// but we dont want to add those to the pixels string
 							if(returnVariables.contains(colName)) {
 								pkqlStrings.add("data.frame.changeType(c:" + colName + ", 'NUMBER');");
 							}
@@ -386,10 +386,10 @@ public class InsightsConverter2 {
 				}
 				
 				StringBuilder updateQ = new StringBuilder("UPDATE QUESTION_ID SET QUESTION_PKQL=(");
-				int numPksls = pkqlStrings.size();
-				for(int i = 0; i < numPksls; i++) {
+				int numPixels = pkqlStrings.size();
+				for(int i = 0; i < numPixels; i++) {
 					updateQ.append("'").append(pkqlStrings.get(i).replace("'", "''")).append("'");
-					if(i+1 != numPksls) {
+					if(i+1 != numPixels) {
 						updateQ.append(",");
 					}
 				}

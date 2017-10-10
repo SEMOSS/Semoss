@@ -88,7 +88,11 @@ public class RDBMSUtility {
 		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + "@" + Constants.ENGINE + "@"
 				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
-	
+
+	public static String getH2BaseConnectionURL2() {
+		return "jdbc:h2:nio:" + "@database@;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+	}
+
 	public static String fillH2ConnectionURL(String baseURL, String engineName) {
 		if(engineName == null) {
 			return baseURL;

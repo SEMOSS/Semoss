@@ -1,12 +1,8 @@
 package prerna.ui.components.specific.tap.genesisdeployment;
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -26,6 +22,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 	// store the system deployment savings over time
 	private H2Frame siteDeploymentSavings;
+	private String[] siteDeploymentSavingsHeaders;
 
 	// frame to keep track of waves to sites to systems to fys containing inflated costs
 	protected H2Frame mainSustainmentFrame;
@@ -93,16 +90,16 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		// deployment savings
 		// so each row represents a system and its savings
 		// across each FY
-		String[] headers = new String[numColumns+1];
-		Map<String, String> dataTypes = new Hashtable<String, String>();
-		headers[0] = "Site";
-		dataTypes.put("Site", "String");
+		this.siteDeploymentSavingsHeaders = new String[numColumns+1];
+		String[] dataTypes = new String[numColumns+1];
+		this.siteDeploymentSavingsHeaders[0] = "Site";
+		dataTypes[0] = "String";
 		for(int i = 0; i < numColumns; i++) {
-			headers[i+1] = "FY" + (15 + i);
-			dataTypes.put(headers[i+1], "Number");
+			this.siteDeploymentSavingsHeaders[i+1] = "FY" + (15 + i);
+			dataTypes[i+1] ="Number";
 		}
-		this.siteDeploymentSavings = new H2Frame(headers);
-		this.siteDeploymentSavings.mergeDataTypeMap(dataTypes);
+		this.siteDeploymentSavings = new H2Frame(this.siteDeploymentSavingsHeaders, dataTypes);
+		this.siteDeploymentSavings.syncHeaders();
 
 		// just going to go through and add all the different type of savings
 		addLocallyDeployedSiteSavings();
@@ -111,8 +108,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		addFixedSustainmentCostForAllLocallyDeployedSystems();
 		
 		// this will add the column and row totals
-		MhsGenesisDeploymentSavingsProcessor.calculateColAndRowTotals(this.siteDeploymentSavings);
-		headers = this.siteDeploymentSavings.getColumnHeaders();
+		MhsGenesisDeploymentSavingsProcessor.calculateColAndRowTotals(this.siteDeploymentSavings, this.siteDeploymentSavingsHeaders);
 
 		// iterate through the results for testing
 //		LOGGER.info("Testing data...");
@@ -177,8 +173,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				for(int i = 0; i < numColumns; i++) {
 					newValues[i] = fixedCostData.getDouble(i+1) * (1.0 - percentRealized);
 				}
-				
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, "Fixed_Sustainment_Cost", newValues, endYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, "Fixed_Sustainment_Cost", newValues, endYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -299,7 +294,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				
 				// this will handle the specific site and values and perform the consolidation
 				// if the site is already stored in the frame
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.siteDeploymentSavings, site, newValues, endYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(this.siteDeploymentSavings, site, newValues, endYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -334,7 +329,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 				if(system.equals("CHCS")) {
 					modEndYear = "FY" + ( Integer.parseInt(endYear.substring(2)) + 1 );
 				}
-				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, site, newValues, modEndYear);
+				MhsGenesisDeploymentSavingsProcessor.updateCostValues(siteDeploymentSavings, site, newValues, modEndYear, this.siteDeploymentSavingsHeaders);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

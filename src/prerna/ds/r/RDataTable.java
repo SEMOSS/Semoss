@@ -1,25 +1,22 @@
 package prerna.ds.r;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.AbstractTableDataFrame;
-import prerna.ds.TinkerMetaData;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.engine.impl.r.RExcelFileWrapper;
-import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.RInterpreter2;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -28,8 +25,7 @@ import prerna.util.DIHelper;
 
 public class RDataTable extends AbstractTableDataFrame {
 
-	private static final Logger LOGGER = LogManager.getLogger(RDataTable.class.getName());
-	public static final String R_DATA_FRAME = "RDataFrame";
+	public static final String DATA_MAKER_NAME = "RDataTable";
 	
 	private AbstractRBuilder builder;
 	
@@ -49,7 +45,6 @@ public class RDataTable extends AbstractTableDataFrame {
 			} else {
 				this.builder = new RBuilder(rTableVarName);
 			}
-			this.metaData = new TinkerMetaData();
 		} catch (RserveException e) {
 			e.printStackTrace();
 			closeConnection();
@@ -61,7 +56,6 @@ public class RDataTable extends AbstractTableDataFrame {
 	public RDataTable(String rTableVarName, RConnection retCon, String port) {
 		try {
 			this.builder = new RBuilder(rTableVarName, retCon, port);
-			this.metaData = new TinkerMetaData();
 		} catch (RserveException e) {
 			e.printStackTrace();
 			closeConnection();
@@ -78,19 +72,20 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.getPort();
 	}
 	
+	@Override
+	public void setLogger(Logger logger) {
+		this.logger = logger;
+		this.builder.setLogger(logger);
+	}
+	
 	public void closeConnection() {
 		if(this.builder.getConnection() != null) {
 			try {
 				this.builder.getConnection().shutdown();
 			} catch (RserveException e) {
-				LOGGER.info("R Connection is already closed...");
+				logger.info("R Connection is already closed...");
 			}
 		}
-	}
-	
-	@Override
-	public IQueryInterpreter2 getInterpreter() {
-		return new RInterpreter2();
 	}
 	
 	@Override
@@ -145,18 +140,32 @@ public class RDataTable extends AbstractTableDataFrame {
 		return "";
 	}
 	
-	public void createTableViaIterator(Iterator<IHeadersDataRow> it) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
 		// we really need another way to get the data types....
-		Map<String, IMetaData.DATA_TYPES> typesMap = this.metaData.getColumnTypes();
-		this.builder.createTableViaIterator(it, typesMap);
+		Map<String, IMetaData.DATA_TYPES> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
+		
+		// TODO: this is annoying, need to get the frame on the same page as the meta
+		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new HashMap<String, IMetaData.DATA_TYPES>();
+		for(String rawHeader : rawDataTypeMap.keySet()) {
+			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
+		}
+		this.addRowsViaIterator(it, this.getTableVarName(), dataTypeMap);
+		syncHeaders();
+	}
+	
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
+		this.builder.createTableViaIterator(tableName, it, dataTypeMap);
+		syncHeaders();
 	}
 	
 	public void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
 		this.builder.createTableViaCsvFile(fileWrapper);
+		syncHeaders();
 	}
 	
 	public void createTableViaExcelFile(RExcelFileWrapper fileWrapper) {
 		this.builder.createTableViaExcelFile(fileWrapper);
+		syncHeaders();
 	}
 	
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
@@ -202,158 +211,29 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<Object[]> iterator() {
-		return this.builder.iterator(getColumnHeaders(), 0, 0);
+	public Iterator<IHeadersDataRow> query(String query) {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	
+
 	@Override
-	public Iterator<Object[]> iterator(Map<String, Object> options) {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		// need to build this out
-		String[] headers = getColumnHeaders();
-		if(options.containsKey(AbstractTableDataFrame.SELECTORS)) {
-			List<String> headerList = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
-			headers = headerList.toArray(new String[]{});
-		}
-		
-		int limit = 0;
-		if(options.containsKey(AbstractTableDataFrame.LIMIT)) {
-			limit = (int) options.get(AbstractTableDataFrame.LIMIT);
-		}
-		
-		int offset = 0;
-		if(options.containsKey(AbstractTableDataFrame.OFFSET)) {
-			offset = (int) options.get(AbstractTableDataFrame.OFFSET);
-		}
-		
-		return this.builder.iterator(headers, limit, offset);
+	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+		RInterpreter2 interp = new RInterpreter2();
+		interp.setQueryStruct(qs);
+		interp.setDataTableName(this.getTableName());
+		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
+		interp.setLogger(this.logger);
+		String query = interp.composeQuery();
+		RIterator2 it = new RIterator2(this.builder, query, qs);
+		return it;
 	}
 	
 	@Override
 	public void removeColumn(String columnHeader) {
-		this.builder.evalR(this.builder.getTableName() + "[," + columnHeader + ":=NULL]");
-		this.metaData.dropVertex(columnHeader);
-
-		// Remove the column from header names
-		String[] newHeaders = new String[this.headerNames.length-1];
-		int newHeaderIdx = 0;
-		for(int i = 0; i < this.headerNames.length; i++){
-			String name = this.headerNames[i];
-			if(!name.equals(columnHeader)){
-				newHeaders[newHeaderIdx] = name;
-				newHeaderIdx ++;
-			}
-		}
-		
-		this.headerNames = newHeaders;
-		this.updateDataId();
-	}
-	
-	/**
-	 * String columnHeader - the column on which to filter on filterValues - the
-	 * values that will remain in the
-	 */
-	@Override
-	public void filter(String columnHeader, List<Object> filterValues) {
-		if (filterValues != null && filterValues.size() > 0) {
-			this.metaData.setFiltered(columnHeader, true);
-			builder.setFilters(columnHeader, filterValues, "=");
-		}
-	}
-	
-	@Override
-	public void filter(String columnHeader, Map<String, List<Object>> filterValues) {
-		if(columnHeader == null || filterValues == null) return;
-
-		DATA_TYPES type = this.metaData.getDataType(columnHeader);
-		boolean isOrdinal = type != null && (type == DATA_TYPES.DATE || type == DATA_TYPES.NUMBER);
-
-
-		String[] comparators = filterValues.keySet().toArray(new String[]{});
-		for(int i = 0; i < comparators.length; i++) {
-			String comparator = comparators[i];
-			boolean override = i == 0;
-			List<Object> filters = filterValues.get(comparator);
-
-			comparator = comparator.trim();
-			if(comparator.equals("=")) {
-
-				if(override) builder.setFilters(columnHeader, filters, comparator);
-				else builder.addFilters(columnHeader, filters, comparator);
-
-			} else if(comparator.equals("!=")) { 
-
-				if(override) builder.setFilters(columnHeader, filters, comparator);
-				else builder.addFilters(columnHeader, filters, comparator);
-
-			} else if(comparator.equals("<")) {
-
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-
-			} else if(comparator.equals(">")) {
-
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-
-			} else if(comparator.equals("<=")) {
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-			} else if(comparator.equals(">=")) {
-				if(isOrdinal) {
-
-					if(override) builder.setFilters(columnHeader, filters, comparator);
-					else builder.addFilters(columnHeader, filters, comparator);
-
-				} else {
-					throw new IllegalArgumentException(columnHeader
-							+ " is not a numeric column, cannot use operator "
-							+ comparator);
-				}
-			} else {
-				// comparator not recognized...do equal by default? or do
-				// nothing? or throw error?
-			}
-			this.metaData.setFiltered(columnHeader, true);
-		}
-	}
-
-	@Override
-	public void unfilter(String columnHeader) {
-		this.metaData.setFiltered(columnHeader, false);
-		builder.removeFilter(columnHeader);
-	}
-
-	@Override
-	public void unfilter() {
-		builder.clearFilters();
+		String tableName = this.builder.getTableName();
+		this.builder.evalR(tableName + "[," + columnHeader + ":=NULL]");
+		this.metaData.dropProperty(tableName + "__" + columnHeader, tableName);
+		syncHeaders();
 	}
 	
 	@Override
@@ -373,45 +253,16 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.setTableName(tableVarName);
 	}
 	
-	@Override
-	public int getNumRows() {
-		return this.builder.getNumRows();
-	}
-	
 	public int getNumRows(String varName) {
 		return this.builder.getNumRows(varName);
 	}
 	
 	@Override
-	public void addRow(Object[] rowCleanData) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addRow(Object[] cleanCells, String[] headers) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Integer getUniqueInstanceCount(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, Map<String, Object> options) {
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
-	public Iterator<Object> uniqueValueIterator(String columnHeader, boolean iterateAll) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	public Object[] getUniqueColumn(String column) {
 		StringBuilder rScript = new StringBuilder();
 		rScript.append("unique(").append(this.getTableName()).append("[")
@@ -422,12 +273,6 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Object[] getFilterModel() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -446,55 +291,69 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public String getDataMakerName() {
-		return R_DATA_FRAME;
+		return DATA_MAKER_NAME;
 	}
-
 	
-	
-	// ignore these methods for now
-	// ignore these methods for now
-	// ignore these methods for now
-	// ignore these methods for now
-	// ignore these methods for now
-
 	@Override
-	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToValMap) {
-		// TODO Auto-generated method stub
+	protected Boolean calculateIsUnqiueColumn(String columnName) {
+		// we override this method because it is faster to get the unique count
+		// using the below syntax which works for only a single column
+		// than it is using the syntax in the interpreter
 		
+		String tableName = getTableName();
+		String[] cleanCols = new String[1];
+		if(columnName.contains("__")) {
+			cleanCols[0] = columnName.split("__")[1];
+		} else {
+			cleanCols[0] = columnName;
+		}
+		
+		long start = System.currentTimeMillis();
+		String rQuery = tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "]"; 
+		int val1 = getNumRows(rQuery);
+		long end = System.currentTimeMillis();
+		logger.info("R duplicates query1 time = " + (end-start) + "ms");
+		
+		start = System.currentTimeMillis();
+		String distinctQuery = "unique(" + tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "])"; 
+		int val2 = this.builder.getIntFromScript(distinctQuery);
+		end = System.currentTimeMillis();
+		logger.info("R duplicates query2 time = " + (end-start) + "ms");
+		
+		boolean isUnique = (long) val1 == (long) val2;
+		return isUnique;
 	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	/*
+	 * Deprecated DataMakerComponent stuff
+	 */	
+	
 	@Override
+	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// we have only had RDataTable since PKQL was introduced
 		// lets not try to expand this to cover the old stuff
 		// assuming only pkql is used
 		long startTime = System.currentTimeMillis();
-		LOGGER.info("Processing Component..................................");
+		logger.info("Processing Component..................................");
 		processPostTransformations(component, component.getPostTrans());
 		long endTime = System.currentTimeMillis();
-		LOGGER.info("Component Processed: " + (endTime - startTime) + " ms");		
+		logger.info("Component Processed: " + (endTime - startTime) + " ms");		
 	}
 	
 	@Override
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToValMap) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public Map<String, Object[]> getFilterTransformationValues() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void addRelationship(Map<String, Object> cleanRow) {
+	@Deprecated
+	public void removeRelationship(String[] columns, Object[] values) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void removeRelationship(String[] columns, Object[] values) {
+	@Deprecated
+	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
 		
 	}

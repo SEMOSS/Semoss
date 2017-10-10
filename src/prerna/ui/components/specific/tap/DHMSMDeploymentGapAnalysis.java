@@ -27,11 +27,9 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import prerna.ds.TinkerFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
@@ -61,7 +59,7 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 		List<Object[]> sitesWithHPSystems = dugp2.getList();
 		
 		String[] names = new String[]{"HostSite","System"};
-		this.dataFrame = new TinkerFrame(names);
+		this.dataFrame = new H2Frame(names);
 		
 		int i;
 		int j;
@@ -85,10 +83,7 @@ public class DHMSMDeploymentGapAnalysis extends GridPlaySheet{
 			}
 			
 			if(!match) {
-				Map<String, Object> row = new HashMap<String, Object>();
-				row.put(names[0], values1[0]);
-				row.put(names[1], values1[1]);
-				dataFrame.addRow(row);
+				dataFrame.addRow(new Object[]{values1[0], values1[1]}, names);
 			}
 		}
 	}

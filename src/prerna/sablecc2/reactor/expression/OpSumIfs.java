@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 public class OpSumIfs extends OpBasic {
 
@@ -129,7 +129,7 @@ public class OpSumIfs extends OpBasic {
 				}
 			}
 		}
-		NounMetadata sumIfsValue = new NounMetadata(sumIfsVal, PkslDataTypes.CONST_DECIMAL);
+		NounMetadata sumIfsValue = new NounMetadata(sumIfsVal, PixelDataType.CONST_DECIMAL);
 		System.out.println("sumIfsValue..." + sumIfsVal);
 		return sumIfsValue;
 	}

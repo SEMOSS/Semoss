@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.sablecc2.PKSLRunner;
+import prerna.sablecc2.PixelRunner;
 
 public class PKQLTransformation extends AbstractTransformation {
 
@@ -19,7 +19,7 @@ public class PKQLTransformation extends AbstractTransformation {
 	public static final String EXPRESSION = "EXPRESSION";
 
 	private PKQLRunner runner;
-	private PKSLRunner runner2;
+	private PixelRunner runner2;
 	private List<String> parsedPkqls = new Vector<String>();
 	private List<IPkqlMetadata> metadataList;
 
@@ -68,7 +68,7 @@ public class PKQLTransformation extends AbstractTransformation {
 	public void runMethod() {
 //		if(runner == null) {
 //			String expression = props.get(EXPRESSION) + "";	
-//			runner2.runPKSL(expression, this.dm);
+//			runner2.runPixel(expression, this.dm);
 //			return;
 //		}
 		// check how long runner response array is
@@ -166,7 +166,7 @@ public class PKQLTransformation extends AbstractTransformation {
 		this.runner = runner;
 	}
 	
-	public void setRunner(PKSLRunner runner) {
+	public void setRunner(PixelRunner runner) {
 		this.runner2 = runner;
 	}
 	

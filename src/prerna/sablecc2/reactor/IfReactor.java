@@ -6,60 +6,43 @@ import java.util.Vector;
 import prerna.sablecc2.om.Filter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.storage.StoreValue;
 
 public class IfReactor extends AbstractReactor implements JavaExecutable {
 
 	private static int ifMethodCount = 0;
-	// execute it
-	// once again this would be abstract
+
+	@Override
 	public NounMetadata execute()
 	{
-//		boolean caseEvaluation = getBooleanEvaluation();
-		
 		// on the translation
 		// we already push which result is the true/false case
 		// so all we need to do is grab the only thing in the curRow
 		// and push it up
-		Object trueObj = this.curRow.get(1);
-		PkslDataTypes trueObjMeta = this.curRow.getMeta(1);
+		NounMetadata trueNoun = this.curRow.getNoun(1);
 		// evaluate the true statement
-		return evaluateStatement(trueObj, trueObjMeta);
-		
-//		// the if will always have 2 values in its curRow
-//		// the first value is the true object
-//		// the second value is the false object
-//		// based on the case evaluation, we will know which one to evaluate
-//		if(caseEvaluation == true) {
-//			Object trueObj = this.curRow.get(1);
-//			PkslDataTypes trueObjMeta = this.curRow.getMeta(1);
-//			// evaluate the true statement
-//			return evaluateStatement(trueObj, trueObjMeta);
-//		} else {
-//			Object falseObj = this.curRow.get(2);
-//			PkslDataTypes falseObjMeta = this.curRow.getMeta(2);
-//			// evaluate the false statement
-//			return evaluateStatement(falseObj, falseObjMeta);
-//		}
+		return evaluateStatement(trueNoun);
 	}
 	
 	public boolean getBooleanEvaluation() {
 		Object ifEvaluatorObject = this.curRow.get(0);
-		PkslDataTypes ifEvaluatorType = this.curRow.getMeta(0);
+		PixelDataType ifEvaluatorType = this.curRow.getMeta(0);
 		
 		// the input can be any reactor or a filter within the if statment
 		// grab it and evalute based on its type
 		boolean caseEvaluation = false;
 		
-		if(ifEvaluatorType == PkslDataTypes.BOOLEAN) {
+		if(ifEvaluatorType == PixelDataType.BOOLEAN) {
 			caseEvaluation = (boolean) ifEvaluatorObject;
-		} else if(ifEvaluatorType == PkslDataTypes.FILTER) {
+		} else if(ifEvaluatorType == PixelDataType.COLUMN) {
+			caseEvaluation = (boolean) this.planner.getVariableValue(ifEvaluatorObject.toString()).getValue();
+		} else if(ifEvaluatorType == PixelDataType.FILTER) {
 			// we have a filter object
 			// use its evaluate method
 			Filter filter = (Filter) ifEvaluatorObject;
 			caseEvaluation = filter.evaluate(this.planner);
-		} else if(ifEvaluatorType == PkslDataTypes.LAMBDA) {
+		} else if(ifEvaluatorType == PixelDataType.LAMBDA) {
 			// we have a full reactor
 			// required that this returns a boolean
 			AbstractReactor ifEvaluatorReactor = null;
@@ -68,7 +51,7 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 				caseEvaluation = (boolean) ifEvaluatorReactor.execute().getValue();
 			} catch(ClassCastException e) {
 				if(ifEvaluatorReactor != null) {
-					throw new IllegalArgumentException("If statement condition (" + ifEvaluatorReactor.getPKSL()[1] + ") could not be evaluated");
+					throw new IllegalArgumentException("If statement condition (" + ifEvaluatorReactor.getPixel()[1] + ") could not be evaluated");
 				} else {
 					throw new IllegalArgumentException("If statement condition could not be evaluated");
 				}
@@ -77,30 +60,25 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		return caseEvaluation;
 	}
 	
-	private NounMetadata evaluateStatement(Object statementObj, PkslDataTypes statementType) {
+	private NounMetadata evaluateStatement(NounMetadata trueNoun) {
 		// if it is another reactor
 		// let the reactor execute and handle the returning of its data
-		if(statementObj instanceof AbstractReactor) {
-			AbstractReactor trueReactor = (AbstractReactor) statementObj;
+		if(trueNoun.getValue() instanceof AbstractReactor) {
+			AbstractReactor trueReactor = (AbstractReactor) trueNoun.getValue();
 			trueReactor.evaluate = true;
 			return trueReactor.execute();
 		} else {
 			// ughh...
 			// must be a constant value ?
-			// unsure what else would ever end up here
-			return getNounDataForConstant(statementObj, statementType);
+			// just return it
+			return trueNoun;
 		}
-	}
-	
-	private NounMetadata getNounDataForConstant(Object obj, PkslDataTypes pkslDataTypes) {
-		NounMetadata data = new NounMetadata(obj, pkslDataTypes);
-		return data;
 	}
 	
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PkslDataTypes.LAMBDA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.LAMBDA);
 		outputs.add(output);
 		
 		// if the child is a store value reactor
@@ -114,6 +92,22 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		
 		return outputs;
 	}
+	
+	
+	
+	
+	
+	
+	
+	///////////////////////////////////////
+	///////////////////////////////////////
+	///////////////////////////////////////
+	///////////////////////////////////////
+	///////////////////////////////////////
+	
+	// TODO sync up with TAX Team to get correct methods for below
+	
+	
 
 	@Override
 	public String getJavaSignature() {
@@ -145,16 +139,16 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 	
 	private String getTernaryIfStatement() {
 		Object trueCase = curRow.get(1);
-		PkslDataTypes trueType = curRow.getMeta(1);
+		PixelDataType trueType = curRow.getMeta(1);
 		
 		Object falseCase;
-		PkslDataTypes falseType;
+		PixelDataType falseType;
 		if(curRow.size() > 2) {
 			falseCase = curRow.get(2);
 			falseType = curRow.getMeta(2);
 		} else {
 			falseCase = getParentAssignment();
-			falseType = PkslDataTypes.COLUMN;
+			falseType = PixelDataType.COLUMN;
 		}
 		
 		String trueString;
@@ -162,7 +156,7 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		
 		if(trueCase instanceof JavaExecutable) {
 			trueString = ((JavaExecutable)trueCase).getJavaSignature();
-		} else if(trueType == PkslDataTypes.CONST_STRING){
+		} else if(trueType == PixelDataType.CONST_STRING){
 			trueString = "\""+trueCase.toString()+"\"";
 		} else {
 			trueString = trueCase.toString();
@@ -170,12 +164,12 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		
 		if(falseCase instanceof JavaExecutable) {
 			falseString = ((JavaExecutable)falseCase).getJavaSignature();
-		} else if(falseType == PkslDataTypes.CONST_STRING) {
+		} else if(falseType == PixelDataType.CONST_STRING) {
 			
 			//Hard coded special case, not sure how to handle this currently
 			if(falseCase.toString().equals("Select Scenario")) {
 				falseString = "1";
-			} else if(trueType == PkslDataTypes.CONST_DECIMAL || trueType == PkslDataTypes.CONST_INT) {
+			} else if(trueType == PixelDataType.CONST_DECIMAL || trueType == PixelDataType.CONST_INT) {
 				try {
 					double number = Double.parseDouble(falseCase.toString().trim());
 					falseString = number + "";
@@ -244,13 +238,13 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		Object returnObj = returnNoun.getValue();
 		if(returnObj instanceof JavaExecutable) {
 			returnType = ((JavaExecutable)returnObj).getReturnType();
-		} else if(returnNoun.getNounType() == PkslDataTypes.CONST_DECIMAL || returnNoun.getNounType() == PkslDataTypes.CONST_INT) {
+		} else if(returnNoun.getNounType() == PixelDataType.CONST_DECIMAL || returnNoun.getNounType() == PixelDataType.CONST_INT) {
 			returnType = "double";
-		} else if(returnNoun.getNounType() == PkslDataTypes.CONST_STRING) {
+		} else if(returnNoun.getNounType() == PixelDataType.CONST_STRING) {
 			returnType = "String";
-		} else if(returnNoun.getNounType() == PkslDataTypes.BOOLEAN){
+		} else if(returnNoun.getNounType() == PixelDataType.BOOLEAN){
 			returnType = "boolean";
-		} else if(returnNoun.getNounType() == PkslDataTypes.COLUMN) {
+		} else if(returnNoun.getNounType() == PixelDataType.COLUMN) {
 			returnType = returnObj.toString();
 		} else {
 			returnType = "Object";

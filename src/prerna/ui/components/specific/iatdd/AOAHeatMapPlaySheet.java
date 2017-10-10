@@ -9,6 +9,7 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -35,9 +36,9 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 			origDataFrame = dataFrame;
 		}
 		String[] headers = origDataFrame.getColumnHeaders();
-		Iterator<Object[]> it = origDataFrame.iterator();	
+		Iterator<IHeadersDataRow> it = origDataFrame.iterator();	
 		while(it.hasNext()) {
-			Object[] row = it.next();
+			Object[] row = it.next().getValues();
 			
 			//calculate ServiceScore based on checked services 
 			double avgSS = 0;
@@ -80,15 +81,16 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 			}
 		}
 		
-		//re-order packages and format to send to front end 
-		dataFrame = new H2Frame(new String[]{headers[1], headers[3], "Package Score"});
+		//re-order packages and format to send to front end
+		String[] newHeaders = new String[]{headers[1], headers[3], "Package Score"};
+		dataFrame = new H2Frame(newHeaders);
 		for(String packages : packageMissionHash.keySet()) {
 			Map<String, Double> missionHash = packageMissionHash.get(packages);
 			for(String mission : missionHash.keySet()) {
 				Double packageScore = missionHash.get(mission);
 				Object[] row = new Object[]{packages, mission, packageScore};
 				System.out.println("ORDERING: "+ packages +" "+ mission +" "+ packageScore);
-				dataFrame.addRow(row);
+				dataFrame.addRow(row, newHeaders);
 				Hashtable<String, Object> rowValues = new Hashtable<String, Object>();
 				rowValues.put(headers[1], packages);
 				rowValues.put(headers[3], mission);

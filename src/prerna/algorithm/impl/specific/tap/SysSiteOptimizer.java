@@ -42,7 +42,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
@@ -862,38 +861,36 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		siteSavingsFromLocalSystems = calculateSiteSavingsForLocalSystems(localSysData.systemSiteMatrix, localSystemSiteResultMatrix, localSysData.systemSingleSiteMaintenanceCostArr);
 
 		siteSavingsFromCentralSystems = calculateSiteSavingsForCentralSystems(centralSysData.systemSiteMatrix, centralSysData.systemCentralMaintenanceCostArr, sustainedCentralSysIndiciesArr);
-		
-		ITableDataFrame data = new H2Frame();
+		Map<String, String> dataTableAlign = new HashMap<String, String>();
 		String[] names = new String[]{"DCSite", "lat", "lon", "Site_Savings", SUSTAINED_AND_DEPLOYED_SYSTEMS, CONSOLIDATED_SYSTEMS};
-		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(names);
-		Map<String, String> dataTypeMap = new HashMap<String, String>();
-		dataTypeMap.put("DCSite", "STRING");
-		dataTypeMap.put("lat", "DOUBLE");
-		dataTypeMap.put("lon", "DOUBLE");
-		dataTypeMap.put("Site_Savings", "DOUBLE");
-		dataTypeMap.put(SUSTAINED_AND_DEPLOYED_SYSTEMS, "STRING");
-		dataTypeMap.put(CONSOLIDATED_SYSTEMS, "STRING");
-		data.mergeEdgeHash(primKeyEdgeHash, dataTypeMap);
+		String[] types = new String[]{"STRING","DOUBLE","DOUBLE","DOUBLE","STRING","STRING"};
+		dataTableAlign.put("label", "DCSite");
+		dataTableAlign.put("lat", "lat");
+		dataTableAlign.put("lon", "lon");
+		dataTableAlign.put("size", SUSTAINED_AND_DEPLOYED_SYSTEMS);
+		dataTableAlign.put("time", CONSOLIDATED_SYSTEMS);
 
+		H2Frame data = new H2Frame(names, types);
 		int i;
 		int numSites = siteList.size();
 		for(i=0; i<numSites; i++) {
-			Map<String, Object> row = new HashMap<String, Object>();
-			row.put(names[0], siteList.get(i));
-			row.put(names[1], siteLat[i]);
-			row.put(names[2], siteLon[i]);
+			Object[] row = new Object[6];
+			row[0] = siteList.get(i);
+			row[1] = siteLat[i];
+			row[2] = siteLon[i];
 			if(siteSavingsFromCentralSystems == null) {
-				row.put(names[3], siteSavingsFromLocalSystems[i]);
+				row[3] = siteSavingsFromLocalSystems[i];
 			}else {
-				row.put(names[3], siteSavingsFromLocalSystems[i] + siteSavingsFromCentralSystems[i]);
+				row[3] = siteSavingsFromLocalSystems[i] + siteSavingsFromCentralSystems[i];
 			}
-			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
-			row.put(names[5], makeString(getConsolidatedSystemsAtSiteList(i)));
-			data.addRow(row);
+			row[4] = makeString(getSustainedSystemsAtSiteList(i));
+			row[5] = makeString(getConsolidatedSystemsAtSiteList(i));
+			data.addRow(row, names);
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
 		ps.setDataMaker(data);
+		ps.setTableDataAlign(dataTableAlign);
 		ps.processQueryData();
 		Hashtable<String, Object> retMap = (Hashtable<String, Object>) ps.getDataMakerOutput();
 		retMap.put("layout", "WorldMap");
@@ -924,7 +921,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		}
 		
 		String[] names = new String[]{"DCSite", "lat", "lon", "Percent DOs and BLUs covered", SUSTAINED_AND_DEPLOYED_SYSTEMS};
-		ITableDataFrame data = new H2Frame(names);
+		String[] types = new String[]{"STRING","DOUBLE","DOUBLE","DOUBLE","STRING"};
+		ITableDataFrame data = new H2Frame(names, types);
 		int i;
 		int j;
 		int numSites = siteList.size();
@@ -942,13 +940,13 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			
 			double percent = doBLUForSiteSet.size() / totalDOBLU * 100;
 			
-			Map<String, Object> row = new HashMap<String, Object>();
-			row.put(names[0], siteList.get(i));
-			row.put(names[1], siteLat[i]);
-			row.put(names[2], siteLon[i]);
-			row.put(names[3], percent);
-			row.put(names[4], makeString(getSustainedSystemsAtSiteList(i)));
-			data.addRow(row);
+			Object[] row = new Object[5];
+			row[0] = siteList.get(i);
+			row[1] = siteLat[i];
+			row[2] = siteLon[i];
+			row[3] = percent;
+			row[4] = makeString(getSustainedSystemsAtSiteList(i));
+			data.addRow(row, names);
 		}
 		
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();
@@ -1120,7 +1118,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	
 	public Hashtable<String,Object> getSystemSiteMapData(String system) {
 		String[] names = new String[]{"DCSite", "lat", "lon", "Recommendation"};
-		ITableDataFrame data = new H2Frame(names);
+		String[] types = new String[]{"STRING","DOUBLE","DOUBLE","STRING"};
+		H2Frame data = new H2Frame(names, types);
 		
 		int i;
 		int numSites = siteList.size();
@@ -1130,12 +1129,12 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			sysIndex = localSysList.indexOf(system);
 			for(i=0; i<numSites; i++) {
 				if(localSystemSiteRecMatrix[sysIndex][i]!=null) {
-					Map<String, Object> row = new HashMap<String, Object>();
-					row.put(names[0], siteList.get(i));
-					row.put(names[1], siteLat[i]);
-					row.put(names[2], siteLon[i]);
-					row.put(names[3], localSystemSiteRecMatrix[sysIndex][i]);
-					data.addRow(row);
+					Object[] row = new Object[4];
+					row[0] = siteList.get(i);
+					row[1] = siteLat[i];
+					row[2] = siteLon[i];
+					row[3] = localSystemSiteRecMatrix[sysIndex][i];
+					data.addRow(row, names);
 				}
 			}
 
@@ -1147,33 +1146,32 @@ public class SysSiteOptimizer extends UnivariateOpt {
 			if(ArrayUtilityMethods.arrayContainsValue(sustainedCentralSysIndiciesArr, sysIndex)) {
 				//if central system was kept
 				for(i=0; i<numSites; i++) {
-					Map<String, Object> row = new HashMap<String, Object>();
-					row.put(names[0], siteList.get(i));
-					row.put(names[1], siteLat[i]);
-					row.put(names[2], siteLon[i]);
+					Object[] row = new Object[4];
+					row[0] = siteList.get(i);
+					row[1] = siteLat[i];
+					row[2] = siteLon[i];
 					if(centralSysData.systemSiteMatrix[sysIndex][i]==1) {
-						row.put(names[3], SUSTAINED_HOST_SITE);
+						row[3] = SUSTAINED_HOST_SITE;
 					}else {
-						row.put(names[3], SUSTAINED_ACCESSIBLE_SITE);
+						row[3] = SUSTAINED_ACCESSIBLE_SITE;
 					}
-					data.addRow(row);
+					data.addRow(row, names);
 				}
 			}else {
 				//if central system was decommissioned
 				for(i=0; i<numSites; i++) {
-					Map<String, Object> row = new HashMap<String, Object>();
-					row.put(names[0], siteList.get(i));
-					row.put(names[1], siteLat[i]);
-					row.put(names[2], siteLon[i]);
+					Object[] row = new Object[4];
+					row[0] = siteList.get(i);
+					row[1] = siteLat[i];
+					row[2] = siteLon[i];
 					if(centralSysData.systemSiteMatrix[sysIndex][i]==1) {
-						row.put(names[3], PREVIOUSLY_HOSTED_SITE);
+						row[3] = PREVIOUSLY_HOSTED_SITE;
 					}else {
-						row.put(names[3], PREVIOUSLY_ACCESSIBLE_SITE);
+						row[3] = PREVIOUSLY_ACCESSIBLE_SITE;
 					}
-					data.addRow(row);
+					data.addRow(row, names);
 				}
 			}
-			
 		}
 
 		OCONUSMapPlaySheet ps = new OCONUSMapPlaySheet();

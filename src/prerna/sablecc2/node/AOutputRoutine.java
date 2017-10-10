@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AOutputRoutine extends PRoutine
 {
-    private PScriptchain _scriptchain_;
+    private PScript _script_;
     private TSemicolon _semicolon_;
 
     public AOutputRoutine()
@@ -16,11 +16,11 @@ public final class AOutputRoutine extends PRoutine
     }
 
     public AOutputRoutine(
-        @SuppressWarnings("hiding") PScriptchain _scriptchain_,
+        @SuppressWarnings("hiding") PScript _script_,
         @SuppressWarnings("hiding") TSemicolon _semicolon_)
     {
         // Constructor
-        setScriptchain(_scriptchain_);
+        setScript(_script_);
 
         setSemicolon(_semicolon_);
 
@@ -30,7 +30,7 @@ public final class AOutputRoutine extends PRoutine
     public Object clone()
     {
         return new AOutputRoutine(
-            cloneNode(this._scriptchain_),
+            cloneNode(this._script_),
             cloneNode(this._semicolon_));
     }
 
@@ -40,16 +40,16 @@ public final class AOutputRoutine extends PRoutine
         ((Analysis) sw).caseAOutputRoutine(this);
     }
 
-    public PScriptchain getScriptchain()
+    public PScript getScript()
     {
-        return this._scriptchain_;
+        return this._script_;
     }
 
-    public void setScriptchain(PScriptchain node)
+    public void setScript(PScript node)
     {
-        if(this._scriptchain_ != null)
+        if(this._script_ != null)
         {
-            this._scriptchain_.parent(null);
+            this._script_.parent(null);
         }
 
         if(node != null)
@@ -62,7 +62,7 @@ public final class AOutputRoutine extends PRoutine
             node.parent(this);
         }
 
-        this._scriptchain_ = node;
+        this._script_ = node;
     }
 
     public TSemicolon getSemicolon()
@@ -94,7 +94,7 @@ public final class AOutputRoutine extends PRoutine
     public String toString()
     {
         return ""
-            + toString(this._scriptchain_)
+            + toString(this._script_)
             + toString(this._semicolon_);
     }
 
@@ -102,9 +102,9 @@ public final class AOutputRoutine extends PRoutine
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._scriptchain_ == child)
+        if(this._script_ == child)
         {
-            this._scriptchain_ = null;
+            this._script_ = null;
             return;
         }
 
@@ -121,9 +121,9 @@ public final class AOutputRoutine extends PRoutine
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._scriptchain_ == oldChild)
+        if(this._script_ == oldChild)
         {
-            setScriptchain((PScriptchain) newChild);
+            setScript((PScript) newChild);
             return;
         }
 

@@ -38,6 +38,7 @@ import com.google.gson.JsonSyntaxException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -222,6 +223,11 @@ public class SolrEngine extends AbstractEngine {
 	}
 	
 	@Override
+	public IQueryInterpreter2 getQueryInterpreter2() {
+		return null;
+	}
+	
+	@Override
 	public ENGINE_TYPE getEngineType() {
 		return ENGINE_TYPE.SOLR;
 	}
@@ -232,36 +238,36 @@ public class SolrEngine extends AbstractEngine {
 	 */
 	public ArrayList<String> getCoreList() {
 		String coreURL = solrBaseURL + "/admin/cores?action=STATUS&wt=json";
-		InputStream coreInput;
+		InputStream coreInput = null;
+		InputStreamReader isr = null;
 		ArrayList<String> coreList = new ArrayList<>();
 		System.out.println("Query Core List: " + coreURL);
 
 		try {
 			coreInput = new URL(coreURL).openStream();
-			Map<String, Object> coreMap = new Gson().fromJson(new InputStreamReader(coreInput, "UTF-8"), new TypeToken<Map<String, Object>>() {}.getType());
+			isr = new InputStreamReader(coreInput, "UTF-8");
+			Map<String, Object> coreMap = new Gson().fromJson(isr, new TypeToken<Map<String, Object>>() {}.getType());
 			Map<String, Object> statusObject = (Map<String, Object>) coreMap.get("status");
 			for (String s : statusObject.keySet()) {
-				//TODO check if engine exists
 				coreList.add(s);
 			}
-
-			System.out.println(
-					"****************************************************************************************************");
-			System.out.println(
-					"******************************          core List          ********************************************");
-			System.out.println(
-					"****************************************************************************************************");
-			for (int i = 0; i < coreList.size(); i++) {
-				System.out.println(coreList.get(i));
-			}
-			System.out.println(
-					"****************************************************************************************************");
-			System.out.println(
-					"****************************************************************************************************");
-
 		} catch (IOException e2) {
-			// TODO Auto-generated catch block
 			e2.printStackTrace();
+		} finally {
+			try {
+				if(isr != null) {
+					isr.close();
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			try {
+				if(coreInput != null) {
+					coreInput.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return coreList;
 	}
@@ -291,6 +297,7 @@ public class SolrEngine extends AbstractEngine {
 		Map<String, Object> schemaData = new HashMap<String, Object>();
 		
 		CloseableHttpClient httpclient = null;
+		InputStreamReader isr = null;
 		try {
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
@@ -301,7 +308,8 @@ public class SolrEngine extends AbstractEngine {
 			HttpResponse response = httpclient.execute(getRequest);
 			
 			// connect to the url to get the schema
-			Map<String, Object> map = new Gson().fromJson(new InputStreamReader(response.getEntity().getContent(), "UTF-8"), new TypeToken<Map<String, Object>>() {}.getType());
+			isr = new InputStreamReader(response.getEntity().getContent(), "UTF-8");
+			Map<String, Object> map = new Gson().fromJson(isr, new TypeToken<Map<String, Object>>() {}.getType());
 			List fields = (List) map.get("fields");
 			int size = fields.size();
 			List<String> headers = new Vector<String>(size);
@@ -337,6 +345,13 @@ public class SolrEngine extends AbstractEngine {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Could not process the solr core's schema information at " + schemaURL);
 		} finally {
+			try {
+				if(isr != null) {
+					isr.close();
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
 			if(httpclient != null) {
 				try {
 					httpclient.close();

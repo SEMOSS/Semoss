@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -58,21 +59,22 @@ public class GridScatterSheet extends BrowserPlaySheet{
 	public void processQueryData()
 	{
 		ArrayList<Hashtable<String, Object>> allData = new ArrayList<Hashtable<String, Object>>();
+		String[] qsNames = this.dataFrame.getQsHeaders();
 		String[] var = this.dataFrame.getColumnHeaders();
 		String name = var[0];
 		boolean hasType = true;
 		int offset = 0;
-		if(dataFrame.isNumeric(var[1])) {
+		if(dataFrame.isNumeric(qsNames[1])) {
 			hasType = false;
 		} else {
 			offset = 1;
 		}
 		
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{
 			Hashtable<String, Object> elementHash = new Hashtable<String, Object>();
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 			
 			if(hasType) {
 				name = listElement[0].toString();

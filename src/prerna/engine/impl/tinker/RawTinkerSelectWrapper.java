@@ -7,7 +7,7 @@ import java.util.Map;
 import prerna.ds.TinkerIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdf.HeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 
 public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
@@ -28,7 +28,7 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 		if (displayVar == null) {
 			getDisplayVariables();
 		}
-		return new HeadersDataRow(displayVar, row, row);
+		return new HeadersDataRow(displayVar, row);
 	}
 
 	@Override
@@ -59,6 +59,18 @@ public class RawTinkerSelectWrapper extends AbstractWrapper implements IRawSelec
 	@Override
 	public boolean hasNext() {
 		return it.hasNext();
+	}
+
+	@Override
+	public String[] getTypes() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

@@ -143,5 +143,8 @@ public class PKQLEnum {
 	//Errors
 	public static final String CHILD_ERROR = "CHILD_ERROR";
 	public static final String CHILD_ERROR_MESSAGE = "CHILD_ERROR_MESSAGE";
+
+
+	public static final String QUERY_STRUCT = null;
 	
 }

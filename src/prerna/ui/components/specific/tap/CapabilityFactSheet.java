@@ -34,6 +34,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.logging.Level;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.CapabilityFactSheetListener;
 import prerna.util.Constants;
@@ -108,10 +109,10 @@ public class CapabilityFactSheet extends BrowserPlaySheet{
 		addPanel();
 		ArrayList<String> dataArrayList = new ArrayList<String>();
 		String[] var = dataFrame.getColumnHeaders();
-		Iterator<Object[]> it = dataFrame.iterator();
+		Iterator<IHeadersDataRow> it = dataFrame.iterator();
 		while(it.hasNext())
 		{	
-			Object[] listElement = it.next();
+			Object[] listElement = it.next().getValues();
 		//	for (int j = 0; j < var.length; j++) 
 		//	{	
 					String text = (String) listElement[0];

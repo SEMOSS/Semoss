@@ -39,7 +39,6 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyVetoException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -62,16 +61,13 @@ import javax.swing.event.ChangeListener;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import aurelienribon.ui.css.Style;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.learning.similarity.DatasetSimilarity;
-import prerna.math.BarChart;
 import prerna.om.InsightStore;
-import prerna.om.SEMOSSParam;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.components.NewScrollBarUI;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.main.listener.impl.ClassificationSelectionListener;
-import prerna.ui.main.listener.impl.ClusterTabSelectionListener;
 import prerna.ui.main.listener.impl.DegreeSelectionListener;
 import prerna.ui.main.listener.impl.NumberOfClustersSelectionListener;
 import prerna.ui.main.listener.impl.RunAlgorithmListener;
@@ -85,7 +81,6 @@ import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import aurelienribon.ui.css.Style;
 
 @SuppressWarnings("serial")
 public class MachineLearningModulePlaySheet extends TablePlaySheet{
@@ -236,57 +231,57 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 	
 	public void displayEntropyDensity(List<String> skipColumns) {
 		if(dataFrame == null || dataFrame.isEmpty()) return;
-		
-		String[] headers = dataFrame.getColumnHeaders();
-		entropyArr = new Double[headers.length];
-		//dataFrame.setColumnsToSkip(skipColumns);
-		for(int i = 0 ; i < headers.length; i++) {
-			entropyArr[i] = dataFrame.getEntropyDensity(headers[i]);
-		}
-		
-		DecimalFormat formatter = new DecimalFormat("#0.00");
-		for(int i = 1; i < columnHeaders.length; i++) {
-			JLabel entropyVal = new JLabel();
-			entropyVal.setText(formatter.format(entropyArr[i]));
-			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
-			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
-			gbc_entropyVal.fill = GridBagConstraints.NONE;
-			gbc_entropyVal.insets = new Insets(5, 20, 0, 0);
-			gbc_entropyVal.gridx = 2;
-			gbc_entropyVal.gridy = i+1;
-			indVariablesPanel.add(entropyVal, gbc_entropyVal);
-			entropyLabels.add(entropyVal);
-		}
-		
-		dataFrame.setColumnsToSkip(null);
+//		
+//		String[] headers = dataFrame.getColumnHeaders();
+//		entropyArr = new Double[headers.length];
+//		//dataFrame.setColumnsToSkip(skipColumns);
+//		for(int i = 0 ; i < headers.length; i++) {
+//			entropyArr[i] = dataFrame.getEntropyDensity(headers[i]);
+//		}
+//		
+//		DecimalFormat formatter = new DecimalFormat("#0.00");
+//		for(int i = 1; i < columnHeaders.length; i++) {
+//			JLabel entropyVal = new JLabel();
+//			entropyVal.setText(formatter.format(entropyArr[i]));
+//			GridBagConstraints gbc_entropyVal = new GridBagConstraints();
+//			gbc_entropyVal.anchor = GridBagConstraints.FIRST_LINE_START;
+//			gbc_entropyVal.fill = GridBagConstraints.NONE;
+//			gbc_entropyVal.insets = new Insets(5, 20, 0, 0);
+//			gbc_entropyVal.gridx = 2;
+//			gbc_entropyVal.gridy = i+1;
+//			indVariablesPanel.add(entropyVal, gbc_entropyVal);
+//			entropyLabels.add(entropyVal);
+//		}
+//		
+//		dataFrame.setColumnsToSkip(null);
 	}
 	public void fillSimBarChartHash(ITableDataFrame data, List<String> skipColumns) {
-		//run the algorithms for similarity bar chart to create hash.
-		DatasetSimilarity alg = new DatasetSimilarity();
-		List<SEMOSSParam> options = alg.getOptions();
-		HashMap<String, Object> selectedOptions = new HashMap<String, Object>();
-		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
-		selectedOptions.put(options.get(2).getName(), skipColumns); // TODO: add skipColumns to all algorithms
-
-		alg.setSelectedOptions(selectedOptions);
-		ITableDataFrame simAlgResults = alg.runAlgorithm(dataFrame);
-		
-		Double[] values = simAlgResults.getColumnAsNumeric(simAlgResults.getColumnHeaders()[1]);
-		Hashtable<String, Object>[] bins = null;
-		BarChart chart = new BarChart(values, simAlgResults.getColumnHeaders()[1]);
-		if(chart.isUseCategoricalForNumericInput()) {
-			chart.calculateCategoricalBins("?", true, true);
-			chart.generateJSONHashtableCategorical();
-			bins = chart.getRetHashForJSON();
-		} else {
-			chart.generateJSONHashtableNumerical();
-			bins = chart.getRetHashForJSON();
-		}
-		
-		simBarChartHash = new Hashtable<String, Object>();
-		Object[] binArr = new Object[]{bins};
-		simBarChartHash.put("dataSeries", binArr);
-		simBarChartHash.put("names", new String[]{dataFrame.getColumnHeaders()[instanceIndex].concat(" Similarity Distribution to Dataset Center")});
+//		//run the algorithms for similarity bar chart to create hash.
+//		DatasetSimilarity alg = new DatasetSimilarity();
+//		List<SEMOSSParam> options = alg.getOptions();
+//		HashMap<String, Object> selectedOptions = new HashMap<String, Object>();
+//		selectedOptions.put(options.get(0).getName(), instanceIndex); // default of 0 is acceptable
+//		selectedOptions.put(options.get(2).getName(), skipColumns); // TODO: add skipColumns to all algorithms
+//
+//		alg.setSelectedOptions(selectedOptions);
+//		ITableDataFrame simAlgResults = alg.runAlgorithm(dataFrame);
+//		
+//		Double[] values = simAlgResults.getColumnAsNumeric(simAlgResults.getColumnHeaders()[1]);
+//		Hashtable<String, Object>[] bins = null;
+//		BarChart chart = new BarChart(values, simAlgResults.getColumnHeaders()[1]);
+//		if(chart.isUseCategoricalForNumericInput()) {
+//			chart.calculateCategoricalBins("?", true, true);
+//			chart.generateJSONHashtableCategorical();
+//			bins = chart.getRetHashForJSON();
+//		} else {
+//			chart.generateJSONHashtableNumerical();
+//			bins = chart.getRetHashForJSON();
+//		}
+//		
+//		simBarChartHash = new Hashtable<String, Object>();
+//		Object[] binArr = new Object[]{bins};
+//		simBarChartHash.put("dataSeries", binArr);
+//		simBarChartHash.put("names", new String[]{dataFrame.getColumnHeaders()[instanceIndex].concat(" Similarity Distribution to Dataset Center")});
 	}
 
 	@Override
@@ -592,9 +587,9 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 		drillDownListener.setView(this);
 		showDrillDownBtn.addActionListener(drillDownListener);
 		
-		ClusterTabSelectionListener drillDownSelectTabListener = new ClusterTabSelectionListener();
-		drillDownSelectTabListener.setView(this);
-		drillDownTabSelectorComboBox.addActionListener(drillDownSelectTabListener);
+//		ClusterTabSelectionListener drillDownSelectTabListener = new ClusterTabSelectionListener();
+//		drillDownSelectTabListener.setView(this);
+//		drillDownTabSelectorComboBox.addActionListener(drillDownSelectTabListener);
 		
 		RunDrillDownListener runDrillDownListener = new RunDrillDownListener();
 		runDrillDownListener.setView(this);
@@ -975,154 +970,154 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 	}
 	
 	private void fillHOFclassifyPanel(JPanel HOFclassifyPanel) {
-		
-		GridBagLayout gbl_HOFclassifyPanel = new GridBagLayout();
-		gbl_HOFclassifyPanel.columnWidths = new int[]{0, 0, 0};
-		gbl_HOFclassifyPanel.rowHeights = new int[]{0, 0, 0};
-		gbl_HOFclassifyPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
-		gbl_HOFclassifyPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
-		HOFclassifyPanel.setLayout(gbl_HOFclassifyPanel);
-				
-		HOFlblSelectClass = new JLabel("Select variable to classify:");
-		HOFlblSelectClass.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_HOFlblSelectClass = new GridBagConstraints();
-		gbc_HOFlblSelectClass.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_HOFlblSelectClass.fill = GridBagConstraints.NONE;
-		gbc_HOFlblSelectClass.insets = new Insets(10, 5, 0, 0);
-		gbc_HOFlblSelectClass.gridx = 0;
-		gbc_HOFlblSelectClass.gridy = 0;
-		HOFclassifyPanel.add(HOFlblSelectClass, gbc_HOFlblSelectClass);
-
-		HOFclassifyClassComboBox = new JComboBox<String>();
-		HOFclassifyClassComboBox.setName("classComboBox");
-		HOFclassifyClassComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		HOFclassifyClassComboBox.setBackground(Color.GRAY);
-		HOFclassifyClassComboBox.setPreferredSize(new Dimension(250, 25));
-		String[] cols = new String[columnHeaders.length-1];
-		
-		int counter = 0;
-		for(int i = 0; i < columnHeaders.length; i++) {
-			if(i == instanceIndex) {
-				continue;
-			}
-			cols[counter] = columnHeaders[i];
-			counter++;
-		}
-		HOFclassifyClassComboBox.setModel(new DefaultComboBoxModel<String>(cols));
-		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
-		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_classComboBox.fill = GridBagConstraints.NONE;
-		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
-		gbc_classComboBox.gridx = 0;
-		gbc_classComboBox.gridy = 1;
-		HOFclassifyPanel.add(HOFclassifyClassComboBox, gbc_classComboBox);
-		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
-		classSelectList.setView(this);
-		HOFclassifyClassComboBox.addActionListener(classSelectList);
-
-		lblenterHOFConfidence = new JLabel("Enter Confidence %:   80");
-		lblenterHOFConfidence.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblenterHOFConfidence = new GridBagConstraints();
-		gbc_lblenterHOFConfidence.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblenterHOFConfidence.fill = GridBagConstraints.NONE;
-		gbc_lblenterHOFConfidence.insets = new Insets(10, 5, 0, 0);
-		gbc_lblenterHOFConfidence.gridx = 0;
-		gbc_lblenterHOFConfidence.gridy = 2;
-		HOFclassifyPanel.add(lblenterHOFConfidence, gbc_lblenterHOFConfidence);
-		
-		enterHOFConfidenceSlider = new JSlider(10,95,80);
-		enterHOFConfidenceSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		enterHOFConfidenceSlider.setMajorTickSpacing(10);
-		enterHOFConfidenceSlider.setMinorTickSpacing(1);
-		enterHOFConfidenceSlider.setPaintLabels(true);
-		enterHOFConfidenceSlider.setPaintTicks(true);
-		enterHOFConfidenceSlider.setPreferredSize(new Dimension(400,40));
-		enterHOFConfidenceSlider.setVisible(false);
-		enterHOFConfidenceListener list1 = new enterHOFConfidenceListener();
-		enterHOFConfidenceSlider.addChangeListener(list1);
-		GridBagConstraints gbc_getenterHOFConfidenceSlider = new GridBagConstraints();
-		gbc_getenterHOFConfidenceSlider.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_getenterHOFConfidenceSlider.fill = GridBagConstraints.NONE;
-		gbc_getenterHOFConfidenceSlider.insets = new Insets(5, 5, 0, 0);
-		gbc_getenterHOFConfidenceSlider.gridx = 0;
-		gbc_getenterHOFConfidenceSlider.gridy = 3;
-		HOFclassifyPanel.add(enterHOFConfidenceSlider, gbc_getenterHOFConfidenceSlider);
-		
-		int numRows = dataFrame.getNumRows();
-		int maxGrace = (int) (numRows * 0.5);
-		int defaultGrace = (int) (numRows * 0.2);
-		int tickSpace = (int) (maxGrace * 0.1);
-		enterHOFGraceRows = new JSlider(0,maxGrace,defaultGrace);
-		enterHOFGraceRows.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		enterHOFGraceRows.setMajorTickSpacing(tickSpace);
-		enterHOFGraceRows.setPaintLabels(true);
-		enterHOFGraceRows.setPaintTicks(true);
-		enterHOFGraceRows.setPreferredSize(new Dimension(400,40));
-		enterHOFGraceRowsListener I = new enterHOFGraceRowsListener();
-		enterHOFGraceRows.addChangeListener(I);
-		
-		lblenterHOFGraceRows = new JLabel("Enter # of rows to look over first before classifying:   "+defaultGrace);
-		lblenterHOFGraceRows.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblenterHOFGraceRows = new GridBagConstraints();
-		gbc_lblenterHOFGraceRows.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblenterHOFGraceRows.fill = GridBagConstraints.NONE;
-		gbc_lblenterHOFGraceRows.insets = new Insets(10, 5, 0, 0);
-		gbc_lblenterHOFGraceRows.gridx = 0;
-		gbc_lblenterHOFGraceRows.gridy = 4;
-		HOFclassifyPanel.add(lblenterHOFGraceRows, gbc_lblenterHOFGraceRows);
-		
-
-		  
-		//enterKNeighborsSlider.set
-//		enterKNeighborsTextField.setText("5");
-//		enterKNeighborsTextField.setColumns(4);
-		enterHOFGraceRows.setVisible(false);
-		GridBagConstraints gbc_getenterHOFGraceRows = new GridBagConstraints();
-		gbc_getenterHOFGraceRows.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_getenterHOFGraceRows.fill = GridBagConstraints.NONE;
-		gbc_getenterHOFGraceRows.insets = new Insets(5, 5, 0, 0);
-		gbc_getenterHOFGraceRows.gridx = 0;
-		gbc_getenterHOFGraceRows.gridy = 5;
-		HOFclassifyPanel.add(enterHOFGraceRows, gbc_getenterHOFGraceRows);
-		
-		lblEnterTieThreshold = new JLabel("% threshold to break ties:   1");
-		lblEnterTieThreshold.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblEnterTieThreshold = new GridBagConstraints();
-		gbc_lblEnterTieThreshold.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblEnterTieThreshold.fill = GridBagConstraints.NONE;
-		gbc_lblEnterTieThreshold.insets = new Insets(10, 5, 0, 0);
-		gbc_lblEnterTieThreshold.gridx = 0;
-		gbc_lblEnterTieThreshold.gridy = 6;
-		HOFclassifyPanel.add(lblEnterTieThreshold, gbc_lblEnterTieThreshold);
-		
-		enterTieThresholdSlider = new JSlider(0,5,1);
-		enterTieThresholdSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		enterTieThresholdSlider.setMajorTickSpacing(5);
-		enterTieThresholdSlider.setMinorTickSpacing(1);
-		enterTieThresholdSlider.setPaintLabels(true);
-		enterTieThresholdSlider.setPaintTicks(true);
-		enterTieThresholdSlider.setPreferredSize(new Dimension(400,40));
-		enterTieThresholdSlider.setVisible(false);
-		enterTieThresholdListener list3 = new enterTieThresholdListener();
-		enterTieThresholdSlider.addChangeListener(list3);
-		GridBagConstraints gbc_getenterTieThresholdSlider = new GridBagConstraints();
-		gbc_getenterTieThresholdSlider.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_getenterTieThresholdSlider.fill = GridBagConstraints.NONE;
-		gbc_getenterTieThresholdSlider.insets = new Insets(5, 5, 0, 0);
-		gbc_getenterTieThresholdSlider.gridx = 0;
-		gbc_getenterTieThresholdSlider.gridy = 7;
-		HOFclassifyPanel.add(enterTieThresholdSlider, gbc_getenterTieThresholdSlider);
-		
-		lblHOFWarning = new JLabel("[Warning: If sliders are too high, you will probably get poor results.]:");
-		lblHOFWarning.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_HOFWarning = new GridBagConstraints();
-		gbc_HOFWarning.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_HOFWarning.fill = GridBagConstraints.NONE;
-		gbc_HOFWarning.insets = new Insets(10, 5, 0, 0);
-		gbc_HOFWarning.gridx = 0;
-		gbc_HOFWarning.gridy = 8;
-		HOFclassifyPanel.add(lblHOFWarning, gbc_HOFWarning);
-	
+//		
+//		GridBagLayout gbl_HOFclassifyPanel = new GridBagLayout();
+//		gbl_HOFclassifyPanel.columnWidths = new int[]{0, 0, 0};
+//		gbl_HOFclassifyPanel.rowHeights = new int[]{0, 0, 0};
+//		gbl_HOFclassifyPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+//		gbl_HOFclassifyPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+//		HOFclassifyPanel.setLayout(gbl_HOFclassifyPanel);
+//				
+//		HOFlblSelectClass = new JLabel("Select variable to classify:");
+//		HOFlblSelectClass.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_HOFlblSelectClass = new GridBagConstraints();
+//		gbc_HOFlblSelectClass.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_HOFlblSelectClass.fill = GridBagConstraints.NONE;
+//		gbc_HOFlblSelectClass.insets = new Insets(10, 5, 0, 0);
+//		gbc_HOFlblSelectClass.gridx = 0;
+//		gbc_HOFlblSelectClass.gridy = 0;
+//		HOFclassifyPanel.add(HOFlblSelectClass, gbc_HOFlblSelectClass);
+//
+//		HOFclassifyClassComboBox = new JComboBox<String>();
+//		HOFclassifyClassComboBox.setName("classComboBox");
+//		HOFclassifyClassComboBox.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		HOFclassifyClassComboBox.setBackground(Color.GRAY);
+//		HOFclassifyClassComboBox.setPreferredSize(new Dimension(250, 25));
+//		String[] cols = new String[columnHeaders.length-1];
+//		
+//		int counter = 0;
+//		for(int i = 0; i < columnHeaders.length; i++) {
+//			if(i == instanceIndex) {
+//				continue;
+//			}
+//			cols[counter] = columnHeaders[i];
+//			counter++;
+//		}
+//		HOFclassifyClassComboBox.setModel(new DefaultComboBoxModel<String>(cols));
+//		GridBagConstraints gbc_classComboBox = new GridBagConstraints();
+//		gbc_classComboBox.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_classComboBox.fill = GridBagConstraints.NONE;
+//		gbc_classComboBox.insets = new Insets(5, 5, 0, 0);
+//		gbc_classComboBox.gridx = 0;
+//		gbc_classComboBox.gridy = 1;
+//		HOFclassifyPanel.add(HOFclassifyClassComboBox, gbc_classComboBox);
+//		ClassificationSelectionListener classSelectList = new ClassificationSelectionListener();
+//		classSelectList.setView(this);
+//		HOFclassifyClassComboBox.addActionListener(classSelectList);
+//
+//		lblenterHOFConfidence = new JLabel("Enter Confidence %:   80");
+//		lblenterHOFConfidence.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblenterHOFConfidence = new GridBagConstraints();
+//		gbc_lblenterHOFConfidence.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblenterHOFConfidence.fill = GridBagConstraints.NONE;
+//		gbc_lblenterHOFConfidence.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblenterHOFConfidence.gridx = 0;
+//		gbc_lblenterHOFConfidence.gridy = 2;
+//		HOFclassifyPanel.add(lblenterHOFConfidence, gbc_lblenterHOFConfidence);
+//		
+//		enterHOFConfidenceSlider = new JSlider(10,95,80);
+//		enterHOFConfidenceSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		enterHOFConfidenceSlider.setMajorTickSpacing(10);
+//		enterHOFConfidenceSlider.setMinorTickSpacing(1);
+//		enterHOFConfidenceSlider.setPaintLabels(true);
+//		enterHOFConfidenceSlider.setPaintTicks(true);
+//		enterHOFConfidenceSlider.setPreferredSize(new Dimension(400,40));
+//		enterHOFConfidenceSlider.setVisible(false);
+//		enterHOFConfidenceListener list1 = new enterHOFConfidenceListener();
+//		enterHOFConfidenceSlider.addChangeListener(list1);
+//		GridBagConstraints gbc_getenterHOFConfidenceSlider = new GridBagConstraints();
+//		gbc_getenterHOFConfidenceSlider.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_getenterHOFConfidenceSlider.fill = GridBagConstraints.NONE;
+//		gbc_getenterHOFConfidenceSlider.insets = new Insets(5, 5, 0, 0);
+//		gbc_getenterHOFConfidenceSlider.gridx = 0;
+//		gbc_getenterHOFConfidenceSlider.gridy = 3;
+//		HOFclassifyPanel.add(enterHOFConfidenceSlider, gbc_getenterHOFConfidenceSlider);
+//		
+//		int numRows = dataFrame.getNumRows();
+//		int maxGrace = (int) (numRows * 0.5);
+//		int defaultGrace = (int) (numRows * 0.2);
+//		int tickSpace = (int) (maxGrace * 0.1);
+//		enterHOFGraceRows = new JSlider(0,maxGrace,defaultGrace);
+//		enterHOFGraceRows.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		enterHOFGraceRows.setMajorTickSpacing(tickSpace);
+//		enterHOFGraceRows.setPaintLabels(true);
+//		enterHOFGraceRows.setPaintTicks(true);
+//		enterHOFGraceRows.setPreferredSize(new Dimension(400,40));
+//		enterHOFGraceRowsListener I = new enterHOFGraceRowsListener();
+//		enterHOFGraceRows.addChangeListener(I);
+//		
+//		lblenterHOFGraceRows = new JLabel("Enter # of rows to look over first before classifying:   "+defaultGrace);
+//		lblenterHOFGraceRows.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblenterHOFGraceRows = new GridBagConstraints();
+//		gbc_lblenterHOFGraceRows.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblenterHOFGraceRows.fill = GridBagConstraints.NONE;
+//		gbc_lblenterHOFGraceRows.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblenterHOFGraceRows.gridx = 0;
+//		gbc_lblenterHOFGraceRows.gridy = 4;
+//		HOFclassifyPanel.add(lblenterHOFGraceRows, gbc_lblenterHOFGraceRows);
+//		
+//
+//		  
+//		//enterKNeighborsSlider.set
+////		enterKNeighborsTextField.setText("5");
+////		enterKNeighborsTextField.setColumns(4);
+//		enterHOFGraceRows.setVisible(false);
+//		GridBagConstraints gbc_getenterHOFGraceRows = new GridBagConstraints();
+//		gbc_getenterHOFGraceRows.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_getenterHOFGraceRows.fill = GridBagConstraints.NONE;
+//		gbc_getenterHOFGraceRows.insets = new Insets(5, 5, 0, 0);
+//		gbc_getenterHOFGraceRows.gridx = 0;
+//		gbc_getenterHOFGraceRows.gridy = 5;
+//		HOFclassifyPanel.add(enterHOFGraceRows, gbc_getenterHOFGraceRows);
+//		
+//		lblEnterTieThreshold = new JLabel("% threshold to break ties:   1");
+//		lblEnterTieThreshold.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblEnterTieThreshold = new GridBagConstraints();
+//		gbc_lblEnterTieThreshold.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblEnterTieThreshold.fill = GridBagConstraints.NONE;
+//		gbc_lblEnterTieThreshold.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblEnterTieThreshold.gridx = 0;
+//		gbc_lblEnterTieThreshold.gridy = 6;
+//		HOFclassifyPanel.add(lblEnterTieThreshold, gbc_lblEnterTieThreshold);
+//		
+//		enterTieThresholdSlider = new JSlider(0,5,1);
+//		enterTieThresholdSlider.setFont(new Font("Tahoma", Font.PLAIN, 11));
+//		enterTieThresholdSlider.setMajorTickSpacing(5);
+//		enterTieThresholdSlider.setMinorTickSpacing(1);
+//		enterTieThresholdSlider.setPaintLabels(true);
+//		enterTieThresholdSlider.setPaintTicks(true);
+//		enterTieThresholdSlider.setPreferredSize(new Dimension(400,40));
+//		enterTieThresholdSlider.setVisible(false);
+//		enterTieThresholdListener list3 = new enterTieThresholdListener();
+//		enterTieThresholdSlider.addChangeListener(list3);
+//		GridBagConstraints gbc_getenterTieThresholdSlider = new GridBagConstraints();
+//		gbc_getenterTieThresholdSlider.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_getenterTieThresholdSlider.fill = GridBagConstraints.NONE;
+//		gbc_getenterTieThresholdSlider.insets = new Insets(5, 5, 0, 0);
+//		gbc_getenterTieThresholdSlider.gridx = 0;
+//		gbc_getenterTieThresholdSlider.gridy = 7;
+//		HOFclassifyPanel.add(enterTieThresholdSlider, gbc_getenterTieThresholdSlider);
+//		
+//		lblHOFWarning = new JLabel("[Warning: If sliders are too high, you will probably get poor results.]:");
+//		lblHOFWarning.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_HOFWarning = new GridBagConstraints();
+//		gbc_HOFWarning.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_HOFWarning.fill = GridBagConstraints.NONE;
+//		gbc_HOFWarning.insets = new Insets(10, 5, 0, 0);
+//		gbc_HOFWarning.gridx = 0;
+//		gbc_HOFWarning.gridy = 8;
+//		HOFclassifyPanel.add(lblHOFWarning, gbc_HOFWarning);
+//	
 	}
 	
 	class enterHOFGraceRowsListener implements ChangeListener {
@@ -1284,114 +1279,114 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 	
 	private void fillSOMPanel(JPanel somPanel) {
 		GridBagLayout gbl_somPanel = new GridBagLayout();
-		gbl_somPanel.columnWidths = new int[]{0, 0, 0};
-		gbl_somPanel.rowHeights = new int[]{0, 0, 0};
-		gbl_somPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
-		gbl_somPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
-		somPanel.setLayout(gbl_somPanel);
-		
-		double x = Math.sqrt((double) dataFrame.getNumRows() / (6*5));
-		som_height = (int) Math.round(2*x);
-		som_length = (int) Math.round(3*x);
-		
-		JLabel lblSizeGrid = new JLabel("Grid size is: " + som_height + " x " + som_length);
-		lblSizeGrid.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblSizeGrid = new GridBagConstraints();
-		gbc_lblSizeGrid.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblSizeGrid.fill = GridBagConstraints.NONE;
-		gbc_lblSizeGrid.insets = new Insets(10, 5, 0, 0);
-		gbc_lblSizeGrid.gridx = 0;
-		gbc_lblSizeGrid.gridy = 0;
-		gbc_lblSizeGrid.gridwidth = 2;
-		somPanel.add(lblSizeGrid, gbc_lblSizeGrid);
-		
-		lblEnterR0 = new JLabel("Enter Initial Radius (r0): ");
-		lblEnterR0.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblEnterR0 = new GridBagConstraints();
-		gbc_lblEnterR0.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblEnterR0.fill = GridBagConstraints.NONE;
-		gbc_lblEnterR0.insets = new Insets(10, 5, 0, 0);
-		gbc_lblEnterR0.gridx = 0;
-		gbc_lblEnterR0.gridy = 1;
-		somPanel.add(lblEnterR0, gbc_lblEnterR0);
-		
-		int defaultMaxIt = 15;
-		double defaultR0 = som_length / 6;
-		double defaultTau = defaultMaxIt/defaultR0;
-		
-		enterR0TextField = new JTextField();
-		enterR0TextField.setColumns(4);
-		enterR0TextField.setText(defaultR0+"");
-		GridBagConstraints gbc_enterR0TextField = new GridBagConstraints();
-		gbc_enterR0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_enterR0TextField.fill = GridBagConstraints.NONE;
-		gbc_enterR0TextField.insets = new Insets(10, 5, 0, 0);
-		gbc_enterR0TextField.gridx = 1;
-		gbc_enterR0TextField.gridy = 1;
-		somPanel.add(enterR0TextField, gbc_enterR0TextField);
-		
-		lblEnterL0 = new JLabel("Enter Learning Rate (l0): ");
-		lblEnterL0.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblEnterL0 = new GridBagConstraints();
-		gbc_lblEnterL0.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblEnterL0.fill = GridBagConstraints.NONE;
-		gbc_lblEnterL0.insets = new Insets(10, 5, 0, 0);
-		gbc_lblEnterL0.gridx = 0;
-		gbc_lblEnterL0.gridy = 2;
-		somPanel.add(lblEnterL0, gbc_lblEnterL0);
-		
-		enterL0TextField = new JTextField();
-		enterL0TextField.setColumns(4);
-		enterL0TextField.setText("0.07");
-		GridBagConstraints gbc_enterL0TextField = new GridBagConstraints();
-		gbc_enterL0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_enterL0TextField.fill = GridBagConstraints.NONE;
-		gbc_enterL0TextField.insets = new Insets(10, 5, 0, 0);
-		gbc_enterL0TextField.gridx = 1;
-		gbc_enterL0TextField.gridy = 2;
-		somPanel.add(enterL0TextField, gbc_enterL0TextField);
-		
-		lblEnterTau = new JLabel("Enter Tau: ");
-		lblEnterTau.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblEnterTau = new GridBagConstraints();
-		gbc_lblEnterTau.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblEnterTau.fill = GridBagConstraints.NONE;
-		gbc_lblEnterTau.insets = new Insets(10, 5, 0, 0);
-		gbc_lblEnterTau.gridx = 0;
-		gbc_lblEnterTau.gridy = 3;
-		somPanel.add(lblEnterTau, gbc_lblEnterTau);
-		
-		enterTauTextField = new JTextField();
-		enterTauTextField.setColumns(4);
-		enterTauTextField.setText(defaultTau+"");
-		GridBagConstraints gbc_enterTauTextField = new GridBagConstraints();
-		gbc_enterTauTextField.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_enterTauTextField.fill = GridBagConstraints.NONE;
-		gbc_enterTauTextField.insets = new Insets(10, 5, 0, 0);
-		gbc_enterTauTextField.gridx = 1;
-		gbc_enterTauTextField.gridy = 3;
-		somPanel.add(enterTauTextField, gbc_enterTauTextField);
-		
-		lblEnterMaxIt = new JLabel("Enter Maximum Iterations: ");
-		lblEnterMaxIt.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblEnterMaxIt = new GridBagConstraints();
-		gbc_lblEnterMaxIt.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_lblEnterMaxIt.fill = GridBagConstraints.NONE;
-		gbc_lblEnterMaxIt.insets = new Insets(10, 5, 0, 0);
-		gbc_lblEnterMaxIt.gridx = 0;
-		gbc_lblEnterMaxIt.gridy = 4;
-		somPanel.add(lblEnterMaxIt, gbc_lblEnterMaxIt);
-		
-		enterMaxItTextField = new JTextField();
-		enterMaxItTextField.setColumns(4);
-		enterMaxItTextField.setText(defaultMaxIt+"");
-		GridBagConstraints gbc_enterMaxItTextField = new GridBagConstraints();
-		gbc_enterMaxItTextField.anchor = GridBagConstraints.FIRST_LINE_START;
-		gbc_enterMaxItTextField.fill = GridBagConstraints.NONE;
-		gbc_enterMaxItTextField.insets = new Insets(10, 5, 0, 0);
-		gbc_enterMaxItTextField.gridx = 1;
-		gbc_enterMaxItTextField.gridy = 4;
-		somPanel.add(enterMaxItTextField, gbc_enterMaxItTextField);
+//		gbl_somPanel.columnWidths = new int[]{0, 0, 0};
+//		gbl_somPanel.rowHeights = new int[]{0, 0, 0};
+//		gbl_somPanel.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+//		gbl_somPanel.rowWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
+//		somPanel.setLayout(gbl_somPanel);
+//		
+//		double x = Math.sqrt((double) dataFrame.getNumRows() / (6*5));
+//		som_height = (int) Math.round(2*x);
+//		som_length = (int) Math.round(3*x);
+//		
+//		JLabel lblSizeGrid = new JLabel("Grid size is: " + som_height + " x " + som_length);
+//		lblSizeGrid.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblSizeGrid = new GridBagConstraints();
+//		gbc_lblSizeGrid.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblSizeGrid.fill = GridBagConstraints.NONE;
+//		gbc_lblSizeGrid.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblSizeGrid.gridx = 0;
+//		gbc_lblSizeGrid.gridy = 0;
+//		gbc_lblSizeGrid.gridwidth = 2;
+//		somPanel.add(lblSizeGrid, gbc_lblSizeGrid);
+//		
+//		lblEnterR0 = new JLabel("Enter Initial Radius (r0): ");
+//		lblEnterR0.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblEnterR0 = new GridBagConstraints();
+//		gbc_lblEnterR0.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblEnterR0.fill = GridBagConstraints.NONE;
+//		gbc_lblEnterR0.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblEnterR0.gridx = 0;
+//		gbc_lblEnterR0.gridy = 1;
+//		somPanel.add(lblEnterR0, gbc_lblEnterR0);
+//		
+//		int defaultMaxIt = 15;
+//		double defaultR0 = som_length / 6;
+//		double defaultTau = defaultMaxIt/defaultR0;
+//		
+//		enterR0TextField = new JTextField();
+//		enterR0TextField.setColumns(4);
+//		enterR0TextField.setText(defaultR0+"");
+//		GridBagConstraints gbc_enterR0TextField = new GridBagConstraints();
+//		gbc_enterR0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_enterR0TextField.fill = GridBagConstraints.NONE;
+//		gbc_enterR0TextField.insets = new Insets(10, 5, 0, 0);
+//		gbc_enterR0TextField.gridx = 1;
+//		gbc_enterR0TextField.gridy = 1;
+//		somPanel.add(enterR0TextField, gbc_enterR0TextField);
+//		
+//		lblEnterL0 = new JLabel("Enter Learning Rate (l0): ");
+//		lblEnterL0.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblEnterL0 = new GridBagConstraints();
+//		gbc_lblEnterL0.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblEnterL0.fill = GridBagConstraints.NONE;
+//		gbc_lblEnterL0.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblEnterL0.gridx = 0;
+//		gbc_lblEnterL0.gridy = 2;
+//		somPanel.add(lblEnterL0, gbc_lblEnterL0);
+//		
+//		enterL0TextField = new JTextField();
+//		enterL0TextField.setColumns(4);
+//		enterL0TextField.setText("0.07");
+//		GridBagConstraints gbc_enterL0TextField = new GridBagConstraints();
+//		gbc_enterL0TextField.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_enterL0TextField.fill = GridBagConstraints.NONE;
+//		gbc_enterL0TextField.insets = new Insets(10, 5, 0, 0);
+//		gbc_enterL0TextField.gridx = 1;
+//		gbc_enterL0TextField.gridy = 2;
+//		somPanel.add(enterL0TextField, gbc_enterL0TextField);
+//		
+//		lblEnterTau = new JLabel("Enter Tau: ");
+//		lblEnterTau.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblEnterTau = new GridBagConstraints();
+//		gbc_lblEnterTau.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblEnterTau.fill = GridBagConstraints.NONE;
+//		gbc_lblEnterTau.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblEnterTau.gridx = 0;
+//		gbc_lblEnterTau.gridy = 3;
+//		somPanel.add(lblEnterTau, gbc_lblEnterTau);
+//		
+//		enterTauTextField = new JTextField();
+//		enterTauTextField.setColumns(4);
+//		enterTauTextField.setText(defaultTau+"");
+//		GridBagConstraints gbc_enterTauTextField = new GridBagConstraints();
+//		gbc_enterTauTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_enterTauTextField.fill = GridBagConstraints.NONE;
+//		gbc_enterTauTextField.insets = new Insets(10, 5, 0, 0);
+//		gbc_enterTauTextField.gridx = 1;
+//		gbc_enterTauTextField.gridy = 3;
+//		somPanel.add(enterTauTextField, gbc_enterTauTextField);
+//		
+//		lblEnterMaxIt = new JLabel("Enter Maximum Iterations: ");
+//		lblEnterMaxIt.setFont(new Font("Tahoma", Font.BOLD, 11));
+//		GridBagConstraints gbc_lblEnterMaxIt = new GridBagConstraints();
+//		gbc_lblEnterMaxIt.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_lblEnterMaxIt.fill = GridBagConstraints.NONE;
+//		gbc_lblEnterMaxIt.insets = new Insets(10, 5, 0, 0);
+//		gbc_lblEnterMaxIt.gridx = 0;
+//		gbc_lblEnterMaxIt.gridy = 4;
+//		somPanel.add(lblEnterMaxIt, gbc_lblEnterMaxIt);
+//		
+//		enterMaxItTextField = new JTextField();
+//		enterMaxItTextField.setColumns(4);
+//		enterMaxItTextField.setText(defaultMaxIt+"");
+//		GridBagConstraints gbc_enterMaxItTextField = new GridBagConstraints();
+//		gbc_enterMaxItTextField.anchor = GridBagConstraints.FIRST_LINE_START;
+//		gbc_enterMaxItTextField.fill = GridBagConstraints.NONE;
+//		gbc_enterMaxItTextField.insets = new Insets(10, 5, 0, 0);
+//		gbc_enterMaxItTextField.gridx = 1;
+//		gbc_enterMaxItTextField.gridy = 4;
+//		somPanel.add(enterMaxItTextField, gbc_enterMaxItTextField);
 	}
 	
 	private void fillFrequentSetsPanel(JPanel frequentSetsPanel) {
@@ -1864,10 +1859,10 @@ public class MachineLearningModulePlaySheet extends TablePlaySheet{
 		//button to run drill down
 		if(show) {
 			String tabName = (String) drillDownTabSelectorComboBox.getSelectedItem();
-			ClusteringVizPlaySheet playSheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
-			int clusters = playSheet.getNumClusters();			
-			updateClusterCheckboxes(clusters);
-			resetClusterCheckboxesListener();
+//			ClusteringVizPlaySheet playSheet = (ClusteringVizPlaySheet) playSheetHash.get(tabName);
+//			int clusters = playSheet.getNumClusters();			
+//			updateClusterCheckboxes(clusters);
+//			resetClusterCheckboxesListener();
 		} else {
 			updateClusterCheckboxes(0); //remove all the checkboxes
 		}

@@ -1,20 +1,20 @@
 package prerna.quartz;
 
 import static org.quartz.JobBuilder.newJob;
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+import static org.quartz.TriggerBuilder.newTrigger;
 import static org.quartz.impl.StdSchedulerFactory.getDefaultScheduler;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -25,9 +25,9 @@ import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.Trigger;
 
 import prerna.util.AbstractFileWatcher;
-import prerna.util.DIHelper;
 
 public class QuartzWebWatcher extends AbstractFileWatcher {
 
@@ -48,7 +48,6 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 
 	@Override
 	public void process(String fileName) {
-		
 		// Get the json string from a file
 		String jsonString;
 		try {
@@ -78,7 +77,12 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 
 			String rdbmsId = values.getString("rdbms-id");
 			String engine = values.getString("engine");
-			String valuePkql = values.getString("value-pkql");
+			String returnColumn = values.getString("return-column");
+			String compareColumn = values.getString("compare-column");
+			String comparator = values.getString("comparator");
+			String valueType = values.getString("value-type");
+			String value = values.getString("value");
+//			String valuePkql = values.getString("value-pkql");
 			
 			// Setup the job chain
 			JobDataMap jobChainMap = new JobDataMap();
@@ -90,13 +94,22 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 			
 			// GetInsightJob
 			jobSequence.add(GetInsightJob.class);
-			jobChainMap.put(GetInsightJob.IN_RDBMS_ID, rdbmsId);
+			jobChainMap.put(LinkedDataKeys.RDBMS_ID, rdbmsId);
+			jobChainMap.put(GetInsightJob.IN_ENGINE_NAME_KEY, engine);
 			
 			// GetDataFromInsightJob
 			jobSequence.add(GetDataFromInsightJob.class);
 		
 			// PrintDataToConsoleJob
-			jobSequence.add(PrintDataToConsoleJob.class);
+//			jobSequence.add(PrintDataToConsoleJob.class);
+			
+			//CheckCriteriaJob
+			jobSequence.add(CheckCriteriaJob.class);
+			jobChainMap.put(CheckCriteriaJob.IN_RETURN_COLUMN, returnColumn);
+			jobChainMap.put(CheckCriteriaJob.IN_COMPARE_COLUMN, compareColumn);
+			jobChainMap.put(CheckCriteriaJob.IN_COMPARATOR, comparator);
+			jobChainMap.put(CheckCriteriaJob.IN_VALUE_TYPE, valueType);
+			jobChainMap.put(CheckCriteriaJob.IN_VALUE, value);
 			
 			// TODO make the comparison
 			
@@ -110,11 +123,32 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 	
 			// Trigger the job chain
 			try {
+				String dateValue = trigger.getString("start-date");
+				Date date = new Date();
+				SimpleDateFormat format = new SimpleDateFormat(
+			            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+				format.setTimeZone(TimeZone.getTimeZone("UTC"));
+				if (dateValue != null) {
+					date = format.parse(dateValue);
+				}
+				Integer frequency = Integer.parseInt(trigger.getString("frequency"));
+				
+				Trigger jobTrigger = newTrigger()
+						.withIdentity("defaultTrigger")
+						.startAt(date)
+						.withSchedule(simpleSchedule()
+								.withIntervalInHours(frequency)
+								.repeatForever())
+						.build();
+				
 				Scheduler scheduler = getDefaultScheduler();
 				scheduler.start();
-				scheduler.addJob(jobChain, true, true);
-				scheduler.triggerJob(jobChain.getKey());
+				scheduler.scheduleJob(jobChain, jobTrigger);
+//				scheduler.triggerJob(jobChain.getKey());
 			} catch (SchedulerException e) {
+				e.printStackTrace();
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
@@ -126,8 +160,6 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 				String emailAddress = email.getString("email-address");
 				System.out.println(emailAddress);
 			}
-			String frequency = trigger.getString("frequency");
-			System.out.println(frequency);
 			
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -149,52 +181,9 @@ public class QuartzWebWatcher extends AbstractFileWatcher {
 
 	@Override
 	public void run() {
-		
-		// TODO start up the scheduler
-		
+		LOGGER.info("Starting SMSSWebWatcher thread");
 		loadFirst();
-		try {
-			WatchService watcher = FileSystems.getDefault().newWatchService();
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-			// Path dir2Watch = Paths.get(baseFolder + "/" + folderToWatch);
-
-			Path dir2Watch = Paths.get(folderToWatch);
-
-			WatchKey key = dir2Watch.register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
-					StandardWatchEventKinds.ENTRY_MODIFY);
-			while (true) {
-				// WatchKey key2 = watcher.poll(1, TimeUnit.MINUTES);
-				WatchKey key2 = watcher.take();
-
-				for (WatchEvent<?> event : key2.pollEvents()) {
-					WatchEvent.Kind kind = event.kind();
-					if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-						String newFile = event.context() + "";
-						if (newFile.endsWith(extension)) {
-							Thread.sleep(2000);
-							try {
-								process(newFile);
-
-							} catch (RuntimeException ex) {
-								ex.printStackTrace();
-							}
-						} else
-							logger.info("Ignoring File " + newFile);
-					}
-				}
-				key2.reset();
-			}
-		} catch (RuntimeException ex) {
-			logger.debug(ex);
-			// do nothing - I will be working it in the process block
-		} catch (InterruptedException ex) {
-			logger.debug(ex);
-			// do nothing - I will be working it in the process block
-		} catch (IOException ex) {
-			logger.debug(ex);
-			// do nothing - I will be working it in the process block
-		}
+		super.run();
 	}
 
 }

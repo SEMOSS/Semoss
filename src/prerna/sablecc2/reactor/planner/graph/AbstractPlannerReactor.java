@@ -20,9 +20,9 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.PKSLPlanner;
+import prerna.sablecc2.reactor.PixelPlanner;
 
 public abstract class AbstractPlannerReactor extends AbstractReactor {
 
@@ -35,9 +35,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * 
 	 * @param vertsToRun
 	 *            The starting set of vertices to execute
-	 * @param pkslsToRun
-	 *            The list of pksls that are being added in an order where
-	 *            dependents are executed first
+	 * @param downstreamVertIds
 	 */
 	protected void getAllDownstreamVertsBasedOnTraverseOrder(Set<Vertex> vertsToRun, List<String> downstreamVertIds) {
 		// if there are no vertices to execute
@@ -51,9 +49,9 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 
 		// we want to iterate through all the vertices we have defined
 		for (Vertex nextVert : vertsToRun) {
-			String vertId = nextVert.property(PKSLPlanner.TINKER_ID).value().toString();
+			String vertId = nextVert.property(PixelPlanner.TINKER_ID).value().toString();
 			// set the property PROCESSED so we can now properly traverse
-			nextVert.property(PKSLPlanner.PROCESSED, true);
+			nextVert.property(PixelPlanner.PROCESSED, true);
 
 			// add this operation to the pkslToRun
 			downstreamVertIds.add(vertId);
@@ -68,11 +66,11 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 				Iterator<Vertex> outOpsIt = outNoun.vertices(Direction.OUT);
 				while (outOpsIt.hasNext()) {
 					Vertex outOp = outOpsIt.next();
-					boolean processed = (boolean) outOp.value(PKSLPlanner.PROCESSED);
+					boolean processed = (boolean) outOp.value(PixelPlanner.PROCESSED);
 					if (!processed) {
 						// modify the PROCESSED key to be true so we dont get
 						// this vert again
-						outOp.property(PKSLPlanner.PROCESSED, true);
+						outOp.property(PixelPlanner.PROCESSED, true);
 
 						// add to next set to execute
 						nextVertsToRun.add(outOp);
@@ -92,11 +90,11 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * @param downstreamVertIds
 	 * @return
 	 */
-	protected List<String> orderVertsAndGetPksls(PKSLPlanner planner, List<String> downstreamVertIds) {
+	protected List<String> orderVertsAndGetPksls(PixelPlanner planner, List<String> downstreamVertIds) {
 		List<String> returnPksls = new Vector<String>();
 
 		GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V()
-				.has(PKSLPlanner.TINKER_ID, P.within(downstreamVertIds)).order().by(PKSLPlanner.ORDER, Order.incr);
+				.has(PixelPlanner.TINKER_ID, P.within(downstreamVertIds)).order().by(PixelPlanner.ORDER, Order.incr);
 		while (newRootsTraversal.hasNext()) {
 			Vertex vert = newRootsTraversal.next();
 			returnPksls.add(getPksl(vert));
@@ -108,15 +106,15 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	/**
 	 * For errors
 	 */
-	protected void addOrderToNonExistentVerts(PKSLPlanner planner) {
-		GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().hasNot(PKSLPlanner.ORDER);
+	protected void addOrderToNonExistentVerts(PixelPlanner planner) {
+		GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V().hasNot(PixelPlanner.ORDER);
 		while (newRootsTraversal.hasNext()) {
 			Vertex vert = newRootsTraversal.next();
-			vert.property(PKSLPlanner.ORDER, 999999);
+			vert.property(PixelPlanner.ORDER, 999999);
 		}
 	}
 
-	protected void traverseDownstreamVertsProcessor(PKSLPlanner planner, List<String> pkslsToRun) {
+	protected void traverseDownstreamVertsProcessor(PixelPlanner planner, List<String> pkslsToRun) {
 		int orderNum = 1;
 		Set<Vertex> inputs = getZeroInDegreeVetices(planner);
 //		addNounsToMainMap(planner, inputs);
@@ -129,7 +127,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			for (int i = 0; i < size; i++) {
 				Vertex root = processQueue.poll();
 				String pkslOperation = getPksl(root);
-				String type = root.value(PKSLPlanner.TINKER_TYPE);
+				String type = root.value(PixelPlanner.TINKER_TYPE);
 
 				// we get all the outs
 				// these are the nouns that this operation creates
@@ -145,7 +143,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 					if (!downOp.property("inVertexCount").isPresent()) {
 						// we set the IN_DEGREE when we insert the node in the
 						// planner
-						downOp.property("inVertexCount", downOp.value(PKSLPlanner.IN_DEGREE));
+						downOp.property("inVertexCount", downOp.value(PixelPlanner.IN_DEGREE));
 					}
 
 					Integer currentIntCount = downOp.value("inVertexCount");
@@ -156,12 +154,12 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 				}
 
 				// now, set the order within the vertex
-				root.property(PKSLPlanner.ORDER, orderNum);
+				root.property(PixelPlanner.ORDER, orderNum);
 				orderNum++;
 
 				// and add it to the pksl list
 				if (pkslOperation != null) {
-					if (type.equals(PKSLPlanner.OPERATION)) {
+					if (type.equals(PixelPlanner.OPERATION)) {
 //						addOpToMainMap(planner, root);
 						pkslsToRun.add(pkslOperation);
 					}
@@ -172,25 +170,25 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		LOGGER.info("DONE TRAVERSING THROUGH GRAPH!!!");
 	}
 
-	protected Set<Vertex> getZeroInDegreeVetices(PKSLPlanner planner) {
+	protected Set<Vertex> getZeroInDegreeVetices(PixelPlanner planner) {
 		Set<Vertex> newRoots = new HashSet<Vertex>();
 		GraphTraversal<Vertex, Vertex> vertexIt = planner.g.traversal().V();
 		while (vertexIt.hasNext()) {
 			Vertex vertex = vertexIt.next();
-			if (vertex.property(PKSLPlanner.IN_DEGREE).isPresent()) {
-				if (vertex.value(PKSLPlanner.IN_DEGREE).equals(0)) {
+			if (vertex.property(PixelPlanner.IN_DEGREE).isPresent()) {
+				if (vertex.value(PixelPlanner.IN_DEGREE).equals(0)) {
 					newRoots.add(vertex);
 				}
 			} else {
 				// set it to 0 so we dont need to check in future
-				vertex.property(PKSLPlanner.IN_DEGREE, 0);
+				vertex.property(PixelPlanner.IN_DEGREE, 0);
 				newRoots.add(vertex);
 			}
 		}
 		return newRoots;
 	}
 
-	protected void addNounsToMainMap(PKSLPlanner planner, Set<Vertex> nounVertexs) {
+	protected void addNounsToMainMap(PixelPlanner planner, Set<Vertex> nounVertexs) {
 		Map<String, String> baseMap = null;
 		HashMap<String, String> mainMap = null;
 		if (!planner.hasProperty("MAIN_MAP", "MAIN_MAP")) {
@@ -202,24 +200,24 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			baseMap = (HashMap<String, String>) planner.getProperty("BASE_MAP", "BASE_MAP");
 		}
 		for (Vertex nounVertex : nounVertexs) {
-			if (nounVertex.value(PKSLPlanner.TINKER_TYPE).equals(PKSLPlanner.NOUN)) {
-				String nounName = (String) nounVertex.value(PKSLPlanner.TINKER_NAME);
+			if (nounVertex.value(PixelPlanner.TINKER_TYPE).equals(PixelPlanner.NOUN)) {
+				String nounName = (String) nounVertex.value(PixelPlanner.TINKER_NAME);
 				if (baseMap == null || !baseMap.containsKey(nounName)) {
 					NounMetadata noun = planner.getVariable(nounName);
 					if(noun == null){
 						System.out.println(nounName+" not found!");
 						continue;
 					}
-					PkslDataTypes data = noun.getNounType();
-					if (data == PkslDataTypes.CONST_DECIMAL) {
+					PixelDataType data = noun.getNounType();
+					if (data == PixelDataType.CONST_DECIMAL) {
 						mainMap.put(nounName, "double");
-					} else if (data == PkslDataTypes.CONST_INT) {
+					} else if (data == PixelDataType.CONST_INT) {
 						mainMap.put(nounName, "double");
-					} else if (data == PkslDataTypes.COLUMN) {
+					} else if (data == PixelDataType.COLUMN) {
 						mainMap.put(nounName, data.toString());
-					} else if (data == PkslDataTypes.BOOLEAN) {
+					} else if (data == PixelDataType.BOOLEAN) {
 						mainMap.put(nounName, "boolean");
-					} else if (data == PkslDataTypes.CONST_STRING) {
+					} else if (data == PixelDataType.CONST_STRING) {
 						mainMap.put(nounName, "String");
 					}
 				}
@@ -227,13 +225,13 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		}
 	}
 
-	protected void addOpToMainMap(PKSLPlanner planner, Vertex opVertex) {
+	protected void addOpToMainMap(PixelPlanner planner, Vertex opVertex) {
 		HashMap<String, String> mainMap = (HashMap<String, String>) planner.getProperty("MAIN_MAP", "MAIN_MAP");
 		Map<String, String> baseMap = null;
 		if (planner.hasProperty("BASE_MAP", "BASE_MAP")) {
 			baseMap = (HashMap<String, String>) planner.getProperty("BASE_MAP", "BASE_MAP");
 		}
-		String nounName = ((String) opVertex.value(PKSLPlanner.TINKER_NAME)).split("=")[0].trim();
+		String nounName = ((String) opVertex.value(PixelPlanner.TINKER_NAME)).split("=")[0].trim();
 		if (baseMap == null || !baseMap.containsKey(nounName)) {
 			
 			mainMap.put(nounName, "double");
@@ -245,7 +243,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	protected Set<Vertex> getRootPksls(PKSLPlanner planner) {
+	protected Set<Vertex> getRootPksls(PixelPlanner planner) {
 		// vertsToRun will hold the roots
 		// this set will be modified as we traverse
 		// down the graph and get primary downstream nodes
@@ -253,15 +251,15 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 		Set<Vertex> vertsToRun = new HashSet<Vertex>();
 
 		GraphTraversal<Vertex, Long> getAllRootOpsCount = planner.g.traversal().V()
-				.has(PKSLPlanner.TINKER_TYPE, PKSLPlanner.OPERATION).count();
+				.has(PixelPlanner.TINKER_TYPE, PixelPlanner.OPERATION).count();
 		if (getAllRootOpsCount.hasNext()) {
 			LOGGER.info("FOUND " + getAllRootOpsCount.next() + " OP VERTICES!");
 		}
 
 		// get all the operations
 		// and need to figure out which ones are roots
-		GraphTraversal<Vertex, Vertex> getAllRootOps = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE,
-				PKSLPlanner.OPERATION);
+		GraphTraversal<Vertex, Vertex> getAllRootOps = planner.g.traversal().V().has(PixelPlanner.TINKER_TYPE,
+				PixelPlanner.OPERATION);
 
 		// iterate through all the operations
 		while (getAllRootOps.hasNext()) {
@@ -290,7 +288,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			// if we have a root
 			if (isRoot) {
 				// set a property "PROCESSED" to be false
-				nextOp.property(PKSLPlanner.PROCESSED, false);
+				nextOp.property(PixelPlanner.PROCESSED, false);
 				pkslOperation = getPksl(nextOp);// nextOp.property(PKSLPlanner.TINKER_ID).value().toString().substring(3)
 												// + ";";
 
@@ -314,7 +312,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * @param planner
 	 * @return
 	 */
-	protected Set<Vertex> getDownstreamEffectsInPlanner(Set<Vertex> roots, PKSLPlanner planner) {
+	protected Set<Vertex> getDownstreamEffectsInPlanner(Set<Vertex> roots, PixelPlanner planner) {
 		Set<Vertex> newRoots = new LinkedHashSet<Vertex>();
 		for (Vertex v : roots) {
 			// for this root
@@ -323,20 +321,20 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 			while (outNounsIt.hasNext()) {
 				// grab the noun
 				Vertex outNoun = outNounsIt.next();
-				String outNounId = outNoun.value(PKSLPlanner.TINKER_ID);
+				String outNounId = outNoun.value(PixelPlanner.TINKER_ID);
 				// now, search in the planner and find if this outNoun is
 				// present
 				// and grab all the OPs that have this as an input
 				// these will get added to the newRoots
 				GraphTraversal<Vertex, Vertex> newRootsTraversal = planner.g.traversal().V()
-						.has(PKSLPlanner.TINKER_ID, outNounId).out().has(PKSLPlanner.PROCESSED, false) // make
+						.has(PixelPlanner.TINKER_ID, outNounId).out().has(PixelPlanner.PROCESSED, false) // make
 																										// sure
 																										// it
 																										// hasn't
 																										// been
 																										// already
 																										// added
-						.order().by(PKSLPlanner.ORDER, Order.incr).dedup(); // return
+						.order().by(PixelPlanner.ORDER, Order.incr).dedup(); // return
 																			// in
 																			// the
 																			// order
@@ -351,7 +349,7 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 					Vertex vert = newRootsTraversal.next();
 					// modify the PROCESSED key to be true so we dont get this
 					// vert again
-					vert.property(PKSLPlanner.PROCESSED, true);
+					vert.property(PixelPlanner.PROCESSED, true);
 					newRoots.add(vert);
 				}
 			}
@@ -365,20 +363,20 @@ public abstract class AbstractPlannerReactor extends AbstractReactor {
 	 * 
 	 * @param planner
 	 */
-	protected void resetProcessedBoolean(PKSLPlanner planner) {
+	protected void resetProcessedBoolean(PixelPlanner planner) {
 		// grab all op nodes
-		GraphTraversal<Vertex, Vertex> allOpsIt = planner.g.traversal().V().has(PKSLPlanner.TINKER_TYPE,
-				PKSLPlanner.OPERATION);
+		GraphTraversal<Vertex, Vertex> allOpsIt = planner.g.traversal().V().has(PixelPlanner.TINKER_TYPE,
+				PixelPlanner.OPERATION);
 		// iterate through and set the propertys
 		while (allOpsIt.hasNext()) {
 			Vertex opNode = allOpsIt.next();
 			// set a property "PROCESSED" to be false
-			opNode.property(PKSLPlanner.PROCESSED, false);
+			opNode.property(PixelPlanner.PROCESSED, false);
 		}
 	}
 
 	protected String getPksl(Vertex vert) {
-		String pkslOperation = vert.property(PKSLPlanner.TINKER_ID).value().toString().substring(3) + ";";
+		String pkslOperation = vert.property(PixelPlanner.TINKER_ID).value().toString().substring(3) + ";";
 		return pkslOperation;
 	}
 

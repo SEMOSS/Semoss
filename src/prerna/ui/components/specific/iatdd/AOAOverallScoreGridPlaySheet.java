@@ -97,10 +97,11 @@ public class AOAOverallScoreGridPlaySheet extends GridPlaySheet {
 		//format to send to Front-End
 		DecimalFormat formatter = new DecimalFormat("#.##");
 		Map<String, Set<String>> vendorReqHash = scoreMap.getVendorReqHash();
-		dataFrame = new H2Frame(new String[]{"Vendor","Score"});
+		String[] newHeaders = new String[]{"Vendor","Score"};
+		dataFrame = new H2Frame(newHeaders);
 		for(String vendor : vendorReqHash.keySet()){
 			Object[] row = new Object[]{vendor, formatter.format(overallVendorScore(vendor, vendorReqHash.get(vendor)))};
-			dataFrame.addRow(row);
+			dataFrame.addRow(row, newHeaders);
 			Hashtable<String, Object> rowValues = new Hashtable<String, Object>();
 			rowValues.put("Vendor", vendor);
 			rowValues.put("Score", formatter.format(overallVendorScore(vendor, vendorReqHash.get(vendor))));

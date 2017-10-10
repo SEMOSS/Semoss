@@ -6,16 +6,13 @@ import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PkslDataTypes;
+import prerna.sablecc2.om.PixelDataType;
 
 /**
  * This reactor is responsible for taking the output of an execution and assigning the result as a variable
  */
 public class AssignmentReactor extends AbstractReactor implements JavaExecutable {
 	
-	public AssignmentReactor() {
-		setName("Assignment");
-	}
 	@Override
 	public NounMetadata execute() {
 		NounMetadata result = planner.getVariable("$RESULT");
@@ -58,7 +55,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 	public List<NounMetadata> getOutputs() {
 		// output is the variable name to be referenced
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.operationName, PkslDataTypes.COLUMN);
+		NounMetadata output = new NounMetadata(this.operationName, PixelDataType.COLUMN);
 		outputs.add(output);
 		return outputs;
 	}
@@ -82,7 +79,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		if(assignmentInput instanceof JavaExecutable) {
 			argument = ((JavaExecutable)assignmentInput).getJavaSignature();
 		} else {
-			if(assignmentNoun.getNounType() == PkslDataTypes.CONST_STRING) {
+			if(assignmentNoun.getNounType() == PixelDataType.CONST_STRING) {
 				argument = "\""+assignmentInput.toString() +"\"";
 			} else {
 				argument = assignmentInput.toString();
@@ -110,6 +107,7 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 		inputs.remove(0);
 		return inputs;
 	}
+	
 	@Override
 	public String getReturnType() {
 		Object returnObj = getJavaInputs().get(0).getValue();

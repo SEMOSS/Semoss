@@ -3,7 +3,6 @@ package prerna.poi.main.helper;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -306,41 +305,6 @@ public class XLFileHelper {
 		return "";
 	}
 	
-	private void addCount(String key, Hashtable <String, Integer> hash)
-	{
-		Integer count = 0;
-		if(hash.containsKey(key))
-			count = hash.get(key);
-		count++;
-		hash.put(key, count);
-	}
-
-	private String findBiggest(Hashtable <String, Integer> hash)
-	{
-		String retType = null;
-		Integer hugeCount = null;
-		Enumeration <String> keys = hash.keys();
-		while(keys.hasMoreElements())
-		{
-			String key = keys.nextElement();
-			int thisCount = hash.get(key);
-			if(hugeCount == null)
-			{
-				retType = key;
-				hugeCount = thisCount;
-			}
-			else
-			{
-				if(thisCount > hugeCount)
-				{
-					retType = key;
-					hugeCount = thisCount;
-				}
-			}
-		}
-		return retType;
-	}
-
 	public String[] predictRowTypes(String sheetName) {
 		Sheet lSheet = sheetNames.get(sheetName);
 		int numRows = lSheet.getLastRowNum() + 1;
@@ -352,13 +316,8 @@ public class XLFileHelper {
 		// Loop through cols, and up to 1000 rows
 		for(int i = colStarter; i < numCells; i++) {
 			String type = null;
-			
-			Hashtable <String, Integer> countHash = new Hashtable<String, Integer>();
-
 			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
 				Row row = lSheet.getRow(j);
-				
-				
 				if(row != null) {
 					Cell cell = row.getCell(i);
 					if(cell != null) {
@@ -367,11 +326,9 @@ public class XLFileHelper {
 							continue ROW_LOOP;
 						}
 						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
-						addCount(newTypePred, countHash);
-
 						if(newTypePred.contains("VARCHAR")) {
 							type = newTypePred;
-							//break ROW_LOOP;
+							break ROW_LOOP;
 						}
 						
 						// need to also add the type null check for the first row
@@ -389,7 +346,7 @@ public class XLFileHelper {
 								// TODO: need to figure out what to handle this case
 								// for now, making assumption to put it as a string
 								type = "VARCHAR(800)";
-								//break ROW_LOOP;
+								break ROW_LOOP;
 							}
 						} else {
 							// type is the same as the new predicated type
@@ -403,11 +360,8 @@ public class XLFileHelper {
 				// no data for column....
 				types[i] = "VARCHAR(255)";
 			} else {
-				if(countHash.size() == 1)
-					types[i] = countHash.keys().nextElement();
-				else
-					types[i] = findBiggest(countHash);
-			}		
+				types[i] = type;
+			}
 		}
 
 		// need to reset all the parses
