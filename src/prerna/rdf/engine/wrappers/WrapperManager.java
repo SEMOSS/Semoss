@@ -30,14 +30,18 @@ package prerna.rdf.engine.wrappers;
 import org.apache.log4j.Logger;
 
 import prerna.ds.QueryStruct;
+import prerna.ds.TinkerHeadersDataRowIterator2;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.solr.RawSolrSelectWrapper;
 import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
+import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class WrapperManager {
@@ -90,11 +94,13 @@ public class WrapperManager {
 //			returnWrapper = new RemoteSesameSelectWrapper();
 //			break;
 //		}
-//		case TINKER : {
-//			genQueryString = false;
-//			returnWrapper = new RawTinkerSelectWrapper();
-//			break;
-//		}
+		case TINKER : {
+			// since we dont do math on gremlin
+			// right now, we will just construct and return a QSExpressionIterator
+			GremlinInterpreter2 interpreter = new GremlinInterpreter2( ((TinkerEngine) engine).getGraph());
+			interpreter.setQueryStruct(qs);
+			return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
+		}
 //		case SOLR : {
 //			genQueryString = false;
 //			returnWrapper = new RawSolrSelectWrapper();
