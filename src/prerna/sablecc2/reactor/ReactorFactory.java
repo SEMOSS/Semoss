@@ -223,7 +223,7 @@ public class ReactorFactory {
 		// specifies that our pksl operations after this point are dealing with the specified database
 		reactorHash.put("Database", DatabaseReactor.class); 
 		reactorHash.put("FileRead", FileSourceReactor.class); 
-		reactorHash.put("TextInput", TextInputReactor.class); 
+//		reactorHash.put("TextInput", TextInputReactor.class); 
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("JDBCConnection", DirectJdbcConnection.class);
 
