@@ -1,4 +1,4 @@
-package prerna.query.querystruct;
+package prerna.query.querystruct.selectors;
 
 import java.util.List;
 import java.util.Vector;

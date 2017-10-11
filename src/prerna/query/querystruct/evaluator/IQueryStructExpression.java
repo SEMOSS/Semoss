@@ -1,6 +1,6 @@
 package prerna.query.querystruct.evaluator;
 
-import prerna.query.querystruct.QueryAggregationEnum;
+import prerna.query.querystruct.selectors.QueryAggregationEnum;
 
 public interface IQueryStructExpression {
 

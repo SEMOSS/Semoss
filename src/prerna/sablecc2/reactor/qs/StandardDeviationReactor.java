@@ -1,9 +1,9 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryAggregationEnum;
-import prerna.query.querystruct.QueryMathSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryAggregationEnum;
+import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 

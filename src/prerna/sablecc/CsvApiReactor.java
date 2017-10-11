@@ -9,8 +9,8 @@ import prerna.ds.util.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.IQuerySelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
