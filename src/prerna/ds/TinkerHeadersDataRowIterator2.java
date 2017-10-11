@@ -9,9 +9,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryMathSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryMathSelector;
 
 public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> {
 
