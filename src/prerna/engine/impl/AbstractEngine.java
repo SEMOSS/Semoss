@@ -255,7 +255,7 @@ public abstract class AbstractEngine implements IEngine {
 			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":[ { \"query\": \"CreateFrame(grid).as([\\\"FRAME100010\\\"]); "
 					+ "Database(" + this.engineName + ") | Select(<concept>) | Import(); Panel(<SMSS_PANEL_ID>) | SetPanelView(\\\"visualization\\\"); "
 					+ "SetFrameFilter((FRAME100010__<concept> == [<instance>])); Select(FRAME100010__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | "
-					+ "Format(type=['graph'], options=[{\\\"connections\\\": \\\"FRAME100010__<concept>.FRAME100010__<concept>\\\"}]) | "
+					+ "Format(type=['graph'], options=[]) | "
 					+ "TaskOptions({\\\"<SMSS_PANEL_ID>\\\":{\\\"layout\\\": \\\"Graph\\\", \\\"alignment\\\": {\\\"start\\\": [\\\"<concept>\\\"], "
 					+ "\\\"end\\\":[\\\"<concept>\\\"]}}}) | Collect(500);\", \"label\":\"Explore an instance\", \"description\":\"Explore instances of a selected concept\", "
 					+ "\"params\":[ { \"paramName\":\"concept\", \"required\":true, \"view\":{ \"displayType\":\"dropdown\", \"label\":\"Select a Concept\", "
@@ -332,6 +332,17 @@ public abstract class AbstractEngine implements IEngine {
 							| IOException e1) {
 						e1.printStackTrace();
 					}
+				} else {
+					// right now, delete and re add it
+					// only need to to do this on the recipe
+					// no need to modify solr
+					oldId = it2.next().getValues()[0].toString();
+					admin.dropInsight(oldId);
+					
+					// add the new insight
+					// and modify the id
+					String insightIdToSave = admin.addInsight("Explore an Instance(s) of a Selected Node", "Graph", new String[]{newPixel});
+					insightRDBMS.insertData("UPDATE QUESTION_ID SET ID=" + oldId + " WHERE ID=" + insightIdToSave);
 				}
 			} catch(Exception e) {
 				e.printStackTrace();

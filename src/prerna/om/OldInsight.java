@@ -51,6 +51,7 @@ import prerna.ui.components.playsheets.datamakers.PKQLTransformation;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class OldInsight extends Insight {
 
 	/*
