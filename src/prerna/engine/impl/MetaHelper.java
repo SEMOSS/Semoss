@@ -584,4 +584,16 @@ public class MetaHelper implements IExplorable {
 		return null;
 	}
 
+	@Override
+	public boolean isBasic() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void setBasic(boolean isBasic) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

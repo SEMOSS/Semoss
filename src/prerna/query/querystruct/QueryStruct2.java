@@ -455,6 +455,10 @@ public class QueryStruct2 {
 		if(incomingQS.getEngineName() != null) {
 			setEngineName(incomingQS.getEngineName());
 		}
+		
+		if(incomingQS.getEngine() != null) {
+			setEngine(incomingQS.getEngine());
+		}
 	}
 	
 	public void mergeSelectors(List<IQuerySelector> incomingSelectors) {
@@ -575,8 +579,12 @@ public class QueryStruct2 {
 		this.engine = engine;
 	}
 	
+	public IEngine getEngine() {
+		return this.engine;
+	}
+	
 	public IEngine retrieveQueryStructEngine() {
-		if(this.engine != null) {
+		if(this.engine == null) {
 			this.engine = Utility.getEngine(this.engineName);
 		}
 		return this.engine;
@@ -662,6 +670,7 @@ public class QueryStruct2 {
 		newQs.setQsType(this.qsType);
 		if(this.qsType == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE) {
 			newQs.setEngineName(this.engineName);
+			newQs.setEngine(this.engine);
 		} else if(this.qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME) {
 			newQs.setFrame(this.frame);
 		}
