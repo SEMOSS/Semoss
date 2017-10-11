@@ -66,7 +66,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 			}
 		}
 
-		HeadersDataRow nextData = new HeadersDataRow(this.headerOrdering, retObject);
+		HeadersDataRow nextData = new HeadersDataRow(this.headerAlias, retObject);
 		return nextData;
 	}
 
