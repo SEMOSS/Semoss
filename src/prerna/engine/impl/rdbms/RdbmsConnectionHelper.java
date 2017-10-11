@@ -22,7 +22,7 @@ public class RdbmsConnectionHelper {
 	public static final String H2_DRIVER = "org.h2.Driver";
 	
 	public static final String IMPALA = "IMPALA";
-	public static final String IMPALA_DRIVER = "com.cloudera.impala.jdbc3.Driver";
+	public static final String IMPALA_DRIVER = "com.cloudera.impala.jdbc4.Driver";
 	
 	public static final String MARIADB = "MARIA_DB";
 	public static final String MARIADB_DRIVER = "org.mariadb.jdbc.Driver";
