@@ -943,5 +943,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public IQueryInterpreter2 getQueryInterpreter2(){
 		return new SqlInterpreter2(this);
+	}
+
+	public void setConnection(Connection engineConn) {
+		this.engineConn = engineConn;
 	} 
 }

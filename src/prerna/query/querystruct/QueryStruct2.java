@@ -11,12 +11,13 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.QueryStruct;
+import prerna.engine.api.IEngine;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.sablecc2.om.QueryFilter;
+import prerna.util.Utility;
 
 public class QueryStruct2 {
 	
@@ -26,7 +27,9 @@ public class QueryStruct2 {
 
 	private QUERY_STRUCT_TYPE qsType = QUERY_STRUCT_TYPE.FRAME;
 	protected String engineName;
+	
 	protected transient ITableDataFrame frame;
+	protected transient IEngine engine;
 	
 	/**
 	 * 3 main parts to a query
@@ -568,6 +571,17 @@ public class QueryStruct2 {
 		return this.engineName;
 	}
 	
+	public void setEngine(IEngine engine) {
+		this.engine = engine;
+	}
+	
+	public IEngine retrieveQueryStructEngine() {
+		if(this.engine != null) {
+			this.engine = Utility.getEngine(this.engineName);
+		}
+		return this.engine;
+	}
+	
 	public ITableDataFrame getFrame() {
 		return frame;
 	}
@@ -652,43 +666,5 @@ public class QueryStruct2 {
 			newQs.setFrame(this.frame);
 		}
 		return newQs;
-	}
-	
-	public static void main(String [] args) throws Exception
-	{
-		// test code for getting proper edge hash when there are intermediary nodes that
-		// i.e. the query requires a specific node that you do not want in your selectors
-		// e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
-		// thus, the edge hash should only contain a -> d 
-		
-		QueryStruct qs = new QueryStruct();
-		qs.addSelector("a", "x");
-		qs.addSelector("b", null);
-		qs.addSelector("b", "y");
-		qs.addSelector("d", null);
-
-		qs.addRelation("a__x", "b__y", "inner.join");
-		qs.addRelation("b__y", "c", "inner.join");
-		qs.addRelation("c", "d", "inner.join");
-
-		System.out.println(qs.getReturnConnectionsHash());
-		
-		// previous test code .. based on path assuming it is done by b.s.s
-//		
-//		QueryStruct qs = new QueryStruct();
-//		qs.addSelector("Title", "Title");
-//		qs.addFilter("Title__Title", "=", Arrays.asList(new String[]{"WB", "ABC"}));
-//		qs.addRelation("Title__Title", "Actor__Title_FK", "inner.join");
-//		
-//		Gson gson = new Gson();
-//		System.out.println(gson.toJson(qs));
-//		
-//		loadEngine4Test();
-//		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp("Movie_DB"); 
-//		SPARQLInterpreter in = new SPARQLInterpreter(engine);
-//		
-//		in.setQueryStruct(qs);
-//		String query = in.composeQuery();
-//		System.out.println(query);
 	}
 }
