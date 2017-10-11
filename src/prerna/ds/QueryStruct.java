@@ -18,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+@Deprecated
 public class QueryStruct {
 
 	// what is in a query
