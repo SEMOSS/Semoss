@@ -83,7 +83,7 @@ public class IterateReactor extends AbstractReactor {
 				
 				iterator = frame.query(queryStruct);
 			}
-			this.task = new BasicIteratorTask(iterator);
+			this.task = new BasicIteratorTask(queryStruct, iterator);
 			this.task.setHeaderInfo(queryStruct.getHeaderInfo());
 			this.task.setSortInfo(queryStruct.getSortInfo());
 			this.insight.getTaskStore().addTask(this.task);
