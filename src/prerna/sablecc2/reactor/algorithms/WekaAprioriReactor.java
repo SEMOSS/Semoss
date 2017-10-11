@@ -15,10 +15,10 @@ import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryAggregationEnum;
-import prerna.query.querystruct.QueryColumnSelector;
-import prerna.query.querystruct.QueryMathSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryAggregationEnum;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;

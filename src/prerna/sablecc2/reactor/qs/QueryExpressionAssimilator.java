@@ -1,10 +1,10 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryArithmeticSelector;
-import prerna.query.querystruct.QueryColumnSelector;
-import prerna.query.querystruct.QueryConstantSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryArithmeticSelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;

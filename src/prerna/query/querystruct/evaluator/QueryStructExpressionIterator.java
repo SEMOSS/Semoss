@@ -10,11 +10,11 @@ import java.util.Vector;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryAggregationEnum;
-import prerna.query.querystruct.QueryColumnSelector;
-import prerna.query.querystruct.QueryMathSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryAggregationEnum;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 
 public class QueryStructExpressionIterator extends AbstractWrapper implements IRawSelectWrapper {

@@ -12,6 +12,10 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.sablecc2.om.QueryFilter;
 
 public class QueryStruct2 {

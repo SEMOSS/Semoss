@@ -77,7 +77,6 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;

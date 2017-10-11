@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.imports;
 import java.util.List;
 import java.util.Map;
 
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryColumnSelector;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
 
 public class FileMeta {
