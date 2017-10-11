@@ -9,7 +9,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.Task;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DirectJdbcConnection extends AbstractReactor {
@@ -47,7 +48,7 @@ public class DirectJdbcConnection extends AbstractReactor {
 		}
 		
 		// create task
-		Task task = new Task(it);
+		ITask task = new BasicIteratorTask(it);
 		return new NounMetadata(task, PixelDataType.TASK, PixelOperationType.TASK);
 	}
 
