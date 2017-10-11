@@ -16,16 +16,15 @@ import prerna.engine.api.IEngine;
 import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.QueryFilter;
@@ -153,7 +152,13 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		for(int i = 0; i < numSelectors; i++) {
 			IQuerySelector selector = selectors.get(i);
 			String alias = selector.getAlias();
-			this.selectors.append("(").append(processSelector(selector)).append(" AS ?").append(alias).append(") ");
+			
+			String var = processSelector(selector);
+			if(var.equals(alias)) {
+				this.selectors.append(var).append(" ");
+			} else {
+				this.selectors.append("(").append(var).append(" AS ?").append(alias).append(") ");
+			}
 		}
 	}
 	
