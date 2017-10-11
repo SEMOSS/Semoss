@@ -1,4 +1,4 @@
-package prerna.query.querystruct;
+package prerna.query.querystruct.selectors;
 
 public class QueryColumnOrderBySelector extends QueryColumnSelector {
 

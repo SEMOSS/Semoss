@@ -7,8 +7,8 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.AlgorithmQueryStruct;
-import prerna.query.querystruct.QueryColumnSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;

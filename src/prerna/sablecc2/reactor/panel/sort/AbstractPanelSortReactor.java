@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.QueryColumnOrderBySelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 

@@ -17,11 +17,11 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.ds.TinkerFrame;
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryColumnOrderBySelector;
-import prerna.query.querystruct.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
-import prerna.query.querystruct.QueryColumnSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.QueryFilter;
 

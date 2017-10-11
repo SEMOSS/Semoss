@@ -4,8 +4,8 @@ import java.util.List;
 
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.GenRowFilters;
-import prerna.query.querystruct.QueryColumnOrderBySelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 

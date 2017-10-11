@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.IQuerySelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;

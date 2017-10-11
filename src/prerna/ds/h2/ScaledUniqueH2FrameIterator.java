@@ -8,10 +8,10 @@ import java.util.NoSuchElementException;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryArithmeticSelector;
-import prerna.query.querystruct.QueryColumnSelector;
-import prerna.query.querystruct.QueryConstantSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryArithmeticSelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.QueryFilter;
