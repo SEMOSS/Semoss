@@ -16,15 +16,16 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
@@ -119,12 +120,12 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		addFilters();
 		
 		StringBuilder query = new StringBuilder("SELECT ");
-		if(this.engine != null && relationList.isEmpty()) {
+		if(this.engine != null && !engine.isBasic() && relationList.isEmpty()) {
 			// if there are no joins, we know we are querying from a single table
 			// the vast majority of the time, there shouldn't be any duplicates if
 			// we are selecting all the columns
 			String table = froms.get(0)[0];
-			if(engine != null) {
+			if(engine != null && !engine.isBasic()) {
 				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(table, false).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
@@ -280,10 +281,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		// will be getting the physical column name
 		String physicalColName = colName;
 		// if engine is not null, get the info from the engine
-		if(engine != null) {
+		if(engine != null && !engine.isBasic()) {
 			// if the colName is the primary key placeholder
 			// we will go ahead and grab the primary key from the table
-			if(colName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+			if(colName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
 				physicalColName = getPrimKey4Table(table);
 				// the display name is defaulted to the table name
 			} else {
@@ -511,7 +512,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		String leftProperty = leftConProp[1];
 
 		String leftDataType = null;
-		if(engine != null) {
+		if(engine != null && !engine.isBasic()) {
 			leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
 			// ugh, need to try if it is a property
 			if(leftDataType == null) {
@@ -591,7 +592,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		String leftProperty = leftConProp[1];
 
 		String leftDataType = null;
-		if(engine != null) {
+		if(engine != null && !engine.isBasic()) {
 			leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
 			// ugh, need to try if it is a property
 			if(leftDataType == null) {
@@ -603,7 +604,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		// get the right side
 		
 		String right_concept_property = rightComp.getValue().toString();
-		if(engine != null) {
+		if(engine != null && !engine.isBasic()) {
 			List<String> parents = engine.getParentOfProperty2(right_concept_property);
 			if(parents != null) {
 				// since we can have 2 tables that have the same column
@@ -941,7 +942,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	private String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
 		// if engine present
 		// get the appropriate physical storage name for the table
-		if(engine != null) {
+		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
 			if(conceptualConceptToPhysicalMap.containsKey(conceptualTableName)) {
 				return conceptualConceptToPhysicalMap.get(conceptualTableName);
@@ -976,7 +977,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @return										The physical name of the property
 	 */
 	private String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
-		if(engine != null) {
+		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
 			if(conceptualPropertyToPhysicalMap.containsKey(columnConceptualName)) {
 				return conceptualPropertyToPhysicalMap.get(columnConceptualName);
@@ -1009,7 +1010,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		if(primaryKeyCache.containsKey(conceptualTableName)){
 			return primaryKeyCache.get(conceptualTableName);
 		}
-		else if (engine != null){
+		else if (engine != null && !engine.isBasic()) {
 			// we dont have it.. so query for it
 			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
 			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
@@ -1098,7 +1099,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			String fromConceptualColumn = fromString.substring(fromString.indexOf("__")+2);
 			
 			// need to make these the physical names
-			if(engine != null) {
+			if(engine != null && !engine.isBasic()) {
 				fromTable = getPhysicalTableNameFromConceptualName(fromConceptualTable);
 				fromCol = getPhysicalPropertyNameFromConceptualName(fromConceptualTable, fromConceptualColumn);
 			} else {
@@ -1113,7 +1114,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			String toConceptualColumn = toString.substring(toString.indexOf("__")+2);
 			
 			// need to make these the physical names
-			if(engine != null) {
+			if(engine != null && !engine.isBasic()) {
 				toTable = getPhysicalTableNameFromConceptualName(toConceptualTable);
 				toCol = getPhysicalPropertyNameFromConceptualName(toConceptualTable, toConceptualColumn);
 			} else {
@@ -1142,7 +1143,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 		
 		// if neither has a property specified, use owl to look up foreign key relationship
-		else if(engine != null && (fromCol == null && toCol == null)) // in this case neither has a property specified. time to go to owl to get fk relationship
+		else if(engine != null && !engine.isBasic() && (fromCol == null && toCol == null)) // in this case neither has a property specified. time to go to owl to get fk relationship
 		{
 			String fromURI = null;
 			String toURI = null;

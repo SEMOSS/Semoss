@@ -196,7 +196,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		qs.mergeFilters(this.qs.getFilters());
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return iterator;
 	}
 	

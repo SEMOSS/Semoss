@@ -117,6 +117,7 @@ public abstract class AbstractEngine implements IEngine {
 	protected String connectionURLEnd = ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	protected String insightUsername = "sa";
 
+	private boolean isBasic = false;
 	private String owl;
 	private String insightDatabaseLoc;
 
@@ -1205,6 +1206,16 @@ public abstract class AbstractEngine implements IEngine {
 		return null;
 	}
 
+	@Override
+	public boolean isBasic() {
+		return this.isBasic;
+	}
+	
+	@Override
+	public void setBasic(boolean isBasic) {
+		this.isBasic = isBasic;
+	}
+	
 	@Override
 	public String getInsightDefinition() {
 		StringBuilder stringBuilder = new StringBuilder();
