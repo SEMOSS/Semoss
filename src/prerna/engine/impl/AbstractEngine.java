@@ -252,9 +252,10 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		if(tableExists) {
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":[ { \"query\": \"CreateFrame(grid).as([\\\"FRAME100010\\\"]); "
-					+ "Database(" + this.engineName + ") | Select(<concept>) | Import(); Panel(<SMSS_PANEL_ID>) | SetPanelView(\\\"visualization\\\"); "
-					+ "SetFrameFilter((FRAME100010__<concept> == [<instance>])); Select(FRAME100010__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | "
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":[ { \"query\": \"CreateFrame(grid).as([\\\"FRAME\\\"]); "
+					+ "Database(" + this.engineName + ") | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(); "
+					+ "Panel(<SMSS_PANEL_ID>) | SetPanelView(\\\"visualization\\\"); "
+					+ "Select(FRAME__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | "
 					+ "Format(type=['graph'], options=[]) | "
 					+ "TaskOptions({\\\"<SMSS_PANEL_ID>\\\":{\\\"layout\\\": \\\"Graph\\\", \\\"alignment\\\": {\\\"start\\\": [\\\"<concept>\\\"], "
 					+ "\\\"end\\\":[\\\"<concept>\\\"]}}}) | Collect(500);\", \"label\":\"Explore an instance\", \"description\":\"Explore instances of a selected concept\", "
