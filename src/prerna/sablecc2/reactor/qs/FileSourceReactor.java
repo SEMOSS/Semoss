@@ -9,7 +9,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 
 public class FileSourceReactor extends QueryStructReactor {
-	
+
 	//keys to get inputs from pixel command
 	private static final String FILE = "file";
 	private static final String SHEET_NAME = "sheetName";
@@ -30,7 +30,7 @@ public class FileSourceReactor extends QueryStructReactor {
 	 * to set newHeaders
 	 *     newHeaders = [{"oldColumn", "newColumn"}] 
 	 */
-	
+
 	@Override
 	QueryStruct2 createQueryStruct() {
 		QueryStruct2 qs = null;
@@ -42,32 +42,33 @@ public class FileSourceReactor extends QueryStructReactor {
 		String fileExtension = "";
 
 		// get file extension to determine qs
+		boolean isExcel = false;
 		if (fileLocation.contains(".")) {
 			fileExtension = fileLocation.substring(fileLocation.indexOf('.'), fileLocation.length());
-			if (fileExtension.equals(".xlsx")) { // set excelQS
-				// get excel inputs
-				String sheetName = getSheetName();
-				qs = new ExcelQueryStruct();
-				((ExcelQueryStruct) qs).setExcelFilePath(fileLocation);
-				((ExcelQueryStruct) qs).setSheetName(sheetName);
-				((ExcelQueryStruct) qs).setColumnTypes(dataTypes);
-				((ExcelQueryStruct) qs).setNewHeaderNames(headers);
-			} else { // set csv qs
-				char delimiter = getDelimiter();
-				qs = new CsvQueryStruct();
-				((CsvQueryStruct) qs).setCsvFilePath(fileLocation);
-				((CsvQueryStruct) qs).setDelimiter(delimiter);
-				((CsvQueryStruct) qs).setColumnTypes(dataTypes);
-				((CsvQueryStruct) qs).setNewHeaderNames(headers);
+			if (fileExtension.equals(".xlsx")) {
+				isExcel = true;
 			}
-			qs.merge(this.qs);
 		}
-		else {
-			throw new IllegalArgumentException("Unable to parse file extension from " + fileLocation);
+		if(isExcel) { // set excelQS
+			// get excel inputs
+			String sheetName = getSheetName();
+			qs = new ExcelQueryStruct();
+			((ExcelQueryStruct) qs).setExcelFilePath(fileLocation);
+			((ExcelQueryStruct) qs).setSheetName(sheetName);
+			((ExcelQueryStruct) qs).setColumnTypes(dataTypes);
+			((ExcelQueryStruct) qs).setNewHeaderNames(headers);
+		} else { // set csv qs
+			char delimiter = getDelimiter();
+			qs = new CsvQueryStruct();
+			((CsvQueryStruct) qs).setCsvFilePath(fileLocation);
+			((CsvQueryStruct) qs).setDelimiter(delimiter);
+			((CsvQueryStruct) qs).setColumnTypes(dataTypes);
+			((CsvQueryStruct) qs).setNewHeaderNames(headers);
 		}
+		qs.merge(this.qs);
 		return qs;
 	}
-	
+
 	/**************************************************************************************************
 	 ************************************* INPUT METHODS***********************************************
 	 **************************************************************************************************/
@@ -105,7 +106,7 @@ public class FileSourceReactor extends QueryStructReactor {
 			dataTypes = (Map<String, String>) dataNoun.getValue();
 		}
 		return dataTypes;
-		
+
 	}
 
 	private char getDelimiter() {
@@ -113,19 +114,19 @@ public class FileSourceReactor extends QueryStructReactor {
 		String delimiter = "";
 		char delim = ','; //default
 		NounMetadata instanceIndexNoun;
-		
+
 		if (delimGRS != null) {
 			instanceIndexNoun = delimGRS.getNoun(0);
 			delimiter = (String) instanceIndexNoun.getValue();
 		} else {
 			throw new IllegalArgumentException("Need to specify " + DELIMITER + "=[delimiter] in pixel command");
 		}
-		
+
 		//get char from input string
 		if(delimiter.length() > 0) {
 			delim = delimiter.charAt(0);
 		}
-		
+
 		return delim;
 	}
 
