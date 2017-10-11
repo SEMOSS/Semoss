@@ -29,7 +29,6 @@ public class CreateFrameReactor extends AbstractReactor {
 			logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
 		}
 		ITableDataFrame newFrame = FrameFactory.getFrame(frameType, alias);
-//		newFrame.setUserId(this.insight.getUserId());
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		
 		// store it as the result and push it to the planner to override

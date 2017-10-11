@@ -8,8 +8,8 @@ import java.util.Set;
 
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.IQuerySelector;
-import prerna.query.querystruct.QueryColumnSelector;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;

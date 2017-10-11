@@ -1,4 +1,4 @@
-package prerna.query.querystruct;
+package prerna.query.querystruct.selectors;
 
 public abstract class AbstractQuerySelector implements IQuerySelector {
 

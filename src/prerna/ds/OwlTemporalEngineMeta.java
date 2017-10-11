@@ -20,8 +20,8 @@ import prerna.algorithm.api.IMetaData;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
-import prerna.query.querystruct.QueryColumnSelector;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
