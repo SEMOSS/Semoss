@@ -947,5 +947,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	public void setConnection(Connection engineConn) {
 		this.engineConn = engineConn;
+		try {
+			this.engineConnected = !this.engineConn.isClosed();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	} 
 }
