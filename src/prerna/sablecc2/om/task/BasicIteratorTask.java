@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -101,9 +100,9 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	private void generateIterator(QueryStruct2 qs) {
-		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE) {
-			IEngine engine = Utility.getEngine(qs.getEngineName());
-			iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE || 
+				qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
 			frame.setLogger(this.logger);

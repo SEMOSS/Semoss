@@ -7,7 +7,6 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -18,7 +17,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Utility;
 
 public class IterateReactor extends AbstractReactor {
 
@@ -68,8 +66,7 @@ public class IterateReactor extends AbstractReactor {
 			Iterator<IHeadersDataRow> iterator = null;
 			if(queryStruct.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE ||
 					queryStruct.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				IEngine engine = Utility.getEngine(queryStruct.getEngineName());
-				iterator = WrapperManager.getInstance().getRawWrapper(engine, queryStruct);
+				iterator = WrapperManager.getInstance().getRawWrapper(queryStruct.retrieveQueryStructEngine(), queryStruct);
 			} else {
 				ITableDataFrame frame = queryStruct.getFrame();
 				if(frame == null) {

@@ -18,7 +18,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Utility;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
@@ -181,13 +180,13 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(this.qs.getEngineName()), this.qs);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), this.qs);
 		return iterator.hasNext();
 	}
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(this.qs.getEngineName()), query);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
 		return iterator;
 	}
 
@@ -197,7 +196,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		qs.mergeFilters(this.qs.getFilters());
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(Utility.getEngine(this.qs.getEngineName()), qs);
+		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		return iterator;
 	}
 	

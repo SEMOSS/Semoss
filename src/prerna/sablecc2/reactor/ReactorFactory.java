@@ -113,6 +113,7 @@ import prerna.sablecc2.reactor.qs.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.FrameReactor;
 import prerna.sablecc2.reactor.qs.GroupByReactor;
 import prerna.sablecc2.reactor.qs.GroupConcatReactor;
+import prerna.sablecc2.reactor.qs.JdbcEngineConnectorReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.MaxReactor;
@@ -223,6 +224,7 @@ public class ReactorFactory {
 		reactorHash.put("Database", DatabaseReactor.class); 
 		reactorHash.put("FileRead", FileSourceReactor.class); 
 		reactorHash.put("TextInput", TextInputReactor.class); 
+		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("JDBCConnection", DirectJdbcConnection.class);
 
 
@@ -352,7 +354,6 @@ public class ReactorFactory {
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
 		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
-
 	}
 	
 	private static void populateExpressionSet(Map<String, Class> expressionHash) {
