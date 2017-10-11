@@ -79,7 +79,11 @@ public interface IExplorable {
 	void setOWL(String owl);
 	
 	String getOWL();
+	
+	boolean isBasic();
 
+	void setBasic(boolean isBasic);
+	
 	// gets the owl definitions
 	String getOWLDefinition();
 
@@ -198,4 +202,5 @@ public interface IExplorable {
 
 	// REFAC: Change this to engine - this should be local master
 	String getPhysicalUriFromConceptualUri(String propertyName, String parentName);
+
 }

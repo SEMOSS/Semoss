@@ -34,6 +34,7 @@ public class JdbcEngineConnectorReactor extends QueryStructReactor {
 		RDBMSNativeEngine fakeEngine = new RDBMSNativeEngine();
 		fakeEngine.setEngineName("FAKE_ENGINE");
 		fakeEngine.setConnection(con);
+		fakeEngine.setBasic(true);
 		
 		this.qs.setEngine(fakeEngine);
 		this.qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
