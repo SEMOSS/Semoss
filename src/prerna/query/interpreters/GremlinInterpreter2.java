@@ -65,7 +65,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 //		}
 
 		if(allAliasSelectors.size() == 1) {
-			this.gt = this.gt.select(allAliasSelectors.get(0));
+			this.gt = this.gt.select(allAliasSelectors.get(0)).dedup();
 		} else if(allAliasSelectors.size() == 2) {
 			this.gt = this.gt.select(allAliasSelectors.get(0), allAliasSelectors.get(1));
 		} else {
