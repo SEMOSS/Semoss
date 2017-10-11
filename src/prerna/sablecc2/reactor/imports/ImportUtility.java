@@ -15,7 +15,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -46,13 +45,11 @@ public class ImportUtility {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
 		if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE) {
-			IEngine engine = Utility.getEngine(qs.getEngineName());
-			return WrapperManager.getInstance().getRawWrapper(engine, qs);
+			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} 
 		// engine with hard coded query
 		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			IEngine engine = Utility.getEngine(qs.getEngineName());
-			return WrapperManager.getInstance().getRawWrapper(engine, ((HardQueryStruct) qs).getQuery());
+			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardQueryStruct) qs).getQuery());
 		} 
 		// frame with qs
 		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME){
