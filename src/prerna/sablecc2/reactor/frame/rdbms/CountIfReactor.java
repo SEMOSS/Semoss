@@ -20,61 +20,58 @@ public class CountIfReactor extends AbstractFrameReactor {
 		String newColumnName = getNewColumn();
 		String columnToCount = getCountColumn();
 		String regex = getRegexString();
+		String table = frame.getTableName();
 
-		if (frame != null) {
-			String table = frame.getTableName();
+		// clean column to count
+		if (columnToCount.contains("__")) {
+			String[] split = columnToCount.split("__");
+			table = split[0];
+			columnToCount = split[1];
+		}
+		String[] existCols = getColNames(columnToCount);
+		if (Arrays.asList(existCols).contains(columnToCount) != true) {
+			throw new IllegalArgumentException("Column: " + columnToCount + " doesn't exist.");
+		}
+		// new column datatype is set to numeric
+		String dataType = Utility.convertDataTypeToString(IMetaData.convertToDataTypeEnum("NUMBER"));
+		// clean new column name
+		newColumnName = getCleanNewColName(table, newColumnName);
 
-			// clean column to count
-			if (columnToCount.contains("__")) {
-				String[] split = columnToCount.split("__");
-				table = split[0];
-				columnToCount = split[1];
-			}
-			String[] existCols = getColNames(columnToCount);
-			if (Arrays.asList(existCols).contains(columnToCount) != true) {
-				throw new IllegalArgumentException("Column: " + columnToCount + " doesn't exist.");
-			}
-			// new column datatype is set to numeric
-			String dataType = Utility.convertDataTypeToString(IMetaData.convertToDataTypeEnum("NUMBER"));
-			// clean new column name
-			newColumnName = getCleanNewColName(table, newColumnName);
-
-			// escape single quote for sql
-			if (regex.contains("'")) {
-				regex = regex.replaceAll("'", "''");
-			}
-			// 1) first add new column name
-			String addColumnSQL = "ALTER TABLE " + table + " ADD " + newColumnName + " " + dataType + ";";
+		// escape single quote for sql
+		if (regex.contains("'")) {
+			regex = regex.replaceAll("'", "''");
+		}
+		// 1) first add new column name
+		String addColumnSQL = "ALTER TABLE " + table + " ADD " + newColumnName + " " + dataType + ";";
 			// 2) create a temp column to replace the matching string in the column to count with a replacement string
-			String tempColName = "REP_"+ Utility.getRandomString(5);
-			String addTempColumn = "ALTER TABLE " + table + " ADD  "+tempColName+" varchar(800);";
-			String tempReplacementString = ";;;" + Utility.getRandomString(3) + ";;;";
-			String updateTempColumn = "UPDATE " + table + " SET " + tempColName + "= REGEXP_REPLACE (" + columnToCount + ", '" + regex + "', '" + tempReplacementString + "');";
+		String tempColName = "REP_" + Utility.getRandomString(5);
+		String addTempColumn = "ALTER TABLE " + table + " ADD  " + tempColName + " varchar(800);";
+		String tempReplacementString = ";;;" + Utility.getRandomString(3) + ";;;";
+		String updateTempColumn = "UPDATE " + table + " SET " + tempColName + "= REGEXP_REPLACE (" + columnToCount + ", '" + regex + "', '" + tempReplacementString + "');";
 
-			// 3) Update the count column by setting it to the length of the col - replacing the temp column with empty string
-			String updateCountColumn = "UPDATE " + table + " SET " + newColumnName + " = " + "LENGTH("+tempColName+") - LENGTH(REPLACE(" + tempColName + ",'" + tempReplacementString + "',''));";
-			
-			// 4) Update the count with MOD (tempColumn, tempString - 1)
-			updateCountColumn += "UPDATE " + table + " SET " + newColumnName + " = MOD(" + newColumnName + "," + (tempReplacementString.length() - 1) + " );";
+		// 3) Update the count column by setting it to the length of the col - replacing the temp column with empty string
+		String updateCountColumn = "UPDATE " + table + " SET " + newColumnName + " = " + "LENGTH("+tempColName+") - LENGTH(REPLACE(" + tempColName + ",'" + tempReplacementString + "',''));";
 
-			// 5) Drop temp column
-			String dropTempColumn = "ALTER TABLE " + table + " DROP COLUMN "+tempColName+";";
+		// 4) Update the count with MOD (tempColumn, tempString - 1)
+		updateCountColumn += "UPDATE " + table + " SET " + newColumnName + " = MOD(" + newColumnName + "," + (tempReplacementString.length() - 1) + " );";
 
-			try {
-				frame.getBuilder().runQuery(addColumnSQL);
-				frame.getBuilder().runQuery(addTempColumn);
-				frame.getBuilder().runQuery(updateTempColumn);
-				frame.getBuilder().runQuery(updateCountColumn);
-				frame.getBuilder().runQuery(dropTempColumn);
+		// 5) Drop temp column
+		String dropTempColumn = "ALTER TABLE " + table + " DROP COLUMN " + tempColName + ";";
 
-				// set metadata for new column name
-				OwlTemporalEngineMeta metaData = frame.getMetaData();
-				metaData.addProperty(table, table + "__" + newColumnName);
-				metaData.setAliasToProperty(table + "__" + newColumnName, newColumnName);
-				metaData.setDataTypeToProperty(table + "__" + newColumnName, dataType);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		try {
+			frame.getBuilder().runQuery(addColumnSQL);
+			frame.getBuilder().runQuery(addTempColumn);
+			frame.getBuilder().runQuery(updateTempColumn);
+			frame.getBuilder().runQuery(updateCountColumn);
+			frame.getBuilder().runQuery(dropTempColumn);
+
+			// set metadata for new column name
+			OwlTemporalEngineMeta metaData = frame.getMetaData();
+			metaData.addProperty(table, table + "__" + newColumnName);
+			metaData.setAliasToProperty(table + "__" + newColumnName, newColumnName);
+			metaData.setDataTypeToProperty(table + "__" + newColumnName, dataType);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
@@ -105,7 +102,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define the regex for count");
 	}
-	
+
 	private String getNewColumn() {
 		GenRowStruct inputsGRS = this.getCurRow();
 		String newColumn = "";

@@ -15,35 +15,33 @@ public class AddColumnReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		H2Frame frame = (H2Frame) getFrame();
+		// get new column name
+		String colName = getNewColumnName();
+		String table = frame.getTableName();
+
+		// clean column name
+		if (colName.contains("__")) {
+			String[] split = colName.split("__");
+			table = split[0];
+			colName = split[1];
+		}
+		colName = getCleanNewColName(table, colName);
+
+		// get new column type or set default to string
+		String dataType = getDataType();
+		// make sql data type
+		dataType = Utility.convertDataTypeToString(IMetaData.convertToDataTypeEnum(dataType));
 		if (frame != null) {
-			// get new column name
-			String colName = getNewColumnName();
-			String table = frame.getTableName();
-
-			// clean column name
-			if (colName.contains("__")) {
-				String[] split = colName.split("__");
-				table = split[0];
-				colName = split[1];
-			}
-			colName = getCleanNewColName(table, colName);
-
-			// get new column type or set default to string
-			String dataType = getDataType();
-			// make sql data type
-			dataType = Utility.convertDataTypeToString(IMetaData.convertToDataTypeEnum(dataType));
-			if (frame != null) {
-				String update = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
-				try {
-					frame.getBuilder().runQuery(update);
-					// set metadata for new column
-					OwlTemporalEngineMeta metaData = frame.getMetaData();
-					metaData.addProperty(table, table + "__" + colName);
-					metaData.setAliasToProperty(table + "__" + colName, colName);
-					metaData.setDataTypeToProperty(table + "__" + colName, dataType);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+			String update = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
+			try {
+				frame.getBuilder().runQuery(update);
+				// set metadata for new column
+				OwlTemporalEngineMeta metaData = frame.getMetaData();
+				metaData.addProperty(table, table + "__" + colName);
+				metaData.setAliasToProperty(table + "__" + colName, colName);
+				metaData.setDataTypeToProperty(table + "__" + colName, dataType);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 
