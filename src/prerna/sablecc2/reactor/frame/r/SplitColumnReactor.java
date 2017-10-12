@@ -8,16 +8,21 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.Utility;
 
 public class SplitColumnReactor extends AbstractRFrameReactor {
+	
+	/**
+	 * This reactor splits columns based on a separator
+	 * It replaces all portions of the current cell value that is an exact match to the input value
+	 * The inputs to the reactor are: 
+	 * 1) the separator
+	 * 2) the columns to split 
+	 */
 
 	@Override
 	public NounMetadata execute() {
 		//use init to initialize rJavaTranslator object that will be used later
 		init();
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();

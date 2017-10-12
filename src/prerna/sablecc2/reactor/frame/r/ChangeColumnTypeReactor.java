@@ -9,6 +9,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.Utility;
 
+/**
+ * This reactor changes the data type of an existing column The inputs to the
+ * reactor are: 1) the column to update 2) the desired column type
+ */
+
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
@@ -92,6 +97,6 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		if (dt == null) {
 			dt = DATA_TYPES.STRING;
 		}
-		return columnType;
+		return dt.toString();
 	}
 }
