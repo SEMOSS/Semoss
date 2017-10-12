@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -12,73 +14,84 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
-		GenRowStruct inputsGRS = this.getCurRow();
-		//column is just the name of the column
-		String column = "";
-		String newType = ""; 
+		String column = getColumn();
+		String newType = getColumnType();
+		String table = frame.getTableName();
 
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//first input is the column that we are changing the type of
-			NounMetadata input1 = inputsGRS.getNoun(0);
-			PixelDataType nounType1 = input1.getNounType();
-			if (nounType1 == PixelDataType.COLUMN) {
-				String fullColName = input1.getValue() + "";
-				column = fullColName.split("__")[1];
-			}
-			//second input is the new column type
-			NounMetadata input2 = inputsGRS.getNoun(1);
-			PixelDataType nounType2 = input2.getNounType();
-			if (nounType2 == PixelDataType.CONST_STRING) {
-				newType = input2.getValue() + "";
-			}
-			//make sure that the frame exists
-			if (frame != null) {
-				String table = frame.getTableName();
-				//define the r script to execute
-				//script depends on the new data type
-				String script = null;
-				if (newType.equalsIgnoreCase("string") || newType.equalsIgnoreCase("character")) {
-					script = table + " <- " + table + "[, " + column + " := as.character(" + column + ")]";
-					frame.executeRScript(script); 
-				} else if (newType.equalsIgnoreCase("factor")) {
-					script = table + " <- " + table + "[, " + column + " := as.factor(" + column + ")]";
-					frame.executeRScript(script);
-				} else if (newType.equalsIgnoreCase("number") || newType.equalsIgnoreCase("numeric")) {
-					script = table + " <- " + table + "[, " + column + " := as.numeric(" + column + ")]";
-					frame.executeRScript(script);
-				} else if (newType.equalsIgnoreCase("date")) {
-					// we have a different script to run if it is a str to date conversion
-					// define date format
-					String dateFormat = "%Y/%m/%d";
-					//get the column type of the existing column
-					String type = getColumnType(table, column);
-					String tempTable = Utility.getRandomString(6);
-					if (type.equalsIgnoreCase("date")) {
-						String formatString = ", format = '" + dateFormat + "'";
-						script = tempTable + " <- format(" + table + "$" + column + formatString + ")";
-						frame.executeRScript(script);
-						script = table + "$" + column + " <- " + "as.Date(" + tempTable + formatString + ")";
-						frame.executeRScript(script);
-					} else {
-						script = tempTable + " <- as.Date(" + table + "$" + column + ", format='" + dateFormat + "')";
-						frame.executeRScript(script);
-						script = table + "$" + column + " <- " + tempTable;
-						frame.executeRScript(script);
-					}
-					// perform variable cleanup
-					frame.executeRScript("rm(" + tempTable + ");");
-					frame.executeRScript("gc();");
-				}
-				//update the metadata
-				this.getFrame().getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
-			}
+		if (column.contains("__")) {
+			String[] split = column.split("__");
+			column = split[1];
+			table = split[0];
 		}
+		// define the r script to execute
+		// script depends on the new data type
+		String script = null;
+		if (newType.equalsIgnoreCase("string") || newType.equalsIgnoreCase("character")) {
+			script = table + " <- " + table + "[, " + column + " := as.character(" + column + ")]";
+			frame.executeRScript(script);
+		} else if (newType.equalsIgnoreCase("factor")) {
+			script = table + " <- " + table + "[, " + column + " := as.factor(" + column + ")]";
+			frame.executeRScript(script);
+		} else if (newType.equalsIgnoreCase("number") || newType.equalsIgnoreCase("numeric")) {
+			script = table + " <- " + table + "[, " + column + " := as.numeric(" + column + ")]";
+			frame.executeRScript(script);
+		} else if (newType.equalsIgnoreCase("date")) {
+			// we have a different script to run if it is a str to date
+			// conversion
+			// define date format
+			String dateFormat = "%Y/%m/%d";
+			// get the column type of the existing column
+			String type = getColumnType(table, column);
+			String tempTable = Utility.getRandomString(6);
+			if (type.equalsIgnoreCase("date")) {
+				String formatString = ", format = '" + dateFormat + "'";
+				script = tempTable + " <- format(" + table + "$" + column + formatString + ")";
+				frame.executeRScript(script);
+				script = table + "$" + column + " <- " + "as.Date(" + tempTable + formatString + ")";
+				frame.executeRScript(script);
+			} else {
+				script = tempTable + " <- as.Date(" + table + "$" + column + ", format='" + dateFormat + "')";
+				frame.executeRScript(script);
+				script = table + "$" + column + " <- " + tempTable;
+				frame.executeRScript(script);
+			}
+			// perform variable cleanup
+			frame.executeRScript("rm(" + tempTable + ");");
+			frame.executeRScript("gc();");
+		}
+		// update the metadata
+		this.getFrame().getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+
+	private String getColumn() {
+		GenRowStruct inputsGRS = this.getCurRow();
+		if (inputsGRS != null && !inputsGRS.isEmpty()) {
+			String colName = inputsGRS.getNoun(0).getValue() + "";
+			if (colName.length() == 0) {
+				throw new IllegalArgumentException("Need to define the new column name");
+			}
+			return colName;
+		}
+		throw new IllegalArgumentException("Need to define the new column name");
+	}
+
+	private String getColumnType() {
+		GenRowStruct inputsGRS = this.getCurRow();
+		NounMetadata input2 = inputsGRS.getNoun(1);
+		String columnType = input2.getValue() + "";
+		// default to string
+		if (columnType.length() == 0) {
+			columnType = "STRING";
+		}
+		// check if data type is supported
+		DATA_TYPES dt = IMetaData.convertToDataTypeEnum(columnType);
+		if (dt == null) {
+			dt = DATA_TYPES.STRING;
+		}
+		return columnType;
 	}
 }

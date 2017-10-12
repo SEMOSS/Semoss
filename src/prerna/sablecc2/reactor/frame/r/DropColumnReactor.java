@@ -13,51 +13,43 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		//initialize rJavaTranslator
+		// initialize rJavaTranslator
 		init();
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
-
+		RDataTable frame = (RDataTable) getFrame();
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
-
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			// add loop; this would apply if more than one column to drop
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
-				PixelDataType nounType = input.getNounType();
-				String colName = "";
-				if (nounType == PixelDataType.COLUMN) {
-					colName = input.getValue() + "";
-				}
-				//check that the frame is not null
-				if (frame != null) {
-					String table = frame.getTableName();
-					//define the r script to be executed
-					String script = table + "[," + colName + ":=NULL]";
-					// check the column exists, if not then throw warning
-					String[] allCol = getColumns(table);
+				String colName = input.getValue() + "";
+				// check that the frame is not null
+				String table = frame.getTableName();
+				// define the r script to be executed
+				String script = table + "[," + colName + ":=NULL]";
+				// check the column exists, if not then throw warning
+				String[] allCol = getColumns(table);
+				String column = colName;
+				if (colName.contains("__")) {
 					String[] split = colName.split("__");
-					String column = split[1];
-					if (Arrays.asList(allCol).contains(column) != true) {
-						throw new IllegalArgumentException("Column doesn't exist.");
-					}
-
-					// execute the script - it will be of the form:  FRAME[,FRAME__ColToDrop:=NULL]
-					frame.executeRScript(script);
-
-					//update the metadata because the columns are changing
-					OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-					metaData.dropProperty(colName, table);
-					this.getFrame().syncHeaders();
-
+					table = split[0];
+					column = split[1];
 				}
+				if (Arrays.asList(allCol).contains(column) != true) {
+					throw new IllegalArgumentException("Column doesn't exist.");
+				}
+
+				// execute the script - it will be of the form:
+				// FRAME[,FRAME__ColToDrop:=NULL]
+				frame.executeRScript(script);
+
+				// update the metadata because the columns are changing
+				OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
+				metaData.dropProperty(colName, table);
+				this.getFrame().syncHeaders();
 
 			}
-			// loop ends
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
