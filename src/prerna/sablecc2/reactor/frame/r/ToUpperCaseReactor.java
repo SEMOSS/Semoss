@@ -9,6 +9,12 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class ToUpperCaseReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor changes columns to all upper case 
+	 * The inputs to the reactor are: 
+	 * 1) the columns to update
+	 */
+	
 	@Override
 	public NounMetadata execute() {
 		// get frame
@@ -32,7 +38,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				String dataType = metaData.getHeaderTypeAsString(thisSelector);
-				if (!dataType.equals("STRING")) {
+				if (!dataType.equalsIgnoreCase("STRING")) {
 					throw new IllegalArgumentException("Data type not supported.");
 				}
 
