@@ -9,13 +9,16 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class TrimReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor trims column values
+	 * The inputs to the reactor are: 
+	 * 1) the columns to update
+	 */
+	
 	@Override
 	public NounMetadata execute() {
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();

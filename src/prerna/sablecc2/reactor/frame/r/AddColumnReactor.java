@@ -10,6 +10,11 @@ import prerna.util.Utility;
 
 public class AddColumnReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor adds an empty column to the frame The inputs to the reactor
+	 * are: 1) the name for the new column 2) the new column type
+	 */
+
 	@Override
 	public NounMetadata execute() {
 		init();
@@ -30,8 +35,8 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		// clean the column name to ensure that it is valid
 		colName = getCleanNewColName(table, colName);
 
-		// define the script to be executed; this assigns a new column name with
-		// no data in columns
+		// define the script to be executed;
+		// this assigns a new column name with no data in columns
 		String script = table + "$" + colName + " <- \"\" ";
 		// execute the r script
 		frame.executeRScript(script);
@@ -43,14 +48,14 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 
 		// temp table used to assign a data type to the new column
 		String tempTable = null;
-		if (colType != null && (colType.equalsIgnoreCase("number") || colType.equalsIgnoreCase("numeric"))) {
+		if ((colType.equalsIgnoreCase("number") || colType.equalsIgnoreCase("numeric"))) {
 			// update the metadata depending on the data type
 			metaData.setDataTypeToProperty(table + "__" + colName, "NUMBER");
 			tempTable = Utility.getRandomString(6);
 			script = tempTable + " <- as.numeric(" + table + "$" + colName + ")";
 			frame.executeRScript(script);
 			script = table + "$" + colName + "<-" + tempTable;
-		} else if (colType != null && colType.equalsIgnoreCase("date")) {
+		} else if (colType.equalsIgnoreCase("date")) {
 			metaData.setDataTypeToProperty(table + "__" + colName, "DATE");
 			tempTable = Utility.getRandomString(6);
 			String dateFormat = "%Y/%m/%d";

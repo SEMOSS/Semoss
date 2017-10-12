@@ -13,61 +13,65 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.QueryFilter;
 
 public class DropRowsReactor extends AbstractRFrameReactor {
-	
+
+	/**
+	 * This reactor drops rows based on a comparison The inputs to the reactor
+	 * are: 1) the filter comparison for dropping rows
+	 */
+
 	@Override
 	public NounMetadata execute() {
-		//initialize rJavaTranslator - we will need this for method to get the data type
+		// initialize rJavaTranslator - we will need this for method to get the data type
 		init();
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
 		String table = frame.getTableName();
-		//we will use a filter to determine which rows to drop	
+		// we will use a filter to determine which rows to drop
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//use a stringbuilder to keep track of the growing script
+			// use a stringbuilder to keep track of the growing script
 			StringBuilder script = new StringBuilder(table).append(" <- ").append(table).append("[!( ");
 			NounMetadata filterNoun = inputsGRS.getNoun(0);
 			PixelDataType filterNounType = filterNoun.getNounType();
 			if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
-				//the first noun will be a query struct - the filter
-				QueryStruct2 qs = (QueryStruct2) filterNoun.getValue(); 
-				//get the filters from the query struct and iterate through each filtered column
+				// the first noun will be a query struct - the filter
+				QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
+				// get the filters from the query struct 
+				// and iterate through each filtered column
 				GenRowFilters grf = qs.getFilters();
 				Set<String> filteredColumns = grf.getAllFilteredColumns();
 				for (String filColumn : filteredColumns) {
 					List<QueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
 					for (QueryFilter queryFilter : filterList) {
 						String column = "";
-						//col to values
-						//the left comparison will be the column
+						// col to values the left comparison will be the column
 						NounMetadata leftComp = queryFilter.getLComparison();
 						String columnComp = leftComp.getValue() + "";
-						//separate the column name from the frame name
+						// separate the column name from the frame name
 						if (columnComp.contains("__")) {
 							String[] split = columnComp.split("__");
 							table = split[0];
-							column = split[1]; 
+							column = split[1];
 						}
-						String nounComparator = queryFilter.getComparator(); 
-						//clean nounComparator for rScript
+						String nounComparator = queryFilter.getComparator();
+						// clean nounComparator for rScript
 						if (nounComparator.trim().equals("=")) {
 							nounComparator = "==";
 						} else if (nounComparator.equals("<>")) {
 							nounComparator = "!=";
+						} else if (nounComparator.equals("?like")) {
+							nounComparator = "like";
 						}
-						//the right comparison will be the comparison value
+						// the right comparison will be the comparison value
 						NounMetadata rightComp = queryFilter.getRComparison();
 						Object value = rightComp.getValue();
 						String frameExpression = table + "$" + column;
 						String dataType = getColumnType(table, column);
 
-						//take into account different possibilities for the comparison value
-						//if an object
+						// take into account different possibilities for the comparison value
+						// if an object
 						if (value instanceof Object[]) {
 							Object[] arr = (Object[]) value;
 							Object val = arr[0];
@@ -75,7 +79,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 								if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
 									script.append("is.na(").append(frameExpression).append(") ");
 								} else {
-									if(nounComparator.equals("like")) {
+									if (nounComparator.equals("like")) {
 										script.append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
 									} else {
 										script.append(frameExpression).append(nounComparator).append("\"").append(val).append("\"");
@@ -91,10 +95,11 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 									if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
 										script.append(" | is.na(").append(frameExpression).append(") ");
 									} else {
-										if(nounComparator.equals("like")) {
+										if (nounComparator.equals("like")) {
 											script.append(" | ").append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
 										} else {
-											script.append(" | ").append(frameExpression).append(nounComparator).append("\"").append(val).append("\"");						}
+											script.append(" | ").append(frameExpression).append(nounComparator).append("\"").append(val).append("\"");
+										}
 									}
 								} else {
 									script.append(" | ").append(frameExpression).append(nounComparator).append(val);
@@ -137,7 +142,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 								if (value.toString().equalsIgnoreCase("NULL") || value.toString().equalsIgnoreCase("NA")) {
 									script.append("is.na(").append(frameExpression).append(") ");
 								} else {
-									if(nounComparator.equals("like")) {
+									if (nounComparator.equals("like")) {
 										script.append("like(").append(frameExpression).append(",").append("\"").append(value).append("\")");
 									} else {
 										script.append(frameExpression).append(nounComparator).append("\"").append(value).append("\"");
@@ -151,8 +156,8 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 				}
 			}
 			script.append("),]");
-			//execute the r script
-			//script is of the form - FRAME <- FRAME[!( FRAME$Director== "value"),]
+			// execute the r script
+			// script is of the form - FRAME <- FRAME[!( FRAME$Director == "value"),]
 			frame.executeRScript(script.toString());
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
