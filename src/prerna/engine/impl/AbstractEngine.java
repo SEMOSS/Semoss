@@ -33,6 +33,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -253,18 +254,20 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		
 		if(tableExists) {
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":[ { \"query\": \"CreateFrame(grid).as([\\\"FRAME\\\"]); "
-					+ "Database(" + this.engineName + ") | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(); "
-					+ "Panel(<SMSS_PANEL_ID>) | SetPanelView(\\\"visualization\\\"); "
-					+ "Select(FRAME__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | "
-					+ "Format(type=['graph'], options=[]) | "
-					+ "TaskOptions({\\\"<SMSS_PANEL_ID>\\\":{\\\"layout\\\": \\\"Graph\\\", \\\"alignment\\\": {\\\"start\\\": [\\\"<concept>\\\"], "
-					+ "\\\"end\\\":[\\\"<concept>\\\"]}}}) | Collect(500);\", \"label\":\"Explore an instance\", \"description\":\"Explore instances of a selected concept\", "
-					+ "\"params\":[ { \"paramName\":\"concept\", \"required\":true, \"view\":{ \"displayType\":\"dropdown\", \"label\":\"Select a Concept\", "
-					+ "\"description\":\"Select a concept that you will explore\" }, \"model\":{ \"query\":\"GetDatabaseConcepts(engine=[\\\"" + this.engineName + "\\\"]);\", \"dependsOn\":[] } }, "
-					+ "{ \"paramName\":\"instance\", \"required\":true, \"view\":{ \"displayType\":\"checklist\", \"label\":\"Select an Instance\", "
-					+ "\"description\":\"Select an instance to explore\" }, \"model\":{ \"query\": \"Database(" + this.engineName + ") | "
-					+ "Select(<concept>) | Collect(50);\", \"dependsOn\":[ \"concept\" ] } } ], \"execute\":\"button\" } ]} </encode>\" ) ;";	
+			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
+			File exploreF = new File(exploreLoc);
+			if(!exploreF.exists()) {
+				// ughhh... cant do anything for ya buddy
+				return;
+			}
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.engineName);
+			} catch (IOException e2) {
+				// can't help ya
+				return;
+			}
+			newPixel += "} </encode>\" ) ;";
 			
 			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
 			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
