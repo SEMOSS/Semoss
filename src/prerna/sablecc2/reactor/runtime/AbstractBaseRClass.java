@@ -2863,7 +2863,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String colName = column;
 		if (column.contains("__")) {
 			colName = column.split("__")[1];
-		} else {
+		} else if(dataframe.getTableName() != null) {
 			column = dataframe.getTableName() + "__" + column;
 		} 
 
