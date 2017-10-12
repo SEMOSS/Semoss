@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -26,16 +27,20 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 					table = split[0];
 					column = split[1];
 				}
+				OwlTemporalEngineMeta metaData = frame.getMetaData();
+				String dataType = metaData.getHeaderTypeAsString(thisSelector);
+				if (!dataType.equals("STRING")) {
+					throw new IllegalArgumentException("Data type not supported.");
+				}
+
 				// execute update table set column = UPPER(column);
 				update += "UPDATE " + table + " SET " + column + " = LOWER(" + column + ") ; ";
 			}
-			if (frame != null) {
-				if (update.length() > 0) {
-					try {
-						frame.getBuilder().runQuery(update);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+			if (update.length() > 0) {
+				try {
+					frame.getBuilder().runQuery(update);
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}
