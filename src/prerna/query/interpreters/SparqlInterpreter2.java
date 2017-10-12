@@ -154,7 +154,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			String alias = selector.getAlias();
 			
 			String var = processSelector(selector);
-			if(var.equals(alias)) {
+			if(var.equals("?" + alias)) {
 				this.selectors.append(var).append(" ");
 			} else {
 				this.selectors.append("(").append(var).append(" AS ?").append(alias).append(") ");
