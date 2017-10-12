@@ -11,6 +11,11 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class DropColumnReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor drops columns from the frame The inputs to the reactor are:
+	 * 1) list of columns to drop
+	 */
+
 	@Override
 	public NounMetadata execute() {
 		// initialize rJavaTranslator

@@ -9,26 +9,26 @@ public class TransposeReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		
+		/**
+		 * This reactor transposes the frame
+		 * No inputs are needed
+		 */
 
 		// get frame
 		//use init to initialize rJavaTranslator object that will be used later
 		init();
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
-
+		RDataTable frame = (RDataTable) getFrame();
+		
 		//make sure frame is not null
-		if (frame != null) {
-			//get table name
-			String table = frame.getTableName();
-			//define r script string to be executed
-			String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
-			//execute the r script
-			frame.executeRScript(script);
-			//with transpose - the column data is changing so we must reacreate metadata
-			recreateMetadata(table);
-		}
+		//get table name
+		String table = frame.getTableName();
+		//define r script string to be executed
+		String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
+		//execute the r script
+		frame.executeRScript(script);
+		//with transpose - the column data is changing so we must reacreate metadata
+		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 }

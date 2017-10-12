@@ -8,20 +8,25 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class SortColumnReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor sorts a column based on a given sort direction The inputs to
+	 * the reactor are:
+	 * 
+	 * 1) the column to sort 
+	 * 2) the sort direction
+	 */
+
 	@Override
 	public NounMetadata execute() {
 
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
 
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//the first input will be the column to sort
+			// the first input will be the column to sort
 			NounMetadata input1 = inputsGRS.getNoun(0);
 			PixelDataType nounType1 = input1.getNounType();
 			String column = "";
@@ -30,29 +35,26 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 				column = fullColumn.split("__")[1];
 			}
 
-			//the second input will be the sort direction
+			// the second input will be the sort direction
 			NounMetadata input2 = inputsGRS.getNoun(1);
 			PixelDataType nounType2 = input2.getNounType();
-			String sortDir = null; 
+			String sortDir = null;
 			if (nounType2 == PixelDataType.CONST_STRING) {
-				sortDir = input2.getValue() + ""; 
+				sortDir = input2.getValue() + "";
 			}
 
-			//check that the frame is not null
-			if (frame != null) {
-				String table = frame.getTableName();
+			String table = frame.getTableName();
 
-				//define the scripts based on the sort direction
-				String script = null;
-				if (sortDir == null || sortDir.equalsIgnoreCase("asc")) {
-					script = table + " <- " + table + "[order(rank(" + column + "))]";
-				} else if (sortDir.equalsIgnoreCase("desc")) {
-					script = table + " <- " + table + "[order(-rank(" + column + "))]";
-				}
-				//execute the r script
-				//script will be of the form: FRAME <- FRAME[order(rank(Director))]
-				frame.executeRScript(script);
+			// define the scripts based on the sort direction
+			String script = null;
+			if (sortDir == null || sortDir.equalsIgnoreCase("asc")) {
+				script = table + " <- " + table + "[order(rank(" + column + "))]";
+			} else if (sortDir.equalsIgnoreCase("desc")) {
+				script = table + " <- " + table + "[order(-rank(" + column + "))]";
 			}
+			// execute the r script
+			// script will be of the form: FRAME <- FRAME[order(rank(Director))]
+			frame.executeRScript(script);
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

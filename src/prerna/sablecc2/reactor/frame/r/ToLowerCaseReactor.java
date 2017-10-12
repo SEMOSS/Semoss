@@ -8,6 +8,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 
 public class ToLowerCaseReactor extends AbstractRFrameReactor {
+	
+	/**
+	 * This reactor changes columns to all lower case 
+	 * The inputs to the reactor are: 
+	 * 1) the columns to update
+	 */
 
 	@Override
 	public NounMetadata execute() {
