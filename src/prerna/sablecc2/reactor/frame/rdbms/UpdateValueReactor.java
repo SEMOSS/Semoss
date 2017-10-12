@@ -18,7 +18,7 @@ public class UpdateValueReactor extends AbstractFrameReactor {
 		String table = "";
 		String column = "";
 		GenRowStruct inputsGRS = this.getCurRow();
-		//get column to update
+		// get column to update
 		columnInput = inputsGRS.getNoun(0).getValue() + "";
 		if (columnInput.contains("__")) {
 			String[] split = columnInput.split("__");
@@ -28,28 +28,26 @@ public class UpdateValueReactor extends AbstractFrameReactor {
 			table = frame.getTableName();
 			column = columnInput;
 		}
-		
+
 		// check the column exists, if not then throw warning
 		String[] allCol = getColNames(table);
 		if (Arrays.asList(allCol).contains(column) != true) {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
-		
-		//get old column value
+
+		// get old column value
 		String oldValueSQL = getOldValueSQL();
 
-		//get new column value
+		// get new column value
 		String newValueSQL = getNewValueSQL();
-	
-		//create sql update table set column = REXP_REPLACE(column, oldValue, newValue);
-		String update = "UPDATE " + table + " SET " + column + " = REGEXP_REPLACE("+column+", "+oldValueSQL+", "+newValueSQL+");";
 
-		if (frame != null) {
-			try {
-				frame.getBuilder().runQuery(update);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		// create sql update table set column = REXP_REPLACE(column, oldValue, newValue);
+		String update = "UPDATE " + table + " SET " + column + " = REGEXP_REPLACE(" + column + ", " + oldValueSQL + ", " + newValueSQL + ");";
+
+		try {
+			frame.getBuilder().runQuery(update);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
@@ -61,7 +59,7 @@ public class UpdateValueReactor extends AbstractFrameReactor {
 		PixelDataType nounType = noun.getNounType();
 		if (nounType.equals(PixelDataType.CONST_STRING)) {
 			newValueSQL = noun.getValue() + "";
-			if (newValueSQL.contains("'")){
+			if (newValueSQL.contains("'")) {
 				newValueSQL = newValueSQL.replaceAll("'", "''");
 			}
 			newValueSQL = "'" + newValueSQL + "'";
