@@ -61,6 +61,8 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			task = constructTaskFromQs();
 		}
 		
+		Logger logger = this.getLogger(CLASS_NAME);
+		task.setLogger(logger);
 		return task;
 	}
 	
@@ -89,9 +91,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			qs.mergeFilters(frame.getFrameFilters());
 		}
 		
-		Logger logger = this.getLogger(CLASS_NAME);
 		ITask task = new BasicIteratorTask(qs);
-		task.setLogger(logger);
 		// add the task to the store
 		this.insight.getTaskStore().addTask(task);
 		return task;
