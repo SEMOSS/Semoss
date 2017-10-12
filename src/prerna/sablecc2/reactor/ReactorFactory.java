@@ -393,12 +393,12 @@ public class ReactorFactory {
 		// currently don't have any of these...
 		frameReactorHash.put("AddColumn", "AddColumnReactor");
 		frameReactorHash.put("ChangeColumnType", "ChangeColumnTypeReactor");
-//		frameReactorHash.put("CountIf", "CountIfReactor");
+		frameReactorHash.put("CountIf", "CountIfReactor");
 		frameReactorHash.put("DropColumn", "DropColumnReactor");
 		frameReactorHash.put("DropRows", "DropRowsReactor");
 		frameReactorHash.put("JoinColumns", "JoinColumnsReactor");
 		frameReactorHash.put("RenameColumn", "RenameColumnReactor");
-//		frameReactorHash.put("SortColumn", "SortColumnReactor");
+		frameReactorHash.put("SortColumn", "SortColumnReactor");
 		frameReactorHash.put("SplitColumns", "SplitColumnReactor");
 		frameReactorHash.put("ToLowerCase", "ToLowerCaseReactor");
 		frameReactorHash.put("ToUpperCase", "ToUpperCaseReactor");

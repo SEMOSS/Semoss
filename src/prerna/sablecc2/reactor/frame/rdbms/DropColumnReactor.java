@@ -40,13 +40,11 @@ public class DropColumnReactor extends AbstractFrameReactor {
 				frame.getMetaData().dropProperty(thisSelector, table);
 				frame.syncHeaders();
 			}
-			if (frame != null) {
-				if (update.length() > 0) {
-					try {
-						frame.getBuilder().runQuery(update);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+			if (update.length() > 0) {
+				try {
+					frame.getBuilder().runQuery(update);
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}

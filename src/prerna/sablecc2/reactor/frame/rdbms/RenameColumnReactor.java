@@ -17,30 +17,28 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		String originalColName = getOriginalColumn();
 		String newColName = getNewColumnName();
 
-		if (frame != null) {
-			String table = frame.getTableName();
-			String column = originalColName;
-			if (originalColName.contains("__")) {
-				String[] split = originalColName.split("__");
-				table = split[0];
-				column = split[1];
-			}
-			// validate column exists and clean new name
-			String[] allCol = getColNames(table);
-			if (Arrays.asList(allCol).contains(column) != true) {
-				throw new IllegalArgumentException("Column doesn't exist.");
-			}
-			newColName = getCleanNewColName(table, newColName);
+		String table = frame.getTableName();
+		String column = originalColName;
+		if (originalColName.contains("__")) {
+			String[] split = originalColName.split("__");
+			table = split[0];
+			column = split[1];
+		}
+		// validate column exists and clean new name
+		String[] allCol = getColNames(table);
+		if (Arrays.asList(allCol).contains(column) != true) {
+			throw new IllegalArgumentException("Column doesn't exist.");
+		}
+		newColName = getCleanNewColName(table, newColName);
 
-			String update = "ALTER TABLE " + table + " RENAME COLUMN " + column + " TO " + newColName + " ; ";
-			try {
-				frame.getBuilder().runQuery(update);
-				// update metadata
-				frame.getMetaData().modifyPropertyName(table + "__" + column, table, table + "__" + newColName);
-				frame.syncHeaders();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		String update = "ALTER TABLE " + table + " RENAME COLUMN " + column + " TO " + newColName + " ; ";
+		try {
+			frame.getBuilder().runQuery(update);
+			// update metadata
+			frame.getMetaData().modifyPropertyName(table + "__" + column, table, table + "__" + newColName);
+			frame.syncHeaders();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
@@ -54,7 +52,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		}
 		return originalColName;
 	}
-	
+
 	private String getNewColumnName() {
 		GenRowStruct inputsGRS = this.getCurRow();
 		String newColName = "";

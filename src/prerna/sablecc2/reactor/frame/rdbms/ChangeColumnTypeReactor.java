@@ -21,26 +21,24 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 		String column = getColumn();
 		String columnType = getColumnType();
 
-		if (frame != null) {
-			String table = frame.getTableName();
-			String columnName = column;
-			if (column.contains("__")) {
-				String[] split = column.split("__");
-				table = split[0];
-				columnName = split[1];
-			}
-			// check the column exists, if not then throw warning
-			String[] allCol = getColNames(table);
-			if (!Arrays.asList(allCol).contains(columnName)) {
-				throw new IllegalArgumentException("Column doesn't exist.");
-			}
-			String update = "ALTER TABLE " + table + " ALTER COLUMN " + columnName + " " + columnType + " ; ";
-			try {
-				frame.getBuilder().runQuery(update);
-				frame.getMetaData().modifyDataTypeToProperty(table + "__" + columnName, table, columnType);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		String table = frame.getTableName();
+		String columnName = column;
+		if (column.contains("__")) {
+			String[] split = column.split("__");
+			table = split[0];
+			columnName = split[1];
+		}
+		// check the column exists, if not then throw warning
+		String[] allCol = getColNames(table);
+		if (!Arrays.asList(allCol).contains(columnName)) {
+			throw new IllegalArgumentException("Column doesn't exist.");
+		}
+		String update = "ALTER TABLE " + table + " ALTER COLUMN " + columnName + " " + columnType + " ; ";
+		try {
+			frame.getBuilder().runQuery(update);
+			frame.getMetaData().modifyDataTypeToProperty(table + "__" + columnName, table, columnType);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
@@ -56,12 +54,12 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define the new column name");
 	}
-	
+
 	private String getColumnType() {
 		GenRowStruct inputsGRS = this.getCurRow();
 		NounMetadata input2 = inputsGRS.getNoun(1);
 		String columnType = input2.getValue() + "";
-		//default to string
+		// default to string
 		if (columnType.length() == 0) {
 			columnType = "STRING";
 		}
@@ -74,7 +72,5 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 		columnType = Utility.convertDataTypeToString(dt);
 		return columnType;
 	}
-
-
 
 }
