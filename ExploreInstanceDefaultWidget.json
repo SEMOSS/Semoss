@@ -1,0 +1,50 @@
+[
+  {
+    "query": "CreateFrame(grid).as([\"FRAME\"]); Database(<<ENGINE>>) | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(); Panel(<SMSS_PANEL_ID>) | SetPanelView(\"visualization\"); Select(FRAME__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | Format(type=['graph'], options=[]) | TaskOptions({\"<SMSS_PANEL_ID>\":{\"layout\": \"Graph\", \"alignment\": {\"start\": [\"<concept>\"], \"end\":[\"<concept>\"]}}}) | Collect(500);",
+    "label": "Explore an instance",
+    "description": "Explore instances of a selected concept",
+    "params": [
+      {
+        "paramName": "concept",
+        "required": true,
+        "view": {
+          "displayType": "dropdown",
+          "label": "Select a Concept",
+          "description": "Select a concept that you will explore"
+        },
+        "model": {
+          "query": "GetDatabaseConcepts(engine=[\"<<ENGINE>>\"]);"
+        }
+      },
+      {
+        "paramName": "search",
+        "view": false,
+        "model": {
+          "defaultValue": ""
+        }
+      },
+      {
+        "paramName": "instance",
+        "required": true,
+        "view": {
+          "displayType": "checklist",
+          "label": "Select an Instance",
+          "description": "Select an instance to explore",
+          "attributes": {
+            "searchable": true
+          }
+        },
+        "model": {
+          "query": "(infinite = Database(<<ENGINE>>) | Select(<concept>) | Filter(<concept> ?like \"<search>\") | Sort(cols=[<concept>], direction=[asc]) | Iterate()) | Collect(50);",
+          "infiniteQuery": "infinite | Collect(50);",
+          "searchParam": "search",
+          "dependsOn": [
+            "concept",
+            "search"
+          ]
+        }
+      }
+    ],
+    "execute": "button"
+  }
+]
