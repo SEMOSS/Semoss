@@ -6,17 +6,23 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 
-public class UpdateValueReactor extends AbstractRFrameReactor{
+public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
+
+	/**
+	 * This reactor updates row values based on a regex
+	 * It replaces all portions of the current cell value that is an exact match to the input value
+	 * The inputs to the reactor are: 
+	 * 1) the column to update
+	 * 2) the regex to look for
+	 * 3) value to replace the regex with 
+	 */
 
 	@Override
 	public NounMetadata execute() {
 		//initialize rJavaTranslator
 		init();
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
@@ -32,36 +38,27 @@ public class UpdateValueReactor extends AbstractRFrameReactor{
 				column = fullColumn.split("__")[1];
 			}
 
-			//second input is the old value
+			//second input is the regex
 			NounMetadata input2 = inputsGRS.getNoun(1);
-			String oldValue = null; 
-			oldValue = input2.getValue() + ""; 
+			String regex = null; 
+			regex = input2.getValue() + ""; 
 
 			//third input is the new value
 			NounMetadata input3 = inputsGRS.getNoun(2);
 			String newValue = null; 
 			newValue = input3.getValue() + ""; 
-
-			//check that the frame is not null
-			if (frame != null) {
-				String table = frame.getTableName();
-				//use method to retrieve a single column type
-				String colDataType = getColumnType(table, column);
-				//account for quotes that will be needed in the query with string values
-				String neededQuote = "";
-				if (colDataType.equalsIgnoreCase("string") || colDataType.equalsIgnoreCase("character")) {
-					neededQuote = "\"";
-				}
-				//define the r script to be executed
-				String script = table + "$" + column + "[" + table + "$" + column + " == "
-						+ neededQuote + oldValue + neededQuote + "] <- " + neededQuote
-						+ newValue + neededQuote;
-				//execute the r script
-				//script is of the form: FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
-				frame.executeRScript(script);
+			String table = frame.getTableName();
+			String colScript = table + "$" + column;
+			String script = colScript + " = ";
+			String dataType = getColumnType(table, column);
+			String quote = "";
+			if (dataType.contains("character") || dataType.contains("factor")) {
+				quote = "\"";
 			}
+			//script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
+			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ")";
+			frame.executeRScript(script);
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-
 }

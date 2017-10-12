@@ -8,6 +8,15 @@ import prerna.sablecc2.om.PixelOperationType;
 
 public class RenameColumnReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor renames a column It replaces all portions of the current
+	 * cell value that is an exact match to the input value The inputs to the
+	 * reactor are: 
+	 * 1) the column to update 
+	 * 2) the regex to look for 
+	 * 3) value to replace the regex with
+	 */
+
 	@Override
 	public NounMetadata execute() {
 		init();

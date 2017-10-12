@@ -12,17 +12,23 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.QueryFilter;
 
-public class UpdateRowValuesReactor extends AbstractRFrameReactor {
+public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFrameReactor {
 
+	/**
+	 * This reactor updates row values to a new value based on a filter condition
+	 * (where a column equals a specified value)
+	 * The inputs to the reactor are: 
+	 * 1) the column to update
+	 * 2) the new value
+	 * 3) the filter condition
+	 */
+	
 	@Override
 	public NounMetadata execute() {
 		//initialize the rJavaTranslator
 		init();
 		// get frame
-		RDataTable frame = null;
-		if (this.insight.getDataMaker() != null) {
-			frame = (RDataTable) getFrame();
-		}
+		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
@@ -82,7 +88,7 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 						//get data type of column being updated
 						String updateDataType = getColumnType(table, updateCol);
 						String updateQuote = "";
-						if (updateDataType.contains("character") || updateDataType.contains("string")) {
+						if (updateDataType.contains("character") || updateDataType.contains("string") || updateDataType.contains("factor")) {
 							updateQuote = "\"";
 						}
 
@@ -104,7 +110,6 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 				}	
 			}
 		}
-
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 }
