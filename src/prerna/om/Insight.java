@@ -53,7 +53,10 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 public class Insight {
 
 	private static final Logger LOGGER = LogManager.getLogger(Insight.class.getName());
-
+	// need to account for multiple frames to be saved on the insight
+	// we will use a special key 
+	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
+	
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
 	protected String insightId;
@@ -61,29 +64,20 @@ public class Insight {
 	protected String insightName;
 
 	// if this is a saved insight
-	// TODO: i feel like we need a central insight db... 
 	protected String rdbmsId;
 	protected String engineName;
 
+	// list to store the pixels that make this insight
+	private List<String> pixelList;
+	
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
 	private transient VarStore varStore = new VarStore();
 
-	// need to account for multiple frames to be saved on the insight
-	// we will use a special key 
-	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
+	// this is the store holding all current tasks (iterators) that are run on the
+	// data frames within this insight
+	private transient TaskStore taskStore;
 
-	// ugh... going to write this for both 
-	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
-
-	// list to store the pixels that make this insight
-	// TODO: right now using this for both pkql and pixel
-	private List<String> pixelList;
-
-	// need a way to shift between old and new insights...
-	// dont know how else to shift to this
-	protected boolean isOldInsight = false;
-	
 	/* 
 	 * TODO: find a better way of doing this
 	 * keep a list of all the files that are used to create this insight
@@ -96,10 +90,13 @@ public class Insight {
 	private transient Map<String, InsightPanel> insightPanels = new Hashtable<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
 
-	// this is the store holding all current jobs (iterators) that are run on the
-	// data frames within this insight
-	private TaskStore taskStore;
-
+	// old - for pkql
+	@Deprecated
+	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
+	
+	// need a way to shift between old and new insights...
+	// dont know how else to shift to this
+	protected boolean isOldInsight = false;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
