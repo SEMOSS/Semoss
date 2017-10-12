@@ -26,6 +26,7 @@
       {
         "paramName": "instance",
         "required": true,
+        "link": true,
         "view": {
           "displayType": "checklist",
           "label": "Select an Instance",
