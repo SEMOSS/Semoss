@@ -52,33 +52,30 @@ public class DropRowsReactor extends AbstractFrameReactor {
 					NounMetadata rightComp = queryFilter.getRComparison();
 					Object value = rightComp.getValue();
 
-					//escape single quote for sql
-					if (String.valueOf(value).contains("'")){
+					// escape single quote for sql
+					if (String.valueOf(value).contains("'")) {
 						value = String.valueOf(value).replaceAll("'", "''");
 					}
-					
+
 					// check the column exists, if not then throw warning
 					String[] allCol = getColNames(table);
 					if (Arrays.asList(allCol).contains(column) != true) {
 						throw new IllegalArgumentException("Column doesn't exist.");
 					}
-					
-					//put quotes if string
+
+					// put quotes if string
 					if (rightComp.getNounType().equals(PixelDataType.CONST_STRING)) {
 						sqlStatements += "DELETE FROM " + table + " WHERE " + column + " " + nounComparator + " '" + value + "'; ";
-					}
-					else {
+					} else {
 						sqlStatements += "DELETE FROM " + table + " WHERE " + column + " " + nounComparator + " " + value + "; ";
 					}
 				}
 			}
 		}
-		if (frame != null) {
-			try {
-				frame.getBuilder().runQuery(sqlStatements);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		try {
+			frame.getBuilder().runQuery(sqlStatements);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

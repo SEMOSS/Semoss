@@ -43,17 +43,17 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		if (nounType.equals(PixelDataType.CONST_STRING)) {
 			updateValueSQL = noun.getValue() + "";
 		}
-		
-		//validate updateColumn exists
+
+		// validate updateColumn exists
 		String[] existCols = getColNames(updateTable);
 		if (Arrays.asList(existCols).contains(updateColumn) != true) {
 			throw new IllegalArgumentException("Column " + updateColumn + " doesn't exist.");
 		}
-		
-		//clean updateValueSQL value
+
+		// clean updateValueSQL value
 		HeadersException colNameChecker = HeadersException.getInstance();
 		updateValueSQL = "'" + colNameChecker.removeIllegalCharacters(updateValueSQL) + "'";
-		
+
 		// get filters
 		String update = "UPDATE " + updateTable + " SET " + updateColumn + " = " + updateValueSQL + " WHERE ";
 		NounMetadata filterNoun = inputsGRS.getNoun(2);
@@ -74,7 +74,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 						String[] split = columnComp.split("__");
 						sqlCondition += split[1];
 					}
-					//does sqlCondition exist
+					// does sqlCondition exist
 					if (Arrays.asList(existCols).contains(sqlCondition) != true) {
 						throw new IllegalArgumentException("Column " + sqlCondition + " doesn't exist.");
 					}
@@ -86,14 +86,14 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 						nounComparator = "!=";
 					}
 					sqlCondition += " " + nounComparator + " ";
-					//rightComp has values
+					// rightComp has values
 					NounMetadata rightComp = queryFilter.getRComparison();
 					Object value = rightComp.getValue();
 
-					//clean value
+					// clean value
 					value = colNameChecker.removeIllegalCharacters(String.valueOf(value));
-					
-					//if it is a string put quotes
+
+					// if it is a string put quotes
 					if (rightComp.getNounType().equals(PixelDataType.CONST_STRING)) {
 						sqlStatements += update + sqlCondition + "'" + value + "' ; ";
 					} else {
@@ -102,12 +102,10 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 				}
 			}
 		}
-		if (frame != null) {
-			try {
-				frame.getBuilder().runQuery(sqlStatements);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		try {
+			frame.getBuilder().runQuery(sqlStatements);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
