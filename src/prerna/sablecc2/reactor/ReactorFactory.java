@@ -397,14 +397,16 @@ public class ReactorFactory {
 		frameReactorHash.put("DropColumn", "DropColumnReactor");
 		frameReactorHash.put("DropRows", "DropRowsReactor");
 		frameReactorHash.put("JoinColumns", "JoinColumnsReactor");
+		frameReactorHash.put("RegexReplaceColumnValue", "RegexReplaceColumnValueReactor");
 		frameReactorHash.put("RenameColumn", "RenameColumnReactor");
+		frameReactorHash.put("ReplaceColumnValue", "ReplaceColumnValueReactor");
 		frameReactorHash.put("SortColumn", "SortColumnReactor");
 		frameReactorHash.put("SplitColumns", "SplitColumnReactor");
 		frameReactorHash.put("ToLowerCase", "ToLowerCaseReactor");
 		frameReactorHash.put("ToUpperCase", "ToUpperCaseReactor");
 		frameReactorHash.put("TrimColumns", "TrimReactor");
-		frameReactorHash.put("UpdateRows", "UpdateRowValuesReactor");
-		frameReactorHash.put("UpdateValue", "UpdateValueReactor");
+		frameReactorHash.put("Transpose", "TransposeReactor");
+		frameReactorHash.put("UpdateRowValues", "UpdateRowValuesWhereColumnContainsValueReactor");
 	}
 
 	/**
