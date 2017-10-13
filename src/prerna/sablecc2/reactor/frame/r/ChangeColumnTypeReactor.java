@@ -35,13 +35,17 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		// script depends on the new data type
 		String script = null;
 		if (newType.equalsIgnoreCase("string") || newType.equalsIgnoreCase("character")) {
-			script = table + " <- " + table + "[, " + column + " := as.character(" + column + ")]";
+			//df$column <- as.character(df$column);
+			script = table +"$" + column + " <- as.character("+table+"$"+column+");";
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("factor")) {
-			script = table + " <- " + table + "[, " + column + " := as.factor(" + column + ")]";
+			//df$column <- as.factor(df$column);
+			script = table +"$" + column + " <- as.factor("+table+"$"+column+");";
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("number") || newType.equalsIgnoreCase("numeric")) {
-			script = table + " <- " + table + "[, " + column + " := as.numeric(" + column + ")]";
+			// r script syntax cleaning characters with regex
+			//df$column <- as.numeric(gsub('[$,]','',df$column));
+			script = table +"$" + column + " <- as.numeric(gsub('[$,]', '', "+table+"$"+column+"));";
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("date")) {
 			// we have a different script to run if it is a str to date
