@@ -20,6 +20,9 @@ public class RJavaTranslatorFactory {
 		
 	}
 	
+	/**
+	 * This will determine the translator class to use (Rserve or JRI)
+	 */
 	private static void init() {
 		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
 		boolean useJri = false;
@@ -49,13 +52,13 @@ public class RJavaTranslatorFactory {
 	 * @param logger
 	 * @return
 	 */
-	public static IRJavaTranslator getRJavaTranslator(Insight insight, Logger logger) {
-		IRJavaTranslator newInstance  = null;
+	public static AbstractRJavaTranslator getRJavaTranslator(Insight insight, Logger logger) {
+		AbstractRJavaTranslator newInstance  = null;
 		if(!INIT) {
 			init();
 		}
 		try {
-			newInstance = (IRJavaTranslator) translatorClass.newInstance();
+			newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
 			newInstance.setInsight(insight);
 			newInstance.setLogger(logger);
 			

@@ -8,12 +8,12 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -26,14 +26,16 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
-import org.rosuda.JRI.Rengine;
+import org.rosuda.JRI.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import com.google.gson.Gson;
@@ -51,6 +53,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -62,6 +65,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.task.ConstantDataTask;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.H2Importer;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.sablecc2.reactor.imports.RImporter;
@@ -79,6 +83,16 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	private static long counter = 0;
 
+	protected AbstractRJavaTranslator rJavaTranslator;
+
+	/**
+	 * This method is used to set the rJavaTranslator
+	 * @param rJavaTranslator
+	 */
+	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
+		this.rJavaTranslator = rJavaTranslator;
+	}
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	/////////////////// Abstract R Methods /////////////////////
@@ -87,36 +101,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 * These are the methods that we cannot make generic between the
 	 * implementations of R
 	 */
-
-	protected abstract Object startR();
-
-	protected abstract Object eval(String script);
-
 	protected abstract void runR(String script);
 
 	protected abstract void runR(String script, boolean outputResult);
 
-	protected abstract String getWd();
-
 	protected abstract void endR();
 
-	// graph specific abstract methods
-	protected abstract void colorClusters(String clusterName);
-
-	protected abstract void key();
-
-	protected abstract void synchronizeXY(String rVarName);
-
 	// table specific abstract methods
-
-	protected abstract int getNumRows(String frameName);
-
-	protected abstract String getColType(String frameName, String colName, boolean print);
-
-	protected abstract String[] getColTypes(String frameName, boolean print);
-
-	protected abstract String[] getColNames(String frameName, boolean print);
-
 	protected abstract Object[][] getColumnCount(String frameName, String colName);
 
 	protected abstract Object[][] getColumnCount(String frameName, String colName, boolean top);
@@ -125,12 +116,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks);
 
-	protected abstract void performSplitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace);
-
-	protected abstract void performJoinColumns(String frameName, String newColumnName, String separator, String[] columns);
-
 	protected abstract Map<String, Object> flushObjectAsTable(String framename, String[] colNames);
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
@@ -183,9 +170,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 * @param packageName
 	 */
 	protected void installR(String packageName) {
-		startR();
 		this.logger.info("Starting to install package " + packageName + "... ");
-		eval("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
+		this.rJavaTranslator.executeR("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
 		this.logger.info("Succesfully installed package " + packageName);
 		System.out.println("Succesfully installed package " + packageName);
 	}
@@ -241,8 +227,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				selectors.append(", ");
 			}
 		}
-		
-		startR();
 
 		// Don't sync via RJDBC if OS is Mac because we'll write to CSV and load into data.table to avoid rJava setup
 		String OS = java.lang.System.getProperty("os.name").toLowerCase();
@@ -250,24 +234,24 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + java.lang.System.getProperty("file.separator") + "R" 
 					+ java.lang.System.getProperty("file.separator") + "Temp" + java.lang.System.getProperty("file.separator") + "output.csv";
 			gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT * FROM " + gridFrame.getTableName() + "', 'charset=UTF-8 fieldSeparator=, fieldDelimiter=');");
-			eval("file <- '" + outputLocation + "';");
-			eval(frameName + " <- read.csv(file);");
+			this.rJavaTranslator.executeR("file <- '" + outputLocation + "';");
+			this.rJavaTranslator.executeR(frameName + " <- read.csv(file);");
 			File f = new File(outputLocation);
 			f.delete();
 		} else {
 			initiateDriver(url, "sa");
-			eval(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
+			this.rJavaTranslator.executeR(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
 		}
-		eval("setDT(" + frameName + ")");
+		this.rJavaTranslator.executeR("setDT(" + frameName + ")");
 
 		// modify the headers to be what they used to be because the query
 		// return everything in
 		// all upper case which may not be accurate
-		String[] currHeaders = getColNames(frameName, false);
+		String[] currHeaders = this.rJavaTranslator.getColumns(frameName);
 		renameColumn(frameName, currHeaders, colSelectors, false);
 		storeVariable("GRID_NAME", new NounMetadata(frameName, PixelDataType.CONST_STRING));
 		System.out.println("Completed synchronization as " + frameName);
-		
+
 		long end = java.lang.System.currentTimeMillis();
 		logger.info("Done synchroizing to R data.table...");
 		logger.debug("Time to finish synchronizing to R data.table " + (end-start) + "ms");
@@ -283,7 +267,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// with the new R Data Table we are about to make
 		synchronizeGridToRDataTable(rVarName, true);
 	}
-	
+
 	protected RDataTable synchronizeGridToRDataTable(String rVarName, boolean replaceDefaultInsightFrame) {
 		if(rVarName == null || rVarName.isEmpty()) {
 			rVarName = getDefaultName();
@@ -312,13 +296,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			url = url.replace("\\", "/");
 			initiateDriver(url, "sa");
 			synchronizeGridToR(rVarName, null);
-			
+
 			// now that we have created the frame
 			// we need to set the metadata for the frame
 			OwlTemporalEngineMeta newMeta = gridFrame.getMetaData().copy();
 			newMeta.modifyVertexName(tableName, rVarName);
 			table.setMetaData(newMeta);
-		
+
 		} else if(dataframe  instanceof RDataTable){
 			// ughhh... why are you calling this?
 			// i will just change the r var name
@@ -327,17 +311,15 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			table.setMetaData(dataframe.getMetaData());
 			// also, dont forget to update the metadata
 			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getTableVarName(), rVarName);
-		
+
 		} else if(dataframe instanceof NativeFrame) {
 			Iterator<IHeadersDataRow> it = dataframe.iterator();
 			RImporter importer = new RImporter(table, dataframe.getMetaData().getFlatTableQs(), it);
 			importer.insertData();
-			
+
 		} else {
 			throw new IllegalArgumentException("Frame must be of type H2");
 		}
-
-
 		// now we return the data
 		this.nounMetaOutput.add(new NounMetadata(table, PixelDataType.FRAME, PixelOperationType.FRAME));
 		if(replaceDefaultInsightFrame) {
@@ -366,7 +348,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// to be able to add the data correctly
 
 		// get the names and types
-		String[] colNames = getColNames(frameName, false);
+		String[] colNames = this.rJavaTranslator.getColumns(frameName);
 		// since R has less restrictions than we do regarding header names
 		// we will clean the header names to match what the cleaning would be
 		// when we load
@@ -381,13 +363,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			cleanColNames.add(cleanHeader);
 		}
 		colNames = cleanColNames.toArray(new String[]{});
-		String[] colTypes = getColTypes(frameName, false);
+		String[] colTypes = this.rJavaTranslator.getColumns(frameName);
 
 		// generate the QS
 		// set the column names and types
 		CsvQueryStruct qs = new CsvQueryStruct();
 		qs.setSelectorsAndTypes(colNames, colTypes);
-		
+
 		/*
 		 * logic to determine where we are adding this data... 1) First, make
 		 * sure the existing frame is a grid -> If it is not a grid, we already
@@ -404,7 +386,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		boolean determineNewFrameNeeded = false;
 		boolean syncExistingRMetadata = false;
 		OwlTemporalEngineMeta newMeta = null;
-		
+
 		// if we dont even have a h2frame currently, make a new one
 		if (!(dataframe instanceof H2Frame)) {
 			determineNewFrameNeeded = true;
@@ -452,11 +434,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				newMeta = this.dataframe.getMetaData().copy();
 				newMeta.modifyVertexName(frameName, frameToUse.getTableName());
 			} 
-//			else {
-//				// create a prim key one
-//				Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
-//				frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
-//			}
+			//			else {
+			//				// create a prim key one
+			//				Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
+			//				frameToUse.mergeEdgeHash(edgeHash, dataTypeMapStr);
+			//			}
 		} else if (overrideExistingTable && frameIsH2) {
 			frameToUse = ((H2Frame) dataframe);
 
@@ -477,7 +459,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
-		eval("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
+		this.rJavaTranslator.executeR("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
 		qs.setCsvFilePath(tempFileLocation);
@@ -487,19 +469,19 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} else {
 			// importer will create the necessary meta information 
 			importer.insertData();
-			
+
 		}
-		
-//		// keep track of in-mem vs on-disk frames
-//		int limitSizeInt = RdbmsFrameUtility.getLimitSize();
-//		if (dataIterator.numberRowsOverLimit(limitSizeInt)) {
-//			frameToUse.convertToOnDiskFrame(null);
-//		}
-//
-//		// now that we know if we are adding to disk vs mem
-//		// iterate through and add all the data
-//		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
-//		dataIterator.deleteFile();
+
+		//		// keep track of in-mem vs on-disk frames
+		//		int limitSizeInt = RdbmsFrameUtility.getLimitSize();
+		//		if (dataIterator.numberRowsOverLimit(limitSizeInt)) {
+		//			frameToUse.convertToOnDiskFrame(null);
+		//		}
+		//
+		//		// now that we know if we are adding to disk vs mem
+		//		// iterate through and add all the data
+		//		frameToUse.addRowsViaIterator(dataIterator, dataTypeMap);
+		//		dataIterator.deleteFile();
 
 		System.out.println("Table Synchronized as " + tableName);
 		// override frame references & table name reference
@@ -548,25 +530,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 * @param frameName
 	 */
 	protected void synchronizeCSVToR(String fileName, String frameName) {
-		eval(frameName + " <- fread(\"" + fileName + "\")");
+		this.rJavaTranslator.executeR(frameName + " <- fread(\"" + fileName + "\")");
 		System.out.println("Completed synchronization of CSV " + fileName);
-	}
-
-	protected String getColType(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		return getColType(frameName, colName, true);
-	}
-
-	protected String getColType(String frameName, String colName) {
-		return getColType(frameName, colName, true);
-	}
-
-	protected String[] getColTypes(String frameName) {
-		return getColTypes(frameName, true);
-	}
-
-	protected String[] getColNames(String frameName) {
-		return getColNames(frameName, true);
 	}
 
 	/**
@@ -593,747 +558,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		getHistogram(frameName, column, 0);
 	}
 
-	/**
-	 * Add an empty column to later insert new values
-	 * 
-	 * @param newColName
-	 */
-	protected void addEmptyColumn(String newColName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		addEmptyColumn(frameName, newColName);
-	}
-
-	protected void addEmptyColumn(String frameName, String newColName) {
-		String script = frameName + "$" + newColName + " <- \"\" ";
-		eval(script);
-		System.out.println("Successfully added column = " + newColName);
-		if (checkRTableModified(frameName)) {
-			OwlTemporalEngineMeta metaData = this.dataframe.getMetaData();
-			metaData.addProperty(frameName, frameName + "__" + newColName);
-			metaData.setAliasToProperty(frameName + "__" + newColName, newColName);
-			metaData.setDataTypeToProperty(frameName + "__" + newColName, "STRING");
-			this.dataframe.syncHeaders();
-		}
-	}
-
-	/**
-	 * Add an empty column to later insert new values
-	 * 
-	 * @param newColName
-	 */
-	protected void changeColumnType(String colName, String newType) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		changeColumnType(frameName, colName, newType);
-	}
-
-	protected void changeColumnType(String frameName, String colName, String newType) {
-		changeColumnType(frameName, colName, newType, "%Y/%m/%d");
-	}
-
-	protected void changeColumnType(String frameName, String colName, String newType, String dateFormat) {
-		String script = null;
-		if (newType.equalsIgnoreCase("string")) {
-			script = frameName + " <- " + frameName + "[, " + colName + " := as.character(" + colName + ")]";
-			eval(script);
-		} else if (newType.equalsIgnoreCase("factor")) {
-			script = frameName + " <- " + frameName + "[, " + colName + " := as.factor(" + colName + ")]";
-			eval(script);
-		} else if (newType.equalsIgnoreCase("number")) {
-			script = frameName + " <- " + frameName + "[, " + colName + " := as.numeric(" + colName + ")]";
-			eval(script);
-		} else if (newType.equalsIgnoreCase("date")) {
-			// we have a different script to run if it is a str to date
-			// conversion
-			// or a date to new date format conversion
-			String type = getColType(frameName, colName, false);
-			String tempTable = Utility.getRandomString(6);
-			if (type.equalsIgnoreCase("date")) {
-				String formatString = ", format = '" + dateFormat + "'";
-				script = tempTable + " <- format(" + frameName + "$" + colName + formatString + ")";
-				eval(script);
-				script = frameName + "$" + colName + " <- " + "as.Date(" + tempTable + formatString + ")";
-				eval(script);
-			} else {
-				script = tempTable + " <- as.Date(" + frameName + "$" + colName + ", format='" + dateFormat + "')";
-				eval(script);
-				script = frameName + "$" + colName + " <- " + tempTable;
-				eval(script);
-			}
-			// perform variable cleanup
-			eval("rm(" + tempTable + ");");
-			eval("gc();");
-		}
-		System.out.println("Successfully changed data type for column = " + colName);
-		if (checkRTableModified(frameName)) {
-			this.dataframe.getMetaData().modifyDataTypeToProperty(frameName + "__" + colName, frameName, newType);
-		}
-	}
-
-	/**
-	 * Drop a column within the table
-	 * 
-	 * @param colName
-	 */
-	protected void dropRColumn(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		dropRColumn(frameName, colName);
-	}
-
-	protected void dropRColumn(String frameName, String colName) {
-		if (checkRTableModified(frameName)) {
-			// this R method will do the same evaluation
-			// but it will also drop it from the metadata
-			this.dataframe.removeColumn(colName);
-			this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-		} else {
-			eval(frameName + "[," + colName + ":=NULL]");
-		}
-		System.out.println("Successfully removed column = " + colName);
-	}
-	
-	protected void dropRColumn(String frameName, Object[] colName) {
-		if (checkRTableModified(frameName)) {
-			// this R method will do the same evaluation
-			// but it will also drop it from the metadata
-			for(Object col : colName) {
-				this.dataframe.removeColumn(col.toString());
-			}
-			this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-		} else {
-			for(Object col : colName) {
-				eval(frameName + "[," + col + ":=NULL]");
-			}
-		}
-		System.out.println("Successfully removed column = " + colName);
-	}
-
-	/**
-	 * Drop rows based on a comparator for a set of values
-	 * 
-	 * @param colName
-	 * @param comparator
-	 * @param values
-	 */
-	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, Object values) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		dropRowsWhereColumnContainsValue(frameName, colName, comparator, values);
-	}
-
-	/**
-	 * Filter out rows based on values in a given column
-	 * 
-	 * @param frameName
-	 * @param colName
-	 * @param comparator
-	 * @param values
-	 */
-	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, Object values) {
-		// to account for misunderstandings between = and == for normal users
-		if (comparator.trim().equals("=")) {
-			comparator = " == ";
-		}
-		String frameExpression = frameName + "$" + colName;
-		// determine the correct comparison to drop values from the frame
-		// .... this is a bunch of casting...
-		// also note that the string NULL is special to remove values that are
-		// undefined within the frame
-		StringBuilder script = new StringBuilder(frameName).append(" <- ").append(frameName).append("[!( ");
-		String dataType = getColType(frameName, colName, false);
-
-		// accommodate for factors cause they are annoying
-		if (dataType.equals("factor")) {
-			changeColumnType(frameName, colName, "STRING");
-			dataType = "character";
-		}
-
-		if (values instanceof Object[]) {
-			Object[] arr = (Object[]) values;
-			Object val = arr[0];
-			if (dataType.equalsIgnoreCase("character")) {
-				if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
-					script.append("is.na(").append(frameExpression).append(") ");
-				} else {
-					if(comparator.equals("like")) {
-						script.append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
-					} else {
-						script.append(frameExpression).append(comparator).append("\"").append(val).append("\"");
-					}
-				}
-			} else {
-				script.append(comparator).append(val);
-			}
-			for (int i = 1; i < arr.length; i++) {
-				val = arr[i];
-				if (dataType.equalsIgnoreCase("character")) {
-					if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
-						script.append(" | is.na(").append(frameExpression).append(") ");
-					} else {
-						if(comparator.equals("like")) {
-							script.append(" | ").append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
-						} else {
-							script.append(" | ").append(frameExpression).append(comparator).append("\"").append(val).append("\"");						}
-					}
-				} else {
-					script.append(" | ").append(frameExpression).append(comparator).append(val);
-				}
-			}
-		} else if (values instanceof Double[]) {
-			Double[] arr = (Double[]) values;
-			Double val = arr[0];
-			script.append(frameExpression).append(comparator).append(val);
-			for (int i = 1; i < arr.length; i++) {
-				val = arr[i];
-				script.append(" | ").append(frameExpression).append(comparator).append(val);
-			}
-		} else if (values instanceof Integer[]) {
-			Integer[] arr = (Integer[]) values;
-			Integer val = arr[0];
-			script.append(frameExpression).append(comparator).append(val);
-			for (int i = 1; i < arr.length; i++) {
-				val = arr[i];
-				script.append(" | ").append(frameExpression).append(comparator).append(val);
-			}
-		} else if (values instanceof double[]) {
-			double[] arr = (double[]) values;
-			double val = arr[0];
-			script.append(frameExpression).append(comparator).append(val);
-			for (int i = 1; i < arr.length; i++) {
-				val = arr[i];
-				script.append(" | ").append(frameExpression).append(comparator).append(val);
-			}
-		} else if (values instanceof int[]) {
-			int[] arr = (int[]) values;
-			int val = arr[0];
-			script.append(frameExpression).append(comparator).append(val);
-			for (int i = 1; i < arr.length; i++) {
-				val = arr[i];
-				script.append(" | ").append(frameExpression).append(comparator).append(val);
-			}
-		} else {
-			if (dataType.equalsIgnoreCase("character")) {
-				if (values.toString().equalsIgnoreCase("NULL") || values.toString().equalsIgnoreCase("NA")) {
-					script.append("is.na(").append(frameExpression).append(") ");
-				} else {
-					if(comparator.equals("like")) {
-						script.append("like(").append(frameExpression).append(",").append("\"").append(values).append("\")");
-					} else {
-						script.append(frameExpression).append(comparator).append("\"").append(values).append("\"");
-					}
-				}
-			} else {
-				script.append(frameExpression).append(comparator).append(values);
-			}
-		}
-		script.append("),]");
-		eval(script.toString());
-		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
-		checkRTableModified(frameName);
-	}
-
-	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, int value) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		dropRowsWhereColumnContainsValue(frameName, colName, comparator, value);
-	}
-
-	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, int value) {
-		// to account for misunderstandings between = and == for normal users
-		if (comparator.trim().equals("=")) {
-			comparator = " == ";
-		}
-		String frameExpression = frameName + "$" + colName;
-		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(")
-				.append(frameExpression).append(comparator).append(value).append("),]");
-		eval(script.toString());
-		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
-		checkRTableModified(frameName);
-	}
-
-	protected void dropRowsWhereColumnContainsValue(String colName, String comparator, double value) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		dropRowsWhereColumnContainsValue(frameName, colName, comparator, value);
-	}
-
-	protected void dropRowsWhereColumnContainsValue(String frameName, String colName, String comparator, double value) {
-		// to account for misunderstandings between = and == for normal users
-		if (comparator.trim().equals("=")) {
-			comparator = " == ";
-		}
-		String frameExpression = frameName + "$" + colName;
-		StringBuilder script = new StringBuilder(frameName).append("<-").append(frameName).append("[!(")
-				.append(frameExpression).append(comparator).append(value).append("),]");
-		eval(script.toString());
-		System.out.println("Script ran = " + script.toString() + "\nSuccessfully removed rows");
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * Create a new column by counting the presence of a string within another
-	 * column
-	 * 
-	 * @param newColName
-	 * @param countColName
-	 * @param strToCount
-	 */
-	protected void insertStrCountColumn(String newColName, String countColName, String strToCount) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		insertStrCountColumn(frameName, newColName, countColName, strToCount);
-	}
-
-	protected void insertStrCountColumn(String newColName, String countColName, int valToCount) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
-	}
-
-	protected void insertStrCountColumn(String newColName, String countColName, double valToCount) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
-	}
-
-	protected void insertStrCountColumn(String frameName, String newColName, String countColName, int valToCount) {
-		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
-	}
-
-	protected void insertStrCountColumn(String frameName, String newColName, String countColName, double valToCount) {
-		insertStrCountColumn(frameName, newColName, countColName, valToCount + "");
-	}
-
-	protected void insertStrCountColumn(String frameName, String newColName, String countColName, Object strToCount) {
-		// dt$new <- str_count(dt$oldCol, "strToFind");
-		String script = frameName + "$" + newColName + " <- str_count(" + frameName + "$" + countColName + ", \""
-				+ strToCount + "\")";
-		eval(script);
-		System.out.println("Added new column = " + newColName);
-		if (checkRTableModified(frameName)) {
-			OwlTemporalEngineMeta metaData = this.dataframe.getMetaData();
-			metaData.addProperty(frameName, frameName + "__" + newColName);
-			metaData.setAliasToProperty(frameName + "__" + newColName, newColName);
-			metaData.setDataTypeToProperty(frameName + "__" + newColName, "NUMBER");
-			this.dataframe.syncHeaders();
-		}
-	}
-
-	/**
-	 * Turn a string to lower case
-	 * 
-	 * @param colName
-	 */
-	protected void toLowerCase(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		toLowerCase(frameName, colName);
-	}
-
-	protected void toLowerCase(String frameName, String colName) {
-		String script = frameName + "$" + colName + " <- tolower(" + frameName + "$" + colName + ")";
-		eval(script);
-		checkRTableModified(frameName);
-	}
-	
-	protected void toLowerCase(String frameName, Object[] colNames) {
-		for(Object colName : colNames) {
-			String script = frameName + "$" + colName + " <- tolower(" + frameName + "$" + colName + ")";
-			eval(script);
-		}
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * Turn a string to lower case
-	 * 
-	 * @param colName
-	 */
-	protected void toUpperCase(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		toUpperCase(frameName, colName);
-	}
-
-	protected void toUpperCase(String frameName, String colName) {
-		String script = frameName + "$" + colName + " <- toupper(" + frameName + "$" + colName + ")";
-		eval(script);
-		checkRTableModified(frameName);
-	}
-	
-	protected void toUpperCase(String frameName, Object[] colNames) {
-		for(Object colName : colNames) {
-			String script = frameName + "$" + colName + " <- toupper(" + frameName + "$" + colName + ")";
-			eval(script);
-		}
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * Turn a string to lower case
-	 * 
-	 * @param colName
-	 */
-	protected void trim(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		trim(frameName, colName);
-	}
-
-	protected void trim(String frameName, String colName) {
-		String script = frameName + "$" + colName + " <- str_trim(" + frameName + "$" + colName + ")";
-		eval(script);
-		checkRTableModified(frameName);
-	}
-	
-	protected void trim(String frameName, Object[] colNames) {
-		for(Object colName : colNames) {
-			String script = frameName + "$" + colName + " <- str_trim(" + frameName + "$" + colName + ")";
-			eval(script);
-		}
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * Replace a column value with a new value
-	 * 
-	 * @param columnName
-	 * @param curValue
-	 * @param newValue
-	 */
-	protected void replaceColumnValue(String columnName, String curValue, String newValue) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		replaceColumnValue(frameName, columnName, curValue, newValue);
-	}
-
-	protected void replaceColumnValue(String frameName, String columnName, String curValue, String newValue) {
-		// replace the column value for a particular column
-		// dt[PY == "hello", PY := "D"] replaces a column conditionally based on
-		// the value
-		// need to get the type of this
-		try {
-			String condition = " ,";
-			String dataType = getColType(columnName);
-			String quote = "";
-			if (dataType.contains("character")) {
-				quote = "\"";
-			} else if (dataType.equals("factor")) {
-				changeColumnType(frameName, columnName, "STRING");
-				quote = "\"";
-			}
-			if (curValue.equalsIgnoreCase("null") || curValue.equalsIgnoreCase("NA")) {
-				condition = "is.na(" + columnName + ") , ";
-			} else {
-				condition = columnName + " == " + quote + curValue + quote + ", ";
-			}
-			String script = frameName + "[" + condition + columnName + " := " + quote + newValue + quote + "]";
-			eval(script);
-			System.out.println("Done replacing value = \"" + curValue + "\" with new value = \"" + newValue + "\"");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * 
-	 * @param frameName
-	 * @param columnName
-	 * @param curValue
-	 * @param newValue
-	 */
-	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue,
-			String conditionalColName, String comparator, Object conditionalColValue) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		updateRowValuesWhereColumnContainsValue(frameName, updateColName, updateColValue, conditionalColName,
-				comparator, conditionalColValue);
-	}
-
-	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue,
-			String conditionalColName, String comparator, double conditionalColValue) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		updateRowValuesWhereColumnContainsValue(frameName, updateColValue, conditionalColName, comparator,
-				conditionalColValue + "");
-	}
-
-	protected void updateRowValuesWhereColumnContainsValue(String updateColName, Object updateColValue,
-			String conditionalColName, String comparator, int conditionalColValue) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		updateRowValuesWhereColumnContainsValue(frameName, updateColValue, conditionalColName, comparator,
-				conditionalColValue + "");
-	}
-
-	protected void updateRowValuesWhereColumnContainsValue(String frameName, String updateColName,
-			Object updateColValue, String conditionalColName, String comparator, double conditionalColValue) {
-		updateRowValuesWhereColumnContainsValue(frameName, updateColName, updateColValue, conditionalColName,
-				comparator, conditionalColValue + "");
-	}
-
-	protected void updateRowValuesWhereColumnContainsValue(String frameName, String updateColName,
-			Object updateColValue, String conditionalColName, String comparator, int conditionalColValue) {
-		updateRowValuesWhereColumnContainsValue(frameName, updateColName, updateColValue, conditionalColName,
-				comparator, conditionalColValue + "");
-	}
-
-	protected void updateRowValuesWhereColumnContainsValue(String frameName, String updateColName,
-			Object updateColValue, String conditionalColName, String comparator, Object conditionalColValue) {
-		// update values based on other columns
-		// dt$updateColName[dt$conditionalColName == "conditionalColValue] <-
-		// updateColValue
-		// need to get the types of this
-		try {
-			if (comparator.trim().equals("=")) {
-				comparator = "==";
-			}
-			comparator = " " + comparator + " ";
-
-			String updateDataType = getColType(updateColName);
-			String updateQuote = "";
-			if (updateDataType.contains("character") || updateDataType.contains("factor")) {
-				updateQuote = "\"";
-			}
-
-			String conditionColDataType = getColType(conditionalColName);
-			String conditionColQuote = "";
-			if (conditionColDataType.contains("character")) {
-				conditionColQuote = "\"";
-			}
-
-			String script = frameName + "$" + updateColName + "[" + frameName + "$" + conditionalColName + comparator
-					+ conditionColQuote + conditionalColValue + conditionColQuote + "] <- " + updateQuote
-					+ updateColValue + updateQuote;
-			eval(script);
-			System.out.println("Done updating column " + updateColName + " where " + conditionalColName + comparator
-					+ conditionalColValue);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * Regex replace a column value with a new value
-	 * 
-	 * @param columnName
-	 * @param curValue
-	 * @param newValue
-	 */
-	protected void regexReplaceColumnValue(String columnName, String regex, String newValue) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		regexReplaceColumnValue(frameName, columnName, regex, newValue);
-	}
-
-	protected void regexReplaceColumnValue(String frameName, String columnName, String regex, String newValue) {
-		// replace the column value for a particular column
-		// dt$Title = gsub("regex", "newValue", dt$Title)
-		// need to get the type of this
-		try {
-			String colScript = frameName + "$" + columnName;
-			String script = colScript + " = ";
-			String dataType = getColType(columnName);
-			String quote = "";
-			if (dataType.contains("character") || dataType.contains("factor")) {
-				quote = "\"";
-			}
-			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ")";
-			eval(script);
-			System.out.println(
-					"Done replacing value with regex = \"" + regex + "\" with new value = \"" + newValue + "\"");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		checkRTableModified(frameName);
-	}
-
-	protected void splitColumn(String[] columnNames, String separator) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		splitColumn(frameName, columnNames, separator, "wide", false, true);
-	}
-
-	protected void splitColumn(String frameName, String[] columnNames, String separator) {
-		splitColumn(frameName, columnNames, separator, "wide", false, true);
-	}
-
-	protected void splitColumn(String frameName, String[] columnNames, String separator, String direction) {
-		splitColumn(frameName, columnNames, separator, direction, false, true);
-	}
-
-	protected void splitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace) {
-		performSplitColumn(frameName, columnNames, separator, direction, false, true);
-		if (checkRTableModified(frameName)) {
-			recreateMetadata(frameName);
-		}
-	}
-
-	protected void joinColumns(String newColumnName, String separator, String[] columns) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		joinColumns(frameName, newColumnName, separator, columns);
-	}
-
-	protected void joinColumns(String frameName, String newColumnName, String separator, String[] columns) {
-		performJoinColumns(frameName, newColumnName, separator, columns);
-		if (checkRTableModified(frameName)) {
-			recreateMetadata(frameName);
-		}
-	}
-
-	protected void transpose() {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		transpose(frameName);
-	}
-
-	protected void transpose(String frameName) {
-		String script = frameName + " <- " + frameName + "[, data.table(t(.SD), keep.rownames=TRUE)]";
-		System.out.println("Running script : " + script);
-		eval(script);
-		System.out.println("Successfully transposed data table into existing frame");
-		if (checkRTableModified(frameName)) {
-			recreateMetadata(frameName);
-		}
-	}
-
-	protected void transpose(String frameName, String transposeFrameName) {
-		String script = transposeFrameName + " <- " + frameName + "[, data.table(t(.SD), keep.rownames=TRUE)]";
-		System.out.println("Running script : " + script);
-		eval(script);
-		System.out.println("Successfully transposed data table into new frame " + transposeFrameName);
-		if (checkRTableModified(frameName)) {
-			recreateMetadata(frameName);
-		}
-	}
-
-	protected void unpivot() {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		unpivot(frameName, new String[]{}, true);
-	}
-
-	protected void unpivot(String frameName, String[] columnsToUnPivot, boolean replace) {
-		// makes the columns and converts them into rows
-		// melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
-		startR();
-		String concatString = "";
-		String tempName = Utility.getRandomString(8);
-
-		int numColsToUnPivot = columnsToUnPivot.length;
-		if(numColsToUnPivot > 0) {
-			concatString = ", measure.vars = c(";
-			for (int colIndex = 0; colIndex < numColsToUnPivot; colIndex++) {
-				concatString = concatString + "\"" + columnsToUnPivot[colIndex] + "\"";
-				if (colIndex + 1 < numColsToUnPivot)
-					concatString = concatString + ", ";
-			}
-			concatString = concatString + ")";
-		}
-		
-		String script = tempName + "<- melt(" + frameName + concatString + ");";
-		// run the first script to unpivot into the temp frame
-		eval(script);
-		// if we are to replace the existing frame
-		if (replace) {
-			script = frameName + " <- " + tempName;
-			eval(script);
-			if (checkRTableModified(frameName)) {
-				recreateMetadata(frameName);
-			}
-		}
-		System.out.println("Done unpivoting...");
-	}
-
-	protected void pivot(String columnToPivot, String valueToPivot, String[] columnsToKeep) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		pivot(frameName, true, columnToPivot, valueToPivot, columnsToKeep, null);
-	}
-
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String[] columnsToKeep) {
-		pivot(frameName, true, columnToPivot, valueToPivot, columnsToKeep, null);
-	}
-
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String[] columnsToKeep, String aggregateFunction) {
-		// makes the columns and converts them into rows
-		// dcast(molten, formula = subject~ variable)
-		// I need columns to keep and columns to pivot
-		startR();
-		String newFrame = Utility.getRandomString(8);
-
-		String keepString = "";
-		int numColsToKeep = columnsToKeep.length;
-		if (numColsToKeep > 0) {
-			// with the portion of code to ignore if the user passes in the 
-			// col to pivot or value to pivot in the selected columns
-			// we need to account for this so we dont end the keepString with " + "
-			keepString = ", formula = ";
-			for (int colIndex = 0; colIndex < numColsToKeep; colIndex++) {
-				String newKeepString = columnsToKeep[colIndex];
-				if(newKeepString.equals(columnToPivot) || newKeepString.equals(valueToPivot)) {
-					continue;
-				}
-				keepString = keepString + newKeepString;
-				if (colIndex + 1 < numColsToKeep) {
-					keepString = keepString + " + ";
-				}
-			}
-
-			// with the portion of code to ignore if the user passes in the 
-			// col to pivot or value to pivot in the selected columns
-			// we need to account for this so we dont end the keepString with " + "
-			if(keepString.endsWith(" + ")) {
-				keepString = keepString.substring(0, keepString.length() - 3);
-			}
-			keepString = keepString + " ~ " + columnToPivot + ", value.var=\"" + valueToPivot + "\"";
-		}
-
-		String aggregateString = "";
-		if (aggregateFunction != null && aggregateFunction.length() > 0) {
-			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
-		}
-		String script = newFrame + " <- dcast(" + frameName + keepString + aggregateString + ");";
-		eval(script);
-		script = newFrame + " <- as.data.table(" + newFrame + ");";
-		eval(script);
-		if (replace) {
-			script = frameName + " <- " + newFrame;
-			eval(script);
-			if (checkRTableModified(frameName)) {
-				recreateMetadata(frameName);
-			}
-		}
-		System.out.println("Done pivoting...");
-	}
-
-	protected void recreateMetadata(String frameName) {
-		// recreate a new frame and set the frame name
-		String[] colNames = getColNames(frameName, false);
-		String[] colTypes = getColTypes(frameName, false);
-
-		RDataTable newTable = null;
-		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
-			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
-		} else {
-			newTable = new RDataTable(frameName);
-		}
-		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
-		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-		this.insight.setDataMaker(newTable);
-	}
-
-	protected void renameColumn(String curColName, String newColName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		renameColumn(frameName, curColName, newColName);
-	}
-
-	protected void renameColumn(String frameName, String curColName, String newColName) {
-		String validNewHeader = getCleanNewHeader(frameName, newColName);
-		String script = "names(" + frameName + ")[names(" + frameName + ") == \"" + curColName + "\"] = \"" + validNewHeader + "\"";
-		System.out.println("Running script : " + script);
-		eval(script);
-		System.out.println("Successfully modified name = " + curColName + " to now be " + validNewHeader);
-		if (checkRTableModified(frameName)) {
-			// FE passes the column name
-			// but meta will still be table __ column
-			this.dataframe.getMetaData().modifyPropertyName(frameName + "__" + curColName, frameName, frameName + "__" + validNewHeader);
-			this.dataframe.syncHeaders();
-		}
-	}
-	
-	protected void renameColumn(String[] oldNames, String[] newColNames) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		renameColumn(frameName, oldNames, newColNames);
-	}
-
-	protected void renameColumn(String frameName, String[] oldNames, String[] newColNames) {
-		renameColumn(frameName, oldNames, newColNames, true);
-	}
-
 	protected void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
 		int size = oldNames.length;
 		if (size != newNames.length) {
@@ -1358,7 +582,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		newC.append(")");
 
 		String script = "setnames(" + frameName + ", old = " + oldC + ", new = " + newC + ")";
-		eval(script);
+		this.rJavaTranslator.executeR(script);
 
 		if (print) {
 			System.out.println("Running script : " + script);
@@ -1372,156 +596,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 			this.dataframe.syncHeaders();
 		}
-	}
-
-	private String getCleanNewHeader(String frameName, String newColName) {
-		// make the new column name valid
-		HeadersException headerChecker = HeadersException.getInstance();
-		String[] currentColumnNames = getColNames(frameName);
-		String validNewHeader = headerChecker.recursivelyFixHeaders(newColName, currentColumnNames);
-		return validNewHeader;
-	}
-
-	/**
-	 * Modify the specific cell value in the data frame
-	 * 
-	 * @param colName
-	 * @param rowNum
-	 * @param newVal
-	 */
-	protected void modifyCellValues(String colName, int rowNum, Object newVal) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		modifyCellValues(frameName, colName, rowNum, newVal);
-	}
-
-	protected void modifyCellValues(String colName, int rowNum, int newVal) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		modifyCellValues(frameName, colName, rowNum, newVal);
-	}
-
-	protected void modifyCellValues(String colName, int rowNum, double newVal) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		modifyCellValues(frameName, colName, rowNum, newVal);
-	}
-
-	protected void modifyCellValues(String frameName, String colName, int rowNum, Object newVal) {
-		String type = getColType(frameName, colName, false);
-		if (type.contains("character")) {
-			newVal = "\"" + newVal + "\"";
-		}
-		String script = frameName + "[" + rowNum + "]$" + colName + " <- " + newVal;
-		System.out.println("Running script " + script);
-		eval(script);
-		checkRTableModified(frameName);
-	}
-
-	protected void modifyCellValues(String frameName, String colName, int rowNum, int newVal) {
-		String type = getColType(frameName, colName, false);
-		String value = newVal + "";
-		if (type.contains("character")) {
-			value = "\"" + newVal + "\"";
-		}
-		String script = frameName + "[" + rowNum + "]$" + colName + " <- " + value;
-		System.out.println("Running script " + script);
-		eval(script);
-		checkRTableModified(frameName);
-	}
-
-	protected void modifyCellValues(String frameName, String colName, int rowNum, double newVal) {
-		String type = getColType(frameName, colName, false);
-		String value = newVal + "";
-		if (type.contains("character")) {
-			value = "\"" + newVal + "\"";
-		}
-		String script = frameName + "[" + rowNum + "]$" + colName + " <- " + value;
-		System.out.println("Running script " + script);
-		eval(script);
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * If we order the data, we need to maintain that structure within the
-	 * entire grid If we are to actually be able to replace values based on
-	 * index
-	 * 
-	 * @param colName
-	 * @param orderDirection
-	 */
-	protected void sortData(String colName, String orderDirection) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		sortData(frameName, colName, orderDirection);
-	}
-
-	protected void sortData(String frameName, String colName, String orderDirection) {
-		String script = null;
-		if (orderDirection == null || orderDirection.equalsIgnoreCase("asc")) {
-			script = frameName + " <- " + frameName + "[order(rank(" + colName + "))]";
-		} else if (orderDirection.equalsIgnoreCase("desc")) {
-			script = frameName + " <- " + frameName + "[order(-rank(" + colName + "))]";
-		}
-		System.out.println("Running script " + script);
-		eval(script);
-		checkRTableModified(frameName);
-	}
-	
-	protected void removeDuplicateRows(String frameName) {
-		String script = frameName + " <- unique(" + frameName + ")";
-		System.out.println("Running script " + script);
-		eval(script);
-		checkRTableModified(frameName);
-	}
-
-	/**
-	 * Insert data at a given index into the frame
-	 * 
-	 * @param index
-	 * @param values
-	 */
-	protected void insertDataAtIndex(int index, Object[] values) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		insertDataAtIndex(frameName, index, values);
-	}
-
-	protected void insertDataAtIndex(String frameName, int index, Object[] values) {
-		// we create a string with the correct types of the values array
-		// and then we use that to do the rbindlist
-		// if we use a conventional vector with c
-		// it will require all the same types
-
-		String[] names = getColNames(frameName, false);
-		String[] types = getColTypes(frameName, false);
-
-		String listName = Utility.getRandomString(6);
-		StringBuilder listScript = new StringBuilder(listName).append(" <- list(");
-		for (int i = 0; i < values.length; i++) {
-			if (i > 0) {
-				listScript.append(", ");
-			}
-			listScript.append(names[i]).append("=");
-			if (types[i].equalsIgnoreCase("character")) {
-				listScript.append("\"").append(values[i]).append("\"");
-			} else {
-				listScript.append(values[i]);
-			}
-		}
-		listScript.append(")");
-		eval(listScript.toString());
-
-		String script = null;
-		int totalRows = getNumRows(frameName);
-		if (index == 1) {
-			script = frameName + " <- rbindlist(list( " + listName + ", " + frameName + " ))";
-		} else if (index == (totalRows + 1)) {
-			script = frameName + " <- rbindlist(list( " + frameName + ", " + listName + " ))";
-		} else {
-			// ugh... somewhere in the middle
-			script = frameName + " <- rbindlist(list(" + frameName + "[1:" + (index - 1) + ",] , " + listName + " , "
-					+ frameName + "[" + index + ":" + totalRows + ",] ))";
-		}
-		eval(script);
-		System.out.println("Running script :\n" + listScript + "\n" + script);
-
-		checkRTableModified(frameName);
 	}
 
 	protected boolean checkRTableModified(String frameName) {
@@ -1544,7 +618,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		returnData.put("values", dataValues);
 		returnData.put("headers", new String[]{label, value});
 		task.setOutputObject(returnData);
-		
+
 		List<Map<String, Object>> vizHeaders = new Vector<Map<String, Object>>();
 		Map<String, Object> labelMap = new Hashtable<String, Object>();
 		labelMap.put("header", label);
@@ -1552,12 +626,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		Map<String, Object> frequencyMap = new Hashtable<String, Object>();
 		frequencyMap.put("header", value);
 		frequencyMap.put("derived", true);
-		
+
 		vizHeaders.add(labelMap);
 		vizHeaders.add(frequencyMap);
 
 		task.setHeaderInfo(vizHeaders);
-		
+
 		return task.collect(0, true);
 	}
 
@@ -1570,6 +644,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		synchronizeGraphToR(defaultName);
 	}
 
+	/**
+	 * Get the current working directory of the R session
+	 */
+	protected String getWd() {
+		return this.rJavaTranslator.getString("getwd()");
+	}
+	
 	protected void synchronizeGraphToR(String rVarName) {
 		String baseFolder = getBaseFolder();
 		String randomDir = Utility.getRandomString(22);
@@ -1582,7 +663,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String curWd = null;
 		try {
 			logger.info("Trying to start R.. ");
-			startR();
 			logger.info("Successfully started R");
 
 			// get the current directory
@@ -1597,9 +677,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			wd = wd.replace("\\", "/");
 
 			// set the working directory
-			eval("setwd(\"" + wd + "\")");
+			this.rJavaTranslator.executeR("setwd(\"" + wd + "\")");
 			// load the library
-			Object ret = eval("library(\"igraph\");");
+			Object ret = this.rJavaTranslator.executeR("library(\"igraph\");");
 			if (ret == null) {
 				ICache.deleteFolder(wd);
 				throw new ClassNotFoundException("Package igraph could not be found!");
@@ -1607,7 +687,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
 			java.lang.System.out.println(" Load !! " + loadGraphScript);
 			// load the graph
-			eval(loadGraphScript);
+			this.rJavaTranslator.executeR(loadGraphScript);
 
 			System.out.println("Successfully synchronized, your graph is now available as " + graphName);
 			// store the graph name for future use
@@ -1627,7 +707,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} finally {
 			// reset back to the original wd
 			if (curWd != null) {
-				eval("setwd(\"" + curWd + "\")");
+				this.rJavaTranslator.executeR("setwd(\"" + curWd + "\")");
 			}
 		}
 		java.lang.System.setSecurityManager(reactorManager);
@@ -1703,7 +783,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				java.lang.System.out.println("Deleting node = " + name);
 				// eval is abstract and is determined by the specific R
 				// implementation
-				eval(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName
+				this.rJavaTranslator.executeR(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName
 						+ ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");
 			} catch (Exception ex) {
 				java.lang.System.out.println("ERROR ::: Could not delete node = " + name);
@@ -1729,11 +809,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			System.out.println("ERROR ::: No graph has been synchronized to R");
 			return;
 		}
-		startR();
 		try {
 			// set the clusters
 			storeVariable("CLUSTER_NAME", new NounMetadata("clus", PixelDataType.CONST_STRING));
-			eval("clus <- " + clusterRoutine + "(" + graphName + ")");
+			this.rJavaTranslator.executeR("clus <- " + clusterRoutine + "(" + graphName + ")");
 			System.out.println("\n No. Of Components :");
 			runR("clus$no");
 			System.out.println("\n Component Sizes :");
@@ -1749,13 +828,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	protected void walkInfo() {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
-
-		Rengine retEngine = (Rengine) startR();
 		String clusters = "Component Information  \n";
 		try {
 			// set the clusters
 			storeVariable("CLUSTER_NAME",  new NounMetadata("clus", PixelDataType.CONST_STRING));
-			retEngine.eval("clus <- cluster_walktrap(" + graphName + ", membership=TRUE)");
+			this.rJavaTranslator.executeR("clus <- cluster_walktrap(" + graphName + ", membership=TRUE)");
 			clusters = clusters + "Completed Walktrap";
 			System.out.println(clusters);
 			colorClusters();
@@ -1770,6 +847,88 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	protected void colorClusters() {
 		String clusterName = (String) retrieveVariable("CLUSTER_NAME");
 		colorClusters(clusterName);
+	}
+
+	public void colorClusters(String clusterName) {
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		// the color is saved as color
+		double [] memberships = this.rJavaTranslator.getDoubleArray(clusterName + "$membership");
+		String [] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
+
+		for(int memIndex = 0;memIndex < memberships.length;memIndex++)
+		{
+			String thisID = IDs[memIndex];
+
+			java.lang.System.out.println("ID...  " + thisID);
+			Vertex retVertex = null;
+
+			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+			if(gt.hasNext()) {
+				retVertex = gt.next();
+			}
+			if(retVertex != null)
+			{
+				retVertex.property("CLUSTER", memberships[memIndex]);
+				java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+			}
+		}
+	}
+
+	public void key() {
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		String names = "";
+		// get the articulation points
+		int [] vertices = this.rJavaTranslator.getIntArray("articulation.points(" + graphName + ")");
+		// now for each vertex get the name
+		Hashtable <String, String> dataHash = new Hashtable<String, String>();
+		for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
+		{
+			String output = this.rJavaTranslator.getString("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")");
+			String [] typeData = output.split(":");
+			String typeOutput = "";
+			if(dataHash.containsKey(typeData[0]))
+				typeOutput = dataHash.get(typeData[0]);
+			typeOutput = typeOutput + "  " + typeData[1];
+			dataHash.put(typeData[0], typeOutput);
+		}
+
+		Enumeration <String> keys = dataHash.keys();
+		while(keys.hasMoreElements()) {
+			String thisKey = keys.nextElement();
+			names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
+		}
+		System.out.println(" Key Nodes \n " + names);
+	}
+	
+	public void synchronizeXY(String rVariable) {
+		String graphName = (String)retrieveVariable("GRAPH_NAME");
+		double [][] memberships = ((REXP) this.rJavaTranslator.executeR("xy_layout")).asDoubleMatrix();
+		String [] axis = null;
+		if(memberships[0].length == 2) {
+			axis = new String[]{"X", "Y"};
+		} else if(memberships[0].length == 3) {
+			axis = new String[]{"X", "Y", "Z"};
+		}
+
+		String [] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
+		for(int memIndex = 0; memIndex < memberships.length; memIndex++)
+		{
+			String thisID = IDs[memIndex];
+
+			java.lang.System.out.println("ID...  " + thisID);
+			Vertex retVertex = null;
+
+			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+			if(gt.hasNext()) {
+				retVertex = gt.next();
+			}
+			if(retVertex != null) {
+				for(int i = 0; i < axis.length; i++) {
+					retVertex.property(axis[i], memberships[memIndex][i]);
+				}
+				java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+			}
+		}
 	}
 
 	/**
@@ -1815,29 +974,157 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		// the color is saved as color
 		try {
-			eval("xy_layout <- " + layout + "(" + graphName + ")");
+			this.rJavaTranslator.executeR("xy_layout <- " + layout + "(" + graphName + ")");
 			synchronizeXY("xy_layout");
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	protected void unpivot() {
+		String frameName = (String) retrieveVariable("GRID_NAME");
+		unpivot(frameName, new String[]{}, true);
+	}
+
+	protected void unpivot(String frameName, String[] columnsToUnPivot, boolean replace) {
+		// makes the columns and converts them into rows
+		// melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
+		String concatString = "";
+		String tempName = Utility.getRandomString(8);
+
+		int numColsToUnPivot = columnsToUnPivot.length;
+		if(numColsToUnPivot > 0) {
+			concatString = ", measure.vars = c(";
+			for (int colIndex = 0; colIndex < numColsToUnPivot; colIndex++) {
+				concatString = concatString + "\"" + columnsToUnPivot[colIndex] + "\"";
+				if (colIndex + 1 < numColsToUnPivot)
+					concatString = concatString + ", ";
+			}
+			concatString = concatString + ")";
+		}
+
+		String script = tempName + "<- melt(" + frameName + concatString + ");";
+		// run the first script to unpivot into the temp frame
+		this.rJavaTranslator.executeR(script);
+		// if we are to replace the existing frame
+		if (replace) {
+			script = frameName + " <- " + tempName;
+			this.rJavaTranslator.executeR(script);
+			if (checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
+		}
+		System.out.println("Done unpivoting...");
+	}
+
+	protected void pivot(String columnToPivot, String valueToPivot, String[] columnsToKeep) {
+		String frameName = (String) retrieveVariable("GRID_NAME");
+		pivot(frameName, true, columnToPivot, valueToPivot, columnsToKeep, null);
+	}
+
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String[] columnsToKeep) {
+		pivot(frameName, true, columnToPivot, valueToPivot, columnsToKeep, null);
+	}
+
+	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String[] columnsToKeep, String aggregateFunction) {
+		// makes the columns and converts them into rows
+		// dcast(molten, formula = subject~ variable)
+		// I need columns to keep and columns to pivot
+		String newFrame = Utility.getRandomString(8);
+
+		String keepString = "";
+		int numColsToKeep = columnsToKeep.length;
+		if (numColsToKeep > 0) {
+			// with the portion of code to ignore if the user passes in the 
+			// col to pivot or value to pivot in the selected columns
+			// we need to account for this so we dont end the keepString with " + "
+			keepString = ", formula = ";
+			for (int colIndex = 0; colIndex < numColsToKeep; colIndex++) {
+				String newKeepString = columnsToKeep[colIndex];
+				if(newKeepString.equals(columnToPivot) || newKeepString.equals(valueToPivot)) {
+					continue;
+				}
+				keepString = keepString + newKeepString;
+				if (colIndex + 1 < numColsToKeep) {
+					keepString = keepString + " + ";
+				}
+			}
+
+			// with the portion of code to ignore if the user passes in the 
+			// col to pivot or value to pivot in the selected columns
+			// we need to account for this so we dont end the keepString with " + "
+			if(keepString.endsWith(" + ")) {
+				keepString = keepString.substring(0, keepString.length() - 3);
+			}
+			keepString = keepString + " ~ " + columnToPivot + ", value.var=\"" + valueToPivot + "\"";
+		}
+
+		String aggregateString = "";
+		if (aggregateFunction != null && aggregateFunction.length() > 0) {
+			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
+		}
+		String script = newFrame + " <- dcast(" + frameName + keepString + aggregateString + ");";
+		this.rJavaTranslator.executeR(script);
+		script = newFrame + " <- as.data.table(" + newFrame + ");";
+		this.rJavaTranslator.executeR(script);
+		if (replace) {
+			script = frameName + " <- " + newFrame;
+			this.rJavaTranslator.executeR(script);
+			if (checkRTableModified(frameName)) {
+				recreateMetadata(frameName);
+			}
+		}
+		System.out.println("Done pivoting...");
+	}
+
+	protected void recreateMetadata(String frameName) {
+		// recreate a new frame and set the frame name
+		String[] colNames = this.rJavaTranslator.getColumns(frameName);
+		String[] colTypes = this.rJavaTranslator.getColumns(frameName);
+
+		RDataTable newTable = null;
+		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
+			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
+		} else {
+			newTable = new RDataTable(frameName);
+		}
+		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
+		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
+		this.insight.setDataMaker(newTable);
+	}
+
+
+
+
+
+
+
+
+
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
 	////////////////////////   X-Ray Methods ///////////////////////
@@ -1887,7 +1174,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 		return "";
 	}
-	
+
 	public String runXrayCompatibility(String configFileJson)
 			throws SQLException, JsonParseException, JsonMappingException, IOException {
 
@@ -1899,7 +1186,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String outputFolder = getBaseFolder() + "\\R\\XrayCompatibility\\Temp\\MatchingRepository";
 		outputFolder = outputFolder.replace("\\", "/");
 
-		
+
 		//output folder for semantic data to be compared
 		String semanticOutputFolder = getBaseFolder() + "\\R\\XrayCompatibility\\Temp\\SemanticRepository";
 		semanticOutputFolder = semanticOutputFolder.replace("\\", "/");
@@ -1910,23 +1197,23 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
+
 		boolean semanticComparison = false;
 		Boolean semanticParam = (Boolean) parameters.get("semanticMode");
 		if (semanticParam != null) {
 			semanticComparison = semanticParam.booleanValue();
 		}
-		
+
 		boolean dataComparison = false;
 		Boolean dataParam = (Boolean) parameters.get("dataMode");
 		if (dataParam != null) {
 			dataComparison = dataParam.booleanValue();
 		}
-		
+
 		if((!semanticComparison && !dataComparison)) {
 			dataComparison = true;
 		}
-		
+
 		//Write text files to run xray from different sources
 		// outputFolder/database;table;column.txt
 		ArrayList<Object> connectors = (ArrayList<Object>) config.get("connectors");
@@ -1986,7 +1273,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				String password = (String) connectorData.get("password");
 				String newDBName = (String) connectorData.get("databaseName");
 				String type = (String) connectorData.get("type");
-				Connection con = buildConnection(type, host, port, username, password, schema);
+				Connection con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null); 
 
 				for (String table : dataSelection.keySet()) {
 					HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
@@ -2010,7 +1297,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 								String fileName = newDBName + ";" + table + ";" + column;
 								String testFilePath = outputFolder + "\\" + fileName + ".txt";
 								testFilePath = testFilePath.replace("\\", "/");
-								
+
 								//get instances
 								List<Object> instances = new ArrayList<Object>();
 								try {
@@ -2025,7 +1312,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 								} catch (SQLException e) {
 									e.printStackTrace();
 								}
-								
+
 								//encode instances
 								encodeInstances(instances, dataComparison, testFilePath, semanticComparison, semanticOutputFolder);
 								stmt.close();
@@ -2178,7 +1465,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				matchingSameDB = matchDB.booleanValue();
 			}
 		}
-		
+
 		if (similarityThreshold < 0 || similarityThreshold > 1) {
 			similarityThreshold = 0.01;
 		}
@@ -2245,7 +1532,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 					+ outputXrayDataFolder + "\");");
 		}
 		runR(rsb.toString());
-		
+
 		//run xray on semantic folder
 		if(semanticComparison) {
 			rsb = new StringBuilder();
@@ -2261,7 +1548,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 					+ "\", " + nMinhash + ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold
 					+ ", \"" + DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchingSameDBR + ", \""
 					+ semanticOutput + "\");");
-			
+
 			//join data xray df with semantic xray df if dataComparison frame was created
 			if (dataComparison) {
 				String mergeRScriptPath = baseMatchingFolder + "\\merge.r";
@@ -2299,7 +1586,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		return "";
 		// return null;
 	}
-	
+
 	public String getXrayConfigList() throws JsonGenerationException, JsonMappingException, IOException {
 		HashMap<String, Object> configMap = MasterDatabaseUtility.getXrayConfigList();
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
@@ -2307,14 +1594,14 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		this.nounMetaOutput.add(new NounMetadata(xRayConfigList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION));
 		return xRayConfigList;
 	}
-	
+
 	public String getXrayConfigFile(String configFileID) throws JsonGenerationException, JsonMappingException, IOException {
 		String configFile = MasterDatabaseUtility.getXrayConfigFile(configFileID);
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		this.nounMetaOutput.add(new NounMetadata(configFile, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION));
 		return configFile;
 	}
-	
+
 	public String getSchemaForLocal(String engineName)
 			throws JsonGenerationException, JsonMappingException, IOException {
 		IEngine engine = Utility.getEngine(engineName);
@@ -2324,9 +1611,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// get relations
 		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
 		//structure is Title = {inner.join={Genre, Studio, Nominated}}
-		
-		
-		
+
+
+
 		for(String concept : concepts) {
 			concept = DomainValues.determineCleanConceptName(concept, engine);
 			if(concept.equals("Concept")) {
@@ -2340,9 +1627,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				} 
 			}
 			relationshipMap.put(concept, conceptRelations);
-			
+
 		}
-		
+
 
 		// tablename: [{name, type}]
 		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
@@ -2383,18 +1670,18 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 			tableDetails.put(cleanConcept, allCols);
 		}
-		
+
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ret.put("databaseName", engine.getEngineName());
 		ret.put("tables", tableDetails);
 		ret.put("relationships", relationshipMap);
-		
+
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		String schema = ow.writeValueAsString(ret);
 		this.nounMetaOutput.add(new NounMetadata(schema, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION));
 		return schema;
 	}
-	
+
 	public String getSchemaForXL(String filePath, String sheetName)
 			throws JsonGenerationException, JsonMappingException, IOException {
 		HashMap<String, Object> ret = new HashMap<String, Object>();
@@ -2435,30 +1722,30 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	}
 
-	
-	
+
+
 	public String getSchemaForCSV(String filePath, String delimiter) throws JsonGenerationException, JsonMappingException, IOException {
 		CSVFileHelper cv = new CSVFileHelper();
 		cv.setDelimiter(delimiter.charAt(0));
 		cv.parse(filePath);
 		String[] headers = cv.getAllCSVHeaders();
 		String[] types = cv.predictTypes();
-		
+
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		//generate db name
 		String[] parts = filePath.split("\\\\");
 		String dbName = parts[parts.length-1].replace(".", "_");
 		// C:\\..\\file.csv -> file_csv
 		ret.put("databaseName", dbName);
-		
+
 		//construct empty relationship map (assuming flat table)
 		HashMap<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
 		for(String concept : headers) {
 			relationshipMap.put(concept, new ArrayList<String>()); //return empty list for FE
 		}
-		
+
 		ret.put("relationships", relationshipMap);
-		
+
 		//add column details
 		//since it's a flat table we don't need to worry about concept/property relationships
 		HashMap<String, HashMap> tableDetails = new HashMap<String, HashMap>();
@@ -2469,15 +1756,15 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			colDetails.put("type", dataType);
 			tableDetails.put(headers[i], colDetails);
 		}
-		
+
 		ret.put("tables", tableDetails);
-		
+
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		String schema = ow.writeValueAsString(ret);
 		this.nounMetaOutput.add(new NounMetadata(schema, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION));
 
 		return schema;
-		
+
 	}
 
 	private void encodeInstances(List<Object> instances, boolean dataMode, String filePath, boolean semanticComparison, String semanticFolder) {
@@ -2514,7 +1801,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				String colSelectString = "1";
 				int numDisplay = 3;
 				int randomVals = 20;
-				
+
 				rsb.append(semanticResults + "<- concept_xray(" + dfName +","+ colSelectString + "," + numDisplay + "," + randomVals + ");");
 				String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 				writeFrameResultsToFile = "fileConn <- file(\"" + semanticFolder + "/" + fileName + "\");";
@@ -2528,7 +1815,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			runR(rsb.toString());
 		}
 	}
-	
+
 	/**
 	 * Used to encode instances from csv, excel, external rdbms
 	 * @param filePath
@@ -2567,7 +1854,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				String colSelectString = "1";
 				int numDisplay = 3;
 				int randomVals = 20;
-				
+
 				rsb.append(semanticResults + "<- concept_xray(" + dfName +","+ colSelectString + "," + numDisplay + "," + randomVals + ");");
 				String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 				writeFrameResultsToFile = "fileConn <- file(\"" + semanticFolder + "/" + fileName + "\");";
@@ -2576,17 +1863,17 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 			rsb.append(writeFrameResultsToFile);
 			if(dataMode) {
-			rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
+				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
 			runR(rsb.toString());
 		}
 	}
-	
+
 	public String getSchemaForExternal(String type, String host, String port, String username, String password, String schema) throws SQLException  {
 		Connection con = null;
 		String schemaJSON = "";
 		try {
-			con = buildConnection(type, host, port, username, password, schema);
+			con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null); 
 			String url = "";
 
 			HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
@@ -2675,187 +1962,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 
 		return schemaJSON;
-        
-  }
 
-	private Connection buildConnection(String type, String host, String port, String username, String password,
-			String schema) throws SQLException, JsonGenerationException, JsonMappingException, IOException {
-        Connection con = null;
-        String url = "";
-
-		try {
-            if (type.equals("MYSQL")) {
-                   Class.forName("com.mysql.jdbc.Driver");
-                  // Connection URL format:
-                  // jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
-                  url = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-                  con = DriverManager.getConnection(url + "?user=" + username + "&password=" + new String(password));
-            } else if (type.equals("Oracle")) {
-                   Class.forName("oracle.jdbc.driver.OracleDriver");
-
-                  // Connection URL format:
-                  // jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema
-                  // name]
-                  url = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-            } else if (type.equals("SQL_Server")) {
-                   Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-
-                  // Connection URL format:
-                  // jdbc:sqlserver://<hostname>[:port];databaseName=<DBname>
-                  url = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-            } else if (type.equals("DB2")) {
-                   Class.forName("com.ibm.db2.jcc.DB2Driver");
-                  
-                  // Connection URL format:
-                  // jdbc:db2://<hostname>[:port]/<databasename>
-                  url = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("ASTER_DB")) {
-                   Class.forName("com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver");
-                  url = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("SAP_HANA")) {
-                   Class.forName("com.sap.db.jdbc.Driver");
-                  url = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-            } else if (type.equals("MARIA_DB")) {
-                   Class.forName("org.mariadb.jdbc.Driver");
-                  url = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("H2_DB")) {
-                  Class.forName("org.h2.Driver");
-                  //Local db
-                  if(host.contains("C:")) {
-                      url = "jdbc:h2:HOST/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-
-                  } else {
-                  url = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  }
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("TERADATA")) {
-                   Class.forName("com.teradata.jdbc.TeraDriver");
-                  url = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("POSTGRES")) {
-                   Class.forName("org.postgresql.Driver");
-                  url = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("DERBY")) {
-                   Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                  url = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("CASSANDRA")) {
-                   Class.forName("com.github.adejanovski.cassandra.jdbc.CassandraDriver");
-                  url = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            } else if (type.equals("IMPALA")) {
-                   Class.forName("com.cloudera.impala.jdbc3.Driver");
-                  url = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-            } else if (type.equals("PHOENIX")) {
-                   Class.forName("org.apache.phoenix.jdbc.PhoenixDriver");
-                  url = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-                  if (port != null && !port.isEmpty()) {
-                         url = url.replace(":PORT", ":" + port);
-                  } else {
-                         url = url.replace(":PORT", "");
-                  }
-
-                  con = DriverManager.getConnection(url, username, new String(password));
-
-            }
-
-     } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            System.out.println(">>>>>DRIVER NOT FOUND. PLEASE ENSURE YOU HAVE ACCESS TO JDBC DRIVER");
-     }
-		return con;
 	}
 
 	protected void runSemanticBlending(String column, String numDisplay, String randomVals) {
@@ -2863,7 +1970,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String colName = column;
 		if (column.contains("__")) {
 			colName = column.split("__")[1];
-		} else if(dataframe.getTableName() != null) {
+		} else {
 			column = dataframe.getTableName() + "__" + column;
 		} 
 
@@ -3011,5 +2118,4 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		this.storeVariable("predictionFrame", frameNoun);
 		this.nounMetaOutput.add(frameNoun);
 	}
-
 }
