@@ -47,6 +47,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -78,6 +80,11 @@ public class Insight {
 	// data frames within this insight
 	private transient TaskStore taskStore;
 
+	// we will keep a central rJavaTranslator for the entire insight
+	// that can be referenced through all the reactors
+	// since reactors have access to insight
+	private AbstractRJavaTranslator rJavaTranslator;
+	
 	/* 
 	 * TODO: find a better way of doing this
 	 * keep a list of all the files that are used to create this insight
@@ -550,6 +557,13 @@ public class Insight {
 	
 	public Map<String, Object> getInsightOrnament() {
 		return this.insightOrnament;
+	}
+	
+	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
+		if(this.rJavaTranslator == null) {
+			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
+		}
+		return this.rJavaTranslator;
 	}
 
 	// TODO: need a better way of doing this...

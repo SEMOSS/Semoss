@@ -10,15 +10,21 @@ import prerna.sablecc2.om.PixelDataType;
 public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	protected Rengine engine;
-	
+
+	/**
+	 * This will start R, only if it has not already been started
+	 * In this case we are starting an engine for JRI
+	 */
 	@Override
 	public void startR() {
 		Rengine retEngine = Rengine.getMainEngine();
 		if(retEngine == null) {
-			retEngine = (Rengine)this.insight.getVarStore().get(R_ENGINE).getValue();
+			if(this.insight.getVarStore().containsKey(R_ENGINE)) {
+				retEngine = (Rengine) this.insight.getVarStore().get(R_ENGINE).getValue();
+			}
 		}
 		logger.info("Connection right now is set to: " + retEngine);
-		
+
 		String OS = java.lang.System.getProperty("os.name").toLowerCase();
 		if(retEngine == null) {
 			try {
@@ -29,7 +35,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 					retEngine = new Rengine(null, true, null);
 				}
 				logger.info("Successfully created engine.. ");
-	
+
 				// load all the libraries
 				Object ret = retEngine.eval("library(splitstackshape);");
 				if(ret == null) {
@@ -51,7 +57,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				} else {
 					logger.info("Successfully loaded packages reshape2");
 				}
-				
+
 				// Don't load RJDBC if OS is Mac because we'll write to CSV and load into data.table to avoid rJava setup
 				if(!OS.contains("mac")) {
 					// rjdbc
@@ -69,6 +75,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				} else {
 					logger.info("Successfully loaded packages stringr");
 				}
+				
+				// set the rengine
+				this.insight.getVarStore().put(IRJavaTranslator.R_ENGINE, new NounMetadata(retEngine, PixelDataType.R_ENGINE));
 			} catch(NullPointerException e) {
 				e.printStackTrace();
 				System.out.println("Could not connect to R JRI.  Please make sure paths are accurate");
@@ -93,7 +102,6 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				e.printStackTrace();
 			}
 		}
-		this.insight.getVarStore().put(IRJavaTranslator.R_ENGINE, new NounMetadata(retEngine, PixelDataType.R_ENGINE));
 		engine = retEngine;
 	}
 
@@ -110,23 +118,73 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
-	
+
 	@Override
-	public int[] getIntArray(String script) {
-		REXP rexp = (REXP)executeR(script);
-		return rexp.asIntArray();
+	public String getString(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asString();
+		}
+		return null;
 	}
 
 	@Override
 	public String[] getStringArray(String script) {
-		String[] stringValues = ((REXP)executeR(script)).asStringArray();
-		return stringValues;
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asStringArray();
+		}
+		return null;
+	}
+
+	@Override 
+	public int getInt(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asInt();
+		}
+		return 0;
 	}
 
 	@Override
-	public String getString(String script) {
-		String stringVal = ((REXP)executeR(script)).asString();
-		return stringVal;
+	public int[] getIntArray(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asIntArray();
+		}
+		return null;
+	}
+
+	@Override
+	public double getDouble(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asDouble();
+		}
+		return 0;
+	}
+
+	@Override
+	public double[] getDoubleArray(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asDoubleArray();
+		}
+		return null;
+	}
+
+	@Override
+	public Object getFactor(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asFactor();
+		}
+		return null;
+	}
+
+	@Override
+	public Object parseAndEvalScript(String script) {
+		return engine.eval(script);
 	}
 
 	@Override

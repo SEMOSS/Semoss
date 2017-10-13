@@ -11,7 +11,9 @@ import prerna.util.Utility;
 
 /**
  * This reactor changes the data type of an existing column The inputs to the
- * reactor are: 1) the column to update 2) the desired column type
+ * reactor are: 
+ * 1) the column to update 
+ * 2) the desired column type
  */
 
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
@@ -20,7 +22,6 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-
 		// get inputs
 		String column = getColumn();
 		String newType = getColumnType();
@@ -75,6 +76,13 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		this.getFrame().getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
+
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+
 
 	private String getColumn() {
 		GenRowStruct inputsGRS = this.getCurRow();
