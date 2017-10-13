@@ -56,8 +56,15 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 				quote = "\"";
 			}
 			//script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
-			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ")";
-			frame.executeRScript(script);
+			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ");";
+			
+			//doing gsub on a numeric column changes the data type to a string 
+			//so change it back to numeric in r
+			if (dataType.contains("numeric")) {
+				script += table + "$" + column + " <- as.numeric(" + table + "$" + column + ");";
+			}
+			
+			frame.executeRScript(script); 
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
