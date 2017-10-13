@@ -99,17 +99,18 @@ public class JavaReactor extends AbstractReactor {
 			// as possible for faster compilation
 
 			long start = System.currentTimeMillis();
-			cc.addMethod(CtNewMethod.make("public void runCompiledCode() {" + content + ";}", cc));
+			cc.addMethod(CtNewMethod.make("public void runCompiledCode() {this.rJavaTranslator.startR();" + content + ";}", cc));
 			long end = System.currentTimeMillis();
 			logger.debug(">>> Time to compile and add new class ::: " + (end-start) + " ms");
 			Class retClass = cc.toClass();
 
 			// next step is calling it
-			AbstractJavaReactorBaseClass jR = (AbstractJavaReactorBaseClass) retClass.newInstance();
+			AbstractBaseRClass jR = (AbstractBaseRClass) retClass.newInstance();
 			jR.setInsight(this.insight);
 			jR.setDataFrame((ITableDataFrame) this.insight.getDataMaker());
 			jR.setPixelPlanner(this.planner);
 			jR.setLogger(logger);
+			jR.setRJavaTranslator(this.insight.getRJavaTranslator(this.getLogger(jR.getClass().getName())));
 			jR.In();
 			
 			// get the original security

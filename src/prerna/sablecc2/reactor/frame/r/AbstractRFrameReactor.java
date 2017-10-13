@@ -3,19 +3,18 @@ package prerna.sablecc2.reactor.frame.r;
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
-import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 
 public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 
-	protected IRJavaTranslator rJavaTranslator;
+	protected AbstractRJavaTranslator rJavaTranslator;
 
 	/**
 	 * This method must be called to initialize the rJavaTranslator
 	 */
 	protected void init() {
-		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.insight, this.getLogger(this.getClass().getName()));
+		this.rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
 		this.rJavaTranslator.startR(); 
 	}
 
@@ -32,7 +31,6 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		this.insight.setDataMaker(newTable);
 	}
-
 
 	/**
 	 * This method is used to fix the frame headers to be valid 
@@ -52,9 +50,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * @param frameName
 	 */
 	public String[] getColumns(String frameName) {
-		String script = "names(" + frameName + ");";
-		String[] colNames = this.rJavaTranslator.getStringArray(script);
-		return colNames;
+		return this.rJavaTranslator.getColumns(frameName);
 	}
 
 	/**
@@ -62,9 +58,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * @param frameName
 	 */
 	public String[] getColumnTypes(String frameName) {
-		String script = "sapply(" + frameName + ", class);";
-		String[] colTypes = this.rJavaTranslator.getStringArray(script);
-		return colTypes;
+		return this.rJavaTranslator.getColumnTypes(frameName);
 	}
 
 	/**
@@ -73,44 +67,18 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * @param column
 	 */
 	public String getColumnType(String frameName, String column) {
-		String script = "sapply(" + frameName + "$" + column + ", class);";
-		String colType = this.rJavaTranslator.getString(script);
-		return colType;
+		return this.rJavaTranslator.getColumnType(frameName, column);
 	}
-
-	//	public IMetaData.DATA_TYPES getColEnum(String colName) {
-	//		IMetaData.DATA_TYPES colTypeEnum = this.getFrame().getMetaData().getHeaderToTypeMap().get(colName);
-	//		return colTypeEnum;  
-	//		}
-
-	//	public String getColType(String colName) {
-	//		IMetaData.DATA_TYPES colTypeEnum = getColEnum(colName);
-	//		String colType = ""; 
-	//		if (colTypeEnum == IMetaData.DATA_TYPES.STRING) {
-	//			colType = "string"; 
-	//		} else if (colTypeEnum == IMetaData.DATA_TYPES.NUMBER) {
-	//			colType = "number"; 
-	//		} else if (colTypeEnum == IMetaData.DATA_TYPES.DATE) {
-	//			colType = "date"; 
-	//		}
-	//		return colType; 
-	//	}
-
-	//	public String[] getColTypes() {
-	//		ArrayList<IMetaData.DATA_TYPES> colTypes = new ArrayList<IMetaData.DATA_TYPES>();
-	//		for (IMetaData.DATA_TYPES colType : this.getFrame().getMetaData().getHeaderToTypeMap().values()) {
-	//			colTypes.add(colType);
-	//		}
-	//		String[] colTypesString = new String[colTypes.size()]; 
-	//		for (int i = 0; i < colTypes.size(); i++) {
-	//			if (colTypes.get(i) == IMetaData.DATA_TYPES.STRING) {
-	//				colTypesString[i] = "string"; 
-	//			} else if (colTypes.get(i) == IMetaData.DATA_TYPES.NUMBER) {
-	//				colTypesString[i] = "number"; 
-	//			} else if (colTypes.get(i) == IMetaData.DATA_TYPES.DATE) {
-	//				colTypesString[i] = "date"; 
-	//			}
-	//		}
-	//		return colTypesString;
-	//	}
+	
+	/**
+	 * Change the frame column type
+	 * @param frame
+	 * @param frameName
+	 * @param colName
+	 * @param newType
+	 * @param dateFormat
+	 */
+	public void changeColumnType(RDataTable frame, String frameName, String colName, String newType, String dateFormat) {
+		this.rJavaTranslator.changeColumnType(frame, frameName, colName, newType, dateFormat);
+	}
 }
