@@ -1,12 +1,10 @@
 package prerna.sablecc2.reactor.runtime;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPDouble;
 import org.rosuda.REngine.REXPGenericVector;
@@ -14,13 +12,10 @@ import org.rosuda.REngine.REXPInteger;
 import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REXPString;
-import org.rosuda.REngine.REngineException;
 import org.rosuda.REngine.RFactor;
 import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.ds.TinkerFrame;
 import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -30,173 +25,11 @@ import prerna.util.Utility;
 public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 
 	/**
-	 * Starts the connection to R
-	 */
-	@Override
-	protected Object startR() {
-		// we store the connection in the PKQL Runner
-		// retrieve it if it is already defined within the insight
-		RConnection retCon = (RConnection) retrieveVariable(R_CONN);
-		String port = (String) retrieveVariable(R_PORT);
-		logger.info("Connection right now is set to.. " + retCon);
-		if(retCon == null) {
-			try {
-				RConnection masterCon = RSingleton.getConnection();
-				port = Utility.findOpenPort();
-				
-				logger.info("Starting it on port.. " + port);
-				// need to find a way to get a common name
-				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
-				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
-				// load all the libraries
-				retCon.eval("library(splitstackshape);");
-				logger.info("Loaded packages splitstackshape");
-				// data table
-				retCon.eval("library(data.table);");
-				logger.info("Loaded packages data.table");
-				// reshape2
-				retCon.eval("library(reshape2);");
-				logger.info("Loaded packages reshape2");
-				// rjdbc
-				retCon.eval("library(RJDBC);");
-				logger.info("Loaded packages RJDBC");
-				// stringr
-				retCon.eval("library(stringr)");
-				logger.info("Loaded packages stringr");
-			} catch (Exception e) {
-				System.out.println("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
-						+ "1)Rserve\n"
-						+ "2)splitstackshape\n"
-						+ "3)data.table\n"
-						+ "4)reshape2\n"
-						+ "5)RJDBC*\n"
-						+ "6)stringr\n\n"
-						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
-				e.printStackTrace();
-				throw new IllegalArgumentException("ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
-						+ "1)Rserve\n"
-						+ "2)splitstackshape\n"
-						+ "3)data.table\n"
-						+ "4)reshape2\n"
-						+ "5)RJDBC*\n"
-						+ "6)stringr\n\n"
-						+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
-			}
-		}
-		storeVariable(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
-		storeVariable(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
-		return retCon;
-	}
-	
-	/**
-	 * Get the current working directory of the R session
-	 */
-	@Override
-	protected String getWd() {
-		RConnection retCon = (RConnection) startR();
-		try {
-			return retCon.eval("getwd()").asString();
-		} catch (RserveException | REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	/**
 	 * Reconnect the main R server port
 	 * @param port
 	 */
 	public void reconnectR(int port) {
 		RSingleton.getConnection(port);
-	}
-	
-	/**
-	 * Execute a rScript
-	 */
-	public Object eval(String script)
-	{
-		RConnection rcon = (RConnection)startR();
-		try {
-			return rcon.eval(script);
-		} catch (RserveException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	// remove the node on R
-	// get the number of clustered components
-	// perform a layout
-	// color a graph based on a formula
-	public void key()
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		String names = "";
-		RConnection con = (RConnection)startR();
-		try {
-			// get the articulation points
-			int [] vertices = con.eval("articulation.points(" + graphName + ")").asIntegers();
-			// now for each vertex get the name
-			Hashtable <String, String> dataHash = new Hashtable<String, String>();
-			for(int vertIndex = 0;vertIndex < vertices.length;  vertIndex++)
-			{
-				String output = con.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\", " + vertices[vertIndex] + ")").asString();
-				String [] typeData = output.split(":");
-				String typeOutput = "";
-				if(dataHash.containsKey(typeData[0]))
-					typeOutput = dataHash.get(typeData[0]);
-				typeOutput = typeOutput + "  " + typeData[1];
-				dataHash.put(typeData[0], typeOutput);
-			}
-			
-			Enumeration <String> keys = dataHash.keys();
-			while(keys.hasMoreElements())
-			{
-				String thisKey = keys.nextElement();
-				names = names + thisKey + " : " + dataHash.get(thisKey) + "\n";
-			}
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println(" Key Nodes \n " + names);
-	}
-	
-	public void colorClusters(String clusterName)
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-
-		RConnection rcon = (RConnection)startR();
-		// the color is saved as color
-		try
-		{
-			int [] memberships = rcon.eval(clusterName + "$membership").asIntegers();
-			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
-			
-			for(int memIndex = 0;memIndex < memberships.length;memIndex++)
-			{
-				String thisID = IDs[memIndex];
-
-				java.lang.System.out.println("ID...  " + thisID);
-				Vertex retVertex = null;
-				
-				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
-				if(gt.hasNext()) {
-					retVertex = gt.next();
-				}
-				if(retVertex != null)
-				{
-					retVertex.property("CLUSTER", memberships[memIndex]);
-					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
-				}
-			}
-		}catch (Exception ex)
-		{
-			ex.printStackTrace();
-		}
 	}
 	
 	private void getResultAsString(Object output, StringBuilder builder)
@@ -340,163 +173,32 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 	{
 		runR(script, true);
 	}
-	
+
 	public void runR(String script, boolean result)
 	{
-		RConnection rcon = (RConnection)startR();
 		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
+		Object output;
 		try {
-			REXP output = rcon.parseAndEval(newScript);
-			if(result) {
-				System.out.println(output.asString());
-			}
-		} catch(REngineException | REXPMismatchException e) {
-			try {
-				Object output = rcon.eval(script);
-				if(result)
-				{
-					java.lang.System.out.println("RCon data.. " + output);
-					StringBuilder builder = new StringBuilder();
-					getResultAsString(output, builder);
-					System.out.println("Output : " + builder.toString());
+			output = this.rJavaTranslator.parseAndEvalScript(newScript);
+			if(result && output != null) {
+				try {
+					System.out.println(((REXP) output).asString());
+				} catch (REXPMismatchException e) {
+					e.printStackTrace();
 				}
-			} catch (REngineException e2) {
-				e2.printStackTrace();
-				String errorMessage = null;
-				if(e2.getMessage() != null && !e2.getMessage().isEmpty()) {
-					errorMessage = e2.getMessage();
-				} else {
-					errorMessage = "Unexpected error in execution of R routine ::: " + script;
-				}
-				throw new IllegalArgumentException(errorMessage);
 			}
-		}
-	}
-
-	// split a column based on a value
-	@Override
-	public void performSplitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace)
-	{
-		//  cSplit(dt, "PREFIX", "_")
-		RConnection rcon = (RConnection) startR();
-		// need to get the type of this
-		try {
-			String tempName = Utility.getRandomString(8);
-			
-			String frameReplaceScript = frameName + " <- " + tempName + ";";
-			if(!frameReplace) {
-				frameReplaceScript = "";
-			}
-			String columnReplaceScript = "TRUE";
-			if(!dropColumn) {
-				columnReplaceScript = "FALSE";
-			}
-			if(direction==null || direction.isEmpty()) {
-				direction = "wide";
-			}
-			for(String columnName : columnNames) {
-				String script = tempName + " <- cSplit(" + frameName + ", "
-						+ "\"" + columnName 
-						+ "\", \"" + separator
-						+ "\", direction = \"" + direction
-						+ "\", drop = " + columnReplaceScript+ ");" 
-						;
-				rcon.eval(script);
-				System.out.println("Script " + script);
-				// get all the columns that are factors
-				script = "sapply(" + tempName + ", is.factor);";
-				String [] factors = rcon.eval(script).asStrings();			
-				String [] colNames = getColNames(tempName);
-				
-				// now I need to compose a string based on it
-				String conversionString = "";
-				for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
-				{
-					if(factors[factorIndex].equalsIgnoreCase("TRUE")) // this is a factor
-					{
-						conversionString = conversionString + 
-								tempName + "$" + colNames[factorIndex] + " <- "
-								+ "as.character(" + tempName + "$" +colNames[factorIndex] + ");";
-					}
-				}
-				rcon.eval(conversionString + frameReplaceScript);
-				
-				// perform variable cleanup
-				// perform variable cleanup
-				rcon.eval("rm(" + tempName + ");");
-				rcon.eval("gc();");
-				
-				System.out.println("Script " + script);
-				System.out.println("Complete ");
-			}
-			// once this is done.. I need to find what the original type is and then apply a type to it
-			// may be as string
-			// or as numeric
-			// else this is not giving me what I want :(
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-		
-	public String[] getColNames(String frameName, boolean print) {
-		RConnection rcon = (RConnection) startR();
-		String [] colNames = null;
-		try {
-			String script = "names(" + frameName + ");";
-			colNames = rcon.eval(script).asStrings();
-			if(print)
+		} catch (IOException e) {
+			output = this.rJavaTranslator.executeR(script);
+			if(result)
 			{
-				System.out.println("Columns..");
-				for(int colIndex = 0;colIndex < colNames.length; colIndex++) {
-					System.out.println(colNames[colIndex] + "\n");
-				}
+				java.lang.System.out.println("RCon data.. " + output);
+				StringBuilder builder = new StringBuilder();
+				getResultAsString(output, builder);
+				System.out.println("Output : " + builder.toString());
 			}
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
 		}
-		return colNames;
-	}
-	
-	public String getColType(String frameName, String colName, boolean print) {
-		RConnection rcon = (RConnection) startR();
-		String colType = null;
-		try {
-			String script = "sapply(" + frameName + "$" + colName + ", class);";
-			colType = rcon.eval(script).asString();
-			if(print) {
-				System.out.println(colName + "has type " + colType);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} 
-		return colType;
 	}
 
-	public String[] getColTypes(String frameName, boolean print) {
-		RConnection rcon = (RConnection) startR();
-		String [] colTypes = null;
-		try {
-			String script = "matrix(sapply(" + frameName + ", class));";
-			colTypes = rcon.eval(script).asStrings();
-			if(print) {
-				System.out.println("Columns..");
-				for(int colIndex = 0; colIndex < colTypes.length; colIndex++) {
-					System.out.println(colTypes[colIndex] + "\n");
-				}
-			}
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		return colTypes;
-	}
 
 	// gives the different types of columns that are there and how many are there of that type
 	// such as 5 integer columns
@@ -504,21 +206,20 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 	// 4 blank columns etc. 
 	public void getColumnTypeCount(String frameName)
 	{
-		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = null; // name and the number of items
 		
-		try {
+		//try {
 			String script = "";
 			
-			String [] colNames = getColNames(frameName);
+			String [] colNames = this.rJavaTranslator.getColumns(frameName);
 			// I am not sure if I need the colnames right now but...
 			
 			// get the column types
-			String [] colTypes = getColTypes(frameName);
+			String [] colTypes = this.rJavaTranslator.getColumns(frameName);
 			
 			// get the blank columns
 			script = "matrix( " + frameName + "[, colSums( " + frameName + " != \"\") !=0])";
-			String [] blankCols = rcon.eval(script).asStrings();
+			String [] blankCols = this.rJavaTranslator.getStringArray(script);
 			
 			Hashtable <String, Integer> colCount = new Hashtable <String, Integer>();
 			
@@ -537,40 +238,7 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 			
 			StringBuilder builder = new StringBuilder();
 			builder.append(colCount + "");
-			System.out.println("Output : " + builder.toString());
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}		
-	}
-	
-	public void performJoinColumns(String frameName, String newColumnName,  String separator, String[] columns)
-	{
-		// reconstruct the column names
-		//paste(df1$a_1, df1$a_2, sep="$$")
-		try {
-			RConnection rcon = (RConnection) startR();
-			String concatString = "paste(";
-			for(int colIndex = 0;colIndex < columns.length;colIndex++) {
-				concatString = concatString + frameName + "$" + columns[colIndex];
-				if(colIndex + 1 < columns.length) {
-					concatString = concatString + ", ";
-				}
-			}
-			concatString = concatString + ", sep= \"" + separator + "\")";
-			
-			String script = frameName + "$" + newColumnName + " <- " + concatString;
-			System.out.println(script);
-			rcon.eval(script);
-			System.out.println("Join Complete ");
-		
-		} catch (RserveException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			System.out.println("Output : " + builder.toString());	
 	}
 	
 	public Object[][] getColumnCount(String frameName, String column)
@@ -587,180 +255,142 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 		 * matrix(dt[, colSums(dt != "") !=0]) <-- gives me if a column is blank or not.. 
 		 * 
 		 */
-		// start the R first
-		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = null; // name and the number of items
 
-		try {
-			String tempName = Utility.getRandomString(6);
-			String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
-			System.out.println("Script is " + script);
-			rcon.eval(script);
+		String tempName = Utility.getRandomString(6);
+		String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
+		System.out.println("Script is " + script);
+		this.rJavaTranslator.executeR(script);
 
-			script = tempName + "$" + column;
-			String [] uniqueColumns = rcon.eval(script).asStrings();
-			if(uniqueColumns == null) {
-				RFactor factors = rcon.eval(script).asFactor();
-				int numFactors = factors.size();
-				uniqueColumns = new String[numFactors];
-				for(int i = 0; i < numFactors; i++) {
-					uniqueColumns[i] = factors.at(i);
-				}
-			} 
-			// need to limit this eventually to may be 10-15 and no more
-			script = "matrix(" + tempName + "$N);"; 
-			int [] colCount = rcon.eval(script).asIntegers();
-			retOutput = new Object[uniqueColumns.length][2];
-			for(int outputIndex = 0;outputIndex < uniqueColumns.length; outputIndex++) {
-				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
-				retOutput[outputIndex][1] = colCount[outputIndex];
+		script = tempName + "$" + column;
+		String [] uniqueColumns = this.rJavaTranslator.getStringArray(script);
+		if(uniqueColumns == null) {
+			RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
+			int numFactors = factors.size();
+			uniqueColumns = new String[numFactors];
+			for(int i = 0; i < numFactors; i++) {
+				uniqueColumns[i] = factors.at(i);
 			}
-			// create and return a task
-			Map<String, Object> taskData = getBarChartInfo(column, "Frequency", retOutput);
-			this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
-
-			// perform variable cleanup
-			rcon.eval("rm(" + tempName + ");");
-			rcon.eval("gc();");
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+		} 
+		// need to limit this eventually to may be 10-15 and no more
+		script = "matrix(" + tempName + "$N);"; 
+		int [] colCount = this.rJavaTranslator.getIntArray(script);
+		retOutput = new Object[uniqueColumns.length][2];
+		for(int outputIndex = 0;outputIndex < uniqueColumns.length; outputIndex++) {
+			retOutput[outputIndex][0] = uniqueColumns[outputIndex];
+			retOutput[outputIndex][1] = colCount[outputIndex];
 		}
+		// create and return a task
+		Map<String, Object> taskData = getBarChartInfo(column, "Frequency", retOutput);
+		this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
+
+		// perform variable cleanup
+		this.rJavaTranslator.executeR("rm(" + tempName + ");");
+		this.rJavaTranslator.executeR("gc();");
 		return retOutput;
 	}
 	
 	public Object[][] getColumnCount(String frameName, String column, boolean top)
 	{
-		// start the R first
-		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = null; // name and the number of items
 		
-		try {
-			String tempName = Utility.getRandomString(6);
-			String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
-			System.out.println("Script is " + script);
-			rcon.eval(script);
-			if(top) {
-				rcon.eval(tempName + " <- " + tempName + "[order(-rank(N)),]");
-			} else {
-				rcon.eval(tempName + " <- " + tempName + "[order(rank(N)),]");
-			}
-			
-			// get the column names
-			script = tempName + "$" + column;
-			String [] uniqueColumns = rcon.eval(script).asStrings();
-			if(uniqueColumns == null) {
-				RFactor factors = rcon.eval(script).asFactor();
-				int numFactors = factors.size();
-				uniqueColumns = new String[numFactors];
-				for(int i = 0; i < numFactors; i++) {
-					uniqueColumns[i] = factors.at(i);
-				}
-			}
-			
-			// get the count for each column
-			script = tempName + "$N";
-			int [] colCount = rcon.eval(script).asIntegers();
-			
-			// create the object with the right size
-			if(uniqueColumns.length > 100) {
-				retOutput = new Object[100][2];
-			} else {
-				retOutput = new Object[uniqueColumns.length][2];
-			}
-
-			int counter = 0;
-			for(int outputIndex = 0;outputIndex < uniqueColumns.length && counter < 100; outputIndex++) {
-				retOutput[outputIndex][0] = uniqueColumns[outputIndex];
-				retOutput[outputIndex][1] = colCount[outputIndex];
-				counter++;
-			}
-			// create and return a task
-			Map<String, Object> taskData = getBarChartInfo(column, "Frequency", retOutput);
-			this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
-
-			// perform variable cleanup
-			rcon.eval("rm(" + tempName + ");");
-			rcon.eval("gc();");
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+		String tempName = Utility.getRandomString(6);
+		String script = tempName + " <-  " + frameName + "[, .N, by=\"" + column +"\"];";
+		System.out.println("Script is " + script);
+		this.rJavaTranslator.executeR(script);
+		if(top) {
+			this.rJavaTranslator.executeR(tempName + " <- " + tempName + "[order(-rank(N)),]");
+		} else {
+			this.rJavaTranslator.executeR(tempName + " <- " + tempName + "[order(rank(N)),]");
 		}
+		
+		// get the column names
+		script = tempName + "$" + column;
+		String [] uniqueColumns = this.rJavaTranslator.getStringArray(script);
+		if(uniqueColumns == null) {
+			RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
+			int numFactors = factors.size();
+			uniqueColumns = new String[numFactors];
+			for(int i = 0; i < numFactors; i++) {
+				uniqueColumns[i] = factors.at(i);
+			}
+		}
+		
+		// get the count for each column
+		script = tempName + "$N";
+		int [] colCount = this.rJavaTranslator.getIntArray(script);
+		
+		// create the object with the right size
+		if(uniqueColumns.length > 100) {
+			retOutput = new Object[100][2];
+		} else {
+			retOutput = new Object[uniqueColumns.length][2];
+		}
+
+		int counter = 0;
+		for(int outputIndex = 0;outputIndex < uniqueColumns.length && counter < 100; outputIndex++) {
+			retOutput[outputIndex][0] = uniqueColumns[outputIndex];
+			retOutput[outputIndex][1] = colCount[outputIndex];
+			counter++;
+		}
+		// create and return a task
+		Map<String, Object> taskData = getBarChartInfo(column, "Frequency", retOutput);
+		this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
+
+		// perform variable cleanup
+		this.rJavaTranslator.executeR("rm(" + tempName + ");");
+		this.rJavaTranslator.executeR("gc();");
 		return retOutput;
 	}
 	
-	@Override
-	protected int getNumRows(String frameName) {
-		RConnection rcon = (RConnection) startR();
-		int numRows = 0;
-		try {
-			numRows = rcon.eval("nrow(" + frameName + ")").asInteger();
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		return numRows;
-	}
-	
 	public Object[][] getDescriptiveStats(String frameName, String column) {
-		RConnection rcon = (RConnection) startR();
 		Object [][] retOutput = new Object[8][2]; // name and the number of items
-		try {
-			String frameExpr = frameName + "$" + column;
-			String script = "min(as.numeric(na.omit(" + frameExpr + ")))";
-			double min = rcon.eval(script).asDouble();
-			retOutput[0][0] = "Minimum";
-			retOutput[0][1] = min;
-			
-			script = "quantile(as.numeric(na.omit(" + frameExpr + ")), prob = c(0.25, 0.75))";
-			double[] quartiles = rcon.eval(script).asDoubles();
-			retOutput[1][0] = "Q1";
-			retOutput[1][1] = quartiles[0];
-			retOutput[2][0] = "Q3";
-			retOutput[2][1] = quartiles[1];
-			
-			script = "max(as.numeric(na.omit(" + frameExpr + ")))";
-			double max = rcon.eval(script).asDouble();
-			retOutput[3][0] = "Maximum";
-			retOutput[3][1] = max;
-			
-			script = "mean(as.numeric(na.omit(" + frameExpr + ")))";
-			double mean = rcon.eval(script).asDouble();
-			retOutput[4][0] = "Mean";
-			retOutput[4][1] = mean;
-			
-			script = "median(as.numeric(na.omit(" + frameExpr + ")))";
-			double median = rcon.eval(script).asDouble();
-			retOutput[5][0] = "Median";
-			retOutput[5][1] = median;
-			
-			script = "sum(as.numeric(na.omit(" + frameExpr + ")))";
-			double sum = rcon.eval(script).asDouble();
-			retOutput[6][0] = "Sum";
-			retOutput[6][1] = sum;
-			
-			script = "sd(as.numeric(na.omit(" + frameExpr + ")))";
-			double sd = rcon.eval(script).asDouble();
-			retOutput[7][0] = "Standard Deviation";
-			retOutput[7][1] = sd;
-			
-			Map<String, Object> taskData = getBarChartInfo(column, "StatOutput", retOutput);
-			this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
+		String frameExpr = frameName + "$" + column;
+		String script = "min(as.numeric(na.omit(" + frameExpr + ")))";
+		double min = this.rJavaTranslator.getDouble(script);
+		retOutput[0][0] = "Minimum";
+		retOutput[0][1] = min;
+		
+		script = "quantile(as.numeric(na.omit(" + frameExpr + ")), prob = c(0.25, 0.75))";
+		double[] quartiles = this.rJavaTranslator.getDoubleArray(script);
+		retOutput[1][0] = "Q1";
+		retOutput[1][1] = quartiles[0];
+		retOutput[2][0] = "Q3";
+		retOutput[2][1] = quartiles[1];
+		
+		script = "max(as.numeric(na.omit(" + frameExpr + ")))";
+		double max = this.rJavaTranslator.getDouble(script);
+		retOutput[3][0] = "Maximum";
+		retOutput[3][1] = max;
+		
+		script = "mean(as.numeric(na.omit(" + frameExpr + ")))";
+		double mean = this.rJavaTranslator.getDouble(script);
+		retOutput[4][0] = "Mean";
+		retOutput[4][1] = mean;
+		
+		script = "median(as.numeric(na.omit(" + frameExpr + ")))";
+		double median = this.rJavaTranslator.getDouble(script);
+		retOutput[5][0] = "Median";
+		retOutput[5][1] = median;
+		
+		script = "sum(as.numeric(na.omit(" + frameExpr + ")))";
+		double sum = this.rJavaTranslator.getDouble(script);
+		retOutput[6][0] = "Sum";
+		retOutput[6][1] = sum;
+		
+		script = "sd(as.numeric(na.omit(" + frameExpr + ")))";
+		double sd = this.rJavaTranslator.getDouble(script);
+		retOutput[7][0] = "Standard Deviation";
+		retOutput[7][1] = sd;
+		
+		Map<String, Object> taskData = getBarChartInfo(column, "StatOutput", retOutput);
+		this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
 		return retOutput;
 	}
 
 	public Object[][] getHistogram(String frameName, String column, int numBreaks) {
 		Object[][] data = null;
 
-		RConnection rcon = (RConnection) startR();
 		String script = null;
 		if(numBreaks > 1) {
 			script = "hist(" + frameName + "$" + column + ", breaks=" + numBreaks + ", plot=FALSE)";
@@ -769,7 +399,7 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 		}
 		System.out.println("Script is " + script);
 		try {
-			REXP histR = rcon.eval(script);
+			REXP histR = (REXP) this.rJavaTranslator.executeR(script);
 			Map<String, Object> histJ = (Map<String, Object>) histR.asNativeJavaObject();
 
 			// so we know a bit about the structure
@@ -795,55 +425,13 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 
 			Map<String, Object> taskData = getBarChartInfo(column, "Frequency", data);
 			this.nounMetaOutput.add(new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA));
-		} catch (RserveException | REXPMismatchException e) {
+		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 		}
 
 		return data;
 	}
 	
-	public void synchronizeXY(String rVariable)
-	{
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-
-		RConnection rcon = (RConnection)startR();
-		try
-		{
-			double [][] memberships = rcon.eval("xy_layout").asDoubleMatrix();
-			String [] axis = null;
-			if(memberships[0].length == 2) {
-				axis = new String[]{"X", "Y"};
-			} else if(memberships[0].length == 3) {
-				axis = new String[]{"X", "Y", "Z"};
-			}
-			
-			String [] IDs = rcon.eval("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")").asStrings();
-			
-			for(int memIndex = 0; memIndex < memberships.length; memIndex++)
-			{
-				String thisID = IDs[memIndex];
-	
-				java.lang.System.out.println("ID...  " + thisID);
-				Vertex retVertex = null;
-				
-				GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
-				if(gt.hasNext()) {
-					retVertex = gt.next();
-				}
-				if(retVertex != null)
-				{
-					for(int i = 0; i < axis.length; i++) {
-						retVertex.property(axis[i], memberships[memIndex][i]);
-					}
-					java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
-				}
-			}
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-	}
-
 	public void initR(int port) {
 		RSingleton.getConnection(port);
 	}
@@ -869,17 +457,5 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-//		// introducing this method to clean up everything 
-//		// remove all the stored variables
-//		// clean up R connection
-//		endR();
-//		// cleanup the directory
-//		java.lang.System.setSecurityManager(curManager);
-//		File file = new File(fileName);
-//		file.delete();
-//		file = new File(wd);
-//		file.delete();
-//		java.lang.System.setSecurityManager(reactorManager);
 	}
 }
