@@ -17,9 +17,9 @@ import prerna.util.ArrayUtilityMethods;
 public class GraphFormatter extends AbstractFormatter {
 
 	// the nodes list to return
-	private List<Map<String, Object>> nodesMapList;
+	private List<GraphFormatterMap> nodesMapList;
 	// the edges list to return
-	private List<Map<String, Object>> edgesMapList;
+	private List<GraphFormatterMap> edgesMapList;
 
 	/*
 	 * These are the options that the FE can define for graph output
@@ -59,13 +59,13 @@ public class GraphFormatter extends AbstractFormatter {
 	private static final String VERTEX_COLOR_PROPERTY = "VERTEX_COLOR_PROPERTY";
 	private static final String VERTEX_LABEL_PROPERTY = "VERTEX_LABEL_PROPERTY";
 
-	private static final String URI = "uri";
 	private static final String PROP_HASH = "propHash";
 	private static final String GRAPH_META = "graphMeta";
+	static final String URI = "uri";
 
 	public GraphFormatter() {
-		this.nodesMapList = new ArrayList<Map<String, Object>>();
-		this.edgesMapList = new ArrayList<Map<String, Object>>();
+		this.nodesMapList = new ArrayList<GraphFormatterMap>();
+		this.edgesMapList = new ArrayList<GraphFormatterMap>();
 		this.vertLabelUniqueValues = new HashMap<String, Set<String>>();
 	}
 
@@ -96,28 +96,25 @@ public class GraphFormatter extends AbstractFormatter {
 			vertexType = getVertexType(vertexType);
 			String uri = vertexType + "/" + vertexLabel;
 
+			// only process new nodes once
+			if(alreadyProcessedId(this.nodesMapList, uri)) {
+				continue;
+			}
+			
 			// store the meta data around each node
 			// and also ensure we do not add nodes twice unnecessarily
-			boolean isNewNode = false;
 			if (this.vertLabelUniqueValues.containsKey(vertexType)) {
 				Set<String> processedNodes = (Set<String>) this.vertLabelUniqueValues.get(vertexType);
 				if (!processedNodes.contains(vertexLabel.toString())) {
 					processedNodes.add(vertexLabel.toString());
-					isNewNode = true;
 				}
 			} else {
 				Set<String> processedNodes = new HashSet<String>();
 				processedNodes.add(vertexLabel.toString());
 				this.vertLabelUniqueValues.put(vertexType, processedNodes);
-				isNewNode = true;
 			}
 
-			// only process new nodes once
-			if(!isNewNode) {
-				continue;
-			}
-
-			Map<String, Object> nodeMap = new HashMap<String, Object>();
+			GraphFormatterMap nodeMap = new GraphFormatterMap();
 			Color color = TypeColorShapeTable.getInstance().getColor(vertexType, vertexLabel.toString());
 			nodeMap.put(VERTEX_COLOR_PROPERTY, getRgb(color));
 			nodeMap.put(VERTEX_TYPE_PROPERTY, vertexType);
@@ -149,7 +146,7 @@ public class GraphFormatter extends AbstractFormatter {
 		// instead of calculating this every time
 		if (this.indexConnections != null && !this.indexConnections.isEmpty()) {
 			for (Integer[] index : indexConnections) {
-				Map<String, Object> edgeMap = new HashMap<String, Object>();
+				GraphFormatterMap edgeMap = new GraphFormatterMap();
 				int upHeaderIndex = index[0];
 				int downHeaderIndex = index[1];
 				if (upHeaderIndex >= 0 && downHeaderIndex >= 0) {
@@ -167,6 +164,11 @@ public class GraphFormatter extends AbstractFormatter {
 					edgeMap.put(SOURCE, source);
 					edgeMap.put(TARGET, target);
 					edgeMap.put(URI, uri);
+					
+					// only process new edges
+					if(alreadyProcessedId(this.edgesMapList, uri)) {
+						continue;
+					}
 
 					// Add relationship properties col.col = ["col"]
 					Map<String, Object> propHash = new HashMap<String, Object>();
@@ -362,4 +364,33 @@ public class GraphFormatter extends AbstractFormatter {
 	private String getRgb(Color c) {
 		return c.getRed() + "," + c.getGreen() + "," +c.getBlue();
 	}
+	
+	private boolean alreadyProcessedId(List<GraphFormatterMap> list, String newId) {
+		int size = list.size();
+		for(int i = 0; i < size; i++) {
+			if(list.get(i).equals(newId)) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+// so we can compare the string uri to the map we are passing in
+class GraphFormatterMap extends HashMap<String, Object> {
+	
+	@Override
+	public boolean equals(Object o) {
+		if(o instanceof String) {
+			if(this.containsKey(GraphFormatter.URI)) {
+				if(o.equals(this.get(GraphFormatter.URI))) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+		}
+		return super.equals(o);
+	}
+	
 }
