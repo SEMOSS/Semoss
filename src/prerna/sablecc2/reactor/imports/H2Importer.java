@@ -65,7 +65,26 @@ public class H2Importer implements IImporter {
 		
 		// use the base table name
 		String tableName = this.dataframe.getTableName();
-		this.dataframe.addRowsViaIterator(this.it, tableName, dataTypeMap);
+		try {
+			this.dataframe.addRowsViaIterator(this.it, tableName, dataTypeMap);
+		} catch(Exception e) {
+			// if we have an error
+			// just make sure the headers are all there
+			int size = dataTypeMap.size();
+			String[] newHeaders = new String[size];
+			String[] newTypes = new String[size];
+			int counter = 0;
+			for(String header : dataTypeMap.keySet()) {
+				newHeaders[counter] = header;
+				newTypes[counter] = Utility.convertDataTypeToString(dataTypeMap.get(header));
+				counter++;
+			}
+			try {
+				this.dataframe.getBuilder().alterTableNewColumns(tableName, newHeaders, newTypes);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
 
 	@Override
