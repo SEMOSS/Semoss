@@ -83,7 +83,7 @@ public class Insight {
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
-	private AbstractRJavaTranslator rJavaTranslator;
+	private transient AbstractRJavaTranslator rJavaTranslator;
 	
 	/* 
 	 * TODO: find a better way of doing this
