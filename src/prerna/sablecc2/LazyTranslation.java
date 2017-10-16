@@ -1,7 +1,9 @@
 package prerna.sablecc2;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -19,6 +21,7 @@ import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.AComparisonExpr;
+import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
@@ -50,6 +53,7 @@ import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
+import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -104,6 +108,20 @@ public class LazyTranslation extends DepthFirstAdapter {
 	}
 	
 /********************** First is the main level operation, script chain or other script operations ******************/
+	
+	@Override
+	public void caseAConfiguration(AConfiguration node) {
+        List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
+        for(PRoutine e : copy)
+        {
+        	try {
+        		e.apply(this);
+        	} catch(Exception ex) {
+        		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
+        		postProcess(e.toString().trim());
+        	}
+        }
+	}
 	
 	@Override
 	public void inAOutputRoutine(AOutputRoutine node) {
