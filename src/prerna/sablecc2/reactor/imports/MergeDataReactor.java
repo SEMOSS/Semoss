@@ -10,6 +10,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
@@ -38,6 +39,14 @@ public class MergeDataReactor extends AbstractReactor {
 			String s = j.getSelector();
 			String type = j.getJoinType();
 			if(type.equals("inner.join") || type.equals("left.outer.join")) {
+				// we need to make sure we apply the filter correctly!
+				// remember, q is the alias we provide the selector
+				// but might not match the physical
+				if(!qs.hasColumn(q)) {
+					IQuerySelector selector = qs.findSelectorFromAlias(q);
+					// get the correct q
+					q = selector.getQueryStructName();
+				}
 				// we will add a filter frame existing values in frame
 				// but wait... need to make sure an existing filter isn't there
 				if(qs.hasFiltered(q)) {
