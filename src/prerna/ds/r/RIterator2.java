@@ -39,7 +39,18 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
 		this.builder.executeR(tempVarQuery);
 		this.numRows = builder.getNumRows(this.tempVarName);
-
+		
+		// need to account for limit and offset
+		long limit = qs.getLimit();
+		long offset = qs.getOffset();
+		if(limit > 0 || offset > 0) {
+			String updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
+			this.builder.executeR(updatedTempVarQuery);
+			// and then update the number of rows
+			this.numRows = builder.getNumRows(this.tempVarName);
+		}
+		
+		
 		long end = System.currentTimeMillis();
 		LOGGER.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
 		
@@ -50,6 +61,23 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		for (int i = 0; i <numCols; i++) {
 			headers[i] = headerInfo.get(i).get("alias").toString();
 		}
+	}
+	
+	private String addLimitOffset(String tempVarQuery, int numRows, long limit, long offset) {
+		StringBuilder query = new StringBuilder(tempVarQuery);
+		if(limit > 0) {
+			if(offset > 0) {
+				// we have limit + offset
+				query.append("[").append(offset).append(":").append((offset + limit)).append("]");
+			} else {
+				// we just have a limit
+				query.append("[0:").append(limit).append("]");
+			}
+		} else if(offset > 0) {
+			// we just have offset
+			query.append("[").append(offset).append(":").append(numRows).append("]");
+		}
+		return query.toString();
 	}
 
 	@Override
