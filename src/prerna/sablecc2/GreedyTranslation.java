@@ -3,9 +3,6 @@ package prerna.sablecc2;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.om.Insight;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
