@@ -45,8 +45,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("number") || newType.equalsIgnoreCase("numeric")) {
 			// r script syntax cleaning characters with regex
-			//df$column <- as.numeric(gsub('[$,]','',df$column));
-			script = table +"$" + column + " <- as.numeric(gsub('[$,]', '', "+table+"$"+column+"));";
+			script = table +"$" + column + " <- as.numeric(gsub('[^-\\.0-9]', '', "+table+"$"+column+"));";
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("date")) {
 			// we have a different script to run if it is a str to date
