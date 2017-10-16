@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -15,6 +16,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class CreateFrameReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateFrameReactor.class.getName();
+	private static final String OVERRIDE = "override";
 	
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
@@ -33,9 +35,11 @@ public class CreateFrameReactor extends AbstractReactor {
 		
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
-		planner.addProperty("FRAME", "FRAME", newFrame);
-		planner.getVarStore().put(Insight.CUR_FRAME_KEY, noun);
-
+		if(overrideFrame()) {
+			planner.addProperty("FRAME", "FRAME", newFrame);
+			planner.getVarStore().put(Insight.CUR_FRAME_KEY, noun);
+		}
+		
 		return noun;
 	}
 	
@@ -64,6 +68,15 @@ public class CreateFrameReactor extends AbstractReactor {
 			return alias.get(0).toString();
 		}
 		return null;
+	}
+	
+	private boolean overrideFrame() {
+		GenRowStruct overrideGrs = this.store.getNoun(OVERRIDE);
+		if(overrideGrs != null && !overrideGrs.isEmpty()) {
+			return (boolean) overrideGrs.get(0);
+		}
+		// default is to override
+		return true;
 	}
 
 }
