@@ -1391,7 +1391,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// create table to local master
 		String tableName = "xrayconfigs";
 		String[] colNames = new String[] { "filename", "config" };
-		String[] types = new String[] { "VARCHAR(800)", "VARCHAR(20000)" };
+		String[] types = new String[] { "varchar(800)", "varchar(20000)" };
 		
 		String createNew = makeCreate("XRAYCONFIGS", colNames, types) + ";";
 		// check if fileName exists
@@ -1410,7 +1410,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			} else {
 				//make new insert
 				String insertString = makeInsert(tableName, colNames, types,
-						new Object[] { "\'" + fileName + "\'", "\'" + config + "\'" });
+						new Object[] { fileName, config });
 				insertString += ";";
 				conn.createStatement().execute(insertString);
 
