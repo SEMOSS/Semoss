@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -26,6 +28,10 @@ public class MergeDataReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute()  {
 		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		// set the logger into the frame
+		Logger logger = getLogger(frame.getClass().getName());
+		frame.setLogger(logger);
+		
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pixel planner
@@ -55,20 +61,24 @@ public class MergeDataReactor extends AbstractReactor {
 				QueryStruct2 filterQs = new QueryStruct2();
 				QueryColumnSelector column = new QueryColumnSelector(s);
 				filterQs.addSelector(column);
-				Iterator<IHeadersDataRow> it = frame.query(filterQs);
-				List<Object> values = new ArrayList<Object>();
-				while(it.hasNext()) {
-					values.add(it.next().getValues()[0]);
+				try {
+					Iterator<IHeadersDataRow> it = frame.query(filterQs);
+					List<Object> values = new ArrayList<Object>();
+					while(it.hasNext()) {
+						values.add(it.next().getValues()[0]);
+					}
+					NounMetadata lNoun = new NounMetadata(q, PixelDataType.COLUMN);
+					NounMetadata rNoun = null;
+					if(frame.getMetaData().getHeaderTypeAsEnum(s) == IMetaData.DATA_TYPES.NUMBER) {
+						rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
+					} else {
+						rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
+					}
+					QueryFilter filter = new QueryFilter(lNoun, "==", rNoun);
+					qs.addFilter(filter);
+				} catch(Exception e) {
+					throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
 				}
-				NounMetadata lNoun = new NounMetadata(q, PixelDataType.COLUMN);
-				NounMetadata rNoun = null;
-				if(frame.getMetaData().getHeaderTypeAsEnum(s) == IMetaData.DATA_TYPES.NUMBER) {
-					rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
-				} else {
-					rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
-				}
-				QueryFilter filter = new QueryFilter(lNoun, "==", rNoun);
-				qs.addFilter(filter);
 			}
 		}
 		
