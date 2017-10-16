@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -14,13 +16,15 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ImportDataReactor extends AbstractReactor {
 
+	private static final String FRAME = "frame";
+	
 	@Override
 	public NounMetadata execute() {
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pixel planner
 		QueryStruct2 qs = getQueryStruct();
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = getFrame();
 
 		// set the logger into the frame
 		Logger logger = getLogger(frame.getClass().getName());
@@ -42,7 +46,7 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 
 	private QueryStruct2 getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
+		GenRowStruct allNouns = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
 		QueryStruct2 queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
@@ -54,6 +58,21 @@ public class ImportDataReactor extends AbstractReactor {
 			}
 		}
 		return queryStruct;
+	}
+	
+	private ITableDataFrame getFrame() {
+		// try specific key
+		GenRowStruct frameGrs = this.store.getNoun(FRAME);
+		if(frameGrs != null && !frameGrs.isEmpty()) {
+			return (ITableDataFrame) frameGrs.get(0);
+		}
+		
+		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
+		if(frameCur != null && !frameCur.isEmpty()) {
+			return (ITableDataFrame) frameCur.get(0).getValue();
+		}
+		
+		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 
 	private void storeCsvFileMeta(CsvQueryStruct qs) {
