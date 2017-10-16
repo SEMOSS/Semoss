@@ -45,7 +45,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("number") || newType.equalsIgnoreCase("numeric")) {
 			// r script syntax cleaning characters with regex
-			script = table +"$" + column + " <- as.numeric(gsub('[^-\\.0-9]', '', "+table+"$"+column+"));";
+			script = table +"$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', "+table+"$"+column+"));";
 			frame.executeRScript(script);
 		} else if (newType.equalsIgnoreCase("date")) {
 			// we have a different script to run if it is a str to date
@@ -87,10 +87,9 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		GenRowStruct inputsGRS = this.getCurRow();
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			String colName = inputsGRS.getNoun(0).getValue() + "";
-			if (colName.length() == 0) {
-				throw new IllegalArgumentException("Need to define the new column name");
+			if (colName.length() > 0) {
+				return colName;
 			}
-			return colName;
 		}
 		throw new IllegalArgumentException("Need to define the new column name");
 	}
