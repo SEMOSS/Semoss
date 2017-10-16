@@ -414,11 +414,36 @@ public class QueryStruct2 {
 		}
 	}
 
-	/* 
-	 * Returns whether or not a filter already exists for this column
+	/**
+	 * Return is this column has an existing filter in the QS
+	 * @param column
+	 * @return
 	 */
 	public boolean hasFiltered(String column) {
 		return this.filters.hasFilter(column);
+	}
+	
+	/**
+	 * Return if this column is part of the return
+	 * @param qsName
+	 * @return
+	 */
+	public boolean hasColumn(String qsName) {
+		for(IQuerySelector selector : this.selectors) {
+			if(selector.getQueryStructName().equals(qsName)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public IQuerySelector findSelectorFromAlias(String alias) {
+		for(IQuerySelector selector : this.selectors) {
+			if(selector.getAlias().equals(alias)) {
+				return selector;
+			}
+		}
+		return null;
 	}
 	
 	/**
