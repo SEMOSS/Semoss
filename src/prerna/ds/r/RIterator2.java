@@ -65,13 +65,23 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 	
 	private String addLimitOffset(String tempVarQuery, int numRows, long limit, long offset) {
 		StringBuilder query = new StringBuilder(tempVarQuery);
+		query.append(" <- ").append(tempVarQuery);
 		if(limit > 0) {
 			if(offset > 0) {
 				// we have limit + offset
-				query.append("[").append(offset).append(":").append((offset + limit)).append("]");
+				long lastRIndex = offset + limit;
+				if(numRows < lastRIndex) {
+					query.append("[").append(offset).append(":").append(numRows).append("]");
+				} else {
+					query.append("[").append(offset).append(":").append((offset + limit)).append("]");
+				}
 			} else {
 				// we just have a limit
-				query.append("[0:").append(limit).append("]");
+				if(numRows < limit) {
+					query.append("[0:").append(numRows).append("]");
+				} else {
+					query.append("[0:").append(limit).append("]");
+				}
 			}
 		} else if(offset > 0) {
 			// we just have offset
