@@ -25,9 +25,11 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class MergeDataReactor extends AbstractReactor {
 
+	private static final String FRAME = "frame";
+
 	@Override
 	public NounMetadata execute()  {
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = getFrame();
 		// set the logger into the frame
 		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);
@@ -96,6 +98,21 @@ public class MergeDataReactor extends AbstractReactor {
 		}
 		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+	}
+	
+	private ITableDataFrame getFrame() {
+		// try specific key
+		GenRowStruct frameGrs = this.store.getNoun(FRAME);
+		if(frameGrs != null && !frameGrs.isEmpty()) {
+			return (ITableDataFrame) frameGrs.get(0);
+		}
+		
+		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
+		if(frameCur != null && !frameCur.isEmpty()) {
+			return (ITableDataFrame) frameCur.get(0).getValue();
+		}
+		
+		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 
 	private QueryStruct2 getQueryStruct() {
