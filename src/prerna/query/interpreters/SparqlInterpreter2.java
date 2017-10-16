@@ -138,7 +138,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		} else {
 			logger.info("SPARQL QUERY....  " + query);
 		}
-		
+
 		return query.toString();
 	}
 
@@ -494,7 +494,10 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			// add filter
 			// start the syntax
 			this.filtersWhereClause.append("FILTER(");
-			
+			// modify the == comparator to work on sparql
+			if(thisComparator.equals("==")) {
+				thisComparator = "=";
+			}
 			// based on the input, set the filter information
 			// if it is a like, we will use a regex filter
 			// otherwise, normal filter
