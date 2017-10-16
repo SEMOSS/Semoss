@@ -525,7 +525,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 							this.filtersWhereClause.append(" || ");
 						}
 						this.filtersWhereClause.append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
-								.append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append("\", 'i')");
+								.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i)).append("\", 'i')");
 					}
 				}
 			} else {
