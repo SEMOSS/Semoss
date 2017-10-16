@@ -43,7 +43,10 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		// need to account for limit and offset
 		long limit = qs.getLimit();
 		long offset = qs.getOffset();
-		if(limit > 0 || offset > 0) {
+		if(offset > numRows) {
+			// well, no point in doing anything else
+			this.numRows = 0;
+		} else if(limit > 0 || offset > 0) {
 			String updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
 			this.builder.executeR(updatedTempVarQuery);
 			// and then update the number of rows
