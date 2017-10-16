@@ -144,9 +144,9 @@ public abstract class AbstractRBuilder {
 		// ... and make sure you update the types after!
 		// the types map will have the finalized headers to their types (?) TODO check this, if not true, need to do this in csv/excel iterators
 		// modify columns such that they are numeric where needed
-		alterColumnsToNumeric(typesMap);
+		alterColumnsToNumeric(tableName, typesMap);
 		//modify columns such that they are date where needed
-		alterColumnsToDate(typesMap);
+		alterColumnsToDate(tableName, typesMap);
 	}
 	
 	private void createTableViaCsvFile(String tableName, CsvFileIterator it) {
@@ -297,8 +297,8 @@ public abstract class AbstractRBuilder {
 			evalR(modifyTableScript);
 		}
 		// now modify column types to ensure they are all good
-		alterColumnsToNumeric(fileWrapper.getDataTypes());
-		alterColumnsToDate(fileWrapper.getDataTypes());
+		alterColumnsToNumeric(this.dataTableName, fileWrapper.getDataTypes());
+		alterColumnsToDate(this.dataTableName, fileWrapper.getDataTypes());
 	}
 	
 	protected void createTableViaExcelFile(RExcelFileWrapper fileWrapper) {
@@ -317,20 +317,20 @@ public abstract class AbstractRBuilder {
 			evalR(modifyTableScript);
 		}
 		// now modify column types to ensure they are all good
-		alterColumnsToNumeric(fileWrapper.getDataTypes());
+		alterColumnsToNumeric(this.dataTableName, fileWrapper.getDataTypes());
 		//modify columns such that they are date where needed
-		alterColumnsToDate(fileWrapper.getDataTypes());
+		alterColumnsToDate(this.dataTableName, fileWrapper.getDataTypes());
 	}
 
 	/**
 	 * Modify columns to make sure they are numeric for math operations
 	 * @param typesMap
 	 */
-	private void alterColumnsToNumeric(Map<String, IMetaData.DATA_TYPES> typesMap) {
+	private void alterColumnsToNumeric(String dataTableName, Map<String, IMetaData.DATA_TYPES> typesMap) {
 		for(String header : typesMap.keySet()) {
 			IMetaData.DATA_TYPES type = typesMap.get(header);
 			if(type == IMetaData.DATA_TYPES.NUMBER) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(this.dataTableName, header) ) );
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(dataTableName, header) ) );
 			}
 		}
 	}
@@ -339,7 +339,7 @@ public abstract class AbstractRBuilder {
 	 * Modify columns to make sure they are in the date format
 	 * @param typesMap
 	 */
-	private void alterColumnsToDate(Map<String, IMetaData.DATA_TYPES> typesMap) {
+	private void alterColumnsToDate(String dataTableName, Map<String, IMetaData.DATA_TYPES> typesMap) {
 		for(String header : typesMap.keySet()) {
 			IMetaData.DATA_TYPES type = typesMap.get(header);
 			if(type == IMetaData.DATA_TYPES.DATE) {
