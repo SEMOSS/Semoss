@@ -41,6 +41,7 @@ public class GraphFormatter extends AbstractFormatter {
 	private Map<String, List<String>> connectionsMap;
 	private Map<String, List<String>> nodePropertiesMap;
 	private Map<String, List<String>> edgePropertiesMap;
+	private Map<String, String> aliasMap;
 
 	// this is used to make sure we do not add vertices twice
 	protected Map<String, Set<String>> vertLabelUniqueValues;
@@ -92,6 +93,7 @@ public class GraphFormatter extends AbstractFormatter {
 			if(vertexLabel == null) {
 				continue;
 			}
+			vertexType = getVertexType(vertexType);
 			String uri = vertexType + "/" + vertexLabel;
 
 			// store the meta data around each node
@@ -159,8 +161,8 @@ public class GraphFormatter extends AbstractFormatter {
 					if(tValue == null) {
 						continue;
 					}
-					String source = headers[upHeaderIndex] + "/" + sValue;
-					String target = headers[downHeaderIndex] + "/" + tValue;
+					String source = getVertexType(headers[upHeaderIndex]) + "/" + sValue;
+					String target = getVertexType(headers[downHeaderIndex]) + "/" + tValue;
 					String uri = source + ":" + target;
 					edgeMap.put(SOURCE, source);
 					edgeMap.put(TARGET, target);
@@ -211,6 +213,14 @@ public class GraphFormatter extends AbstractFormatter {
 			}
 		}
 		return false;
+	}
+	
+	private String getVertexType(String vertexType) {
+		if(this.aliasMap != null && this.aliasMap.containsKey(vertexType)) {
+			return this.aliasMap.get(vertexType);
+		}
+		// cant find it, return the original
+		return vertexType;
 	}
 
 	/**
@@ -273,19 +283,43 @@ public class GraphFormatter extends AbstractFormatter {
 	public void setOptionsMap(Map<String, Object> optionsMap) {
 		super.setOptionsMap(optionsMap);
 		String connections = (String) this.optionsMap.get("connections");
-		if (connections != null && connections.length() > 0) {
+		if (connections != null && !connections.isEmpty()) {
 			this.connectionsMap = generateEdgeHashFromStr(connections);
 		}
 		String nodeProperties = (String) this.optionsMap.get("nodeProperties");
-		if (nodeProperties != null && nodeProperties.length() > 0) {
+		if (nodeProperties != null && !nodeProperties.isEmpty()) {
 			this.nodePropertiesMap = generateEdgeHashFromStr(nodeProperties);
 		}
 		String edgeProperties = (String) this.optionsMap.get("edgeProperties");
-		if (edgeProperties != null && edgeProperties.length() > 0) {
+		if (edgeProperties != null && !edgeProperties.isEmpty()) {
 			this.edgePropertiesMap = generateEdgeHashFromStr(edgeProperties);
+		}
+		String alias = (String) this.optionsMap.get("alias");
+		if(alias != null && !alias.isEmpty()) {
+			this.aliasMap = generateAliasMapFromStr(alias);
 		}
 	}
 	
+	private Map<String, String> generateAliasMapFromStr(String aliasStr) {
+		Map<String, String> aliasMap = new Hashtable<String, String>();
+		// example string is UpSys.System;DownSys.System
+		// we split on ";"
+		// [UpSys.System   ,   DownSys.System]
+		// then we split on "."
+		// and we know the matching is
+		// UpSys -> System
+		// and
+		// DownSys -> System
+		String[] aliasArr = aliasStr.split(";");
+		for(String aliasPair : aliasArr) {
+			if(aliasPair.contains(".")) {
+				String[] aliasPairArr = aliasPair.split("\\.");
+				aliasMap.put(aliasPairArr[0], aliasPairArr[1]);
+			}
+		}
+		return aliasMap;
+	}
+
 	public static Map<String, List<String>> generateEdgeHashFromStr(String edgeHashStr) {
 		Map<String, List<String>> edgeHash = new Hashtable<String, List<String>>();
 		// each path is separated by a semicolon
@@ -296,7 +330,6 @@ public class GraphFormatter extends AbstractFormatter {
 				// we start at index 1 and take the index prior for ease of looping
 				for(int i = 1; i < pathVertex.length; i++) {
 					String startNode = pathVertex[i-1];
-					//TODO: need to figure out passing of alias!!!!
 					if(startNode.contains("__")) {
 						startNode = startNode.split("__")[1];
 					}
