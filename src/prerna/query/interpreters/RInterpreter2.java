@@ -296,8 +296,9 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		if(multi) {
 			// special processing for date types
 			if(IMetaData.DATA_TYPES.DATE == dataType) {
+				int size = objects.size();
 				if(thisComparator.equals("==")) {
-					int size = objects.size();
+					filterCriteria.append("(");
 					for (int i = 0; i < size; i++) {
 						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" == ")
 						.append(RSyntaxHelper.formatFilterValue(objects.get(i), IMetaData.DATA_TYPES.DATE));
@@ -305,8 +306,9 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 							filterCriteria.append(" | ");
 						}
 					}
+					filterCriteria.append(")");
 				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					int size = objects.size();
+					filterCriteria.append("(");
 					for (int i = 0; i < size; i++) {
 						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" != ")
 						.append(RSyntaxHelper.formatFilterValue(objects.get(i), IMetaData.DATA_TYPES.DATE));
@@ -314,6 +316,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 							filterCriteria.append(" & ");
 						}
 					}
+					filterCriteria.append(")");
 				} else {
 					// this will probably break...
 					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), IMetaData.DATA_TYPES.DATE);
