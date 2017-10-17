@@ -99,7 +99,18 @@ public class PixelRunner {
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException | RuntimeException e) {
 			e.printStackTrace();
-			addResult(expression, new NounMetadata(e.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR), false);
+			String eMessage = e.getMessage();
+			if(eMessage.startsWith("[")) {
+				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+				Matcher matcher = pattern.matcher(eMessage);
+				if(matcher.find()) {
+				   String location = matcher.group(0);
+				   location = location.substring(1, location.length()-1);
+				   int findIndex = Integer.parseInt(location.split(",")[1]);
+				   System.out.println("error around " + expression.substring(Math.max(findIndex - 15, 0), Math.min(findIndex + 15, expression.length())));
+				}
+			}
+			addResult(expression, new NounMetadata(eMessage, PixelDataType.ERROR, PixelOperationType.ERROR), false);
 		}
 		return;
 	}
