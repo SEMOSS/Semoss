@@ -12,11 +12,11 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.QueryFilter;
@@ -76,6 +76,29 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		String order = this.orderBys.toString();
 		if(!order.isEmpty()) {
 			query.append(order).append("; ");
+		}
+		
+		
+		// we need to convert dates from being integer values
+		// to output as dates
+		boolean addedColToDateChange = false;
+		for(String column : this.colDataTypes.keySet()) {
+			if(IMetaData.DATA_TYPES.DATE == this.colDataTypes.get(column)) {
+				if(column.contains("__")) {
+					column = column.split("__")[1];
+				}
+				if(validHeaders.contains(column)) {
+					addedColToDateChange = true;
+					query.append(";")
+						.append(tempVarName).append("$").append(column)
+						.append("<- as.character(")
+						.append(tempVarName).append("$").append(column)
+						.append(")");
+				}
+			}
+		}
+		if(addedColToDateChange) {
+			query.append(";").append(tempVarName).append(";");
 		}
 
 		if(query.length() > 500) {
@@ -147,8 +170,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	private String processColumnSelector(QueryColumnSelector selector) {
-		String colName = selector.getColumn();
-		return colName;
+		return selector.getColumn();
 	}
 	
 	private String processMathSelector(QueryMathSelector selector) {
@@ -263,9 +285,9 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		// format the objects based on the type of the column
 		if(objects.size() > 1) {
 			multi = true;
-			myFilterFormatted = RSyntaxHelper.createRColVec(objects, this.colDataTypes.get(leftColumnName));
+			myFilterFormatted = RSyntaxHelper.createRColVec(objects, this.colDataTypes.get(this.dataTableName + "__" + leftColumnName));
 		} else {
-			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), this.colDataTypes.get(leftColumnName)) ;
+			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), this.colDataTypes.get(this.dataTableName + "__" + leftColumnName)) ;
 		}
 		
 		if(multi) {
