@@ -1601,6 +1601,10 @@ public class Utility {
 				"dd/M/yyyy",
 				"d/M/yyyy",
 
+				// Abrev. month, day, year
+				"MMM dd, yyyy",
+				"MMM d, yyyy",
+
 				//"dd/MM/yyyy",
 				"MM/dd/yyyy",
 				"yyyy/MM/dd", 
