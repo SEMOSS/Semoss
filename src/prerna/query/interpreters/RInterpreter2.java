@@ -283,21 +283,53 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		boolean multi = false;
 		String myFilterFormatted = null;
 		// format the objects based on the type of the column
+		IMetaData.DATA_TYPES dataType = this.colDataTypes.get(this.dataTableName + "__" + leftColumnName);
 		if(objects.size() > 1) {
 			multi = true;
-			myFilterFormatted = RSyntaxHelper.createRColVec(objects, this.colDataTypes.get(this.dataTableName + "__" + leftColumnName));
-		} else {
-			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), this.colDataTypes.get(this.dataTableName + "__" + leftColumnName)) ;
+			myFilterFormatted = RSyntaxHelper.createRColVec(objects, dataType);
+		} else if(IMetaData.DATA_TYPES.DATE != dataType) {
+			// dont bother doing this if we have a date
+			// since we cannot use "in" with dates
+			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), dataType);
 		}
 		
 		if(multi) {
-			if(thisComparator.equals("==")) {
-				filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted);
-			} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-				filterCriteria.append("!(").append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
-			} else {
-				// this will probably break...
-				filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+			// special processing for date types
+			if(IMetaData.DATA_TYPES.DATE == dataType) {
+				if(thisComparator.equals("==")) {
+					int size = objects.size();
+					for (int i = 0; i < size; i++) {
+						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" == ")
+						.append(RSyntaxHelper.formatFilterValue(objects.get(i), IMetaData.DATA_TYPES.DATE));
+						if ((i+1) < size) {
+							filterCriteria.append(" | ");
+						}
+					}
+				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
+					int size = objects.size();
+					for (int i = 0; i < size; i++) {
+						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" != ")
+						.append(RSyntaxHelper.formatFilterValue(objects.get(i), IMetaData.DATA_TYPES.DATE));
+						if ((i+1) < size) {
+							filterCriteria.append(" & ");
+						}
+					}
+				} else {
+					// this will probably break...
+					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), IMetaData.DATA_TYPES.DATE);
+					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+				}
+			} 
+			// now all the other types
+			else {
+				if(thisComparator.equals("==")) {
+					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted);
+				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
+					filterCriteria.append("!(").append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
+				} else {
+					// this will probably break...
+					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+				}
 			}
 		} else {
 			if(thisComparator.equals("?like")) {
