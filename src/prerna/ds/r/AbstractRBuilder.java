@@ -343,9 +343,7 @@ public abstract class AbstractRBuilder {
 		for(String header : typesMap.keySet()) {
 			IMetaData.DATA_TYPES type = typesMap.get(header);
 			if(type == IMetaData.DATA_TYPES.DATE) {
-				System.out.println(this.executeR(dataTableName + "$" + header));
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(this.dataTableName, header) ) );
-				System.out.println(this.executeR(dataTableName + "$" + header));
 			}
 		}
 	}

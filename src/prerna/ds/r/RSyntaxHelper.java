@@ -105,7 +105,6 @@ public class RSyntaxHelper {
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.Date(as.character(")
 		.append(tableName).append("$").append(colName).append("), format = '%m/%d/%Y')");
-		System.out.println("R script: "+ builder.toString());
 		return builder.toString();
 	}
 
@@ -288,6 +287,10 @@ public class RSyntaxHelper {
 		for(; i < size; i++) {
 			if(IMetaData.DATA_TYPES.STRING == dataType) {
 				str.append("\"").append(row.get(i)).append("\"");
+			} else if(IMetaData.DATA_TYPES.NUMBER == dataType) {
+				str.append(row.get(i).toString());
+			} else if(IMetaData.DATA_TYPES.DATE == dataType) {
+				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d');");
 			} else {
 				// just in case this is not defined yet...
 				// see the type of the value and add it in based on that
@@ -313,6 +316,10 @@ public class RSyntaxHelper {
 	public static String formatFilterValue(Object value, IMetaData.DATA_TYPES dataType) {
 		if(IMetaData.DATA_TYPES.STRING == dataType) {
 			return "\"" + value + "\"";
+		} else if(IMetaData.DATA_TYPES.NUMBER == dataType) {
+			return value.toString();
+		} else if(IMetaData.DATA_TYPES.DATE == dataType) {
+			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
 		} else {
 			// just in case this is not defined yet...
 			// see the type of the value and add it in based on that
