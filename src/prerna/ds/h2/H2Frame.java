@@ -246,7 +246,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
-		SqlInterpreter2 interp = new SqlInterpreter2();
+		SqlInterpreter2 interp = new SqlInterpreter2(this);
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
 		String iteratorQuery = interp.composeQuery();
