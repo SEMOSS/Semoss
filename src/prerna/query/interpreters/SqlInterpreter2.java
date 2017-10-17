@@ -12,7 +12,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.IMetaData;
-import prerna.ds.QueryStruct;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
@@ -26,7 +26,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
-import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.NounMetadata;
@@ -53,10 +52,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	// need to keep track of the primary key for tables
 	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 
-	// we can create a statement without an engine... but everything needs to be the physical
-	// we currently only use it when the engine is null, but we could use this to query on 
-	// an in-memory rdbms like an H2Frame which is not an engine
+	// we can create a statement without an engine... 
+	// but everything needs to be the physical schema
 	private IEngine engine; 
+	private ITableDataFrame frame;
 	
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
@@ -78,9 +77,6 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	// store the joins in the object for easy use
 	private SqlJoinList relationList = new SqlJoinList();
 	
-	// value to determine the count of the query being executed
-	private int performCount = QueryStruct.NO_COUNT;
-	
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
 	public SqlInterpreter2() {
@@ -90,6 +86,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	public SqlInterpreter2(IEngine engine) {
 		this.engine = engine;
 		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
+	}
+	
+	public SqlInterpreter2(ITableDataFrame frame) {
+		this.frame = frame;
 	}
 
 	/**
@@ -519,6 +519,8 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 				leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
 			}
 			leftDataType = leftDataType.replace("TYPE:", "");
+		} else if(frame != null) {
+			leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
 		}
 		
 		List<Object> objects = new Vector<Object>();
@@ -850,7 +852,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			String columnConceptualName = orderBySelector.getColumn();
 			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
 			
-			if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+			if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
 				columnConceptualName = getPrimKey4Table(tableConceptualName);
 			} else {
 				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
@@ -911,7 +913,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			String tableConceptualName = groupBySelector.getTable();
 			String columnConceptualName = groupBySelector.getColumn();
 			
-			if(columnConceptualName.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)){
+			if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
 				columnConceptualName = getPrimKey4Table(tableConceptualName);
 			} else {
 				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
@@ -1247,23 +1249,6 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		coreEngine.setEngineName("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-		
-		
-		QueryStruct qs = new QueryStruct();
-		qs.addSelector("Title", "Title");
-		qs.addSelector("Title", "Movie_Budget");
-
-		Hashtable<String, Hashtable<String, String>> testAlias = new Hashtable<String, Hashtable<String, String>>();
-		Hashtable<String, String> colHash = new Hashtable<String, String>();
-		colHash.put("Movie_Budget", "Budget");
-		testAlias.put("Title", colHash);
-		
-		SQLInterpreter qi = (SQLInterpreter) coreEngine.getQueryInterpreter();
-		qi.setQueryStruct(qs);
-		qi.setColAlias(testAlias);
-		String query = qi.composeQuery();
-		
-		System.out.println(query);
 	}
 
 	///////////////////////////////////////// end test methods //////////////////////////////////////////////
