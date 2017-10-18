@@ -51,7 +51,6 @@ import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
-import prerna.sablecc2.reactor.imports.DirectJdbcConnection;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -109,6 +108,7 @@ import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
 import prerna.sablecc2.reactor.qs.AverageReactor;
 import prerna.sablecc2.reactor.qs.CountReactor;
 import prerna.sablecc2.reactor.qs.DatabaseReactor;
+import prerna.sablecc2.reactor.qs.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.FrameReactor;
 import prerna.sablecc2.reactor.qs.GroupByReactor;
@@ -128,7 +128,6 @@ import prerna.sablecc2.reactor.qs.QueryStructReactor;
 import prerna.sablecc2.reactor.qs.SelectReactor;
 import prerna.sablecc2.reactor.qs.StandardDeviationReactor;
 import prerna.sablecc2.reactor.qs.SumReactor;
-import prerna.sablecc2.reactor.qs.TextInputReactor;
 import prerna.sablecc2.reactor.qs.UniqueCountReactor;
 import prerna.sablecc2.reactor.qs.UniqueGroupConcatReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
@@ -225,7 +224,7 @@ public class ReactorFactory {
 		reactorHash.put("FileRead", FileSourceReactor.class); 
 //		reactorHash.put("TextInput", TextInputReactor.class); 
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
-		reactorHash.put("JDBCConnection", DirectJdbcConnection.class);
+		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
