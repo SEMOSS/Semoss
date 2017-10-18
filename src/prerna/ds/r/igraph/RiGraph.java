@@ -75,7 +75,8 @@ public class RiGraph extends AbstractTableDataFrame {
 		boolean hasRel = false;
 
 		// we want to add everything in one go
-		// so we will make a file and read it in
+		// so we will make a file with the script
+		// and execute a single command to execute
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 
@@ -90,7 +91,7 @@ public class RiGraph extends AbstractTableDataFrame {
 			bufferedWriter = new BufferedWriter(writer);
 		} catch (IOException ex) {
 			isError = true;
-			throw new IllegalArgumentException("Unable to write to file");
+			throw new IllegalArgumentException("Unable to write to file to import igraph");
 		} finally {
 			if(isError) {
 				cleanUpWriters(writer, bufferedWriter);
@@ -145,7 +146,7 @@ public class RiGraph extends AbstractTableDataFrame {
 			cleanUpWriters(writer, bufferedWriter);
 		}
 
-		// execute the script
+		// execute the script which has all the insertions
 		String script = "source(\"" + path.replace("\\", "/") + "\")";
 		this.rJavaTranslator.executeR(script);
 		ICache.deleteFile(new File(path));
@@ -185,24 +186,25 @@ public class RiGraph extends AbstractTableDataFrame {
 			for(Integer endIndex : endIndices) {
 				hasRel = true;
 				
-				//get from vertex
+				// get from vertex
 				String startNode = headers[startIndex];
 				Object startNodeValue = values[startIndex];
 				String startUniqueId = startNode + ":" + startNodeValue;
 				rScriptBuilder.append(upsertVertexSyntax(startUniqueId, startNode, startNodeValue));
 				
-				//get to vertex	
+				// get to vertex	
 				String endNode = headers[endIndex];
 				Object endNodeValue = values[endIndex];
 				String endUniqueId = endNode + ":" + endNodeValue;
 				rScriptBuilder.append(upsertVertexSyntax(endUniqueId, endNode, endNodeValue));
-
+				
+				// add the edge between the nodes
 				rScriptBuilder.append(upsertEdgeSyntax(startUniqueId, endUniqueId));
 			}
 		}
 		
-		// this is to replace the addRow method which needs to be called on the first iteration
-		// since edges do not exist yet
+		// if we have a relationship, execute the r script
+		// else we just need to insert a single node
 		if(hasRel) {
 			this.rJavaTranslator.executeR(rScriptBuilder.toString());
 		} else {
@@ -225,6 +227,8 @@ public class RiGraph extends AbstractTableDataFrame {
 				+ "name=\"" + uniqueId + "\", "
 				+ "value=\"" + nodeValue + "\", "
 				+ "type=\"" + nodeType + "\")";
+		
+		// script includes an if statement so we do not add the same vertex multiple times
 		return "if(length(as_ids(V(" + this.graphName + ")[vertex_attr(" + this.graphName + ", \"name\") == \"" + uniqueId+ "\"])) == 0) "
 				+ "{" + addScript + "};";
 	}
@@ -241,6 +245,7 @@ public class RiGraph extends AbstractTableDataFrame {
 				+ "c(\"" + fromVertex + "\", \"" + toVertex + "\"), "
 				+ "name=\"" + uniqueId + "\")";
 		
+		// script includes an if statement so we do not add the same edge multiple times
 		return "if(length(as_ids(E(" + this.graphName + ")[edge_attr(" + this.graphName + ", \"name\") == \"" + uniqueId+ "\"])) == 0)"
 				+ "{" + addScript + "};";
 	}
