@@ -426,14 +426,14 @@ public class RBuilderJRI extends AbstractRBuilder {
 		return typesR.asStringArray();
 	}
 	
-	@Override
+/*	@Override
 	public String[] getColumnType(String varName) {
 		
 		REXP typesR = executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)");
 		System.out.println(executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)"));
 		return typesR.asStringArray();
 	}
-	
+*/	
 	@Override
 	public int getIntFromScript(String rScript){
 		REXP result = executeR(rScript);
