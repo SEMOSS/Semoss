@@ -1,19 +1,15 @@
-package prerna.sablecc2.reactor.imports;
+package prerna.sablecc2.reactor.qs;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
+import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.sablecc2.om.task.ITask;
-import prerna.sablecc2.reactor.AbstractReactor;
 
-public class DirectJdbcConnection extends AbstractReactor {
+public class DirectJdbcConnectionReactor extends QueryStructReactor {
 
 	// constants used to get pixel inputs
 	public static final String QUERY_KEY = "query";
@@ -23,7 +19,7 @@ public class DirectJdbcConnection extends AbstractReactor {
 	public static final String PASSWORD_KEY = "password";
 
 	@Override
-	public NounMetadata execute() {
+	QueryStruct2 createQueryStruct() {
 		String query = getQuery();
 		String userName = getUserName();
 		String password = getPassword();
@@ -38,20 +34,18 @@ public class DirectJdbcConnection extends AbstractReactor {
 			throw new IllegalArgumentException(e1.getMessage());
 		}
 		
-		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
-		try {
-			it.setCloseConenctionAfterExecution(true);
-			it.directExecutionViaConnection(con, query, true);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		RDBMSNativeEngine fakeEngine = new RDBMSNativeEngine();
+		fakeEngine.setEngineName("DIRECT_ENGINE_CONNECTION");
+		fakeEngine.setConnection(con);
+		fakeEngine.setBasic(true);
 		
-		// create task
-		ITask task = new BasicIteratorTask(it);
-		return new NounMetadata(task, PixelDataType.TASK, PixelOperationType.TASK);
+		HardQueryStruct qs = new HardQueryStruct();
+		qs.setQuery(query);
+		qs.setEngine(fakeEngine);
+		qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		return qs;
 	}
-
+	
 	/*
 	 * Pixel inputs
 	 */
