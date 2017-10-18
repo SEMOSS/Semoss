@@ -228,7 +228,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 		} else if(prop.getProperty("ENGINE_TYPE").contains("Solr")) {
 			engineType = IEngine.ENGINE_TYPE.SOLR;
 			engineTypeString = "TYPE:SOLR";
-		} else {
+		} else 	if(prop.getProperty("ENGINE_TYPE").contains("RNative")) {
+			engineType = IEngine.ENGINE_TYPE.R; // process it as a flat file I bet 
+			engineTypeString = "TYPE:R";
+		}else {
 			engineType = IEngine.ENGINE_TYPE.SESAME;
 			engineTypeString = "TYPE:RDF";
 		}
@@ -582,6 +585,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 			conceptIdHash.put(physicalInstance+"_CONCEPTUAL", uniqueId);
 			colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
 			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			// making the logical name to be to upper case
 			conceptData = new String[]{uniqueId, physicalInstance, physicalInstance, "NewDomain", ""};
 			String tableName = "Concept";
 			makeQuery(tableName, colNames, types, conceptData);
@@ -753,7 +757,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// the logical name is purely just the last name
 		// need to do this the messy way for now
 		String lProperty = null;
-		if(engineType == IEngine.ENGINE_TYPE.RDBMS)
+		if(engineType == IEngine.ENGINE_TYPE.RDBMS || engineType == IEngine.ENGINE_TYPE.R)
 			lProperty = Utility.getClassName(physicalPropUri);
 		if(lProperty == null || lProperty.equalsIgnoreCase("Contains"))
 			lProperty = Utility.getInstanceName(physicalPropUri);

@@ -2746,7 +2746,7 @@ public class Utility {
 			}
 		}
 
-		if(type == IEngine.ENGINE_TYPE.RDBMS)
+		if(type == IEngine.ENGINE_TYPE.RDBMS || type == IEngine.ENGINE_TYPE.R)
 			instanceName = "Table_" + instanceName + "Column_" + secondLastToken;  
 
 		return instanceName;
