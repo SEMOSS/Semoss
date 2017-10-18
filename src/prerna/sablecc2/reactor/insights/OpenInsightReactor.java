@@ -1,8 +1,14 @@
 package prerna.sablecc2.reactor.insights;
 
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
@@ -11,6 +17,7 @@ import prerna.om.OldInsight;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
@@ -53,6 +60,15 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		insightMap.put("core_engine_id", newInsight.getRdbmsId());
 		insightMap.put("insightData", newInsight.reRunPixelInsight());
 		insightMap.put("params", params);
+		
+		// update the solr tracker
+		try {
+			SolrIndexEngine.getInstance().updateViewedInsight(engineName + "_" + rdbmsId);
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+				| IOException e) {
+			e.printStackTrace();
+		}
+
 
 		// return the recipe steps
 		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_SAVED_INSIGHT);
