@@ -5,8 +5,8 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.Join;
@@ -36,17 +36,17 @@ public class NativeFrameImporter implements IImporter {
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
 		if(this.qs.getQsType() != QueryStruct2.QUERY_STRUCT_TYPE.ENGINE || !this.qs.getEngineName().equals(this.dataframe.getEngineName()) ) {
-			// first, load the entire native frame into h2frame
+			// first, load the entire native frame into rframe
 			QueryStruct2 nativeQs = dataframe.getQueryStruct();
 			Iterator<IHeadersDataRow> nativeFrameIt = dataframe.query(nativeQs);
-			H2Frame h2Frame = new H2Frame();
-			H2Importer h2Importer = new H2Importer(h2Frame, nativeQs, nativeFrameIt);
-			h2Importer.insertData();
+			RDataTable rFrame = new RDataTable();
+			RImporter rImporter = new RImporter(rFrame, nativeQs, nativeFrameIt);
+			rImporter.insertData();
 			
 			// now, we want to merge this new data into it
-			h2Importer = new H2Importer(h2Frame, this.qs);
-			h2Importer.mergeData(joins);
-			return h2Frame;
+			rImporter = new RImporter(rFrame, this.qs);
+			rImporter.mergeData(joins);
+			return rFrame;
 		} else {
 			ImportUtility.parseQueryStructIntoMeta(this.dataframe, this.qs);
 			this.dataframe.mergeQueryStruct(this.qs);
