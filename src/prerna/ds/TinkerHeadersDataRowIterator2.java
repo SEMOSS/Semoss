@@ -23,7 +23,13 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 	public TinkerHeadersDataRowIterator2(Iterator composeIterator, QueryStruct2 qs) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
-		flushOutHeaders(this.qs.getSelectors());
+		flushOutHeaders(this.qs.getSelectors(), null);
+	}
+	
+	public TinkerHeadersDataRowIterator2(Iterator composeIterator, QueryStruct2 qs, OwlTemporalEngineMeta meta) {
+		this.baseIterator = composeIterator;
+		this.qs = qs;
+		flushOutHeaders(this.qs.getSelectors(), meta);
 	}
 
 	@Override
@@ -74,7 +80,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 	 * Store the order of the headers to return
 	 * @param selectors
 	 */
-	private void flushOutHeaders(List<IQuerySelector> selectors) {
+	private void flushOutHeaders(List<IQuerySelector> selectors, OwlTemporalEngineMeta meta) {
 		int numHeaders = selectors.size();
 		this.headerAlias = new String[numHeaders];
 		this.headerOrdering = new String[numHeaders];
@@ -85,7 +91,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 				String qsName = header.getQueryStructName();
 				
 				this.headerOrdering[index] = qsName;
-				this.headerAlias[index] = alias;
+				this.headerAlias[index] = getNodeAlias(meta, alias);
 			} else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH) {
 				IQuerySelector innerSelector = ((QueryMathSelector) header).getInnerSelector();
 				if(innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
@@ -93,11 +99,25 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 					String qsName = innerSelector.getQueryStructName();
 					
 					this.headerOrdering[index] = qsName;
-					this.headerAlias[index] = alias;
+					this.headerAlias[index] = getNodeAlias(meta, alias);
 				}
 			}
 			index++;
 		}
+	}
+	
+	/**
+	 * For some of the nodes that have not been given an alias
+	 * If there is an implicit alias on it (a physical name that matches an existing name)
+	 * We will use that
+	 * @param node
+	 * @return
+	 */
+	private String getNodeAlias(OwlTemporalEngineMeta meta, String node) {
+//		if(meta == null) {
+			return node;
+//		}
+//		return meta.getPhysicalName(node);
 	}
 
 	public QueryStruct2 getQueryStruct() {

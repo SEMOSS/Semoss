@@ -16,12 +16,13 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.QueryFilter;
 
@@ -29,6 +30,9 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 	// reference to the graph which can execute gremlin
 	private Graph g;
+	// reference for getting actual names for loops within frames
+	private OwlTemporalEngineMeta meta;
+	
 	// the gremlin traversal being created
 	private GraphTraversal gt;
 	// the list of variables being returned within the traversal
@@ -40,6 +44,12 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	public GremlinInterpreter2(Graph g) {
 		this.g = g;
 		this.gt = g.traversal().V();
+	}
+	
+	public GremlinInterpreter2(Graph g, OwlTemporalEngineMeta meta) {
+		this.g = g;
+		this.gt = g.traversal().V();
+		this.meta = meta;
 	}
 
 	public Iterator composeIterator() {
@@ -148,7 +158,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				this.gt.has(TinkerFrame.TINKER_TYPE, selector).as(selector);
+				this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(selector)).as(selector);
 				// logic to filter
 				List<QueryFilter> startNodeFilters = this.qs.getFilters().getAllQueryFiltersContainingColumn(selector);
 				addFiltersToPath(this.gt, startNodeFilters);
@@ -219,10 +229,10 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	public void addNodeEdge(Map<String, Set<String>> edgeMap) {
 		// start traversal if edgeHash is not empty
 		String startNode = edgeMap.keySet().iterator().next();
-
+		
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
-		this.gt = this.gt.has(TinkerFrame.TINKER_TYPE, startNode).as(startNode);
+		this.gt = this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(startNode)).as(startNode);
 		List<QueryFilter> startNodeFilters = this.qs.getFilters().getAllQueryFiltersContainingColumn(startNode);
 		addFiltersToPath(this.gt, startNodeFilters);
 
@@ -336,7 +346,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 						}
 					}
 
-					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, downstreamNodeType).as(downstreamNodeType);
+					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<QueryFilter> nodeFilters = this.qs.getFilters().getAllQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters);
@@ -391,7 +401,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in(edgeKey).has(TinkerFrame.TINKER_TYPE, upstreamNodeType).as(upstreamNodeType);
+					twoStepT = twoStepT.in(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
 					List<QueryFilter> nodeFilters = this.qs.getFilters().getAllQueryFiltersContainingColumn(upstreamNodeType);
@@ -495,6 +505,20 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Method to get the actual type of the node
+	 * This is important for loops when we want the node to not be doubled
+	 * But need a way to distinguish on the FE
+	 * @param node
+	 * @return
+	 */
+	private String getNodeType(String node) {
+		if(this.meta == null) {
+			return node;
+		}
+		return this.meta.getPhysicalName(node);
 	}
 
 	@Override
