@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -462,6 +463,7 @@ public class ImportUtility {
 			}
 		}
 		
+		List<String> addedRels = new Vector<String>();
 		// now add the relationships
 		Map<String, Map<String, List>> relationships = qs.getRelations();
 		for(String upVertex : relationships.keySet()) {
@@ -478,6 +480,7 @@ public class ImportUtility {
 						down = aliasMap.get(downVertex);
 					}
 					metaData.addRelationship(up, down, joinType);
+					addedRels.add(up + down);
 				}
 			}
 		}
@@ -496,8 +499,11 @@ public class ImportUtility {
 				if(aliasMap.containsKey(downVertex)) {
 					down = aliasMap.get(downVertex);
 				}
-				// just set the join type to be inner
-				metaData.addRelationship(up, down, "inner.join");
+				// make sure we dont add more relationships than necessary
+				// especially since we are hardcoding the join here for properties
+				if(!addedRels.contains(up + down)) {
+					metaData.addRelationship(up, down, "inner.join");
+				}
 			}
 		}
 	}

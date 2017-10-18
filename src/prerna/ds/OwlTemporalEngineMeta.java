@@ -38,6 +38,7 @@ public class OwlTemporalEngineMeta {
 	private static final String IS_DERIVED_PRED = "http://semoss.org/ontologies/Relation/Contains/IsDerived";
 	private static final String QUERY_STRUCT_PRED = "http://semoss.org/ontologies/Relation/Contains/QueryStructName";
 	private static final String ALIAS_PRED = "http://semoss.org/ontologies/Relation/Contains/Alias";
+	private static final String PHYSICAL_PRED = "http://semoss.org/ontologies/Relation/Contains/Physical";
 
 	/**
 	 * Constructor
@@ -149,6 +150,18 @@ public class OwlTemporalEngineMeta {
 		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
 		pred = ALIAS_PRED;
 		obj = alias;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setPhysicalNameToVertex(String uniqueName, String physical) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		pred = PHYSICAL_PRED;
+		obj = physical;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
@@ -350,6 +363,29 @@ public class OwlTemporalEngineMeta {
 		return headers;
 	}
 	
+	/**
+	 * Get the physical name for a unique name
+	 * @param uniqueName
+	 * @return
+	 */
+	public String getPhysicalName(String uniqueName) {
+		String query = "select distinct "
+				+ "?header ?physical "
+				+ "where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + PHYSICAL_PRED + "> ?physical}"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			return row[1].toString();
+		}
+		
+		return uniqueName;
+	}
+	
 	/*
 	 * Flush out the relationships from the OWL to a POJO
 	 */
@@ -469,7 +505,7 @@ public class OwlTemporalEngineMeta {
 		
 		return null;
 	}
-
+	
 	public Map<String, Object> getTableHeaderObjects(boolean onlyNumeric) {
 		String query = "select distinct "
 				+ "?header "
