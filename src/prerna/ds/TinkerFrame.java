@@ -567,13 +567,19 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				
 				//get from vertex
 				String startNode = headers[startIndex];
-				String startUniqueName = logicalToTypeMap.get(headers[startIndex]);
+				String startUniqueName = logicalToTypeMap.get(startNode);
+				if(startUniqueName == null) {
+					startUniqueName = startNode;
+				}
 				Object startNodeValue = values[startIndex];
 				Vertex fromVertex = upsertVertex(startNode, startNodeValue);
 				
 				//get to vertex	
 				String endNode = headers[endIndex];
-				String endUniqueName = logicalToTypeMap.get(headers[endIndex]);
+				String endUniqueName = logicalToTypeMap.get(endNode);
+				if(endUniqueName == null) {
+					startUniqueName = endNode;
+				}
 				Object endNodeValue = values[endIndex];
 				Vertex toVertex = upsertVertex(endNode, endNodeValue);
 				
@@ -1433,10 +1439,48 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 	}
 	
+	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 queryStruct) {
-		GremlinInterpreter2 interpreter = new GremlinInterpreter2(this.g);
+		GremlinInterpreter2 interpreter = new GremlinInterpreter2(this.g, this.metaData);
+		
+		// right now
+		// BE is going to assume the user wants all the join information
+		// even if they are not returning all the headers
+		// jk , i will do this when they want to return more than 1 header
+		if(queryStruct.getSelectors().size() > 1) {
+			// fill in relationships into qs
+			queryStruct.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
+		}
 		interpreter.setQueryStruct(queryStruct);
-		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), queryStruct), queryStruct);
+		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), queryStruct, this.metaData), queryStruct);
+	}
+	
+	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
+		Map<String, Map<String, List>> relMap = new HashMap<String, Map<String, List>>();
+		// iterate through list
+		// and make it into a map
+		for(String[] rel : rels) {
+			String start = rel[0];
+			String end = rel[1];
+			
+			Map<String, List> nodeComparatorMap = new HashMap<String, List>();
+			if(relMap.containsKey(start)) {
+				nodeComparatorMap = relMap.get(start);
+			} else {
+				// add it to the map
+				relMap.put(start, nodeComparatorMap);
+			}
+			
+			List values = new ArrayList();
+			if(nodeComparatorMap.containsKey("inner.join")) {
+				values = nodeComparatorMap.get("inner.join");
+			} else {
+				nodeComparatorMap.put("inner.join", values);
+			}
+			
+			values.add(end);
+		}
+		return relMap;
 	}
 	
 	@Override
