@@ -41,6 +41,8 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	// to make sure the order by's are accurate
 	private List<String> validHeaders = new Vector<String>();
 	
+	private List<String> headersToRemove = new Vector<String>();
+	
 	@Override
 	public String composeQuery() {
 		if(this.dataTableName == null) {
@@ -114,7 +116,9 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	private void addSelector() {
 		StringBuilder selectorBuilder = new StringBuilder("{ ");
 		StringBuilder outputNames = new StringBuilder(" ; list(");
+		// need a way to remove the primary key selector
 		List<IQuerySelector> selectors = qs.getSelectors();
+		//selectors = removeFakeSelector(selectors);
 		//iterate through to get properties of each selector
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
@@ -135,6 +139,19 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		}
 		// append selectors + outputs to perform correct calculations + add correct alias
 		this.selectorCriteria.append(selectorBuilder).append(outputNames).append(") }");
+	}
+	
+	private List<IQuerySelector> removeFakeSelector(List <IQuerySelector> allSelectors)
+	{
+		for(int i = 0; i < allSelectors.size(); i++) {
+			IQuerySelector selector = allSelectors.get(i);
+			String alias = selector.getAlias();
+			if(headersToRemove.contains(alias))
+				allSelectors.remove(selector);
+		}
+		
+		return allSelectors;
+		
 	}
 	
 	/**
@@ -245,10 +262,17 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 
 	private void addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		String leftColumnSelector = leftComp.getValue().toString();
-		String leftColumnName = leftColumnSelector.split("__")[1];
+	
+		String leftColumnName = leftColumnSelector;
+		if(leftColumnSelector.split("__").length == 2)	
+			leftColumnName = leftColumnSelector.split("__")[1];
+
 		
 		String rightColumnSelector = rightComp.getValue().toString();
-		String rightColumnName = rightColumnSelector.split("__")[1];
+		
+		String rightColumnName = rightColumnSelector;
+		if(rightColumnSelector.split("__").length == 2)	
+			rightColumnName = rightColumnSelector.split("__")[1];
 
 		if(thisComparator.equals("==")) {
 			filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
@@ -269,7 +293,13 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	private void addColToValuesFilter(QueryFilter filter, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// grab the left column name
 		String leftColumnSelector = leftComp.getValue().toString();
-		String leftColumnName = leftColumnSelector.split("__")[1];
+		String leftColumnName = leftColumnSelector;
+		if(leftColumnSelector.split("__").length == 2)	
+			leftColumnName = leftColumnSelector.split("__")[1];
+		
+		// I need to introduce a check here to see if the left column Name is in the fakeHeaders
+		if(headersToRemove.contains(leftColumnName))
+			leftColumnName = "PRIM_KEY_PLACEHOLDER";
 		
 		// grab the objects we are setting up for the comparison
 		List<Object> objects = new Vector<Object>();
@@ -418,6 +448,11 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 
 	public StringBuilder getFilterCriteria() {
 		return this.filterCriteria;
+	}
+	
+	public void addHeaderToRemove(String header)
+	{
+		headersToRemove.add(header);
 	}
 
 	public static void main(String[] args) {

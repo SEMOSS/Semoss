@@ -503,7 +503,7 @@ public class RBuilder extends AbstractRBuilder {
 		}
 	}
 
-	@Override
+/*	@Override
 	protected String[] getColumnType(String varName) {
 		REXP typesR = executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)");
 		String[] typesRString = null;
@@ -515,7 +515,7 @@ public class RBuilder extends AbstractRBuilder {
 		}
 		return typesRString;
 	}
-	
+*/	
 	@Override
 	public int getIntFromScript(String rScript){
 		REXP result = executeR(rScript);
