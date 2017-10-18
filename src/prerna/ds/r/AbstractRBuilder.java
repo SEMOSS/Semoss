@@ -100,7 +100,7 @@ public abstract class AbstractRBuilder {
 	
 	protected abstract String[] getColumnTypes(String varName);
 	
-	protected abstract String[] getColumnType(String varName);
+	//protected abstract String[] getColumnType(String varName);
 	
 	protected abstract int getIntFromScript(String rScript);
 	
@@ -275,6 +275,31 @@ public abstract class AbstractRBuilder {
 			// WHY WOULD YOU DO THIS!!!
 		}
 		return newFilter;
+	}
+	
+	protected void genRowId(String dataTableName, String rowIdName)
+	{
+		// syntax
+		//id <- rownames(arAmgXk);
+		//d <- cbind(id=id, arAmgXk)
+		
+		// generate the row names first
+		String idName = Utility.getRandomString(6);
+		String rStatement = idName + "<- rownames(" + dataTableName + ");";
+		evalR(rStatement);
+		
+		// now bind it with the name
+		String newName = Utility.getRandomString(6);
+		rStatement = newName + " <- cbind(" + rowIdName + "=" + idName + ", " + dataTableName + ");";
+		evalR(rStatement);
+		
+		// change the type of row 
+		//evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(newName, idName) ) );
+
+		
+		// now change the table to this new name
+		rStatement = dataTableName + " <- " + newName + ";";
+		evalR(rStatement);		
 	}
 	
 	/**

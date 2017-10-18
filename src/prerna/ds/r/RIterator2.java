@@ -23,6 +23,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 	private int numRows;
 
 	private String[] headers = null;
+	private String[] colTypes = null;
 
 	private List<Object[]> data;
 	private int dataPos = 0;
@@ -65,7 +66,27 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 			headers[i] = headerInfo.get(i).get("alias").toString();
 		}
 	}
-	
+
+	public RIterator2(AbstractRBuilder builder, String rQuery) {
+		this.builder = builder;
+
+		long start = System.currentTimeMillis();
+
+		this.tempVarName = "temp" + Utility.getRandomString(6);
+		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
+		this.builder.executeR(tempVarQuery);
+		this.numRows = builder.getNumRows(this.tempVarName);
+		
+		// need to account for limit and offset		
+		
+		long end = System.currentTimeMillis();
+		LOGGER.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
+		
+		this.headers = builder.getColumnNames(tempVarName);
+		this.colTypes = builder.getColumnTypes(tempVarName);
+		
+	}
+
 	private String addLimitOffset(String tempVarQuery, int numRows, long limit, long offset) {
 		StringBuilder query = new StringBuilder(tempVarQuery);
 		query.append(" <- ").append(tempVarQuery);
@@ -142,6 +163,22 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 
 		IHeadersDataRow row = new HeadersDataRow(headers, values);
 		return row;
+	}
+
+	public String[] getHeaders() {
+		return headers;
+	}
+
+	public void setHeaders(String[] headers) {
+		this.headers = headers;
+	}
+
+	public String[] getColTypes() {
+		return colTypes;
+	}
+
+	public void setColTypes(String[] colTypes) {
+		this.colTypes = colTypes;
 	}
 
 }
