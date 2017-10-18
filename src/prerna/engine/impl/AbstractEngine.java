@@ -70,6 +70,7 @@ import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSParam;
 import prerna.om.SEMOSSVertex;
+import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SparqlInterpreter2;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -79,6 +80,7 @@ import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
 import prerna.solr.SolrIndexEngine;
 import prerna.ui.components.RDFEngineHelper;
+import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -109,6 +111,10 @@ public abstract class AbstractEngine implements IEngine {
 	private Properties ontoProp = null;
 
 	private MetaHelper owlHelper = null;
+	
+	public static final String USE_FILE = "USE_FILE";
+	public static final String DATA_FILE = "DATA_FILE";
+
 	
 	protected RDFFileSesameEngine baseDataEngine;
 	protected RDBMSNativeEngine insightRDBMS;
@@ -207,8 +213,42 @@ public abstract class AbstractEngine implements IEngine {
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
 				if (owlFile != null) {
-					logger.info("Loading OWL: " + owlFile);
-					setOWL(baseFolder + "/" + owlFile);
+					// need a check here to say if I am asking this to be remade or keep what it is
+					if(owlFile.equalsIgnoreCase("REMAKE"))
+					{
+						// the process of remake will start here
+						// see if the usefile is there
+						if(prop.containsKey(USE_FILE))
+						{
+							String csvFile = prop.getProperty(DATA_FILE);
+							owlFile = csvFile.replace("data/", "") + ".OWL";
+							Map <String, String> paramHash = new Hashtable<String, String>();
+							
+							paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
+							paramHash.put("ENGINE", getEngineName());
+							csvFile = Utility.fillParam2(csvFile, paramHash);
+
+							
+							String fileName = Utility.getOriginalFileName(csvFile);
+							// make the table name based on the fileName
+							String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
+							owlFile = baseFolder + "/db/" + getEngineName() + "/" + cleanTableName + ".OWL";
+							
+							CSVToOwlMaker maker = new CSVToOwlMaker();
+							maker.makeOwl(csvFile, owlFile, getEngineType());
+							owlFile = "/db/" + getEngineName() + "/" + cleanTableName + ".OWL";
+							
+							if(prop.containsKey("REPLACE_OWL"))
+								Utility.updateSMSSFile(propFile, Constants.OWL, owlFile);
+						}
+						else
+							owlFile = null;
+					}
+					if(owlFile != null)
+					{					
+						logger.info("Loading OWL: " + owlFile);
+						setOWL(baseFolder + "/" + owlFile);
+					}
 				}
 				// load properties object for db
 				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);

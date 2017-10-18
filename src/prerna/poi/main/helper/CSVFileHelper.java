@@ -81,6 +81,8 @@ public class CSVFileHelper {
 		// override default values
 		settings.setMaxColumns(maxColumns);
 		settings.setMaxCharsPerColumn(maxCharsPerColumn);
+		// get the headers ?
+		//settings.setHeaderExtractionEnabled(true);
 	}
 
 	/**
@@ -430,10 +432,12 @@ public class CSVFileHelper {
 		long before, after;
 		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
 		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		fileName = "C:/Users/mahkhalil/Desktop/messedUpMovie.csv";
+		//fileName = "C:/Users/mahkhalil/Desktop/messedUpMovie.csv";
 		before = System.nanoTime();
 		CSVFileHelper test = new CSVFileHelper();
+		
 		test.parse(fileName);
+		test.getHeaders();
 		test.printRow(test.predictTypes());
 		test.printRow(test.allCsvHeaders);
 		System.out.println(test.newUniqueCSVHeaders);

@@ -101,6 +101,11 @@ public class WrapperManager {
 			interpreter.setQueryStruct(qs);
 			return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
 		}
+		case R : {
+			returnWrapper = new RawRSelectWrapper();
+			break;
+		}
+
 //		case SOLR : {
 //			genQueryString = false;
 //			returnWrapper = new RawSolrSelectWrapper();

@@ -213,7 +213,8 @@ public class RDataTable extends AbstractTableDataFrame {
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
 		// TODO Auto-generated method stub
-		return null;
+		return new RIterator2(builder, query);
+		
 	}
 
 	@Override
@@ -324,6 +325,12 @@ public class RDataTable extends AbstractTableDataFrame {
 		return isUnique;
 	}
 	
+	// generates a row id and binds it
+	public void generateRowIdWithName()
+	{
+		this.builder.genRowId(getTableName(), "PRIM_KEY_PLACEHOLDER");
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -357,4 +364,6 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	
 }
