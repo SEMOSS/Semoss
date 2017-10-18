@@ -404,6 +404,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         defaultIn(node);
         String trimmedWord = node.getWord().toString().trim();
         String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
+        // also replace any escaped quotes
+        word = word.replace("\\\"", "\"");
         if(curReactor != null) {
 	        curReactor.getCurRow().addLiteral(word);
 	        curReactor.setProp(node.toString().trim(), word);
