@@ -18,22 +18,28 @@ public class HeadersDataRow implements IHeadersDataRow{
 	Hashtable <String, Integer> headerCardinalityHash = new Hashtable <String, Integer>();
 	
 	public HeadersDataRow(String[] headers, Object[] values) {
-		this(headers, values, values);
+		this(headers, headers, values, values);
+	}
+	
+	public HeadersDataRow(String[] headers, String[] rawHeaders, Object[] values) {
+		this(headers, rawHeaders, values, values);
 	}
 
-
 	public HeadersDataRow(String[] headers, Object[] values, Object[] rawValues) {
+		this(headers, headers, values, rawValues);
+	}
+
+	public HeadersDataRow(String[] headers, String[] rawHeaders, Object[] values, Object[] rawValues) {
 		if(headers.length != values.length && values.length != rawValues.length) {
 			throw new IllegalArgumentException("Length of parameters not equal");
 		}
 		this.headers = headers;
+		this.rawHeaders = rawHeaders;
+		if(this.rawHeaders == null) {
+			this.rawHeaders = this.headers;
+		}
 		this.values = values;
 		this.rawValues = rawValues;
-	}
-
-	public HeadersDataRow(String [] rawHeaders, String[] headers, Object[] values, Object[] rawValues) {
-		this(headers, values, rawValues);
-		this.rawHeaders = rawHeaders;
 	}
 
 	@Override
@@ -86,47 +92,38 @@ public class HeadersDataRow implements IHeadersDataRow{
 
 	@Override
 	public String toJson() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void open() {
-		// TODO Auto-generated method stub
 		vecHeaders = new Vector<String>();
 		vecValues = new Vector<Object>();
 		vecHeaders.addAll(Arrays.asList(headers));
 		vecValues.addAll(Arrays.asList(values));
 	}
-		
 
 	@Override
 	public void addField(String fieldName, Object value) {
-		// TODO Auto-generated method stub
 		vecHeaders.add(fieldName);
 		vecValues.add(value);
 	}
 	
-	public boolean isValue(String fieldName)
-	{
+	public boolean isValue(String fieldName) {
 		return vecHeaders.indexOf(fieldName) >= 0;
 	}
 
 	@Override
 	public Object getField(String fieldName) {
-		// TODO Auto-generated method stub
 		int fieldIndex = vecHeaders.indexOf(fieldName);
-		if(fieldIndex >= 0)
+		if(fieldIndex >= 0) {
 			return vecValues.elementAt(fieldIndex);
-		
+		}
 		return null;
 	}
 
 	@Override
 	public String[] getRawHeaders() {
-		// TODO Auto-generated method stub
-		if(rawHeaders == null)
-			rawHeaders = headers;
 		return rawHeaders;
 	}
 }

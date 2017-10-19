@@ -141,12 +141,12 @@ public class TinkerImporter implements IImporter {
 		// we need to define something to say
 		// that we are actually adding these with a different type
 		// remember: on tinker, we want to reuse the same node
+		ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, updatedEdgeHash);
 		OwlTemporalEngineMeta meta = this.dataframe.getMetaData();
 		for(String oldAlias : oldAliasToNew.keySet()) {
 			meta.setPhysicalNameToVertex(oldAliasToNew.get(oldAlias), oldAlias);
 		}
 		
-		ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, updatedEdgeHash);
 		// note, we use the original edge hash since the headers from the iterator
 		// do not know that we have modified the meta
 		processImport(originalEdgeHash, joinMods, oldAliasToNew);
