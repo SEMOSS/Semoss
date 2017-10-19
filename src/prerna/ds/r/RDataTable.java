@@ -22,6 +22,7 @@ import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.ds.r.RregexValidator;
 
 public class RDataTable extends AbstractTableDataFrame {
 
@@ -181,6 +182,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	public void executeRScript(String rScript) {
+		//Validate user input won't break R and crash JVM
+		RregexValidator reg = new RregexValidator();
+		reg.Validate(rScript);
+		
 		this.builder.executeR(rScript);
 	}
 	

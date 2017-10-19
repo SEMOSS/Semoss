@@ -36,7 +36,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				String dataType = metaData.getHeaderTypeAsString(thisSelector);
 				if (!dataType.equals("STRING")){
-					throw new IllegalArgumentException("Data type not supported.");
+					throw new IllegalArgumentException("Data type not supported " + column);
 				}
 
 				String script = table + "$" + column + " <- str_trim(" + table + "$" + column + ")";
