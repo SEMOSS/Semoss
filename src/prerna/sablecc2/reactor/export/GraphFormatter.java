@@ -82,7 +82,10 @@ public class GraphFormatter extends AbstractFormatter {
 		// process the nodes
 		processNodes(headers, values);
 		// process the relationships
-		processRelationships(headers, values);
+		// if no connections, dont do any of this
+		if(this.indexConnections != null) {
+			processRelationships(headers, values);
+		}
 	}
 
 	private void processNodes(String[] headers, Object[] values) {
