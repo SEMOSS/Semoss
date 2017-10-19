@@ -112,6 +112,7 @@ public class H2Importer implements IImporter {
 		// need to know the starting headers
 		// we will lose this once we synchronize the frame with the new header info
 		String leftTableName = this.dataframe.getTableName();
+//		testGridData("select * from " + leftTableName);
 		Map<String, IMetaData.DATA_TYPES> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
 		
 		// define a new temporary table with a random name
@@ -158,6 +159,7 @@ public class H2Importer implements IImporter {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+//			testGridData("select * from " + innerJoinTable);
 			mergeTable = innerJoinTable;
 			
 			// now drop the right table since we will only be using the innerJoinTable now
@@ -170,11 +172,19 @@ public class H2Importer implements IImporter {
 		// now we merge the 2 tables together
 		// need to get this in the right order
 		origHeaders = this.dataframe.getBuilder().getHeaders(leftTableName);
+		String[] keyColumns = new String[leftTableTypes.keySet().size()];
+		int counter = 0;
+		for(String col : leftTableTypes.keySet()) {
+			keyColumns[counter] = col.split("__")[1];
+			counter++;
+		}
 		try {
-			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeMergeIntoQuery(leftTableName, mergeTable, origHeaders));
+			// the new headers are the keys for the merge
+			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeMergeIntoQuery(leftTableName, mergeTable, keyColumns, origHeaders));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+//		testGridData("select * from " + leftTableName);
 			
 		// now drop the merge table
 		try {
@@ -348,5 +358,39 @@ public class H2Importer implements IImporter {
 		// so all of them are taking into consideration
 		return true;
 	}
+	
+//	private void testGridData(String query) {
+//		// print out this new table for testing
+//		System.out.println(query);
+//		System.out.println(query);
+//		System.out.println(query);
+//		System.out.println(query);
+//		ResultSet rs = this.dataframe.execQuery(query);
+//		
+//		try {
+//			ResultSetMetaData rsmd = rs.getMetaData();
+//			int numCols = rsmd.getColumnCount();
+//			String[] columns = new String[numCols];
+//			for(int i = 0; i < numCols; i++) {
+//				columns[i] = rsmd.getColumnName(i+1);
+//			}
+//			System.out.println(Arrays.toString(columns));
+//			while(rs.next()) {
+//				Object[] data = new Object[numCols];
+//				for(int i = 0; i < numCols; i++) {
+//					data[i] = rs.getObject(i+1);
+//				}
+//				System.out.println(Arrays.toString(data));
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			try {
+//				rs.close();
+//			} catch (SQLException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
 	
 }
