@@ -12,6 +12,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -78,6 +79,12 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			if(qsList != null && !qsList.isEmpty()) {
 				qs = (QueryStruct2) qsList.get(0);
 			}
+		}
+		
+		// no qs either... i guess we will return an empty constant data task
+		// this will just store the information
+		if(qs == null) {
+			return new ConstantDataTask();
 		}
 		
 		// handle some defaults
