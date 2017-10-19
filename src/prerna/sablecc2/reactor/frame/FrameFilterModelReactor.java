@@ -86,9 +86,16 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		retMap.put("offset", offset);
 		retMap.put("filterWord", filterWord);
 		
-		String[] split = tableCol.split("__");
-		String tableName = split[0];
-		String column = split[1];
+		String tableName = null;
+		String column = null;
+		if(tableCol.contains("__")) {
+			String[] split = tableCol.split("__");
+			tableName = split[0];
+			column = split[1];
+		} else {
+			tableName = tableCol;
+			column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+		}
 
 		// set the base info in the query struct
 		QueryStruct2 qs = new QueryStruct2();
