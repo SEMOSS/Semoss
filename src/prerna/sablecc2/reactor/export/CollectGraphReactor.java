@@ -28,16 +28,16 @@ public class CollectGraphReactor extends CollectReactor {
 		IGraphExporter exporter = GraphExporterFactory.getExporter(frame);
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", exporter.getData());
-		collectedData.put("taskId", "TEMP_ID");
-		collectedData.put("numCollected", "-1");
 		
 		Map<String, Object> formatMap = new HashMap<String, Object>();
 		formatMap.put("type", "GRAPH");
 		collectedData.put("format", formatMap);
+		collectedData.put("numCollected", "-1");
 		collectedData.put("taskOptions", this.task.getTaskOptions());
 		collectedData.put("headerInfo", this.task.getHeaderInfo());
 		collectedData.put("sortInfo", this.task.getSortInfo());
-		
+		collectedData.put("taskId", this.task.getId());
+
 		NounMetadata result = new NounMetadata(collectedData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		return result;
 	}

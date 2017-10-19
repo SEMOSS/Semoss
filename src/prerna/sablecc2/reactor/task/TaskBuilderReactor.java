@@ -84,7 +84,9 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		// no qs either... i guess we will return an empty constant data task
 		// this will just store the information
 		if(qs == null) {
-			return new ConstantDataTask();
+			ConstantDataTask task = new ConstantDataTask();
+			this.insight.getTaskStore().addTask(task);
+			return task;
 		}
 		
 		// handle some defaults
