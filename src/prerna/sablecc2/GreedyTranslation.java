@@ -13,6 +13,7 @@ import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
+import prerna.sablecc2.reactor.expression.IfError;
 
 public class GreedyTranslation extends LazyTranslation {
 
@@ -37,36 +38,62 @@ public class GreedyTranslation extends LazyTranslation {
         {
         	node.getLPar().apply(this);
         }
-        if(node.getOpInput() != null)
-        {
-        	node.getOpInput().apply(this);
-        }
-        {
-        	if(curReactor instanceof IfReactor) {
-        		boolean caseBool = ((IfReactor) curReactor).getBooleanEvaluation();
-        		// case bool tells us if we should run the true case or the false case
-        		// index 0 is the true case, index 1 is the false case
-    			List<POtherOpInput> copy = new ArrayList<POtherOpInput>(node.getOtherOpInput());
-        		if(!caseBool) {
-    	            if(copy.size() >= 2) {
-    	            	POtherOpInput e = copy.get(1);
-    	            	e.apply(this);
-    	            } else {
-    	            	// wtf.. why would have you have more????
-    	            	// syntax must always be if(boolean, true case, [optional] false case)
-    	            }
-        		} else {
-        			POtherOpInput e = copy.get(0);
-        			e.apply(this);
+        if(curReactor instanceof IfError) {
+        	try {
+	        	if(node.getOpInput() != null)
+	            {
+	            	node.getOpInput().apply(this);
+	            }
+        	} catch(Exception ex) {
+        		// hey, we got an error
+        		// so i will do the other stuff
+        		// but i also need to update the reference
+        		// since the curReactor has changed
+        		IReactor parentR = this.curReactor.getParentReactor();
+        		while(!(parentR instanceof IfError)) {
+        			parentR = parentR.getParentReactor();
         		}
-        	} else {
+        		curReactor = parentR;
         		List<POtherOpInput> copy = new ArrayList<POtherOpInput>(node.getOtherOpInput());
         		for(POtherOpInput e : copy)
         		{
         			e.apply(this);
         		}
         	}
-        }
+    	} 
+        // need to account for if error
+        else {
+	        if(node.getOpInput() != null)
+	        {
+	        	node.getOpInput().apply(this);
+	        }
+	        {
+	        	if(curReactor instanceof IfReactor) {
+	        		boolean caseBool = ((IfReactor) curReactor).getBooleanEvaluation();
+	        		// case bool tells us if we should run the true case or the false case
+	        		// index 0 is the true case, index 1 is the false case
+	    			List<POtherOpInput> copy = new ArrayList<POtherOpInput>(node.getOtherOpInput());
+	        		if(!caseBool) {
+	    	            if(copy.size() >= 2) {
+	    	            	POtherOpInput e = copy.get(1);
+	    	            	e.apply(this);
+	    	            } else {
+	    	            	// wtf.. why would have you have more????
+	    	            	// syntax must always be if(boolean, true case, [optional] false case)
+	    	            }
+	        		} else {
+	        			POtherOpInput e = copy.get(0);
+	        			e.apply(this);
+	        		}
+	        	} else {
+	        		List<POtherOpInput> copy = new ArrayList<POtherOpInput>(node.getOtherOpInput());
+	        		for(POtherOpInput e : copy)
+	        		{
+	        			e.apply(this);
+	        		}
+	        	}
+	        }
+    	}
         if(node.getRPar() != null)
         {
         	node.getRPar().apply(this);
