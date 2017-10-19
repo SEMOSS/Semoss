@@ -18,6 +18,7 @@ import prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.WekaAprioriReactor;
 import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
+import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
 import prerna.sablecc2.reactor.export.IterateReactor;
@@ -238,6 +239,7 @@ public class ReactorFactory {
 		reactorHash.put("ResetTask", ResetTask.class); // defines the task
 		reactorHash.put("RemoveTask", RemoveTaskReactor.class);
 		reactorHash.put("Collect", CollectReactor.class); // collect from task
+		reactorHash.put("CollectGraph", CollectGraphReactor.class); // collect from task
 		reactorHash.put("GrabScalarElement", GrabScalarElementReactor.class);
 		reactorHash.put("CollectMeta", TaskMetaCollectorReactor.class); // collect meta from task
 		reactorHash.put("Format", TaskFormatReactor.class); // set formats
