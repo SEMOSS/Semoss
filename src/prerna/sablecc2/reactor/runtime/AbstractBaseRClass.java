@@ -117,6 +117,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks);
 
 	protected abstract Map<String, Object> flushObjectAsTable(String framename, String[] colNames);
+	
+	//for split clean routine
+	protected abstract void performSplitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace);
+
 
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -981,6 +985,25 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 	}
 
+	protected void splitColumn(String[] columnNames, String separator) {
+        String frameName = (String) retrieveVariable("GRID_NAME");
+        splitColumn(frameName, columnNames, separator, "wide", false, true);
+    }
+
+    protected void splitColumn(String frameName, String[] columnNames, String separator) {
+        splitColumn(frameName, columnNames, separator, "wide", false, true);
+    }
+
+    protected void splitColumn(String frameName, String[] columnNames, String separator, String direction) {
+        splitColumn(frameName, columnNames, separator, direction, false, true);
+    }
+
+    protected void splitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace) {
+        performSplitColumn(frameName, columnNames, separator, direction, false, true);
+        if (checkRTableModified(frameName)) {
+            recreateMetadata(frameName);
+        }
+    }
 
 
 
@@ -1087,6 +1110,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (aggregateFunction != null && aggregateFunction.length() > 0) {
 			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
 		}
+        //we need to make sure that the column we are pivoting on does not have values with dashes
+        //we should replace any dashes with underscores
+        String colScript = frameName + "$" + columnToPivot;
+        String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
+        this.rJavaTranslator.executeR(cleanScript);
+		
 		String script = newFrame + " <- dcast(" + frameName + keepString + aggregateString + ");";
 		this.rJavaTranslator.executeR(script);
 		script = newFrame + " <- as.data.table(" + newFrame + ");";

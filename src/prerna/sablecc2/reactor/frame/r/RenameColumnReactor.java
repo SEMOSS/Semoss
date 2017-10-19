@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.Arrays;
+
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -26,7 +28,6 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// get inputs
 		String originalColName = getOriginalColumn();
 		String updatedColName = getNewColumnName();
-
 		// check that the frame isn't null
 		String table = frame.getTableName();
 		if (originalColName.contains("__")) {
@@ -36,7 +37,14 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		}
 		// ensure new header name is valid
 		// make sure that the new name we want to use is valid
+		String[] existCols = getColNames(originalColName);
+		if (Arrays.asList(existCols).contains(originalColName) != true) {
+			throw new IllegalArgumentException("Column doesn't exist.");
+		}
 		String validNewHeader = getCleanNewHeader(table, updatedColName);
+		if (validNewHeader.equals("")){
+			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
+		}
 		// define the r script to be executed
 		String script = "names(" + table + ")[names(" + table + ") == \"" + originalColName + "\"] = \""
 				+ validNewHeader + "\"";
