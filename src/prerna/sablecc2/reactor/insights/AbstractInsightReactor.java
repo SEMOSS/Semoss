@@ -1,17 +1,35 @@
 package prerna.sablecc2.reactor.insights;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServerException;
+
+import cern.colt.Arrays;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.solr.SolrIndexEngine;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
+import prerna.util.insight.InsightScreenshot;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
-	
+	private static final Logger LOGGER = LogManager.getLogger(AbstractInsightReactor.class.getName());
+
 	// used for running insights
 	protected static final String ENGINE_KEY = "engine";
 	protected static final String RDBMS_ID = "id";
@@ -144,5 +162,76 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			}
 			return params;
 		}
+	}
+	
+	/**
+	 *	TODO remove param hack solr insightIDToView
+	 *
+	 * @param solrInsightIDToUpdate
+	 *            id used to update solr image string
+	 * @param imageInsightIDToView
+	 *            id used for embed url link to load in image capture browser
+	 * @param baseURL
+	 * @param engineName
+	 */
+	protected void updateSolrImage(String solrInsightIDToUpdate, String imageInsightIDToView, String baseURL,
+			String engineName) {
+		String baseImagePath = DIHelper.getInstance().getProperty("BaseFolder");
+
+		// solr id to update
+		final String finalID = solrInsightIDToUpdate;
+		// id used for embed link
+		final String idForURL = imageInsightIDToView;
+		final String imagePath = baseImagePath + "\\images\\" + engineName + "_" + finalID + ".png";
+
+		// not supported by the embedded browser
+		Runnable r = new Runnable() {
+			public void run() {
+				// generate image URL from saved insight
+				String url = baseURL;
+
+				// Set up the embedded browser
+				InsightScreenshot screenshot = new InsightScreenshot();
+				screenshot.showUrl(url, imagePath);
+
+				// wait for screenshot
+				long startTime = System.currentTimeMillis();
+				try {
+					screenshot.getComplete();
+					long endTime = System.currentTimeMillis();
+					LOGGER.info("IMAGE CAPTURE TIME " + (endTime - startTime) + " ms");
+
+					// Update solr
+					Map<String, Object> solrInsights = new HashMap<>();
+					solrInsights.put(SolrIndexEngine.IMAGE, "\\images\\" + engineName + "_" + finalID + ".png");
+					try {
+						SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + finalID, solrInsights);
+						LOGGER.info("Updated solr id: " + finalID + " image");
+						// clean up temp param insight data
+						if (!finalID.equals(idForURL)) {
+							// remove Solr data for temporary param
+							List<String> insightsToRemove = new ArrayList<String>();
+							insightsToRemove.add(engineName + "_" + idForURL);
+							LOGGER.info("REMOVING TEMP SOLR INSTANCE FOR PARAM INSIGHT "
+									+ Arrays.toString(insightsToRemove.toArray()));
+							SolrIndexEngine.getInstance().removeInsight(insightsToRemove);
+							IEngine engine = Utility.getEngine(engineName);
+							InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+							admin.dropInsight(idForURL);
+						}
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+							| IOException e) {
+						e.printStackTrace();
+					}
+					// Catch browser image exception
+				} catch (Exception e1) {
+					LOGGER.error("Unable to capture image from " + url);
+				}
+			}
+		};
+		// use this for new image capture
+		Thread t = new Thread(r);
+		t.setPriority(Thread.MAX_PRIORITY);
+		t.start();
 	}
 }
