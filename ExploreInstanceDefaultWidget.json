@@ -1,6 +1,6 @@
 [
   {
-    "query": "CreateFrame(grid).as([\"FRAME\"]); Database(<<ENGINE>>) | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(); Panel(<SMSS_PANEL_ID>) | SetPanelView(\"visualization\"); Select(FRAME__<concept>).as([<concept>]) | With(Panel(<SMSS_PANEL_ID>)) | Format(type=['graph'], options=[]) | TaskOptions({\"<SMSS_PANEL_ID>\":{\"layout\": \"Graph\", \"alignment\": {\"start\": [\"<concept>\"], \"end\":[\"<concept>\"]}}}) | Collect(500);",
+    "query": "CreateFrame(graph); Database(<<ENGINE>>) | Select(<concept>) | Filter( (<concept> == [<instance>]) ) | Import(); Panel(<SMSS_PANEL_ID>) | SetPanelView(\"visualization\"); TaskOptions({\"<SMSS_PANEL_ID>\":{\"layout\": \"Graph\"}}) | CollectGraph();",
     "label": "Explore an instance",
     "description": "Explore instances of a selected concept",
     "params": [
