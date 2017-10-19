@@ -139,7 +139,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 
 			// return the header row
-			return new HeadersDataRow(var,displayVar, row, row);
+			return new HeadersDataRow(displayVar, var, row, row);
 		} else {
 			cleanUp();
 		}
