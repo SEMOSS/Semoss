@@ -2015,7 +2015,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		runR(df2 + " <- concept_mgr(" + dfName + "," + colSelect + "," + numDisplay + "," + randomVals + ")");
 		runR(df2 + " <- as.data.table(" + df2 + ")");
 
-		String[] colNames = {"Predicted_Concept", "Prob"};
+		String[] colNames = {"Predicted_Concept", "Prob", "URL"};
 		this.nounMetaOutput.add(new NounMetadata(flushObjectAsTable(df2, colNames), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.WIKI_LOGICAL_NAMES));
 	}
 
