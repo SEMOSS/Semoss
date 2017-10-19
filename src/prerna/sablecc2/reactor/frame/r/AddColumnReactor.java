@@ -34,7 +34,9 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		}
 		// clean the column name to ensure that it is valid
 		colName = getCleanNewColName(table, colName);
-
+		if (colName.equals("")){
+			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
+		}
 		// define the script to be executed;
 		// this assigns a new column name with no data in columns
 		String script = table + "$" + colName + " <- \"\" ";
