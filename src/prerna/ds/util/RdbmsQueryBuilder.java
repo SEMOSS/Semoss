@@ -190,11 +190,11 @@ public class RdbmsQueryBuilder {
 	 * @param columnNames
 	 * @return
 	 */
-	public static String makeMergeIntoQuery(String leftTableName, String mergeTable, String[] columnNames) {
+	public static String makeMergeIntoQuery(String leftTableName, String mergeTable, String[] keyColumns, String[] columnNames) {
 		StringBuilder sql = new StringBuilder("MERGE INTO ");
-		sql.append(leftTableName).append(" KEY(").append(columnNames[0]);
-		for(int i = 1; i < columnNames.length; i++) {
-			sql.append(",").append(columnNames[i]);
+		sql.append(leftTableName).append(" KEY(").append(keyColumns[0]);
+		for(int i = 1; i < keyColumns.length; i++) {
+			sql.append(",").append(keyColumns[i]);
 		}
 		sql.append(") (SELECT ").append(columnNames[0]);
 		for(int i = 1; i < columnNames.length; i++) {
