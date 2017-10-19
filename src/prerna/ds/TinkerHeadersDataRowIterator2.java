@@ -18,6 +18,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 	private QueryStruct2 qs;
 	private Iterator baseIterator;
 	private String[] headerAlias;
+	private String[] header;
 	private String[] headerOrdering;
 
 	public TinkerHeadersDataRowIterator2(Iterator composeIterator, QueryStruct2 qs) {
@@ -72,7 +73,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 			}
 		}
 
-		HeadersDataRow nextData = new HeadersDataRow(this.headerAlias, retObject);
+		HeadersDataRow nextData = new HeadersDataRow(this.headerAlias, this.header, retObject);
 		return nextData;
 	}
 
@@ -82,6 +83,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 	 */
 	private void flushOutHeaders(List<IQuerySelector> selectors, OwlTemporalEngineMeta meta) {
 		int numHeaders = selectors.size();
+		this.header = new String[numHeaders];
 		this.headerAlias = new String[numHeaders];
 		this.headerOrdering = new String[numHeaders];
 		int index = 0;
@@ -91,6 +93,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 				String qsName = header.getQueryStructName();
 				
 				this.headerOrdering[index] = qsName;
+				this.header[index] = alias;
 				this.headerAlias[index] = getNodeAlias(meta, alias);
 			} else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH) {
 				IQuerySelector innerSelector = ((QueryMathSelector) header).getInnerSelector();
@@ -99,6 +102,7 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 					String qsName = innerSelector.getQueryStructName();
 					
 					this.headerOrdering[index] = qsName;
+					this.header[index] = alias;
 					this.headerAlias[index] = getNodeAlias(meta, alias);
 				}
 			}
@@ -114,10 +118,10 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 	 * @return
 	 */
 	private String getNodeAlias(OwlTemporalEngineMeta meta, String node) {
-//		if(meta == null) {
+		if(meta == null) {
 			return node;
-//		}
-//		return meta.getPhysicalName(node);
+		}
+		return meta.getPhysicalName(node);
 	}
 
 	public QueryStruct2 getQueryStruct() {

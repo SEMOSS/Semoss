@@ -1446,11 +1446,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// right now
 		// BE is going to assume the user wants all the join information
 		// even if they are not returning all the headers
-		// jk , i will do this when they want to return more than 1 header
-		if(queryStruct.getSelectors().size() > 1) {
+//		if(queryStruct.getSelectors().size() > 1) {
 			// fill in relationships into qs
 			queryStruct.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
-		}
+//		}
 		interpreter.setQueryStruct(queryStruct);
 		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), queryStruct, this.metaData), queryStruct);
 	}
