@@ -33,13 +33,24 @@ public class CollectGraphReactor extends CollectReactor {
 		formatMap.put("type", "GRAPH");
 		collectedData.put("format", formatMap);
 		collectedData.put("numCollected", "-1");
+		collectedData.put("headerInfo", getHeaderInfo(frame));
 		collectedData.put("taskOptions", this.task.getTaskOptions());
-		collectedData.put("headerInfo", this.task.getHeaderInfo());
 		collectedData.put("sortInfo", this.task.getSortInfo());
 		collectedData.put("taskId", this.task.getId());
 
 		NounMetadata result = new NounMetadata(collectedData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		return result;
+	}
+	
+	private List<Map<String, Object>> getHeaderInfo(ITableDataFrame frame) {
+		// TODO: this is dumb
+		// why did I not make everything consistent...
+		// why am i dumb
+		List<Map<String, Object>> x = (List<Map<String, Object>>) frame.getMetaData().getTableHeaderObjects(false).get("headers");
+		for(Map<String, Object> val : x) {
+			val.put("alias", val.remove("displayName"));
+		}
+		return x;
 	}
 	
 	private ITableDataFrame getFrame() {
