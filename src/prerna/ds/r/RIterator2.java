@@ -33,6 +33,9 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 	public RIterator2(AbstractRBuilder builder, String rQuery, QueryStruct2 qs) {
 		this.builder = builder;
 		this.qs = qs;
+		//Validate user input won't break R and crash JVM
+		RregexValidator reg = new RregexValidator();
+		reg.Validate(rQuery);
 
 		long start = System.currentTimeMillis();
 
