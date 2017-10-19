@@ -262,16 +262,25 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 		System.out.println("Script is " + script);
 		this.rJavaTranslator.executeR(script);
 
+		// get the column names
+		String colType = this.rJavaTranslator.getColumnType(frameName, column);
 		script = tempName + "$" + column;
-		String [] uniqueColumns = this.rJavaTranslator.getStringArray(script);
-		if(uniqueColumns == null) {
-			RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
-			int numFactors = factors.size();
-			uniqueColumns = new String[numFactors];
-			for(int i = 0; i < numFactors; i++) {
-				uniqueColumns[i] = factors.at(i);
+
+		String[] uniqueColumns = this.rJavaTranslator.getStringArray(script);
+		if (colType.equalsIgnoreCase("string") || colType.equalsIgnoreCase("factor")
+				|| colType.equalsIgnoreCase("character")) {
+			if (uniqueColumns == null) {
+				RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
+				int numFactors = factors.size();
+				uniqueColumns = new String[numFactors];
+				for (int i = 0; i < numFactors; i++) {
+					uniqueColumns[i] = factors.at(i);
+				}
 			}
-		} 
+		} else {
+			getHistogram(frameName, column, 0);
+			return null;
+		}
 		// need to limit this eventually to may be 10-15 and no more
 		script = "matrix(" + tempName + "$N);"; 
 		int [] colCount = this.rJavaTranslator.getIntArray(script);
@@ -305,15 +314,23 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 		}
 		
 		// get the column names
+		String colType = this.rJavaTranslator.getColumnType(frameName, column);
 		script = tempName + "$" + column;
-		String [] uniqueColumns = this.rJavaTranslator.getStringArray(script);
-		if(uniqueColumns == null) {
-			RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
-			int numFactors = factors.size();
-			uniqueColumns = new String[numFactors];
-			for(int i = 0; i < numFactors; i++) {
-				uniqueColumns[i] = factors.at(i);
+
+		String[] uniqueColumns = this.rJavaTranslator.getStringArray(script);
+		if (colType.equalsIgnoreCase("string") || colType.equalsIgnoreCase("factor")
+				|| colType.equalsIgnoreCase("character")) {
+			if (uniqueColumns == null) {
+				RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
+				int numFactors = factors.size();
+				uniqueColumns = new String[numFactors];
+				for (int i = 0; i < numFactors; i++) {
+					uniqueColumns[i] = factors.at(i);
+				}
 			}
+		} else {
+			getHistogram(frameName, column, 0);
+			return null;
 		}
 		
 		// get the count for each column
@@ -458,4 +475,59 @@ public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {
 			e.printStackTrace();
 		}
 	}
+	
+	// split a column based on a value
+    @Override
+    public void performSplitColumn(String frameName, String[] columnNames, String separator, String direction,
+            boolean dropColumn, boolean frameReplace) {
+        String tempName = Utility.getRandomString(8);
+
+        String frameReplaceScript = frameName + " <- " + tempName + ";";
+        if (!frameReplace) {
+            frameReplaceScript = "";
+        }
+        String columnReplaceScript = "TRUE";
+        if (!dropColumn) {
+            columnReplaceScript = "FALSE";
+        }
+        if (direction == null || direction.isEmpty()) {
+            direction = "wide";
+        }
+        for (String columnName : columnNames) {
+            String script = tempName + " <- cSplit(" + frameName + ", " + "\"" + columnName + "\", \"" + separator
+                    + "\", direction = \"" + direction + "\", drop = " + columnReplaceScript + ");";
+            this.rJavaTranslator.executeR(script);
+            System.out.println("Script " + script);
+            // get all the columns that are factors
+            script = "sapply(" + tempName + ", is.factor);";
+            String[] factors = this.rJavaTranslator.getStringArray(script);
+            String[] colNames = this.rJavaTranslator.getColumns(tempName);
+
+            // now I need to compose a string based on it
+            String conversionString = "";
+            for (int factorIndex = 0; factorIndex < factors.length; factorIndex++) {
+                if (factors[factorIndex].equalsIgnoreCase("TRUE")) // this is a
+                                                                    // factor
+                {
+                    conversionString = conversionString + tempName + "$" + colNames[factorIndex] + " <- "
+                            + "as.character(" + tempName + "$" + colNames[factorIndex] + ");";
+                }
+            }
+            this.rJavaTranslator.executeR(conversionString + frameReplaceScript);
+
+            // perform variable cleanup
+            // perform variable cleanup
+            this.rJavaTranslator.executeR("rm(" + tempName + ");");
+            this.rJavaTranslator.executeR("gc();");
+
+            System.out.println("Script " + script);
+            System.out.println("Complete ");
+        }
+        // once this is done.. I need to find what the original type is and then
+        // apply a type to it
+        // may be as string
+        // or as numeric
+        // else this is not giving me what I want :(
+    }
+
 }

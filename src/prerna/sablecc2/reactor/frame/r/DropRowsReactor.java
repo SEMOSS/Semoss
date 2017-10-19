@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -56,6 +57,11 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 							column = split[1];
 						}
 						String nounComparator = queryFilter.getComparator();
+						//Validate column exists
+						String[] existCols = getColNames(table);
+						if (Arrays.asList(existCols).contains(column) != true) {
+							throw new IllegalArgumentException("Column doesn't exist.");
+						}						
 						// clean nounComparator for rScript
 						if (nounComparator.trim().equals("=")) {
 							nounComparator = "==";
