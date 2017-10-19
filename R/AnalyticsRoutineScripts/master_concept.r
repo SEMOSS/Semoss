@@ -12,13 +12,13 @@ get_wiki_ids<-function(values,m){
 # m - a number of random instances of the values array to be used
 	scale<-5
 	xpage<-"disambiguation page"
-	n<-length(values)
-	if(m > n){m=n}
-	idx <- sample(1:n, m)
+	#n<-length(values)
+	#if(m > n){m=n}
+	#idx <- sample(1:n, m)
 	r<-array()
 	k<-0
 	for(i in 1:m){
-		value<-as.character(values[idx[i]])
+		value<-as.character(values[i])
 		if(!is.na(value)){
 			if(nchar(value) > 0){
 				item<-find_item(value)
