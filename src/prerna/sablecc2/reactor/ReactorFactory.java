@@ -397,6 +397,7 @@ public class ReactorFactory {
 		frameReactorHash.put("DropRows", "DropRowsReactor");
 		frameReactorHash.put("JoinColumns", "JoinColumnsReactor");
 		frameReactorHash.put("RegexReplaceColumnValue", "RegexReplaceColumnValueReactor");
+		frameReactorHash.put("RemoveDuplicateRows", "RemoveDuplicateRowsReactor");
 		frameReactorHash.put("RenameColumn", "RenameColumnReactor");
 		frameReactorHash.put("ReplaceColumnValue", "ReplaceColumnValueReactor");
 		frameReactorHash.put("SortColumn", "SortColumnReactor");
