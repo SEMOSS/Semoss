@@ -64,6 +64,7 @@ import prerna.sablecc2.reactor.insights.RemoveVariableReactor;
 import prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.SaveInsightReactor;
 import prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor;
+import prerna.sablecc2.reactor.insights.UpdateInsightImageReactor;
 import prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
@@ -312,6 +313,7 @@ public class ReactorFactory {
 		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
 		reactorHash.put("SetInsightOrnament", SetInsightOrnamentReactor.class);
 		reactorHash.put("RetrieveInsightOrnament", RetrieveInsightOrnamentReactor.class);
+		reactorHash.put("UpdateInsightImage", UpdateInsightImageReactor.class );
 
 		// Save Reactors
 		reactorHash.put("Save", SaveInsightReactor.class);
