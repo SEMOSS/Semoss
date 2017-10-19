@@ -12,7 +12,7 @@ public class IfError extends OpBasic {
 	protected NounMetadata evaluate(Object[] values) {
 		return this.nouns[0];
 	}
-
+	
 	//TODO: implement this, just returning 1 for now
 	public String getJavaSignature() {
 		
