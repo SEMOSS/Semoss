@@ -99,7 +99,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 					existingRDBMSStructure = new Hashtable<String, Map<String, String>>();
 				} else {
 					// need to update to get the rdbms structure to determine how the new files should be added
-					existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+					existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 				}
 				// similar to other csv reading
 				// we load the user defined types
@@ -115,7 +115,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		} catch(IOException e) {
 			e.printStackTrace();
 			error = true;
@@ -178,7 +178,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 					continue;
 				}
 				// need to update to get the rdbms structure to determine how the new files should be added
-				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 				
 				// similar to other csv reading
 				// we load the user defined types

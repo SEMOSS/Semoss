@@ -68,8 +68,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		HashMap<String, ArrayList<String>> nodesAndProps = (HashMap<String, ArrayList<String>>) externalMetamodel
 				.get("nodes");
 		ArrayList<String[]> relationships = (ArrayList<String[]>) externalMetamodel.get("relationships");
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper
-				.getExistingRDBMSStructure(engine, queryUtil);
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(); // Uncleaned
 																				// concepts
 																				// and
@@ -82,7 +81,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 								// ImportDataProcessor and removed from every
 								// subclass of AbstractEngineCreator
 
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 
 		return this.engine;
 	}
