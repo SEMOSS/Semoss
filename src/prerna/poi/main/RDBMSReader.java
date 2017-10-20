@@ -145,7 +145,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			}
 			cleanUpDBTables(engineName, allowDuplicates);
 			createBaseRelations();
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
@@ -259,7 +259,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		
 		// get existing data is present
 		if(!noExistingData) {
-			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine,queryUtil);
+			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 		} else {
 			existingRDBMSStructure = new Hashtable<String, Map<String, String>>();
 		}
@@ -689,7 +689,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	private void cleanUpDBTables(String engineName, boolean allowDuplicates){
 		LOGGER.setLevel(Level.INFO);
 		//fill up the availableTables and availableTablesInfo maps
-		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+		Map<String, Map<String, String>> existingStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 		Set<String> alteredTables = allConcepts.keySet();
 
 		Set<String> allTables = existingStructure.keySet();

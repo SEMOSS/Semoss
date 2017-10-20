@@ -141,7 +141,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			// write the owl file
 			createBaseRelations();
 			// create the base question sheet
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		} catch(IOException e) {
 			e.printStackTrace();
 			error = true;
@@ -204,7 +204,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 					continue;
 				}
 				// need to update to get the rdbms structure to determine how the new files should be added
-				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+				existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 				// get the user defined headers if present
 				if(userHeaderNames != null && !userHeaderNames.isEmpty()) {
 					excelHeaderNames = userHeaderNames.get(i);
@@ -302,7 +302,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		// since one sheet may just be a subset of another sheet in which we would append the information onto
 		// ... should talk to someone and make sure that is right... or if we should just load as is because the 
 		// user is smart and deliberately separated them out...
-		existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, queryUtil);
+		existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
 		
 		// headers and data types arrays match based on position 
 		String[] headers = sheetMeta.get(XL_HEADERS);
