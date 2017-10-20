@@ -23,19 +23,24 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
 
-public class SaveInsightReactor extends AbstractInsightReactor {
+public class UpdateInsightReactor extends AbstractInsightReactor {
 
-	private static final Logger LOGGER = Logger.getLogger(SaveInsightReactor.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(UpdateInsightReactor.class.getName());
 
 	@Override
 	public NounMetadata execute() {
-		// get the recipe for the insight
-		// need the engine name and id that has the recipe
 		String engineName = getEngine();
 		String insightName = getInsightName();
 		String[] recipeToSave = getRecipe();
 		// used for embed url
 		String imageURL = getImageURL();
+		int id = this.getRdbmsId();
+		String rdbmsID = "";
+		if (id > 0) {
+			rdbmsID += id;
+		} else {
+			throw new IllegalArgumentException("Invalid rdbms id");
+		}
 
 		// for testing... should always be passed in
 		if (recipeToSave == null || recipeToSave.length == 0) {
@@ -55,40 +60,40 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(coreEngine.getInsightDatabase());
 
-		LOGGER.info("1) Add insight to rdbms");
-		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave);
-		LOGGER.info("1) Done");
-
-		// fill in image url
+		// fill in image Url endpoint with engine name
 		// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
 		imageURL = imageURL.replace("<engine>", engineName);
-		imageURL = imageURL.replace("<id>", newRdbmsId);
-
-		LOGGER.info("2) Add insight to solr");
-		addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "", imageURL);
+		imageURL = imageURL.replace("<id>", rdbmsID);
+		
+		// update insight db
+		LOGGER.info("1) Updating insight in rdbms");
+		admin.updateInsight(rdbmsID, insightName, layout, recipeToSave);
+		LOGGER.info("1) Done");
+		// update solr
+		LOGGER.info("2) Update insight in solr");
+		editExistingInsightInSolr(engineName, rdbmsID, insightName, layout, "", new ArrayList<String>(), "", imageURL);
 		LOGGER.info("2) Done");
-
+		
 		// we can't save these layouts so ignore image
 		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
 			LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
 		} else {
-			updateSolrImage(newRdbmsId, newRdbmsId, imageURL, engineName);
+			updateSolrImage(rdbmsID, rdbmsID, imageURL, engineName);
 		}
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
-		returnMap.put("core_engine_id", newRdbmsId);
+		returnMap.put("core_engine_id", rdbmsID);
 		returnMap.put("core_engine", engineName);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
 
-
 	/**
-	 * Add an insight into solr
+	 * Edit an existing insight saved within solr
 	 * 
 	 * @param engineName
-	 * @param insightIdToSave
+	 * @param existingRdbmsId
 	 * @param insightName
 	 * @param layout
 	 * @param description
@@ -96,34 +101,25 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param userId
 	 * @param imageURL
 	 */
-	private void addNewInsightToSolr(String engineName, String insightIdToSave, String insightName, String layout,
+	private void editExistingInsightInSolr(String engineName, String existingRdbmsId, String insightName, String layout,
 			String description, List<String> tags, String userId, String imageURL) {
-		Map<String, Object> solrInsights = new HashMap<>();
+		Map<String, Object> solrModifyInsights = new HashMap<>();
 		DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 		Date date = new Date();
 		String currDate = dateFormat.format(date);
-		solrInsights.put(SolrIndexEngine.STORAGE_NAME, insightName);
-		solrInsights.put(SolrIndexEngine.TAGS, tags);
-		solrInsights.put(SolrIndexEngine.LAYOUT, layout);
-		solrInsights.put(SolrIndexEngine.CREATED_ON, currDate);
-		solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
-		solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-		solrInsights.put(SolrIndexEngine.DESCRIPTION, description);
-		solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, Integer.parseInt(insightIdToSave));
-		solrInsights.put(SolrIndexEngine.USER_ID, userId);
+		solrModifyInsights.put(SolrIndexEngine.STORAGE_NAME, insightName);
+		solrModifyInsights.put(SolrIndexEngine.TAGS, tags);
+		solrModifyInsights.put(SolrIndexEngine.DESCRIPTION, description);
+		solrModifyInsights.put(SolrIndexEngine.LAYOUT, layout);
+		solrModifyInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
+		solrModifyInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
+		solrModifyInsights.put(SolrIndexEngine.IMAGE_URL, imageURL);
 
-		// TODO: figure out which engines are used within this insight
-		solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
-		solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
-
-		// the image will be updated in a later thread
-		// for now, just send in an empty string
-		// save image url to recreate image later
-		solrInsights.put(SolrIndexEngine.IMAGE, "");
-		solrInsights.put(SolrIndexEngine.IMAGE_URL, imageURL);
+		solrModifyInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
+		solrModifyInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
 
 		try {
-			SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
+			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + existingRdbmsId, solrModifyInsights);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e1) {
 			e1.printStackTrace();
