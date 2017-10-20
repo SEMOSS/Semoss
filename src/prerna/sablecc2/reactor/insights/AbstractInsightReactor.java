@@ -164,6 +164,20 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 	}
 	
+	protected String[] decodeRecipe(String[] recipe) {
+		int size = recipe.length;
+		String[] decodedRecipe = new String[size];
+		for (int i = 0; i < size; i++) {
+			try {
+				decodedRecipe[i] = URLDecoder.decode(recipe[i], "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// you are kinda screwed at this point...
+				e.printStackTrace();
+			}
+		}
+		return decodedRecipe;
+	}
+	
 	/**
 	 *	TODO remove param hack solr insightIDToView
 	 *
