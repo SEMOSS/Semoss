@@ -41,7 +41,6 @@ public class RDBMSEngineCreationHelper {
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
-		String sql = ""; 
 		String[] recipeArray = null;
 		String layout = ""; 
 
@@ -50,7 +49,6 @@ public class RDBMSEngineCreationHelper {
 				String cleanTableName = cleanTableName(newTable);
 				insightName = "Show first 500 records from " + cleanTableName;
 				layout = "Grid";
-				sql = "SELECT * FROM " + cleanTableName;
 				recipeArray = new String[5];
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
