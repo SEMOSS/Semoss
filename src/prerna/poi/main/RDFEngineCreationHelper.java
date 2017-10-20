@@ -24,19 +24,28 @@ public class RDFEngineCreationHelper {
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
-		String[] pkqlRecipeToSave = null;
+		String[] recipeArray = null;
 		String layout = ""; 
 
 		try {
 			for(String conceptualName : conceptualNames) {
+				insightName = "Show first 500 records from " + conceptualName;
+				layout = "Grid";
+				recipeArray = new String[5];
+				recipeArray[0] = "AddPanel(0);";
+				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
+				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
+				recipeArray[3] = "Database(" + engineName + ") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
+				
+				StringBuilder viewPixel = new StringBuilder("Frame() | Select(f$").append(conceptualName)
+						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
+						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
+				recipeArray[4] = viewPixel.toString();
+				admin.addInsight(insightName, layout, recipeArray);
+				
 				insightName = "Select Distinct " + conceptualName;
 				layout = "Grid";
-				pkqlRecipeToSave = new String[3];
-				pkqlRecipeToSave[0] = "data.frame('grid');";
-				pkqlRecipeToSave[1] = "data.import(api:" + engineName + ".query([c:" + conceptualName + "]));";
-				pkqlRecipeToSave[2] = "panel[0].viz ( Grid , [ ] , { 'offset' : 0 , 'limit' : 1000 } );";
-
-				admin.addInsight(insightName, layout, pkqlRecipeToSave);
+				admin.addInsight(insightName, layout, recipeArray);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -57,14 +66,14 @@ public class RDFEngineCreationHelper {
 		
 		//determine the # where the new questions should start
 		String insightName = ""; 
-		String[] pkqlRecipeToSave = null;
+		String[] recipeArray = null;
 		String layout = "";
 
 		String query = null;
 		try {
 			for(String conceptualName : conceptualNames) {
 				// make sure insight doesn't already exist
-				insightName = "Select Distinct " + conceptualName;
+				insightName = "Show first 500 records from " + conceptualName;
 
 				query = "select id where question_name='"+insightName+"'";
 				IRawSelectWrapper containsIt = WrapperManager.getInstance().getRawWrapper(insightsDatabase, query);
@@ -76,12 +85,21 @@ public class RDFEngineCreationHelper {
 				}
 				
 				layout = "Grid";
-				pkqlRecipeToSave = new String[3];
-				pkqlRecipeToSave[0] = "data.frame('grid');";
-				pkqlRecipeToSave[1] = "data.import(api:" + engineName + ".query([c:" + conceptualName + "]));";
-				pkqlRecipeToSave[2] = "panel[0].viz ( Grid , [ ] , { 'offset' : 0 , 'limit' : 1000 } );";
-
-				admin.addInsight(insightName, layout, pkqlRecipeToSave);
+				recipeArray = new String[5];
+				recipeArray[0] = "AddPanel(0);";
+				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
+				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
+				recipeArray[3] = "Database(" + engineName + ") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
+				
+				StringBuilder viewPixel = new StringBuilder("Frame() | Select(f$").append(conceptualName)
+						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
+						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
+				recipeArray[4] = viewPixel.toString();
+				admin.addInsight(insightName, layout, recipeArray);
+				
+				insightName = "Select Distinct " + conceptualName;
+				layout = "Grid";
+				admin.addInsight(insightName, layout, recipeArray);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");

@@ -44,6 +44,8 @@ public class InsightAdministrator {
 		if(wrapper.hasNext()){ // need to call hasNext before you call next()
 			lastIdNum = wrapper.next().getValues()[0];
 		}
+		wrapper.cleanUp();
+		
 		String lastIDNum = ((int)lastIdNum+1) + "";
 		
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
