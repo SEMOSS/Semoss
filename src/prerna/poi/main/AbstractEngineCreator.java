@@ -121,7 +121,7 @@ public class AbstractEngineCreator {
 	}
 	
 	//added for connect to external RDBMS workflow
-	protected void openRdbmsEngineWithConnection(String schema, String dbName) {
+	protected void generateEngineFromRDBMSConnection(String schema, String dbName) {
 		connectToExternalRDBMSEngine(schema,dbName);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
@@ -144,10 +144,14 @@ public class AbstractEngineCreator {
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 		((AbstractEngine) engine).setProperties(prop);
 		engine.openDB(null);
+		
+		// create the insight database
+		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		engine.setInsightDatabase(insightDatabase);
 	}
 
 	protected void openEngineWithConnection(String engineName) {
-		engine = (IEngine)DIHelper.getInstance().getLocalProp(engineName);
+		engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
 		openOWLWithConnection(engine, owlFile);
 	}
 	

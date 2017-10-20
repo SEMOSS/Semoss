@@ -151,11 +151,11 @@ public abstract class AbstractKickoutWebWatcher extends AbstractFileWatcher {
 		if (dbTypeString.equals("MariaDB")) {
 			dbType = SQLQueryUtil.DB_TYPE.MARIA_DB;
 		} else if (dbTypeString.equals("SQLServer")) {
-			dbType = SQLQueryUtil.DB_TYPE.SQL_Server;
+			dbType = SQLQueryUtil.DB_TYPE.SQL_SERVER;
 		} else if (dbTypeString.equals("MySQL")) {
-			dbType = SQLQueryUtil.DB_TYPE.MySQL;
+			dbType = SQLQueryUtil.DB_TYPE.MYSQL;
 		} else if (dbTypeString.equals("Oracle")) {
-			dbType = SQLQueryUtil.DB_TYPE.Oracle;
+			dbType = SQLQueryUtil.DB_TYPE.ORACLE;
 		} else {
 			dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 		}
