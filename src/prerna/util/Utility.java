@@ -1907,12 +1907,12 @@ public class Utility {
 	}
 	
 	public static String convertDataTypeToString(IMetaData.DATA_TYPES type) {
-		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
+		if(IMetaData.DATA_TYPES.NUMBER == type) { 
 			return "double";
-		} else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
-			return "varchar(800)";
-		} else {
+		} else if(IMetaData.DATA_TYPES.DATE == type) {
 			return "date";
+		} else {
+			return "varchar(800)";
 		}
 	}
 	

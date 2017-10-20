@@ -34,7 +34,21 @@ import java.util.List;
 public abstract class SQLQueryUtil {
 
 	// Added SQL Server as enum DB_TYPE
-	public enum DB_TYPE {H2_DB,MARIA_DB,SQL_Server,MySQL,Oracle}
+	public enum DB_TYPE {
+		ASTER,
+		CASSANDRA,
+		DB2,
+		DERBY,
+		H2_DB,
+		IMPALA,
+		MARIA_DB,
+		MYSQL,
+		ORACLE, 
+		PHOENIX,
+		POSTGRES,
+		SAP_HANA,
+		SQL_SERVER, 
+		TERADATA}
 
 	public static final String USE_OUTER_JOINS_FALSE = "false";
 	public static final String USE_OUTER_JOINS_TRUE = "true";
@@ -89,11 +103,11 @@ public abstract class SQLQueryUtil {
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype) {
 		if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			return new MariaDbQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_Server){
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
 			return new MySQLQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.Oracle) {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
 			return new OracleQueryUtil();
 		} else {
 			return new H2QueryUtil();
@@ -101,11 +115,11 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String hostname, String port, String schema, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_Server){
+		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil(hostname, port, schema, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
 			return new MySQLQueryUtil(hostname, port, schema, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.Oracle) {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
 			return new OracleQueryUtil(hostname, port, schema, username, password);
 		} else {
 			return null;
@@ -113,11 +127,11 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String connectionURL, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_Server){
+		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil(connectionURL, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MySQL) {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
 			return new MySQLQueryUtil(connectionURL, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.Oracle) {
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
 			return new OracleQueryUtil(connectionURL, username, password);
 		} else {
 			return null;
@@ -292,7 +306,7 @@ public abstract class SQLQueryUtil {
 		String subQuery = "";
 		//For SQL Server CTAS doesn't work, using select * into newTable from oldTable
 		//Also LTRIM(RTRIM(tableName)) works instead of TRIM(tableName)
-		if(this.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_Server)){
+		if(this.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER)){
 			createTable ="SELECT DISTINCT " + fullColumnNameList 
 					+ " INTO " + tableName + "_TEMP " 
 					+ " FROM " + tableName + " WHERE " + tableName 
