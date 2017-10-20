@@ -169,9 +169,7 @@ public class POIReader extends AbstractFileReader {
 		return engine;
 	}
 
-	public IEngine importFileWithOutConnectionRDBMS(ImportOptions options)
-			throws FileNotFoundException, IOException {
-
+	public IEngine importFileWithOutConnectionRDBMS(ImportOptions options) throws FileNotFoundException, IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
 		String fileNames = options.getFileLocations();
@@ -190,7 +188,7 @@ public class POIReader extends AbstractFileReader {
 			}
 			commitDB();
 			createBaseRelations();
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, queryUtil);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
