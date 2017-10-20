@@ -179,11 +179,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		String tUri = getNodePhysicalType(e.inVertex().property(TinkerFrame.TINKER_TYPE).value() + "") + "/" + e.inVertex().property(TinkerFrame.TINKER_NAME).value();
 		
 		if(!this.vertSet.contains(sUri) || !this.vertSet.contains(tUri)) {
-			if(this.hasNextEdge()) {
-				return getNextEdge();
-			} else {
-				return new HashMap<String, Object>();
-			}
+			return new HashMap<String, Object>();
 		}
 		
 		edgeMap.put("source", sUri);
