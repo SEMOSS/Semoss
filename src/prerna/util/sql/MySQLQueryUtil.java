@@ -50,7 +50,7 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 
 	@Override
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.MySQL;
+		return SQLQueryUtil.DB_TYPE.MYSQL;
 	}
 	public String getDialectAllColumns(String tableName){
 		return super.getDialectAllColumns() + "'" + tableName + "'" ;
