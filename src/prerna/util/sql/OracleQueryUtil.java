@@ -47,7 +47,7 @@ public class OracleQueryUtil extends SQLQueryUtil {
 
 	@Override
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.Oracle;
+		return SQLQueryUtil.DB_TYPE.ORACLE;
 	}
 	
 	public String getDialectAllColumns(String tableName){

@@ -53,7 +53,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 
 	@Override
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.SQL_Server;
+		return SQLQueryUtil.DB_TYPE.SQL_SERVER;
 	}
 	public String getDialectAllColumns(String tableName){
 		return super.getDialectAllColumns() + "'" + tableName + "'" ;
