@@ -1,6 +1,8 @@
 package prerna.poi.main;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
@@ -316,12 +318,23 @@ public class AbstractEngineCreator {
 		InsightAdministrator admin = new InsightAdministrator(insightRDBMSEngine);
 		String insightName = "Explore an instance of a selected node type";
 		String layout = "Graph";
-		String pkqlCmd = "%7B%22jsonView%22%3A%5B%7B%22query%22%3A%22data.frame('graph')%3Bdata.import(api%3A%3Cengine%3E.query(%5Bc%3A%3Cconcept%3E%5D%2C(c%3A%3Cconcept%3E%3D%5B%3Cinstance%3E%5D)))%3Bpanel%5B0%5D.viz(Graph%2C%5B%5D)%3B%22%2C%22label%22%3A%22Explore%20an%20instance%22%2C%22description%22%3A%22Explore%20instances%20of%20a%20selected%20concept%22%2C%22params%22%3A%5B%7B%22paramName%22%3A%22concept%22%2C%22required%22%3Atrue%2C%22view%22%3A%7B%22displayType%22%3A%22dropdown%22%2C%22label%22%3A%22Select%20a%20Concept%22%2C%22description%22%3A%22Select%20a%20concept%20that%20you%20will%20explore%22%7D%2C%22model%22%3A%7B%22query%22%3A%22database.concepts(%3Cengine%3E)%3B%22%2C%22dependsOn%22%3A%5B%22engine%22%5D%7D%7D%2C%7B%22paramName%22%3A%22instance%22%2C%22required%22%3Atrue%2C%22view%22%3A%7B%22displayType%22%3A%22checklist%22%2C%22label%22%3A%22Select%20an%20Instance%22%2C%22description%22%3A%22Select%20an%20instance%20to%20explore%22%7D%2C%22model%22%3A%7B%22query%22%3A%22data.query(api%3A%3Cengine%3E.query(%5Bc%3A%3Cconcept%3E%5D%2C%7B'limit'%3A50%2C'offset'%3A0%2C'getCount'%3A'false'%7D))%3B%22%2C%22dependsOn%22%3A%5B%22engine%22%2C%22concept%22%5D%7D%7D%5D%2C%22execute%22%3A%22button%22%7D%5D%7D";	
-		pkqlCmd = pkqlCmd.replace("%3Cengine%3E", engine.getEngineName());
-		String[] pkqlRecipeToSave = {pkqlCmd};
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
-		
-		insightRDBMSEngine.commit();
+		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
+		File exploreF = new File(exploreLoc);
+		if(exploreF.exists()) {
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(exploreF.toPath()))
+						.replaceAll("\n|\r|\t", "")
+						.replaceAll("\\s\\s+", "")
+						.replace("<<ENGINE>>", engineName);
+				newPixel += "} </encode>\" ) ;";
+				String[] pkqlRecipeToSave = {newPixel};
+				admin.addInsight(insightName, layout, pkqlRecipeToSave);
+				insightRDBMSEngine.commit();
+			} catch (IOException e2) {
+				logger.error("Error creating the explore an instance query!");
+			}
+		}
 		return insightRDBMSEngine;
 	}
 }
