@@ -6,12 +6,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.rosuda.JRI.Rengine;
+
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 
 public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
@@ -149,5 +153,35 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		task.setFormatMap(formatMap);
 		
 		return task.collect(0, true);
+	}
+	
+	protected void storeVariable(String varName, NounMetadata noun) {
+		this.insight.getVarStore().put(varName, noun);
+	}
+	protected Object retrieveVariable(String varName) {
+		NounMetadata noun = this.insight.getVarStore().get(varName);
+		if(noun == null) {
+			return null;
+		}
+		return noun.getValue();
+	}
+	protected void removeVariable(String varName) {
+		this.insight.getVarStore().remove(varName);
+	}
+
+	protected void endR() {
+		// java.lang.System.setSecurityManager(curManager);
+		// clean up other things
+		this.rJavaTranslator.endR();
+		if(rJavaTranslator instanceof RJavaJriTranslator) {
+			removeVariable(IRJavaTranslator.R_ENGINE);
+			removeVariable(IRJavaTranslator.R_PORT);
+		} else {
+			removeVariable(IRJavaTranslator.R_CONN);
+			removeVariable(IRJavaTranslator.R_PORT);
+		}
+		System.out.println("R Shutdown!!");
+//		java.lang.System.setSecurityManager(reactorManager);
+
 	}
 }
