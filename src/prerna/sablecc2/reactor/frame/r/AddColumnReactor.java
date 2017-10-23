@@ -11,8 +11,9 @@ import prerna.util.Utility;
 public class AddColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor adds an empty column to the frame The inputs to the reactor
-	 * are: 1) the name for the new column 2) the new column type
+	 * This reactor adds an empty column to the frame The inputs to the reactor are: 
+	 * 1) the name for the new column 
+	 * 2) the new column type
 	 */
 
 	@Override
@@ -29,7 +30,6 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		// clean colName
 		if (colName.contains("__")) {
 			String[] split = colName.split("__");
-			table = split[0];
 			colName = split[1];
 		}
 		// clean the column name to ensure that it is valid

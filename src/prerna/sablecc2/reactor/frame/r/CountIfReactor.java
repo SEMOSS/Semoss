@@ -20,12 +20,20 @@ public class CountIfReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// initialize rJavaTranslator
 		init();
+		
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		
+		//get frame name
 		String table = frame.getTableName();
 
 		// get inputs
 		String column = getExistingColumn();
+		//clean column name
+		if (column.contains("__")) {
+			column = column.split("__")[1];
+		}
+		
 		String regexToCount = getRegex();
 		String newColName = getNewColumn();
 
@@ -73,9 +81,6 @@ public class CountIfReactor extends AbstractRFrameReactor {
 		// third input is the new column name
 		NounMetadata noun = this.curRow.getNoun(2);
 		String column = noun.getValue().toString();
-		if (column.contains("__")) {
-			column = column.split("__")[1];
-		}
 		return column;
 	}
 }

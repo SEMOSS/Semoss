@@ -26,15 +26,13 @@ public class TrimReactor extends AbstractRFrameReactor {
 		//loop through all columns to trim
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			for (int i = 0; i < inputsGRS.size(); i++) {
-				NounMetadata input = inputsGRS.getNoun(i);
-				String thisSelector = input.getValue() + "";
-				String column = thisSelector;
+				String column = getColumn(i);
 				//separate the column name from the table name if necessary
 				if (column.contains("__")) {
 					column = column.split("__")[1];
 				}
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
-				String dataType = metaData.getHeaderTypeAsString(thisSelector);
+				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (!dataType.equals("STRING")){
 					throw new IllegalArgumentException("Data type not supported " + column);
 				}
@@ -45,7 +43,18 @@ public class TrimReactor extends AbstractRFrameReactor {
 				frame.executeRScript(script);
 			}
 		}
-
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+
+	private String getColumn(int i) {
+		NounMetadata input = this.getCurRow().getNoun(i);
+		String thisSelector = input.getValue() + "";
+		return thisSelector;
 	}
 }
