@@ -22,12 +22,11 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 		//use init to initialize rJavaTranslator object that will be used later
 		init();
 		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-
-		// get inputs
-		GenRowStruct inputsGRS = this.getCurRow();
+		RDataTable frame = (RDataTable) getFrame(); 
+		
 		//get table name
 		String table = frame.getTableName();
+		
 		//make a temporary table name
 		//we will reassign the table to this variable
 		//then assign back to the original table name
@@ -38,61 +37,84 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 		String columnReplaceScript = "FALSE";
 		String direction = "wide";
 
+		//get length of input to use when iterating through
+		int inputSize = this.getCurRow().size();
+		
+		//first input is the separator
+		String separator = getSeparator();
+
+		for (int i = 1; i < inputSize; i++) {
+			//next input will be the column that we are splitting
+			//we can specify to split more than one column, so there could be multiple column inputs
+			String column = getColumn(i);
+			//clean column name
+			if (column.contains("__")) {
+				column = column.split("__")[1];
+			}
+
+			//build the script to execute
+			String script = tempName + " <- cSplit(" + table + ", "
+					+ "\"" + column
+					+ "\", \"" + separator
+					+ "\", direction = \"" + direction
+					+ "\", drop = " + columnReplaceScript+ ");" 
+					;
+
+			//evaluate the r script
+			frame.executeRScript(script);
+
+			//get all the columns that are factors
+			script = "sapply(" + tempName + ", is.factor);";
+			//keep track of which columns are factors
+			int [] factors = this.rJavaTranslator.getIntArray(script);			
+			String [] colNames = getColumns(tempName);
+
+			// now I need to compose a string based on it
+			//we will convert the columns that are factors into strings using as.character
+			String conversionString = "";
+			for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
+			{
+				if(factors[factorIndex] == 1) // this is a factor
+				{
+					conversionString = conversionString + 
+							tempName + "$" + colNames[factorIndex] + " <- "
+							+ "as.character(" + tempName + "$" + colNames[factorIndex] + ");";
+				}
+			}
+
+			//convert factors
+			frame.executeRScript(conversionString);
+			//change table back to original name
+			frame.executeRScript(frameReplaceScript);
+			// perform variable cleanup
+			frame.executeRScript("rm(" + tempName + "); gc();");
+			//column header data is changing so we must recreate metadata
+			recreateMetadata(table);
+		}
+		
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	
+	private String getSeparator() {
+		GenRowStruct inputsGRS = this.getCurRow();
+		String separator = ""; 
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			//value we are splitting the column at is the first noun inputted
 			NounMetadata separatorNoun = inputsGRS.getNoun(0); 
-			String separator = separatorNoun.getValue() + "";
-
-			for (int i = 1; i < inputsGRS.size(); i++) {
-				//next input will be the column that we are splitting
-				//we can specify to split more than one column, so there could be multiple column inputs
-				NounMetadata input = inputsGRS.getNoun(i);
-				String fullColumn = input.getValue() + "";
-				String column = "";
-				if (fullColumn.contains("__")) {
-					column = fullColumn.split("__")[1];
-				}
-
-				//build the script to execute
-				String script = tempName + " <- cSplit(" + table + ", "
-						+ "\"" + column
-						+ "\", \"" + separator
-						+ "\", direction = \"" + direction
-						+ "\", drop = " + columnReplaceScript+ ");" 
-						;
-
-				//evaluate the r script
-				frame.executeRScript(script);
-
-				//get all the columns that are factors
-				script = "sapply(" + tempName + ", is.factor);";
-				//keep track of which columns are factors
-				int [] factors = this.rJavaTranslator.getIntArray(script);			
-				String [] colNames = getColumns(tempName);
-
-				// now I need to compose a string based on it
-				//we will convert the columns that are factors into strings using as.character
-				String conversionString = "";
-				for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
-				{
-					if(factors[factorIndex] == 1) // this is a factor
-					{
-						conversionString = conversionString + 
-								tempName + "$" + colNames[factorIndex] + " <- "
-								+ "as.character(" + tempName + "$" + colNames[factorIndex] + ");";
-					}
-				}
-
-				//convert factors
-				frame.executeRScript(conversionString);
-				//change table back to original name
-				frame.executeRScript(frameReplaceScript);
-				// perform variable cleanup
-				frame.executeRScript("rm(" + tempName + "); gc();");
-				//column header data is changing so we must recreate metadata
-				recreateMetadata(table);
-			}
+			separator = separatorNoun.getValue() + "";
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return separator;
+	}
+	
+	private String getColumn(int i) {
+		NounMetadata input = this.getCurRow().getNoun(i);
+		String column = input.getValue() + "";
+		return column;
 	}
 }

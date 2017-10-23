@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import org.rosuda.JRI.REXP;
+import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -178,6 +179,28 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asFactor();
+		}
+		return null;
+	}
+	
+	@Override
+	public double[] getHistogramBreaks(String script) {
+		REXP histR = (REXP)engine.eval(script);
+		if (histR != null) {
+			RVector vectorR = histR.asVector();
+			double[] breaks = vectorR.at("breaks").asDoubleArray();
+			return breaks;
+		}
+		return null;
+	}
+	
+	@Override
+	public int[] getHistogramCounts(String script) {
+		REXP histR = (REXP)engine.eval(script);
+		if (histR != null) {
+			RVector vectorR = histR.asVector();
+			int[] counts = vectorR.at("counts").asIntArray();
+			return counts;
 		}
 		return null;
 	}

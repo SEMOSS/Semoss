@@ -317,8 +317,6 @@ public class ReactorFactory {
 		reactorHash.put("UpdateInsightImage", UpdateInsightImageReactor.class );
 
 		// Save Reactors
-		//TODO make front end switch Save to SaveInsight
-		reactorHash.put("Save", SaveInsightReactor.class);
 		reactorHash.put("SaveInsight", SaveInsightReactor.class);
 		reactorHash.put("UpdateInsight", UpdateInsightReactor.class);
 
@@ -415,6 +413,12 @@ public class ReactorFactory {
 		frameReactorHash.put("TrimColumns", "TrimReactor");
 		frameReactorHash.put("Transpose", "TransposeReactor");
 		frameReactorHash.put("UpdateRowValues", "UpdateRowValuesWhereColumnContainsValueReactor");
+		
+		//frame stats
+		frameReactorHash.put("ColumnCount", "ColumnCountReactor");
+		frameReactorHash.put("DescriptiveStats", "DescriptiveStatsReactor");
+		frameReactorHash.put("Histogram", "HistogramReactor");
+		
 	}
 
 	/**
