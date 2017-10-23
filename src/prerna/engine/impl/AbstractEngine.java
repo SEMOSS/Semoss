@@ -314,8 +314,9 @@ public abstract class AbstractEngine implements IEngine {
 			IRawSelectWrapper it1 = null;
 			String oldId = null;
 			try {
-				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an instance of a selected node type'");
-				if(it1.hasNext()) {
+				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where "
+						+ "question_name = 'Explore an instance of a selected node type' OR question_name = 'Explore an Instance(s) of a Selected Node'" );
+				while(it1.hasNext()) {
 					// drop the old insight
 					oldId = it1.next().getValues()[0].toString();
 					admin.dropInsight(oldId);
@@ -341,7 +342,7 @@ public abstract class AbstractEngine implements IEngine {
 				it2 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an Instance(s) of a Selected Node'");
 				if(!it2.hasNext()) {
 					// add the new insight
-					String insightIdToSave = admin.addInsight("Explore an Instance(s) of a Selected Node", "Graph", new String[]{newPixel});
+					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
 		
 					if(oldId != null) {
 						insightRDBMS.insertData("UPDATE QUESTION_ID SET ID=" + oldId + " WHERE ID=" + insightIdToSave);
@@ -352,7 +353,7 @@ public abstract class AbstractEngine implements IEngine {
 					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 					Date date = new Date();
 					String currDate = dateFormat.format(date);
-					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an Instance(s) of a Selected Node");
+					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an instance of a selected node type");
 					solrInsights.put(SolrIndexEngine.TAGS, "Explore");
 					solrInsights.put(SolrIndexEngine.LAYOUT, "Graph");
 					solrInsights.put(SolrIndexEngine.CREATED_ON, currDate);
@@ -386,7 +387,7 @@ public abstract class AbstractEngine implements IEngine {
 					
 					// add the new insight
 					// and modify the id
-					String insightIdToSave = admin.addInsight("Explore an Instance(s) of a Selected Node", "Graph", new String[]{newPixel});
+					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
 					insightRDBMS.insertData("UPDATE QUESTION_ID SET ID=" + oldId + " WHERE ID=" + insightIdToSave);
 				}
 			} catch(Exception e) {
