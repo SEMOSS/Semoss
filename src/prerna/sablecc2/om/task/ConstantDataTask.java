@@ -9,7 +9,7 @@ import prerna.engine.api.IHeadersDataRow;
 public class ConstantDataTask extends AbstractTask {
 
 	private transient Object outputData;
-	
+	private Map<String, Object> formatMap;
 	/**
 	 * Collect data from an iterator
 	 * Or return defined outputData
@@ -19,7 +19,7 @@ public class ConstantDataTask extends AbstractTask {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", outputData);
 		if(meta) {
-			collectedData.put("format", "Custom Task Output");
+			collectedData.put("format", getFormatMap());
 			collectedData.put("taskOptions", getTaskOptions());
 			collectedData.put("headerInfo", getHeaderInfo());
 			collectedData.put("sortInfo", getSortInfo());
@@ -31,6 +31,18 @@ public class ConstantDataTask extends AbstractTask {
 	
 	public void setOutputObject(Object outputData) {
 		this.outputData = outputData;
+	}
+	
+	private Map<String, Object> getFormatMap() {
+		if(this.formatMap == null) {
+			formatMap = new HashMap<String, Object>();
+			formatMap.put("type", "Custom Task Output");
+		}
+		return formatMap;
+	}
+	
+	public void setFormatMap(Map<String, Object> formatMap) {
+		this.formatMap = formatMap;
 	}
 	
 	/*

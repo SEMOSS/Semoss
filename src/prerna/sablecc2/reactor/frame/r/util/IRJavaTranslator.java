@@ -78,6 +78,18 @@ public interface IRJavaTranslator {
 	Object parseAndEvalScript(String script) throws IOException;
 	
 	/**
+	 * This method uses specific Rserve or JRI methods to get the breaks for a histogram as double[]
+	 * @param script
+	 */
+	double[] getHistogramBreaks(String script);
+	
+	/**
+	 * This method uses specific Rserve or JRI methods to get the counts for a histogram as int[]
+	 * @param script
+	 */
+	int[] getHistogramCounts(String script);
+	
+	/**
 	 * Set the insight
 	 * @param insight
 	 */

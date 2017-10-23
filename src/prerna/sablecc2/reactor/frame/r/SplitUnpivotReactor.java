@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -13,21 +16,24 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	 * This reactor splits columns based on a separator
 	 * The split values will be combined into a single column
 	 * The inputs to the reactor are: 
-	 * 1) the separator
-	 * 2) the columns to split 
+	 * 1) the columns to split "cols"
+	 * 2) the delimiters "delimiters" 
 	 */
 
+	private static final String COLUMNS_KEY = "cols";
+	private static final String DELIMITER_KEY = "delimiters";
+	
+	
 	@Override
 	public NounMetadata execute() {
 		//use init to initialize rJavaTranslator object that will be used later
 		init();
 		// get frame
-		RDataTable frame = (RDataTable) getFrame();
-
-		// get inputs
-		GenRowStruct inputsGRS = this.getCurRow();
+		RDataTable frame = (RDataTable) getFrame(); 
+		
 		//get table name
 		String table = frame.getTableName();
+		
 		//make a temporary table name
 		//we will reassign the table to this variable
 		//then assign back to the original table name
@@ -37,66 +43,113 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		//false columnReplaceScript indicates that we will not drop the original column of data
 		String columnReplaceScript = "FALSE";
 		String direction = "long";
+		
+		//get the columns
+		//already cleaned to exclude the frame name
+		List<String> columns = getColumns();
+		
+		//get the delimiters
+		List<String> delimiters = getDelimiters();
+		
+		//throw an error if the number of delimiters doesn't make sense
+		//delimiters must match the number of columns, or just use a single delimiter
+		if ((columns.size() != delimiters.size()) && delimiters.size() != 1) {
+			throw new IllegalArgumentException("Need to enter a single delimiter for all columns or one for each column");
+		}
 
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//value we are splitting the column at is the first noun inputted
-			NounMetadata separatorNoun = inputsGRS.getNoun(0); 
-			String separator = separatorNoun.getValue() + "";
+		for (int i = 0; i < columns.size(); i++) {
+			String column = columns.get(i);
+			String delimiter = "";
+			if (delimiters.size() == 1) {
+				delimiter = delimiters.get(0);
+			} else {
+				delimiter = delimiters.get(i);
+			}
+			
+			//build the script to execute
+			String script = tempName + " <- cSplit(" + table + ", "
+					+ "\"" + column
+					+ "\", \"" + delimiter
+					+ "\", direction = \"" + direction
+					+ "\", drop = " + columnReplaceScript+ ");" 
+					;
 
-			for (int i = 1; i < inputsGRS.size(); i++) {
-				//next input will be the column that we are splitting
-				//we can specify to split more than one column, so there could be multiple column inputs
-				NounMetadata input = inputsGRS.getNoun(i);
-				PixelDataType nounType = input.getNounType();
-				if (nounType == PixelDataType.COLUMN) {
-					String fullColumn = input.getValue() + "";
-					String column = "";
-					if (fullColumn.contains("__")) {
-						column = fullColumn.split("__")[1];
-					}
+			//evaluate the r script
+			frame.executeRScript(script);
 
-					//build the script to execute
-					String script = tempName + " <- cSplit(" + table + ", "
-							+ "\"" + column
-							+ "\", \"" + separator
-							+ "\", direction = \"" + direction
-							+ "\", drop = " + columnReplaceScript+ ");" 
-							;
+			//get all the columns that are factors
+			script = "sapply(" + tempName + ", is.factor);";
+			//keep track of which columns are factors
+			int [] factors = this.rJavaTranslator.getIntArray(script);			
+			String [] colNames = getColumns(tempName);
 
-					//evaluate the r script
-					frame.executeRScript(script);
-
-					//get all the columns that are factors
-					script = "sapply(" + tempName + ", is.factor);";
-					//keep track of which columns are factors
-					int [] factors = this.rJavaTranslator.getIntArray(script);			
-					String [] colNames = getColumns(tempName);
-
-					// now I need to compose a string based on it
-					//we will convert the columns that are factors into strings using as.character
-					String conversionString = "";
-					for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
-					{
-						if(factors[factorIndex] == 1) // this is a factor
-						{
-							conversionString = conversionString + 
-									tempName + "$" + colNames[factorIndex] + " <- "
-									+ "as.character(" + tempName + "$" + colNames[factorIndex] + ");";
-						}
-					}
-
-					//convert factors
-					frame.executeRScript(conversionString);
-					//change table back to original name
-					frame.executeRScript(frameReplaceScript);
-					// perform variable cleanup
-					frame.executeRScript("rm(" + tempName + "); gc();");
-					//column header data is changing so we must recreate metadata
-					recreateMetadata(table);
+			// now I need to compose a string based on it
+			//we will convert the columns that are factors into strings using as.character
+			String conversionString = "";
+			for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
+			{
+				if(factors[factorIndex] == 1) // this is a factor
+				{
+					conversionString = conversionString + 
+							tempName + "$" + colNames[factorIndex] + " <- "
+							+ "as.character(" + tempName + "$" + colNames[factorIndex] + ");";
 				}
 			}
+
+			//convert factors
+			frame.executeRScript(conversionString);
+			//change table back to original name
+			frame.executeRScript(frameReplaceScript);
+			// perform variable cleanup
+			frame.executeRScript("rm(" + tempName + "); gc();");
+			
 		}
+		//column header data is changing so we must recreate metadata
+		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	
+	private List<String> getDelimiters() {
+		//inputs are passed based on a key
+		//store in a vector of inputs
+		List<String> delInputs = new Vector<String>();
+		GenRowStruct delGRS = this.store.getNoun(DELIMITER_KEY);
+		if (delGRS != null) {
+			int size = delGRS.size();
+			if (size > 0) {
+				for (int i = 0; i < size; i++) {
+					delInputs.add(delGRS.get(i).toString());
+				}
+				return delInputs;
+			}
+		}
+		throw new IllegalArgumentException("Need to define delimiters");
+	}
+	
+	private List<String> getColumns() {
+		//if it was passed based on a key
+			List<String> colInputs = new Vector<String>();
+			GenRowStruct colGRS = this.store.getNoun(COLUMNS_KEY);
+			if (colGRS != null) {
+				int size = colGRS.size();
+				if (size > 0) {
+					for (int i = 0; i < size; i++) {
+						//get each individul column entry and clean 
+						String column = colGRS.get(i).toString();
+						if (column.contains("__")) {
+							column = column.split("__")[1];
+						}
+						colInputs.add(column);
+					}
+					return colInputs;
+				}
+			}
+			throw new IllegalArgumentException("Need to define columns");
+	}
 }
