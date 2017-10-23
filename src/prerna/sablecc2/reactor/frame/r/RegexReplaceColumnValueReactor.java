@@ -23,49 +23,76 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		
+		//get table name
+		String table = frame.getTableName();
 
-		// get inputs
+		// get column to update
+		String column = getUpdateColumn();
+		//clean column name
+		if (column.contains("__")) {
+			column = column.split("__")[1];
+		}
+
+		//get regular expression
+		String regex = getRegex();
+		
+		//get new value
+		String newValue = getNewValue();
+
+		//define r script
+		String colScript = table + "$" + column;
+		String script = colScript + " = ";
+		String dataType = getColumnType(table, column);
+		String quote = "";
+		if (dataType.contains("character") || dataType.contains("factor")) {
+			quote = "\"";
+		}
+		//script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
+		script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ");";
+			
+		//doing gsub on a numeric column changes the data type to a string 
+		//so change it back to numeric in r
+		if (dataType.contains("numeric")) {
+			script += table + "$" + column + " <- as.numeric(" + table + "$" + column + ");";
+		}
+			
+		frame.executeRScript(script); 
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	
+	private String getUpdateColumn() {
 		GenRowStruct inputsGRS = this.getCurRow();
-
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			//first input is the column that we are updating
 			NounMetadata input1 = inputsGRS.getNoun(0);
-			PixelDataType nounType1 = input1.getNounType();
-			String column = "";
-			String fullColumn = "";
-			if (nounType1 == PixelDataType.COLUMN) {
-				fullColumn = input1.getValue() + "";
-				column = fullColumn.split("__")[1];
+			String column = input1.getValue() + "";
+			if (column.length() == 0) {
+				throw new IllegalArgumentException("Need to defne the column to be updated");
 			}
-
-			//second input is the regex
-			NounMetadata input2 = inputsGRS.getNoun(1);
-			String regex = null; 
-			regex = input2.getValue() + ""; 
-
-			//third input is the new value
-			NounMetadata input3 = inputsGRS.getNoun(2);
-			String newValue = null; 
-			newValue = input3.getValue() + ""; 
-			String table = frame.getTableName();
-			String colScript = table + "$" + column;
-			String script = colScript + " = ";
-			String dataType = getColumnType(table, column);
-			String quote = "";
-			if (dataType.contains("character") || dataType.contains("factor")) {
-				quote = "\"";
-			}
-			//script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
-			script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ");";
-			
-			//doing gsub on a numeric column changes the data type to a string 
-			//so change it back to numeric in r
-			if (dataType.contains("numeric")) {
-				script += table + "$" + column + " <- as.numeric(" + table + "$" + column + ");";
-			}
-			
-			frame.executeRScript(script); 
-		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+			return column;
+		}	
+		throw new IllegalArgumentException("Need to define the column to be updated");
 	}
+	
+	private String getRegex() {
+		//second input is the regex
+		NounMetadata input2 = this.getCurRow().getNoun(1);
+		String regex = input2.getValue() + ""; 
+		return regex;
+	}
+	
+	private String getNewValue() {
+		//third input is the new value
+		NounMetadata input3 = this.getCurRow().getNoun(2);
+		String newValue = input3.getValue() + ""; 
+		return newValue;
+	}
+
 }

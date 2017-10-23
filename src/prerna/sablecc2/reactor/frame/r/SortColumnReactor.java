@@ -22,40 +22,59 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
+		//get table name
+		String table = frame.getTableName();
+		
 		// get inputs
-		GenRowStruct inputsGRS = this.getCurRow();
+		//the first input is the column to sort
+		String column = getSortColumn();
+		if (column.contains("__")) {
+			column = column.split("__")[1];
+		}
 
+		//second input is the sort direction
+		String sortDir = getSortDirection();
+
+		// define the scripts based on the sort direction
+		String script = null;
+		if (sortDir == null || sortDir.equalsIgnoreCase("asc")) {
+			script = table + " <- " + table + "[order(rank(" + column + "))]";
+		} else if (sortDir.equalsIgnoreCase("desc")) {
+			script = table + " <- " + table + "[order(-rank(" + column + "))]";
+		}
+		// execute the r script
+		// script will be of the form: FRAME <- FRAME[order(rank(Director))]
+		frame.executeRScript(script);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	
+	private String getSortColumn() {
+		GenRowStruct inputsGRS = this.getCurRow();
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			// the first input will be the column to sort
 			NounMetadata input1 = inputsGRS.getNoun(0);
-			PixelDataType nounType1 = input1.getNounType();
-			String column = "";
-			if (nounType1 == PixelDataType.COLUMN) {
-				String fullColumn = input1.getValue() + "";
-				column = fullColumn.split("__")[1];
+			String fullColumn = input1.getValue() + "";
+			if (fullColumn.length() == 0) {
+				throw new IllegalArgumentException("Need to define the column to sort");
 			}
-
-			// the second input will be the sort direction
-			NounMetadata input2 = inputsGRS.getNoun(1);
-			PixelDataType nounType2 = input2.getNounType();
-			String sortDir = null;
-			if (nounType2 == PixelDataType.CONST_STRING) {
-				sortDir = input2.getValue() + "";
-			}
-
-			String table = frame.getTableName();
-
-			// define the scripts based on the sort direction
-			String script = null;
-			if (sortDir == null || sortDir.equalsIgnoreCase("asc")) {
-				script = table + " <- " + table + "[order(rank(" + column + "))]";
-			} else if (sortDir.equalsIgnoreCase("desc")) {
-				script = table + " <- " + table + "[order(-rank(" + column + "))]";
-			}
-			// execute the r script
-			// script will be of the form: FRAME <- FRAME[order(rank(Director))]
-			frame.executeRScript(script);
+			return fullColumn;
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		throw new IllegalArgumentException("Need to define the column to sort");
+	}
+	
+	private String getSortDirection() {
+		// the second input will be the sort direction
+		NounMetadata input2 = this.getCurRow().getNoun(1);
+		String sortDir = input2.getValue() + "";
+		if (sortDir.length() == 0) {
+			throw new IllegalArgumentException("Need to specify sort direction");
+		}	
+		return sortDir;
 	}
 }

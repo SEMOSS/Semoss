@@ -19,25 +19,25 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		
+		//get table name
+		String table = frame.getTableName();
+		
+		//get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
-
 		// keep track of selectors to change to upper case
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-				NounMetadata input = inputsGRS.getNoun(selectIndex);
-				String thisSelector = input.getValue() + "";
+				String column = getColumn(selectIndex);
 				String script = "";
-				String table = frame.getTableName();
-				String column = thisSelector;
+				
 				// separate the table and column names if necessary
-				if (thisSelector.contains("__")) {
-					String[] split = thisSelector.split("__");
-					table = split[0];
-					column = split[1];
+				if (column.contains("__")) {
+					column = column.split("__")[1];
 				}
 
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
-				String dataType = metaData.getHeaderTypeAsString(thisSelector);
+				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (!dataType.equalsIgnoreCase("STRING")) {
 					throw new IllegalArgumentException("Data type not supported.");
 				}
@@ -50,5 +50,17 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+
+	private String getColumn(int i) {
+		NounMetadata input = this.getCurRow().getNoun(i);
+		String thisSelector = input.getValue() + "";
+		return thisSelector;
 	}
 }

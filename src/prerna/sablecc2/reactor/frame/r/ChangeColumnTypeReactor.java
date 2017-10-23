@@ -22,16 +22,19 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		
+		//get table name
+		String table = frame.getTableName();
+		
 		// get inputs
 		String column = getColumn();
 		String newType = getColumnType();
-		String table = frame.getTableName();
-
+		
 		if (column.contains("__")) {
 			String[] split = column.split("__");
 			column = split[1];
-			table = split[0];
 		}
+		
 		// define the r script to execute
 		// script depends on the new data type
 		String script = null;
