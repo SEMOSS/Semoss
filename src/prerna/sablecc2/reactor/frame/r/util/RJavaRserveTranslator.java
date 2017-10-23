@@ -237,4 +237,19 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			this.port = port;
 		}
 	}
+	
+	@Override
+	public void endR() {
+//		java.lang.System.setSecurityManager(curManager);
+		try {
+			if(retCon != null) {
+				retCon.shutdown();
+			}
+			// clean up other things
+			System.out.println("R Shutdown!!");
+//			java.lang.System.setSecurityManager(reactorManager);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
