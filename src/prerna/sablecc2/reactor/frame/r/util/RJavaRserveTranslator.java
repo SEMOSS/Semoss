@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
@@ -183,7 +184,35 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	@Override
+	public double[] getHistogramBreaks(String script) {
+		try {
+			Map<String, Object> histJ = (Map<String, Object>)(retCon.eval(script).asNativeJavaObject());
+			double[] breaks = (double[]) histJ.get("breaks");
+			return breaks;
+		} catch (RserveException e) {
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
+	@Override
+	public int[] getHistogramCounts(String script) {
+		try {
+			Map<String, Object> histJ = (Map<String, Object>)(retCon.eval(script).asNativeJavaObject());
+			int[] counts = (int[]) histJ.get("counts");
+			return counts;
+		} catch (RserveException e) {
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	@Override
 	public Object parseAndEvalScript(String script) throws IOException {
 		try {

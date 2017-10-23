@@ -20,9 +20,9 @@ public class TransposeReactor extends AbstractRFrameReactor {
 		init();
 		RDataTable frame = (RDataTable) getFrame();
 		
-		//make sure frame is not null
 		//get table name
 		String table = frame.getTableName();
+		
 		//define r script string to be executed
 		String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
 		//execute the r script

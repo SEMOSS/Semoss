@@ -20,27 +20,29 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// initialize rJavaTranslator
 		init();
+		
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		
+		//get table name 
+		String table = frame.getTableName();
+		
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			// add loop; this would apply if more than one column to drop
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-				NounMetadata input = inputsGRS.getNoun(selectIndex);
-				String colName = input.getValue() + "";
-				// check that the frame is not null
-				String table = frame.getTableName();
-				// define the r script to be executed
-				String script = table + "[," + colName + ":=NULL]";
-				// check the column exists, if not then throw warning
-				String[] allCol = getColumns(table);
-				String column = colName;
-				if (colName.contains("__")) {
-					String[] split = colName.split("__");
-					table = split[0];
-					column = split[1];
+				String column = getColumn(selectIndex);
+				//clean the column name
+				if (column.contains("__")) {
+					column = column.split("__")[1];
 				}
+				
+				// define the r script to be executed
+				String script = table + "[," + column + ":=NULL]";
+				
+				//make sure that the column to be dropped exists; if not, throw error
+				String[] allCol = getColumns(table);
 				if (Arrays.asList(allCol).contains(column) != true) {
 					throw new IllegalArgumentException("Column doesn't exist.");
 				}
@@ -51,12 +53,28 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 
 				// update the metadata because the columns are changing
 				OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-				metaData.dropProperty(colName, table);
+				metaData.dropProperty(table + "__" + column, table);
 				this.getFrame().syncHeaders();
-
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	///////////////////////// GET PIXEL INPUT ////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	
+	private String getColumn(int i) {
+		GenRowStruct inputsGRS = this.getCurRow();
+		if (inputsGRS != null && !inputsGRS.isEmpty()) {
+			String colName = inputsGRS.getNoun(i).getValue() + "";
+			if (colName.length() == 0) {
+				throw new IllegalArgumentException("Need to define the new column name");
+			}
+			return colName;
+		}
+		throw new IllegalArgumentException("Need to define the new column name");
+	}
 }
