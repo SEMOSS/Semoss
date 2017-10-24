@@ -13,7 +13,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class AddLogicalNameReactor extends AbstractReactor {
 	private static final String ENGINE_KEY = "engine";
 	private static final String CONCEPT_KEY = "concept";
-	private static final String LOGICAL_NAME_KEY = "logicalName";
+	private static final String LOGICAL_NAME_KEY = "logicalNames";
 
 	@Override
 	public NounMetadata execute() {
