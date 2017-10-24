@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -54,8 +55,9 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// FE passes the column name
 		// but meta will still be table __ column
 		// update the metadata because column names have changed
-		this.getFrame().getMetaData().modifyPropertyName(table + "__" + originalColName, table,
-				table + "__" + validNewHeader);
+		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
+		metadata.modifyPropertyName(table + "__" + originalColName, table, table + "__" + validNewHeader);
+		metadata.setAliasToProperty(table + "__" + validNewHeader, validNewHeader);
 		this.getFrame().syncHeaders();
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

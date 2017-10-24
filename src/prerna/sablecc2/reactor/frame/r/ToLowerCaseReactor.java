@@ -19,10 +19,8 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		
 		//get table name
 		String table = frame.getTableName();
-
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
 		// keep all selectors that we are changing to lower case
@@ -31,19 +29,19 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 				String column = getColumn(selectIndex);
 				// separate table from column name if necessary
 				if (column.contains("__")) {
-					column = column.split("__")[1];
+					String[] split = column.split("__");
+					column =split[1];
+					table = split[0];
 				}
 				// validate data type
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-				if (!dataType.equals("STRING")) {
-					throw new IllegalArgumentException("Data type not supported.");
+				if (dataType.equals("STRING")) {
+					// script will take the form: FRAME$column <- tolower(FRAME$column)
+					String script = table + "$" + column + " <- tolower(" + table + "$" + column + ")";
+					// execute the r script
+					frame.executeRScript(script);
 				}
-
-				// script will take the form: FRAME$column <- tolower(FRAME$column)
-				String script = table + "$" + column + " <- tolower(" + table + "$" + column + ")";
-				// execute the r script
-				frame.executeRScript(script);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
