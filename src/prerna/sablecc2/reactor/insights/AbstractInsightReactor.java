@@ -1,8 +1,10 @@
 package prerna.sablecc2.reactor.insights;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.file.Files;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -11,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -23,6 +26,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightScreenshot;
@@ -40,6 +44,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String RECIPE = "recipe";
 	protected static final String LAYOUT = "layout";
 	protected static final String IMAGE_URL = "image";
+	protected static final String RECIPE_FILE = "recipe.txt";
 
 	protected String getEngine() {
 		// look at all the ways the insight panel could be passed
@@ -179,6 +184,39 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Save insight recipe to db/engineName/insightName/recipe.txt
+	 * 
+	 * @param engineName
+	 * @param rdbmsID
+	 * @param recipeToSave
+	 */
+	protected void saveRecipeToFile(String engineName, String rdbmsID, String[] recipeToSave) {
+		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
+		File path = new File(recipePath);
+		// create insight directory
+		if (path.mkdir()) {
+			recipePath += "\\" + RECIPE_FILE;
+			// create txt file
+			File f = new File(recipePath);
+			StringBuilder sb = new StringBuilder();
+			for (String pixel : recipeToSave) {
+				sb.append(pixel);
+			}
+			try {
+				// write recipe to file
+				FileUtils.writeStringToFile(f, sb.toString());
+			} catch (IOException e1) {
+				LOGGER.error("Error in writing recipe file to path " + recipePath );
+				e1.printStackTrace();
+
+			}
+		} else {
+			LOGGER.error("Error in writing recipe file to path " + recipePath );
+		}
+	}
+	
+	/**
 	 *	TODO remove param hack solr insightIDToView
 	 *
 	 * @param solrInsightIDToUpdate
@@ -248,4 +286,5 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		t.setPriority(Thread.MAX_PRIORITY);
 		t.start();
 	}
+
 }
