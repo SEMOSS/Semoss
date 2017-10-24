@@ -35,6 +35,7 @@ import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -1440,18 +1441,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(QueryStruct2 queryStruct) {
-		GremlinInterpreter2 interpreter = new GremlinInterpreter2(this.g, this.metaData);
-		
+	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
 		// right now
 		// BE is going to assume the user wants all the join information
 		// even if they are not returning all the headers
 //		if(queryStruct.getSelectors().size() > 1) {
 			// fill in relationships into qs
-			queryStruct.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
+			qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 //		}
-		interpreter.setQueryStruct(queryStruct);
-		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), queryStruct, this.metaData), queryStruct);
+		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
+		GremlinInterpreter2 interpreter = new GremlinInterpreter2(this.g, this.metaData);
+		interpreter.setQueryStruct(qs);
+		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs, this.metaData), qs);
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {

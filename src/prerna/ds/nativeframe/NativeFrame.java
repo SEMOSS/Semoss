@@ -11,6 +11,7 @@ import prerna.ds.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
@@ -197,6 +198,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());
+		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return iterator;
 	}
