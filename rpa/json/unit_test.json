@@ -1,0 +1,32 @@
+{
+  "-jobName":"pieContest",
+  "-jobGroup":"pieContestGroup",
+  "-jobClass":"JobChain",
+  "-jobCronExpression":"00 30 00 1/1 * ? *",
+  "jobsInChain":[
+    {
+      "-jobClass":"JobBatch",
+      "timeout":120,
+      "jobsInBatch":[
+        {
+          "-jobName":"pie0",
+          "-jobClass":"BakePiesJob",
+          "bakeDuration":3
+        },
+        {
+          "-jobName":"pie1",
+          "-jobClass":"BakePiesJob",
+          "bakeDuration":1
+        },
+        {
+          "-jobName":"pie2",
+          "-jobClass":"BakePiesJob",
+          "bakeDuration":5
+        }
+      ]
+    },
+    {
+      "-jobClass":"JudgePiesJob"
+    }
+  ]
+}
