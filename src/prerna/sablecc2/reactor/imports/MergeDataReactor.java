@@ -3,11 +3,13 @@ package prerna.sablecc2.reactor.imports;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -20,7 +22,6 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.QueryFilter;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class MergeDataReactor extends AbstractReactor {
@@ -39,12 +40,16 @@ public class MergeDataReactor extends AbstractReactor {
 		// but will update the frame in the pixel planner
 		QueryStruct2 qs = getQueryStruct();
 		List<Join> joins = this.curRow.getAllJoins();
+		// first convert the join to use the physical frame name in the selector
+		joins = convertJoins(joins, frame.getMetaData());
 		// if we have an inner join, add the current values as a filter on the query
 		// important for performance on large dbs when the user has already 
 		// filtered to small subset
 		for(Join j : joins) {
-			String q = j.getQualifier();
+			// s is the frame name
 			String s = j.getSelector();
+			// q is part of the query we are merging
+			String q = j.getQualifier();
 			String type = j.getJoinType();
 			if(type.equals("inner.join") || type.equals("left.outer.join")) {
 				// we need to make sure we apply the filter correctly!
@@ -151,21 +156,29 @@ public class MergeDataReactor extends AbstractReactor {
 	}
 	
 	/**
-	 * Flush the task data into an array
-	 * This assumes you have table data!!!
-	 * @param taskData
+	 * Convert the frame join name from the alias to the physical table__column name
+	 * @param joins
+	 * @param meta
 	 * @return
 	 */
-	private List<Object> flushJobData(ITask taskData) {
-		List<Object> flushedOutCol = new ArrayList<Object>();
-		// iterate through the task to get the table data
-		List<Object[]> data = taskData.flushOutIteratorAsGrid();
-		int size = data.size();
-		// assumes we are only flushing out the first column
-		for(int i = 0; i < size; i++) {
-			flushedOutCol.add(data.get(i)[0]);
+	private List<Join> convertJoins(List<Join> joins, OwlTemporalEngineMeta meta) {
+		List<Join> convertedJoins = new Vector<Join>();
+		for(Join j : joins) {
+			String origLCol = j.getSelector();
+			String newLCol = meta.getUniqueNameFromAlias(origLCol);
+			if(newLCol == null) {
+				// nothing to do
+				// add the original back
+				convertedJoins.add(j);
+				continue;
+			}
+			// or an alias was used
+			// so make a new Join and add it to the list
+			Join newJ = new Join(newLCol, j.getJoinType(), j.getQualifier(), j.getJoinRelName());
+			convertedJoins.add(newJ);
 		}
 		
-		return flushedOutCol;
+		
+		return convertedJoins;
 	}
 }
