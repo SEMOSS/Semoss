@@ -68,12 +68,14 @@ import prerna.sablecc2.reactor.insights.UpdateInsightImageReactor;
 import prerna.sablecc2.reactor.insights.UpdateInsightReactor;
 import prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
+import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
 import prerna.sablecc2.reactor.panel.ClosePanelReactor;
@@ -260,6 +262,8 @@ public class ReactorFactory {
 		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetEngineMetamodel", DatabaseMetamodelReactor.class);
+		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
+		reactorHash.put("RemoveLogicalName", RemoveLogicalNameReactor.class);
 		
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
