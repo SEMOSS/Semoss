@@ -108,8 +108,4 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		this.logger = logger;
 	}
 
-	public void endR() {
-		// TODO Auto-generated method stub
-		
-	}
 }
