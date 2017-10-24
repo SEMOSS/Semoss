@@ -44,7 +44,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
-
+		
 		// TODO: there can be more than 1 layout given clone...
 		String layout = getLayout();
 		if (layout == null) {
@@ -67,7 +67,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		LOGGER.info("2) Add insight to solr");
 		addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "", imageURL);
 		LOGGER.info("2) Done");
-
+		
+		//write recipe to file
+		LOGGER.info("3) Save " + RECIPE_FILE);
+		saveRecipeToFile(engineName, newRdbmsId, recipeToSave);
+		LOGGER.info("3) Done");
+		
 		// we can't save these layouts so ignore image
 		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
 			LOGGER.error("Insight contains a layout that we cannot save an image for!!!");

@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.insights;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
@@ -21,6 +23,8 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.solr.SolrIndexEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
@@ -73,6 +77,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		LOGGER.info("2) Update insight in solr");
 		editExistingInsightInSolr(engineName, rdbmsID, insightName, layout, "", new ArrayList<String>(), "", imageURL);
 		LOGGER.info("2) Done");
+		//update recipe text file
+		LOGGER.info("3) Update "+ RECIPE_FILE);
+		updateRecipeFile(engineName, rdbmsID, recipeToSave);
+		LOGGER.info("3) Done");
 		
 		// we can't save these layouts so ignore image
 		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
@@ -80,7 +88,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		} else {
 			updateSolrImage(rdbmsID, rdbmsID, imageURL, engineName);
 		}
-
+		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("core_engine_id", rdbmsID);
@@ -123,6 +131,24 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e1) {
 			e1.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Update recipe: delete the old file and save as new
+	 * 
+	 * @param engineName
+	 * @param rdbmsID
+	 * @param recipeToSave
+	 */
+	protected void updateRecipeFile(String engineName, String rdbmsID, String[] recipeToSave) {
+		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		recipeLocation += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
+		try {
+			FileUtils.deleteDirectory(new File(recipeLocation));
+			saveRecipeToFile(engineName, rdbmsID, recipeToSave);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
