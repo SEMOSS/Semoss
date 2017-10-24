@@ -113,4 +113,6 @@ public interface IRJavaTranslator {
 	 */
 	void setPort(String port);
 	
+	void endR();
+	
 }
