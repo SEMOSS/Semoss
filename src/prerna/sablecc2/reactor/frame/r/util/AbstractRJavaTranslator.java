@@ -107,4 +107,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
+
+	public void endR() {
+		// TODO Auto-generated method stub
+		
+	}
 }
