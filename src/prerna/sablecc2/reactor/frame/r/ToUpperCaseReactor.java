@@ -19,7 +19,6 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		
 		//get table name
 		String table = frame.getTableName();
 		
@@ -30,23 +29,23 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				String column = getColumn(selectIndex);
 				String script = "";
-				
 				// separate the table and column names if necessary
 				if (column.contains("__")) {
-					column = column.split("__")[1];
+					String[] split = column.split("__");
+					column = split[1];
+					table = split[0];
 				}
 
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-				if (!dataType.equalsIgnoreCase("STRING")) {
-					throw new IllegalArgumentException("Data type not supported.");
+				if (dataType.equalsIgnoreCase("STRING")) {
+					// define the script to be executed
+					script = table + "$" + column + " <- toupper(" + table + "$" + column + ")";
+					// execute the r script
+					// script will be of the form:
+					// FRAME$column <- toupper(FRAME$column)
+					frame.executeRScript(script);
 				}
-
-				// define the script to be executed
-				script = table + "$" + column + " <- toupper(" + table + "$" + column + ")";
-				// execute the r script
-				// script will be of the form: FRAME$column <- toupper(FRAME$column)
-				frame.executeRScript(script);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
