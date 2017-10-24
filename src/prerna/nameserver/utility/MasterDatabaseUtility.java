@@ -803,6 +803,41 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
+	 * Removes logical name for a concept from an engine
+	 * @param engineName
+	 * @param concept
+	 * @param logicalName
+	 * @return success
+	 */
+	public static boolean removeLogicalName(String engineName, String concept, String logicalName) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = engine.makeConnection();
+		ResultSet rs = null;
+		
+		try {
+			String deleteQuery = "delete from concept "
+					+ "where localconceptid in (select localconceptid from engineconcept "
+					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
+					+ "and conceptualname = \'" + concept + "\' and logicalname = \'"+logicalName+"\';";
+			int updateCount = masterConn.createStatement().executeUpdate(deleteQuery);
+			if(updateCount == 1) {
+				return true;
+			}
+		} catch(SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Returns Xray config files
 	 * @return
 	 */
