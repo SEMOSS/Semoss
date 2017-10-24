@@ -54,7 +54,7 @@ public class RemoveLogicalNameReactor extends AbstractReactor {
 		GenRowStruct instanceGrs = this.store.getNoun(LOGICAL_NAME_KEY);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			for (int i = 0; i < instanceGrs.size(); i++) {
-				String name = (String) instanceGrs.get(0);
+				String name = (String) instanceGrs.get(i);
 				if (name.length() > 0) {
 					logicalNames.add(name);
 				}
