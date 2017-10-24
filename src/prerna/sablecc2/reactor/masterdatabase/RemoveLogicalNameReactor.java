@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -16,8 +19,11 @@ public class RemoveLogicalNameReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String engineName = getEngineName();
 		String concept = getConcept();
-		String logicalName = getLogicalName();
-		boolean success = MasterDatabaseUtility.removeLogicalName(engineName, concept, logicalName);
+		List<String> logicalNames = getLogicalNames();
+		boolean success = false;
+		for (String name : logicalNames) {
+			success = MasterDatabaseUtility.removeLogicalName(engineName, concept, name);
+		}
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
@@ -43,15 +49,18 @@ public class RemoveLogicalNameReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Need to define " + CONCEPT_KEY);
 	}
 
-	private String getLogicalName() {
+	private List<String> getLogicalNames() {
+		Vector<String> logicalNames = new Vector<String>();
 		GenRowStruct instanceGrs = this.store.getNoun(LOGICAL_NAME_KEY);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
-			String logicalName = (String) instanceGrs.get(0);
-			if (logicalName.length() > 0) {
-				return logicalName;
+			for (int i = 0; i < instanceGrs.size(); i++) {
+				String name = (String) instanceGrs.get(0);
+				if (name.length() > 0) {
+					logicalNames.add(name);
+				}
 			}
 		}
-		throw new IllegalArgumentException("Need to define " + LOGICAL_NAME_KEY);
+		return logicalNames;
 	}
 
 }
