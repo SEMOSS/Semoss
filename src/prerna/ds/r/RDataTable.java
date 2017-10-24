@@ -17,12 +17,12 @@ import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.engine.impl.r.RExcelFileWrapper;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.QueryStructConverter;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.ds.r.RregexValidator;
 
 public class RDataTable extends AbstractTableDataFrame {
 
@@ -224,6 +224,7 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter2 interp = new RInterpreter2();
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getTableName());

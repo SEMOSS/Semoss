@@ -579,17 +579,17 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inADotcol(ADotcol node)
     {
     	defaultIn(node);
-    	processColumnReference(node.getColumnName().toString().trim());
+    	processAliasReference(node.getColumnName().toString().trim());
     }
 
     @Override
     public void inARcol(ARcol node)
     {
     	defaultIn(node);
-    	processColumnReference(node.getColumnName().toString().trim());
+    	processAliasReference(node.getColumnName().toString().trim());
     }
 
-    private void processColumnReference(String colName) {
+    private void processAliasReference(String colName) {
     	ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
     	if(frame != null) {
     		String tableName = frame.getTableName();
