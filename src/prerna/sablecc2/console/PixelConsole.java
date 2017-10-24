@@ -81,7 +81,7 @@ public class PixelConsole {
 	}
 
 	public static void loadEngines() {
-		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
@@ -100,19 +100,19 @@ public class PixelConsole {
 //		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
 		
 
-		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineName("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 		
-		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\Movie_RDF.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("Movie_RDF");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
 		
-		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\TAP_Core_Data.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineName("TAP_Core_Data");
 		coreEngine.openDB(engineProp);

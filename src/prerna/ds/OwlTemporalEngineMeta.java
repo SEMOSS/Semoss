@@ -38,6 +38,7 @@ public class OwlTemporalEngineMeta {
 	private static final String IS_DERIVED_PRED = "http://semoss.org/ontologies/Relation/Contains/IsDerived";
 	private static final String QUERY_STRUCT_PRED = "http://semoss.org/ontologies/Relation/Contains/QueryStructName";
 	private static final String ALIAS_PRED = "http://semoss.org/ontologies/Relation/Contains/Alias";
+	// specific for tinker
 	private static final String PHYSICAL_PRED = "http://semoss.org/ontologies/Relation/Contains/Physical";
 
 	/**
@@ -70,25 +71,28 @@ public class OwlTemporalEngineMeta {
 	 * METHODS PERTAINING TO A VERTEX
 	 */
 
-	public void addVertex(String uniqueName) {
+	public void addVertex(String vertexName) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = RDFS.SUBCLASSOF.toString();
 		obj = SEMOSS_CONCEPT_PREFIX;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, true});
+		
+		// add the unique name as an alias as well
+//		setAliasToVertex(vertexName, vertexName);
 	}
 
-	public void setDataTypeToVertex(String uniqueName, String dataType) {
+	public void setDataTypeToVertex(String vertexName, String dataType) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = OWL.DATATYPEPROPERTY.toString();
 		obj = dataType;
 		if(obj == null) {
@@ -105,61 +109,67 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setPrimKeyToVertex(String uniqueName, boolean isPrimKey) {
+	public void setPrimKeyToVertex(String vertexName, boolean isPrimKey) {
 		String sub = "";
 		String pred = "";
 		boolean obj = false;
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = IS_PRIM_KEY_PRED;
 		obj = isPrimKey;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setDerivedToVertex(String uniqueName, boolean isDerived) {
+	public void setDerivedToVertex(String vertexName, boolean isDerived) {
 		String sub = "";
 		String pred = "";
 		boolean obj = false;
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = IS_DERIVED_PRED;
 		obj = isDerived;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setQueryStructNameToVertex(String uniqueName, String engineName, String qsName) {
+	public void setQueryStructNameToVertex(String vertexName, String engineName, String qsName) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = QUERY_STRUCT_PRED;
 		obj = engineName + ":::" + qsName;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setAliasToVertex(String uniqueName, String alias) {
+	public void setAliasToVertex(String vertexName, String alias) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = ALIAS_PRED;
 		obj = alias;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setPhysicalNameToVertex(String uniqueName, String physical) {
+	/**
+	 * Currently, this is only used by tinker when on the meta we create a 
+	 * System_2 node but the actual tinker vertices are type System
+	 * @param vertexName
+	 * @param physical
+	 */
+	public void setPhysicalNameToVertex(String vertexName, String physical) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_CONCEPT_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = PHYSICAL_PRED;
 		obj = physical;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
@@ -174,31 +184,34 @@ public class OwlTemporalEngineMeta {
 	 * METHODS PERTAINING TO A PROPERTY
 	 */
 
-	public void addProperty(String conceptUniqueName, String propertyUniqueName) {
+	public void addProperty(String vertexName, String propertyName) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the property as a property
-		sub = SEMOSS_PROPERTY_PREFIX+ "/" + propertyUniqueName;
+		sub = SEMOSS_PROPERTY_PREFIX+ "/" + propertyName;
 		pred = RDF.TYPE.toString();
 		obj = SEMOSS_PROPERTY_PREFIX;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, true});
 		
 		// store the property for the provided concept
-		sub = SEMOSS_CONCEPT_PREFIX+ "/" + conceptUniqueName;
+		sub = SEMOSS_CONCEPT_PREFIX+ "/" + vertexName;
 		pred = SEMOSS_PROPERTY_PREFIX;
-		obj = SEMOSS_PROPERTY_PREFIX + "/" + propertyUniqueName;
+		obj = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, true});
+		
+		// add alias
+//		setAliasToProperty(propertyName, propertyName);
 	}
 	
-	public void setDataTypeToProperty(String uniqueName, String dataType) {
+	public void setDataTypeToProperty(String propertyName, String dataType) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_PROPERTY_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		pred = OWL.DATATYPEPROPERTY.toString();
 		obj = dataType;
 		if(obj == null) {
@@ -215,49 +228,49 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setPrimKeyToProperty(String uniqueName, boolean isPrimKey) {
+	public void setPrimKeyToProperty(String propertyName, boolean isPrimKey) {
 		String sub = "";
 		String pred = "";
 		boolean obj = false;
 		
 		// store the unique name as a concept
-		sub = SEMOSS_PROPERTY_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		pred = IS_PRIM_KEY_PRED;
 		obj = isPrimKey;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setDerivedToProperty(String uniqueName, boolean isDerived) {
+	public void setDerivedToProperty(String propertyName, boolean isDerived) {
 		String sub = "";
 		String pred = "";
 		boolean obj = false;
 		
 		// store the unique name as a concept
-		sub = SEMOSS_PROPERTY_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		pred = IS_DERIVED_PRED;
 		obj = isDerived;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setQueryStructNameToProperty(String uniqueName, String engineName, String qsName) {
+	public void setQueryStructNameToProperty(String oropertyName, String engineName, String qsName) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_PROPERTY_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + oropertyName;
 		pred = QUERY_STRUCT_PRED;
 		obj = engineName + ":::" + qsName;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setAliasToProperty(String uniqueName, String alias) {
+	public void setAliasToProperty(String oropertyName, String alias) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_PROPERTY_PREFIX + "/" + uniqueName;
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + oropertyName;
 		pred = ALIAS_PRED;
 		obj = alias;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
@@ -295,6 +308,27 @@ public class OwlTemporalEngineMeta {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
+	public String getUniqueNameFromAlias(String alias) {
+		String query = "select distinct ?header where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> \"" + alias + "\"}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> \"" + alias + "\"}"
+				+ "}"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		if(it.hasNext()) {
+			return it.next().getValues()[0].toString();
+		}
+		
+		return null;
+	}
+	
 	/*
 	 * Flush out the data from the OWL to a POJO
 	 * This is the return we want from the FE so we know Table and Column

@@ -71,6 +71,10 @@ public class QueryStruct2 {
 	//////////////////// SELECTORS /////////////////////
 	////////////////////////////////////////////////////
 	
+	public void setSelectors(List<IQuerySelector> selectors) {
+		this.selectors = selectors;
+	}
+	
 	public void addSelector(String concept, String property) {
 		if(property == null) {
 			property = PRIM_KEY_PLACEHOLDER; 
@@ -111,6 +115,11 @@ public class QueryStruct2 {
 	///////////////////// JOINING //////////////////////
 	////////////////////////////////////////////////////
 
+
+	public void setRelations(Map<String, Map<String, List>> relations) {
+		this.relations = relations;
+	}
+	
 	public void addRelation(String fromConcept, String toConcept, String joinType)
 	{
 		// I need pick the keys from the table based on relationship and then add that to the relation
@@ -145,6 +154,10 @@ public class QueryStruct2 {
 	///////////////////// ORDERING /////////////////////
 	////////////////////////////////////////////////////	
 	
+	public void setOrderBy(List<QueryColumnOrderBySelector> orderBySelectors) {
+		this.orderBySelectors = orderBySelectors;
+	}
+	
 	public void addOrderBy(String concept, String property, String sortDir) {
 		if(property == null) {
 			property = PRIM_KEY_PLACEHOLDER; 
@@ -163,6 +176,10 @@ public class QueryStruct2 {
 	////////////////////////////////////////////////////
 	///////////////////// GROUP BY /////////////////////
 	////////////////////////////////////////////////////
+	
+	public void setGroupBy(List<QueryColumnSelector> groupBy) {
+		this.groupBy = groupBy;
+	}
 	
 	public void addGroupBy(String concept, String property) {
 		if(property == null) {
@@ -627,7 +644,6 @@ public class QueryStruct2 {
 	////////////// For Task Meta Info //////////////////
 	////////////////////////////////////////////////////
 
-
 	//TODO: this only handles base case of columns and math on a single column
 	public List<Map<String, Object>> getHeaderInfo() {
 		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
@@ -671,10 +687,8 @@ public class QueryStruct2 {
 		for(QueryColumnOrderBySelector orderBy : this.orderBySelectors) {
 			Map<String, Object> selectorMap = new HashMap<String, Object>();
 			String alias = orderBy.getAlias();
-			String tableName = orderBy.getTable();
-			String colName = orderBy.getColumn();
 			QueryColumnOrderBySelector.ORDER_BY_DIRECTION direction = orderBy.getSortDir();
-			String qsHeader = tableName + "__" + colName;
+			String qsHeader = orderBy.getQueryStructName();
 			selectorMap.put("alias", alias);
 			selectorMap.put("header", qsHeader);
 			selectorMap.put("derived", false);
@@ -701,4 +715,5 @@ public class QueryStruct2 {
 		}
 		return newQs;
 	}
+
 }

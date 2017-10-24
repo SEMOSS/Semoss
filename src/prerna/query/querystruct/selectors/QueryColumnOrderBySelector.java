@@ -10,6 +10,10 @@ public class QueryColumnOrderBySelector extends QueryColumnSelector {
 		this.sortDir = sortDir.toUpperCase();
 	}
 	
+	public String getSortDirString() {
+		return this.sortDir;
+	}
+	
 	public ORDER_BY_DIRECTION getSortDir() {
 		// if empty, assume ascending
 		if(this.sortDir.isEmpty()) {
