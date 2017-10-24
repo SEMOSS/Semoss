@@ -244,7 +244,7 @@ public class QueryStructConverter {
 			String name = origL.getValue().toString();
 			String newName = meta.getUniqueNameFromAlias(name);
 			if(newName == null) {
-				name = newName;
+				newName = name;
 			}
 			newL = new NounMetadata(newName, PixelDataType.COLUMN);
 		} else {
@@ -256,7 +256,7 @@ public class QueryStructConverter {
 			String name = origR.getValue().toString();
 			String newName = meta.getUniqueNameFromAlias(name);
 			if(newName == null) {
-				name = newName;
+				newName = name;
 			}
 			newR = new NounMetadata(newName, PixelDataType.COLUMN);
 		} else {
