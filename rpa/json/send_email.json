@@ -1,0 +1,21 @@
+{
+  "-jobName":"sendEmail",
+  "-jobGroup":"sendEmailGroup",
+  "-jobClass":"JobChain",
+  "-jobCronExpression":"00 30 00 1/1 * ? *",
+  "jobsInChain":[
+    {
+      "-jobClass":"GetSMTPSessionJob",
+      "smtpHost":"127.0.0.1",
+      "smtpPort":25
+    },
+    {
+      "-jobClass":"SendEmailJob",
+      "from":"spam@ham.com",
+      "to":"foo@bar.com",
+      "subject":"Hello, World!",
+      "body":"This is an automated message from SEMOSS.",
+      "bodyIsHTML":false
+    }
+  ]
+}
