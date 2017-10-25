@@ -724,7 +724,7 @@ public class OwlTemporalEngineMeta {
 				// add the node info that can only appear once
 				node = new HashMap<String, Object>();
 				node.put("conceptualName", conceptName);
-				node.put("displayName", conceptAlias);
+				node.put("alias", conceptAlias);
 				node.put("primKey", Boolean.parseBoolean(conceptPrim));
 
 				// also add in an empty property map so
@@ -771,7 +771,7 @@ public class OwlTemporalEngineMeta {
 				// add the property info that will only appear once
 				prop = new HashMap<String, Object>();
 				prop.put("conceptualName", propertyName);
-				prop.put("displayName", propertyAlias);
+				prop.put("alias", propertyAlias);
 				prop.put("primKey", Boolean.parseBoolean(propertyPrim));
 
 				propertiesMap.put(propertyName, prop);
