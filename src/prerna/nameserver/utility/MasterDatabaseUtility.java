@@ -399,7 +399,7 @@ public class MasterDatabaseUtility {
 
 		// now time to run the upstream and downstream queries
 		String downstreamQuery = "select distinct  e.enginename, er.sourceconceptid, 'downstream' as downstream,  "
-				+ "er.relationname,  c.logicalname , er.engine, er.targetconceptid, ec.physicalname from "
+				+ "er.relationname,  c.conceptualname , er.engine, er.targetconceptid, ec.physicalname from "
 				+ "enginerelation er, engineconcept ec, concept c, engine e "
 				+ "where er.sourceconceptid in (select physicalnameid from engineconcept where localconceptid in "
 				+ "(select localconceptid from concept where logicalname in " + conceptString + ")) "
@@ -452,7 +452,7 @@ public class MasterDatabaseUtility {
 
 		// now time to run the upstream and downstream queries
 		String upstreamQuery = "select distinct  e.enginename, er.targetconceptid, 'upstream' as upstream,  "
-				+ "er.relationname,  c.logicalname , er.engine, er.sourceconceptid, ec.physicalname from "
+				+ "er.relationname,  c.conceptualname , er.engine, er.sourceconceptid, ec.physicalname from "
 				+ "enginerelation er, engineconcept ec, concept c, engine e "
 				+ "where er.targetconceptid in (select physicalnameid from engineconcept where localconceptid in "
 				+ "(select localconceptid from concept where logicalname in " + conceptString + ")) "
