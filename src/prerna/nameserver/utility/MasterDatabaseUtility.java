@@ -351,7 +351,7 @@ public class MasterDatabaseUtility {
 		// third is the downstream
 		//select e.enginename, ec.engine, c.logicalname, ec.physicalnameid from concept c, engineconcept ec, engine e where c.logicalname in ('Title') and c.localconceptid=ec.localconceptid and e.id = ec.engine
 
-		String conceptMasterQuery = "select e.enginename, ec.engine, c.logicalname, ec.physicalnameid, ec.physicalname from concept c, engineconcept ec, engine e where "
+		String conceptMasterQuery = "select e.enginename, ec.engine, c.conceptualname, ec.physicalnameid, ec.physicalname from concept c, engineconcept ec, engine e where "
 				+ "c.logicalname in " + conceptString
 				+ "and c.localconceptid=ec.localconceptid and e.id=ec.engine";
 		try {
