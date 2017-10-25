@@ -74,6 +74,7 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
@@ -263,7 +264,8 @@ public class ReactorFactory {
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetEngineMetamodel", DatabaseMetamodelReactor.class);
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
-		reactorHash.put("RemoveLogicalName", RemoveLogicalNameReactor.class);
+		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
+		reactorHash.put("RemoveLogicalNames", RemoveLogicalNameReactor.class);
 		
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
