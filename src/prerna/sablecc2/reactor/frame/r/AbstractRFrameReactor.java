@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.rosuda.JRI.Rengine;
-
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.NounMetadata;
