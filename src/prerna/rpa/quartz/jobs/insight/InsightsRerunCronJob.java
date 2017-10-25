@@ -68,7 +68,7 @@ public class InsightsRerunCronJob implements org.quartz.InterruptableJob {
 						CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).deleteInsightCache(insight);
 
 						InsightStore.getInstance().put(insight.getInsightId(), insight);
-						// TODO need to update this = InsightCreateRunner does not exist
+						// TODO InsightCreateRunner does not exist
 						/*
 						InsightCreateRunner run = new InsightCreateRunner(insight);
 						Map<String, Object> insightOutput = run.runSavedRecipe();
@@ -85,7 +85,6 @@ public class InsightsRerunCronJob implements org.quartz.InterruptableJob {
 							}
 						}
 						*/
-
 					}catch(Exception e){
 						System.out.println("exception Occured ::"+e);
 						throw new JobExecutionException(e);
