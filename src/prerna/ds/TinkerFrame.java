@@ -579,7 +579,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				String endNode = headers[endIndex];
 				String endUniqueName = logicalToTypeMap.get(endNode);
 				if(endUniqueName == null) {
-					startUniqueName = endNode;
+					endUniqueName = endNode;
 				}
 				Object endNodeValue = values[endIndex];
 				Vertex toVertex = upsertVertex(endNode, endNodeValue);
