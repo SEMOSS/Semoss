@@ -53,7 +53,7 @@ public class QueryStructConverter {
 		
 		// now go through the joins
 		Map<String, Map<String, List>> joins = qs.getRelations();
-		if(joins != null && joins.isEmpty()) {
+		if(joins != null && !joins.isEmpty()) {
 			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, meta);
 			convertedQs.setRelations(convertedJoins);
 		}
