@@ -32,5 +32,14 @@ public class CommonDataKeys {
 	
 	/** {@code String} */
 	public static final String JDBC_PASSWORD = "jdbcPassword";
-		
+	
+	/** {@code String} */
+	public static final String ENGINE_NAME = "engineName";
+	
+	/** {@code String} */
+	public static final String INSIGHT_ID = "insightId";
+	
+	/** {@code javax.mail.Session} */
+	public static final String EMAIL_SESSION = "emailSession";
+	
 }

@@ -6,7 +6,7 @@ import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
-import prerna.notifications.EmailMessage;
+import prerna.rpa.quartz.jobs.mail.EmailMessage;
 
 public class SendEmailJob implements org.quartz.Job {
 

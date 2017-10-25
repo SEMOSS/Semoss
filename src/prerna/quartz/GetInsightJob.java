@@ -36,8 +36,7 @@ public class GetInsightJob implements org.quartz.Job {
 		// so that we can use it externally from other jobs
 		InsightStore.getInstance().put(in);
 		// we want to execute the recipe so the data is all created
-		in.reRunInsight();
-		
+		in.reRunPixelInsight();
 		// Store outputs
 		dataMap.put(LinkedDataKeys.INSIGHT_ID, in.getInsightId());
 
