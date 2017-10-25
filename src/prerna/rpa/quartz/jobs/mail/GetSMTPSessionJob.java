@@ -18,10 +18,10 @@ public class GetSMTPSessionJob implements org.quartz.InterruptableJob {
 	private static final Logger LOGGER = LogManager.getLogger(GetSMTPSessionJob.class.getName());
 	
 	/** {@code String} **/
-	public static final String IN_SMTP_HOST_KEY = GetSMTPSessionJob.class + ".emailFrom";
+	public static final String IN_SMTP_HOST_KEY = GetSMTPSessionJob.class + ".smtpHost";
 	
 	/** {@code int} **/
-	public static final String IN_SMTP_PORT_KEY = GetSMTPSessionJob.class + ".emailTo";
+	public static final String IN_SMTP_PORT_KEY = GetSMTPSessionJob.class + ".smtpPort";
 	
 	/** {@code javax.mail.Session} */
 	public static final String OUT_EMAIL_SESSION_KEY = CommonDataKeys.EMAIL_SESSION;
