@@ -22,6 +22,11 @@ CSVInsightsWebWatcher prerna.util.CSVInsightsWebWatcher
 CSVInsightsWebWatcher_DIR C:\\workspace\\Semoss_Dev\\InsightCache\\CSV_Insights
 CSVInsightsWebWatcher_EXT .tg
 
+JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
+JobSchedulerWatcher_DIR C:\\workspace\\Semoss_Dev\\rpa\\json
+JobSchedulerWatcher_EXT	.json
+rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
+
 LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
 BaseFolder	C:\\workspace\\Semoss_Dev
 
