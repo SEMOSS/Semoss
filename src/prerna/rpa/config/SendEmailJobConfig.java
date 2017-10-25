@@ -20,7 +20,7 @@ public class SendEmailJobConfig extends JobConfig {
 		
 		String from = getString(jobDefinition, SendEmailJob.IN_FROM_KEY);
 		jobDataMap.put(SendEmailJob.IN_FROM_KEY, from);
-		String to = getString(jobDefinition, SendEmailJob.IN_TO_KEY);
+		String[] to = getString(jobDefinition, SendEmailJob.IN_TO_KEY).split(";");
 		jobDataMap.put(SendEmailJob.IN_TO_KEY, to);
 		String subject = getString(jobDefinition, SendEmailJob.IN_SUBJECT_KEY);
 		jobDataMap.put(SendEmailJob.IN_SUBJECT_KEY, subject);

@@ -23,10 +23,15 @@ public class RPAProps {
 
 	////////////////////////////////////////
 	// Default property names
+	
+	// Automatically generated
 	public static final String RPA_CONFIG_DIRECTORY_KEY = "rpa.config.directory";
 	public static final String PROPERTY_FILE_PATH_KEY = "property.file.path";	
 	public static final String TEXT_DIRECTORY_KEY = "text.directory";
 	public static final String JSON_DIRECTORY_KEY = "json.directory";
+	
+	// Only if given
+	public static final String TRIGGER_NOW = "trigger.now";
 	////////////////////////////////////////
 	
 	////////////////////////////////////////
