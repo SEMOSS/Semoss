@@ -99,7 +99,7 @@ public class JavaReactor extends AbstractReactor {
 			// as possible for faster compilation
 
 			long start = System.currentTimeMillis();
-			cc.addMethod(CtNewMethod.make("public void runCompiledCode() {this.rJavaTranslator.startR();" + content + ";}", cc));
+			cc.addMethod(CtNewMethod.make("public void runCompiledCode() {" + content + ";}", cc));
 			long end = System.currentTimeMillis();
 			logger.debug(">>> Time to compile and add new class ::: " + (end-start) + " ms");
 			Class retClass = cc.toClass();
