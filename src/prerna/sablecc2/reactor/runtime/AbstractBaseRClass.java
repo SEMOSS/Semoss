@@ -91,6 +91,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
 		this.rJavaTranslator = rJavaTranslator;
+		try {
+			this.rJavaTranslator.startR();
+		} catch(Exception e) {
+			logger.info(e.getMessage());
+		}
 	}
 
 	////////////////////////////////////////////////////////////

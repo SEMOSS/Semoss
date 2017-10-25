@@ -562,6 +562,8 @@ public class Insight {
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
 		if(this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
+		} else {
+			this.rJavaTranslator.setLogger(logger);
 		}
 		return this.rJavaTranslator;
 	}
