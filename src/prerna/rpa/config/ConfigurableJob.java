@@ -13,6 +13,8 @@ import prerna.rpa.quartz.jobs.jdbc.ExecuteSQLJob;
 import prerna.rpa.quartz.jobs.jdbc.maria.ETLJob;
 import prerna.rpa.quartz.jobs.jdbc.maria.GenerateHashedPrimkeyJob;
 import prerna.rpa.quartz.jobs.insight.InsightsRerunCronJob;
+import prerna.rpa.quartz.jobs.mail.GetSMTPSessionJob;
+import prerna.rpa.quartz.jobs.mail.SendEmailJob;
 
 public enum ConfigurableJob {
 	JOB_BATCH("JobBatch", JobBatch.class),
@@ -23,8 +25,9 @@ public enum ConfigurableJob {
 	EXECUTE_SQL_JOB("ExecuteSQLJob", ExecuteSQLJob.class),
 	BAKE_PIES_JOB("BakePiesJob", BakePiesJob.class),
 	JUDGE_PIES_JOB("JudgePiesJob", JudgePiesJob.class),
-	INSIGHT_RERUN_JOB("InsightsRerunCronJob", InsightsRerunCronJob.class);
-
+	INSIGHT_RERUN_JOB("InsightsRerunCronJob", InsightsRerunCronJob.class),
+	GET_SMTP_SESSION_JOB("GetSMTPSessionJob", GetSMTPSessionJob.class),
+	SEND_EMAIL_JOB("SendEmailJob", SendEmailJob.class);
 	
 	private final String jobClassName;
 	private final Class<? extends InterruptableJob> jobClass;

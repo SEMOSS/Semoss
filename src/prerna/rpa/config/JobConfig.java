@@ -38,6 +38,10 @@ public abstract class JobConfig {
 			return new JudgePiesJobConfig(jobDefinition);
 		case INSIGHT_RERUN_JOB:
 			return new InsightsRerunCronJobConfig(jobDefinition);
+		case GET_SMTP_SESSION_JOB:
+			return new GetSMTPSessionJobConfig(jobDefinition);
+		case SEND_EMAIL_JOB:
+			return new SendEmailJobConfig(jobDefinition);
 		default:
 			throw new IllegalArgumentException("Job configuration not found.");
 		}
@@ -135,6 +139,24 @@ public abstract class JobConfig {
 		
 		// Return the long value from the job definition (JSON)
 		return jobDefinition.get(jsonKey).getAsLong();
+	}
+	
+	protected static int getInt(JsonObject jobDefinition, String jobInputKey) {
+		
+		// The key as it appears in the json
+		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
+		
+		// Return the int value from the job definition (JSON)
+		return jobDefinition.get(jsonKey).getAsInt();
+	}
+	
+	protected static boolean getBoolean(JsonObject jobDefinition, String jobInputKey) {
+		
+		// The key as it appears in the json
+		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
+		
+		// Return the boolean value from the job definition (JSON)
+		return jobDefinition.get(jsonKey).getAsBoolean();
 	}
 	
 }
