@@ -547,7 +547,7 @@ public class OwlTemporalEngineMeta {
 				+ "(coalesce(?dt, 'unknown') as ?dataType) "
 				+ "(coalesce(?qs, 'unknown') as ?qsName) "
 				+ "(coalesce(?parent, 'none') as ?parentNode) "
-				+ "(coalesce(?alias, 'none') as ?displayName) "
+				+ "(coalesce(?display, 'none') as ?alias) "
 				+ "(coalesce(?derived, 'false') as ?isDerived) "
 				+ "where {"
 				+ "{" 
@@ -555,7 +555,7 @@ public class OwlTemporalEngineMeta {
 				+ (onlyNumeric ? "bind(\"NUMBER\" as ?dt){?header <" + OWL.DATATYPEPROPERTY + "> \"NUMBER\"}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
-				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
 				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}"
 				+ "bind('none' as ?parent)"
 				+ "}"
@@ -566,7 +566,7 @@ public class OwlTemporalEngineMeta {
 				+ (onlyNumeric ? "bind(\"NUMBER\" as ?dt){?header <" + OWL.DATATYPEPROPERTY + "> \"NUMBER\"}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
-				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
 				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}"
 				+ "}"
 				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
@@ -611,8 +611,9 @@ public class OwlTemporalEngineMeta {
 						qsNamesList.add(split[1]);
 						engineQsMap.put(split[0], qsNamesList);
 						rowMap.put(headers[i], engineQsMap);
-					} else if(headers[i].equals("displayName")) {
+					} else if(headers[i].equals("alias")) {
 						rowMap.put(headers[i], values[i].toString());
+						rowMap.put("displayName", values[i].toString());
 					} else {
 						rowMap.put(headers[i], values[i]);
 					}
