@@ -19,7 +19,7 @@ public class SendEmailJob implements org.quartz.InterruptableJob {
 	/** {@code String} **/
 	public static final String IN_FROM_KEY = SendEmailJob.class + ".from";
 	
-	/** {@code String} **/
+	/** {@code String[]} **/
 	public static final String IN_TO_KEY = SendEmailJob.class + ".to";
 	
 	/** {@code String} **/
