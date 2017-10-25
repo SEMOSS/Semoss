@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +100,7 @@ public class TinkerImporter implements IImporter {
 		if(loopRels.isEmpty()) {
 			return processMerge(edgeHash, joinMods);
 		} else {
-			return processLoop(loopRels, joinMods);
+			return processLoop(loopRels, joinMods, joins);
 		}
 	}
 	
@@ -117,19 +118,31 @@ public class TinkerImporter implements IImporter {
 		return this.dataframe;
 	}
 	
-	private ITableDataFrame processLoop(List<String[]> loopRels, Map<String, String> joinMods) {
+	private ITableDataFrame processLoop(List<String[]> loopRels, Map<String, String> joinMods, List<Join> joins) {
 		Map<String, Set<String>> originalEdgeHash = ImportUtility.getEdgeHash(this.qs);
 		// so we have a -> b -> a
 		// but i need the last a to be a_1
 		// so my loop node is going the be the second index the the loopRels
 		// all i need to do is go through, and assign the alias everywhere, and then i'm golden
 		
+		Set<String> joinCols = new HashSet<String>();
+		for(Join j : joins) {
+			joinCols.add(j.getQualifier());
+		}
 		// update qs selectors with new alias
 		Map<String, String> oldAliasToNew = new HashMap<String, String>();
 		for(IQuerySelector selector : this.qs.getSelectors()) {
 			String curAlias = selector.getAlias();
+			// we do not want to do this for the join column!
+			if(joinCols.contains(curAlias)) {
+				continue;
+			}
 			for(String[] loop : loopRels) {
-				if(loop[1].equals(curAlias)) {
+				if(loop[0].equals(curAlias)) {
+					String newAlias = curAlias + "_2";
+					selector.setAlias(newAlias);
+					oldAliasToNew.put(curAlias, newAlias);
+				} else if(loop[1].equals(curAlias)) {
 					String newAlias = curAlias + "_2";
 					selector.setAlias(newAlias);
 					oldAliasToNew.put(curAlias, newAlias);
