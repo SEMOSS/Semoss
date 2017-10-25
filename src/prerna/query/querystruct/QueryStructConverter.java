@@ -185,8 +185,8 @@ public class QueryStructConverter {
 	}
 
 	private static IQuerySelector convertMathSelector(QueryMathSelector selector, OwlTemporalEngineMeta meta) {
-		QueryMultiColMathSelector newS = new QueryMultiColMathSelector();
-		newS.addInnerSelector(convertSelector(selector.getInnerSelector(), meta));
+		QueryMathSelector newS = new QueryMathSelector();
+		newS.setInnerSelector(convertSelector(selector.getInnerSelector(), meta));
 		newS.setMath(selector.getMath());
 		newS.setDistinct(selector.isDistinct());
 		newS.setAlias(selector.getAlias());
