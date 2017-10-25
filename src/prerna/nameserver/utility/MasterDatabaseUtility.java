@@ -836,6 +836,42 @@ public class MasterDatabaseUtility {
 		}
 		return false;
 	}
+
+	/**
+	 * Get logical names for a specific engine and concept
+	 * @param engineName
+	 * @param concept
+	 * @return logicalNames
+	 */
+	public static List<String> getLogicalNames(String engineName, String concept) {
+		List<String> logicalNames = new ArrayList<String>();
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = engine.makeConnection();
+		ResultSet rs = null;
+
+		try {
+			String query = "select logicalname from concept "
+					+ "where localconceptid in (select localconceptid from engineconcept "
+					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
+					+ "and conceptualname = \'" + concept + "\';";
+			rs = masterConn.createStatement().executeQuery(query);
+			while (rs.next()) {
+				String logicalName = rs.getString(1);
+				logicalNames.add(logicalName);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		return logicalNames;
+	}
 	
 	/**
 	 * Returns Xray config files
