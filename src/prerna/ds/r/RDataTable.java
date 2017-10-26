@@ -11,7 +11,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.r.RCsvFileWrapper;
 import prerna.engine.impl.r.RExcelFileWrapper;
@@ -87,52 +87,6 @@ public class RDataTable extends AbstractTableDataFrame {
 				logger.info("R Connection is already closed...");
 			}
 		}
-	}
-	
-	@Override
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = super.getScriptReactors();
-		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.RImportDataReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.RDuplicatesReactor");
-
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
-		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
-		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
-		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
-		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
-
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.RVizReactor");
-
-		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.r.RSumReactor");
-		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.r.RMaxReactor");
-		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.r.RMinReactor");
-		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.r.RAverageReactor");
-		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.r.RStandardDeviationReactor");
-		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.r.RMedianReactor");
-		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.r.RCountReactor");
-		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.r.RUniqueCountReactor");
-
-		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");
-		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.RExcelApiReactor");
-		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-
-		return reactorNames;
 	}
 	
 	public String getFilterString() {
@@ -265,20 +219,6 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public Object[] getUniqueColumn(String column) {
-		StringBuilder rScript = new StringBuilder();
-		rScript.append("unique(").append(this.getTableName()).append("[")
-			.append(this.getFilterString()).append(",").append(column).append("])");
-		
-		return this.builder.getBulkSingleColumn(rScript.toString());
-	}
-
-	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		// TODO Auto-generated method stub
 		return null;
@@ -342,7 +282,54 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	/*
 	 * Deprecated DataMakerComponent stuff
-	 */	
+	 */
+	
+	@Override
+	@Deprecated
+	public Map<String, String> getScriptReactors() {
+		Map<String, String> reactorNames = super.getScriptReactors();
+		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.RImportDataReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.RDuplicatesReactor");
+
+		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
+		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
+		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
+		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
+		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
+		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
+
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.RVizReactor");
+
+		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.r.RSumReactor");
+		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.r.RMaxReactor");
+		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.r.RMinReactor");
+		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.r.RAverageReactor");
+		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.r.RStandardDeviationReactor");
+		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.r.RMedianReactor");
+		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.r.RCountReactor");
+		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.r.RUniqueCountReactor");
+
+		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");
+		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.RExcelApiReactor");
+		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+
+		return reactorNames;
+	}
 	
 	@Override
 	@Deprecated

@@ -15,7 +15,7 @@ import org.apache.log4j.LogManager;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.ICache;
-import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;

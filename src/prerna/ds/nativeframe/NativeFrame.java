@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.QueryStruct2;
@@ -88,11 +88,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
-		return null;
-	}
-
-	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		QueryStruct2 newQs = new QueryStruct2();
 		QueryColumnSelector selector = new QueryColumnSelector();
@@ -143,30 +138,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return DATA_MAKER_NAME;
 	}
 
-	@Override
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = super.getScriptReactors();
-		reactorNames.put(PKQLEnum.DATA_CONNECTDB, "prerna.sablecc.DataConnectDBReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLEnum.API, "prerna.sablecc.NativeApiReactor");
-		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.NativeImportDataReactor");
-
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-		
-		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.NativeApiReactor");
-		return reactorNames;
-	}
-	
 	public void mergeQueryStruct(QueryStruct2 qs) {
 		this.qs.merge(qs);
 	}
@@ -206,27 +177,58 @@ public class NativeFrame extends AbstractTableDataFrame {
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
 	
 	@Override
+	@Deprecated
+	public Map<String, String> getScriptReactors() {
+		Map<String, String> reactorNames = super.getScriptReactors();
+		reactorNames.put(PKQLEnum.DATA_CONNECTDB, "prerna.sablecc.DataConnectDBReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+		reactorNames.put(PKQLEnum.API, "prerna.sablecc.NativeApiReactor");
+		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.NativeImportDataReactor");
+
+		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+		
+		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.NativeApiReactor");
+		return reactorNames;
+	}
+	
+	@Override
+	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
 	}
 
 	@Override
+	@Deprecated
 	public ITableDataFrame open(String fileName, String userId) {
 		return null;
 	}
 
 	@Override
+	@Deprecated
 	public void removeColumn(String columnHeader) {
 	}
 	
 	@Override
+	@Deprecated
 	public void addRow(Object[] cleanCells, String[] headers) {
 	}
 
 	@Override
+	@Deprecated
 	public void save(String fileName) {
 	}
 
 	@Override
+	@Deprecated
 	public void removeRelationship(String[] columns, Object[] values) {
 	}
 }

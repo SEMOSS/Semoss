@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.QueryStruct2;
