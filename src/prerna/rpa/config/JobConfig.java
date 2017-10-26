@@ -26,6 +26,10 @@ public abstract class JobConfig {
 			return new JobChainConfig(jobDefinition);
 		case IF_JOB:
 			return new IfJobConfig(jobDefinition);
+		case CONDITIONAL_JOB:
+			return new ConditionalJobConfig(jobDefinition);
+		case ONE_COL_CONDITION_JOB:
+			return new OneColConditionJobConfig(jobDefinition);
 		case ETL_JOB:
 			return new ETLJobConfig(jobDefinition);
 		case EXECUTE_SQL_JOB:
@@ -36,6 +40,10 @@ public abstract class JobConfig {
 			return new BakePiesJobConfig(jobDefinition);
 		case JUDGE_PIES_JOB:
 			return new JudgePiesJobConfig(jobDefinition);
+		case CREATE_INSIGHT_JOB:
+			return new CreateInsightJobConfig(jobDefinition);
+		case GET_FRAME_FROM_INSIGHT_JOB:
+			return new EmptyJobConfig(jobDefinition); // Don't need to provide any keys
 		case INSIGHT_RERUN_JOB:
 			return new InsightsRerunCronJobConfig(jobDefinition);
 		case GET_SMTP_SESSION_JOB:
@@ -158,5 +166,5 @@ public abstract class JobConfig {
 		// Return the boolean value from the job definition (JSON)
 		return jobDefinition.get(jsonKey).getAsBoolean();
 	}
-	
+		
 }

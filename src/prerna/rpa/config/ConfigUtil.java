@@ -3,6 +3,7 @@ package prerna.rpa.config;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
@@ -44,6 +45,17 @@ public class ConfigUtil {
 			throw e;
 		}
 		return string;
+	}
+	
+	// Replace all references to map keys (surrounded by <>) in a string with the value from the map 
+	// If the map is null, then just returns the original string
+	public static String replaceWithContext(String s, Map<String, Object> contextualData) {
+		if (contextualData != null) {
+			for (String key : contextualData.keySet()) {
+				s = s.replaceAll("<" + key + ">", contextualData.get(key).toString());
+			}
+		}
+		return s;
 	}
 	
 }

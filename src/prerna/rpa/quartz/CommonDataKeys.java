@@ -3,6 +3,9 @@ package prerna.rpa.quartz;
 /**
  * Class containing data map keys that are common to several jobs. Please
  * specify the intended data type of the key's value in each key's Javadoc.
+ * There are two use cases for defining a key here, 1) if you are passing data
+ * between jobs using these keys, or 2) if they are shared in the context
+ * between jobs.
  */
 public class CommonDataKeys {
 
@@ -21,6 +24,12 @@ public class CommonDataKeys {
 	/** {@code JobDetail} */
 	public static final String IF_TRUE_JOB = "ifTrueJob";
 	
+	/** {@code ITableDataFrame} */
+	public static final String FRAME = "frame";
+
+	/** {@code Set<IHeadersDataRow>} */
+	public static final String ROWS = "rows";
+	
 	/** {@code String} */
 	public static final String JDBC_DRIVER = "jdbcDriver";
 	
@@ -32,14 +41,11 @@ public class CommonDataKeys {
 	
 	/** {@code String} */
 	public static final String JDBC_PASSWORD = "jdbcPassword";
-	
-	/** {@code String} */
-	public static final String ENGINE_NAME = "engineName";
-	
-	/** {@code String} */
-	public static final String INSIGHT_ID = "insightId";
-	
+
 	/** {@code javax.mail.Session} */
 	public static final String EMAIL_SESSION = "emailSession";
 	
+	/** {@code String} */
+	public static final String INSIGHT_ID = "insightId";
+		
 }

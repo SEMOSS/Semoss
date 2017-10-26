@@ -1,5 +1,6 @@
 package prerna.rpa.quartz.jobs.mail;
 
+import javax.mail.MessagingException;
 import javax.mail.Session;
 
 import org.apache.log4j.LogManager;
@@ -55,7 +56,14 @@ public class SendEmailJob implements org.quartz.InterruptableJob {
 		// Do work
 		////////////////////
 		EmailMessage message = new EmailMessage(from, to, subject, body, bodyIsHTML, session);
-		message.send();
+		System.out.println(message.toString());
+		try {
+			message.send();
+		} catch (MessagingException e) {
+			String sendEmailExceptionMessage = "Failed to send the email with subject " + subject + ".";
+			LOGGER.error(sendEmailExceptionMessage);
+			throw new JobExecutionException(sendEmailExceptionMessage, e);
+		}
 
 		////////////////////
 		// Store outputs

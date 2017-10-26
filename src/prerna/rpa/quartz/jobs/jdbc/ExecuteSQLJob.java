@@ -22,19 +22,19 @@ public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 	// Connection details
 	// Since the package is JDBC, it is implied for these keys
 	/** {@code String} */
-	public static final String DRIVER_KEY = CommonDataKeys.JDBC_DRIVER;
+	public static final String IN_DRIVER_KEY = CommonDataKeys.JDBC_DRIVER;
 
 	/** {@code String} */
-	public static final String CONNECTION_URL_KEY = CommonDataKeys.JDBC_CONNECTION_URL;
+	public static final String IN_CONNECTION_URL_KEY = CommonDataKeys.JDBC_CONNECTION_URL;
 
 	/** {@code String} */
-	public static final String USERNAME_KEY = CommonDataKeys.JDBC_USERNAME;
+	public static final String IN_USERNAME_KEY = CommonDataKeys.JDBC_USERNAME;
 
 	/** {@code String} */
-	public static final String PASSWORD_KEY = CommonDataKeys.JDBC_PASSWORD;
+	public static final String IN_PASSWORD_KEY = CommonDataKeys.JDBC_PASSWORD;
 
 	/** {@code String} */
-	public static final String SQL_KEY = ExecuteSQLJob.class + ".SQL";
+	public static final String IN_SQL_KEY = ExecuteSQLJob.class + ".SQL";
 	
 	// Closable objects
 	private Connection connection;
@@ -55,11 +55,11 @@ public class ExecuteSQLJob implements org.quartz.InterruptableJob {
 		jobName = context.getJobDetail().getKey().getName();
 		terminationMessage = "Will terminate the " + jobName + " job.";
 		
-		String driver = dataMap.getString(DRIVER_KEY);
-		connectionURL = dataMap.getString(CONNECTION_URL_KEY);
-		String username = dataMap.getString(USERNAME_KEY);
-		String password = dataMap.getString(PASSWORD_KEY);
-		String sql = dataMap.getString(SQL_KEY);
+		String driver = dataMap.getString(IN_DRIVER_KEY);
+		connectionURL = dataMap.getString(IN_CONNECTION_URL_KEY);
+		String username = dataMap.getString(IN_USERNAME_KEY);
+		String password = dataMap.getString(IN_PASSWORD_KEY);
+		String sql = dataMap.getString(IN_SQL_KEY);
 		
 		////////////////////
 		// Do work

@@ -19,7 +19,14 @@ public class JobSchedulerWatcher extends AbstractFileWatcher {
 	private static final String JSON_EXTENSION = "json";
 	
 	@Override
-	public void loadFirst() {		
+	public void loadFirst() {
+		try {
+			
+			// TODO wait/notify on SMSSWebWatcher
+			Thread.sleep(1000 * 30);
+		} catch (InterruptedException e) {
+			// Do nothing
+		}
 		File jsonDirectory = new File(folderToWatch);
 		String[] fileNames = jsonDirectory.list();
 		if (fileNames != null) {
