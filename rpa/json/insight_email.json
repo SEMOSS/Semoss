@@ -5,22 +5,22 @@
   "-jobCronExpression":"00 30 00 1/1 * ? *",
   "jobsInChain":[
     {
-      "-jobClass":"GetSMTPSessionJob",
-      "smtpHost":"127.0.0.1",
-      "smtpPort":25
-    },
-    {
       "-jobClass":"CreateInsightJob",
       "pixel":"CreateFrame ( grid ) .as ( [ FRAME ] ) ; Database ( FY15 ) | Select ( CONTRACT_ID__TYPE_OF_WORK , CONTRACT_ID__OBLIGATED , CONTRACT_ID__VENDOR , CONTRACT_ID__CONTRACT_ID ) | Import ( ) ;"
     },
     {
-      "-jobClass":"GetFrameFromInsightJob"
+      "-jobClass":"GetFrameFromInsightJob" 
     },
     {
       "-jobClass":"OneColConditionJob",
-      "columnHeader":"TYPE_OF_WORK",
-      "comparator":"==",
-      "value":"ENVIRONMENTAL_REMEDIATION"
+      "columnHeader":"OBLIGATED",
+      "comparator":">",
+      "value":"10000000"
+    },
+	{
+      "-jobClass":"GetSMTPSessionJob",
+      "smtpHost":"127.0.0.1",
+      "smtpPort":25
     },
     {
       "-jobClass":"ConditionalJob",
@@ -30,7 +30,7 @@
         "from":"tbanach@deloitte.com",
         "to":"foo@deloitte.com",
         "subject":"<VENDOR> Notice",
-        "body":"Test : <VENDOR>, <TYPE_OF_WORK>, <OBLIGATED>, <VENDOR>, <CONTRACT_ID>.",
+        "body":"Test : The <VENDOR> had a total of <OBLIGATED> obligated, over the allowed amount of $10,000,000.",
         "bodyIsHTML":false
       }
     },
