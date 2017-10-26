@@ -31,7 +31,7 @@ public class JobBatchConfig extends JobConfig{
 		// For each job definition in the job batch,
 		// a) Add JobDataMap and job class into a BatchedJobInput
 		// b) Add (job name, BatchedJobInput) into the batch map
-		JsonArray batchArray = jobDefinition.get(ConfigUtil.getJSONKey(JobBatch.IN_BATCH_MAP_KEY)).getAsJsonArray();
+		JsonArray batchArray = jobDefinition.get(ConfigUtil.getJSONKey(JobBatch.IN_BATCH_INPUT_MAP_KEY)).getAsJsonArray();
 		for (JsonElement batchJobElement : batchArray) {
 			JsonObject batchJobDefinition = batchJobElement.getAsJsonObject();
 			JobConfig batchJobConfig = JobConfig.initialize(batchJobDefinition);
@@ -40,7 +40,7 @@ public class JobBatchConfig extends JobConfig{
 		}
 		
 		// Add batch map into the data map
-		jobDataMap.put(JobBatch.IN_BATCH_MAP_KEY, batchMap);
+		jobDataMap.put(JobBatch.IN_BATCH_INPUT_MAP_KEY, batchMap);
 		
 		return jobDataMap;
 	}

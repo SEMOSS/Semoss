@@ -1,5 +1,6 @@
 package prerna.quartz;
 
+import javax.mail.MessagingException;
 import javax.mail.Session;
 
 import org.quartz.JobDataMap;
@@ -31,7 +32,12 @@ public class SendEmailJob implements org.quartz.Job {
 
 		// Do work
 		EmailMessage message = new EmailMessage(from, to, subject, body, bodyIsHTML, session);
-		message.send();
+		try {
+			message.send();
+		} catch (MessagingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		// Store outputs
 		// No outputs to store here

@@ -26,10 +26,10 @@ public class JobBatch implements org.quartz.InterruptableJob {
 	public static final String IN_TIMEOUT_KEY = JobBatch.class + ".timeout";
 	
 	/** {@code Map<String, BatchedJobInput>} - (identifier, (JobDataMap, Class<? extends InterruptableJob>)) */
-	public static final String IN_BATCH_MAP_KEY = CommonDataKeys.BATCH_INPUT_MAP;
+	public static final String IN_BATCH_INPUT_MAP_KEY = CommonDataKeys.BATCH_INPUT_MAP;
 	
 	/** {@code Map<String, BatchedJobOutput>} - (identifier, (JobDataMap, success)) */
-	public static final String OUT_BATCH_MAP_KEY = CommonDataKeys.BATCH_OUTPUT_MAP;
+	public static final String OUT_BATCH_OUTPUT_MAP_KEY = CommonDataKeys.BATCH_OUTPUT_MAP;
 	
 	/** {@code boolean} */
 	public static final String OUT_ALL_JOBS_SUCCESSFUL_KEY = CommonDataKeys.BOOLEAN;
@@ -61,7 +61,7 @@ public class JobBatch implements org.quartz.InterruptableJob {
 		JobDataMap jobDataMap = context.getMergedJobDataMap();
 				
 		// (Identifier, (JobDataMap, Class<? extends Job>))
-		Map<String, BatchedJobInput> batchMap = (Map<String, BatchedJobInput>) jobDataMap.get(IN_BATCH_MAP_KEY);
+		Map<String, BatchedJobInput> batchMap = (Map<String, BatchedJobInput>) jobDataMap.get(IN_BATCH_INPUT_MAP_KEY);
 		totalJobs = batchMap.size();
 		
 		// How long before we stop job execution
@@ -140,7 +140,7 @@ public class JobBatch implements org.quartz.InterruptableJob {
 		alarm.interrupt();
 		
 		// Send the accumulated data from each job as the output
-		jobDataMap.put(OUT_BATCH_MAP_KEY, batchOutputMap);
+		jobDataMap.put(OUT_BATCH_OUTPUT_MAP_KEY, batchOutputMap);
 		
 		// Send whether all jobs were successful
 		long successfulJobs = batchStatus.values().stream().filter(s -> s == true).count();

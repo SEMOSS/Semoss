@@ -9,6 +9,8 @@ import javax.mail.internet.MimeMessage;
 
 public class EmailMessage {
 
+	private static final String NEW_LINE = System.getProperty("line.separator");
+	
 	private String from;
 	private String[] to;
 	private String subject;
@@ -60,28 +62,43 @@ public class EmailMessage {
 
 	/**
 	 * Sends the email message.
+	 * @throws MessagingException  
 	 */
-	public void send() {
+	public void send() throws MessagingException {
 
 		// Create a new message and sent it
 		Message message = new MimeMessage(session);
-		try {
-			message.setFrom(new InternetAddress(from));
-			for (String recipient : to) {
-				message.addRecipient(Message.RecipientType.TO, new InternetAddress(recipient));
-			}
-			message.setSubject(subject);
-
-			// If the body of the email is not HTML, then send as plain text
-			if (bodyIsHTML) {
-				message.setContent(body, "text/html; charset=utf-8");
-			} else {
-				message.setText(body);
-			}
-			Transport.send(message);
-		} catch (MessagingException e) {
-			e.printStackTrace();
+		message.setFrom(new InternetAddress(from));
+		for (String recipient : to) {
+			message.addRecipient(Message.RecipientType.TO, new InternetAddress(recipient));
 		}
+		message.setSubject(subject);
+
+		// If the body of the email is not HTML, then send as plain text
+		if (bodyIsHTML) {
+			message.setContent(body, "text/html; charset=utf-8");
+		} else {
+			message.setText(body);
+		}
+		Transport.send(message);
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder emailMessageString = new StringBuilder();
+		emailMessageString.append(NEW_LINE);
+		emailMessageString.append("from: " + from + NEW_LINE);
+		emailMessageString.append("to: ");
+		for (String t : to) {
+			emailMessageString.append(t + NEW_LINE);
+		}
+		emailMessageString.append(NEW_LINE);
+		emailMessageString.append(subject);
+		emailMessageString.append(NEW_LINE);
+		emailMessageString.append(NEW_LINE);
+		emailMessageString.append(body);
+		emailMessageString.append(NEW_LINE);
+		return emailMessageString.toString();
 	}
 
 }
