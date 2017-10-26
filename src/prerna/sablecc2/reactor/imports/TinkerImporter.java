@@ -23,19 +23,20 @@ public class TinkerImporter implements IImporter {
 	private QueryStruct2 qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
-		this.dataframe = dataframe;
-		this.qs = qs;
-		// generate the iterator
-		this.it = it;
-	}
 	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
 		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 	}
-
+	
+	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+		this.dataframe = dataframe;
+		this.qs = qs;
+		// generate the iterator
+		this.it = it;
+	}
+	
 	@Override
 	public void insertData() {
 		// get the edge hash so we know how to add data connections
