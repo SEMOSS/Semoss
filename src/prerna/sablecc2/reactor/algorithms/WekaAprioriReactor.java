@@ -106,7 +106,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 		}
 
 		// re-add frame filters
-		qs.setFilters(dataFrame.getFrameFilters());
+		qs.mergeFilters(dataFrame.getFrameFilters());
 
 		int numRows = getNumRows(dataFrame, (QueryColumnSelector) qs.getSelectors().get(0));
 		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
