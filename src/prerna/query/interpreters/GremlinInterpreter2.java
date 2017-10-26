@@ -339,7 +339,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 				String edgeKey = startName + TinkerFrame.EDGE_LABEL_DELIMETER + downstreamNodeType;
 				if (!travelledEdges.contains(edgeKey)) {
-					logger.info("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
+					logger.debug("travelling from node = '" + startName + "' to node = '" + downstreamNodeType + "'");
 
 					// get the traversal and store the necessary info
 					GraphTraversal twoStepT = __.as(startName);
@@ -395,7 +395,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 				String edgeKey = upstreamNodeType + TinkerFrame.EDGE_LABEL_DELIMETER + startName;
 				if (!travelledEdges.contains(edgeKey)) {
-					logger.info("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
+					logger.debug("travelling from node = '" + upstreamNodeType + "' to node = '" + startName + "'");
 
 					// get the traversal and store the necessary info
 					GraphTraversal twoStepT = __.as(startName);

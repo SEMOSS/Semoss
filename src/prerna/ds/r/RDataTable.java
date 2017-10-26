@@ -4,12 +4,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -160,20 +162,8 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Double getMax(String columnHeader) {
-		return this.builder.executeStat(columnHeader, "max");
-	}
-
-	@Override
-	public Double getMin(String columnHeader) {
-		return this.builder.executeStat(columnHeader, "min");
-	}
-
-	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		// TODO Auto-generated method stub
 		return new RIterator2(builder, query);
-		
 	}
 
 	@Override
@@ -187,6 +177,30 @@ public class RDataTable extends AbstractTableDataFrame {
 		String query = interp.composeQuery();
 		RIterator2 it = new RIterator2(this.builder, query, qs);
 		return it;
+	}
+	
+	@Override
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
+		int numSelectors = attributeUniqueHeaderName.size();
+		List<IMetaData.DATA_TYPES> dataTypes = new Vector<IMetaData.DATA_TYPES>();
+		Double[] max = new Double[numSelectors];
+		Double[] min = new Double[numSelectors];
+		
+		for (int i = 0; i < numSelectors; i++) {
+			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
+			if(uniqueHeader == null) {
+				uniqueHeader = attributeUniqueHeaderName.get(i);
+			}
+			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
+			dataTypes.add(dataType);
+			if(dataType == DATA_TYPES.NUMBER) {
+				max[i] = getMax(uniqueHeader);
+				min[i] = getMin(uniqueHeader);
+			}
+		}
+
+		RScaledUniqueFrameIterator iterator = new RScaledUniqueFrameIterator(this, this.builder, columnName, max, min, dataTypes, attributeUniqueHeaderName);
+		return iterator;
 	}
 	
 	@Override

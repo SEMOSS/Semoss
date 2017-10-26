@@ -212,9 +212,6 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 					bestInstance = instance;
 				}
 				if (val == 0) {
-					logger.setLevel(Level.INFO);
-					logger.info("Found new initial instance for cluster # " + i + " with instance = " + instance);
-					logger.setLevel(Level.OFF);
 					break;
 				}
 				
@@ -227,6 +224,10 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 				
 				counter++;
 			}
+			logger.setLevel(Level.INFO);
+			logger.info("Found new initial instance for cluster # " + i + " with instance = " + bestInstance.get(0)[instanceIndex]);
+			logger.setLevel(Level.OFF);
+			
 			// update combined cluster
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
 

@@ -1,45 +1,56 @@
-package prerna.ds.shared;
+package prerna.ds.r;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.ds.OwlTemporalEngineMeta;
+import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
+import prerna.util.Utility;
 
-public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
+public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
-	private ITableDataFrame frame;
+	private AbstractRBuilder builder;
+	private OwlTemporalEngineMeta metaData;
+	
 	private String uniqueColumnName;
-	private QueryStruct2 qs;
+	private String frameColumnName;
 	private Iterator<Object> valueIterator;
 	
-	public ScaledUniqueFrameIterator(
-		ITableDataFrame frame, 
-		String columnName,
-		Double[] maxArr, 
-		Double[] minArr,
-		List<DATA_TYPES> dataTypes,
-		List<String> selectors) {
+	private String tempVarName;
+	private String[] headers = null;
+
+	public RScaledUniqueFrameIterator(
+			RDataTable frame,
+			AbstractRBuilder builder,
+			String columnName, 
+			Double[] maxArr, 
+			Double[] minArr, 
+			List<DATA_TYPES> dataTypes, 
+			List<String> selectors) {
 		
-		this.frame = frame;
-		this.uniqueColumnName = columnName;
-		Object[] column = frame.getColumn(columnName);
+		this.builder = builder;
+		this.metaData = frame.getMetaData();
+		
+		this.uniqueColumnName = this.metaData.getUniqueNameFromAlias(columnName);
+		if(this.uniqueColumnName == null) {
+			this.uniqueColumnName = columnName;
+		}
+		String[] split = this.uniqueColumnName.split("__");
+		this.frameColumnName = split[1];
+		
+		Object[] column = frame.getColumn(this.uniqueColumnName);
 		this.valueIterator = Arrays.asList(column).iterator();
 		
 		// create the QS being used for querying
-		this.qs = new QueryStruct2();
-		
+		QueryStruct2 qs = new QueryStruct2();
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			String unqiueSelectorName = selectors.get(i);
@@ -83,8 +94,20 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		
 		// dont forget about filters
 		qs.mergeFilters(frame.getFrameFilters());
+		
+		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
+		RInterpreter2 interp = new RInterpreter2();
+		interp.setQueryStruct(qs);
+		interp.setDataTableName(frame.getTableName());
+		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
+		String rQuery = interp.composeQuery();
+		
+		this.tempVarName = "temp" + Utility.getRandomString(6);
+		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
+		this.builder.executeR(tempVarQuery);
+		this.headers = builder.getColumnNames(tempVarName);
 	}
-	
+
 	@Override
 	public boolean hasNext() {
 		if(this.valueIterator.hasNext()) {
@@ -92,40 +115,21 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		}
 		return false;
 	}
-
+	
 	@Override
 	public List<Object[]> next() {
 		if(hasNext()) {
-			Object nextVal = valueIterator.next();
-			QueryFilter instanceFilter = null;
-			if(nextVal instanceof Number) {
-				instanceFilter = new QueryFilter(
-						new NounMetadata(uniqueColumnName, PixelDataType.COLUMN), 
-						"==", 
-						new NounMetadata(nextVal, PixelDataType.CONST_DECIMAL)
-						);
-			} else {
-				instanceFilter = new QueryFilter(
-						new NounMetadata(uniqueColumnName, PixelDataType.COLUMN), 
-						"==", 
-						new NounMetadata(nextVal, PixelDataType.CONST_STRING)
-						);
+			Object nextInstance = this.valueIterator.next();
+			String quote = "";
+			if( !(nextInstance instanceof Number) ) {
+				quote = "\"";
 			}
-			
-			// remove all previous filters
-			this.qs.getFilters().removeColumnFilter(uniqueColumnName);
-			// and add this one single value filter
-			this.qs.addFilter(instanceFilter);
-			
-			List<Object[]> retData = new ArrayList<Object[]>();
-			Iterator<IHeadersDataRow> it = frame.query(qs);
-			while(it.hasNext()) {
-				retData.add(it.next().getValues());
-			}
-			return retData;
+			String query = this.tempVarName + "[" + this.frameColumnName + " == " + quote + nextInstance + quote + ", ]";
+			List<Object[]> data = this.builder.getBulkDataRow(query, headers);
+			return data;
 		} else {
 			throw new NoSuchElementException("No more elements"); 
 		}
-		
 	}
+
 }
