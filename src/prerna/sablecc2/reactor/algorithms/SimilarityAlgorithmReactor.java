@@ -6,6 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.util.Cluster;
 import prerna.algorithm.learning.util.IClusterDistanceMode;
@@ -19,6 +22,8 @@ import prerna.util.ArrayUtilityMethods;
 
 public class SimilarityAlgorithmReactor extends AbstractReactor {
 
+	private static final String CLASS_NAME = SimilarityAlgorithmReactor.class.getName();
+	
 	private static final String ATTRIBUTES_KEY = "attributes";
 	private static final String INSTANCE_KEY = "instance";
 
@@ -34,8 +39,11 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
+		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
+		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
 
 		//get inputs from pixel command 
 		this.instanceColumn = getInstanceColumn();
@@ -68,8 +76,15 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 
 		Cluster cluster = new Cluster(attributeNames, isNumeric);
 		cluster.setDistanceMode(distanceMeasure);
+		logger.info("Start generating cluster center for similarity of instances");
+		logger.setLevel(Level.OFF);
 		generateClusterCenters(dataFrame, cluster, isNumeric);
-		getSimilarityValuesForInstances(dataFrame, cluster, results, isNumeric);
+		logger.setLevel(Level.INFO);
+		logger.info("Done generating cluster centers for similarity of instances");
+		logger.info("Start generating similarity of instance to dataset center");
+		getSimilarityValuesForInstances(dataFrame, cluster, results, isNumeric, logger);
+		logger.setLevel(Level.INFO);
+		logger.info("Done generating similarity of instance to dataset center");
 
 		String[] allColNames = dataFrame.getColumnHeaders();
 		String attributeName = attributeNames[instanceIndex];
@@ -89,14 +104,22 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 	}
 
 	private void generateClusterCenters(ITableDataFrame dataFrame, Cluster cluster, boolean[] isNumeric) {
-		Iterator<List<Object[]>> it = this.getUniqueScaledData(attributeNames[instanceIndex], attributeNamesList, dataFrame);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], attributeNamesList);
 		while (it.hasNext()) {
 			cluster.addToCluster(it.next(), attributeNames, isNumeric);
 		}
 	}
 
-	public void getSimilarityValuesForInstances(ITableDataFrame dataFrame, Cluster cluster, AlgorithmSingleColStore<Double> results, boolean[] isNumeric) {
-		Iterator<List<Object[]>> it = this.getUniqueScaledData(attributeNames[instanceIndex], attributeNamesList, dataFrame);
+	public void getSimilarityValuesForInstances(
+			ITableDataFrame dataFrame, 
+			Cluster cluster, 
+			AlgorithmSingleColStore<Double> results, 
+			boolean[] isNumeric,
+			Logger logger
+			) {
+		logger.setLevel(Level.OFF);
+		int counter = 0;
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], attributeNamesList);
 		while (it.hasNext()) {
 			List<Object[]> instance = it.next();
 			String instanceName = (String) instance.get(0)[instanceIndex];
@@ -104,11 +127,15 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 
 			//add similarity output to results store
 			results.put(instanceName, sim);
+			
+			if(counter % 100 == 0) {
+				logger.setLevel(Level.INFO);
+				logger.info("Finished execution for unique instance number = " + counter);
+				logger.setLevel(Level.OFF);
+			}
+			counter++;
 		}
-	}
-
-	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
-		return frame.scaledUniqueIterator(instance, columns);
+		logger.setLevel(Level.INFO);
 	}
 
 	//////////////////////////////////////////////////////////////
