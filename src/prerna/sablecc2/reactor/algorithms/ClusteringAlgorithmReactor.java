@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.LogManager;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -22,7 +22,7 @@ import prerna.util.ArrayUtilityMethods;
 
 public class ClusteringAlgorithmReactor extends AbstractReactor {
 	
-	private static final Logger LOGGER = LogManager.getLogger(ClusteringAlgorithmReactor.class.getName());
+	private static final String CLASS_NAME = ClusteringAlgorithmReactor.class.getName();
 	
 	/**
 	 * RunClustering(instance = column, numClusters = #, columns = attributeNamesList);
@@ -45,8 +45,11 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
 		//get inputs
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
 		this.instanceColumn = getInstanceColumn();
 		this.instanceIndex = 0;
 		this.attributeNamesList = getColumns();
@@ -86,17 +89,21 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		}
 		///////////////// end basic checks
 
-		LOGGER.info("Start creation of initial cluster centers...");		
+		logger.info("Start creation of initial cluster centers...");
+		logger.setLevel(Level.OFF);
 		initializeClusters(dataFrame, attributeNamesList);
-		LOGGER.info("Done creation of initial cluster centers...");		
+		logger.setLevel(Level.INFO);
+		logger.info("Done creation of initial cluster centers...");		
 
 		int maxIt = 10_000;
 		boolean go = true;
 		int currIt = 0;
-		LOGGER.info("Start iterating through dataset until convergence...");		
+		logger.info("Start iterating through dataset until convergence...");		
 		while (go) {
-			LOGGER.info("Start iteration number " + (currIt+1) + "...");		
+			logger.info("Start iteration number " + (currIt+1) + "...");		
 			go = false;
+			logger.setLevel(Level.OFF);
+			int counter = 0;
 			Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
@@ -112,15 +119,25 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 						removeInstanceIndex(instance, attributeNames, isNumeric, clusters.get(currCluster));
 					}
 				}
+				
+				// logging
+				if(counter % 100 == 0) {
+					logger.setLevel(Level.INFO);
+					logger.info("Finished execution for loop number = " + currIt + ", unique instance number = " + counter);
+					logger.setLevel(Level.OFF);
+				}
+				counter++;
 			}
 			currIt++;
 			// break if taking too many iterations
 			if (currIt > maxIt) {
-				LOGGER.info("Convergence Error ::: clustering routine did not converge after " + maxIt + " iterations");		
+				logger.setLevel(Level.INFO);
+				logger.info("Convergence Error ::: clustering routine did not converge after " + maxIt + " iterations");		
 				go = false;
 			}
 		}
-		LOGGER.info("Done iterating ...");		
+		logger.setLevel(Level.INFO);
+		logger.info("Done iterating ...");		
 		
 		// ughhhh... since we call this class within the 
 		// multi clustering reactor
