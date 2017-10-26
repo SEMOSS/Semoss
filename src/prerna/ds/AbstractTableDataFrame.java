@@ -208,7 +208,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public boolean isNumeric(String uniqueName) {
+	public boolean isNumeric(String name) {
+		String uniqueName = this.metaData.getUniqueNameFromAlias(name);
+		if(uniqueName == null) {
+			uniqueName = name;
+		}
 		DATA_TYPES dataType = null;
 		if(uniqueName.contains("__")) {
 			dataType = this.metaData.getHeaderTypeAsEnum(uniqueName, uniqueName.split("__")[0]);
@@ -237,7 +241,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			colSelector.setColumn(split[1]);
 		} else {
 			colSelector.setTable(columnHeader);
-			colSelector.setTable(null);
+			colSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 		}
 		
 		QueryStruct2 qs = new QueryStruct2();

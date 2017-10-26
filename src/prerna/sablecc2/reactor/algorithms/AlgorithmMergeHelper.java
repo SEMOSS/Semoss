@@ -19,7 +19,7 @@ public class AlgorithmMergeHelper {
 		
 	}
 	
-	public static void mergeSimpleAlgResult(ITableDataFrame dataFrame, String existingUniqueColName, String algorithmColName, String algorithmColType, AlgorithmSingleColStore results) {
+	public static void mergeSimpleAlgResult(ITableDataFrame dataFrame, String colNmae, String algorithmColName, String algorithmColType, AlgorithmSingleColStore results) {
 		// set the headers in the result so the iterator it generates is accurate
 		String[] cleanHeaders = new String[2];
 		//merge data to frame
@@ -27,6 +27,10 @@ public class AlgorithmMergeHelper {
 		// fill in QS with new header info
 		Map<String, String> dataTypes = new HashMap<String, String>();
 		QueryColumnSelector instanceSelector = new QueryColumnSelector();
+		String existingUniqueColName = dataFrame.getMetaData().getUniqueNameFromAlias(colNmae);
+		if(existingUniqueColName == null) {
+			existingUniqueColName = colNmae;
+		}
 		if(existingUniqueColName.contains("__")) {
 			String[] split = existingUniqueColName.split("__");
 			instanceSelector.setTable(split[0]);
