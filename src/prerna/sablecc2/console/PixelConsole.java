@@ -105,18 +105,18 @@ public class PixelConsole {
 		coreEngine.setEngineName("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("Movie_RDF");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
-		
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
-		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Core_Data");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName("Movie_RDF");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDF", coreEngine);
+//		
+//		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
+//		coreEngine = new BigDataEngine();
+//		coreEngine.setEngineName("TAP_Core_Data");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 	}
 }
 
