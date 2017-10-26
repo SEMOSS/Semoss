@@ -58,7 +58,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 				qsHead.setColumn(split[1]);
 				retHeaders[i] = split[1];
 			} else {
-				qsHead.setColumn(header);
+				qsHead.setTable(header);
 				retHeaders[i] = header;
 			}
 			dataTableAlign.put("dim " + i, retHeaders[i]);
