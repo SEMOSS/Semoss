@@ -54,21 +54,32 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 		// create the QS being used for querying
 		this.qs = new QueryStruct2();
 		QueryColumnSelector instanceSelector = new QueryColumnSelector();
-		String[] split = columnName.split("__");
-		instanceSelector.setTable(split[0]);
-		instanceSelector.setColumn(split[1]);
+		if(columnName.contains("__")) {
+			String[] split = columnName.split("__");
+			instanceSelector.setTable(split[0]);
+			instanceSelector.setColumn(split[1]);
+		} else {
+			instanceSelector.setTable(columnName);
+			instanceSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+		}
 		
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			String unqiueSelectorName = selectors.get(i);
 			
-			if(maxArr[i] != null && minArr[i] != null) {
-				// we need to normalize this guy
-				double range = maxArr[i] - minArr[i];
-				QueryColumnSelector sColumn = new QueryColumnSelector();
+			QueryColumnSelector sColumn = new QueryColumnSelector();
+			if(unqiueSelectorName.contains("__")) {
 				String[] sSplit = unqiueSelectorName.split("__");
 				sColumn.setTable(sSplit[0]);
 				sColumn.setColumn(sSplit[1]);
+			} else {
+				sColumn.setTable(unqiueSelectorName);
+				sColumn.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			}
+			
+			if(maxArr[i] != null && minArr[i] != null) {
+				// we need to normalize this guy
+				double range = maxArr[i] - minArr[i];
 				
 				QueryConstantSelector minConst = new QueryConstantSelector();
 				minConst.setConstant(minArr[i]);
@@ -89,11 +100,6 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 				qs.addSelector(normalizeSelector);
 			} else {
 				// we just add this as a column
-				QueryColumnSelector sColumn = new QueryColumnSelector();
-				String[] sSplit = unqiueSelectorName.split("__");
-				sColumn.setTable(sSplit[0]);
-				sColumn.setColumn(sSplit[1]);
-				
 				qs.addSelector(sColumn);
 			}
 		}

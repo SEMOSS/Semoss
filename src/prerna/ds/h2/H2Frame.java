@@ -317,11 +317,15 @@ public class H2Frame extends AbstractTableDataFrame {
 		Double[] min = new Double[numSelectors];
 		
 		for (int i = 0; i < numSelectors; i++) {
-			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(attributeUniqueHeaderName.get(i), this.builder.getTableName());
+			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
+			if(uniqueHeader == null) {
+				uniqueHeader = attributeUniqueHeaderName.get(i);
+			}
+			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader, this.builder.getTableName());
 			dataTypes.add(dataType);
 			if(dataType == DATA_TYPES.NUMBER) {
-				max[i] = getMax(attributeUniqueHeaderName.get(i));
-				min[i] = getMin(attributeUniqueHeaderName.get(i));
+				max[i] = getMax(uniqueHeader);
+				min[i] = getMin(uniqueHeader);
 			}
 		}
 

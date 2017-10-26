@@ -50,7 +50,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getQueryStructName() {
-		if(QueryStruct2.PRIM_KEY_PLACEHOLDER.equals(this.column) || this.column.trim().isEmpty()) {
+		if(this.column == null || QueryStruct2.PRIM_KEY_PLACEHOLDER.equals(this.column) || this.column.trim().isEmpty()) {
 			return this.table;
 		} else {
 			return this.table + "__" + this.column;
