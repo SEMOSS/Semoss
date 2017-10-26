@@ -102,7 +102,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 			go = false;
 			logger.setLevel(Level.OFF);
 			int counter = 0;
-			Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -179,7 +179,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	// helper methods for clustering
 	private void initializeClusters(ITableDataFrame dataFrame, List<String> attributeNamesList, Logger logger) {
 		logger.setLevel(Level.OFF);
-		Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 		List<Object[]> firstInstance = it.next();
 		Cluster firstCluster = new Cluster(attributeNames, isNumeric);
 		firstCluster.setDistanceMode(this.distanceMeasure);
@@ -240,13 +240,9 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 			numInstancesInCluster.add(1);
 
 			// generate new iterator
-			it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+			it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 		}
 		logger.setLevel(Level.INFO);
-	}
-
-	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
-		return frame.scaledUniqueIterator(instance, columns);
 	}
 
 	public int findBestClusterForInstance(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters) {

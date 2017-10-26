@@ -93,7 +93,7 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 			// grab R random rows
 			logger.info("Determining random subset of initial instances");
 			logger.setLevel(Level.OFF);
-			Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+			Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
 			for (int i = 0; i < numSubsetSize; i++) {
 				// skip over a number between 0 and random_skip rows
@@ -108,7 +108,7 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 			logger.setLevel(Level.OFF);
 			// for row in dataTable, grab R random rows
 			int counter = 0;
-			it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
+			it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
@@ -156,10 +156,6 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
-		return frame.scaledUniqueIterator(instance, columns);
-	}
-	
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////Input Methods///////////////////////////
