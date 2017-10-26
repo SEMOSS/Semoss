@@ -1,4 +1,4 @@
-package prerna.ds;
+package prerna.ds.shared;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -17,6 +17,8 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.QueryStruct2;
@@ -53,11 +55,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// to determine if a header has duplicates or not
 	protected Map<String, Boolean> uniqueColumnCache = new HashMap<String, Boolean>();
 	
-//	// TODO: once actions are moved to PKQL, won't need to keep this
-//	// examples include: numerical_correlation, classification, matrix_regression, association_learning
-//	// we keep a set of algorithm outputs on the frame
-//	protected List<Object> algorithmOutput = new Vector<Object>();
-
 	// the user id of the user who executed to create this frame
 	// this has a lot of use for the specific implementation of H2Frame
 	// H2Frame determines the schema to add the in-memory tables based on the userId
@@ -324,15 +321,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = new HashMap<String, String>();
-		reactorNames.put(PKQLReactor.DATA_FRAME_HEADER.toString(), "prerna.sablecc.DataFrameHeaderReactor");
-		reactorNames.put(PKQLEnum.COL_RENAME, "prerna.sablecc.ColRenameReactor");
-		reactorNames.put(PKQLEnum.REMOTE_RDBMS_QUERY_API, "prerna.sablecc.RemoteRdbmsQueryApiReactor");
-		return reactorNames;
-	}
-
-	@Override
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
@@ -460,6 +448,30 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
+	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
+		int numSelectors = attributeUniqueHeaderName.size();
+		List<IMetaData.DATA_TYPES> dataTypes = new Vector<IMetaData.DATA_TYPES>();
+		Double[] max = new Double[numSelectors];
+		Double[] min = new Double[numSelectors];
+		
+		for (int i = 0; i < numSelectors; i++) {
+			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
+			if(uniqueHeader == null) {
+				uniqueHeader = attributeUniqueHeaderName.get(i);
+			}
+			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
+			dataTypes.add(dataType);
+			if(dataType == DATA_TYPES.NUMBER) {
+				max[i] = getMax(uniqueHeader);
+				min[i] = getMin(uniqueHeader);
+			}
+		}
+
+		ScaledUniqueFrameIterator iterator = new ScaledUniqueFrameIterator(this, columnName, max, min, dataTypes, attributeUniqueHeaderName);
+		return iterator;
+	}
+	
+	@Override
 	public int getUniqueInstanceCount(String columnName) {
 		QueryStruct2 qs = new QueryStruct2();
 		QueryMathSelector count = new QueryMathSelector();
@@ -490,6 +502,16 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	/*
 	 * Even worse... deprecated DataMakerComponent stuff
 	 */
+	
+	@Override
+	@Deprecated
+	public Map<String, String> getScriptReactors() {
+		Map<String, String> reactorNames = new HashMap<String, String>();
+		reactorNames.put(PKQLReactor.DATA_FRAME_HEADER.toString(), "prerna.sablecc.DataFrameHeaderReactor");
+		reactorNames.put(PKQLEnum.COL_RENAME, "prerna.sablecc.ColRenameReactor");
+		reactorNames.put(PKQLEnum.REMOTE_RDBMS_QUERY_API, "prerna.sablecc.RemoteRdbmsQueryApiReactor");
+		return reactorNames;
+	}
 		
 	@Override
 	@Deprecated

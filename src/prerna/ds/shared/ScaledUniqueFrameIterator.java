@@ -1,4 +1,4 @@
-package prerna.ds.h2;
+package prerna.ds.shared;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -16,35 +17,21 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.QueryFilter;
 
-public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
+public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
-//	private String tableName;
-//
-//	private List<String> selectors;
-//	private List<DATA_TYPES> dataTypes;
-//
-//	private Double[] maxArr;
-//	private Double[] minArr;
-	
 	private String uniqueColumnName;
 	
-	private H2Frame frame;
+	private ITableDataFrame frame;
 	private QueryStruct2 qs;
 	private Iterator<Object> valueIterator;
 	
-	public ScaledUniqueH2FrameIterator(
-		H2Frame frame, 
+	public ScaledUniqueFrameIterator(
+		ITableDataFrame frame, 
 		String columnName,
 		Double[] maxArr, 
 		Double[] minArr,
 		List<DATA_TYPES> dataTypes,
 		List<String> selectors) {
-		
-//		this.selectors = selectors;
-//		this.tableName = tableName;
-//		this.maxArr = maxArr;
-//		this.minArr = minArr;
-//		this.dataTypes = dataTypes;
 		
 		this.uniqueColumnName = columnName;
 		this.frame = frame;

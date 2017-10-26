@@ -11,6 +11,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.rdf.query.builder.GremlinBuilder;
 import prerna.util.Utility;
 
