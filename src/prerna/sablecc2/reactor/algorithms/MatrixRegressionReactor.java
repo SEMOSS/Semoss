@@ -64,7 +64,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 			predictorHead.setColumn(split[1]);
 			retHeaders[0] = split[1];
 		} else {
-			predictorHead.setColumn(predictionCol);
+			predictorHead.setTable(predictionCol);
 			retHeaders[0] = predictionCol;
 		}
 		dataTableAlign.put("dim 0", retHeaders[0]);
@@ -79,7 +79,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 				qsHead.setColumn(split[1]);
 				retHeaders[i+1] = split[1];
 			} else {
-				qsHead.setColumn(header);
+				qsHead.setTable(header);
 				retHeaders[i+1] = header;
 			}
 			dataTableAlign.put("dim " + (i+1), retHeaders[i+1]);

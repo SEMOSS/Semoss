@@ -69,7 +69,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 			predictorHead.setColumn(split[1]);
 			retHeaders[0] = split[1];
 		} else {
-			predictorHead.setColumn(predictionCol);
+			predictorHead.setTable(predictionCol);
 			retHeaders[0] = predictionCol;
 		}
 		isNumeric[0] = dataframe.isNumeric(predictionCol);
@@ -84,7 +84,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 				qsHead.setColumn(split[1]);
 				retHeaders[i+1] = split[1];
 			} else {
-				qsHead.setColumn(header);
+				qsHead.setTable(header);
 				retHeaders[i+1] = header;
 			}
 			isNumeric[i+1] = dataframe.isNumeric(header);
