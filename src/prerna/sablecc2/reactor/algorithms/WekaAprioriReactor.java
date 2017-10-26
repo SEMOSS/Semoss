@@ -98,7 +98,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 				qsHead.setColumn(split[1]);
 				retHeaders[i] = split[1];
 			} else {
-				qsHead.setColumn(header);
+				qsHead.setTable(header);
 				retHeaders[i] = header;
 			}
 			this.isNumeric[i] = dataFrame.isNumeric(header);
