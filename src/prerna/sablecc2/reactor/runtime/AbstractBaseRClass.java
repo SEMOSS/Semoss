@@ -237,20 +237,16 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 		}
 
-		// Don't sync via RJDBC if OS is Mac because we'll write to CSV and load into data.table to avoid rJava setup
-		String OS = java.lang.System.getProperty("os.name").toLowerCase();
-		if(OS.contains("mac")) {
-			String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + java.lang.System.getProperty("file.separator") + "R" 
-					+ java.lang.System.getProperty("file.separator") + "Temp" + java.lang.System.getProperty("file.separator") + "output.csv";
-			gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT * FROM " + gridFrame.getTableName() + "', 'charset=UTF-8 fieldSeparator=, fieldDelimiter=');");
-			this.rJavaTranslator.executeR("file <- '" + outputLocation + "';");
-			this.rJavaTranslator.executeR(frameName + " <- read.csv(file);");
-			File f = new File(outputLocation);
-			f.delete();
-		} else {
-			initiateDriver(url, "sa");
-			this.rJavaTranslator.executeR(frameName + " <-as.data.table(unclass(dbGetQuery(conn,'SELECT " + selectors + " FROM " + tableName + "')));");
-		}
+		// we'll write to CSV and load into data.table to avoid rJava setup
+		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/")
+				+ java.lang.System.getProperty("file.separator") + "R" + java.lang.System.getProperty("file.separator")
+				+ "Temp" + java.lang.System.getProperty("file.separator") + "output.csv";
+		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT * FROM " + gridFrame.getTableName()
+				+ "', 'charset=UTF-8 fieldSeparator=, fieldDelimiter=');");
+		this.rJavaTranslator.executeR("file <- '" + outputLocation + "';");
+		this.rJavaTranslator.executeR(frameName + " <- read.csv(file);");
+		File f = new File(outputLocation);
+		f.delete();
 		this.rJavaTranslator.executeR("setDT(" + frameName + ")");
 
 		// modify the headers to be what they used to be because the query
