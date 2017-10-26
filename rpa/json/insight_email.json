@@ -1,0 +1,44 @@
+{
+  "-jobName":"lambda",
+  "-jobGroup":"lambdaGroup",
+  "-jobClass":"JobChain",
+  "-jobCronExpression":"00 30 00 1/1 * ? *",
+  "jobsInChain":[
+    {
+      "-jobClass":"GetSMTPSessionJob",
+      "smtpHost":"127.0.0.1",
+      "smtpPort":25
+    },
+    {
+      "-jobClass":"CreateInsightJob",
+      "pixel":"CreateFrame ( grid ) .as ( [ FRAME ] ) ; Database ( FY15 ) | Select ( CONTRACT_ID__TYPE_OF_WORK , CONTRACT_ID__OBLIGATED , CONTRACT_ID__VENDOR , CONTRACT_ID__CONTRACT_ID ) | Import ( ) ;"
+    },
+    {
+      "-jobClass":"GetFrameFromInsightJob"
+    },
+    {
+      "-jobClass":"OneColConditionJob",
+      "columnHeader":"TYPE_OF_WORK",
+      "comparator":"==",
+      "value":"ENVIRONMENTAL_REMEDIATION"
+    },
+    {
+      "-jobClass":"ConditionalJob",
+      "conditionalJob":{
+		"-jobName":"lambdaSendEmailJob",
+        "-jobClass":"SendEmailJob",
+        "from":"tbanach@deloitte.com",
+        "to":"foo@deloitte.com",
+        "subject":"<VENDOR> Notice",
+        "body":"Test : <VENDOR>, <TYPE_OF_WORK>, <OBLIGATED>, <VENDOR>, <CONTRACT_ID>.",
+        "bodyIsHTML":false
+      }
+    },
+	{
+      "-jobClass":"JobBatch",
+      "timeout":60,
+	  "jobsInBatch":[
+	  ]
+    }
+  ]
+}
