@@ -15,7 +15,7 @@ import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.AbstractTableDataFrame;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.expressions.IExpressionBuilder;
 

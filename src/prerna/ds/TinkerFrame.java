@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.algorithm.api.IMetaData;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -109,167 +110,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	/********************************  DATA MAKER METHODS ********************************/
 
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
-		long startTime = System.currentTimeMillis();
-		logger.info("Processing Component..................................");
-
-		List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
-		List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
-		String joinType = null;
-		List<prerna.sablecc2.om.Join> joins = new ArrayList<prerna.sablecc2.om.Join>();
-		for (ISEMOSSTransformation transformation : preTrans) {
-			if (transformation instanceof JoinTransformation) {
-				Map<String, String> joinMap = new HashMap<String, String>();
-				String joinCol1 = (String) ((JoinTransformation) transformation).getProperties()
-						.get(JoinTransformation.COLUMN_ONE_KEY);
-				String joinCol2 = (String) ((JoinTransformation) transformation).getProperties()
-						.get(JoinTransformation.COLUMN_TWO_KEY);
-				joinType = (String) ((JoinTransformation) transformation).getProperties()
-						.get(JoinTransformation.JOIN_TYPE);
-				joinMap.put(joinCol2, joinCol1); // physical in query struct
-				// ----> logical in existing
-				// data maker
-				prerna.sablecc2.om.Join colJoin = new prerna.sablecc2.om.Join(joinCol1, joinType, joinCol2);
-				joins.add(colJoin);
-				joinColList.add(joinMap);
-			}
-		}
-
-		// logic to flush out qs -> qs2
-		QueryStruct qs = component.getQueryStruct();
-		// the component will either have a qs or a query string, account for
-		// that here
-		QueryStruct2 qs2 = null;
-		if (qs == null) {
-			String query = component.getQuery();
-			qs2 = new HardQueryStruct();
-			((HardQueryStruct) qs2).setQuery(query);
-			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-		} else {
-			qs2 = new QueryStruct2();
-			// add selectors
-			Map<String, List<String>> qsSelectors = qs.getSelectors();
-			for (String key : qsSelectors.keySet()) {
-				for (String prop : qsSelectors.get(key)) {
-					qs2.addSelector(key, prop);
-				}
-			}
-			// add relations
-			qs2.mergeRelations(qs.getRelations());
-			qs2.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-		}
-
-		long time1 = System.currentTimeMillis();
-		// set engine on qs2
-		qs2.setEngineName(component.getEngineName());
-		// instantiate h2importer with frame and qs
-		IImporter importer = new TinkerImporter(this, qs2);
-		if (joins.isEmpty()) {
-			importer.insertData();
-		} else {
-			importer.mergeData(joins);
-		}
-
-		long time2 = System.currentTimeMillis();
-		logger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
-//
-//      processPreTransformations(component, component.getPreTrans() );
-//      long time1 = System.currentTimeMillis();
-//      LOGGER.info(" Processed Pretransformations: " +(time1 - startTime)+" ms");
-//
-//      IEngine engine = component.getEngine();
-//      // automatically created the query if stored as metamodel
-//      // fills the query with selected params if required
-//      // params set in insightcreatrunner
-//      String query = component.fillQuery();
-//
-//      String[] displayNames = null;
-//       if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
-//             TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
-//             tgdm.fillModel(query, engine, this);
-//      } else if (!query.equals(Constants.EMPTY)){
-//             ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-//             //if component has data from which we can construct a meta model then construct it and merge it
-//             boolean hasMetaModel = component.getQueryStruct() != null;
-//             if(hasMetaModel) {
-//                   
-//                   // sometimes, the query returns no data
-//                   // and we update the headers resulting in no information
-//                   // so only add it once
-//                   boolean addedMeta = false;
-//                   Map[] mergedMaps = null;
-//                   while(wrapper.hasNext()){
-//                          if(!addedMeta) {
-//                                Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
-//                                mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList, null);
-//                                this.headerNames = this.metaData.getColumnNames().toArray(new String[]{});
-//                                addedMeta = true;
-//                          }
-//                          
-//                          ISelectStatement ss = wrapper.next();
-//                          this.addRelationship(ss.getPropHash(), mergedMaps[0], mergedMaps[1]);
-//                   }
-//             } 
-//
-//             //else default to primary key tinker graph
-//             else {
-//                   displayNames = wrapper.getDisplayVariables();
-//                   if(displayNames.length == 1) {
-//                          // dont create the prim key for a single column being pulled in a query
-//                          // example of this is SQL queries in explore an instance
-//                          // for create queries that flush into the TinkerGraphDataModel we already take this into consideration
-//                          String header = displayNames[0];
-//                          
-//                          Map<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
-//                          edgeHash.put(header, new HashSet<String>());
-//                          Map<String, String> dataTypeMap = new Hashtable<String, String>();
-//                          dataTypeMap.put(header, "STRING");
-//                          mergeEdgeHash(edgeHash, dataTypeMap);
-//                          
-//                          List<String> fullNames = this.metaData.getColumnNames();
-//                          this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-//                          
-//                          // need to pass in a map
-//                          // this would be where we would take advantage of using display names
-//                          Map<String, String> logicalToTypeMap = new HashMap<String, String>();
-//                          logicalToTypeMap.put(header, header);
-//                          
-//                          // clear the edge hash so the tinker frame knows right away
-//                          // to just add this as a single vertex
-//                          edgeHash.clear();
-//                          
-//                          // actually go through and add the data
-//                          while(wrapper.hasNext()) {
-//                                 addRelationship(wrapper.next().getPropHash(), edgeHash, logicalToTypeMap);
-//                          }
-//                   } else {
-//                          // need to make a prim key
-//                          TinkerMetaHelper.mergeEdgeHash(this.metaData, TinkerMetaHelper.createPrimKeyEdgeHash(displayNames));
-//                          List<String> fullNames = this.metaData.getColumnNames();
-//                          this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-//                          
-//                          // actually go through and add the data
-//                          while(wrapper.hasNext()) {
-//                                 this.addRow(wrapper.next());
-//                          }
-//                   }
-//             }
-//      }
-//      //           g.variables().set(TINKER_HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
-//      //           redoLevels(this.headerNames);
-//
-//      long time2 = System.currentTimeMillis();
-//      LOGGER.info(" Processed Wrapper: " +(time2 - time1)+" ms");
-//
-//      processPostTransformations(component, component.getPostTrans());
-//      processActions(component, component.getActions());
-//
-//      long time4 = System.currentTimeMillis();
-//      LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
-  }
-
-	
 //	private Map createVertStores(){
 //		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
 //		Map<String, SEMOSSEdge> edgeStore = new HashMap<String, SEMOSSEdge>();
@@ -380,21 +220,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	/******************************  GRAPH SPECIFIC METHODS ******************************/
 
-
-//	protected String getMetaNodeValue(String metaNodeName) {
-//		String metaNodeValue = metaNodeName;
-//		// get metamodel info for metaModeName
-//		GraphTraversal<Vertex, Vertex> metaT = g.traversal().V().has(TINKER_TYPE, TinkerFrame.META).has(TINKER_NAME, metaNodeName);
-//		
-//		// if metaT has metaNodeName then find the value else return metaNodeName
-//		if (metaT.hasNext()) {
-//			Vertex startNode = metaT.next();
-//			metaNodeValue = startNode.property(TINKER_VALUE).value() + "";
-//		}
-//
-//		return metaNodeValue;
-//	}
-	
 	//TODO: need to update and remove uniqueName from method signature
 	// create or add vertex
 	protected Vertex upsertVertex(String type, Object data)
@@ -732,158 +557,36 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			}
 		}
 	}
-
-//	/**
-//	 * This Method gets the filterModel information for filtered values
-//	 */
-//	public HashSet<String> filterModel(String col, String filterWord, Integer limit, Integer offset) {
-//		HashSet<String> fvalues = new HashSet<>();
-//		Map<String, Object[]> filterCombinations = getFilterTransformationValues();
-//		GraphTraversal<Vertex, Vertex> gt = null;
-//		// Create queryStruct
-//		QueryStruct qs = new QueryStruct();
-//		qs.addSelector(col, null);
-//		// add limit and offset
-//		if (limit >= 0) {
-//			qs.setLimit(limit);
-//			if (offset >= 0) {
-//				qs.setOffSet(offset);
-//			}
-//		}
-//		// add filter data to query
-//		List filterData = null;
-//		filterData = new ArrayList();
-//
-//		if (filterWord != null) {
-//			filterData.add(filterWord);
-//			qs.addFilter(col, "=", filterData);
-//		}
-//
-//		for (String filterCol : filterCombinations.keySet()) {
-//			Object[] row = filterCombinations.get(filterCol);
-//
-//			filterData = new ArrayList();
-//			for (int i = 0; i < row.length; i++) {
-//				String rowValue = (String) row[i];
-//				String filterColName = this.metaData.getValueForUniqueName(filterCol);
-//				filterData.add(rowValue);
-//			}
-//			if (!filterCol.equals(col)) {
-//				qs.addFilter(filterCol, "=", filterData);
-//			} else {
-//				qs.addFilter(filterCol, "!=", filterData);
-//			}
-//		}
-//
-//		// execute query
-//		if (filterData != null) {
-//			GremlinInterpreter interpreter = new GremlinInterpreter(this.g, ((TinkerMetaData) this.metaData).g);
-//			interpreter.setQueryStruct(qs);
-//			interpreter.setEdgeHash(this.metaData.getEdgeHash());
-//			GraphTraversal it = (GraphTraversal) interpreter.composeIteratorSpecificFilters();
-//			List<Object> filterList = new ArrayList<>();
-//			while (it.hasNext()) {
-//				String value = ((Vertex) it.next()).value(TINKER_NAME);
-//				System.out.println(value);
-//				fvalues.add(value);
-//			}
-//		}
-//		return fvalues;
-//
-//	}
-//
-//	public Map<String, Map<String, Double>> getMinMaxValues(String col, Set<String> columnSets) {
-//		Map<String, Map<String, Double>> minMaxValues = new HashMap<String, Map<String, Double>>();
-//
-//		if (this.metaData.getDataType(col) == IMetaData.DATA_TYPES.NUMBER) {
-//			Map<String, Double> minMax = new HashMap<String, Double>();
-//
-//			// sort unfiltered array to pull relative min and max of unfiltered
-//			// data
-//			Object[] unfilteredArray = columnSets.toArray();
-//			// Arrays.sort(unfilteredArray);
-//			double absMin = getMin(col);
-//			double absMax = getMax(col);
-//			if (!columnSets.isEmpty()) {
-//				minMax.put("min", Double.parseDouble((String) unfilteredArray[0]));
-//				minMax.put("max", Double.parseDouble((String) unfilteredArray[unfilteredArray.length - 1]));
-//			}
-//			minMax.put("absMin", absMin);
-//			minMax.put("absMax", absMax);
-//
-//			// calculate how large each step in the slider should be
-//			double difference = absMax - absMin;
-//			double step = 1;
-//			if (difference < 1) {
-//				double tenthPower = Math.floor(Math.log10(difference));
-//				if (tenthPower < 0) {
-//					// ex. if difference is 0.009, step should be 0.001
-//					step = Math.pow(10, tenthPower);
-//				} else {
-//					step = 0.1;
-//				}
-//			}
-//			minMax.put("step", step);
-//
-//			minMaxValues.put(col, minMax);
-//
-//		}
-//		return minMaxValues;
-//
-//	}
-//
-//	public Map<String, Object[]> getFilterTransformationValues() {
-//		Map<String, Object[]> retMap = new HashMap<String, Object[]>();
-//		// get meta nodes that are tagged as filtered
-//		Map<String, String> filters = this.metaData.getFilteredColumns();
-//		for(String name: filters.keySet()){
-////			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, TINKER_FILTER).out(TINKER_FILTER+edgeLabelDelimeter+vertType).has(TINKER_TYPE, vertType);
-//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, filters.get(name));
-//
-//			List<Object> vertsList = new Vector<Object>();
-//			while(gt.hasNext()){
-////				System.out.println(gt.next());
-//				Vertex vert = gt.next();
-////				System.out.println(vert.value(TINKER_VALUE) + "");
-//				if(!vert.edges(Direction.IN, TINKER_FILTER+EDGE_LABEL_DELIMETER+filters.get(name)).hasNext()) {
-//					vertsList.add(vert.value(TINKER_NAME));
-//				}
-//			}
-//			retMap.put(name, vertsList.toArray());
-//		}
-//		
-//		return retMap;
-//	}
 	
 	/****************************** END FILTER METHODS ******************************************/
 	
 	
 	/****************************** TRAVERSAL METHODS *******************************************/
 	
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
-//		List<String> selectors = null;
-//		Double[] max = null;
-//		Double[] min = null;
-//		if(options != null && options.containsKey(AbstractTableDataFrame.SELECTORS)) {
-//			selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
-//			int numSelected = selectors.size();
-//			max = new Double[numSelected];
-//			min = new Double[numSelected];
-//			for(int i = 0; i < numSelected; i++) {
-//				//TODO: think about storing this value s.t. we do not need to calculate max/min with each loop
-//				max[i] = getMax(selectors.get(i));
-//				min[i] = getMin(selectors.get(i));
-//			}
-//		} else {
-//			selectors = getSelectors();
-//			max = getMax();
-//			min = getMin();
-//		}
-//		
-//		return new UniqueScaledTinkerFrameIterator(columnHeader, selectors, g, ((TinkerMetaData)this.metaData).g, max, min);
-		return null;
-	}
+//	@Override
+//	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
+////		List<String> selectors = null;
+////		Double[] max = null;
+////		Double[] min = null;
+////		if(options != null && options.containsKey(AbstractTableDataFrame.SELECTORS)) {
+////			selectors = (List<String>) options.get(AbstractTableDataFrame.SELECTORS);
+////			int numSelected = selectors.size();
+////			max = new Double[numSelected];
+////			min = new Double[numSelected];
+////			for(int i = 0; i < numSelected; i++) {
+////				//TODO: think about storing this value s.t. we do not need to calculate max/min with each loop
+////				max[i] = getMax(selectors.get(i));
+////				min[i] = getMin(selectors.get(i));
+////			}
+////		} else {
+////			selectors = getSelectors();
+////			max = getMax();
+////			min = getMin();
+////		}
+////		
+////		return new UniqueScaledTinkerFrameIterator(columnHeader, selectors, g, ((TinkerMetaData)this.metaData).g, max, min);
+//		return null;
+//	}
 
 	public Object[] getColumn(String columnHeader) {
 		GremlinInterpreter2 interp = new GremlinInterpreter2(this.g);
@@ -1574,12 +1277,172 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	
 	
+	/////////////////////////////////////////////////////////////////////////
 	
+	/*
+	 * Deprecated stuff
+	 */
 	
-	
-	
-	
-	
+	@Override
+	@Deprecated
+	public void processDataMakerComponent(DataMakerComponent component) {
+		long startTime = System.currentTimeMillis();
+		logger.info("Processing Component..................................");
+
+		List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
+		List<Map<String,String>> joinColList= new ArrayList<Map<String,String>> ();
+		String joinType = null;
+		List<prerna.sablecc2.om.Join> joins = new ArrayList<prerna.sablecc2.om.Join>();
+		for (ISEMOSSTransformation transformation : preTrans) {
+			if (transformation instanceof JoinTransformation) {
+				Map<String, String> joinMap = new HashMap<String, String>();
+				String joinCol1 = (String) ((JoinTransformation) transformation).getProperties()
+						.get(JoinTransformation.COLUMN_ONE_KEY);
+				String joinCol2 = (String) ((JoinTransformation) transformation).getProperties()
+						.get(JoinTransformation.COLUMN_TWO_KEY);
+				joinType = (String) ((JoinTransformation) transformation).getProperties()
+						.get(JoinTransformation.JOIN_TYPE);
+				joinMap.put(joinCol2, joinCol1); // physical in query struct
+				// ----> logical in existing
+				// data maker
+				prerna.sablecc2.om.Join colJoin = new prerna.sablecc2.om.Join(joinCol1, joinType, joinCol2);
+				joins.add(colJoin);
+				joinColList.add(joinMap);
+			}
+		}
+
+		// logic to flush out qs -> qs2
+		QueryStruct qs = component.getQueryStruct();
+		// the component will either have a qs or a query string, account for
+		// that here
+		QueryStruct2 qs2 = null;
+		if (qs == null) {
+			String query = component.getQuery();
+			qs2 = new HardQueryStruct();
+			((HardQueryStruct) qs2).setQuery(query);
+			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		} else {
+			qs2 = new QueryStruct2();
+			// add selectors
+			Map<String, List<String>> qsSelectors = qs.getSelectors();
+			for (String key : qsSelectors.keySet()) {
+				for (String prop : qsSelectors.get(key)) {
+					qs2.addSelector(key, prop);
+				}
+			}
+			// add relations
+			qs2.mergeRelations(qs.getRelations());
+			qs2.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+		}
+
+		long time1 = System.currentTimeMillis();
+		// set engine on qs2
+		qs2.setEngineName(component.getEngineName());
+		// instantiate h2importer with frame and qs
+		IImporter importer = new TinkerImporter(this, qs2);
+		if (joins.isEmpty()) {
+			importer.insertData();
+		} else {
+			importer.mergeData(joins);
+		}
+
+		long time2 = System.currentTimeMillis();
+		logger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
+//
+//      processPreTransformations(component, component.getPreTrans() );
+//      long time1 = System.currentTimeMillis();
+//      LOGGER.info(" Processed Pretransformations: " +(time1 - startTime)+" ms");
+//
+//      IEngine engine = component.getEngine();
+//      // automatically created the query if stored as metamodel
+//      // fills the query with selected params if required
+//      // params set in insightcreatrunner
+//      String query = component.fillQuery();
+//
+//      String[] displayNames = null;
+//       if(query.trim().toUpperCase().startsWith("CONSTRUCT")){
+//             TinkerGraphDataModel tgdm = new TinkerGraphDataModel();
+//             tgdm.fillModel(query, engine, this);
+//      } else if (!query.equals(Constants.EMPTY)){
+//             ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+//             //if component has data from which we can construct a meta model then construct it and merge it
+//             boolean hasMetaModel = component.getQueryStruct() != null;
+//             if(hasMetaModel) {
+//                   
+//                   // sometimes, the query returns no data
+//                   // and we update the headers resulting in no information
+//                   // so only add it once
+//                   boolean addedMeta = false;
+//                   Map[] mergedMaps = null;
+//                   while(wrapper.hasNext()){
+//                          if(!addedMeta) {
+//                                Map<String, Set<String>> edgeHash = component.getQueryStruct().getReturnConnectionsHash();
+//                                mergedMaps = TinkerMetaHelper.mergeQSEdgeHash(this.metaData, edgeHash, engine, joinColList, null);
+//                                this.headerNames = this.metaData.getColumnNames().toArray(new String[]{});
+//                                addedMeta = true;
+//                          }
+//                          
+//                          ISelectStatement ss = wrapper.next();
+//                          this.addRelationship(ss.getPropHash(), mergedMaps[0], mergedMaps[1]);
+//                   }
+//             } 
+//
+//             //else default to primary key tinker graph
+//             else {
+//                   displayNames = wrapper.getDisplayVariables();
+//                   if(displayNames.length == 1) {
+//                          // dont create the prim key for a single column being pulled in a query
+//                          // example of this is SQL queries in explore an instance
+//                          // for create queries that flush into the TinkerGraphDataModel we already take this into consideration
+//                          String header = displayNames[0];
+//                          
+//                          Map<String, Set<String>> edgeHash = new Hashtable<String, Set<String>>();
+//                          edgeHash.put(header, new HashSet<String>());
+//                          Map<String, String> dataTypeMap = new Hashtable<String, String>();
+//                          dataTypeMap.put(header, "STRING");
+//                          mergeEdgeHash(edgeHash, dataTypeMap);
+//                          
+//                          List<String> fullNames = this.metaData.getColumnNames();
+//                          this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+//                          
+//                          // need to pass in a map
+//                          // this would be where we would take advantage of using display names
+//                          Map<String, String> logicalToTypeMap = new HashMap<String, String>();
+//                          logicalToTypeMap.put(header, header);
+//                          
+//                          // clear the edge hash so the tinker frame knows right away
+//                          // to just add this as a single vertex
+//                          edgeHash.clear();
+//                          
+//                          // actually go through and add the data
+//                          while(wrapper.hasNext()) {
+//                                 addRelationship(wrapper.next().getPropHash(), edgeHash, logicalToTypeMap);
+//                          }
+//                   } else {
+//                          // need to make a prim key
+//                          TinkerMetaHelper.mergeEdgeHash(this.metaData, TinkerMetaHelper.createPrimKeyEdgeHash(displayNames));
+//                          List<String> fullNames = this.metaData.getColumnNames();
+//                          this.headerNames = fullNames.toArray(new String[fullNames.size()]);
+//                          
+//                          // actually go through and add the data
+//                          while(wrapper.hasNext()) {
+//                                 this.addRow(wrapper.next());
+//                          }
+//                   }
+//             }
+//      }
+//      //           g.variables().set(TINKER_HEADER_NAMES, this.headerNames); // I dont know if i even need this moving forward.. but for now I will assume it is
+//      //           redoLevels(this.headerNames);
+//
+//      long time2 = System.currentTimeMillis();
+//      LOGGER.info(" Processed Wrapper: " +(time2 - time1)+" ms");
+//
+//      processPostTransformations(component, component.getPostTrans());
+//      processActions(component, component.getActions());
+//
+//      long time4 = System.currentTimeMillis();
+//      LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
+  }
 	
 	
 	
