@@ -105,7 +105,7 @@ public class ScaledUniqueH2FrameIterator implements Iterator<List<Object[]>> {
 		}
 		
 		// dont forget about filters
-		qs.setFilters(frame.getFrameFilters());
+		qs.mergeFilters(frame.getFrameFilters());
 	}
 	
 	@Override
