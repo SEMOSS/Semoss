@@ -90,7 +90,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 			isNumeric[i+1] = dataframe.isNumeric(header);
 			qs.addSelector(qsHead);
 		}
-		qs.setFilters(dataframe.getFrameFilters());
+		qs.mergeFilters(dataframe.getFrameFilters());
 
 		int numRows = getNumRows(dataframe, predictorHead);
 		Iterator<IHeadersDataRow> it = dataframe.query(qs);

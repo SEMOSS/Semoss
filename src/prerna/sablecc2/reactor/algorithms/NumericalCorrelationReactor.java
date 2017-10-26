@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -22,20 +22,24 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class NumericalCorrelationReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(WekaClassificationReactor.class.getName());
+	private static final String CLASS_NAME = NumericalCorrelationReactor.class.getName();
+	
 	private static final String COLUMN_KEY = "columns";
 	private static final String DEFAULT_VALUE_KEY = "defaultValue";
 	private static final String PANEL_KEY = "panel";
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
+		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
 		// figure out inputs
-		ITableDataFrame dataframe = (ITableDataFrame) this.insight.getDataMaker();
 		List<String> numericalCols = getColumns();
 		int numCols = numericalCols.size();
 		if(numCols == 0) {
 			String errorString = "No columns were passed as attributes for the classification routine.";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		double missingVal = getDefaultValue();
@@ -64,11 +68,13 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 			dataTableAlign.put("dim " + i, retHeaders[i]);
 			qs.addSelector(qsHead);
 		}
-		qs.setFilters(dataframe.getFrameFilters());
+		qs.mergeFilters(dataFrame.getFrameFilters());
 		
-		Iterator<IHeadersDataRow> it = dataframe.query(qs);
-		double[][] correlationData = runCorrelation(it, rowData, numCols, missingVal);
-		
+		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
+		logger.info("Start iterating through data to determine correlation");
+		double[][] correlationData = runCorrelation(it, rowData, numCols, missingVal, logger);
+		logger.info("Done iterating through data to determine correlation");
+
 		// mock the data output
 		Map<String, Object> vizData = new HashMap<String, Object>();
 		vizData.put("data", rowData);
@@ -85,7 +91,12 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}
 
-	private double[][] runCorrelation(Iterator<IHeadersDataRow> it, List<double[]> rowData, int numHeaders, double defaultVal) {
+	private double[][] runCorrelation(
+			Iterator<IHeadersDataRow> it, 
+			List<double[]> rowData, 
+			int numHeaders, 
+			double defaultVal,
+			Logger logger) {
 		// sum of x
 		double[] sx = new double[numHeaders];
 		// sum of x^2
@@ -121,6 +132,12 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 				doubleRow[i] = x;
 			}
 			
+			// logging
+			if(n % 100 == 0) {
+				logger.setLevel(Level.INFO);
+				logger.info("Finished row number = " + n);
+				logger.setLevel(Level.OFF);
+			}
 			// we are done with this row
 			n++;
 			// store it as well
@@ -153,6 +170,14 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		}
 		return defaultVal;
 	}
+
+	////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////
+	
+	/*
+	 * Retrieving inputs
+	 */
 	
 	private List<String> getColumns() {
 		// see if defined as individual key
