@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.rosuda.REngine.Rserve.RConnection;
+
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.NounMetadata;
@@ -37,7 +39,12 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		// recreate a new frame and set the frame name
 		String[] colNames = getColumns(frameName);
 		String[] colTypes = getColumnTypes(frameName);
-		RDataTable newTable = new RDataTable(frameName);
+		RDataTable newTable = null;
+		if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
+			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(IRJavaTranslator.R_CONN), (String) retrieveVariable(IRJavaTranslator.R_PORT));
+		} else {
+			newTable = new RDataTable(frameName);
+		}
 		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		this.insight.setDataMaker(newTable);
 	}
