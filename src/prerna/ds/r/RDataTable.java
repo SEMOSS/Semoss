@@ -82,13 +82,15 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	public void closeConnection() {
-		if(this.builder.getConnection() != null) {
-			try {
-				this.builder.getConnection().shutdown();
-			} catch (RserveException e) {
-				logger.info("R Connection is already closed...");
-			}
-		}
+		// now we only hold 1 connection
+		// do not do this...
+//		if(this.builder.getConnection() != null) {
+//			try {
+//				this.builder.getConnection().shutdown();
+//			} catch (RserveException e) {
+//				logger.info("R Connection is already closed...");
+//			}
+//		}
 	}
 	
 	public String getFilterString() {
@@ -277,7 +279,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		
 		start = System.currentTimeMillis();
 		String distinctQuery = "unique(" + tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "])"; 
-		int val2 = this.builder.getIntFromScript(distinctQuery);
+		int val2 = getNumRows(distinctQuery);
 		end = System.currentTimeMillis();
 		logger.info("R duplicates query2 time = " + (end-start) + "ms");
 		
