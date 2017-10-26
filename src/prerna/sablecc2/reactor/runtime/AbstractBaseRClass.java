@@ -235,13 +235,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 
 		// we'll write to CSV and load into data.table to avoid rJava setup
-		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/")
-				+ java.lang.System.getProperty("file.separator") + "R" + java.lang.System.getProperty("file.separator")
-				+ "Temp" + java.lang.System.getProperty("file.separator") + "output.csv";
-		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT * FROM " + gridFrame.getTableName()
-				+ "', 'charset=UTF-8 fieldSeparator=, fieldDelimiter=');");
-		this.rJavaTranslator.executeR("file <- '" + outputLocation + "';");
-		this.rJavaTranslator.executeR(frameName + " <- read.csv(file);");
+		final String sep = java.lang.System.getProperty("file.separator");
+		String random = Utility.getRandomString(10);
+		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
+		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
+		this.rJavaTranslator.executeR("library(data.table);");
+		this.rJavaTranslator.executeR(frameName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);
 		f.delete();
 		this.rJavaTranslator.executeR("setDT(" + frameName + ")");
