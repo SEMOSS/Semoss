@@ -19,6 +19,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get inputs
 		GenRowStruct inputsGRS = this.getCurRow();
@@ -31,7 +32,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 				if (column.contains("__")) {
 					column = column.split("__")[1];
 				}
-				OwlTemporalEngineMeta metaData = frame.getMetaData();
+				
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equals("STRING")) {
 					String script = table + "$" + column + " <- str_trim(" + table + "$" + column + ")";
