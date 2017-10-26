@@ -21,11 +21,12 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.cache.ICache;
-import prerna.ds.AbstractTableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Builder.Join;
+import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.ds.shared.ScaledUniqueFrameIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.SqlInterpreter2;
 import prerna.query.querystruct.HardQueryStruct;
@@ -310,30 +311,6 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName, List<String> attributeUniqueHeaderName) {
-		int numSelectors = attributeUniqueHeaderName.size();
-		List<IMetaData.DATA_TYPES> dataTypes = new Vector<IMetaData.DATA_TYPES>();
-		Double[] max = new Double[numSelectors];
-		Double[] min = new Double[numSelectors];
-		
-		for (int i = 0; i < numSelectors; i++) {
-			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
-			if(uniqueHeader == null) {
-				uniqueHeader = attributeUniqueHeaderName.get(i);
-			}
-			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader, this.builder.getTableName());
-			dataTypes.add(dataType);
-			if(dataType == DATA_TYPES.NUMBER) {
-				max[i] = getMax(uniqueHeader);
-				min[i] = getMin(uniqueHeader);
-			}
-		}
-
-		ScaledUniqueH2FrameIterator iterator = new ScaledUniqueH2FrameIterator(this, uniqueHeaderName, max, min, dataTypes, attributeUniqueHeaderName);
-		return iterator;
-	}
-
-	@Override
 	public void removeColumn(String columnHeader) {
 		if (!ArrayUtilityMethods.arrayContainsValue(this.qsNames, columnHeader)) {
 			return;
@@ -498,84 +475,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		builder.deleteRow(columns, values);
 	}
 
-	@Override
-	@Deprecated
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = super.getScriptReactors();
-		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
-		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-		
-		// h2 specific reactors
-		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
-		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
-		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2ChangeTypeReactor");
-		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
-//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, "prerna.sablecc.FlatTableSetEdgeHash");
-
-		// rdbms connection logic
-		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
-		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
-		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
-		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
-		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.H2ColFilterModelReactor");
-		
-		// h2 specific expression handlers		
-		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.sql.SqlSumReactor");
-		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.sql.SqlMaxReactor");
-		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.sql.SqlMinReactor");
-		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.sql.SqlAverageReactor");
-		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.sql.SqlCountReactor");
-		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.sql.SqlUniqueCountReactor");
-		reactorNames.put(PKQLEnum.CONCAT, "prerna.sablecc.expressions.sql.SqlConcatReactor");
-		reactorNames.put(PKQLEnum.GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlGroupConcatReactor");
-		reactorNames.put(PKQLEnum.UNIQUE_GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlDistinctGroupConcatReactor");
-		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
-		reactorNames.put(PKQLEnum.ROUND, "prerna.sablecc.expressions.sql.SqlRoundReactor");
-		reactorNames.put(PKQLEnum.COS, "prerna.sablecc.expressions.sql.SqlCosReactor");
-		reactorNames.put(PKQLEnum.SIN, "prerna.sablecc.expressions.sql.SqlSinReactor");
-		reactorNames.put(PKQLEnum.TAN, "prerna.sablecc.expressions.sql.SqlTanReactor");
-		reactorNames.put(PKQLEnum.CEILING, "prerna.sablecc.expressions.sql.SqlCeilingReactor");
-		reactorNames.put(PKQLEnum.FLOOR, "prerna.sablecc.expressions.sql.SqlFloorReactor");
-		reactorNames.put(PKQLEnum.LOG, "prerna.sablecc.expressions.sql.SqlLogReactor");
-		reactorNames.put(PKQLEnum.LOG10, "prerna.sablecc.expressions.sql.SqlLog10Reactor");
-		reactorNames.put(PKQLEnum.SQRT, "prerna.sablecc.expressions.sql.SqlSqrtReactor");
-		reactorNames.put(PKQLEnum.POWER, "prerna.sablecc.expressions.sql.SqlPowerReactor");
-		reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM, "prerna.ds.h2.H2CorrelationReactor");
-
-		// default to sample stdev
-		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
-		reactorNames.put(PKQLEnum.SAMPLE_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
-		reactorNames.put(PKQLEnum.POPULATION_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlPopulationStandardDeviationReactor");
-//		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.sql.SqlMedianReactor");
-		
-		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
-		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
-		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2RawQueryApiReactor");
-
-		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
-		
-		return reactorNames;
-	}
-	
 	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, String[] joinCols) {
 		int size = newHeaders.length;
 		IMetaData.DATA_TYPES[] types = new IMetaData.DATA_TYPES[size];
@@ -588,7 +487,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
 	}
 	
 	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] origHeaders, String[] newHeaders, String joinType) {
@@ -813,6 +711,84 @@ public class H2Frame extends AbstractTableDataFrame {
 	/*
 	 * Deprecated DataMakerComponent stuff
 	 */	
+	
+	@Override
+	@Deprecated
+	public Map<String, String> getScriptReactors() {
+		Map<String, String> reactorNames = super.getScriptReactors();
+		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
+		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
+		
+		// h2 specific reactors
+		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
+		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
+		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2ChangeTypeReactor");
+		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
+//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, "prerna.sablecc.FlatTableSetEdgeHash");
+
+		// rdbms connection logic
+		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
+		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
+		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
+		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.H2ColFilterModelReactor");
+		
+		// h2 specific expression handlers		
+		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.sql.SqlSumReactor");
+		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.sql.SqlMaxReactor");
+		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.sql.SqlMinReactor");
+		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.sql.SqlAverageReactor");
+		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.sql.SqlCountReactor");
+		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.sql.SqlUniqueCountReactor");
+		reactorNames.put(PKQLEnum.CONCAT, "prerna.sablecc.expressions.sql.SqlConcatReactor");
+		reactorNames.put(PKQLEnum.GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlGroupConcatReactor");
+		reactorNames.put(PKQLEnum.UNIQUE_GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlDistinctGroupConcatReactor");
+		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
+		reactorNames.put(PKQLEnum.ROUND, "prerna.sablecc.expressions.sql.SqlRoundReactor");
+		reactorNames.put(PKQLEnum.COS, "prerna.sablecc.expressions.sql.SqlCosReactor");
+		reactorNames.put(PKQLEnum.SIN, "prerna.sablecc.expressions.sql.SqlSinReactor");
+		reactorNames.put(PKQLEnum.TAN, "prerna.sablecc.expressions.sql.SqlTanReactor");
+		reactorNames.put(PKQLEnum.CEILING, "prerna.sablecc.expressions.sql.SqlCeilingReactor");
+		reactorNames.put(PKQLEnum.FLOOR, "prerna.sablecc.expressions.sql.SqlFloorReactor");
+		reactorNames.put(PKQLEnum.LOG, "prerna.sablecc.expressions.sql.SqlLogReactor");
+		reactorNames.put(PKQLEnum.LOG10, "prerna.sablecc.expressions.sql.SqlLog10Reactor");
+		reactorNames.put(PKQLEnum.SQRT, "prerna.sablecc.expressions.sql.SqlSqrtReactor");
+		reactorNames.put(PKQLEnum.POWER, "prerna.sablecc.expressions.sql.SqlPowerReactor");
+		reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM, "prerna.ds.h2.H2CorrelationReactor");
+
+		// default to sample stdev
+		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
+		reactorNames.put(PKQLEnum.SAMPLE_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
+		reactorNames.put(PKQLEnum.POPULATION_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlPopulationStandardDeviationReactor");
+//		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.sql.SqlMedianReactor");
+		
+		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
+		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
+		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2RawQueryApiReactor");
+
+		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
+		
+		return reactorNames;
+	}
 	
 	@Override
 	@Deprecated

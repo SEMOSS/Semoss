@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.math3.special.Erf;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.learning.unsupervised.outliers.KDTree;
@@ -22,6 +24,8 @@ import prerna.util.ArrayUtilityMethods;
 
 public class LOFAlgorithmReactor extends AbstractReactor {
 	
+	private static final String CLASS_NAME = LOFAlgorithmReactor.class.getName();
+
 	private static final String K_NEIGHBORS = "kNeighbors";
 	private static final String INSTANCE_KEY = "instance";
 	private static final String ATTRIBUTES = "attributes";
@@ -67,7 +71,10 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 		}
 
 		// get number of rows and cols
+		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+
 		// get number of rows and cols
 		this.numInstances = dataFrame.getUniqueInstanceCount(instanceColumn);
 
@@ -96,6 +103,8 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 		dataFormatted = new double[numInstances][dimensions];
 
 		this.Tree = new KDTree(dimensions);
+		logger.info("Starting to process instances..");
+		logger.setLevel(Level.OFF);
 		// This code flattens out instances, incase there are repeat appearances of an identifier
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(instanceColumn, attributeNamesList);
 
@@ -127,21 +136,31 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 			dataFormatted[numInstance] = recRow;
 			// add to tree!
 			Tree.add(recRow, numInstance);
+			
+			// logging
+			if(counter % 100 == 0) {
+				logger.setLevel(Level.INFO);
+				logger.info("Finished execution for unique instance number = " + numInstance);
+				logger.setLevel(Level.OFF);
+			}
 			numInstance++;
 		}
-
+		logger.setLevel(Level.INFO);
+		logger.info("Done iterating ...");
+		
 		String[] allColNames = dataFrame.getColumnHeaders();
 		String attributeName = instanceColumn;
 		
 		// run scoring algorithm
-		AlgorithmSingleColStore<Double> results = score(k);
+		logger.info("Start calculating score ...");
+		AlgorithmSingleColStore<Double> results = score(k, logger);
 		// add the data to the frame
 		// to avoid adding columns with same name
 		int counter = 0;
-		String newColName = attributeName + "_LOF";
+		String newColName = attributeName + "_LOP";
 		while (ArrayUtilityMethods.arrayContainsValue(allColNames, newColName)) {
 			counter++;
-			newColName = attributeName + "_LOF_" + counter;
+			newColName = attributeName + "_LOP_" + counter;
 		}
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
@@ -154,9 +173,10 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 	 * @param k                     how many neighbors to examine
 	 * @return						hashtable of Title and LOP scores
 	 */
-	public AlgorithmSingleColStore<Double> score(int k) {
+	public AlgorithmSingleColStore<Double> score(int k, Logger logger) {
 		// 1. Get the K-distance for each point in our array 
 		//    (using KDTree's nearest k-neighbors method)
+		logger.info("Start generating K-Distance for each instance...");
 		for (int i=0; i<numInstances; i++) {
 			// returns IDs for each of k nearest neighbors
 			Object[] neighborIDs = Tree.getNearestNeighbors(dataFormatted[i], k).returnData();
@@ -164,12 +184,18 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 			if(kDistance[i] == 0) {
 				kDistance[i] = .0000001;
 			}
+			
+			if(numInstances % 100 == 0) {
+				logger.info("Finished K-Distance for instance number = " + i);
+			}
 		}
+		logger.info("Done generating K-Distance for each instance...");
 
 		// 2. Fill out ReachDistance[][]. 
 		// ReachDistance from a->b is defined as the maximum of:
 		//     A. Point a's kdistance OR
 		//     B. The actual distance from a->b.
+		logger.info("Start generating Reach-Distance for each instance...");
 		for (int i=0; i<numInstances; i++) {
 			double kdistance = kDistance[i];
 			for (int j=0; j<this.numInstances; j++) {
@@ -180,12 +206,16 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 					this.reachDistance[i][j] = distance; 
 				}
 			}
+			
+			if(numInstances % 100 == 0) {
+				logger.info("Finished Reach-Distance for instance number = " + i);
+			}
 		}
+		logger.info("Done generating Reach-Distance for each instance...");
 
 		// 3. Fill out LRD array. 
 		//    For a point A, LRD equals k divided by the sum of kdistances of point A's nearest k neighbors.
-		//    
-
+		logger.info("Start generating LRD Array for each instance...");
 		for (int i=0; i<this.numInstances; i++) {
 			// grab k nearest neighbors
 			Object[] neighborIDs = Tree.getNearestNeighbors(dataFormatted[i], k).returnData();
@@ -195,11 +225,17 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 				sum_reachDistance += reachDistance[i][(int)neighborIDs[j]];
 			}
 			LRD[i] = k/sum_reachDistance;
+			
+			if(numInstances % 100 == 0) {
+				logger.info("Finished LRD calculation for instance number = " + i);
+			}
 		}
+		logger.info("Done generating LRD for each instance...");
 
 		// 4. Fill out LOF array.
 		//    For a point A, LOF equals the average LRD value of A's k nearest neighbors,
 		//    divided by A's LRD value.
+		logger.info("Start generating LOF for each instance...");
 		for (int i=0; i<this.numInstances; i++) {
 			// grab k nearest neighbors
 			Object[] neighborIDs = Tree.getNearestNeighbors(dataFormatted[i], k).returnData();
@@ -210,14 +246,21 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 			}
 			// LRD = k/sum_reachDistance
 			LOF[i] = sum_ratioLRDs/k;
+			
+			if(numInstances % 100 == 0) {
+				logger.info("Finished LOF calculation for instance number = " + i);
+			}
 		}
+		logger.info("Done generating LOF for each instance...");
 
 		// 5. Calculate LOP
 		//    This transforms a LOF to a value between 0 and 1.
 		//    See here for more information: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.439.2035&rep=rep1&type=pdf
+		logger.info("Start generating LOP for each instance...");
 		double[] ploof = new double[numInstances];
-		for (int i=0; i<this.numInstances; i++)
+		for (int i=0; i<this.numInstances; i++) {
 			ploof[i] = LOF[i] - 1;
+		}
 
 		double stdev = StatisticsUtilityMethods.getSampleStandardDeviationIgnoringInfinity(ploof);
 		double squareRoot2 = Math.sqrt(2);
@@ -228,12 +271,22 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 				} else { 
 					LOP[i] = 0; 
 				}
+				
+				if(numInstances % 100 == 0) {
+					logger.info("Finished LOP calculation for instance number = " + i);
+				}
 			}
 		} else {
 			for(int i = 0; i < numInstances; i++) {
 				LOP[i] = Math.max(0, Erf.erf(ploof[i] / (stdev * squareRoot2)));
+				
+				if(numInstances % 100 == 0) {
+					logger.info("Finished LOP calculation for instance number = " + i);
+				}
 			}
 		}
+		logger.info("Done generating LOP for each instance...");
+
 
 		// 6. Insert all LOP values into a hashtable, with the unique ID as the
 		// ID.

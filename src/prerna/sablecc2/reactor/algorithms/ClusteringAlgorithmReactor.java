@@ -46,10 +46,10 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
-		//get inputs
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
 		dataFrame.setLogger(logger);
 		
+		//get inputs
 		this.instanceColumn = getInstanceColumn();
 		this.instanceIndex = 0;
 		this.attributeNamesList = getColumns();
@@ -90,9 +90,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		///////////////// end basic checks
 
 		logger.info("Start creation of initial cluster centers...");
-		logger.setLevel(Level.OFF);
-		initializeClusters(dataFrame, attributeNamesList);
-		logger.setLevel(Level.INFO);
+		initializeClusters(dataFrame, attributeNamesList, logger);
 		logger.info("Done creation of initial cluster centers...");		
 
 		int maxIt = 10_000;
@@ -179,7 +177,8 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	}
 
 	// helper methods for clustering
-	private void initializeClusters(ITableDataFrame dataFrame, List<String> attributeNamesList) {
+	private void initializeClusters(ITableDataFrame dataFrame, List<String> attributeNamesList, Logger logger) {
+		logger.setLevel(Level.OFF);
 		Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
 		List<Object[]> firstInstance = it.next();
 		Cluster firstCluster = new Cluster(attributeNames, isNumeric);
@@ -205,6 +204,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		for (int i = 1; i < numClusters; i++) {
 			double simVal = 2;
 			List<Object[]> bestInstance = null;
+			int counter = 0;
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
 				double val = combinedInstances.getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
@@ -212,8 +212,20 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 					bestInstance = instance;
 				}
 				if (val == 0) {
+					logger.setLevel(Level.INFO);
+					logger.info("Found new initial instance for cluster # " + i + " with instance = " + instance);
+					logger.setLevel(Level.OFF);
 					break;
 				}
+				
+				// logging
+				if(counter % 100 == 0) {
+					logger.setLevel(Level.INFO);
+					logger.info("Trying to determine intial point for cluster # " + i + ". Looped through " + counter + " instances trying to determine inital point");
+					logger.setLevel(Level.OFF);
+				}
+				
+				counter++;
 			}
 			// update combined cluster
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
@@ -230,6 +242,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 			// generate new iterator
 			it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
 		}
+		logger.setLevel(Level.INFO);
 	}
 
 	protected Iterator<List<Object[]>> getUniqueScaledData(String instance, List<String> columns, ITableDataFrame frame) {
