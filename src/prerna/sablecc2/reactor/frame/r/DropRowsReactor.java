@@ -46,13 +46,12 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 				for (String filColumn : filteredColumns) {
 					List<QueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
 					for (QueryFilter queryFilter : filterList) {
-						String column = "";
 						// col to values the left comparison will be the column
 						NounMetadata leftComp = queryFilter.getLComparison();
-						String columnComp = leftComp.getValue() + "";
+						String column = leftComp.getValue() + "";
 						// separate the column name from the frame name
-						if (columnComp.contains("__")) {
-							String[] split = columnComp.split("__");
+						if (column.contains("__")) {
+							String[] split = column.split("__");
 							table = split[0];
 							column = split[1];
 						}
