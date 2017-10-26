@@ -13,21 +13,24 @@ public class TrimReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		H2Frame frame = (H2Frame) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
+
 		GenRowStruct inputsGRS = this.getCurRow();
 		String update = "";
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
-				String thisSelector = input.getValue() + "";
+				String columnName = input.getValue() + "";
+				
 				String table = frame.getTableName();
-				String column = thisSelector;
-				if (thisSelector.contains("__")) {
-					String[] split = thisSelector.split("__");
+				String column = columnName;
+				if (columnName.contains("__")) {
+					String[] split = columnName.split("__");
 					table = split[0];
 					column = split[1];
 				}
-				OwlTemporalEngineMeta metaData = frame.getMetaData();
-				String dataType = metaData.getHeaderTypeAsString(thisSelector);
+				
+				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (!dataType.equals("STRING")) {
 					throw new IllegalArgumentException("Data type not supported.");
 				}
