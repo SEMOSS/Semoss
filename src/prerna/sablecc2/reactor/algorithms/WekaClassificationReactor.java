@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -30,22 +29,25 @@ import weka.core.Instances;
 
 public class WekaClassificationReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(WekaClassificationReactor.class.getName());
-	
+	private static final String CLASS_NAME = WekaClassificationReactor.class.getName();
+
 	private static final String CLASSIFICATION_COLUMN = "classify";
 	private static final String ATTRIBUTES = "attributes";
 	private static final String PANEL = "panel";
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
+		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
 		// figure out inputs
-		ITableDataFrame dataframe = (ITableDataFrame) this.insight.getDataMaker();
-		String predictionCol = getClassificationColumn();
+		String predictionCol = getClassificationColumn(logger);
 		List<String> attributes = getColumns();
 		int numCols = attributes.size();
 		if(numCols == 0) {
 			String errorString = "No columns were passed as attributes for the classification routine.";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		// in case the attributes col has a repeat
@@ -72,7 +74,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 			predictorHead.setTable(predictionCol);
 			retHeaders[0] = predictionCol;
 		}
-		isNumeric[0] = dataframe.isNumeric(predictionCol);
+		isNumeric[0] = dataFrame.isNumeric(predictionCol);
 		qs.addSelector(predictorHead);
 		// add the feature columns
 		for(int i = 0; i < numCols; i++) {
@@ -87,19 +89,23 @@ public class WekaClassificationReactor extends AbstractReactor {
 				qsHead.setTable(header);
 				retHeaders[i+1] = header;
 			}
-			isNumeric[i+1] = dataframe.isNumeric(header);
+			isNumeric[i+1] = dataFrame.isNumeric(header);
 			qs.addSelector(qsHead);
 		}
-		qs.mergeFilters(dataframe.getFrameFilters());
+		qs.mergeFilters(dataFrame.getFrameFilters());
 
-		int numRows = getNumRows(dataframe, predictorHead);
-		Iterator<IHeadersDataRow> it = dataframe.query(qs);
+		int numRows = getNumRows(dataFrame, predictorHead);
+		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
 
+		logger.info("Start converting frame into WEKA Instacnes data structure");
 		Instances data = WekaReactorHelper.genInstances(retHeaders, isNumeric, numRows);
-		data = WekaReactorHelper.fillInstances(data, it, isNumeric);
+		data = WekaReactorHelper.fillInstances(data, it, isNumeric, logger);
+		logger.info("Done converting frame into WEKA Instacnes data structure");
 		if(isNumeric[0]) {
+			logger.info("Can only run classification on categorical data, must discretize numerical column");
 			// one based for some weird reason..
 			data = WekaReactorHelper.discretizeNumericField(data, "1");
+			logger.info("Done with discretizing numerical column");
 		}
 		data.setClassIndex(0);
 
@@ -107,13 +113,13 @@ public class WekaClassificationReactor extends AbstractReactor {
 		double precision = -1;
 		
 		if(data.numDistinctValues(0) == 1) {
-			LOGGER.info("There is only one distinct value for column " + retHeaders[0]);
+			logger.info("There is only one distinct value for column " + retHeaders[0]);
 			accuracy = 100;
 			precision = 100;
 			//TODO: make the return object here and now and be done with it
 		} else if(data.numDistinctValues(0) == data.size()) {
 			String errorString = "The column to predict, " + retHeaders[0] + ", is a unique identifier in this table. Does not make sense to classify it.";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		
@@ -125,9 +131,10 @@ public class WekaClassificationReactor extends AbstractReactor {
 		J48 model = new J48();
 		String treeAsString = "";
 		// For each training-testing split pair, train and test the classifier
+		logger.info("Performing 10-fold cross validation to determine best model");
 		int j;
 		for(j = 0; j < trainingSplits.length; j++) {
-			LOGGER.info("Running classification on training and test set number " + j + "...");
+			logger.info("Running classification on training and test set number " + (j+1) + "...");
 			Evaluation validation = null;
 			try {
 				validation = classify(model, trainingSplits[j], testingSplits[j]);
@@ -137,7 +144,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 			double newPctCorrect = validation.pctCorrect();
 			// ignore when weka gives a NaN for accuracy -> occurs when every instance in training set is unknown for variable being classified
 			if(Double.isNaN(newPctCorrect)) {
-				LOGGER.info("Cannot use this classification since every instance in training set is unknown for " + retHeaders[0]);
+				logger.info("Cannot use this classification since every instance in training set is unknown for " + retHeaders[0]);
 			} else {
 				if(newPctCorrect > accuracy) {
 					treeAsString = model.toString();
@@ -146,6 +153,9 @@ public class WekaClassificationReactor extends AbstractReactor {
 				}
 			}
 		}
+		logger.info("Done determining best model");
+		logger.info("Generating Decision Viz Data...");
+
 		Map<String, Object> vizData = new HashMap<String, Object>();
 		vizData.put("name", "Decision Tree For " + retHeaders[0]);
 		vizData.put("layout", "Dendrogram");
@@ -273,7 +283,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 	 * Get input values for algorithm
 	 */
 
-	private String getClassificationColumn() {
+	private String getClassificationColumn(Logger logger) {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(CLASSIFICATION_COLUMN);
 		if(columnGrs != null) {
@@ -285,7 +295,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 		// else, we assume it is the first column
 		if(this.curRow == null || this.curRow.size() == 0) {
 			String errorString = "Could not find the column predict";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		return this.curRow.get(0).toString();
