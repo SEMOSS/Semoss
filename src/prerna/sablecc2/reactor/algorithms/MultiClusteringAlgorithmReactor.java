@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.LogManager;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -22,7 +22,7 @@ import prerna.util.ArrayUtilityMethods;
 
 public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 	
-	private static final Logger LOGGER = LogManager.getLogger(MultiClusteringAlgorithmReactor.class.getName());
+	private static final String CLASS_NAME = MultiClusteringAlgorithmReactor.class.getName();
 	
 	private static final String INSTANCE_KEY = "instance";
 	private static final String ATTRIBUTES = "attributes";
@@ -46,7 +46,10 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-
+		Logger logger = this.getLogger(CLASS_NAME);
+		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
 		///////////////// start of initializing some stuff
 		this.instanceIndex = 0;
 		this.instanceColumn = getInstanceColumn();
@@ -55,7 +58,6 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		this.attributeNamesList = getColumns();
 		this.attributeNames = attributeNamesList.toArray(new String[] {});
 
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
 		this.isNumeric = new boolean[this.attributeNames.length];
 		for (int i = 0; i < this.attributeNames.length; i++) {
 			this.isNumeric[i] = dataFrame.isNumeric(this.attributeNames[i]);
@@ -81,10 +83,10 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 
 		AlgorithmSingleColStore<Integer> results = null;
 		if (minNumClusters != maxNumClusters) {
-			results = runGoldenSelectionForNumberOfClusters(dataFrame, minNumClusters, maxNumClusters);
+			results = runGoldenSelectionForNumberOfClusters(dataFrame, minNumClusters, maxNumClusters, logger);
 		} else { 
 			// usually occurs when there is too few data points
-			results = runClusteringRoutine(dataFrame, minNumClusters, new ArrayList<Cluster>(),new HashMap<Integer, Double>());
+			results = runClusteringRoutine(dataFrame, minNumClusters, new ArrayList<Cluster>(), new HashMap<Integer, Double>(), logger);
 		}
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, instanceColumn, newColName, "NUMBER", results);
@@ -92,7 +94,8 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	private AlgorithmSingleColStore<Integer> runGoldenSelectionForNumberOfClusters(ITableDataFrame data, int start, int end) {		
+	private AlgorithmSingleColStore<Integer> runGoldenSelectionForNumberOfClusters(ITableDataFrame data, int start, int end, Logger logger) {
+		logger.info("Start execution of golden selection logic to determine best cluster...");
 		AlgorithmSingleColStore<Integer> bestResults = null;
 		int a = start;
 		int b = end;
@@ -108,8 +111,8 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		AlgorithmSingleColStore<Integer> startClusterResult = null;
 		String errorMessage1 = null;
 		try {
-			startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
-			startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1);
+			startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults, logger);
+			startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1, logger);
 			previousResults.put(x1, startVal);
 		} catch (IllegalArgumentException ex) {
 			// do nothing
@@ -121,8 +124,8 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		AlgorithmSingleColStore<Integer> endClusterResult = null;
 		String errorMessage2 = null;
 		try {
-			endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
-			endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
+			endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults, logger);
+			endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2, logger);
 			previousResults.put(x2, endVal);
 		} catch (IllegalArgumentException ex) {
 			// do nothing
@@ -158,8 +161,8 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 
 			try {
 				startClusterList.clear();
-				startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults);
-				startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1);
+				startClusterResult = runClusteringRoutine(data, x1, startClusterList, previousResults, logger);
+				startVal = computeClusteringScore(data, startClusterResult, startClusterList, previousResults, x1, logger);
 				previousResults.put(x1, startVal);
 			} catch (IllegalArgumentException ex) {
 				// do nothing
@@ -167,8 +170,8 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 
 			try {
 				endClusterList.clear();
-				endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults);
-				endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2);
+				endClusterResult = runClusteringRoutine(data, x2, endClusterList, previousResults, logger);
+				endVal = computeClusteringScore(data, endClusterResult, endClusterList, previousResults, x2, logger);
 				previousResults.put(x2, endVal);
 			} catch (IllegalArgumentException ex) {
 				//do nothing
@@ -194,12 +197,19 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		return bestResults;
 	}
 
-	private double computeClusteringScore(ITableDataFrame data, AlgorithmSingleColStore<Integer> startClusterResult, List<Cluster> clusters, Map<Integer, Double> previousResults, int numClusters) {
+	private double computeClusteringScore(
+			ITableDataFrame data, 
+			AlgorithmSingleColStore<Integer> startClusterResult, 
+			List<Cluster> clusters, 
+			Map<Integer, Double> previousResults, 
+			int numClusters,
+			Logger logger) {
 		if(previousResults.containsKey(numClusters)) {
 			return previousResults.get(numClusters);
 		}
 
 		double innerClusterSimilairty = 0;
+		logger.setLevel(Level.OFF);
 		Iterator<List<Object[]>> it = data.scaledUniqueIterator(instanceColumn, attributeNamesList);
 		while(it.hasNext()) {
 			List<Object[]> instance = it.next();
@@ -208,7 +218,9 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 			double simVal = clusters.get(clusterIndex).getSimilarityForInstance(instance, this.attributeNames, isNumeric, this.instanceIndex);
 			innerClusterSimilairty += simVal / clusters.get(clusterIndex).getNumInstances();
 		}
-
+		logger.setLevel(Level.INFO);
+		logger.info("For cluster # " + numClusters + ", inner cluster score = " + innerClusterSimilairty);
+		
 		// calculate cluster-cluster similarity
 		double clusterToClusterSimilarity = 0;
 		for(int i = 0; i < numClusters-1; i++) {
@@ -219,32 +231,36 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 				clusterToClusterSimilarity += (1-simVal);
 			}
 		}
+		logger.info("For cluster # " + numClusters + ", cluster-to-cluster similatiry score = " + clusterToClusterSimilarity);
 
 		return innerClusterSimilairty/numClusters + clusterToClusterSimilarity / ( (double) (numClusters * (numClusters-1) /2));
 	}
 
-	private AlgorithmSingleColStore<Integer> runClusteringRoutine(ITableDataFrame dataframe, int numClusters, List<Cluster> clusters, Map<Integer, Double> previousResults) {
+	private AlgorithmSingleColStore<Integer> runClusteringRoutine(
+			ITableDataFrame dataframe, 
+			int numClusters, 
+			List<Cluster> clusters, 
+			Map<Integer, Double> previousResults, 
+			Logger logger) {
 		if(previousResults.containsKey(numClusters)) {
 			return null;
 		}
 
-		LOGGER.info("Running clustering for " + numClusters + " number of clusters");
+		logger.info("Running clustering for " + numClusters + " number of clusters");
 		//Need to execute this command
 		//RunClustering(instance = column, numClusters = numCluters, columns = attributeNamesList);
 		prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor alg = new prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor();
 		
+		// directly manipulate the noun store for the alg
 		NounStore nounStore = alg.getNounStore();
-		
 		//set instance column
 		GenRowStruct instanceColGRS = new GenRowStruct();
 		instanceColGRS.addColumn(instanceColumn);
 		nounStore.addNoun(ClusteringAlgorithmReactor.INSTANCE_KEY, instanceColGRS);
-		
 		//set number of clusters
 		GenRowStruct clusterNumGRS = new GenRowStruct();
 		clusterNumGRS.addInteger(numClusters);
 		nounStore.addNoun(ClusteringAlgorithmReactor.CLUSTER_KEY, clusterNumGRS);
-		
 		//set attribute columns need to remove instance column
 		GenRowStruct columnsGRS = new GenRowStruct();
 		for(int i = 1; i < attributeNamesList.size(); i++) {
@@ -254,11 +270,15 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		
 		//set frame 
 		alg.setInsight(this.insight);
+		alg.setPixelPlanner(this.planner);
 		alg.setAddToFrame(false);
 		alg.execute();
 		
 		// keep track of the clusters to determine best clustering number
 		clusters.addAll(alg.getClusters());
+		// reset the logger on the frame
+		// since the reactor will modify the frame reactor
+		dataframe.setLogger(logger);
 		return alg.getResults();
 	}
 	
