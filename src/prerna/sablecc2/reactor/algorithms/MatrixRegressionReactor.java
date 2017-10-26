@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
-import org.apache.log4j.LogManager;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -25,7 +25,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class MatrixRegressionReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(WekaClassificationReactor.class.getName());
+	private static final String CLASS_NAME = MatrixRegressionReactor.class.getName();
 
 	private static final String Y_COLUMN = "yColumn";
 	private static final String X_COLUMNS = "xColumns";
@@ -34,9 +34,12 @@ public class MatrixRegressionReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
+		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
 		// figure out inputs
-		ITableDataFrame dataframe = (ITableDataFrame) this.insight.getDataMaker();
-		String predictionCol = getPrediction();
+		String predictionCol = getPrediction(logger);
 		List<String> numericalCols = getColumns();
 		if(numericalCols.contains(predictionCol)) {
 			numericalCols.remove(predictionCol);
@@ -44,7 +47,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		int numCols = numericalCols.size();
 		if(numCols == 0) {
 			String errorString = "Could not find input x variables";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		double missingVal = getDefaultValue();
@@ -85,10 +88,10 @@ public class MatrixRegressionReactor extends AbstractReactor {
 			dataTableAlign.put("dim " + (i+1), retHeaders[i+1]);
 			qs.addSelector(qsHead);
 		}
-		qs.mergeFilters(dataframe.getFrameFilters());
+		qs.mergeFilters(dataFrame.getFrameFilters());
 
-		int numRows = getNumRows(dataframe, predictorHead);
-		Iterator<IHeadersDataRow> it = dataframe.query(qs);
+		int numRows = getNumRows(dataFrame, predictorHead);
+		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
 		
 		// use apache commons to do this
 		// while we need to iterate through to create the double[][]
@@ -96,8 +99,10 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		OLSCalculator ols = new OLSCalculator();
 		// execute the ols
 		ols.setNoIntercept(false);
-		double[][] rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal);
-		
+		logger.info("Start iterating through data to determine regression");
+		double[][] rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal, logger);
+		logger.info("Done iterating through data to determine regression");
+
 		// mock the data output
 		Map<String, Object> vizData = new HashMap<String, Object>();
 		vizData.put("data", rowData);
@@ -126,7 +131,8 @@ public class MatrixRegressionReactor extends AbstractReactor {
 			Iterator<IHeadersDataRow> it, 
 			int numCols, 
 			int numRows, 
-			double defaultVal) 
+			double defaultVal,
+			Logger logger) 
 	{
 		double[][] rowData = new double[numRows][numCols]; 
 		double[][] x = new double[numRows][numCols];
@@ -155,11 +161,18 @@ public class MatrixRegressionReactor extends AbstractReactor {
 			// and add it to rowData so we can send a single matrix to the FE
 			rowData[counter] = cleanRow;
 			
+			if(counter % 100 == 0) {
+				logger.setLevel(Level.INFO);
+				logger.info("Finished row number = " + counter);
+				logger.setLevel(Level.OFF);
+			}
+			
 			// increase the counter for the next row
 			counter++;
 		}
 		
 		// set the data within the OLS
+		logger.setLevel(Level.INFO);
 		ols.newSampleData(y, x);
 		return rowData;
 	}
@@ -191,7 +204,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		return defaultVal;
 	}
 	
-	private String getPrediction() {
+	private String getPrediction(Logger logger) {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getNoun(Y_COLUMN);
 		if(columnGrs != null) {
@@ -203,7 +216,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		// else, we assume it is the first column
 		if(this.curRow == null || this.curRow.size() == 0) {
 			String errorString = "Could not find input for variable y";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
 		return this.curRow.get(0).toString();

@@ -143,6 +143,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 			// store it as well
 			rowData.add(doubleRow);
 		}
+		logger.setLevel(Level.INFO);
 		
 		double[][] retMatrix = new double[numHeaders][numHeaders];
 		for(int i = 0; i < numHeaders; i++) {
