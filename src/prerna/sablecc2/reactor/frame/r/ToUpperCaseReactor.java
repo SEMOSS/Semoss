@@ -19,6 +19,8 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
+
 		//get table name
 		String table = frame.getTableName();
 		
@@ -36,7 +38,6 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 					table = split[0];
 				}
 
-				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equalsIgnoreCase("STRING")) {
 					// define the script to be executed
