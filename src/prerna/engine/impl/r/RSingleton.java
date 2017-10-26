@@ -10,32 +10,26 @@ public class RSingleton {
 	static int port = 6311;
 	static Hashtable <Integer, RConnection> portToCon = new Hashtable<Integer, RConnection>(); // RServe is not allowing me to inspect the port so I have to do this.. sorry
 	
-	
-	private RSingleton()
-	{
+	private RSingleton() {
 		
 	}
 	
-	public static RConnection getConnection()
-	{
-		if(rcon == null)
+	public static RConnection getConnection() {
+		if(rcon == null) {
 			return getConnection("127.0.0.1", 6311);
+		}
 		return rcon;
 	}
 	
-	public static RConnection getConnection(int port)
-	{
+	public static RConnection getConnection(int port) {
 		return getConnection("127.0.0.1", port);		
 	}
 	
-	public static RConnection getConnection(String host, int port)
-	{
+	public static RConnection getConnection(String host, int port) {
 		// this basically tries to do the same as get connection with a port
-		if(portToCon.containsKey(port))
+		if(portToCon.containsKey(port)) {
 			rcon = portToCon.get(port);
-		
-		else
-		{
+		} else {
 			System.out.println("Making a master connection now on port" + port);;
 			try {
 				
