@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
 import prerna.engine.api.IHeadersDataRow;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -39,7 +42,8 @@ public class WekaReactorHelper {
 		return data;
 	}
 	
-	public static Instances fillInstances(Instances data, Iterator<IHeadersDataRow> it, boolean[] isNumeric) {
+	public static Instances fillInstances(Instances data, Iterator<IHeadersDataRow> it, boolean[] isNumeric, Logger logger) {
+		int counter = 0;
 		while(it.hasNext()) {
 			IHeadersDataRow dataRow = it.next();
 			String[] headers = dataRow.getHeaders();
@@ -62,7 +66,17 @@ public class WekaReactorHelper {
 				}
 			}
 			data.add(dataEntry);
+			
+			// logging
+			if(counter % 100 == 0) {
+				logger.setLevel(Level.INFO);
+				logger.info("Finished converting row = " + counter + " into WEKA instances object");
+				logger.setLevel(Level.OFF);
+			}
+			counter++;
 		}
+		logger.setLevel(Level.INFO);
+
 		// most things require the string values to be nominal
 		// so make it nominal
 		String range = "";
@@ -89,6 +103,7 @@ public class WekaReactorHelper {
 				e.printStackTrace();
 			}
 		}
+		
 		return data;
 	}
 	

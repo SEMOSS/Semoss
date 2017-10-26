@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.ibm.icu.text.DecimalFormat;
@@ -33,7 +32,7 @@ import weka.core.Instances;
 
 public class WekaAprioriReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(WekaAprioriReactor.class.getName());
+	private static final String CLASS_NAME = WekaAprioriReactor.class.getName();
 
 	private static final String X_AXIS_NAME = "Confidence";
 	private static final String Z_AXIS_NAME = "Count";
@@ -69,6 +68,10 @@ public class WekaAprioriReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
+		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
 		// get inputs from pixel command
 		this.numRules = getNumRules();
 		this.confPer = getConf();
@@ -77,10 +80,9 @@ public class WekaAprioriReactor extends AbstractReactor {
 		this.attributesList = getAttributesList();
 		if(attributesList.size() == 0) {
 			String errorString = "No columns were passed as attributes for the association learning routine.";
-			LOGGER.info(errorString);
+			logger.info(errorString);
 			throw new IllegalArgumentException(errorString);
 		}
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
 
 		int numCols = this.attributesList.size();
 		String[] retHeaders = new String[numCols];
@@ -110,11 +112,14 @@ public class WekaAprioriReactor extends AbstractReactor {
 
 		int numRows = getNumRows(dataFrame, (QueryColumnSelector) qs.getSelectors().get(0));
 		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
+
+		logger.info("Start converting frame into WEKA Instacnes data structure");
 		this.instancesData = WekaReactorHelper.genInstances(retHeaders, isNumeric, numRows);
-		this.instancesData = WekaReactorHelper.fillInstances(this.instancesData, it, this.isNumeric);
+		this.instancesData = WekaReactorHelper.fillInstances(this.instancesData, it, this.isNumeric, logger);
 		// associated learning only takes categorical values, so we need to
 		// discretize all numerical fields
 		this.instancesData = WekaReactorHelper.discretizeAllNumericField(this.instancesData);
+		logger.info("Done converting frame into WEKA Instacnes data structure");
 
 		premises = new HashMap<Integer, Collection<Item>>();
 		consequences = new HashMap<Integer, Collection<Item>>();
@@ -127,13 +132,13 @@ public class WekaAprioriReactor extends AbstractReactor {
 		apriori.setLowerBoundMinSupport(minSupport);
 		apriori.setUpperBoundMinSupport(maxSupport);
 
-		LOGGER.info("Running Apriori Algorithm...");
+		logger.info("Running Apriori Algorithm...");
 		try {
 			apriori.buildAssociations(this.instancesData);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		LOGGER.info("Finished Running Algorithm...");
+		logger.info("Finished Running Algorithm...");
 
 		// get and store rules
 		AssociationRules rules = apriori.getAssociationRules();
@@ -150,6 +155,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 			numRule++;
 		}
 
+		logger.info("Generating Decision Viz Data...");
 		return new NounMetadata(getAlgorithmOutput(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}
 
@@ -175,7 +181,6 @@ public class WekaAprioriReactor extends AbstractReactor {
 			return new Hashtable<String, Object>();
 		}
 
-		LOGGER.info("Generating Decision Viz Data...");
 		DecimalFormat format = new DecimalFormat("0.00");
 
 		List<List<Object>> retItemList = new ArrayList<List<Object>>();
