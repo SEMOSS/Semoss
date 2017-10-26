@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r.util;
 import java.io.IOException;
 import java.util.Map;
 
+import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -12,7 +13,6 @@ import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
-import prerna.util.Utility;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
@@ -46,13 +46,13 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		logger.info("Connection right now is set to.. " + retCon);
 		if (retCon == null) {
 			try {
-				RConnection masterCon = RSingleton.getConnection();
-				port = Utility.findOpenPort();
-
-				logger.info("Starting it on port.. " + port);
-				// need to find a way to get a common name
-				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
-				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
+				this.retCon = RSingleton.getConnection();
+//				port = Utility.findOpenPort();
+//				logger.info("Starting it on port.. " + port);
+//				// need to find a way to get a common name
+//				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
+//				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
+				
 				// load all the libraries
 				retCon.eval("library(splitstackshape);");
 				logger.info("Loaded packages splitstackshape");
@@ -188,6 +188,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[] getHistogramBreaks(String script) {
 		try {
+			REXP x = retCon.eval(script);
 			Map<String, Object> histJ = (Map<String, Object>)(retCon.eval(script).asNativeJavaObject());
 			double[] breaks = (double[]) histJ.get("breaks");
 			return breaks;
@@ -240,16 +241,16 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public void endR() {
-//		java.lang.System.setSecurityManager(curManager);
-		try {
-			if(retCon != null) {
-				retCon.shutdown();
-			}
-			// clean up other things
-			System.out.println("R Shutdown!!");
-//			java.lang.System.setSecurityManager(reactorManager);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		// only have 1 connection
+		// do not do this..
+//		try {
+//			if(retCon != null) {
+//				retCon.shutdown();
+//			}
+//			// clean up other things
+//			System.out.println("R Shutdown!!");
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 	}
 }
