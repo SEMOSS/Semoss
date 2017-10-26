@@ -33,7 +33,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getAlias() {
-		if(this.alias.equals("")) {
+		if(this.alias == null || this.alias.equals("")) {
 			if(isPrimKeyColumn()) {
 				return this.table;
 			} else {
@@ -79,7 +79,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 	}
 	
 	public boolean isPrimKeyColumn() {
-		return PRIM_KEY_PLACEHOLDER.equals(column);
+		return (column == null || column.isEmpty() || PRIM_KEY_PLACEHOLDER.equals(column));
 	}
 	
 	@Override
