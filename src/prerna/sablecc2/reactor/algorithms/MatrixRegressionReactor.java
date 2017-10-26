@@ -85,7 +85,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 			dataTableAlign.put("dim " + (i+1), retHeaders[i+1]);
 			qs.addSelector(qsHead);
 		}
-		qs.setFilters(dataframe.getFrameFilters());
+		qs.mergeFilters(dataframe.getFrameFilters());
 
 		int numRows = getNumRows(dataframe, predictorHead);
 		Iterator<IHeadersDataRow> it = dataframe.query(qs);

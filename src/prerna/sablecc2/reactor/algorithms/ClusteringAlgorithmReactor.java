@@ -335,7 +335,6 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 					retList.add(attribute);
 				}
 			}
-
 		}
 
 		return retList;
