@@ -31,6 +31,7 @@ public class QueryStruct2 {
 	protected transient ITableDataFrame frame;
 	protected transient IEngine engine;
 	
+	protected boolean isDistinct = true;
 	/**
 	 * 3 main parts to a query
 	 * 
@@ -214,6 +215,14 @@ public class QueryStruct2 {
 	
 	public long getOffset() {
 		return this.offset;
+	}
+	
+	public void setDistinct(boolean isDistinct) {
+		this.isDistinct = isDistinct;
+	}
+	
+	public boolean isDistinct() {
+		return this.isDistinct;
 	}
 	
 	public void print() {
@@ -713,6 +722,7 @@ public class QueryStruct2 {
 		} else if(this.qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME) {
 			newQs.setFrame(this.frame);
 		}
+		newQs.setDistinct(this.isDistinct);
 		return newQs;
 	}
 

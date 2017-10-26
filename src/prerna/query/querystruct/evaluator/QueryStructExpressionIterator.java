@@ -53,7 +53,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 		if(processedData == null) {
 			return this.mainIterator.hasNext();
 		} else {
-			if(processedDataPosition + 1 >= processedDataSize) {
+			if(processedDataPosition + 1 > processedDataSize) {
 				return false;
 			}
 			return true;
