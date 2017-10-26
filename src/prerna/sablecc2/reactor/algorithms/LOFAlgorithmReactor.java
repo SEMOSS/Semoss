@@ -138,7 +138,7 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 			Tree.add(recRow, numInstance);
 			
 			// logging
-			if(counter % 100 == 0) {
+			if(numInstance % 100 == 0) {
 				logger.setLevel(Level.INFO);
 				logger.info("Finished execution for unique instance number = " + numInstance);
 				logger.setLevel(Level.OFF);
