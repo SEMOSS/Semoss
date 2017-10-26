@@ -54,6 +54,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// so that we do not need to re-execute on the frame multiple times
 	// to determine if a header has duplicates or not
 	protected Map<String, Boolean> uniqueColumnCache = new HashMap<String, Boolean>();
+	protected Map<String, Double> uniqueColumnMaxCache = new HashMap<String, Double>();
+	protected Map<String, Double> uniqueColumnMinCache = new HashMap<String, Double>();
 	
 	// the user id of the user who executed to create this frame
 	// this has a lot of use for the specific implementation of H2Frame
@@ -112,11 +114,17 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// caching methods for information on the frame
 	
 	@Override
-	public Boolean isUniqueColumn(String columnName) {
-		if(!this.uniqueColumnCache.containsKey(columnName)) {
-			this.uniqueColumnCache.put(columnName, calculateIsUnqiueColumn(columnName));
+	public Boolean isUniqueColumn(String columnHeader) {
+		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
+		if(uniqueColName == null) {
+			uniqueColName = columnHeader;
 		}
-		return this.uniqueColumnCache.get(columnName);
+		if(!this.uniqueColumnCache.containsKey(uniqueColName)) {
+			boolean isUnique = calculateIsUnqiueColumn(uniqueColName);
+			this.uniqueColumnCache.put(uniqueColName, isUnique);
+			return isUnique;
+		}
+		return this.uniqueColumnCache.get(uniqueColName);
 	}
 	
 	protected Boolean calculateIsUnqiueColumn(String columnName) {
@@ -179,8 +187,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 */
 	@Override
 	public void clearCachedInfo() {
-		// right now, we only cache the duplicates
 		this.uniqueColumnCache.clear();
+		this.uniqueColumnMaxCache.clear();
+		this.uniqueColumnMinCache.clear();
 	}
 
 	////////////////////////////////////////////////////////////////////////////
@@ -300,6 +309,19 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if(uniqueColName == null) {
 			uniqueColName = columnHeader;
 		}
+		if(!this.uniqueColumnMaxCache.containsKey(uniqueColName)) {
+			Double min =  calculateMin(uniqueColName);
+			this.uniqueColumnMaxCache.put(uniqueColName, min);
+			return min;
+		}
+		return this.uniqueColumnMaxCache.get(uniqueColName);
+	}
+	
+	protected Double calculateMax(String columnHeader) {
+		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
+		if(uniqueColName == null) {
+			uniqueColName = columnHeader;
+		}
 		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == IMetaData.DATA_TYPES.NUMBER) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(uniqueColName.contains("__")) {
@@ -343,6 +365,19 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Double getMin(String columnHeader) {
+		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
+		if(uniqueColName == null) {
+			uniqueColName = columnHeader;
+		}
+		if(!this.uniqueColumnMinCache.containsKey(uniqueColName)) {
+			Double min =  calculateMin(uniqueColName);
+			this.uniqueColumnMinCache.put(uniqueColName, min);
+			return min;
+		}
+		return this.uniqueColumnMinCache.get(uniqueColName);
+	}
+	
+	protected Double calculateMin(String columnHeader) {
 		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
 		if(uniqueColName == null) {
 			uniqueColName = columnHeader;
