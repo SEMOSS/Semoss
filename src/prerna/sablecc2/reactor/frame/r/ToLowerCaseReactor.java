@@ -19,6 +19,8 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
+
 		//get table name
 		String table = frame.getTableName();
 		// get inputs
@@ -30,11 +32,10 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 				// separate table from column name if necessary
 				if (column.contains("__")) {
 					String[] split = column.split("__");
-					column =split[1];
+					column = split[1];
 					table = split[0];
 				}
 				// validate data type
-				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equals("STRING")) {
 					// script will take the form: FRAME$column <- tolower(FRAME$column)
