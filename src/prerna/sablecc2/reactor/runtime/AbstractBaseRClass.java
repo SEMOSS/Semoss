@@ -213,9 +213,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		long start = java.lang.System.currentTimeMillis();
 		logger.info("Synchronizing H2Frame to R data.table...");
 		H2Frame gridFrame = (H2Frame) dataframe;
-		String tableName = gridFrame.getBuilder().getTableName();
-		String url = gridFrame.getBuilder().connectFrame();
-		url = url.replace("\\", "/");
 
 		// note : do not use * since R will not preserve the column order
 		StringBuilder selectors = new StringBuilder();
@@ -297,9 +294,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (dataframe instanceof H2Frame) {
 			H2Frame gridFrame = (H2Frame) dataframe;
 			String tableName = gridFrame.getBuilder().getTableName();
-			String url = gridFrame.getBuilder().connectFrame();
-			url = url.replace("\\", "/");
-			initiateDriver(url, "sa");
 			synchronizeGridToR(rVarName, null);
 
 			// now that we have created the frame
@@ -508,25 +502,25 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		synchronizeGridFromR(frameName, true);
 	}
 
-	protected void initiateDriver(String url, String username) {
-		String driver = "org.h2.Driver";
-		String jarLocation = "";
-		if (retrieveVariable("H2DRIVER_PATH") == null) {
-			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
-			;
-			String jar = "h2-1.4.185.jar"; // TODO: create an enum of available
-			// drivers and the necessary jar for
-			// each
-			jarLocation = workingDir + "/RDFGraphLib/" + jar;
-		} else {
-			jarLocation = (String) retrieveVariable("H2DRIVER_PATH");
-		}
-		logger.info("Loading driver.. " + jarLocation);
-		// line of R script that connects to H2Frame
-		String script = "drv <- JDBC('" + driver + "', '" + jarLocation + "', identifier.quote='`');"
-				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; 
-		runR(script);
-	}
+//	protected void initiateDriver(String url, String username) {
+//		String driver = "org.h2.Driver";
+//		String jarLocation = "";
+//		if (retrieveVariable("H2DRIVER_PATH") == null) {
+//			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+//			;
+//			String jar = "h2-1.4.185.jar"; // TODO: create an enum of available
+//			// drivers and the necessary jar for
+//			// each
+//			jarLocation = workingDir + "/RDFGraphLib/" + jar;
+//		} else {
+//			jarLocation = (String) retrieveVariable("H2DRIVER_PATH");
+//		}
+//		logger.info("Loading driver.. " + jarLocation);
+//		// line of R script that connects to H2Frame
+//		String script = "drv <- JDBC('" + driver + "', '" + jarLocation + "', identifier.quote='`');"
+//				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; 
+//		runR(script);
+//	}
 
 	/**
 	 * Synchronize a CSV File into an R Data Table
