@@ -310,7 +310,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			uniqueColName = columnHeader;
 		}
 		if(!this.uniqueColumnMaxCache.containsKey(uniqueColName)) {
-			Double min =  calculateMin(uniqueColName);
+			Double min =  calculateMax(uniqueColName);
 			this.uniqueColumnMaxCache.put(uniqueColName, min);
 			return min;
 		}
