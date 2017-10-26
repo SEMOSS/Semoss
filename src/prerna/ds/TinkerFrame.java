@@ -27,7 +27,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.SEMOSSEdge;
@@ -503,38 +502,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	/****************************** END AGGREGATION METHODS *********************************/
 	
-	/****************************** NUMERICAL/ANALYTICS METHODS *****************************/
-	
-	@Override
-	public Double getMax(String columnHeader) {
-		Double retValue = null;
-		if(this.metaData.getHeaderTypeAsEnum(columnHeader, null) == IMetaData.DATA_TYPES.NUMBER) {
-			GraphTraversal<Vertex, Number> gt2 = g.traversal().V().has(TinkerFrame.TINKER_TYPE, columnHeader).max();
-			if(gt2.hasNext()) {
-				retValue = gt2.next().doubleValue();
-			}
-		}
-		
-		return retValue;
-	}
-
-	@Override
-	public Double getMin(String columnHeader) {
-		Double retValue = null;
-		if(this.metaData.getHeaderTypeAsEnum(columnHeader, null) == IMetaData.DATA_TYPES.NUMBER) {
-			GraphTraversal<Vertex, Number> gt2 = g.traversal().V().has(TinkerFrame.TINKER_TYPE, columnHeader).min();
-			if(gt2.hasNext()) {
-				retValue = gt2.next().doubleValue();
-			}
-		}
-		return retValue;
-	}
-	
-	/****************************** END NUMERICAL/ANALYTICS METHODS *****************************/
-	
-	
-	/****************************** FILTER METHODS **********************************************/
-	
 	/**
 	 * 
 	 * @param columnHeader - column to remove values from
@@ -587,24 +554,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 ////		return new UniqueScaledTinkerFrameIterator(columnHeader, selectors, g, ((TinkerMetaData)this.metaData).g, max, min);
 //		return null;
 //	}
-
-	public Object[] getColumn(String columnHeader) {
-		GremlinInterpreter2 interp = new GremlinInterpreter2(this.g);
-		QueryStruct2 qs = new QueryStruct2();
-		// add selector
-		QueryColumnSelector selector = new QueryColumnSelector();
-		selector.setTable(columnHeader);
-		qs.addSelector(selector);
-		// add filters
-		qs.mergeFilters(this.grf);
-		interp.setQueryStruct(qs);
-		TinkerHeadersDataRowIterator2 it = new TinkerHeadersDataRowIterator2(interp.composeIterator(), qs);
-		List<Object> columnList = new ArrayList<>();
-		while(it.hasNext()) {
-			columnList.add(it.next().getValues()[0]);
-		}
-		return columnList.toArray();
-	}
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
@@ -1153,9 +1102,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 //		}
 		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
-		GremlinInterpreter2 interpreter = new GremlinInterpreter2(this.g, this.metaData);
-		interpreter.setQueryStruct(qs);
-		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs, this.metaData), qs);
+		GremlinInterpreter2 interp = new GremlinInterpreter2(this.g, this.metaData);
+		interp.setLogger(this.logger);
+		interp.setQueryStruct(qs);
+		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interp.composeIterator(), qs, this.metaData), qs);
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
@@ -1165,6 +1115,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		for(String[] rel : rels) {
 			String start = rel[0];
 			String end = rel[1];
+			String relType = rel[2];
 			
 			Map<String, List> nodeComparatorMap = new HashMap<String, List>();
 			if(relMap.containsKey(start)) {
@@ -1175,10 +1126,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			}
 			
 			List values = new ArrayList();
-			if(nodeComparatorMap.containsKey("inner.join")) {
-				values = nodeComparatorMap.get("inner.join");
+			if(nodeComparatorMap.containsKey(relType)) {
+				values = nodeComparatorMap.get(relType);
 			} else {
-				nodeComparatorMap.put("inner.join", values);
+				nodeComparatorMap.put(relType, values);
 			}
 			
 			values.add(end);
@@ -1214,6 +1165,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		List<String[]> tinkerRelationships = this.metaData.getAllRelationships();
 
 		QueryStruct2 qs1 = new QueryStruct2();
+		qs1.setDistinct(false);
 		qs1.mergeFilters(getFrameFilters());
 		for(String[] rel : tinkerRelationships) {
 			qs1.addRelation(rel[0], rel[1], rel[2]);
@@ -1241,11 +1193,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		long nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
 
 		QueryStruct2 qs2 = new QueryStruct2();
+		qs1.setDistinct(true);
 		for(String[] rel : tinkerRelationships) {
 			qs2.addRelation(rel[0], rel[1], rel[2]);
 		}
 		qs2.mergeFilters(getFrameFilters());
 		{
+			// TODO: WHY CAN'T I DO A UNIQUE COUNT!!! ???
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
 				String[] split = columnName.split("__");
