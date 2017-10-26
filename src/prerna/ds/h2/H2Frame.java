@@ -26,16 +26,12 @@ import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Builder.Join;
 import prerna.ds.shared.AbstractTableDataFrame;
-import prerna.ds.shared.ScaledUniqueFrameIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.SqlInterpreter2;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.QueryStructConverter;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -258,56 +254,6 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
 		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getColumnHeaders());
-	}
-
-	@Override
-	public Double getMin(String columnHeader) {
-		if (this.metaData.getHeaderTypeAsEnum(columnHeader, this.builder.getTableName()) == IMetaData.DATA_TYPES.NUMBER) {
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			String[] split = columnHeader.split("__");
-			innerSelector.setTable(split[0]);
-			innerSelector.setColumn(split[1]);
-
-			QueryMathSelector mathSelector = new QueryMathSelector();
-			mathSelector.setInnerSelector(innerSelector);
-			mathSelector.setMath(QueryAggregationEnum.MIN);
-
-			QueryStruct2 mathQS = new QueryStruct2();
-			mathQS.addSelector(mathSelector);
-			// dont forget to add the current frame filters!
-			mathQS.setFilters(this.grf);
-
-			Iterator<IHeadersDataRow> it = query(mathQS);
-			while(it.hasNext()) {
-				return ((Number) it.next().getValues()[0]).doubleValue();
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public Double getMax(String columnHeader) {
-		if (this.metaData.getHeaderTypeAsEnum(columnHeader, this.builder.getTableName()) == IMetaData.DATA_TYPES.NUMBER) {
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			String[] split = columnHeader.split("__");
-			innerSelector.setTable(split[0]);
-			innerSelector.setColumn(split[1]);
-
-			QueryMathSelector mathSelector = new QueryMathSelector();
-			mathSelector.setInnerSelector(innerSelector);
-			mathSelector.setMath(QueryAggregationEnum.MAX);
-
-			QueryStruct2 mathQS = new QueryStruct2();
-			mathQS.addSelector(mathSelector);
-			// dont forget to add the current frame filters!
-			mathQS.setFilters(this.grf);
-
-			Iterator<IHeadersDataRow> it = query(mathQS);
-			while(it.hasNext()) {
-				return ((Number) it.next().getValues()[0]).doubleValue();
-			}
-		}
-		return null;
 	}
 
 	@Override

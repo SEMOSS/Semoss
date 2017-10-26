@@ -19,7 +19,7 @@ public class AlgorithmMergeHelper {
 		
 	}
 	
-	public static void mergeSimpleAlgResult(ITableDataFrame dataFrame, String colNmae, String algorithmColName, String algorithmColType, AlgorithmSingleColStore results) {
+	public static ITableDataFrame mergeSimpleAlgResult(ITableDataFrame dataFrame, String colNmae, String algorithmColName, String algorithmColType, AlgorithmSingleColStore results) {
 		// set the headers in the result so the iterator it generates is accurate
 		String[] cleanHeaders = new String[2];
 		//merge data to frame
@@ -60,6 +60,7 @@ public class AlgorithmMergeHelper {
 
 		qs.addSelector(instanceSelector);
 		qs.addSelector(instanceClusterSelector);
+		qs.addRelation(existingUniqueColName, algorithmColName, "left.outer.join");
 		qs.setColumnTypes(dataTypes);
 		
 		results.setHeaders(cleanHeaders);
@@ -67,6 +68,6 @@ public class AlgorithmMergeHelper {
 		List<Join> joins = new ArrayList<Join>();
 		Join j = new Join(existingUniqueColName, "left.outer.join", existingUniqueColName);
 		joins.add(j);
-		importer.mergeData(joins);
+		return importer.mergeData(joins);
 	}
 }

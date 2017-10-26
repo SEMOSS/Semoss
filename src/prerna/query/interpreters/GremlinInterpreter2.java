@@ -56,8 +56,17 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		generateSelectors();
 		traverseRelations();
 		setSelectors();
-		this.gt.dedup();
+		if(this.qs.isDistinct()) {
+			this.gt.dedup();
+		}
 		addOrderBy();
+		
+		String query = this.gt.toString();
+		if(query.length() > 500) {
+			logger.info("GREMLIN QUERY....  " + query.substring(0,  500) + "...");
+		} else {
+			logger.info("GREMLIN QUERY....  " + query);
+		}
 		return this.gt;
 	}
 
@@ -206,7 +215,6 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 					if (edgeMap.containsKey(startNode)) {
 						Set<String> currSet = edgeMap.get(startNode);
 						currSet.addAll(joinSet);
-						edgeMap.put(startNode, joinSet);
 					} else {
 						// need to get rid of "__"
 						edgeMap.put(startNode, joinSet);

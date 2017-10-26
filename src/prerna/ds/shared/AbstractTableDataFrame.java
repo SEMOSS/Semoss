@@ -295,6 +295,40 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 
 	@Override
+	public Double getMax(String columnHeader) {
+		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
+		if(uniqueColName == null) {
+			uniqueColName = columnHeader;
+		}
+		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == IMetaData.DATA_TYPES.NUMBER) {
+			QueryColumnSelector innerSelector = new QueryColumnSelector();
+			if(uniqueColName.contains("__")) {
+				String[] split = uniqueColName.split("__");
+				innerSelector.setTable(split[0]);
+				innerSelector.setColumn(split[1]);
+			} else {
+				innerSelector.setTable(uniqueColName);
+				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			}
+
+			QueryMathSelector mathSelector = new QueryMathSelector();
+			mathSelector.setInnerSelector(innerSelector);
+			mathSelector.setMath(QueryAggregationEnum.MAX);
+
+			QueryStruct2 mathQS = new QueryStruct2();
+			mathQS.addSelector(mathSelector);
+			// dont forget to add the current frame filters!
+			mathQS.setFilters(this.grf);
+
+			Iterator<IHeadersDataRow> it = query(mathQS);
+			while(it.hasNext()) {
+				return ((Number) it.next().getValues()[0]).doubleValue();
+			}
+		}
+		return null;
+	}
+	
+	@Override
 	public Double[] getMin() {
 		int size = qsNames.length;
 		Double[] min = new Double[size];
@@ -305,6 +339,39 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 
 		return min;
+	}
+	
+	@Override
+	public Double getMin(String columnHeader) {
+		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
+		if(uniqueColName == null) {
+			uniqueColName = columnHeader;
+		}
+		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == IMetaData.DATA_TYPES.NUMBER) {
+			QueryColumnSelector innerSelector = new QueryColumnSelector();
+			if(uniqueColName.contains("__")) {
+				String[] split = uniqueColName.split("__");
+				innerSelector.setTable(split[0]);
+				innerSelector.setColumn(split[1]);
+			} else {
+				innerSelector.setTable(uniqueColName);
+				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			}
+			QueryMathSelector mathSelector = new QueryMathSelector();
+			mathSelector.setInnerSelector(innerSelector);
+			mathSelector.setMath(QueryAggregationEnum.MIN);
+
+			QueryStruct2 mathQS = new QueryStruct2();
+			mathQS.addSelector(mathSelector);
+			// dont forget to add the current frame filters!
+			mathQS.setFilters(this.grf);
+
+			Iterator<IHeadersDataRow> it = query(mathQS);
+			while(it.hasNext()) {
+				return ((Number) it.next().getValues()[0]).doubleValue();
+			}
+		}
+		return null;
 	}
 
 	public List<String> getSelectors() {
