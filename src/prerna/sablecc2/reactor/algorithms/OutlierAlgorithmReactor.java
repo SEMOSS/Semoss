@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.log4j.LogManager;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -23,7 +23,7 @@ import prerna.util.ArrayUtilityMethods;
 
 public class OutlierAlgorithmReactor extends AbstractReactor {
 	
-	private static final Logger LOGGER = LogManager.getLogger(OutlierAlgorithmReactor.class.getName());
+	private static final String CLASS_NAME = OutlierAlgorithmReactor.class.getName();
 
 	private static final String INSTANCE_KEY = "instance";
 	private static final String NUMRUNS_KEY = "numRuns";
@@ -39,8 +39,11 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
+		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		dataFrame.setLogger(logger);
+		
+		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
 		// get inputs -> assume runOutlier(FRAME_COL, numSubsetSize, numRuns,
 		// [FRAME_COL1, ... , FRAME_COLN])
 		// or runOutlier(instance=[FRAME_COL], subsetSize = [numSubsetSize],
@@ -78,14 +81,18 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 
 		// make sure numSampleSize isn't too big.
 		if (numSubsetSize > numInstances / 3) {
-			LOGGER.info("R (subset size) is too big!");
+			logger.info("R (subset size) is too big!");
 			numSubsetSize = numInstances / 3;
 		}
 
 		int random_skip = numInstances / numSubsetSize;
 
 		for (int k = 0; k < numRuns; k++) {
+			logger.setLevel(Level.INFO);
+			logger.info("Starting execution for run # " + k);
 			// grab R random rows
+			logger.info("Determining random subset of initial instances");
+			logger.setLevel(Level.OFF);
 			Iterator<List<Object[]>> it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
 			List<List<Object[]>> rSubset = new ArrayList<List<Object[]>>();
 			for (int i = 0; i < numSubsetSize; i++) {
@@ -96,8 +103,11 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 				}
 				rSubset.add(it.next());
 			}
-
+			logger.setLevel(Level.INFO);
+			logger.info("Done determining initial instances");
+			logger.setLevel(Level.OFF);
 			// for row in dataTable, grab R random rows
+			int counter = 0;
 			it = this.getUniqueScaledData(instanceColumn, attributeNamesList, dataFrame);
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
@@ -122,6 +132,14 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 					double oldVal = results.get(instanceName);
 					results.put(instanceName, oldVal + maxSim);
 				}
+				
+				// logging
+				if(counter % 100 == 0) {
+					logger.setLevel(Level.INFO);
+					logger.info("Finished execution for run number = " + k + ", unique instance number = " + counter);
+					logger.setLevel(Level.OFF);
+				}
+				counter++;
 			}
 		}
 
