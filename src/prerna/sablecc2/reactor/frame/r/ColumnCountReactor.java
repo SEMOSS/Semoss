@@ -78,7 +78,11 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		script = tempName + "$" + column;
 
 		String[] uniqueColumns = this.rJavaTranslator.getStringArray(script);
-		if (colType.equalsIgnoreCase("string") || colType.equalsIgnoreCase("factor") || colType.equalsIgnoreCase("character")) {
+		if (colType.equalsIgnoreCase("string") || colType.equalsIgnoreCase("factor") || colType.equalsIgnoreCase("character") || colType.equalsIgnoreCase("date")) {
+			if (colType.equalsIgnoreCase("date")) {
+				String dateFormat = "%Y-%m-%d";
+				uniqueColumns = this.rJavaTranslator.getStringArray("format(" + table + "$" + column + ", format='" + dateFormat + "')");
+			} 
 			if (uniqueColumns == null) {
 				RFactor factors = (RFactor) this.rJavaTranslator.getFactor(script);
 				int numFactors = factors.size();
