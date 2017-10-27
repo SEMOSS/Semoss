@@ -1,20 +1,16 @@
 package prerna.ds.r;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Vector;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
-import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.engine.impl.r.RSingleton;
-import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 
 public class RBuilder extends AbstractRBuilder {
@@ -85,41 +81,6 @@ public class RBuilder extends AbstractRBuilder {
 		this.logger.info("TRYING TO LOAD PACAKGE: stringr");
 		this.retCon.eval("library(stringr);");
 		this.logger.info("SUCCESS!");
-	}
-	
-	protected String getTableName() {
-		return this.dataTableName;
-	}
-	
-	protected Double executeStat(String colName, String statRoutine) {
-		Double val = null;
-		REXP result = null;
-		try {
-			result = retCon.parseAndEval( addTryEvalToScript( statRoutine + "(" + this.dataTableName + "[,c(\"" + colName + "\")])") );
-			val = result.asDouble();
-		} catch (REXPMismatchException | REngineException e) {
-			String defaultError = "Unexpected error in calculation of max for column = " + colName;
-			handleRException(result, e, defaultError);
-		}
-
-		return val;
-	}
-	
-	protected String getROutput(String rScript) {
-		String newScript = "try(eval( paste(capture.output(print(" + rScript + ")),collapse='\n') ), silent=FALSE)";
-		try {
-			REXP result = retCon.parseAndEval(newScript);
-			return result.asString();
-		} catch (REngineException | REXPMismatchException e) {
-			e.printStackTrace();
-			String errorMessage = null;
-			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
-				errorMessage = e.getMessage();
-			} else {
-				errorMessage = "Unexpected error in execution of R routine ::: " + rScript;
-			}
-			throw new IllegalArgumentException(errorMessage);
-		}
 	}
 	
 	@Override
@@ -195,11 +156,6 @@ public class RBuilder extends AbstractRBuilder {
 			handleRException(result, e, "Error in calculating the number of rows for the datatable");
 		}
 		return numRows;
-	}
-	
-	
-	protected Iterator<Object[]> iterator(String[] headerNames, int limit, int offset) {
-		return new RIterator(this, headerNames, limit, offset);
 	}
 	
 	/**
@@ -485,38 +441,6 @@ public class RBuilder extends AbstractRBuilder {
 		return retArr;
 	}
 	
-
-	protected Object[] getBulkSingleColumn(String rScript) {
-		REXP rs = executeR(rScript);
-		try {
-			// need to break this out into individual components
-			Object result = rs.asNativeJavaObject();
-			if(result instanceof Object[]) {
-				return (Object[]) result;
-			} else if(result instanceof double[]) {
-				double[] value = (double[]) result;
-				Object[] retObj = new Object[value.length];
-				for(int i = 0; i < value.length; i++) {
-					retObj[i] = value[i];
-				}
-				return retObj;
-			} else if( result instanceof int[]) {
-				int[] value = (int[]) result;
-				Object[] retObj = new Object[value.length];
-				for(int i = 0; i < value.length; i++) {
-					retObj[i] = value[i];
-				}
-				return retObj;
-			} else {
-				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
-			}
-		} catch(Exception e) {
-			
-		}
-		
-		return null;
-	}
-
 	@Override
 	public Object getScalarReturn(String rScript) {
 		REXP rs = executeR(rScript);
@@ -538,74 +462,5 @@ public class RBuilder extends AbstractRBuilder {
 			e.printStackTrace();
 		}
 		return val;
-	}
-
-	
-	
-	
-	
-	
-	
-	///////////////////////////////// 
-	/////////////////////////////////
-	// random testing
-	
-	public static void main(String[] args) throws RserveException {
-		
-		TestUtilityMethods.loadDIHelper();
-		
-		RBuilder builder = new RBuilder();
-		builder.executeR("setwd(\"C:/Users/mahkhalil/Desktop\");");
-		builder.executeR("datatable <- read.csv(\"Movie Data.csv\");");
-		Double val =  null;
-		try {
-			val = builder.executeStat("Genre", "max");
-		} catch(Exception e) {
-			System.out.println(">>>>>>>>>>>>>>>>> " + e.getMessage());
-		}
-		val = builder.executeStat("MovieBudget", "min");
-		System.out.println(">>>>>>>>>>>>>>>>> " + val);
-		val = builder.executeStat("MovieBudget", "max");
-		System.out.println(">>>>>>>>>>>>>>>>> " + val);
-
-		REXP val2 = builder.executeR(builder.addTryEvalToScript("a<-createEmptyDataTable.123456(c(1,2,3,4,5))"));
-		try {
-			System.out.println(val2.asNativeJavaObject());
-			
-			RList a = val2.asList();
-			ListIterator it = a.listIterator();
-			while(it.hasNext()) {
-				Object obj = it.next();
-				System.out.println(obj);
-			}
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-/*	@Override
-	protected String[] getColumnType(String varName) {
-		REXP typesR = executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)");
-		String[] typesRString = null;
-		try {
-			typesRString =  typesR.asStrings();
-		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return typesRString;
-	}
-*/	
-	@Override
-	public int getIntFromScript(String rScript){
-		REXP result = executeR(rScript);
-		int number = 0;
-		try {
-			number = result.asInteger();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		return number;
 	}
 }
