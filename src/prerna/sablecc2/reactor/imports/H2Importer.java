@@ -213,71 +213,71 @@ public class H2Importer implements IImporter {
 		String leftTableName = this.dataframe.getTableName();
 		String rightTableName = tempTableName;
 		
-		// merge the two tables together
-		if(joins.get(0).getJoinType().equals("outer.join")) {
-			// improve performance
-			generateIndicesOnJoinColumns(leftTableName, rightTableName, joins);
-			
-			// h2 does not support full outer join
-			// so we will do a left outer join
-			// and then a right outer join
-			// and then union them together
-			joins.get(0).setJoinType("left.outer.join");
-			String leftJoinReturnTableName = Utility.getRandomString(6);
-			String leftOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(leftJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
-			try {
-				this.dataframe.getBuilder().runQuery(leftOuterJoin);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			joins.get(0).setJoinType("right.outer.join");
-			String rightJoinReturnTableName = Utility.getRandomString(6);
-			String rightOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(rightJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
-			try {
-				this.dataframe.getBuilder().runQuery(rightOuterJoin);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			// run a union between the 2 tables
-			String unionQuery = "CREATE TABLE " + returnTableName + " AS (SELECT * FROM " + leftJoinReturnTableName + " UNION " + " SELECT * FROM " + rightJoinReturnTableName + ")";
-			try {
-				this.dataframe.getBuilder().runQuery(unionQuery);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			
-			// now drop the 2 join tables
-			try {
-				this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(leftJoinReturnTableName));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			try {
-				this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(rightJoinReturnTableName));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			// improve performance
-			generateIndicesOnJoinColumns(leftTableName, rightTableName, joins);
+		// these will only be used if we have an outer join!
+		String leftJoinReturnTableName = null;
+		String rightJoinReturnTableName = null;
 
-			// this is the normal case
-			// we just need to make a basic join query
-			String joinQuery = RdbmsQueryBuilder.createNewTableFromJoiningTables(returnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
-			try {
+		try {
+			// improve performance
+			generateIndicesOnJoinColumns(leftTableName, rightTableName, joins);
+			
+			// merge the two tables together
+			if(joins.get(0).getJoinType().equals("outer.join")) {
+				// h2 does not support full outer join
+				// so we will do a left outer join
+				// and then a right outer join
+				// and then union them together
+				joins.get(0).setJoinType("left.outer.join");
+				leftJoinReturnTableName = Utility.getRandomString(6);
+				String leftOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(leftJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
+				this.dataframe.getBuilder().runQuery(leftOuterJoin);
+				
+				joins.get(0).setJoinType("right.outer.join");
+				rightJoinReturnTableName = Utility.getRandomString(6);
+				String rightOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(rightJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
+				this.dataframe.getBuilder().runQuery(rightOuterJoin);
+
+				// run a union between the 2 tables
+				String unionQuery = "CREATE TABLE " + returnTableName + " AS (SELECT * FROM " + leftJoinReturnTableName + " UNION " + " SELECT * FROM " + rightJoinReturnTableName + ")";
+				this.dataframe.getBuilder().runQuery(unionQuery);
+			} else {
+				// this is the normal case
+				// we just need to make a basic join query
+				String joinQuery = RdbmsQueryBuilder.createNewTableFromJoiningTables(returnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
 				this.dataframe.getBuilder().runQuery(joinQuery);
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		} finally {
+			// now drop the 2 join tables if we used an outer join
+			if(leftJoinReturnTableName != null) {
+				try {
+					this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(leftJoinReturnTableName));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			if(rightJoinReturnTableName != null) {
+				try {
+					this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(rightJoinReturnTableName));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
+			// also, drop the temporary right table we created
+			try {
+				this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(rightTableName));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 		
+		// if we can here without any errors
+		// then the sql join was sucessful
 		// drop the left table and the right table
 		// then rename the return table to be the left table name
-		try {
-			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(rightTableName));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 		try {
 			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(leftTableName));
 		} catch (Exception e) {
@@ -288,7 +288,7 @@ public class H2Importer implements IImporter {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
+		
 		// merge the QS so it is accurate
 		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, this.dataframe.getTableName(), this.it, joins);
 		this.dataframe.syncHeaders();
