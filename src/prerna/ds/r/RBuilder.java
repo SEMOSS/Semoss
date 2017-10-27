@@ -272,28 +272,31 @@ public class RBuilder extends AbstractRBuilder {
 	@Override
 	protected Object[] getDataRow(String rScript, String[] headerOrdering) {
 		REXP rs = executeR(rScript);
-		Object[] retArray = null;;
+		Object[] retArray = null;
+		Object result = null;
 		try {
-			Map<String, Object> result = (Map<String, Object>) rs.asNativeJavaObject();
-			
-			int retSize = headerOrdering.length;
-			retArray = new Object[retSize];
-			for(int colIndex = 0; colIndex < retSize; colIndex++) {
-				Object val = result.get(headerOrdering[colIndex]);
-				if(val instanceof String) {
-					retArray[colIndex] = val;
-				} else if(val instanceof Object[]) {
-					retArray[colIndex] = ((Object[]) val)[0];
-				} else if(val instanceof double[]) {
-					retArray[colIndex] = ((double[]) val)[0];
-				} else if(val instanceof int[]) {
-					retArray[colIndex] = ((int[]) val)[0];
-				} else {
-					retArray[colIndex] = val;
-				}
-			}
+			result = rs.asNativeJavaObject();
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
+		}
+		if(result instanceof Map) {
+			retArray =  processMapReturn((Map<String, Object>) result, headerOrdering).get(0);
+		} else if(result instanceof List) {
+			String[] returnNames = null;
+			try {
+				Object namesAttr = rs.getAttribute("names").asNativeJavaObject();
+				if(namesAttr instanceof String[]) {
+					returnNames = (String[]) namesAttr;
+				} else {
+					// assume it is single string
+					returnNames = new String[]{namesAttr.toString()};
+				}
+			} catch (REXPMismatchException e) {
+				e.printStackTrace();
+			}
+			retArray = (Object[]) processListReturn((List) result, headerOrdering, returnNames).get(0);
+		} else {
+			throw new IllegalArgumentException("Unknown data type returned from R");
 		}
 		
 		return retArray;
