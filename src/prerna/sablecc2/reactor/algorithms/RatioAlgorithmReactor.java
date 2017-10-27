@@ -59,8 +59,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		optimizeFrame(frame, instanceColumn);
 
 		// generate the new frame to hold the ratio information
-		RDataTable newFrame = new RDataTable();
-		newFrame.setTableVarName(origTableName);
+		RDataTable newFrame = new RDataTable(origTableName);
 		newFrame.setLogger(logger);
 
 		// set ratio frame headers

@@ -1,6 +1,5 @@
 package prerna.ds.r;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
@@ -97,10 +96,6 @@ public class RBuilderJRI extends AbstractRBuilder {
 		}	
 	}
 
-	protected String getTableName() {
-		return this.dataTableName;
-	}
-
 	@Override
 	protected void evalR(String r) {
 		executeR(r);
@@ -118,18 +113,6 @@ public class RBuilderJRI extends AbstractRBuilder {
 		return null;
 	}
 	
-	protected Double executeStat(String colName, String statRoutine) {
-		REXP result = retCon.eval( addTryEvalToScript( statRoutine + "(" + this.dataTableName + "[,c(\"" + colName + "\")])") );
-		Double val = result.asDouble();
-		return val;
-	}
-
-	protected String getROutput(String rScript) {
-		String newScript = "try(eval( paste(capture.output(print(" + rScript + ")),collapse='\n') ), silent=FALSE)";
-		REXP result = retCon.eval(newScript);
-		return result.asString();
-	}
-
 	protected REXP executeR(String r) {
 		return retCon.eval(r);
 	}
@@ -159,10 +142,6 @@ public class RBuilderJRI extends AbstractRBuilder {
 	protected int getNumRows(String varName) {
 		REXP result = executeR( addTryEvalToScript( "nrow(" + varName + ")"  ) );
 		return result.asInt();
-	}
-
-	protected Iterator<Object[]> iterator(String[] headerNames, int limit, int offset) {
-		return new RIterator(this, headerNames, limit, offset);
 	}
 
 	/**
@@ -326,40 +305,6 @@ public class RBuilderJRI extends AbstractRBuilder {
 		return retArr;
 	}
 
-	protected Object[] getBulkSingleColumn(String rScript) {
-		REXP rs = executeR(rScript);
-		int typeInt = rs.getType();
-		if(typeInt == REXP.XT_ARRAY_DOUBLE) {
-			double[] data = rs.asDoubleArray();
-			Object[] retObj = new Object[data.length];
-			for(int i = 0; i < data.length; i++) {
-				retObj[i] = data[i];
-			}
-			return retObj;
-		} else if(typeInt == REXP.XT_ARRAY_INT) {
-			int[] data = rs.asIntArray();
-			Object[] retObj = new Object[data.length];
-			for(int i = 0; i < data.length; i++) {
-				retObj[i] = data[i];
-			}
-			return retObj;
-		} else if(typeInt == REXP.XT_ARRAY_STR) {
-			return rs.asStringArray();
-		} else if(typeInt == REXP.XT_FACTOR) {
-			RFactor data = rs.asFactor();
-			int size = data.size();
-			Object[] retObj = new Object[size];
-			for(int i = 0; i < size; i++) {
-				retObj[i] = data.at(i);
-			}
-			return retObj;
-		} else {
-			logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
-		}
-
-		return null;
-	}
-
 	@Override
 	public Object getScalarReturn(String rScript) {
 		REXP rs = executeR(rScript);
@@ -424,20 +369,5 @@ public class RBuilderJRI extends AbstractRBuilder {
 	public String[] getColumnTypes(String varName) {
 		REXP typesR = executeR("sapply(" + varName + " , class)");
 		return typesR.asStringArray();
-	}
-	
-/*	@Override
-	public String[] getColumnType(String varName) {
-		
-		REXP typesR = executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)");
-		System.out.println(executeR("sapply(" + this.dataTableName + "$" + varName + "[1]" + " , class)"));
-		return typesR.asStringArray();
-	}
-*/	
-	@Override
-	public int getIntFromScript(String rScript){
-		REXP result = executeR(rScript);
-		int number = result.asInt();
-		return number;
 	}
 }
