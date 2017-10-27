@@ -157,10 +157,10 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 		// add the data to the frame
 		// to avoid adding columns with same name
 		int counter = 0;
-		String newColName = attributeName + "_LOP";
+		String newColName = attributeName + "_LOF";
 		while (ArrayUtilityMethods.arrayContainsValue(allColNames, newColName)) {
 			counter++;
-			newColName = attributeName + "_LOP_" + counter;
+			newColName = attributeName + "_LOF_" + counter;
 		}
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
