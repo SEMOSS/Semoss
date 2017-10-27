@@ -1,6 +1,8 @@
 package prerna.poi.main;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -409,6 +411,18 @@ public class HeadersException {
 		origHeader = origHeader  + "_" + (++num);
 		
 		return origHeader;
+	}
+	
+	public String[] getCleanHeaders(String[] headers) {
+		String[] newHeaders = new String[headers.length];
+		ArrayList<String> temp = new ArrayList<String>(Arrays.asList(headers));
+		for (int j = 0; j < headers.length; j++) {
+			String header = temp.get(0);
+			temp.remove(0);
+			String cleanHeader = recursivelyFixHeaders(header, temp);
+			newHeaders[j] = cleanHeader;
+		}
+		return newHeaders;
 	}
 
 }
