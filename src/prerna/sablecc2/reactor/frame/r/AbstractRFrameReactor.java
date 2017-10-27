@@ -39,6 +39,19 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		// recreate a new frame and set the frame name
 		String[] colNames = getColumns(frameName);
 		String[] colTypes = getColumnTypes(frameName);
+		//clean headers
+		HeadersException headerChecker = HeadersException.getInstance();
+		colNames = headerChecker.getCleanHeaders(colNames);
+		// update frame header names in R
+		String rColNames = "";
+		for(int i = 0; i < colNames.length; i++) {
+			rColNames += "\""+colNames[i] + "\"";
+			if(i < colNames.length -1) {
+				rColNames +=", ";
+			}
+		}
+		String script = "colnames("+frameName+") <- c("+rColNames+")";
+		this.rJavaTranslator.executeR(script);
 		RDataTable newTable = null;
 		if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
 			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(IRJavaTranslator.R_CONN), (String) retrieveVariable(IRJavaTranslator.R_PORT));
