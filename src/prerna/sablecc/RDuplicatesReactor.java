@@ -13,7 +13,7 @@ public class RDuplicatesReactor extends DataFrameDuplicatesReactor {
 		// This reactor checks for duplicates
 		boolean hasDuplicates = false;
 		RDataTable dataframe = (RDataTable) myStore.get("G");
-		String rVarName = dataframe.getTableVarName();
+		String rVarName = dataframe.getTableName();
 		Vector<String> columns = (Vector) myStore.get(PKQLEnum.COL_CSV);
 
 		StringBuilder columnSelectBuilder = new StringBuilder("c(");
