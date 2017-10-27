@@ -20,28 +20,42 @@ public class CountIfReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// initialize rJavaTranslator
 		init();
-		
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		
-		//get frame name
+		// get frame name
 		String table = frame.getTableName();
-
 		// get inputs
 		String column = getExistingColumn();
-		//clean column name
+		// clean column name
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
-		
 		String regexToCount = getRegex();
 		String newColName = getNewColumn();
+		// this function only works on strings, so we must convert the data to a
+		// string if it is not already
+		String colType = this.rJavaTranslator.getColumnType(table, column);
+		if (colType.equalsIgnoreCase("numeric") || colType.equalsIgnoreCase("date")) {
+			// after performing the count function, we will change it back
+			// format numeric data to get rid of e format (1e6)
+			// df$MovieBudget <- as.character(df$MovieBudget);
+			String conversion = table + "$" + column + " <- as.character(format(" + table + "$" + column + ",scientific=FALSE));";
+			frame.executeRScript(conversion);
+			// count
+			String script = table + "$" + newColName + " <- str_count(" + table + "$" + column + ", " + "\"" + regexToCount + "\"" + ");";
+			frame.executeRScript(script);
+			// df$MovieBudget <- as.numeric(df$col);
+			String convertBack = table + "$" + column + "<- as.numeric(" + table + "$" + column + ");";
+			frame.executeRScript(convertBack);
+			// frame.executeRScript(conversion + script + convertBack);
+		} else {
+			// define script to be executed
+			// dt$new <- str_count(dt$oldCol, "strToFind");
+			String script = table + "$" + newColName + " <- str_count(" + table + "$" + column + ", " + "\"" + regexToCount + "\"" + ")";
+			// execute the script
+			frame.executeRScript(script);
+		}
 
-		// define script to be executed
-		// dt$new <- str_count(dt$oldCol, "strToFind");
-		String script = table + "$" + newColName + " <- str_count(" + table + "$" + column + ", \"" + regexToCount + "\")";
-		// execute the script
-		frame.executeRScript(script);
 		// update the metadata
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
@@ -53,6 +67,8 @@ public class CountIfReactor extends AbstractRFrameReactor {
 	}
 
 
+
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
@@ -61,7 +77,7 @@ public class CountIfReactor extends AbstractRFrameReactor {
 
 
 	private String getExistingColumn() {
-		// first input is the name of the column 
+		// first input is the name of the column
 		// that the operation is being done on
 		NounMetadata noun = this.curRow.getNoun(0);
 		String column = noun.getValue().toString();
