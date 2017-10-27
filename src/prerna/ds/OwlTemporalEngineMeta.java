@@ -467,7 +467,7 @@ public class OwlTemporalEngineMeta {
 	public IMetaData.DATA_TYPES getHeaderTypeAsEnum(String uniqueName) {
 		String parent = null;
 		if(uniqueName.contains("__")) {
-			parent = uniqueName.split("__")[1];
+			parent = uniqueName.split("__")[0];
 		}
 		return getHeaderTypeAsEnum(uniqueName, parent);
 	}
@@ -505,7 +505,7 @@ public class OwlTemporalEngineMeta {
 	public String getHeaderTypeAsString(String uniqueName) {
 		String parent = null;
 		if(uniqueName.contains("__")) {
-			parent = uniqueName.split("__")[1];
+			parent = uniqueName.split("__")[0];
 		}
 		return getHeaderTypeAsString(uniqueName, parent);
 	}
