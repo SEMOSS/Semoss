@@ -15,8 +15,6 @@ import prerna.algorithm.api.IMetaData;
 import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RCsvFileWrapper;
-import prerna.engine.impl.r.RExcelFileWrapper;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -68,13 +66,9 @@ public abstract class AbstractRBuilder {
 	 */
 	protected abstract void evalR(String r);
 	
-	protected abstract Iterator<Object[]> iterator(String[] headerNames, int i, int j);
-	
 	protected abstract RConnection getConnection();
 
 	protected abstract String getPort();
-	
-	protected abstract Double executeStat(String columnHeader, String string);
 	
 	protected abstract Object executeR(String rScript);
 	
@@ -88,8 +82,6 @@ public abstract class AbstractRBuilder {
 	
 	protected abstract List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering);
 	
-	protected abstract Object[] getBulkSingleColumn(String rScript);
-	
 	protected abstract Object getScalarReturn(String rScript);
 
 	protected abstract String[] getColumnNames();
@@ -99,10 +91,6 @@ public abstract class AbstractRBuilder {
 	protected abstract String[] getColumnTypes();
 	
 	protected abstract String[] getColumnTypes(String varName);
-	
-	//protected abstract String[] getColumnType(String varName);
-	
-	protected abstract int getIntFromScript(String rScript);
 	
 	/**
 	 * Wrap the R script in a try-eval in order to get the same error message that a user would see if using
@@ -302,51 +290,6 @@ public abstract class AbstractRBuilder {
 		evalR(rStatement);		
 	}
 	
-	/**
-	 * Loads a file as the data table
-	 * @param fileWrapper			RFileWrapper used to contain the required information for the load
-	 */
-	protected void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
-		String loadFileRScript = RSyntaxHelper.getFReadSyntax(this.dataTableName, fileWrapper.getFilePath());
-		evalR(loadFileRScript);
-		
-		// since we clean headers
-		// we need to fix the headers from the csv file to match those which are good
-		// thankfully the index is the same
-		evalR("setnames(" + this.dataTableName + ", " + fileWrapper.getModHeadersRVec() + ")");
-		
-		// this will modify the csv to contain the specified columns and rows based on selectors and filters
-		String filterScript = fileWrapper.getRScript();
-		if(!filterScript.isEmpty()) {
-			String modifyTableScript = this.dataTableName + "<- " + filterScript;
-			evalR(modifyTableScript);
-		}
-		// now modify column types to ensure they are all good
-		alterColumnsToNumeric(this.dataTableName, fileWrapper.getDataTypes());
-		alterColumnsToDate(this.dataTableName, fileWrapper.getDataTypes());
-	}
-	
-	protected void createTableViaExcelFile(RExcelFileWrapper fileWrapper) {
-		String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(this.dataTableName, fileWrapper.getFilePath(), fileWrapper.getSheetName());
-		evalR(loadFileRScript);
-		
-		// since we clean headers
-		// we need to fix the headers from the csv file to match those which are good
-		// thankfully the index is the same
-		evalR("setnames(" + this.dataTableName + ", " + fileWrapper.getModHeadersRVec() + ")");
-		
-		// this will modify the csv to contain the specified columns and rows based on selectors and filters
-		String filterScript = fileWrapper.getRScript();
-		if(!filterScript.isEmpty()) {
-			String modifyTableScript = this.dataTableName + "<- " + filterScript;
-			evalR(modifyTableScript);
-		}
-		// now modify column types to ensure they are all good
-		alterColumnsToNumeric(this.dataTableName, fileWrapper.getDataTypes());
-		//modify columns such that they are date where needed
-		alterColumnsToDate(this.dataTableName, fileWrapper.getDataTypes());
-	}
-
 	/**
 	 * Modify columns to make sure they are numeric for math operations
 	 * @param typesMap
