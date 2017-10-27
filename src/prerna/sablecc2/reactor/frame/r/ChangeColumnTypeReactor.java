@@ -57,7 +57,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// we have a different script to run if it is a str to date
 				// conversion
 				// define date format
-				String dateFormat = "%Y/%m/%d";
+				String dateFormat = "%Y-%m-%d";
 				// get the column type of the existing column
 				String type = getColumnType(table, column);
 				String tempTable = Utility.getRandomString(6);
