@@ -93,7 +93,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		initializeClusters(dataFrame, attributeNamesList, logger);
 		logger.info("Done creation of initial cluster centers...");		
 
-		int maxIt = 10_000;
+		int maxIt = 1000;
 		boolean go = true;
 		int currIt = 0;
 		logger.info("Start iterating through dataset until convergence...");		
@@ -121,7 +121,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 				// logging
 				if(counter % 100 == 0) {
 					logger.setLevel(Level.INFO);
-					logger.info("Finished execution for loop number = " + currIt + ", unique instance number = " + counter);
+					logger.info("Finished execution for loop number = " + (currIt+1) + ", unique instance number = " + counter);
 					logger.setLevel(Level.OFF);
 				}
 				counter++;
