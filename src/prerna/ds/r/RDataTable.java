@@ -15,8 +15,6 @@ import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.r.RCsvFileWrapper;
-import prerna.engine.impl.r.RExcelFileWrapper;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStructConverter;
@@ -108,22 +106,12 @@ public class RDataTable extends AbstractTableDataFrame {
 		for(String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
-		this.addRowsViaIterator(it, this.getTableVarName(), dataTypeMap);
+		this.addRowsViaIterator(it, this.getTableName(), dataTypeMap);
 		syncHeaders();
 	}
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
 		this.builder.createTableViaIterator(tableName, it, dataTypeMap);
-		syncHeaders();
-	}
-	
-	public void createTableViaCsvFile(RCsvFileWrapper fileWrapper) {
-		this.builder.createTableViaCsvFile(fileWrapper);
-		syncHeaders();
-	}
-	
-	public void createTableViaExcelFile(RExcelFileWrapper fileWrapper) {
-		this.builder.createTableViaExcelFile(fileWrapper);
 		syncHeaders();
 	}
 	
@@ -218,15 +206,11 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.isEmpty();
 	}
 	
-	public String getTableVarName() {
+	public String getTableName() {
 		return this.builder.getTableName();
 	}
 	
-	public String getTableName() {
-		return this.getTableVarName();
-	}
-	
-	public void setTableVarName(String tableVarName) {
+	public void setTableName(String tableVarName) {
 		this.builder.setTableName(tableVarName);
 	}
 	

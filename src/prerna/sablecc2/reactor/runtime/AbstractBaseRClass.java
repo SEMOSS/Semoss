@@ -304,11 +304,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} else if(dataframe  instanceof RDataTable){
 			// ughhh... why are you calling this?
 			// i will just change the r var name
-			table.executeRScript(rVarName + " <- " + ((RDataTable) dataframe).getTableVarName());
-			table.setTableVarName(rVarName);
+			table.executeRScript(rVarName + " <- " + ((RDataTable) dataframe).getTableName());
+			table.setTableName(rVarName);
 			table.setMetaData(dataframe.getMetaData());
 			// also, dont forget to update the metadata
-			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getTableVarName(), rVarName);
+			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getTableName(), rVarName);
 
 		} else if(dataframe instanceof NativeFrame) {
 			Iterator<IHeadersDataRow> it = dataframe.iterator();
@@ -388,7 +388,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// if we dont even have a h2frame currently, make a new one
 		if (!(dataframe instanceof H2Frame)) {
 			determineNewFrameNeeded = true;
-			if(dataframe instanceof RDataTable && ((RDataTable) dataframe).getTableVarName().equals(frameName)) {
+			if(dataframe instanceof RDataTable && ((RDataTable) dataframe).getTableName().equals(frameName)) {
 				syncExistingRMetadata = true;
 			}
 		} else {
@@ -598,7 +598,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	protected boolean checkRTableModified(String frameName) {
 		if (this.dataframe instanceof RDataTable) {
-			String tableVarName = ((RDataTable) this.dataframe).getTableVarName();
+			String tableVarName = ((RDataTable) this.dataframe).getTableName();
 			if (frameName.equals(tableVarName)) {
 				this.dataframe.updateDataId();
 				this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
