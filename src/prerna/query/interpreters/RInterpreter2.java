@@ -323,6 +323,10 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), dataType);
 		}
 		
+		if(myFilterFormatted.isEmpty() || myFilterFormatted.equals("\"\"")) {
+			return;
+		}
+		
 		if(multi) {
 			// special processing for date types
 			if(IMetaData.DATA_TYPES.DATE == dataType) {
@@ -366,7 +370,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			}
 		} else {
 			if(thisComparator.equals("?like")) {
-				filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %like% ").append(myFilterFormatted);
+				filterCriteria.append("tolower(").append(this.dataTableName).append("$").append(leftColumnName).append(") %like% tolower(").append(myFilterFormatted).append(")");
 			} else {
 				filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
