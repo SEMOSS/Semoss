@@ -2,6 +2,7 @@ package prerna.engine.impl.r;
 
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.SystemUtils;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -42,6 +43,13 @@ public class RSingleton {
 			
 			ProcessBuilder pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
 			Process process = pb.start();
+			
+			System.out.println("Waiting 1 second to allow Rserve to finish starting up...");
+			try {
+				process.waitFor(1, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			
 			//ProcessBuilder pb = new ProcessBuilder("\"" + rHome + "\"", "-e", "\"library(Rserve);Rserve(FALSE,args='--vanilla --RS-port" + port + "');flush.console <- function(...) {return;}; options(error=function() NULL)\"", "--vanilla");
 
