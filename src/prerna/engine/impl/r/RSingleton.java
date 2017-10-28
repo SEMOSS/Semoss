@@ -42,7 +42,6 @@ public class RSingleton {
 			
 			ProcessBuilder pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);Rserve(FALSE," + port + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
 			Process process = pb.start();
-
 			
 			//ProcessBuilder pb = new ProcessBuilder("\"" + rHome + "\"", "-e", "\"library(Rserve);Rserve(FALSE,args='--vanilla --RS-port" + port + "');flush.console <- function(...) {return;}; options(error=function() NULL)\"", "--vanilla");
 
@@ -53,7 +52,6 @@ public class RSingleton {
 			//System.out.println("R Started.. going to end");
 			//Runtime.getRuntime().exec(" \"C:\\Program Files\\R\\R-3.3.0\\bin\\R.exe\" -e \"library(Rserve); library(RSclient); rsc <- RSconnect(port = 6311); RSshutdown(rsc)\" --vanilla");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -77,11 +75,11 @@ public class RSingleton {
 
 			System.out.println("RHome is ... " + rHome);
 
-			//Runtime.getRuntime().exec(" \"C:\\Program Files\\R\\R-3.3.0\\bin\\R.exe\" -e \"library(Rserve);Rserve(FALSE,args='--vanilla --RS-port" + port + "');flush.console <- function(...) {return;}; options(error=function() NULL)\" --vanilla");
-			//System.out.println("R Started.. going to end");
-			Runtime.getRuntime().exec(" \"" + rHome+ "\" -e \"library(Rserve); library(RSclient); rsc <- RSconnect(port = " + port + "); RSshutdown(rsc)\" --vanilla");
+//			Runtime.getRuntime().exec(" \"" + rHome+ "\" -e \"library(Rserve);library(RSclient); rsc<-RSconnect(port=" + port + ");RSshutdown(rsc) --vanilla");
+			
+			ProcessBuilder pb = new ProcessBuilder("" + rHome + "", "-e", "library(Rserve);library(RSclient);rsc<-RSconnect(port=" + port + ");RSshutdown(rsc)", "--vanilla");
+			Process process = pb.start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -114,7 +112,6 @@ public class RSingleton {
 				
 				rcon = new RConnection(host, port);
 				portToCon.put(port, rcon);
-				ProcessBuilder pb;
 				
 			}catch(Exception ex)
 			{
