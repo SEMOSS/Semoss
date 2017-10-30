@@ -1,6 +1,7 @@
 package prerna.engine.impl.r;
 
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
 
@@ -98,7 +99,9 @@ public class RSingleton {
 		
 		
 		if(rcon == null) {
-			return getConnection("127.0.0.1", 6311);
+			int port = findOpenPort();
+			
+			return getConnection("127.0.0.1", port);
 		}
 		return rcon;
 	}
@@ -111,18 +114,15 @@ public class RSingleton {
 		
 		// this basically tries to do the same as get connection with a port
 		
-		
 		if(portToCon.containsKey(port)) {
 			rcon = portToCon.get(port);
 		} else {
-			System.out.println("Making a master connection now on port" + port);;
+			System.out.println("Making a master connection now on port " + port);
 			try {
-				
 				rcon = new RConnection(host, port);
 				portToCon.put(port, rcon);
 				
-			}catch(Exception ex)
-			{
+			} catch(Exception ex) {
 				ex.printStackTrace();
 				// try to start again and see if that works
 				startRServe(port);
@@ -131,16 +131,34 @@ public class RSingleton {
 					portToCon.put(port, rcon);
 					RSingleton.port = port;
 				} catch (RserveException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
 			}
-			
 		}
 		
 		return rcon;
 	}
 	
-
+	private static int findOpenPort() {
+		boolean found = false;
+		int port = 6311;
+		int count = 0;
+		
+		// Try 5 ports to see if we can find one that's open to start Rserve on
+		for( ; !found && count < 5; port++, count++) {
+			System.out.println("Trying to see if port " + port + " is open for Rserve.");
+			try {
+				ServerSocket s = new ServerSocket(port);
+				found = true;
+				s.close();
+				System.out.println("Success! Port: " + port);
+				break;
+			} catch (Exception ex) {
+				// Port isn't open, notify and move on
+				System.out.println("Port " + port + " is unavailable.");
+			}
+		}
+		
+		return port;
+	}
 }
