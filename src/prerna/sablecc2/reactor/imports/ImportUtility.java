@@ -231,6 +231,19 @@ public class ImportUtility {
 			String qsName = selector.getQueryStructName();
 			String dataType = selector.getDataType();
 			
+			if(dataType == null) {
+				// cannot assume the iterator that created this qs
+				// is from the same frame as the frame we are adding this data to
+				if(qs.getFrame() != null) {
+					dataType = qs.getFrame().getMetaData().getHeaderTypeAsString(selector.getQueryStructName());
+				}
+				if(dataType == null) {
+					// if still null
+					// try the current frame
+					dataType = metaData.getHeaderTypeAsString(selector.getQueryStructName());
+				}
+			}
+			
 			String uniqueHeader = frameTableName + "__" + alias;
 			metaData.addProperty(frameTableName, uniqueHeader);
 			metaData.setQueryStructNameToProperty(uniqueHeader, source, qsName);
