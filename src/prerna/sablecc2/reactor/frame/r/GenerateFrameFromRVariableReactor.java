@@ -14,11 +14,12 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		init();
 		String varName = getVarName();
 		this.rJavaTranslator.executeR("as.data.table(" + varName + ")");
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(varName);
-		String[] colTypes = this.rJavaTranslator.getColumns(varName);
+		String[] colTypes = this.rJavaTranslator.getColumnTypes(varName);
 
 		if(colNames == null || colTypes == null) {
 			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
@@ -35,7 +36,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		}
 		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, varName);
 		this.insight.setDataMaker(newTable);
-		return new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	/**
