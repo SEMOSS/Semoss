@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import cern.colt.Arrays;
 import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -21,17 +22,19 @@ public class RImporter implements IImporter {
 	private RDataTable dataframe;
 	private QueryStruct2 qs;
 	private Iterator<IHeadersDataRow> it;
-	public RImporter(RDataTable dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
-		this.dataframe = dataframe;
-		this.qs = qs;
-		// generate the iterator
-		this.it = it;
-	}
+	
 	public RImporter(RDataTable dataframe, QueryStruct2 qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
 		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+	}
+	
+	public RImporter(RDataTable dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+		this.dataframe = dataframe;
+		this.qs = qs;
+		// generate the iterator
+		this.it = it;
 	}
 	
 	@Override
@@ -57,6 +60,9 @@ public class RImporter implements IImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
+		System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
+		System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
+		
 		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, this.dataframe.getTableName(), this.it, joins);
 		
 		// define new temporary table with random name
@@ -66,6 +72,9 @@ public class RImporter implements IImporter {
 		Map<String, DATA_TYPES> types = ImportUtility.getTypesFromQs(this.qs);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, types);
 	
+		System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
+		System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
+		
 		//define parameters that we will pass into mergeSyntax method to get the R command
 		String returnTable = this.dataframe.getTableName();
 		String leftTableName = returnTable;
@@ -87,6 +96,10 @@ public class RImporter implements IImporter {
 		String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 		this.dataframe.executeRScript(mergeString);
 		this.dataframe.syncHeaders();
+		
+		System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
+		System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
+
 		return this.dataframe;
 	}
 }

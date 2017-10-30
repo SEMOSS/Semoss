@@ -623,7 +623,12 @@ public class QueryStruct2 {
 	}
 	
 	public String getEngineName() {
-		return this.engineName;
+		if(this.engineName != null) {
+			return this.engineName;
+		} else if(this.engine != null) {
+			return this.engine.getEngineName();
+		}
+		return null;
 	}
 	
 	public void setEngine(IEngine engine) {

@@ -29,6 +29,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public NativeFrame() {
 		super();
 		this.qs = new QueryStruct2();
+		this.qs.setFrame(this);
 	}
 
 	public void setConnection(String engineName) {
