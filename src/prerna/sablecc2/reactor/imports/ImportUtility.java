@@ -815,14 +815,12 @@ public class ImportUtility {
 			String dataType = selector.getDataType();
 			if(dataType == null) {
 				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
-				String table = cSelect.getTable();
-				String column = cSelect.getColumn();
-				// this only happens when we have a column selector
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
-					dataType = owlMeta.getHeaderTypeAsString(table, null);
-				} else {
-					dataType = owlMeta.getHeaderTypeAsString(table + "__" + column, table);
+				String qsName = cSelect.getQueryStructName();
+				String uniqueName = owlMeta.getUniqueNameFromAlias(qsName);
+				if(uniqueName == null) {
+					uniqueName = qsName;
 				}
+				dataType = owlMeta.getHeaderTypeAsString(uniqueName);
 			}
 			IMetaData.DATA_TYPES dtEnum = Utility.convertStringToDataType(dataType);
 			metaData.put(alias, dtEnum);
