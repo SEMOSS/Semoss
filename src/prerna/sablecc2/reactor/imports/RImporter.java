@@ -66,23 +66,22 @@ public class RImporter implements IImporter {
 		Map<String, DATA_TYPES> types = ImportUtility.getTypesFromQs(this.qs);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, types);
 	
-		//only a single join can be passed at a time
-		Join joinItem = joins.get(0);
-			
 		//define parameters that we will pass into mergeSyntax method to get the R command
 		String returnTable = this.dataframe.getTableName();
 		String leftTableName = returnTable;
 		String rightTableName = tempTableName;
-			
-		String joinType = joinItem.getJoinType();
 		
+		// only a single join type can be passed at a time
+		String joinType = null;
 		List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
-		Map<String, String> joinColMapping = new HashMap<String, String>();
-		
-		// in R, the existing column is referenced as frame__column
-		// but the R syntax only wants the col
-		joinColMapping.put(joinItem.getSelector().split("__")[1], joinItem.getQualifier());
-		joinCols.add(joinColMapping);
+		for(Join joinItem : joins) {
+			joinType = joinItem.getJoinType();
+			// in R, the existing column is referenced as frame__column
+			// but the R syntax only wants the col
+			Map<String, String> joinColMapping = new HashMap<String, String>();
+			joinColMapping.put(joinItem.getSelector().split("__")[1], joinItem.getQualifier());
+			joinCols.add(joinColMapping);
+		}
 		
 		//execute r command
 		String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
