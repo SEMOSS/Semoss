@@ -53,6 +53,8 @@ import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
+import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
+import prerna.sablecc2.reactor.frame.r.SynchronizeToRReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -237,6 +239,8 @@ public class ReactorFactory {
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
 		reactorHash.put("FrameType", FrameTypeReactor.class);
 		reactorHash.put("GenerateFrameFromRVariable", GenerateFrameFromRVariableReactor.class);
+		reactorHash.put("GenerateH2FrameFromRVariable", GenerateH2FrameFromRVariableReactor.class);
+		reactorHash.put("SynchronizeToR", SynchronizeToRReactor.class);
 
 		// Task Reactors
 		reactorHash.put("Iterate", IterateReactor.class); 
