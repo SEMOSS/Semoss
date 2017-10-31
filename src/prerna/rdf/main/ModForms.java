@@ -24,6 +24,21 @@ class ModForms {
 		formsEngine.setEngineName("Forms_TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", formsEngine);
 
+		String testQ = "SELECT DISTINCT ?system (COUNT(?description) as ?count) WHERE {"
+				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+				+ "{?system <http://semoss.org/ontologies/Relation/Contains/Description> ?description}"
+				+ "} GROUP BY ?system";
+		
+		System.out.println("TEST DUPLICATE DESCRIPTIONS !!! ");
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(formsEngine, testQ);
+		while(manager.hasNext()) {
+			Object[] values = manager.next().getValues();
+			if( ((Number) values[1]).intValue() > 1 ) {
+				System.out.println("SYSTEM ::: " + values[0]);
+			}
+		}
+		System.out.println("DONE TEST DUPLICATE DESCRIPTIONS !!! ");
+
 //		String query = "SELECT DISTINCT ?system ?description WHERE {"
 //				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
 //				+ "{?system <http://semoss.org/ontologies/Relation/Contains/Description> ?description}"
@@ -87,22 +102,41 @@ class ModForms {
 		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/Full_System_Name");
 		
 		// add in the new data from the csv files
+		String start = "C:\\Users\\SEMOSS\\Desktop\\Props\\";
 		String[] fileLocations = new String[]{
-				"file1.csv",
-				"file2.csv"
+				start + "ATO_Date.csv",
+				start + "AvailabilityActual.csv",
+				start + "Full_System_Names.csv",
+				start + "POC.csv",
+				start + "Descriptions.csv"
 		};
 
 		String[] dataTypes = new String[]{
+				"DATE",
+				"NUMBER",
 				"STRING",
-				"DATE"
+				"STRING",
+				"STRING"
 		};
 
 		int size = fileLocations.length;
 		for(int i = 0; i < size; i++) {
 			processFile(formsEngine, fileLocations[i], dataTypes[i]);
 		}
+		
+		
+		formsEngine.commit();
+		
+		System.out.println("TEST DUPLICATE DESCRIPTIONS !!! ");
+		manager = WrapperManager.getInstance().getRawWrapper(formsEngine, testQ);
+		while(manager.hasNext()) {
+			Object[] values = manager.next().getValues();
+			if( ((Number) values[1]).intValue() > 1 ) {
+				System.out.println("SYSTEM ::: " + values[0]);
+			}
+		}
+		System.out.println("DONE TEST DUPLICATE DESCRIPTIONS !!! ");
 	}
-
 	
 	private static void removeExistingProperties(IEngine eng, String query, String pred) {
 		final String subprefix = "http://health.mil/ontologies/Concept/System/";
@@ -142,7 +176,7 @@ class ModForms {
 			if(dataType.equals("STRING")) {
 				obj = Utility.cleanVariableString(obj.toString());
 			} else if(dataType.equals("DATE")) {
-				obj = Utility.getDate(obj.toString());
+				obj = Utility.getDateAsDateObj(obj.toString());
 			} else if(dataType.equals("NUMBER")) {
 				obj = Utility.getDouble(obj.toString());
 			}
