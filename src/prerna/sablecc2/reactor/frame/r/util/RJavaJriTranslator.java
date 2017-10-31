@@ -1,5 +1,9 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.Rengine;
@@ -7,6 +11,9 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
@@ -229,5 +236,57 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		// clean up other things
 		System.out.println("R Shutdown!!");
 		// java.lang.System.setSecurityManager(reactorManager);
+	}
+	
+	@Override
+	public void runR(String script)
+	{
+		runR(script, true);
+	}
+
+	public void runR(String script, boolean result) {
+		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		tempFileLocation += "\\" + Utility.getRandomString(15) + ".R";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+
+		File f = new File(tempFileLocation);
+		try {
+			FileUtils.writeStringToFile(f, script);
+		} catch (IOException e1) {
+			System.out.println("Error in writing R script for execution!");
+			e1.printStackTrace();
+		}
+
+		try {
+			REXP output = (REXP) this.executeR("paste( capture.output(print( source(\"" + tempFileLocation + "\")$value ) ), collapse='\n')");
+			if (output.getType() == REXP.XT_NULL) {
+				throw new IllegalArgumentException("Unable to wrap method in paste/capture");
+			}
+			if (result) {
+				System.out.println(output.asString());
+			}
+		} catch (Exception e) {
+			try {
+				Object output = this.executeR(script);
+				if (result) {
+					java.lang.System.out.println("RCon data.. " + output);
+					StringBuilder builder = new StringBuilder();
+					getResultAsString(output, builder);
+					System.out.println("Output : " + builder.toString());
+				}
+			} catch (Exception e2) {
+				e2.printStackTrace();
+				String errorMessage = null;
+				if (e2.getMessage() != null && !e2.getMessage().isEmpty()) {
+					errorMessage = e2.getMessage();
+				} else {
+					errorMessage = "Unexpected error in execution of R routine ::: " + script;
+				}
+				throw new IllegalArgumentException(errorMessage);
+			}
+		} finally {
+			f.delete();
+		}
 	}
 }
