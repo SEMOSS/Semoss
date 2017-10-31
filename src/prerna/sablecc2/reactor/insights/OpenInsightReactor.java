@@ -24,7 +24,7 @@ import prerna.util.Utility;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
 
-	private static final String ADDITIONAL_PIXELS = "additonalPixels";
+	private static final String ADDITIONAL_PIXELS = "additionalPixels";
 
 	@Override
 	public NounMetadata execute() {
