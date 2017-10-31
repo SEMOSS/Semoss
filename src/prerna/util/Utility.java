@@ -865,10 +865,6 @@ public class Utility {
 
 	public static String cleanVariableString(String original){
 		String cleaned = cleanString (original, true);
-		if(cleaned.contains("-")) {
-			System.out.println("be cleaned???");
-		}
-		
 		cleaned = cleaned.replace(",", "");
 		cleaned = cleaned.replace("%", "");
 		cleaned = cleaned.replace("-", "");
