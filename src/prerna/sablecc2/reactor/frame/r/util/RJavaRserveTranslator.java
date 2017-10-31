@@ -1,11 +1,18 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.rosuda.REngine.REXP;
+import org.rosuda.REngine.REXPDouble;
+import org.rosuda.REngine.REXPGenericVector;
+import org.rosuda.REngine.REXPInteger;
+import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.REXPString;
 import org.rosuda.REngine.REngineException;
+import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -280,5 +287,127 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				System.out.println("Output : " + builder.toString());
 			}
 		}
+	}
+	
+	private void getResultAsString(Object output, StringBuilder builder)
+	{
+		// Generic vector..
+		if(output instanceof REXPGenericVector) 
+		{			
+			RList list = ((REXPGenericVector)output).asList();
+			
+			String[] attributeNames = getAttributeArr(((REXPGenericVector)output)._attr());
+			boolean matchesRows = false;
+			// output list attribute names if present
+			if(attributeNames != null) {
+				// Due to the way R sends back data
+				// When there is a list, it may contain a name label
+				matchesRows = list.size() == attributeNames.length;
+				if(!matchesRows) {
+					if(attributeNames.length == 1) {
+						builder.append("\n" + attributeNames[0] + "\n");
+					} else if(attributeNames.length > 1){
+						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
+					}
+				}
+			}
+			int size = list.size();
+			for(int listIndex = 0; listIndex < size; listIndex++) {
+				if(matchesRows) {
+					builder.append("\n" + attributeNames[listIndex] + " : ");
+				}
+				getResultAsString(list.get(listIndex), builder);
+			}
+		}
+		
+		// List..
+		else if(output instanceof REXPList) {
+			RList list = ((REXPList)output).asList();
+			
+			String[] attributeNames = getAttributeArr(((REXPList)output)._attr());
+			boolean matchesRows = false;
+			// output list attribute names if present
+			if(attributeNames != null) {
+				// Due to the way R sends back data
+				// When there is a list, it may contain a name label
+				matchesRows = list.size() == attributeNames.length;
+				if(!matchesRows) {
+					if(attributeNames.length == 1) {
+						builder.append("\n" + attributeNames[0] + "\n");
+					} else if(attributeNames.length > 1){
+						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
+					}
+				}
+			}
+			int size = list.size();
+			for(int listIndex = 0; listIndex < size; listIndex++) {
+				if(matchesRows) {
+					builder.append("\n" + attributeNames[listIndex] + " : ");
+				}
+				getResultAsString(list.get(listIndex), builder);
+			}
+		}
+		
+		// Integers..
+		else if(output instanceof REXPInteger)
+		{
+			int [] ints =  ((REXPInteger)output).asIntegers();
+			if(ints.length > 1)
+			{
+				for(int intIndex = 0;intIndex < ints.length; intIndex++) {
+					if(intIndex == 0) {
+						builder.append(ints[intIndex]);
+					} else {
+						builder.append(" ").append(ints[intIndex]);
+					}
+				}
+			}
+			else
+			{					
+				builder.append(ints[0]);
+			}
+		}
+		
+		// Doubles.. 
+		else if(output instanceof REXPDouble)
+		{
+			double [] doubles =  ((REXPDouble)output).asDoubles();
+			if(doubles.length > 1)
+			{
+				for(int intIndex = 0;intIndex < doubles.length; intIndex++) {
+					if(intIndex == 0) {
+						builder.append(doubles[intIndex]);
+					} else {
+						builder.append(" ").append(doubles[intIndex]);
+					}
+				}
+			}
+			else
+			{					
+				builder.append(doubles[0]);
+			}
+		}
+		
+		// Strings..
+		else if(output instanceof REXPString)
+		{
+			String [] strings =  ((REXPString)output).asStrings();
+			if(strings.length > 1)
+			{				
+				for(int intIndex = 0;intIndex < strings.length; intIndex++) {
+					if(intIndex == 0) {
+						builder.append(strings[intIndex]);
+					} else {
+						builder.append(" ").append(strings[intIndex]);
+					}
+				}
+			}
+			else
+			{					
+				builder.append(strings[0]);
+			}
+		}
+		
+		builder.append("\n");
 	}
 }
