@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -17,6 +18,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaJriTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.DIHelper;
 
 public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 
@@ -44,13 +46,13 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		colNames = headerChecker.getCleanHeaders(colNames);
 		// update frame header names in R
 		String rColNames = "";
-		for(int i = 0; i < colNames.length; i++) {
-			rColNames += "\""+colNames[i] + "\"";
-			if(i < colNames.length -1) {
-				rColNames +=", ";
+		for (int i = 0; i < colNames.length; i++) {
+			rColNames += "\"" + colNames[i] + "\"";
+			if (i < colNames.length - 1) {
+				rColNames += ", ";
 			}
 		}
-		String script = "colnames("+frameName+") <- c("+rColNames+")";
+		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
 		this.rJavaTranslator.executeR(script);
 		RDataTable newTable = null;
 		if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
@@ -61,9 +63,60 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		this.insight.setDataMaker(newTable);
 	}
+	
+	/**
+	 * Renames columns based on a string[] of old names and a string[] of new
+	 * names Used by synchronize methods
+	 * 
+	 * @param frameName
+	 * @param oldNames
+	 * @param newNames
+	 *            boolean print
+	 */
+	protected void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
+		int size = oldNames.length;
+		if (size != newNames.length) {
+			throw new IllegalArgumentException("Names arrays do not match in length");
+		}
+		StringBuilder oldC = new StringBuilder("c(");
+		int i = 0;
+		oldC.append("'").append(oldNames[i]).append("'");
+		i++;
+		for (; i < size; i++) {
+			oldC.append(", '").append(oldNames[i]).append("'");
+		}
+		oldC.append(")");
+
+		StringBuilder newC = new StringBuilder("c(");
+		i = 0;
+		newC.append("'").append(newNames[i]).append("'");
+		i++;
+		for (; i < size; i++) {
+			newC.append(", '").append(newNames[i]).append("'");
+		}
+		newC.append(")");
+
+		String script = "setnames(" + frameName + ", old = " + oldC + ", new = " + newC + ")";
+		this.rJavaTranslator.executeR(script);
+
+		if (print) {
+			System.out.println("Running script : " + script);
+			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
+		}
+
+		// FE passes the column name
+		// but meta will still be table __ column
+		for (i = 0; i < size; i++) {
+			this.getFrame().getMetaData().modifyPropertyName(frameName + "__" + oldNames[i], frameName,
+					frameName + "__" + newNames[i]);
+		}
+		this.getFrame().syncHeaders();
+	}
+
 
 	/**
-	 * This method is used to fix the frame headers to be valid 
+	 * This method is used to fix the frame headers to be valid
+	 * 
 	 * @param frameName
 	 * @param newColName
 	 */
@@ -176,13 +229,15 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	protected void storeVariable(String varName, NounMetadata noun) {
 		this.insight.getVarStore().put(varName, noun);
 	}
+
 	protected Object retrieveVariable(String varName) {
 		NounMetadata noun = this.insight.getVarStore().get(varName);
-		if(noun == null) {
+		if (noun == null) {
 			return null;
 		}
 		return noun.getValue();
 	}
+
 	protected void removeVariable(String varName) {
 		this.insight.getVarStore().remove(varName);
 	}
@@ -202,4 +257,19 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 //		java.lang.System.setSecurityManager(reactorManager);
 
 	}
+	
+	/**
+     * Get the base folder
+     * @return
+     */
+     protected String getBaseFolder() {
+          String baseFolder = null;
+          try {
+              baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+          } catch (Exception ignored) {
+              //logger.info("No BaseFolder detected... most likely running as test...");
+          }
+          return baseFolder;
+     }
+
 }
