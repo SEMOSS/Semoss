@@ -174,7 +174,7 @@ class ModForms {
 			Object obj = row[1];
 
 			if(dataType.equals("STRING")) {
-				obj = Utility.cleanVariableString(obj.toString());
+				obj = Utility.cleanString(obj.toString(), false);
 			} else if(dataType.equals("DATE")) {
 				obj = Utility.getDateAsDateObj(obj.toString());
 			} else if(dataType.equals("NUMBER")) {
