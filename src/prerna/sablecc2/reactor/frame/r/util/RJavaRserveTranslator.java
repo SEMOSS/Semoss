@@ -121,7 +121,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		return null;
 	}
 
-	@Override 
+	@Override
 	public int getInt(String script) {
 		int number = 0;
 		try {
@@ -161,7 +161,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		return number;
 	}
 
-	@Override 
+	@Override
 	public double[] getDoubleArray(String script) {
 		try {
 			return retCon.eval(script).asDoubles();
@@ -173,7 +173,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		return null;
 	}
 
-	@Override 
+	@Override
 	public Object getFactor(String script) {
 		try {
 			return retCon.eval(script).asFactor();
@@ -189,7 +189,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public double[] getHistogramBreaks(String script) {
 		try {
 			REXP x = retCon.eval(script);
-			Map<String, Object> histJ = (Map<String, Object>)(retCon.eval(script).asNativeJavaObject());
+			Map<String, Object> histJ = (Map<String, Object>) (retCon.eval(script).asNativeJavaObject());
 			double[] breaks = (double[]) histJ.get("breaks");
 			return breaks;
 		} catch (RserveException e) {
@@ -203,7 +203,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public int[] getHistogramCounts(String script) {
 		try {
-			Map<String, Object> histJ = (Map<String, Object>)(retCon.eval(script).asNativeJavaObject());
+			Map<String, Object> histJ = (Map<String, Object>) (retCon.eval(script).asNativeJavaObject());
 			int[] counts = (int[]) histJ.get("counts");
 			return counts;
 		} catch (RserveException e) {
@@ -227,18 +227,18 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void setConnection(RConnection connection) {
-		if(connection != null) {
+		if (connection != null) {
 			this.retCon = connection;
 		}
 	}
 
 	@Override
 	public void setPort(String port) {
-		if(this.port != null) {
+		if (this.port != null) {
 			this.port = port;
 		}
 	}
-	
+
 	@Override
 	public void endR() {
 		// only have 1 connection
@@ -252,5 +252,33 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 //		} catch (Exception e) {
 //			e.printStackTrace();
 //		}
+	}
+
+	@Override
+	public void runR(String script) {
+		runR(script, true);
+	}
+
+	public void runR(String script, boolean result) {
+		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
+		Object output;
+		try {
+			output = this.parseAndEvalScript(newScript);
+			if (result && output != null) {
+				try {
+					System.out.println(((REXP) output).asString());
+				} catch (REXPMismatchException e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException e) {
+			output = this.executeR(script);
+			if (result) {
+				System.out.println("RCon data.. " + output);
+				StringBuilder builder = new StringBuilder();
+				getResultAsString(output, builder);
+				System.out.println("Output : " + builder.toString());
+			}
+		}
 	}
 }

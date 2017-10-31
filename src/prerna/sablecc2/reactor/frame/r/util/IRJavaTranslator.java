@@ -26,6 +26,12 @@ public interface IRJavaTranslator {
 	Object executeR(String rScript);
 	
 	/**
+	 * Run a combination of r scripts
+	 * @param rScript
+	 */
+	void runR(String rScript);
+	
+	/**
 	 * Get a string from an r script
 	 * @param script
 	 * @return
