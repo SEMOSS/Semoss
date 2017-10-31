@@ -25,10 +25,11 @@ import prerna.util.Utility;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
-	private static final Logger LOGGER = Logger.getLogger(SaveInsightReactor.class.getName());
-
+	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
+	
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String engineName = getEngine();
@@ -55,28 +56,30 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(coreEngine.getInsightDatabase());
 
-		LOGGER.info("1) Add insight to rdbms");
+		logger.info("1) Add insight " + insightName + " to rdbms store...");
 		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave);
-		LOGGER.info("1) Done");
+		logger.info("1) Done...");
 
 		// fill in image url
 		// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
 		imageURL = imageURL.replace("<engine>", engineName);
 		imageURL = imageURL.replace("<id>", newRdbmsId);
 
-		LOGGER.info("2) Add insight to solr");
+		logger.info("2) Add insight to solr...");
 		addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "", imageURL);
-		LOGGER.info("2) Done");
+		logger.info("2) Done...");
 		
 		//write recipe to file
-		LOGGER.info("3) Save " + RECIPE_FILE);
+		logger.info("3) Add recipe to file...");
 		saveRecipeToFile(engineName, newRdbmsId, recipeToSave);
-		LOGGER.info("3) Done");
+		logger.info("3) Done...");
 		
 		// we can't save these layouts so ignore image
+		logger.info("4) Generate insight image...");
 		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
-			LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
+			logger.info("4) Invalid... insight contains a layout that we cannot save an image for!!!");
 		} else {
+			logger.info("4) Generate new thread to save image...");
 			updateSolrImage(newRdbmsId, newRdbmsId, imageURL, engineName);
 		}
 
