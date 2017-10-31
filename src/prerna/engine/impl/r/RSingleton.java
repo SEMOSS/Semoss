@@ -15,7 +15,8 @@ public class RSingleton {
 	
 	private static RConnection rcon = null;
 	static int port = 6311;
-	public static final String R_HOME="R_HOME";
+	public static final String R_HOME = "R_HOME";
+	public static final String R_PORTS = "R_PORTS";
 	static Hashtable <Integer, RConnection> portToCon = new Hashtable<Integer, RConnection>(); // RServe is not allowing me to inspect the port so I have to do this.. sorry
 	
 	private RSingleton() {
@@ -99,7 +100,7 @@ public class RSingleton {
 		
 		
 		if(rcon == null) {
-			int port = findOpenPort();
+			int port = getPortForRserve();
 			
 			return getConnection("127.0.0.1", port);
 		}
@@ -139,26 +140,64 @@ public class RSingleton {
 		return rcon;
 	}
 	
-	private static int findOpenPort() {
-		boolean found = false;
+	private static int getPortForRserve() {
 		int port = 6311;
 		int count = 0;
 		
-		// Try 5 ports to see if we can find one that's open to start Rserve on
-		for( ; !found && count < 5; port++, count++) {
-			System.out.println("Trying to see if port " + port + " is open for Rserve.");
-			try {
-				ServerSocket s = new ServerSocket(port);
-				found = true;
-				s.close();
-				System.out.println("Success! Port: " + port);
-				break;
-			} catch (Exception ex) {
-				// Port isn't open, notify and move on
-				System.out.println("Port " + port + " is unavailable.");
+		String portsForR = DIHelper.getInstance().getProperty(R_PORTS);
+		if(portsForR != null && !portsForR.isEmpty()) {
+			if(portsForR.contains("-")) { // If a range is specified: start-end
+				String[] portRange = portsForR.trim().replace(" ", "").split("-");
+				int startPort = Integer.parseInt(portRange[0]);
+				int endPort = Integer.parseInt(portRange[1]);
+				while(startPort <= endPort) {
+					if(isPortOpen(startPort)) {
+						port = startPort;
+						break;
+					} else {
+						startPort++;
+					}
+				}
+			} else if(portsForR.contains(",")) { // If multiple individual ports are specified: p1,p2,p3
+				String[] portsToTry = portsForR.trim().replace(" ", "").split(",");
+				for(int i = 0; i < portsToTry.length; i++) {
+					int currPort = Integer.parseInt(portsToTry[i]);
+					if(isPortOpen(currPort)) {
+						port = currPort;
+						break;
+					}
+				}
+			} else { // Just one port specified
+				int onePort = Integer.parseInt(portsForR);
+				if(isPortOpen(onePort)) {
+					port = onePort;
+				}
+			}
+		} else { // No port(s) specified so try 5 ports to see if we can find one that's open
+			for( ; count < 5; port++, count++) {
+				if(isPortOpen(port)) {
+					break;
+				}
 			}
 		}
 		
 		return port;
+	}
+	
+	private static boolean isPortOpen(int port) {
+		boolean isOpen = false;
+		
+		System.out.println("Trying to see if port " + port + " is open for Rserve.");
+		try {
+			ServerSocket s = new ServerSocket(port);
+			s.close();
+			System.out.println("Success! Port: " + port);
+			isOpen = true;
+		} catch (Exception ex) {
+			// Port isn't open, notify and move on
+			System.out.println("Port " + port + " is unavailable.");
+		}
+		
+		return isOpen;
 	}
 }
