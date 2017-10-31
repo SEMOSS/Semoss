@@ -16,7 +16,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		String varName = getVarName();
-		this.rJavaTranslator.executeR("as.data.table(" + varName + ")");
+		this.rJavaTranslator.executeR(varName + " <- as.data.table(" + varName + ")");
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(varName);
 		String[] colTypes = this.rJavaTranslator.getColumnTypes(varName);
