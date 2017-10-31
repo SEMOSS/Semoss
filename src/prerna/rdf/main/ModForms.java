@@ -1,13 +1,17 @@
 package prerna.rdf.main;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.List;
 
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.poi.main.helper.CSVFileHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 class ModForms {
 
@@ -20,32 +24,133 @@ class ModForms {
 		formsEngine.setEngineName("Forms_TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", formsEngine);
 
+//		String query = "SELECT DISTINCT ?system ?description WHERE {"
+//				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+//				+ "{?system <http://semoss.org/ontologies/Relation/Contains/Description> ?description}"
+//				+ "}";
+//
+//		final String LINE_SEPARATOR = "\n";
+//		String path = "C:\\workspace\\Semoss_Dev\\SystemDescriptions.tsv";
+//		// set up csv path
+//
+//		FileWriter writer = new FileWriter(path);
+//		BufferedWriter bufferedWriter = new BufferedWriter(writer);
+//
+//		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(formsEngine, query);
+//		int count = 0;
+//		while(manager.hasNext()) {
+//			Object[] row = manager.next().getValues();
+//			StringBuilder sb = new StringBuilder();
+//			sb.append(row[0]).append("\t").append(row[1].toString().replaceAll("\t", "_").replaceAll("\n", "_").replaceAll("\r", "_")).append(LINE_SEPARATOR);
+//			bufferedWriter.write(sb.toString());
+//			count++;
+//		}
+//		bufferedWriter.close();
+//		writer.close();
+//
+//		System.out.println("COUNT ::: " + count);
+//		System.out.println("DONE");
+		
+		// 1) remove description
 		String query = "SELECT DISTINCT ?system ?description WHERE {"
 				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
 				+ "{?system <http://semoss.org/ontologies/Relation/Contains/Description> ?description}"
 				+ "}";
+		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/Description");
 
-		final String LINE_SEPARATOR = "\n";
-		String path = "C:\\workspace\\Semoss_Dev\\SystemDescriptions.tsv";
-		// set up csv path
+		// 2) remove poc
+		query = "SELECT DISTINCT ?system ?poc WHERE {"
+				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+				+ "{?system <http://semoss.org/ontologies/Relation/Contains/POC> ?poc}"
+				+ "}";
+		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/POC");
+		
+		// 3) remove ato
+		query = "SELECT DISTINCT ?system ?ato WHERE {"
+				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+				+ "{?system <http://semoss.org/ontologies/Relation/Contains/ATO_DATE> ?ato}"
+				+ "}";
+		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/ATO_DATE");
+		
+		// 4) remove availability actual
+		query = "SELECT DISTINCT ?system ?avail WHERE {"
+				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+				+ "{?system <http://semoss.org/ontologies/Relation/Contains/AvailabilityActual> ?avail}"
+				+ "}";
+		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/AvailabilityActual");
+		
+		// 5) remove full system name
+		query = "SELECT DISTINCT ?system ?fullName WHERE {"
+				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
+				+ "{?system <http://semoss.org/ontologies/Relation/Contains/Full_System_Name> ?fullName}"
+				+ "}";
+		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/Full_System_Name");
+		
+		// add in the new data from the csv files
+		String[] fileLocations = new String[]{
+				"file1.csv",
+				"file2.csv"
+		};
 
-		FileWriter writer = new FileWriter(path);
-		BufferedWriter bufferedWriter = new BufferedWriter(writer);
+		String[] dataTypes = new String[]{
+				"STRING",
+				"DATE"
+		};
 
-		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(formsEngine, query);
-		int count = 0;
+		int size = fileLocations.length;
+		for(int i = 0; i < size; i++) {
+			processFile(formsEngine, fileLocations[i], dataTypes[i]);
+		}
+	}
+
+	
+	private static void removeExistingProperties(IEngine eng, String query, String pred) {
+		final String subprefix = "http://health.mil/ontologies/Concept/System/";
+		// get existing values
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(eng, query);
+		List<Object[]> triplesToRemove = new ArrayList<Object[]>();
 		while(manager.hasNext()) {
 			Object[] row = manager.next().getValues();
-			StringBuilder sb = new StringBuilder();
-			sb.append(row[0]).append("\t").append(row[1].toString().replaceAll("\t", "_").replaceAll("\n", "_").replaceAll("\r", "_")).append(LINE_SEPARATOR);
-			bufferedWriter.write(sb.toString());
-			count++;
+			String system = row[0].toString();
+			Object obj = row[1];
+			
+			String sub = subprefix + system;
+			triplesToRemove.add(new Object[]{sub, pred, obj, false});
 		}
-		bufferedWriter.close();
-		writer.close();
 		
-		System.out.println("COUNT ::: " + count);
-		System.out.println("DONE");
+		for(Object[] triple : triplesToRemove) {
+			eng.doAction(ACTION_TYPE.REMOVE_STATEMENT, triple);
+		}
 	}
+
+	
+	private static void processFile(IEngine eng, String fileLoc, String dataType) {
+		CSVFileHelper helper = new CSVFileHelper();
+		helper.setDelimiter(',');
+		helper.parse(fileLoc);
+
+		String[] headers = helper.getHeaders();
+		
+		final String subprefix = "http://health.mil/ontologies/Concept/System/";
+		final String pred = "http://semoss.org/ontologies/Relation/Contains/" + headers[1];
+		
+		Object[] row = null;
+		while((row = helper.getNextRow()) != null) {
+			String system = row[0].toString();
+			Object obj = row[1];
+
+			if(dataType.equals("STRING")) {
+				obj = Utility.cleanVariableString(obj.toString());
+			} else if(dataType.equals("DATE")) {
+				obj = Utility.getDate(obj.toString());
+			} else if(dataType.equals("NUMBER")) {
+				obj = Utility.getDouble(obj.toString());
+			}
+			
+			String sub = subprefix + system;
+			eng.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, pred, obj, false});
+		}
+	}
+
 
 }
