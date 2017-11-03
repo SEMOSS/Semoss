@@ -389,7 +389,14 @@ public class PlayPane extends JFrame {
 						String ctrlName = listenerTokens.nextToken();
 						logger.debug("Processing widget " + ctrlName);
 						String className = DIHelper.getInstance().getProperty(ctrlName);
-						IChakraListener listener = (IChakraListener) Class.forName(className).getConstructor(null).newInstance(null);
+						IChakraListener listener = null;
+						try {
+							listener = (IChakraListener) Class.forName(className).getConstructor(null).newInstance(null);
+						} catch(Exception e) {
+							logger.info("Could not find class " + className);
+							continue;
+						}
+						
 						// in the future this could be a list
 						// add it to this object
 						logger.debug("Listener " + ctrlName + "<>" + listener);
