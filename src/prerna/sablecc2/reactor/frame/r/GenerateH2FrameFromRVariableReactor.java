@@ -5,6 +5,7 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.H2Importer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -20,21 +21,34 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
+		// get rFrameName
 		String varName = getVarName();
-		this.rJavaTranslator.executeR(varName + " <- as.data.table(" + varName + ")");
-		// recreate a new frame and set the frame name
-		String[] colNames = this.rJavaTranslator.getColumns(varName);
-		String[] colTypes = this.rJavaTranslator.getColumnTypes(varName);
-
-		if (colNames == null || colTypes == null) {
-			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
-		}
-
-		// initialize new h2 frame
 		H2Frame newTable = new H2Frame(varName);
 
+		//sync R dataframe to H2Frame
+		syncFromR(this.rJavaTranslator,varName, newTable);
+		
+		this.insight.setDataMaker(newTable);
+		return new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+	}
+
+	/**
+	 * 
+	 * @param rFrameName
+	 * @param frame
+	 */
+	public void syncFromR(AbstractRJavaTranslator rJavaTranslator, String rFrameName, H2Frame frame) {
 		// generate the QS
 		// set the column names and types
+		rJavaTranslator.executeR(rFrameName + " <- as.data.table(" + rFrameName + ")");
+		// recreate a new frame and set the frame name
+		String[] colNames = rJavaTranslator.getColumns(rFrameName);
+		String[] colTypes = rJavaTranslator.getColumnTypes(rFrameName);
+
+		if (colNames == null || colTypes == null) {
+			throw new IllegalArgumentException("Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
+		}
+		
 		CsvQueryStruct qs = new CsvQueryStruct();
 		qs.setSelectorsAndTypes(colNames, colTypes);
 
@@ -43,17 +57,15 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
-		this.rJavaTranslator.executeR("fwrite(" + varName + ", file='" + tempFileLocation + "')");
+		rJavaTranslator.executeR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
 		qs.setCsvFilePath(tempFileLocation);
-		H2Importer importer = new H2Importer(newTable, qs);
+		H2Importer importer = new H2Importer(frame, qs);
 		// importer will create the necessary meta information
 		importer.insertData();
-		this.insight.setDataMaker(newTable);
-		return new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
-
+	
 	/**
 	 * Get the input being the r variable name
 	 * 
