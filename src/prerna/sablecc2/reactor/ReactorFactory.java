@@ -18,6 +18,7 @@ import prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.WekaAprioriReactor;
 import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
+import prerna.sablecc2.reactor.algorithms.XRayReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
@@ -350,6 +351,7 @@ public class ReactorFactory {
 		reactorHash.put("RunSimilarity", SimilarityAlgorithmReactor.class);
 		reactorHash.put("RunOutlier", OutlierAlgorithmReactor.class);
 		reactorHash.put("Ratio", RatioAlgorithmReactor.class);
+		reactorHash.put("RunXray", XRayReactor.class);
 		
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
