@@ -28,6 +28,7 @@
 package prerna.rdf.engine.wrappers;
 
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrQuery;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerHeadersDataRowIterator2;
@@ -36,10 +37,13 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.solr.RawSolrSelectWrapper;
+import prerna.engine.impl.solr.SolrEngine;
+import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.SolrInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -106,10 +110,13 @@ public class WrapperManager {
 			break;
 		}
 
-//		case SOLR : {
-//			genQueryString = false;
-//			returnWrapper = new RawSolrSelectWrapper();
-//		}
+		case SOLR : {
+			SolrInterpreter2 solrInterp = new SolrInterpreter2();
+			solrInterp.setQueryStruct(qs);
+			SolrEngine solrEngine = (SolrEngine) engine;
+			SolrIterator it = new SolrIterator(solrEngine.execSolrQuery(solrInterp.composeSolrQuery()), qs);
+			return new QueryStructExpressionIterator(it, qs);
+		}
 		default: {
 
 		}

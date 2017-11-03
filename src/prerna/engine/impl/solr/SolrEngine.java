@@ -39,6 +39,7 @@ import com.google.gson.JsonSyntaxException;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.SolrInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -140,7 +141,7 @@ public class SolrEngine extends AbstractEngine {
 	 * @param query
 	 * @return
 	 */
-	public SolrDocumentList execQuery(SolrQuery query) {
+	public SolrDocumentList execSolrQuery(SolrQuery query) {
 		SolrQuery solrQuery = query;
 		SolrDocumentList docList = null;
 		try {
@@ -149,6 +150,7 @@ public class SolrEngine extends AbstractEngine {
 		} catch (SolrServerException e) {
 			e.printStackTrace();
 		}
+		LOGGER.info("Executing solr query: " + solrCoreURL +"/select?"+ query.toString());
 		return docList;
 	}
 
@@ -224,7 +226,7 @@ public class SolrEngine extends AbstractEngine {
 	
 	@Override
 	public IQueryInterpreter2 getQueryInterpreter2() {
-		return null;
+		return new SolrInterpreter2();
 	}
 	
 	@Override
