@@ -37,13 +37,13 @@ public class RawSolrSelectWrapper extends AbstractWrapper implements IRawSelectW
 			qs.setLimit(0);
 			interp.setQueryStruct(qs);
 			SolrQuery query = interp.composeSolrQuery();
-			SolrDocumentList emptyList = ((SolrEngine) this.engine).execQuery(query);
+			SolrDocumentList emptyList = ((SolrEngine) this.engine).execSolrQuery(query);
 			long newLimit = emptyList.getNumFound();
 			qs.setLimit(newLimit);
 		}
 		interp.setQueryStruct(qs);
 		SolrQuery query = interp.composeSolrQuery();
-		this.list = ((SolrEngine) this.engine).execQuery(query);
+		this.list = ((SolrEngine) this.engine).execSolrQuery(query);
 		this.returnSize = this.list.size();
 		
 		// if this is meant to be a count query
