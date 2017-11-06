@@ -17,6 +17,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
