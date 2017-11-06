@@ -18,6 +18,7 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		init();
 
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
