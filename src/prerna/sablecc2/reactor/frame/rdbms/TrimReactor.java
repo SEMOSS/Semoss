@@ -31,11 +31,10 @@ public class TrimReactor extends AbstractFrameReactor {
 				}
 				
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-				if (!dataType.equals("STRING")) {
-					throw new IllegalArgumentException("Data type not supported.");
+				if (dataType.equals("STRING")) {
+					// execute update table set column = UPPER(column);
+					update += "UPDATE " + table + " SET " + column + " = TRIM(" + column + ");";
 				}
-				// execute update table set column = UPPER(column);
-				update += "UPDATE " + table + " SET " + column + " = TRIM(" + column + ");";
 			}
 		}
 		if (update.length() > 0) {

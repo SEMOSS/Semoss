@@ -32,12 +32,10 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 				}
 				
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-				if (!dataType.equals("STRING")) {
-					throw new IllegalArgumentException("Data type not supported.");
+				if (dataType.equals("STRING")) {
+					// execute update table set column = UPPER(column);
+					update += "UPDATE " + table + " SET " + column + " = UPPER(" + column + ") ; ";			
 				}
-
-				// execute update table set column = UPPER(column);
-				update += "UPDATE " + table + " SET " + column + " = UPPER(" + column + ") ; ";
 			}
 			if (update.length() > 0) {
 				try {
