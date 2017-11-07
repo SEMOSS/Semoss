@@ -174,6 +174,9 @@ public class WekaClassificationReactor extends AbstractReactor {
 		statList.add(statHash);
 		vizData.put("stats", statList);
 
+		// track GA data
+		insight.trackPixels("analytics", "Classification");
+		
 		// now return this object
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}

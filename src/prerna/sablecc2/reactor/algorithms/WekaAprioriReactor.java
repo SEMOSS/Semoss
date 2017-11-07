@@ -139,7 +139,10 @@ public class WekaAprioriReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		logger.info("Finished Running Algorithm...");
-
+		
+		// track GA data
+		insight.trackPixels("analytics", "AssociatedLearning");
+		
 		// get and store rules
 		AssociationRules rules = apriori.getAssociationRules();
 		List<AssociationRule> ruleList = rules.getRules();
