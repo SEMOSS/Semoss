@@ -165,6 +165,9 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
 		
+		// track GA data
+		insight.trackPixels("analytics", "LOF");
+		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 

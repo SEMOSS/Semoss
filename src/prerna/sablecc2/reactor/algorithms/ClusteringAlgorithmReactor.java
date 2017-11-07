@@ -153,6 +153,9 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 			// merge data back onto the frame
 			AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", this.results);
 		}
+
+		// track GA data
+		insight.trackPixels("analytics", "Clustering");
 		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

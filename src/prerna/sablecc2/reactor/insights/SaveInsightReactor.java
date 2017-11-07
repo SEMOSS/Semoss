@@ -88,6 +88,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		returnMap.put("core_engine_id", newRdbmsId);
 		returnMap.put("core_engine", engineName);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
+		
+		String curExpression = engineName + ":" + newRdbmsId + "__" + insightName;
+		insight.trackPixels("saveinsight", curExpression);
 		return noun;
 	}
 
