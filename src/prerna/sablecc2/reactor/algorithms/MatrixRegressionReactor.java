@@ -124,6 +124,10 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		specificData.put("correlations", corrMatrix[0]);
 		vizData.put("specificData", specificData);
 		// now return this object
+
+		// track GA data
+		insight.trackPixels("analytics", "MatrixRegression");
+		
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}
 	

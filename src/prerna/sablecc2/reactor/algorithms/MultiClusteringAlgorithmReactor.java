@@ -91,6 +91,9 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, instanceColumn, newColName, "NUMBER", results);
 
+		// track GA data
+		insight.trackPixels("analytics", "ClusterOptimization");
+		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
