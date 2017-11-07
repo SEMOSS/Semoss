@@ -322,6 +322,8 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 //		System.out.println(counter);
 //		return null;
 
+		insight.trackPixels("analytics", "Ratio");
+		
 		this.insight.setDataMaker(newFrame);
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

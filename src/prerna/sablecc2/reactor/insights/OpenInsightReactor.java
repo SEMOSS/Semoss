@@ -70,6 +70,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// keys below match those in solr
 		insightMap.put("core_engine", newInsight.getEngineName());
 		insightMap.put("core_engine_id", newInsight.getRdbmsId());
+		
+		// Send data to GA
+		String curExpression = engineName + ":" + rdbmsId + "__" + newInsight.getInsightName();
+		insight.trackPixels("openinsight", curExpression);
+		
 		insightMap.put("insightData", newInsight.reRunPixelInsight());
 		insightMap.put("params", params);
 

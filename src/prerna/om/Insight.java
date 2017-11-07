@@ -51,6 +51,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.GoogleAnalytics;
 
 public class Insight {
 
@@ -104,6 +105,11 @@ public class Insight {
 	// need a way to shift between old and new insights...
 	// dont know how else to shift to this
 	protected boolean isOldInsight = false;
+	
+	
+	// GA Values
+	private String prevType = null;
+	private String thisPrevExpression = null;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -387,19 +393,18 @@ public class Insight {
 		List<String> pixelStrings = runner.getPixelExpressions();
 		List<Boolean> isMeta = runner.isMeta();
 		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
-		
 		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
-		for(int i = 0; i < pixelStrings.size(); i++) {
+		String expression = null;
+		for (int i = 0; i < pixelStrings.size(); i++) {
 			NounMetadata noun = resultList.get(i);
-			// process the noun output
 			Map<String, Object> ret = processNounMetadata(noun);
 			// get the expression which created this return
-			String expression = pixelStrings.get(i);
+			expression = pixelStrings.get(i);
 			expression = recreateOriginalPixelExpression(expression, encodedTextToOriginal);
 			ret.put("pixelExpression", expression);
 			// save the expression for future use
 			// only if it is not meta
-			if(!isMeta.get(i)) {
+			if (!isMeta.get(i)) {
 				ret.put("isMeta", false);
 				this.pixelList.add(expression);
 			} else {
@@ -411,6 +416,25 @@ public class Insight {
 		retData.put("pixelReturn", retValues);
 		retData.put("insightID", this.insightId);
 		return retData;
+	}
+
+	/**
+	 * 
+	 * @param curType
+	 * @param curExpression
+	 */
+	public void trackPixels(String curType, String curExpression) {
+		String thisType = curType;
+		String prevType = this.prevType;
+		String thisExpression = curExpression;
+		String thisPrevExpression = this.thisPrevExpression;
+		String userID = this.getUserId() + ""; 		
+		GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
+		//set this expression as insight level previous expression
+		this.thisPrevExpression = thisExpression;
+		this.prevType = curType;
+		// fire and release...
+		ga.start();
 	}
 
 	private Map<String, Object> processNounMetadata(NounMetadata noun) {
