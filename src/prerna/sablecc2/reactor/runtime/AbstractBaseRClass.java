@@ -1990,69 +1990,102 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	protected void runSemanticBlending(String column, String numDisplay, String randomVals) {
 		// move frame to r so we can run alg on it
+		// account for any differences in the format of column names
+		// different between frames
 		String colName = column;
 		if (column.contains("__")) {
 			colName = column.split("__")[1];
 		} else {
-			column = dataframe.getTableName() + "__" + column;
-		} 
-
-		QueryStruct2 qs = new QueryStruct2();
-		qs.setLimit( ((Number)Double.parseDouble(randomVals)).longValue() ); 
-		QueryColumnSelector selector = new QueryColumnSelector(column);  
-		qs.addSelector(selector);
-
-		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) this.dataframe.query(qs); 
-		//construct r frame
-		String dfName = "frameSubset" + Utility.getRandomString(10);
-		StringBuilder rsb = new StringBuilder();
-		StringBuilder rsb2 = new StringBuilder(); 
-		List<Object[]> instanceList = new ArrayList<Object[]>();
-		while(it.hasNext()) {
-			Object[] values = it.next().getRawValues();
-			instanceList.add(values);
-		}   
-
-		String colNameString = colName + "= character()"; 
-		for (int j = 0; j < instanceList.size(); j++) {
-			rsb.append(dfName + "[" + (j+1) + ", 1]"); 
-			rsb.append("<-");
-			if (instanceList.get(j) == null) {
-				rsb.append("\"" + "" + "\""); 
-			} else {
-				rsb.append("\"" + instanceList.get(j)[0].toString().replaceAll("_", " ") + "\"");
+			if (!(dataframe instanceof TinkerFrame) && !(dataframe instanceof NativeFrame)) {
+				column = dataframe.getTableName() + "__" + column;
 			}
-			rsb.append(";"); 
 		}
 
-		rsb2.append(dfName + "<-data.frame("+ colNameString + ", stringsAsFactors = FALSE);");
+		// build a query struct to set limit on number of values being passed
+		// into the routine
+		QueryStruct2 qs = new QueryStruct2();
+		qs.setLimit(((Number) Double.parseDouble(randomVals)).longValue());
+		QueryColumnSelector selector = new QueryColumnSelector(column);
+		qs.addSelector(selector);
+		// query the frame so that we can use iterator to get the values
+		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) this.dataframe.query(qs);
+		// construct r frame
+		String dfName = "frameSubset" + Utility.getRandomString(10);
+		// these stringbuilders will build a new r frame then populate the
+		// values into the frame
+		StringBuilder rsb = new StringBuilder();
+		StringBuilder rsb2 = new StringBuilder();
+		List<Object[]> instanceList = new ArrayList<Object[]>();
+		while (it.hasNext()) {
+			Object[] values = it.next().getRawValues();
+			instanceList.add(values);
+		}
+
+		// this string defines the names of the columns in the table that we are
+		// building
+		String colNameString = colName + "= character()";
+		for (int j = 0; j < instanceList.size(); j++) {
+			rsb.append(dfName + "[" + (j + 1) + ", 1]");
+			rsb.append("<-");
+			if (instanceList.get(j) == null) {
+				rsb.append("\"" + "" + "\"");
+			} else {
+				// replace any underscores in the instance data with spaces
+				rsb.append("\"" + instanceList.get(j)[0].toString().replaceAll("_", " ") + "\"");
+			}
+			rsb.append(";");
+		}
+		// format: frame<-data.frame(Title= character(), stringsAsFactors =
+		// FALSE);
+		rsb2.append(dfName + "<-data.frame(" + colNameString + ", stringsAsFactors = FALSE);");
+		// only passing in one column at a time to this method, so we should
+		// always take the first column
 		int colSelect = 1;
 
+		// create a data frame to hold the results
 		String df2 = "PredictionTable" + Utility.getRandomString(10);
-		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"+ "AnalyticsRoutineScripts";
-		String rScriptPath = (baseRScriptPath + "\\" + "master_concept.r").replace("\\", "/");
+		String baseRScriptPath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts";
+		String rScriptPath = (baseRScriptPath + "\\master_concept.r").replace("\\", "/");
 
 		// run r commands to get output
-		runR("source(\"" + rScriptPath + "\");");
-		runR(rsb2.toString() + rsb.toString());
-		runR(df2 + " <- concept_mgr(" + dfName + "," + colSelect + "," + numDisplay + "," + randomVals + ")");
-		runR(df2 + " <- as.data.table(" + df2 + ")");
+		// source the r script
+		String sourceScript = ("source(\"" + rScriptPath + "\");");
+		// build and populate an r frame with the data
+		String frameScript = (rsb2.toString() + rsb.toString());
+		// run the function
+		String functionScript = (df2 + " <- concept_mgr(" + dfName + "," + colSelect + "," + numDisplay + "," + randomVals + ");");
+		// results should be in a data frame
+		String dataTableScript = (df2 + " <- as.data.table(" + df2 + ");");
+		// run all of the above r scripts
+		runR(sourceScript + frameScript + functionScript + dataTableScript);
 
-		String[] colNames = {"Predicted_Concept", "Prob", "URL"};
+		// these are the column names for the results
+		String[] colNames = { "Predicted_Concept", "Prob", "URL" };
 		this.nounMetaOutput.add(new NounMetadata(flushObjectAsTable(df2, colNames), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.WIKI_LOGICAL_NAMES));
 	}
 
 	public void predictColumnHeader(String[] column, String numDisplay, String randomVals) {
+
+		// build a query struct so that we can query and limit the number of
+		// values being passed into the method
 		QueryStruct2 qs = new QueryStruct2();
-		qs.setLimit( ((Number)Double.parseDouble(randomVals)).longValue() ); 
+		qs.setLimit(((Number) Double.parseDouble(randomVals)).longValue());
 		for (int i = 0; i < column.length; i++) {
-			QueryColumnSelector selector  = new QueryColumnSelector(column[i]);
-			qs.addSelector(selector);
+			// account for formatting differences in column names between
+			// different frame types
+			if (column[i].contains("__") || (dataframe instanceof TinkerFrame || dataframe instanceof NativeFrame)) {
+				qs.addSelector(new QueryColumnSelector(column[i]));
+			} else {
+				qs.addSelector(new QueryColumnSelector(dataframe.getTableName() + "__" + column[i]));
+
+			}
 		}
 
+		// use an iterator to query the frame and allow us to retrieve the instance values
 		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) this.dataframe.query(qs);
-		//construct r dataframe
+		// construct r dataframe
 		String dfName = "frameSubset" + Utility.getRandomString(10);
+		// use these string builders to construct a new r frame and then populate it with the instance values
 		StringBuilder rsb = new StringBuilder();
 		StringBuilder rsb2 = new StringBuilder();
 
@@ -2062,9 +2095,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			instanceList.add(values);
 		}
 
-		String colNameString = ""; 
+		// this string will keep track of the columns we are creating in the new frame
+		// this depends on which and how many columns we have passed into the method
+		String colNameString = "";
 		for (int i = 0; i < column.length; i++) {
-			colNameString += column[i].split("__")[1];
+			colNameString += column[i];
 			colNameString += "= character()" + ",";
 			for (int j = 0; j < instanceList.size(); j++) {
 				rsb.append(dfName + "[" + (j + 1) + "," + (i + 1) + "]");
@@ -2072,18 +2107,21 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				if (instanceList.get(j) == null) {
 					rsb.append("\"" + "" + "\"");
 				} else {
-
 					rsb.append("\"" + instanceList.get(j)[i].toString().replaceAll("_", " ") + "\"");
 				}
 				rsb.append(";");
 			}
 		}
+		// colNameString format: Title= character(),Genre= character()
+		colNameString = colNameString.substring(0, colNameString.length() - 1);
+		// format: frame<-data.frame(Title= character(), stringsAsFactors =
+		// FALSE);
+		rsb2.append(dfName + "<-data.frame(" + colNameString + ", stringsAsFactors = FALSE);");
 
-		colNameString = colNameString.substring(0, colNameString.length() - 1); 
-		rsb2.append(dfName + "<-data.frame("+ colNameString + ", stringsAsFactors = FALSE);");
-
+		// this string will keep track of the column numbers that we will be
+		// passing into the method
+		// the r method takes in column numbers, rather than names
 		String colSelectString = ",c(";
-
 		for (int i = 0; i < column.length; i++) {
 			colSelectString += (i + 1) + ",";
 		}
@@ -2092,18 +2130,19 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		colSelectString = colSelectString.substring(0, remove);
 		colSelectString += ")";
 
+		// create a new dataframe to store the results
 		String df2 = "PredictionTable";
-		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"+ "AnalyticsRoutineScripts";
+		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "AnalyticsRoutineScripts";
 		String rScriptPath = (baseRScriptPath + "\\" + "master_concept.r").replace("\\", "/");
 
 		// run r commands to get output
-		runR("source(\"" + rScriptPath + "\");");
-		//runR(colSelectString.substring(1, colSelectString.length()));
-		System.out.println(df2 + "<- concept_mgr(" + dfName + colSelectString + "," + numDisplay + "," + randomVals + ")");
-		runR(rsb2.toString() + rsb.toString());
-		//runR(rsb2.toString());
-		runR(df2 + "<- concept_mgr(" + dfName + colSelectString + "," + numDisplay + "," + randomVals + ")");
-		runR(df2 + " <- as.data.table(" + df2 + ")");
+		String sourceScript = ("source(\"" + rScriptPath + "\");");
+		String frameScript = (rsb2.toString() + rsb.toString());
+		// function script: PredictionTable<- concept_mgr(frame,c(1,2),1,20);
+		String functionScript = (df2 + "<- concept_mgr(" + dfName + colSelectString + "," + numDisplay + ","
+				+ randomVals + ");");
+		String dataTableScript = (df2 + " <- as.data.table(" + df2 + ")");
+		runR(sourceScript + frameScript + functionScript + dataTableScript);
 
 		// need to make a new r table to store this info so we can later query it
 		RDataTable table = null;
