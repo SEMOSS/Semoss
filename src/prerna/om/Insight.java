@@ -428,8 +428,9 @@ public class Insight {
 		String prevType = this.prevType;
 		String thisExpression = curExpression;
 		String thisPrevExpression = this.thisPrevExpression;
-		String userID = this.getUserId() + ""; 		
-		GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
+		NounMetadata session = this.getVarStore().get("$SESSION_ID");
+        String userID = (String) session.getValue();		
+        GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
 		//set this expression as insight level previous expression
 		this.thisPrevExpression = thisExpression;
 		this.prevType = curType;
