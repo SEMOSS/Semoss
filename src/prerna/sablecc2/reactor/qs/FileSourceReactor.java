@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.qs;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import prerna.query.querystruct.CsvQueryStruct;
@@ -16,6 +18,7 @@ public class FileSourceReactor extends QueryStructReactor {
 	private static final String DATA_TYPES = "dataTypeMap";
 	private static final String DELIMITER = "delim";
 	private static final String HEADER_NAMES = "newHeaders";
+	private static final String FILENAME = "fileName";
 
 	/**
 	 * FileRead args 
@@ -66,6 +69,18 @@ public class FileSourceReactor extends QueryStructReactor {
 			((CsvQueryStruct) qs).setNewHeaderNames(headers);
 		}
 		qs.merge(this.qs);
+		
+		// Formatting and Tracking for Google Analytics
+		String FileName = getFileName();
+		List<String> heads = new ArrayList<String>(dataTypes.keySet());
+		String curExpression = "";
+		for (int i = 0; i < heads.size(); i++) {
+			curExpression = curExpression + FileName + ":" + heads.get(i);
+			if (i != (heads.size() - 1)) {
+				curExpression += ";";
+			}
+		}
+		insight.trackPixels("draganddrop", curExpression);
 		return qs;
 	}
 
@@ -141,5 +156,15 @@ public class FileSourceReactor extends QueryStructReactor {
 			throw new IllegalArgumentException("Need to specify " + FILE + "=[filePath] in pixel command");
 		}
 		return fileLocation;
+	}
+	private String getFileName() {
+		GenRowStruct fileGRS = this.store.getNoun(FILENAME);
+		String fileName = "NoFileName";
+		NounMetadata fileNoun;
+		if (fileGRS != null) {
+			fileNoun = fileGRS.getNoun(0);
+			fileName = (String) fileNoun.getValue();
+		}
+		return fileName;
 	}
 }

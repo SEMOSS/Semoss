@@ -87,6 +87,9 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		correlationMap.put("correlations", correlationData);
 		vizData.put("specificData", correlationMap);
 		
+		// track GA data
+		insight.trackPixels("analytics", "NumericalCorrelation");
+		
 		// now return this object
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}

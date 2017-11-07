@@ -45,6 +45,29 @@ public class MergeDataReactor extends AbstractReactor {
 		// if we have an inner join, add the current values as a filter on the query
 		// important for performance on large dbs when the user has already 
 		// filtered to small subset
+
+		// Format and send Google Analytics data
+		String engine = qs.getEngineName() + "";
+		String curExpression = "";
+		List<IQuerySelector> selectors = qs.getSelectors();
+		for (int i = 0; i < selectors.size(); i++) {
+			IQuerySelector selector = selectors.get(i);
+			String columnSelected = "";
+			if (selector instanceof QueryColumnSelector) {
+				// we can get a table and column
+				columnSelected = ((QueryColumnSelector) selector).getTable() + "__" + ((QueryColumnSelector) selector).getAlias();
+			} else {
+				// only alias
+				columnSelected = selector.getAlias();
+			}
+			curExpression = curExpression + engine + ":" + columnSelected;
+			if (i != (selectors.size() - 1)) {
+				curExpression += ";";
+			}
+		}
+		insight.trackPixels("dataquery", curExpression);
+		
+		//continue...
 		for(Join j : joins) {
 			// s is the frame name
 			String s = j.getSelector();
