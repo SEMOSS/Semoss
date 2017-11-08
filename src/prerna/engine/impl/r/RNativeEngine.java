@@ -107,7 +107,7 @@ public class RNativeEngine extends AbstractEngine {
 			// I need to see if the connection pool has been initiated
 			// if not initiate the connection pool
 			if(prop == null) {
-				prop = loadProp(propFile);
+				prop = Utility.loadProperties(propFile);
 				if(!prop.containsKey("TEMP")) { // if this is not a temp then open the super
 					super.openDB(propFile); // this primarily loads the metahelper as well as the insights to get it going
 				}

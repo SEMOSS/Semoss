@@ -3085,6 +3085,35 @@ public class Utility {
 		return s;
 	}
 	
+	/**
+	 * Loads the properties from a specifed properties file.
+	 * 
+	 * @param fileName
+	 *            String of the name of the properties file to be loaded.
+	 * @return Properties The properties imported from the prop file.
+	 */
+	public static Properties loadProperties(String fileName) {
+		Properties retProp = new Properties();
+		FileInputStream fis = null;
+		if (fileName != null) {
+			try {
+				fis = new FileInputStream(fileName);
+				retProp.load(fis);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (fis != null) {
+					try {
+						fis.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
+		}
+		return retProp;
+	}
 	
 	
 //	/**

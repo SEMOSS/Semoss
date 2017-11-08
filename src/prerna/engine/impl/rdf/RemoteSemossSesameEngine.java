@@ -99,7 +99,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 					if(!propFile.contains(baseFolder))
 						propFile = baseFolder + "/db/" + propFile;
 					
-					prop = loadProp(propFile);
+					prop = Utility.loadProperties(propFile);
 					// need some way to indicate that this is a new database. this will happen later
 					api = prop.getProperty(Constants.URI);
 					database = prop.getProperty("DATABASE");
