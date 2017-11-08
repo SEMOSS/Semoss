@@ -173,7 +173,7 @@ public abstract class AbstractEngine implements IEngine {
 			if(propFile != null) {
 				this.propFile = propFile;
 				logger.info("Opening DB - " + engineName);
-				prop = loadProp(propFile);
+				prop = Utility.loadProperties(propFile);
 			}
 			if(prop != null) {
 				// load the rdbms insights db
@@ -253,7 +253,7 @@ public abstract class AbstractEngine implements IEngine {
 				// load properties object for db
 				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
 				if (genEngPropFile != null) {
-					generalEngineProp = loadProp(baseFolder + "/" + genEngPropFile);
+					generalEngineProp = Utility.loadProperties(baseFolder + "/" + genEngPropFile);
 				}
 			}
 			this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
@@ -423,36 +423,6 @@ public abstract class AbstractEngine implements IEngine {
 			retProp = ontoProp.getProperty(key);
 		if (retProp == null && prop != null && prop.containsKey(key))
 			retProp = prop.getProperty(key);
-		return retProp;
-	}
-
-	/**
-	 * Method loadProp. Loads the database properties from a specifed properties
-	 * file.
-	 * @param fileName			String of the name of the properties file to be loaded.
-	 * @return Properties		The properties imported from the prop file.
-	 */
-	public Properties loadProp(String fileName) {
-		Properties retProp = new Properties();
-		FileInputStream fis = null;
-		if(fileName != null) {
-			try {
-				fis = new FileInputStream(fileName);
-				retProp.load(fis);
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-				if(fis != null) {
-					try {
-						fis.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-			
-		}
-		logger.debug("Properties >>>>>>>>" + fileName);
 		return retProp;
 	}
 
@@ -636,7 +606,7 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public void setPropFile(String propFile) {
 		this.propFile = propFile;
-		this.prop = loadProp(propFile);
+		this.prop = Utility.loadProperties(propFile);
 	}
 
 	public String getOWLDefinition()
