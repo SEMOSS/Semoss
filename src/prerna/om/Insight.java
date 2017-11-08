@@ -429,13 +429,17 @@ public class Insight {
 		String thisExpression = curExpression;
 		String thisPrevExpression = this.thisPrevExpression;
 		NounMetadata session = this.getVarStore().get("$SESSION_ID");
-        String userID = (String) session.getValue();		
-        GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
-		//set this expression as insight level previous expression
-		this.thisPrevExpression = thisExpression;
-		this.prevType = curType;
-		// fire and release...
-		ga.start();
+		// session is null if opening a saved insight
+		// we don't need to track these pixels again
+		if (session != null) {
+			String userID = (String) session.getValue();
+			GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
+			// set this expression as insight level previous expression
+			this.thisPrevExpression = thisExpression;
+			this.prevType = curType;
+			// fire and release...
+			ga.start();
+		}
 	}
 
 	private Map<String, Object> processNounMetadata(NounMetadata noun) {
