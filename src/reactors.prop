@@ -1,0 +1,222 @@
+#used to generate the base Job for the pksl commands being executed
+Job prerna.sablecc2.reactor.job.JobReactor
+
+#Import reactors
+#takes in a query struct and imports data to a new frame
+Import prerna.sablecc2.reactor.imports.ImportDataReactor
+#takes in a query struct and merges data to an existing frame
+Merge prerna.sablecc2.reactor.imports.MergeDataReactor
+
+#Query Struct reactors
+#builds the selection portion of the qs
+VariableExists prerna.sablecc2.reactor.VariableExistsReactor
+With prerna.sablecc2.reactor.qs.WithReactor
+Select prerna.sablecc2.reactor.qs.SelectReactor
+Average prerna.sablecc2.reactor.qs.AverageReactor
+Mean prerna.sablecc2.reactor.qs.AverageReactor
+Sum prerna.sablecc2.reactor.qs.SumReactor
+Max prerna.sablecc2.reactor.qs.MaxReactor
+Min prerna.sablecc2.reactor.qs.MinReactor
+Median prerna.sablecc2.reactor.qs.MedianReactor
+StandardDeviation prerna.sablecc2.reactor.qs.StandardDeviationReactor
+Count prerna.sablecc2.reactor.qs.CountReactor
+UniqueCount prerna.sablecc2.reactor.qs.UniqueCountReactor
+GroupConcat prerna.sablecc2.reactor.qs.GroupConcatReactor
+UniqueGroupConcat prerna.sablecc2.reactor.qs.UniqueGroupConcatReactor
+Group prerna.sablecc2.reactor.qs.GroupByReactor
+Sort prerna.sablecc2.reactor.qs.OrderByReactor
+Order prerna.sablecc2.reactor.qs.OrderByReactor
+Limit prerna.sablecc2.reactor.qs.LimitReactor
+Offset prerna.sablecc2.reactor.qs.OffsetReactor
+Join prerna.sablecc2.reactor.qs.JoinReactor
+Filter prerna.sablecc2.reactor.qs.QueryFilterReactor
+Query prerna.sablecc2.reactor.qs.QueryReactor
+QueryAll prerna.sablecc2.reactor.qs.QueryAllReactor
+
+#if is in it's own category
+if prerna.sablecc2.reactor.IfReactor
+
+#data source reactors
+#specifies that our pksl operations after this point are dealing with the specified database
+Database prerna.sablecc2.reactor.qs.DatabaseReactor
+FileRead prerna.sablecc2.reactor.qs.FileSourceReactor
+JdbcSource prerna.sablecc2.reactor.qs.JdbcEngineConnectorReactor
+DirectJDBCConnection prerna.sablecc2.reactor.qs.DirectJdbcConnectionReactor
+
+#specifies that our pksl operations after this point are dealing with the specified frame
+Frame prerna.sablecc2.reactor.qs.FrameReactor
+CreateFrame prerna.sablecc2.reactor.frame.CreateFrameReactor
+FrameType prerna.sablecc2.reactor.frame.FrameTypeReactor
+GenerateFrameFromRVariable prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor
+
+#Task reactors
+Iterate prerna.sablecc2.reactor.export.IterateReactor
+Task prerna.sablecc2.reactor.task.TaskReactor
+ResetTask prerna.sablecc2.reactor.task.ResetTask
+RemoveTask prerna.sablecc2.reactor.task.RemoveTaskReactor
+Collect prerna.sablecc2.reactor.export.CollectReactor
+CollectGraph prerna.sablecc2.reactor.export.CollectGraphReactor
+GrabScalarElement prerna.sablecc2.reactor.export.GrabScalarElementReactor
+CollectMeta prerna.sablecc2.reactor.task.TaskMetaCollectorReactor
+Format prerna.sablecc2.reactor.task.TaskFormatReactor
+TaskOptions prerna.sablecc2.reactor.task.TaskOptionsReactor
+#Task operations
+Lambda prerna.sablecc2.reactor.task.modifiers.MapLambdaTaskReactor
+FilterLambda prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor
+ToNumericType prerna.sablecc2.reactor.task.modifiers.ToNumericTypeTaskReactor
+ToUrlType prerna.sablecc2.reactor.task.modifiers.ToUrlTypeTaskReactor
+TransposeRows prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor
+
+#Local Master reactors
+GetDatabaseList prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor
+GetDatabaseConcepts prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors
+GetTraversalOptions prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor
+GetConnectedConcepts prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor
+GetConceptProperties prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors
+GetEngineMetamodel prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor
+AddLogicalName prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor
+GetLogicalNames prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor
+RemoveLogicalNames prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor
+
+#Panel reactors
+InsightPanelIds prerna.sablecc2.reactor.panel.GetInsightPanelsReactor
+Panel prerna.sablecc2.reactor.panel.PanelReactor
+AddPanel prerna.sablecc2.reactor.panel.AddPanelReactor
+AddPanelIfAbsent prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor
+ClosePanel prerna.sablecc2.reactor.panel.ClosePanelReactor
+PanelExists prerna.sablecc2.reactor.panel.PanelExistsReactor
+Clone prerna.sablecc2.reactor.panel.PanelCloneReactor
+SetPanelLabel prerna.sablecc2.reactor.panel.SetPanelLabelReactor
+SetPanelView prerna.sablecc2.reactor.panel.SetPanelViewReactor
+#Panel filters
+AddPanelFilter prerna.sablecc2.reactor.panel.SetPanelViewReactor
+SetPanelFilter prerna.sablecc2.reactor.panel.filter.SetPanelFilterReactor
+UnfilterPanel prerna.sablecc2.reactor.panel.filter.UnfilterPanelReactor
+#Panel Sort 
+AddPanelSort prerna.sablecc2.reactor.panel.sort.AddPanelSortReactor
+SetPanelSort prerna.sablecc2.reactor.panel.sort.SetPanelSortReactor
+RemovePanelSort prerna.sablecc2.reactor.panel.sort.RemovePanelSortReactor
+UnsortPanel prerna.sablecc2.reactor.panel.sort.RemovePanelSortReactor
+#Panel comments
+AddPanelComment prerna.sablecc2.reactor.panel.comments.AddPanelCommentReactor
+UpdatePanelComment prerna.sablecc2.reactor.panel.comments.UpdatePanelCommentReactor
+RemovePanelComment prerna.sablecc2.reactor.panel.comments.RemovePanelCommentReactor
+RetrievePanelComment prerna.sablecc2.reactor.panel.comments.RetrievePanelCommentReactor
+#Panel ornaments 
+AddPanelOrnaments prerna.sablecc2.reactor.panel.ornaments.AddPanelOrnamentsReactor
+RemovePanelOrnaments prerna.sablecc2.reactor.panel.ornaments.RemovePanelOrnamentsReactor
+ResetPanelOrnaments prerna.sablecc2.reactor.panel.ornaments.ResetPanelOrnamentsReactor
+RetrievePanelOrnaments prerna.sablecc2.reactor.panel.ornaments.RetrievePanelOrnamentsReactor
+#Panel events 
+AddPanelEvents prerna.sablecc2.reactor.panel.events.AddPanelEventsReactor
+RemovePanelEvents prerna.sablecc2.reactor.panel.events.RemovePanelEventsReactor
+ResetPanelEvents prerna.sablecc2.reactor.panel.events.ResetPanelEventsReactor
+RetrievePanelEvents prerna.sablecc2.reactor.panel.events.RetrievePanelEventsReactor
+#Panel position 
+SetPanelPosition prerna.sablecc2.reactor.panel.SetPanelPositionReactor
+RetrievePanelPosition prerna.sablecc2.reactor.panel.RetrievePanelPositionReactor
+
+#New panel
+OpenTab prerna.sablecc2.reactor.panel.external.OpenTabReactor
+
+#Insight reactors
+#OpenSavedInsight (InsightRecipe to be deleted) returns to the insight recipe
+OpenSavedInsight prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor
+InsightRecipe prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor
+OpenInsight prerna.sablecc2.reactor.insights.OpenInsightReactor
+OpenEmptyInsight prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor
+DropInsight prerna.sablecc2.reactor.insights.DropInsightReactor
+ClearInsight prerna.sablecc2.reactor.insights.ClearInsightReactor
+InsightHandle prerna.sablecc2.reactor.insights.InsightHandleReactor
+RemoveVariable prerna.sablecc2.reactor.insights.RemoveVariableReactor
+SetInsightOrnament prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor
+RetrieveInsightOrnament prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor
+UpdateInsightImage prerna.sablecc2.reactor.insights.UpdateInsightImageReactor
+
+#Save reactors
+SaveInsight prerna.sablecc2.reactor.insights.SaveInsightReactor
+UpdateInsight prerna.sablecc2.reactor.insights.UpdateInsightReactor
+
+#Dashboard reactors
+DashboardInsightConfig prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor
+
+#General Frame reactors
+FrameHeaders prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor
+AddFrameFilter prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor
+SetFrameFilter prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor
+UnfilterFrame prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor
+InsightMetamodel prerna.sablecc2.reactor.frame.InsightMetamodelReactor
+FrameFilterModel prerna.sablecc2.reactor.frame.FrameFilterModelReactor
+HasDuplicates prerna.sablecc2.reactor.frame.FrameDuplicatesReactor
+CurrentFrame prerna.sablecc2.reactor.frame.CurrentFrameReactor
+
+#AlgorithmReactors
+RunClustering prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor
+RunMultiClustering prerna.sablecc2.reactor.algorithms.MultiClusteringAlgorithmReactor
+RunLOF prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor
+RunSimilarity prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor
+RunOutlier prerna.sablecc2.reactor.algorithms.OutlierAlgorithmReactor
+Ratio prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor
+RunXray prerna.sablecc2.reactor.algorithms.XRayReactor
+
+#These alorithms return viz data to the FE
+RunNumericalCorrelation prerna.sablecc2.reactor.algorithms.NumericalCorrelationReactor
+RunMatrixRegression prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor
+RunClassification prerna.sablecc2.reactor.algorithms.WekaClassificationReactor
+RunAssociatedLearning prerna.sablecc2.reactor.algorithms.WekaAprioriReactor
+
+#In mem storage of data
+StoreValue prerna.sablecc2.reactor.storage.StoreValue
+RetrieveValue prerna.sablecc2.reactor.storage.RetrieveValue
+GraphPlan prerna.sablecc2.reactor.planner.GraphPlanReactor
+
+#Tax specific handles
+LoadClient prerna.sablecc2.reactor.planner.graph.LoadGraphClient
+RunPlan prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor
+UpdatePlan prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2
+TaxRetrieveValue prerna.sablecc2.reactor.storage.TaxRetrieveValue2
+RunAliasMatch prerna.sablecc2.reactor.test.AliasMatchTestReactor
+SaveTaxScenario prerna.sablecc2.reactor.storage.TaxSaveScenarioReactor
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
