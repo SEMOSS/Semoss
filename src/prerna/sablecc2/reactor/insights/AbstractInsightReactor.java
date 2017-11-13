@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.insights;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Modifier;
 import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.security.KeyManagementException;
@@ -17,6 +18,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
@@ -44,7 +48,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String RECIPE = "recipe";
 	protected static final String LAYOUT = "layout";
 	protected static final String IMAGE_URL = "image";
-	protected static final String RECIPE_FILE = "recipe.txt";
+	protected static final String RECIPE_FILE = "recipe.json";
 
 	protected String getEngine() {
 		// look at all the ways the insight panel could be passed
@@ -143,7 +147,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				String imageURL = URLDecoder.decode(genericBaseURLGrs.get(0).toString(), "UTF-8");
 				return imageURL;
 			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -184,7 +187,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	/**
-	 * Save insight recipe to db/engineName/insightName/recipe.txt
+	 * Save insight recipe to db/engineName/insightName/recipe.json
+	 *  json includes 
+	 *  	engine: engineName
+	 *  	rdbmsID: rdbmsID
+	 *  	recipe: pixel;pixel;...
 	 * 
 	 * @param engineName
 	 * @param rdbmsID
@@ -193,26 +200,36 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected void saveRecipeToFile(String engineName, String rdbmsID, String[] recipeToSave) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		// format recipe file
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("engine", engineName);
+		output.put("rdbmsID", rdbmsID);
+		String recipe = "";
+		for (String pixel : recipeToSave) {
+			recipe += pixel;
+		}
+		output.put("recipe", recipe);
+
+		String json = gson.toJson(output);
 		File path = new File(recipePath);
 		// create insight directory
 		if (path.mkdir()) {
 			recipePath += "\\" + RECIPE_FILE;
-			// create txt file
+			// create file
 			File f = new File(recipePath);
 			StringBuilder sb = new StringBuilder();
-			for (String pixel : recipeToSave) {
-				sb.append(pixel);
-			}
+			sb.append(json);
 			try {
-				// write recipe to file
+				// write json to file
 				FileUtils.writeStringToFile(f, sb.toString());
 			} catch (IOException e1) {
-				LOGGER.error("Error in writing recipe file to path " + recipePath );
+				LOGGER.error("Error in writing recipe file to path " + recipePath);
 				e1.printStackTrace();
 
 			}
 		} else {
-			LOGGER.error("Error in writing recipe file to path " + recipePath );
+			LOGGER.error("Error in writing recipe file to path " + recipePath);
 		}
 	}
 	
