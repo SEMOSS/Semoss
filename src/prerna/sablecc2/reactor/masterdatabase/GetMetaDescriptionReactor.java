@@ -9,7 +9,7 @@ import prerna.util.Constants;
 public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 	
 	/**
-	 * This reactor gets a description in the metadata
+	 * This reactor gets the description from the concept metadata table
 	 * The inputs to the reactor are: 
 	 * 1) the engine
 	 * 2) the the concept
@@ -17,14 +17,9 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
-		//retrieve the inputs
 		String engineName = getEngine();
 		String concept = getConcept();
-		
-		//add the description
 		String description = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.DESCRIPTION);
-		
 		return new NounMetadata(description, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
