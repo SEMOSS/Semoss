@@ -10,16 +10,15 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.Constants;
 
-public class DeleteMetaTagReactor extends AbstractMetaDBReactor {
-	
+public class DeleteMetaLinkReactor extends  AbstractMetaDBReactor {
+
 	/**
-	 * This reactor deletes tags in the metadata
+	 * This reactor deletes links in the metadata
 	 * The inputs to the reactor are: 
 	 * 1) the engine
 	 * 2) the the concept
-	 * 3) tags to delete
+	 * 3) links to delete
 	 */
-	
 	@Override
 	public NounMetadata execute() {
 		// retrieve the inputs
@@ -27,20 +26,20 @@ public class DeleteMetaTagReactor extends AbstractMetaDBReactor {
 		String concept = getConcept();
 		List<String> valuesToDelete = getValues();
 
-		// get current tags from concept metadata table
-		String tagString = MasterDatabaseUtility.getMetadataValue(engine, concept, Constants.TAG);
-		ArrayList<String> tagList = new ArrayList<String>(Arrays.asList(tagString.split(VALUE_DELIMITER)));
+		// get links from concept metadata table
+		String linkString = MasterDatabaseUtility.getMetadataValue(engine, concept, Constants.LINK);
+		ArrayList<String> linkList = new ArrayList<String>(Arrays.asList(linkString.split(VALUE_DELIMITER)));
 
-		// remove input values
-		for (String tag : valuesToDelete) {
-			tagList.remove(tag);
+		// remove values
+		for (String link : valuesToDelete) {
+			linkList.remove(link);
 		}
-		// update tag string and update table
-		String updatedTags = "";
-		for (String tag : tagList) {
-			updatedTags += tag + VALUE_DELIMITER;
+		String updatedLinks = "";
+		for (String link : linkList) {
+			updatedLinks += link + VALUE_DELIMITER;
 		}
-		boolean deleteUpdate = MasterDatabaseUtility.updateMetaValue(engine, concept, Constants.TAG, updatedTags);
+		boolean deleteUpdate = MasterDatabaseUtility.updateMetaValue(engine, concept, Constants.LINK, updatedLinks);
 		return new NounMetadata(deleteUpdate, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
+
 }
