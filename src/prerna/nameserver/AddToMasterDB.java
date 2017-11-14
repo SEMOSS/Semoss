@@ -33,6 +33,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
@@ -87,7 +89,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 	// For testing, change to your own local directories
 	private static final String WS_DIRECTORY = "C:/Users/pkapaleeswaran/Workspacej3";
 	private static final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
-	
+		
 	Connection conn = null;
 	
 	private PersistentHash conceptIdHash = new PersistentHash();
@@ -1383,6 +1385,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		}
 		return retDate;
 	}
+	
 	/**
 	 * Creates a new table xrayconfigs
 	 * inserts filesName and config file string
@@ -1425,4 +1428,60 @@ public class AddToMasterDB extends ModifyMasterDB {
 
 	}
 	
+	/**
+	 * Adds row to metadata table
+	 * 
+	 * @param engineName
+	 * @param concept
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public boolean addMetadata(String engineName, String concept, String key, String value) {
+		boolean valid = false;
+		// make statements
+		// create table to local master
+		String tableName = Constants.CONCEPT_METADATA_TABLE;
+		String[] colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		String[] types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+
+		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		String createNew = makeCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types) + ";";
+		// make new insert
+		int size = 0;
+		try {
+			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+			getConnection(localMaster);
+			conn.createStatement().execute(createNew);
+			// duplicate check
+			String dupQuery = "select * from " + Constants.CONCEPT_METADATA_TABLE + " where "
+					+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' " + "and " + Constants.KEY + " = \'"
+					+ key + "\' " + "and " + Constants.VALUE + " = \'" + value + "\'";
+
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(dupQuery);
+			if (rs != null) {
+				rs.beforeFirst();
+				rs.last();
+				size = rs.getRow();
+			}
+			if (size == 0) {
+				String insertString = makeInsert(tableName, colNames, types,
+						new Object[] { localConceptID, key, value });
+				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
+				if (validInsert > 0) {
+					valid = true;
+				}
+			}
+			else {
+				// duplicate value
+				valid = true;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return valid;
+
+	}
+
 }
