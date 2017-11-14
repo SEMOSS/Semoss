@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.Vector;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
@@ -707,6 +708,7 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Adds logical name to concept from engine
+	 * 
 	 * @param engineName
 	 * @param concept
 	 * @param logicalName
@@ -718,13 +720,12 @@ public class MasterDatabaseUtility {
 		Statement stmt = null;
 		ResultSet rs = null;
 		int size = 0;
-		
 		try {
 			String duplicateQueryCheck = "select localconceptid, conceptualname, logicalname, "
 					+ "domainname, globalid from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
 					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\' and logicalname = \'"+logicalName+"\';";
+					+ "and conceptualname = \'" + concept + "\' and logicalname = \'" + logicalName + "\';";
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(duplicateQueryCheck);
 			if (rs != null) {
@@ -732,11 +733,11 @@ public class MasterDatabaseUtility {
 				rs.last();
 				size = rs.getRow();
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			try {
-				if(rs != null) {
+				if (rs != null) {
 					rs.close();
 				}
 			} catch (SQLException e) {
@@ -750,7 +751,7 @@ public class MasterDatabaseUtility {
 						+ "where localconceptid in (select localconceptid from engineconcept "
 						+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
 						+ "and conceptualname = \'" + concept + "\';";
-				if(stmt == null) {
+				if (stmt == null) {
 					stmt = masterConn.createStatement();
 				}
 				rs = stmt.executeQuery(sourceLogicalInfo);
@@ -774,25 +775,23 @@ public class MasterDatabaseUtility {
 								e.printStackTrace();
 							}
 						}
-
 					}
 				}
-			}
-			else {
+			} else {
 				return true;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			try {
-				if(rs != null) {
+				if (rs != null) {
 					rs.close();
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 			try {
-				if(stmt != null) {
+				if (stmt != null) {
 					stmt.close();
 				}
 			} catch (SQLException e) {
@@ -804,6 +803,7 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Removes logical name for a concept from an engine
+	 * 
 	 * @param engineName
 	 * @param concept
 	 * @param logicalName
@@ -813,21 +813,21 @@ public class MasterDatabaseUtility {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection masterConn = engine.makeConnection();
 		ResultSet rs = null;
-		
+
 		try {
 			String deleteQuery = "delete from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
 					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\' and logicalname = \'"+logicalName+"\';";
+					+ "and conceptualname = \'" + concept + "\' and logicalname = \'" + logicalName + "\';";
 			int updateCount = masterConn.createStatement().executeUpdate(deleteQuery);
-			if(updateCount == 1) {
+			if (updateCount == 1) {
 				return true;
 			}
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			try {
-				if(rs != null) {
+				if (rs != null) {
 					rs.close();
 				}
 			} catch (SQLException e) {
@@ -839,6 +839,7 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get logical names for a specific engine and concept
+	 * 
 	 * @param engineName
 	 * @param concept
 	 * @return logicalNames
@@ -875,10 +876,11 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Returns Xray config files
+	 * 
 	 * @return
 	 */
 	public static HashMap<String, Object> getXrayConfigList() {
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -896,17 +898,17 @@ public class MasterDatabaseUtility {
 			}
 			configMap.put("configList", configList);
 		} catch (SQLException ex) {
-			//Don't print stack trace... xrayConfigList table is missing if no config file exists
+			// Don't print stack trace... xrayConfigList table is missing if no config file exists
 		} finally {
 			try {
-				if(rs != null) {
+				if (rs != null) {
 					rs.close();
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 			try {
-				if(stmt != null) {
+				if (stmt != null) {
 					stmt.close();
 				}
 			} catch (SQLException e) {
@@ -919,11 +921,12 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Gets the xray config file
+	 * 
 	 * @param filename
 	 * @return
 	 */
 	public static String getXrayConfigFile(String filename) {
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -939,14 +942,14 @@ public class MasterDatabaseUtility {
 			ex.printStackTrace();
 		} finally {
 			try {
-				if(rs != null) {
+				if (rs != null) {
 					rs.close();
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 			try {
-				if(stmt != null) {
+				if (stmt != null) {
 					stmt.close();
 				}
 			} catch (SQLException e) {
@@ -955,6 +958,205 @@ public class MasterDatabaseUtility {
 		}
 		return configFile;
 	}
+	
+	/**
+	 * Get local concept id
+	 * 
+	 * @param engineName
+	 * @param concept
+	 * @return
+	 */
+	public static String getLocalConceptID(String engineName, String concept) {
+		String localConceptID = null;
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String query = "select localconceptid from concept "
+					+ "where localconceptid in (select localconceptid from engineconcept "
+					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
+					+ "and conceptualname = \'" + concept + "\';";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				localConceptID = rs.getString(1);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if (localConceptID == null) {
+			throw new IllegalArgumentException("Unable to get concept ID for " + engineName + " " + concept);
+		}
+		return localConceptID;
+	}
+	
+	/**
+	 * Get all concept metadata values for a key
+	 * 
+	 * @param engineName
+	 * @param concept
+	 * @param key
+	 * @return
+	 */
+	public static String getMetadataValue(String engineName, String concept, String key) {
+		String value = "";
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String query = "select " + Constants.VALUE + " from " + Constants.CONCEPT_METADATA_TABLE
+					+ " where localconceptid in (select localconceptid from concept "
+					+ "where localconceptid in (select localconceptid from engineconcept "
+					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
+					+ "and conceptualname = \'" + concept + "\') and " + Constants.KEY + " = \'" + key + "\';";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+
+			while (rs.next()) {
+				value = rs.getString(1);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return value;
+	}
+
+	/**
+	 * Update values in the concept metadata table where the key is only used once
+	 * 
+	 * @param engineName
+	 * @param concept
+	 * @param key
+	 * @param newValue
+	 * @return
+	 */
+	public static boolean updateMetaValue(String engineName, String concept, String key, String newValue) {
+		boolean update = false;
+		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		int count = 0;
+		try {
+			String updateQuery = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
+					+ newValue + "\' WHERE " + Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and "
+					+ Constants.KEY + " = \'" + key + "\';";
+			stmt = conn.createStatement();
+			count = stmt.executeUpdate(updateQuery);
+			if (count > 0) {
+				update = true;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return update;
+	}
+	
+	public static boolean deleteMetaValue(String engineName, String concept, String key) {
+		boolean deleted = false;
+		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		int count = 0;
+		try {
+			String deleteQuery = "DELETE FROM " + Constants.CONCEPT_METADATA_TABLE + " WHERE "
+					+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and " + Constants.KEY + " = \'" + key
+					+ "\';";
+			stmt = conn.createStatement();
+			count = stmt.executeUpdate(deleteQuery);
+			if (count > 0) {
+				deleted = true;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return deleted;
+	}
+	
+	public static boolean deleteMetaValue(String engineName, String concept, String key, String value) {
+		boolean deleted = false;
+		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		int count = 0;
+		try {
+			String deleteQuery = "DELETE FROM " + Constants.CONCEPT_METADATA_TABLE + " WHERE "
+					+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and " + Constants.KEY + " = \'" + key
+					+ "\' and " + Constants.VALUE + " = \'" + value + "\';";
+			stmt = conn.createStatement();
+			count = stmt.executeUpdate(deleteQuery);
+			if (count > 0) {
+				deleted = true;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return deleted;
+	}
+
+
 	
 	
 //	private static enum DIRECTION_KEYS {

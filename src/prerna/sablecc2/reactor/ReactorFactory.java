@@ -80,14 +80,22 @@ import prerna.sablecc2.reactor.insights.UpdateInsightReactor;
 import prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
+import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.DeleteMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
+import prerna.sablecc2.reactor.masterdatabase.UpdateMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.UpdateMetaTagReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
 import prerna.sablecc2.reactor.panel.ClosePanelReactor;
@@ -331,6 +339,14 @@ public class ReactorFactory {
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
 		reactorHash.put("RemoveLogicalNames", RemoveLogicalNameReactor.class);
+		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
+		reactorHash.put("UpdateMetaDescription", UpdateMetaDescriptionReactor.class);
+		reactorHash.put("DeleteMetaDescription", DeleteMetaDescriptionReactor.class);
+		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
+		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
+		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
+		reactorHash.put("UpdateMetaTags", UpdateMetaTagReactor.class);
+		reactorHash.put("DeleteMetaTags", DeleteMetaTagReactor.class);
 
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
