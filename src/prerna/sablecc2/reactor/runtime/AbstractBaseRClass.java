@@ -1989,6 +1989,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	}
 
 	protected void runSemanticBlending(String column, String numDisplay, String randomVals) {
+		// need to make sure that the WikidataR package is installed before running this method
+		String hasPackage = this.rJavaTranslator.getString("as.character(\"WikidataR\" %in% rownames(installed.packages()))");
+		if (!hasPackage.equalsIgnoreCase("true")) {
+			throw new IllegalArgumentException("The WikidataR package is NOT installed");
+		}
+
 		// move frame to r so we can run alg on it
 		// account for any differences in the format of column names
 		// different between frames
@@ -2065,6 +2071,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	}
 
 	public void predictColumnHeader(String[] column, String numDisplay, String randomVals) {
+		//need to make sure that the WikidataR package is installed before running this method
+		String hasPackage = this.rJavaTranslator.getString("as.character(\"WikidataR\" %in% rownames(installed.packages()))");
+		if (!hasPackage.equalsIgnoreCase("true")) {
+			throw new IllegalArgumentException("The WikidataR package is NOT installed");
+		}
 
 		// build a query struct so that we can query and limit the number of
 		// values being passed into the method
