@@ -9,24 +9,19 @@ import prerna.util.Constants;
 public class UpdateMetaDescriptionReactor extends AbstractMetaDBReactor {
 
 	/**
-	 * This reactor updates a description to the metadata
+	 * This reactor updates the description in the concept metadata table
 	 * The inputs to the reactor are: 
 	 * 1) the engine
 	 * 2) the the concept
-	 * 3) the description to be updated
+	 * 3) the new description to be updated
 	 */
 	
 	@Override
 	public NounMetadata execute() {
-		
-		//retrieve the inputs
 		String engine = getEngine();
 		String concept = getConcept();
 		String description = getDescription();
-		
-		// add the description
 		boolean success = MasterDatabaseUtility.updateMetaValue(engine, concept, Constants.DESCRIPTION, description);
-		
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 }

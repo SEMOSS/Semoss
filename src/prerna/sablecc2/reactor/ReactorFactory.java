@@ -81,6 +81,7 @@ import prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.AddMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
@@ -88,13 +89,16 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.DeleteMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.UpdateMetaDescriptionReactor;
+import prerna.sablecc2.reactor.masterdatabase.UpdateMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.UpdateMetaTagReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
@@ -336,17 +340,25 @@ public class ReactorFactory {
 		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetEngineMetamodel", DatabaseMetamodelReactor.class);
+		// Logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
 		reactorHash.put("RemoveLogicalNames", RemoveLogicalNameReactor.class);
+		// concept description metadata 
 		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
+		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
 		reactorHash.put("UpdateMetaDescription", UpdateMetaDescriptionReactor.class);
 		reactorHash.put("DeleteMetaDescription", DeleteMetaDescriptionReactor.class);
-		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
+		// concept tag metadata
 		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
 		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
 		reactorHash.put("UpdateMetaTags", UpdateMetaTagReactor.class);
 		reactorHash.put("DeleteMetaTags", DeleteMetaTagReactor.class);
+		// concept link metadata
+		reactorHash.put("AddMetaLinks", AddMetaLinkReactor.class);
+		reactorHash.put("GetMetaLinks", GetMetaLinkReactor.class);
+		reactorHash.put("UpdateMetaLinks", UpdateMetaLinkReactor.class);
+		reactorHash.put("DeleteMetaLinks", DeleteMetaLinkReactor.class);
 
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);

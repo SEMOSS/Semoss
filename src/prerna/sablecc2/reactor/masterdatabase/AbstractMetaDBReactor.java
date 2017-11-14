@@ -6,24 +6,22 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+/**
+ * Inputs for adding, updating and getting concept metadata
+ *
+ */
 public abstract class AbstractMetaDBReactor extends AbstractReactor {
-
-	/**
-	 * This reactor retrieves the inputs for adding, updating, deleting, and
-	 * getting concept metadata
-	 */
 
 	private static final String ENGINE = "engine";
 	private static final String CONCEPT = "concept";
 	private static final String DESCRIPTION = "description";
-	private static final String TAG = "tag";
-	protected static final String TAG_DELIMITER = ":::";
+	protected static final String VALUE_DELIMITER = ":::";
 	private static final String VALUES = "values";
 
 	/**
-	 * This method is used to get the engine where an update is required in
-	 * local master
+	 * Get engine name input from pixel
 	 * 
+	 * @return
 	 */
 	public String getEngine() {
 		GenRowStruct engineGRS = this.store.getNoun(ENGINE);
@@ -37,9 +35,9 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	}
 
 	/**
-	 * This method is used to get the concept where an update is required in
-	 * local master
+	 * Get concept input from pixel
 	 * 
+	 * @return
 	 */
 	public String getConcept() {
 		GenRowStruct conceptGRS = this.store.getNoun(CONCEPT);
@@ -53,9 +51,9 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	}
 
 	/**
-	 * This method is used to get the description where an update is required in
-	 * local master
+	 * Get description input from pixel
 	 * 
+	 * @return
 	 */
 	public String getDescription() {
 		GenRowStruct descriptionGRS = this.store.getNoun(DESCRIPTION);
@@ -69,23 +67,11 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	}
 
 	/**
-	 * This method is used to get the description where an update is required in
-	 * local master
+	 * Get values array as string from pixel input
 	 * 
+	 * @return
 	 */
-	public String getTag() {
-		GenRowStruct tagGRS = this.store.getNoun(TAG);
-		if (tagGRS != null) {
-			NounMetadata noun = tagGRS.getNoun(0);
-			if (noun != null) {
-				return noun.getValue() + "";
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + TAG + " to be updated");
-	}
-
-	
-	public Vector<String> getNewValue() {
+	public Vector<String> getValues() {
 		GenRowStruct tagGRS = this.store.getNoun(VALUES);
 		Vector<String> values = new Vector<String>();
 		if (tagGRS != null) {
@@ -93,14 +79,10 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 				NounMetadata noun = tagGRS.getNoun(i);
 				if (noun != null) {
 					String value = noun.getValue() + "";
-					if (value.length() > 0) {
-						values.add(value);
-					}
+					values.add(value);
 				}
 			}
-			if (values.size() > 0) {
-				return values;
-			}
+			return values;
 		}
 		throw new IllegalArgumentException("Need to define the " + VALUES + " to be updated");
 	}
