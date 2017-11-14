@@ -378,7 +378,6 @@ public class Constants {
 	public static final String OUTPUT = "OUTPUT";
 	public static final String TYPE = "TYPE";
 	public static final String SPARQL = "SPARQL";
-	public static final String TAG = "TAG";
 
 	public static final String ENGINE_WEB_WATCHER = "ENGINE_WEB_WATCHER";
 	public static final String DEPEND = "DEPEND";
@@ -526,5 +525,13 @@ public class Constants {
 	
 	public static final String DATABASE_FOLDER = "db";
 	public static final String SEMOSS_EXTENSION = ".smss";
+	
+	// Concept Metadata Table
+	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
+	public static final String KEY = "KEY";	
+	public static final String LOCAL_CONCEPT_ID = "LOCALCONCEPTID";
+	public static final String DESCRIPTION = "description";
+	public static final String TAG = "tag";
+	public static final String WIKI_LINK = "wiki_link";
 	
 }
