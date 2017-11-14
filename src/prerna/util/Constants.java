@@ -532,6 +532,6 @@ public class Constants {
 	public static final String LOCAL_CONCEPT_ID = "LOCALCONCEPTID";
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
-	public static final String WIKI_LINK = "wiki_link";
+	public static final String LINK = "link";
 	
 }
