@@ -32,6 +32,10 @@ public class GetMetaTagReactor extends AbstractMetaDBReactor {
 			}
 			history.add(list);
 		}
-		return new NounMetadata(history, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+		ArrayList<String> returnValues = new ArrayList<String>();
+		if(history.size() > 0) {
+			returnValues = history.get(history.size() -1);
+		}
+		return new NounMetadata(returnValues, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 }

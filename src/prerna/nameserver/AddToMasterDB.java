@@ -1459,32 +1459,14 @@ public class AddToMasterDB extends ModifyMasterDB {
 		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
 		int id = MasterDatabaseUtility.getLastConceptMetadataID(localConceptID) + 1;
 		String createNew = makeCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types) + ";";
-		int size = 0;
 		try {
 			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			getConnection(localMaster);
 			conn.createStatement().execute(createNew);
-			// duplicate check
-			String dupQuery = "select * from " + Constants.CONCEPT_METADATA_TABLE + " where "
-					+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' " + "and " + Constants.KEY + " = \'"
-					+ key + "\' " + "and " + Constants.VALUE + " = \'" + value + "\'";
-
-			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery(dupQuery);
-			if (rs != null) {
-				rs.beforeFirst();
-				rs.last();
-				size = rs.getRow();
-			}
-			if (size == 0) {
-				String insertString = makeInsert(tableName, colNames, types,
-						new Object[] { id, localConceptID, key, value });
-				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
-				if (validInsert > 0) {
-					valid = true;
-				}
-			} else {
-				// duplicate value
+			String insertString = makeInsert(tableName, colNames, types,
+					new Object[] { id, localConceptID, key, value });
+			int validInsert = conn.createStatement().executeUpdate(insertString + ";");
+			if (validInsert > 0) {
 				valid = true;
 			}
 		} catch (SQLException e) {
