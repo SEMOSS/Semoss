@@ -344,15 +344,12 @@ public class ReactorFactory {
 		// concept description metadata 
 		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
 		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
-		reactorHash.put("UpdateMetaDescription", UpdateMetaDescriptionReactor.class);
 		// concept tag metadata
 		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
 		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
-		reactorHash.put("UpdateMetaTags", UpdateMetaTagReactor.class);
 		// concept link metadata
 		reactorHash.put("AddMetaLinks", AddMetaLinkReactor.class);
 		reactorHash.put("GetMetaLinks", GetMetaLinkReactor.class);
-		reactorHash.put("UpdateMetaLinks", UpdateMetaLinkReactor.class);
 
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
