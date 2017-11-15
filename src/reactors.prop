@@ -29,7 +29,6 @@ Sum prerna.sablecc2.reactor.qs.SumReactor
 CreateFrame prerna.sablecc2.reactor.frame.CreateFrameReactor
 Offset prerna.sablecc2.reactor.qs.OffsetReactor
 InsightPanelIds prerna.sablecc2.reactor.panel.GetInsightPanelsReactor
-UpdateMetaDescription prerna.sablecc2.reactor.masterdatabase.UpdateMetaDescriptionReactor
 JdbcSource prerna.sablecc2.reactor.qs.JdbcEngineConnectorReactor
 Min prerna.sablecc2.reactor.qs.MinReactor
 AddFrameFilter prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor
@@ -45,9 +44,7 @@ GroupConcat prerna.sablecc2.reactor.qs.GroupConcatReactor
 ResetTask prerna.sablecc2.reactor.task.ResetTask
 GetLogicalNames prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor
 RunLOF prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor
-DeleteMetaLinks prerna.sablecc2.reactor.masterdatabase.DeleteMetaLinkReactor
 FileRead prerna.sablecc2.reactor.qs.FileSourceReactor
-DeleteMetaDescription prerna.sablecc2.reactor.masterdatabase.DeleteMetaDescriptionReactor
 SetInsightOrnament prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor
 DirectJDBCConnection prerna.sablecc2.reactor.qs.DirectJdbcConnectionReactor
 PanelExists prerna.sablecc2.reactor.panel.PanelExistsReactor
@@ -63,7 +60,6 @@ CurrentFrame prerna.sablecc2.reactor.frame.CurrentFrameReactor
 Average prerna.sablecc2.reactor.qs.AverageReactor
 SynchronizeToR prerna.sablecc2.reactor.frame.r.SynchronizeToRReactor
 Join prerna.sablecc2.reactor.qs.JoinReactor
-UpdateMetaLinks prerna.sablecc2.reactor.masterdatabase.UpdateMetaLinkReactor
 RemovePanelSort prerna.sablecc2.reactor.panel.sort.RemovePanelSortReactor
 VariableExists prerna.sablecc2.reactor.VariableExistsReactor
 TaxRetrieveValue prerna.sablecc2.reactor.storage.TaxRetrieveValue2
@@ -85,7 +81,6 @@ GenerateFrameFromRVariable prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVar
 QueryAll prerna.sablecc2.reactor.qs.QueryAllReactor
 FilterLambda prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor
 InsightHandle prerna.sablecc2.reactor.insights.InsightHandleReactor
-UpdateMetaTags prerna.sablecc2.reactor.masterdatabase.UpdateMetaTagReactor
 SetPanelSort prerna.sablecc2.reactor.panel.sort.SetPanelSortReactor
 OpenEmptyInsight prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor
 SetPanelView prerna.sablecc2.reactor.panel.SetPanelViewReactor
@@ -98,7 +93,6 @@ Order prerna.sablecc2.reactor.qs.OrderByReactor
 FrameHeaders prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor
 ClearInsight prerna.sablecc2.reactor.insights.ClearInsightReactor
 AddPanelOrnaments prerna.sablecc2.reactor.panel.ornaments.AddPanelOrnamentsReactor
-DeleteMetaTags prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagReactor
 AddPanelFilter prerna.sablecc2.reactor.panel.filter.AddPanelFilterReactor
 InsightRecipe prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor
 RunPlan prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor
