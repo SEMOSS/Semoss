@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
@@ -20,14 +21,18 @@ public class GetMetaLinkReactor extends  AbstractMetaDBReactor {
 	public NounMetadata execute() {
 		String engineName = getEngine();
 		String concept = getConcept();
-		String hyperLink = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.LINK);
-		ArrayList<String> list = new ArrayList<String>();
-		for(String link: hyperLink.split(VALUE_DELIMITER)) {
-			if(link.length() > 0) {
-				list.add(link);
+		List<String> hyperLink = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.LINK);
+		ArrayList<ArrayList<String>> history = new ArrayList<ArrayList<String>>();
+		for(String hyperString: hyperLink) {
+			ArrayList<String> list = new ArrayList<String>();
+			for(String link: hyperString.split(VALUE_DELIMITER)) {
+				if(link.length() > 0) {
+					list.add(link);
+				}
 			}
+			history.add(list);
 		}
-		return new NounMetadata(list, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(history, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
 }
