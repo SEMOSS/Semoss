@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
+import java.util.List;
+
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,7 +21,7 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 	public NounMetadata execute() {
 		String engineName = getEngine();
 		String concept = getConcept();
-		String description = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.DESCRIPTION);
+		List<String> description = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.DESCRIPTION);
 		return new NounMetadata(description, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
