@@ -22,7 +22,11 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 		String engineName = getEngine();
 		String concept = getConcept();
 		List<String> description = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.DESCRIPTION);
-		return new NounMetadata(description, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+		String output = "";
+		if(description.size() > 0) {
+			output = description.get(description.size()-1);
+		}
+		return new NounMetadata(output, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
 	
