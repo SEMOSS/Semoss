@@ -734,6 +734,18 @@ public class AddToMasterDB extends ModifyMasterDB {
 				String [] conceptData = {engineId, relId, uniqueId, conceptId, otherConceptId, mainConceptInstance, Utility.getInstanceName(otherConcept), iOtherRelation};
 				conceptIdHash.put(engineInstance + "_" + mainConceptInstance + "_" + Utility.getInstanceName(otherConcept)+"_PHYSICAL", uniqueId);
 				makeQuery("EngineRelation", colNames, types, conceptData);
+			} 
+		} 
+		// still need to create EngineRelation table if no relationships are defined
+		if (otherConcepts.size() == 0) {
+			String[] colNames = new String[] { "Engine", "RelationID", "InstanceRelationID", "SourceConceptID",
+					"TargetConceptID", "SourceProperty", "TargetProperty", "RelationName" }; // "DomainName"};
+			String[] types = new String[] { "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)",
+					"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)" };
+			try {
+				conn.createStatement().execute(makeCreate("EngineRelation", colNames, types));
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
 		}
 	}
@@ -1468,10 +1480,10 @@ public class AddToMasterDB extends ModifyMasterDB {
 			if (size == 0) {
 				String insertString = makeInsert(tableName, colNames, types,
 						new Object[] { localConceptID, key, value });
-				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
-				if (validInsert > 0) {
-					valid = true;
-				}
+			int validInsert = conn.createStatement().executeUpdate(insertString + ";");
+			if (validInsert > 0) {
+				valid = true;
+			}
 			}
 			else {
 				// duplicate value
