@@ -182,26 +182,26 @@ import prerna.util.Utility;
 public class ReactorFactory {
 
 	// This holds the reactors that are frame agnostic and can be used by pixel
-	private static Map<String, Class> reactorHash;
+	public static Map<String, Class> reactorHash;
 
 	// This holds the reactors that are expressions
 	// example Sum, Max, Min
 	// the reactors will handle how to execute
 	// if it can be run via the frame (i.e. sql/gremlin) or needs to run external
-	private static Map<String, Class> expressionHash;
+	public static Map<String, Class> expressionHash;
 
 	// this holds that base package name for frame specific reactors
-	private static Map<String, Class> rFrameHash;
-	private static Map<String, Class> h2FrameHash;
-	private static Map<String, Class> tinkerFrameHash;
-	private static Map<String, Class> nativeFrameHash;
-	private static final String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	private static final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
-	private static final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
-	private static final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
-	private static final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
-	private static final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
-	private static final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
+	public static Map<String, Class> rFrameHash;
+	public static Map<String, Class> h2FrameHash;
+	public static Map<String, Class> tinkerFrameHash;
+	public static Map<String, Class> nativeFrameHash;
+	public static final String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+	public static final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
+	public static final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
+	public static final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
+	public static final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
+	public static final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
+	public static final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
 	static {
 		// path for external reactor
 		
@@ -348,17 +348,14 @@ public class ReactorFactory {
 		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
 		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
 		reactorHash.put("UpdateMetaDescription", UpdateMetaDescriptionReactor.class);
-		reactorHash.put("DeleteMetaDescription", DeleteMetaDescriptionReactor.class);
 		// concept tag metadata
 		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
 		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
 		reactorHash.put("UpdateMetaTags", UpdateMetaTagReactor.class);
-		reactorHash.put("DeleteMetaTags", DeleteMetaTagReactor.class);
 		// concept link metadata
 		reactorHash.put("AddMetaLinks", AddMetaLinkReactor.class);
 		reactorHash.put("GetMetaLinks", GetMetaLinkReactor.class);
 		reactorHash.put("UpdateMetaLinks", UpdateMetaLinkReactor.class);
-		reactorHash.put("DeleteMetaLinks", DeleteMetaLinkReactor.class);
 
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);

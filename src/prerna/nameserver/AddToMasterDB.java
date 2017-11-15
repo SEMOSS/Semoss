@@ -1439,6 +1439,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 		}
 
 	}
+
 	
 	/**
 	 * Adds row to metadata table
@@ -1451,15 +1452,13 @@ public class AddToMasterDB extends ModifyMasterDB {
 	 */
 	public boolean addMetadata(String engineName, String concept, String key, String value) {
 		boolean valid = false;
-		// make statements
-		// create table to local master
 		String tableName = Constants.CONCEPT_METADATA_TABLE;
-		String[] colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
-		String[] types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+		String[] colNames = new String[] { Constants.ID, Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		String[] types = new String[] { "int", "varchar(800)", "varchar(800)", "varchar(20000)" };
 
 		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		int id = MasterDatabaseUtility.getLastConceptMetadataID(localConceptID) + 1;
 		String createNew = makeCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types) + ";";
-		// make new insert
 		int size = 0;
 		try {
 			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
@@ -1479,13 +1478,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 			}
 			if (size == 0) {
 				String insertString = makeInsert(tableName, colNames, types,
-						new Object[] { localConceptID, key, value });
-			int validInsert = conn.createStatement().executeUpdate(insertString + ";");
-			if (validInsert > 0) {
-				valid = true;
-			}
-			}
-			else {
+						new Object[] { id, localConceptID, key, value });
+				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
+				if (validInsert > 0) {
+					valid = true;
+				}
+			} else {
 				// duplicate value
 				valid = true;
 			}
