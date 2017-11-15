@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
+import java.util.ArrayList;
+
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,6 +21,12 @@ public class GetMetaTagReactor extends AbstractMetaDBReactor {
 		String engineName = getEngine();
 		String concept = getConcept();
 		String tagList = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.TAG);
-		return new NounMetadata(tagList.split(VALUE_DELIMITER), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+		ArrayList<String> list = new ArrayList<String>();
+		for(String tag: tagList.split(VALUE_DELIMITER)) {
+			if(tag.length() > 0) {
+				list.add(tag);
+			}
+		}
+		return new NounMetadata(list, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 }
