@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
+import java.util.ArrayList;
+
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,7 +21,13 @@ public class GetMetaLinkReactor extends  AbstractMetaDBReactor {
 		String engineName = getEngine();
 		String concept = getConcept();
 		String hyperLink = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.LINK);
-		return new NounMetadata(hyperLink.split(VALUE_DELIMITER), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+		ArrayList<String> list = new ArrayList<String>();
+		for(String link: hyperLink.split(VALUE_DELIMITER)) {
+			if(link.length() > 0) {
+				list.add(link);
+			}
+		}
+		return new NounMetadata(list, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
 }
