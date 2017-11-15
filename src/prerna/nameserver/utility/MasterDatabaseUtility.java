@@ -1037,7 +1037,7 @@ public class MasterDatabaseUtility {
 				// System.out.println(id +" "+ value);
 			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+//			ex.printStackTrace();
 		} finally {
 			try {
 				if (rs != null) {
@@ -1056,32 +1056,6 @@ public class MasterDatabaseUtility {
 		}
 
 		return history;
-	}
-
-	/**
-	 * Update values in the concept metadata table where the key is only used once
-	 * 
-	 * @param engineName
-	 * @param concept
-	 * @param key
-	 * @param newValue
-	 * @return
-	 */
-	public static boolean updateMetaValue(String engineName, String concept, String key, String newValue) {
-		boolean update = false;
-		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
-		int id = MasterDatabaseUtility.getLastConceptMetadataID(localConceptID) + 1;
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		try {
-			String insertQuery = "INSERT INTO " + Constants.CONCEPT_METADATA_TABLE + "(" + Constants.ID + ", "
-					+ Constants.LOCAL_CONCEPT_ID + ", " + Constants.KEY + ", " + Constants.VALUE + ") VALUES(" + id
-					+ ", \'" + localConceptID + "\', \'" + key + "\', \'" + newValue + "\')";
-			conn.createStatement().executeUpdate(insertQuery);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		return update;
 	}
 
 	public static boolean deleteMetaValue(String engineName, String concept, String key) {
