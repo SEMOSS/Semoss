@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
@@ -1443,6 +1442,7 @@ public class AddToMasterDB extends ModifyMasterDB {
 	
 	/**
 	 * Adds row to metadata table
+	 * ex localConceptID, key, value
 	 * 
 	 * @param engineName
 	 * @param concept
@@ -1453,27 +1453,37 @@ public class AddToMasterDB extends ModifyMasterDB {
 	public boolean addMetadata(String engineName, String concept, String key, String value) {
 		boolean valid = false;
 		String tableName = Constants.CONCEPT_METADATA_TABLE;
-		String[] colNames = new String[] { Constants.ID, Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
-		String[] types = new String[] { "int", "varchar(800)", "varchar(800)", "varchar(20000)" };
+		String[] colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		String[] types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 
 		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
-		int id = MasterDatabaseUtility.getLastConceptMetadataID(localConceptID) + 1;
 		String createNew = makeCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types) + ";";
 		try {
 			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			getConnection(localMaster);
-			conn.createStatement().execute(createNew);
-			String insertString = makeInsert(tableName, colNames, types,
-					new Object[] { id, localConceptID, key, value });
-			int validInsert = conn.createStatement().executeUpdate(insertString + ";");
-			if (validInsert > 0) {
-				valid = true;
+			conn.createStatement().executeUpdate(createNew);
+			// check if key exists
+			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineName, concept, key);
+			if (duplicateCheck == null) {
+				String insertString = makeInsert(tableName, colNames, types, new Object[] { localConceptID, key, value });
+				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
+				if (validInsert > 0) {
+					valid = true;
+				}
+			} // update
+			else {
+				String update = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
+						+ value + "\' WHERE " + Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and "
+						+ Constants.KEY + " = \'" + key + "\'";
+				int validInsert = conn.createStatement().executeUpdate(update + ";");
+				if (validInsert > 0) {
+					valid = true;
+				}
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		return valid;
-
 	}
 
 }
