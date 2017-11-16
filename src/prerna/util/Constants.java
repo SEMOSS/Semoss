@@ -533,6 +533,4 @@ public class Constants {
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
 	public static final String LINK = "link";
-	public static final String ID = "id";
-	
 }

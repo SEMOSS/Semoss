@@ -93,6 +93,7 @@ Order prerna.sablecc2.reactor.qs.OrderByReactor
 FrameHeaders prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor
 ClearInsight prerna.sablecc2.reactor.insights.ClearInsightReactor
 AddPanelOrnaments prerna.sablecc2.reactor.panel.ornaments.AddPanelOrnamentsReactor
+DeleteMetaTags prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor
 AddPanelFilter prerna.sablecc2.reactor.panel.filter.AddPanelFilterReactor
 InsightRecipe prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor
 RunPlan prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor
