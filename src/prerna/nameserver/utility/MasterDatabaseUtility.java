@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Vector;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
@@ -1007,37 +1006,33 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
-	 * Get all concept metadata values for a key
+	 * Get concept metadata value for a key
 	 * 
 	 * @param engineName
 	 * @param concept
 	 * @param key
 	 * @return
 	 */
-	public static List<String> getMetadataValue(String engineName, String concept, String key) {
-		String value = "";
+	public static String getMetadataValue(String engineName, String concept, String key) {
+		String value = null;
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		ResultSet rs = null;
-		Vector<String> history = new Vector<String>();
 		try {
-			String query = "select " + Constants.VALUE + ", " + Constants.ID + " from "
-					+ Constants.CONCEPT_METADATA_TABLE + " where localconceptid in (select localconceptid from concept "
+			String query = "select " + Constants.VALUE + " from " + Constants.CONCEPT_METADATA_TABLE
+					+ " where localconceptid in (select localconceptid from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
 					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\') and " + Constants.KEY + " = \'" + key + "\' ORDER BY "
-					+ Constants.ID + " ASC;";
+					+ "and conceptualname = \'" + concept + "\') and " + Constants.KEY + " = \'" + key + "\';";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 
 			while (rs.next()) {
 				value = rs.getString(1);
-				history.add(value);
-				// System.out.println(id +" "+ value);
 			}
 		} catch (Exception ex) {
-//			ex.printStackTrace();
+			// ex.printStackTrace();
 		} finally {
 			try {
 				if (rs != null) {
@@ -1054,8 +1049,7 @@ public class MasterDatabaseUtility {
 				e.printStackTrace();
 			}
 		}
-
-		return history;
+		return value;
 	}
 
 	public static boolean deleteMetaValue(String engineName, String concept, String key) {
@@ -1119,27 +1113,6 @@ public class MasterDatabaseUtility {
 
 		return deleted;
 	}
-
-	public static int getLastConceptMetadataID(String localConceptID) {
-		int id = 0;
-		String idQuery = "SELECT DISTINCT " + Constants.ID + " FROM " + Constants.CONCEPT_METADATA_TABLE + " WHERE "
-				+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' ORDER BY " + Constants.ID + " ASC;";
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		try {
-			ResultSet rs = conn.createStatement().executeQuery(idQuery);
-			while (rs.next()) {
-				id = rs.getInt(1);
-			}
-		} catch (SQLException e) {
-			// e.printStackTrace();
-		}
-
-		return id;
-	}
-
-
-	
 	
 //	private static enum DIRECTION_KEYS {
 //	UPSTREAM ("upstream"), 

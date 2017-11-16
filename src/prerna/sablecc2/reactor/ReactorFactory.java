@@ -88,6 +88,7 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaLinkReactor;
@@ -344,6 +345,7 @@ public class ReactorFactory {
 		// concept tag metadata
 		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
 		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
+		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
 		// concept link metadata
 		reactorHash.put("AddMetaLinks", AddMetaLinkReactor.class);
 		reactorHash.put("GetMetaLinks", GetMetaLinkReactor.class);
