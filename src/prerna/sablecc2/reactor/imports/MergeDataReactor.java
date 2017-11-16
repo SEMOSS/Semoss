@@ -48,6 +48,11 @@ public class MergeDataReactor extends AbstractReactor {
 
 		// Format and send Google Analytics data
 		String engine = qs.getEngineName() + "";
+		// if the engine doesnt have a name then the data is coming from a temp table
+		if (qs.getEngineName() == null){
+			String tempFrameName = qs.getFrame() + "";
+			engine = "TempFrame_" + tempFrameName ;
+		}
 		String curExpression = "";
 		List<IQuerySelector> selectors = qs.getSelectors();
 		for (int i = 0; i < selectors.size(); i++) {
@@ -64,6 +69,9 @@ public class MergeDataReactor extends AbstractReactor {
 			if (i != (selectors.size() - 1)) {
 				curExpression += ";";
 			}
+		}
+		if (curExpression.equals("") && engine.equals("DIRECT_ENGINE_CONNECTION")){
+			curExpression = curExpression + engine ;
 		}
 		insight.trackPixels("dataquery", curExpression);
 		
