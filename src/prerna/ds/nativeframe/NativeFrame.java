@@ -3,6 +3,7 @@ package prerna.ds.nativeframe;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.IMetaData;
@@ -10,6 +11,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
@@ -18,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.om.QueryFilter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class NativeFrame extends AbstractTableDataFrame {
@@ -165,11 +168,30 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
-		// we need to merge the hard filters that were added onto the frame
-		qs.mergeFilters(this.qs.getFilters());
+		// we need to merge everything with the current qs
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());
+		
+		// filters are a bit tricky
+		// if a user is filtering in more on a specific column
+		// we do not want to merge
+		// but want to override
+		GenRowFilters qsGrs = qs.getFilters();
+		Set<String> qsFilterCols = qsGrs.getAllFilteredColumns();
+		List<QueryFilter> importFilters = this.qs.getFilters().getFilters();
+		// if the qsFilterCols doesn't have the base import filter
+		// add the filter
+		// otherwise, do nothing
+		for(QueryFilter filter : importFilters) {
+			Set<String> importColsFilters = filter.getAllUsedColumns();
+			if(!qsFilterCols.containsAll(importColsFilters)) {
+				// the import filter is not being overridden
+				// so add it into the qs to sue
+				qs.addFilter(filter);
+			}
+		}
+		
 		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return iterator;
