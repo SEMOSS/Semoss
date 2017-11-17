@@ -153,7 +153,7 @@ public class H2Importer implements IImporter {
 				}
 			}
 			leftTableTypes.keySet().removeAll(removeHeaders);
-			String joinQuery = RdbmsQueryBuilder.createNewTableFromJoiningTables(innerJoinTable, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
+			String joinQuery = RdbmsQueryBuilder.createNewTableFromJoiningTables(innerJoinTable, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins, new HashMap<String, String>(), new HashMap<String, String>());
 			try {
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			} catch (Exception e) {
@@ -217,6 +217,28 @@ public class H2Importer implements IImporter {
 		String leftJoinReturnTableName = null;
 		String rightJoinReturnTableName = null;
 
+		// we will also figure out if there are columns that are repeated
+		// but are not join columns
+		// so we need to alias them
+		Set<String> leftTableHeaders = leftTableTypes.keySet();
+		Set<String> rightTableHeaders = rightTableTypes.keySet();
+		Set<String> rightTableJoinCols = getRightJoinColumns(joins);
+		Map<String, String> leftTableAlias = new HashMap<String, String>();
+		Map<String, String> rightTableAlias = new HashMap<String, String>();
+		for(String leftTableHeader : leftTableHeaders) {
+			if(leftTableHeader.contains("__")) {
+				leftTableHeader = leftTableHeader.split("__")[1];
+			}
+			// instead of making the method return a boolean and then having to perform
+			// another ignore case match later on
+			// we return the match and do a null check
+			String dupRightTableHeader = setIgnoreCaseMatch(leftTableHeader, rightTableHeaders, rightTableJoinCols);
+			if(dupRightTableHeader != null) {
+				leftTableAlias.put(leftTableHeader, leftTableHeader + "_1");
+				rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_2");
+			}
+		}
+		
 		try {
 			// improve performance
 			generateIndicesOnJoinColumns(leftTableName, rightTableName, joins);
@@ -229,12 +251,14 @@ public class H2Importer implements IImporter {
 				// and then union them together
 				joins.get(0).setJoinType("left.outer.join");
 				leftJoinReturnTableName = Utility.getRandomString(6);
-				String leftOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(leftJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
+				String leftOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(leftJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, 
+						rightTableTypes, joins, leftTableAlias, rightTableAlias);
 				this.dataframe.getBuilder().runQuery(leftOuterJoin);
 				
 				joins.get(0).setJoinType("right.outer.join");
 				rightJoinReturnTableName = Utility.getRandomString(6);
-				String rightOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(rightJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
+				String rightOuterJoin = RdbmsQueryBuilder.createNewTableFromJoiningTables(rightJoinReturnTableName, leftTableName, leftTableTypes, rightTableName, 
+						rightTableTypes, joins, leftTableAlias, rightTableAlias);
 				this.dataframe.getBuilder().runQuery(rightOuterJoin);
 
 				// run a union between the 2 tables
@@ -243,7 +267,8 @@ public class H2Importer implements IImporter {
 			} else {
 				// this is the normal case
 				// we just need to make a basic join query
-				String joinQuery = RdbmsQueryBuilder.createNewTableFromJoiningTables(returnTableName, leftTableName, leftTableTypes, rightTableName, rightTableTypes, joins);
+				String joinQuery = RdbmsQueryBuilder.createNewTableFromJoiningTables(returnTableName, leftTableName, leftTableTypes, rightTableName, 
+						rightTableTypes, joins, leftTableAlias, rightTableAlias);
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			}
 		} catch(Exception e) {
@@ -290,9 +315,52 @@ public class H2Importer implements IImporter {
 		}
 		
 		// merge the QS so it is accurate
+		// but we need to consider if there were headers that have been modified
+		for(String leftCol : leftTableAlias.keySet()) {
+			this.dataframe.getMetaData().modifyPropertyName(leftTableName + "__" + leftCol, leftTableName, leftTableName + "__" + leftTableAlias.get(leftCol));
+		}
+		for(String rightCol : rightTableAlias.keySet()) {
+			List<IQuerySelector> selectors = this.qs.getSelectors();
+			int numSelectors = selectors.size();
+			for(int i = 0; i < numSelectors; i++) {
+				IQuerySelector selector = selectors.get(i);
+				String alias =  selector.getAlias();
+				if(alias.equals(rightCol)) {
+					selector.setAlias(rightTableAlias.get(rightCol));
+				}
+			}
+		}
 		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, this.dataframe.getTableName(), this.it, joins);
 		this.dataframe.syncHeaders();
 		return this.dataframe;
+	}
+	
+	private String setIgnoreCaseMatch(String v, Set<String> set, Set<String> ignoreSet) {
+		for(String s : set) {
+			if(ignoreSet.contains(s)) {
+				continue;
+			}
+			if(s.equalsIgnoreCase(v)) {
+				return s;
+			}
+		}
+		return null;
+	}
+	
+	private Set<String> getRightJoinColumns(List<Join> joins) {
+		Set<String> rightTableJoinCols = new HashSet<String>();
+		int numJoins = joins.size();
+		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
+			Join j = joins.get(jIdx);
+			String rightTableJoinCol = j.getQualifier();
+			if(rightTableJoinCol.contains("__")) {
+				rightTableJoinCol = rightTableJoinCol.split("__")[1];
+			}
+			
+			// keep track of join columns on the right table
+			rightTableJoinCols.add(rightTableJoinCol);
+		}
+		return rightTableJoinCols;
 	}
 	
 	/**

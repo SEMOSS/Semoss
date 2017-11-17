@@ -52,7 +52,9 @@ public class RdbmsQueryBuilder {
 			Map<String, DATA_TYPES> leftTableTypes,
 			String rightTableName, 
 			Map<String, DATA_TYPES> rightTableTypes, 
-			List<Join> joins) 
+			List<Join> joins,
+			Map<String, String> leftTableAlias,
+			Map<String, String> rightTableAlias) 
 	{
 		final String LEFT_TABLE_ALIAS = "A";
 		final String RIGHT_TABLE_ALIAS = "B";
@@ -142,12 +144,12 @@ public class RdbmsQueryBuilder {
 		joinString.append(")");
 		
 		// 2) get the create table and the selector portions
-		
+		Set<String> leftTableHeaders = leftTableTypes.keySet();
+		Set<String> rightTableHeaders = rightTableTypes.keySet();
 		StringBuilder sql = new StringBuilder();
 		sql.append("CREATE TABLE ").append(returnTableName).append(" AS ( SELECT ");
 		
 		// select all the columns from the left side
-		Set<String> leftTableHeaders = leftTableTypes.keySet();
 		int counter = 0;
 		int size = leftTableHeaders.size();
 		for(String leftTableCol : leftTableHeaders) {
@@ -155,6 +157,10 @@ public class RdbmsQueryBuilder {
 				leftTableCol = leftTableCol.split("__")[1];
 			}
 			sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
+			// add the alias if there
+			if(leftTableAlias.containsKey(leftTableCol)) {
+				sql.append(" AS ").append(leftTableAlias.get(leftTableCol));
+			}
 			if(counter + 1 < size) {
 				sql.append(", ");
 			}
@@ -162,7 +168,6 @@ public class RdbmsQueryBuilder {
 		}
 		
 		// select the columns from the right side which are not part of the join!!!
-		Set<String> rightTableHeaders = rightTableTypes.keySet();
 		for(String rightTableCol : rightTableHeaders) {
 			if(rightTableCol.contains("__")) {
 				rightTableCol = rightTableCol.split("__")[1];
@@ -172,6 +177,10 @@ public class RdbmsQueryBuilder {
 				continue;
 			}
 			sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
+			// add the alias if there
+			if(rightTableAlias.containsKey(rightTableCol)) {
+				sql.append(" AS ").append(rightTableAlias.get(rightTableCol));
+			}
 			counter++;
 		}
 		
