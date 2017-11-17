@@ -81,9 +81,9 @@
 		<copyField source="table_name" dest="index_table_name"/>
 
 		<!-- the column/property name -->
-		<field name="columns" type="string" indexed="true" stored="true" required="false" multiValued="true" />
-		<field name="index_columns" type="text_en_splitting" indexed="true" stored="false" required="false" multiValued="false" /> 
-		<copyField source="columns" dest="index_columns"/>
+		<field name="column_name" type="string" indexed="true" stored="true" required="false" multiValued="true" />
+		<field name="index_column_name" type="text_en_splitting" indexed="true" stored="false" required="false" multiValued="false" /> 
+		<copyField source="column_name" dest="index_column_name"/>
 
 		<!-- description of the field -->
 		<field name="description" type="string" indexed="true" stored="true" required="false" multiValued="true" /> 
