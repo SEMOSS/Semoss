@@ -223,8 +223,10 @@ public class H2Importer implements IImporter {
 		Set<String> leftTableHeaders = leftTableTypes.keySet();
 		Set<String> rightTableHeaders = rightTableTypes.keySet();
 		Set<String> rightTableJoinCols = getRightJoinColumns(joins);
-		Map<String, String> leftTableAlias = new HashMap<String, String>();
 		Map<String, String> rightTableAlias = new HashMap<String, String>();
+		// note, we are not going to modify the existing headers
+		// even though the query builder code allows for it
+		Map<String, String> leftTableAlias = new HashMap<String, String>();
 		for(String leftTableHeader : leftTableHeaders) {
 			if(leftTableHeader.contains("__")) {
 				leftTableHeader = leftTableHeader.split("__")[1];
@@ -234,10 +236,10 @@ public class H2Importer implements IImporter {
 			// we return the match and do a null check
 			String dupRightTableHeader = setIgnoreCaseMatch(leftTableHeader, rightTableHeaders, rightTableJoinCols);
 			if(dupRightTableHeader != null) {
-				leftTableAlias.put(leftTableHeader, leftTableHeader + "_1");
-				rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_2");
+				rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_1");
 			}
 		}
+		
 		
 		try {
 			// improve performance
@@ -316,9 +318,6 @@ public class H2Importer implements IImporter {
 		
 		// merge the QS so it is accurate
 		// but we need to consider if there were headers that have been modified
-		for(String leftCol : leftTableAlias.keySet()) {
-			this.dataframe.getMetaData().modifyPropertyName(leftTableName + "__" + leftCol, leftTableName, leftTableName + "__" + leftTableAlias.get(leftCol));
-		}
 		for(String rightCol : rightTableAlias.keySet()) {
 			List<IQuerySelector> selectors = this.qs.getSelectors();
 			int numSelectors = selectors.size();
