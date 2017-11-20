@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -441,6 +442,9 @@ public class ReactorFactory {
 		reactorHash.put("StoreValue", StoreValue.class);
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
+		
+		// Pixel operation reactors 
+		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
 
 		// Tax specific handles
 		reactorHash.put("LoadClient", LoadGraphClient.class);
@@ -467,6 +471,7 @@ public class ReactorFactory {
 		h2FrameHash.put("CountIf", prerna.sablecc2.reactor.frame.rdbms.CountIfReactor.class);
 		h2FrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.rdbms.DropColumnReactor.class);
 		h2FrameHash.put("DropRows", prerna.sablecc2.reactor.frame.rdbms.DropRowsReactor.class);
+		h2FrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.rdbms.ExtractAlphaCharsReactor.class);
 		h2FrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.rdbms.JoinColumnsReactor.class);
 		h2FrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.rdbms.RenameColumnReactor.class);
 		h2FrameHash.put("SortColumn", prerna.sablecc2.reactor.frame.rdbms.SortColumnReactor.class);
@@ -482,6 +487,7 @@ public class ReactorFactory {
 		rFrameHash.put("CountIf", prerna.sablecc2.reactor.frame.r.CountIfReactor.class);
 		rFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.r.DropColumnReactor.class);
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
+		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);
 		rFrameHash.put("Pivot", prerna.sablecc2.reactor.frame.r.PivotReactor.class);
 		rFrameHash.put("RegexReplaceColumnValue", prerna.sablecc2.reactor.frame.r.RegexReplaceColumnValueReactor.class);
@@ -496,8 +502,7 @@ public class ReactorFactory {
 		rFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.r.TrimReactor.class);
 		rFrameHash.put("Transpose", prerna.sablecc2.reactor.frame.r.TransposeReactor.class);
 		rFrameHash.put("Unpivot", prerna.sablecc2.reactor.frame.r.UnpivotReactor.class);
-		rFrameHash.put("UpdateRowValues",
-				prerna.sablecc2.reactor.frame.r.UpdateRowValuesWhereColumnContainsValueReactor.class);
+		rFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.r.UpdateRowValuesWhereColumnContainsValueReactor.class);
 		// frame stats
 		rFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.r.ColumnCountReactor.class);
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
@@ -661,7 +666,9 @@ public class ReactorFactory {
 		try {
 			PrintWriter pw = new PrintWriter(new File(path));
 			StringBuilder sb = new StringBuilder();
-			for (String operation : hash.keySet()) {
+			Object[] keys = hash.keySet().toArray();
+			Arrays.sort(keys);
+			for (Object operation: keys) {
 				Class reactor = hash.get(operation);
 				sb.append(operation + " " + reactor.getName() + "\n");
 			}
