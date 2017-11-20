@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -17,8 +20,18 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 	 * 2) the columns to split 
 	 */
 
+	private static final String COLUMNS_KEY = "columns";
+	private static final String SEPARATOR_KEY = "sep";
+	private static final String SEARCH_TYPE = "search";
+	
+	private static final String REGEX = "Regex";
+	
 	@Override
 	public NounMetadata execute() {
+		List<String> cols = getColumns();
+		String separator = getSeparator();
+		boolean isRegex = isRegex();
+		
 		//use init to initialize rJavaTranslator object that will be used later
 		init();
 		// get frame
@@ -38,15 +51,12 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 		String direction = "wide";
 
 		//get length of input to use when iterating through
-		int inputSize = this.getCurRow().size();
+		int inputSize = cols.size();
 		
-		//first input is the separator
-		String separator = getSeparator();
-
-		for (int i = 1; i < inputSize; i++) {
+		for (int i = 0; i < inputSize; i++) {
 			//next input will be the column that we are splitting
 			//we can specify to split more than one column, so there could be multiple column inputs
-			String column = getColumn(i);
+			String column = cols.get(i);
 			//clean column name
 			if (column.contains("__")) {
 				column = column.split("__")[1];
@@ -57,8 +67,13 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 					+ "\"" + column
 					+ "\", \"" + separator
 					+ "\", direction = \"" + direction
-					+ "\", drop = " + columnReplaceScript+ ");" 
-					;
+					+ "\", drop = " + columnReplaceScript;
+			if(isRegex) {
+				script += ", fixed = FALSE";
+			} else {
+				script += ", fixed = TRUE";
+			}
+			script += ");";
 
 			//evaluate the r script
 			frame.executeRScript(script);
@@ -102,19 +117,48 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private String getSeparator() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		String separator = ""; 
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//value we are splitting the column at is the first noun inputted
-			NounMetadata separatorNoun = inputsGRS.getNoun(0); 
-			separator = separatorNoun.getValue() + "";
+		GenRowStruct separatorGrs = this.store.getNoun(SEPARATOR_KEY);
+		if(separatorGrs == null || separatorGrs.isEmpty()) {
+			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
+		String separator = separatorGrs.get(0).toString();
 		return separator;
 	}
 	
-	private String getColumn(int i) {
-		NounMetadata input = this.getCurRow().getNoun(i);
-		String column = input.getValue() + "";
-		return column;
+	private boolean isRegex() {
+		GenRowStruct regexGrs = this.store.getNoun(SEARCH_TYPE);
+		if(regexGrs == null || regexGrs.isEmpty()) {
+			return true;
+		}
+		String val = regexGrs.get(0).toString();
+		if(val.equalsIgnoreCase(REGEX)) {
+			return true;
+		}
+		return false;
 	}
+	
+	private List<String> getColumns() {
+		List<String> cols = new ArrayList<String>();
+
+		// try its own key
+		GenRowStruct colsGrs = this.store.getNoun(COLUMNS_KEY);
+		if(colsGrs != null && !colsGrs.isEmpty()) {
+			int size = colsGrs.size();
+			for(int i = 0; i < size; i++) {
+				cols.add(colsGrs.get(i).toString());
+			}
+			return cols;
+		}
+		
+		int inputSize = this.getCurRow().size();
+		if(inputSize > 0) {
+			for(int i = 0; i < inputSize; i++) {
+				cols.add(this.getCurRow().get(i).toString());
+			}
+			return cols;
+		}
+		
+		throw new IllegalArgumentException("Need to define the columns to split");
+	}
+	
 }

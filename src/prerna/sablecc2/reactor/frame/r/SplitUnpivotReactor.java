@@ -22,18 +22,18 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 
 	private static final String COLUMNS_KEY = "cols";
 	private static final String DELIMITER_KEY = "delimiters";
-	
-	
+
+
 	@Override
 	public NounMetadata execute() {
 		//use init to initialize rJavaTranslator object that will be used later
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame(); 
-		
+
 		//get table name
 		String table = frame.getTableName();
-		
+
 		//make a temporary table name
 		//we will reassign the table to this variable
 		//then assign back to the original table name
@@ -43,14 +43,14 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		//false columnReplaceScript indicates that we will not drop the original column of data
 		String columnReplaceScript = "FALSE";
 		String direction = "long";
-		
+
 		//get the columns
 		//already cleaned to exclude the frame name
 		List<String> columns = getColumns();
-		
+
 		//get the delimiters
 		List<String> delimiters = getDelimiters();
-		
+
 		//throw an error if the number of delimiters doesn't make sense
 		//delimiters must match the number of columns, or just use a single delimiter
 		if ((columns.size() != delimiters.size()) && delimiters.size() != 1) {
@@ -65,7 +65,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 			} else {
 				delimiter = delimiters.get(i);
 			}
-			
+
 			//build the script to execute
 			String script = tempName + " <- cSplit(" + table + ", "
 					+ "\"" + column
@@ -102,19 +102,19 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 			frame.executeRScript(frameReplaceScript);
 			// perform variable cleanup
 			frame.executeRScript("rm(" + tempName + "); gc();");
-			
+
 		}
 		//column header data is changing so we must recreate metadata
 		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private List<String> getDelimiters() {
 		//inputs are passed based on a key
 		//store in a vector of inputs
@@ -131,25 +131,25 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define delimiters");
 	}
-	
+
 	private List<String> getColumns() {
 		//if it was passed based on a key
-			List<String> colInputs = new Vector<String>();
-			GenRowStruct colGRS = this.store.getNoun(COLUMNS_KEY);
-			if (colGRS != null) {
-				int size = colGRS.size();
-				if (size > 0) {
-					for (int i = 0; i < size; i++) {
-						//get each individul column entry and clean 
-						String column = colGRS.get(i).toString();
-						if (column.contains("__")) {
-							column = column.split("__")[1];
-						}
-						colInputs.add(column);
+		List<String> colInputs = new Vector<String>();
+		GenRowStruct colGRS = this.store.getNoun(COLUMNS_KEY);
+		if (colGRS != null) {
+			int size = colGRS.size();
+			if (size > 0) {
+				for (int i = 0; i < size; i++) {
+					//get each individul column entry and clean 
+					String column = colGRS.get(i).toString();
+					if (column.contains("__")) {
+						column = column.split("__")[1];
 					}
-					return colInputs;
+					colInputs.add(column);
 				}
+				return colInputs;
 			}
-			throw new IllegalArgumentException("Need to define columns");
+		}
+		throw new IllegalArgumentException("Need to define columns");
 	}
 }
