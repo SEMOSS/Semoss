@@ -66,7 +66,6 @@ public class InsightScreenshot {
 				layout.getChildren().addAll(browser);
 				Scene scene = new Scene(layout);
 				window.setScene(scene);
-				window.setOnCloseRequest(we -> System.exit(0));
 				window.setOpacity(0);
 				window.show();
 				validStage = true;
