@@ -60,6 +60,11 @@ public class NounStore {
 		nounByNumber.put(nounName+"_"+count, struct);
 	}
 	
+	public int size()
+	{
+		return nounRow.size();
+	}
+	
 	// get the total number of nouns
 	public int getCountForNoun(String nounName)
 	{
