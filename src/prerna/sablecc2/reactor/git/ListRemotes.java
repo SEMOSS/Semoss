@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.git;
 
 import java.util.Hashtable;
 
+import org.apache.log4j.Logger;
+
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -23,13 +25,15 @@ public class ListRemotes extends AbstractReactor {
 	public NounMetadata execute() {
 		// TODO Auto-generated method stub
 		// creates a remote repository
+		Logger logger = getLogger(this.getClass().getName());
+
 		organizeKeys();
-		GitHelper helper = new GitHelper();
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
 		String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]);	
-
+		logger.info("Getting remotes configures on " + dbName);
+		GitHelper helper = new GitHelper();
 
 		Hashtable <String, String> repoList = helper.listConfigRemotes(dbName);
 		

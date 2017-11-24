@@ -26,20 +26,23 @@ public class Sync extends AbstractReactor {
 		try {
 			organizeKeys();
 			
+			logger.info("Starting the synchronization process");
 			GitHelper helper = new GitHelper();
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			//helper.synchronize(baseFolder + "/db/Mv2Git4", "Mv4", userName, password, true);
 
+			logger.info("Initialized the base folder");
 			String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]);	
 			
 			// if nothing is sent it means it is dual
 			boolean dual = !keyValue.containsKey(keysToGet[4]);
 			
 			// if it is null or true dont worry
-
+			logger.info("Synchronizing now");
 			Hashtable <String, List<String>> filesChanged = helper.synchronize(dbName, keyValue.get(keysToGet[1]), keyValue.get(keysToGet[2]), keyValue.get(keysToGet[3]), dual);
-			
-			StringBuffer output = new StringBuffer("SUCCESS \n");
+
+			logger.info("Synchronize Complete");
+			StringBuffer output = new StringBuffer("SUCCESS >> ");
 			output.append("ADDED : ");
 			if(filesChanged.containsKey("ADD"))
 				output.append(filesChanged.get("ADD").size());
@@ -61,10 +64,12 @@ public class Sync extends AbstractReactor {
 			else
 				output.append("0");
 
+			logger.info("Indexing your changes");
+
 			// need something to add these files to  SOLR
 			// Process to Solr (filesChanged)
 			// removing the files or reindexing the files etc. 
-
+			logger.info("Index Complete");
 			
 			return new NounMetadata(output.toString(), PixelDataType.CONST_STRING);
 

@@ -26,14 +26,22 @@ public class Version extends AbstractReactor {
 		organizeKeys();
 		
 		Logger logger = getLogger(this.getClass().getName());
-		GitHelper helper = new GitHelper();
 		try {
+			
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			String dbName = baseFolder + "/" + keyValue.get(keysToGet[0]);	
+			logger.info("Converting " + dbName + " to a versionable app");
 			
+			logger.info("Checking to see if it is already versioned");
+			
+			GitHelper helper = new GitHelper();
+
 			if(helper.checkLocalRepository(dbName))
 				helper.makeLocalRepository(dbName);
+			logger.info("Creating initial version");
 			helper.commitAll(dbName, true);
+			logger.info("Complete");
+
 		} catch (GitAPIException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
