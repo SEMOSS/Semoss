@@ -53,6 +53,29 @@ public abstract class AbstractReactor implements IReactor {
 	
 	protected String jobId;
 	
+	public String [] keysToGet = {"username", "password"};
+	public Hashtable <String, String> keyValue = new Hashtable<String, String>();
+
+	// convenience method to allow order or named noun
+	public void organizeKeys()
+	{
+		if(this.getNounStore().size() > 1)
+		{
+			for(int keyIndex = 0;keyIndex < keysToGet.length;keyIndex++)
+			{
+				String nounValue = this.getNounStore().getNoun(keysToGet[keyIndex]).get(0) + "";
+				keyValue.put(keysToGet[keyIndex], nounValue);
+			}
+		}
+		else
+		{
+			GenRowStruct struct = this.getCurRow();
+			for(int keyIndex = 0;keyIndex < keysToGet.length && keyIndex < struct.size();keyIndex++)
+				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
+		}
+	}
+
+	
 	@Override
 	public void setPixel(String operation, String fullOperation) {
 		this.operationName = operation;
