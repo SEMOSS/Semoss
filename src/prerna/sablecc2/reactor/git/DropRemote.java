@@ -14,7 +14,7 @@ public class DropRemote extends AbstractReactor {
 	
 	public DropRemote()
 	{
-		this.keysToGet = new String[]{"remoteapp", "app"};;
+		this.keysToGet = new String[]{"remoteapp", "app"};
 
 	}
 	
@@ -29,7 +29,7 @@ public class DropRemote extends AbstractReactor {
 
 		String dbName = baseFolder + "/" + keyValue.get(keysToGet[0]);	
 
-		helper.removeRemote(dbName, keyValue.get("remoteapp"));
+		helper.removeRemote(dbName, keyValue.get(keysToGet[1]));
 		
 		return new NounMetadata("Success", PixelDataType.CONST_STRING);
 	}
