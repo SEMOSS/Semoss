@@ -453,6 +453,15 @@ public class ReactorFactory {
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
 		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
+		
+		// Git it
+		reactorHash.put("Version", prerna.sablecc2.reactor.git.Version.class);
+		reactorHash.put("ListRepo", prerna.sablecc2.reactor.git.List4User.class);
+		reactorHash.put("ListRemote", prerna.sablecc2.reactor.git.ListRemotes.class);
+		reactorHash.put("Sync", prerna.sablecc2.reactor.git.Sync.class);
+		reactorHash.put("Drop", prerna.sablecc2.reactor.git.DropRemote.class);
+		reactorHash.put("Copy", prerna.sablecc2.reactor.git.Replicate.class);
+		reactorHash.put("App", prerna.sablecc2.reactor.git.MakeApp.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {

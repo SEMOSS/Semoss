@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,9 +15,9 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
@@ -161,8 +162,9 @@ public class GitHelper {
 		  return returnVal;
 	}
 	
-	public void listRemotes(String username, String password)
+	public Vector<String> listRemotes(String username, String password)
 	{
+		Vector <String> remoteRepos = new Vector<String>();
 		// right now assumes the username is the directory
 		GitHubClient client = new GitHubClient();
 		client = client.createClient("https://github.com");
@@ -175,6 +177,7 @@ public class GitHelper {
 			for(int repIndex = 0;repIndex < repList.size();repIndex++)
 			{
 				System.out.println(" Name of Repository " + repList.get(repIndex).getName());
+				remoteRepos.add(repList.get(repIndex).getName());
 			}
 			
 		} catch (IOException e) {
@@ -182,6 +185,7 @@ public class GitHelper {
 			e.printStackTrace();
 		}
 		
+		return remoteRepos;
 	}
 
 	
@@ -400,70 +404,75 @@ public class GitHelper {
 			Git thisGit = Git.open(new File(localRepository));
 			
 			CheckoutCommand cc = thisGit.checkout();
+			Ref startRef = thisGit.getRepository().findRef(startPoint);
+
 			cc.setName(startPoint);
 			cc.setCreateBranch(false); // probably not needed, just to make sure
-			cc.call(); 
+			if(startRef != null)
+				cc.call(); 
 			
 			MergeCommand mc = thisGit.merge();
 			Ref ref = thisGit.getRepository().findRef(branchName);
-			mc.include(ref);
-			
-			MergeResult res = mc.call(); 
-			boolean retBoolean = true;
-			
-			if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
-				   System.out.println(res.getConflicts().toString());
-				   retBoolean = false;
-				   Iterator <String> files = res.getConflicts().keySet().iterator();
-				   Vector <String> delFiles = new Vector<String>();
-				   while(files.hasNext())
-				   {
-					   String thisFile = files.next();
-					   System.out.println("File is" + thisFile);
-					   if(!delFiles.contains(thisFile))
-						   delFiles.add(thisFile);
-				   }
-				   // inform the user he has to handle the conflicts
-				   if(numAttempts < maxAttempts)
-				   {
-						wipeFiles(delFiles);
-						commitAll(localRepository, true);
-						numAttempts++;
-						// I will attempt this just one more time to merge
-						merge(localRepository, startPoint, branchName, numAttempts, maxAttempts);
-				   }
-			}			
-		} catch (NoFilepatternException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoHeadException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoMessageException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnmergedPathsException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ConcurrentRefUpdateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (WrongRepositoryStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (AbortedByHookException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			if(ref != null && startRef != null)
+			{
+				mc.include(ref);
+				
+				MergeResult res = mc.call(); 
+				boolean retBoolean = true;
+				
+				if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING))
+				{
+					   System.out.println(res.getConflicts().toString());
+					   retBoolean = false;
+					   Iterator <String> files = res.getConflicts().keySet().iterator();
+					   Vector <String> delFiles = new Vector<String>();
+					   while(files.hasNext())
+					   {
+						   String thisFile = files.next();
+						   System.out.println("File is" + thisFile);
+						   if(!delFiles.contains(thisFile))
+							   delFiles.add(thisFile);
+					   }
+					   // inform the user he has to handle the conflicts
+					   if(numAttempts < maxAttempts)
+					   {
+							wipeFiles(delFiles);
+							commitAll(localRepository, true);
+							numAttempts++;
+							// I will attempt this just one more time to merge
+							merge(localRepository, startPoint, branchName, numAttempts, maxAttempts);
+					   }
+				}			
+			}
+			} catch (NoFilepatternException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoHeadException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoMessageException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnmergedPathsException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ConcurrentRefUpdateException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (WrongRepositoryStateException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (AbortedByHookException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (GitAPIException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 	}
-	
-	
 	public void wipeFiles(Vector <String> filesToWipe)
 	{
 		for(int fileIndex = 0;fileIndex < filesToWipe.size();fileIndex++)
@@ -500,7 +509,7 @@ public class GitHelper {
 		}
 	}	
 	
-	public void listConfigRemotes(String localRepositoryName)
+	public Hashtable<String, String> listConfigRemotes(String localRepositoryName)
 	{
 		// for every URL it says if it is DUAL or PUBLISH or SUBSCRIBE
 		
@@ -533,6 +542,8 @@ public class GitHelper {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		return retHash;
 	}
 	
 	public void addRemote(String localRepository, String repositoryName, String userName) 
@@ -550,6 +561,18 @@ public class GitHelper {
 		try {
 			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
 			config.setString("remote", repositoryName , "url", "https://github.com/" + userName + "/" + repositoryName);
+			config.save();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void removeRemote(String localRepository, String repositoryName) 
+	{
+		try {
+			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+			config.unsetSection("remote", repositoryName);
 			config.save();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -642,6 +665,7 @@ public class GitHelper {
 		// make the repo
 		addRemote(remoteRepositoryName, remoteRepositoryName, userName);
 		
+		
 		// fetch from it
 		fetchRemote(remoteRepositoryName, remoteRepositoryName, userName, password);
 		
@@ -658,6 +682,48 @@ public class GitHelper {
 		{
 			//Files.copy
 		}
+	}
+	
+	public void removeAllIgnore(String localRepository)
+	{
+		try
+		{
+			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+	
+			config.setString("core", null, "sparseCheckout", "false");
+			config.save();
+		}catch(Exception ex)
+		{
+			
+		}
+	}
+	
+	public void addFilesToIgnore(String localRepository, String [] files)
+	{
+		try {
+			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+
+			config.setString("core", null, "sparseCheckout", "true");
+			config.save();
+			
+			File myNewFile = new File(localRepository + "\\.git\\info"); //\\sparse-checkout");
+			if(!myNewFile.exists())
+				myNewFile.mkdir();
+			File myFile2 = new File(localRepository + "\\.git\\info\\sparse-checkout");
+			
+			PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(myFile2)));
+			pw.println("/*");
+			for(int fileIndex = 0; fileIndex <= files.length;fileIndex++)
+				pw.println("!"+files[fileIndex]);
+			pw.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 	
 	// add files for checkout
@@ -912,10 +978,10 @@ public class GitHelper {
 		return prefixString + " <d>" + dateFormat.format(date);
 	}	
 
-	public Hashtable getFilesToAdd(String dir, String baseRepo, String newRepo)
+	public Hashtable <String, List<String>> getFilesToAdd(String dir, String baseRepo, String newRepo)
 	{
 		// this assumes that you have run a fetch
-		Hashtable finalHash = new Hashtable();
+		Hashtable <String, List<String>> finalHash = new Hashtable();
 		
 		// I need to update the remote first
 		// https://stackoverflow.com/questions/3258243/check-if-pull-needed-in-git
@@ -934,18 +1000,21 @@ public class GitHelper {
 			List <String> addFiles = new Vector<String>();
 			List <String> modFiles = new Vector<String>();
 			List <String> renFiles = new Vector<String>();
+			List <String> delFiles = new Vector<String>();
 			for (DiffEntry entry : diff) {
 			    System.out.println("Entry: " + entry);
 			    System.out.println("File : " + entry.getNewPath());
 			    System.out.println("File : " + entry.getOldId());
 			    System.out.println("File : " + entry.getNewId());
-			    String fileName = entry.getNewPath();
-			    if(entry.getChangeType() == ChangeType.ADD && fileName.endsWith(".insight"))
+			    String fileName = entry.getNewPath(); 
+			    if(entry.getChangeType() == ChangeType.ADD)
 			    	addFiles.add(fileName);
-			    if(entry.getChangeType() == ChangeType.MODIFY && fileName.endsWith(".insight"))
+			    if(entry.getChangeType() == ChangeType.MODIFY)
 			    	modFiles.add(fileName);
-			    if(entry.getChangeType() == ChangeType.RENAME && fileName.endsWith(".insight"))
+			    if(entry.getChangeType() == ChangeType.RENAME)
 			    	renFiles.add(fileName);
+			    if(entry.getChangeType() == ChangeType.DELETE)
+			    	delFiles.add(fileName);
 			}
 			if(addFiles.size() > 0)
 				finalHash.put("ADD", addFiles);
@@ -953,6 +1022,8 @@ public class GitHelper {
 				finalHash.put("MOD", modFiles);
 			if(renFiles.size() > 0)
 				finalHash.put("REN", renFiles);
+			if(delFiles.size() > 0)
+				finalHash.put("DEL", delFiles);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1213,10 +1284,51 @@ public class GitHelper {
 		return;
 	}
 	
+	private void moveSMSSToDB(String baseFolder, String appName)
+	{
+		
+		String fileName = baseFolder + "/db/" + appName;
+		
+		File dir = new File(fileName);
+		String targetDir = baseFolder + "/db";
+		FileFilter fileFilter = new WildcardFileFilter("*.smss");
+		 File[] files = dir.listFiles(fileFilter);
+		 for (int i = 0; i < files.length; i++) {
+		   try {
+			FileUtils.copyFileToDirectory(files[i], new File(targetDir));
+			
+			// in reality there may be other things we need to do
+			//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		 }
+	}
+
+	private void moveDBToSMSS(String baseFolder, String appName, String smssName)
+	{
+		
+		String fileName = baseFolder + "/db/" + smssName;
+
+		File srcFile = new File(fileName);
+		if(srcFile.exists())
+		{
+			File dir = new File(fileName);
+			String targetDir = baseFolder + "/db/" + appName;
+			   try {
+				FileUtils.copyFileToDirectory(new File(fileName), new File(targetDir));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
 	// usecase 1 you are starting from a remote repository app
 	// your name for app - will be the db folder
 	// appname will be the name of the remote
-	public void setupRepoFromApp(String baseFolder, String yourName4App, String appName, String remoteRepo)
+	public void makeAppFromRemote(String baseFolder, String yourName4App, String appName)
 	{
 		// get to the base folder
 		// create directory one with the your name for app 
@@ -1225,17 +1337,44 @@ public class GitHelper {
 		// pull the app
 		// since this is the first time nothing to diff
 		String appInstanceName = Utility.getInstanceName(appName);
-		String dbName = baseFolder + "/" + yourName4App;
+		String dbName = baseFolder + "/db/" + yourName4App;
 		try {
-			if(!checkLocalRepository(baseFolder))
+			if(!checkLocalRepository(dbName))
 			{
-				makeLocalRepository(baseFolder + "/" + appInstanceName);
+				makeLocalRepository(dbName);
+				// need to have the master
+				semossInit(dbName);
+				commitAll(dbName, true);
 				addRemote(dbName, appName, false);
+				
 			}
 			else
 			{
 				// need to throw exception to say the app name exists, need to give a different app name
 			}
+			// I dont need to do that since I will manually move it 
+			// so no ignore files
+			/*
+			String [] filesToIgnore = {"*.smss"};
+			
+			addFilesToIgnore(dbName, filesToIgnore);
+			
+			// get everything
+			fetchRemote(dbName, appName);
+			
+			// now that if we have everything remove ignore and pull again
+			removeAllIgnore(dbName);
+			*/
+			
+			// get everything
+			fetchRemote(dbName, appInstanceName);
+
+			// merge
+			merge(dbName, "master", appInstanceName + "/master");
+
+			// move the smss to the db folder
+			moveSMSSToDB(baseFolder, yourName4App );
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1248,17 +1387,28 @@ public class GitHelper {
 	// usecase 2 - you are starting locally and then establishing a remote repository for the same
 	// this is same as connect DB
 	// remote says if I should check the remote to see if I can parallely make one
-	public void makeApp(String baseFolder, String appName, boolean remote, String userName, String password)
+	public void makeRemoteFromApp(String baseFolder, String appName, String remoteAppName, boolean remote, String userName, String password)
 	{
 		// get to the base folder
 		// create directory one with the your name for app 
 		// git init
 		// create the remote repository
-		String dbName = baseFolder + "/" + appName;
-		
+		String dbName = baseFolder + "/db/" + appName;
 		
 		try {
-			if(checkRemoteRepository(appName, userName, password))
+			initDir(dbName);
+		} catch (Exception e1) 
+		{
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		moveDBToSMSS(baseFolder, appName, appName + ".smss" );
+	
+		commitAll(dbName, true);
+		
+		try {
+			if(checkRemoteRepository(remoteAppName, userName, password))
 			{
 				if(!remote)
 				{
@@ -1266,71 +1416,92 @@ public class GitHelper {
 					return;
 				}
 			}
-			makeRemoteRepository(appName, userName, password);
+			else
+				makeRemoteRepository(remoteAppName, userName, password);
 			
 			// this will assume that everything is fine
 			// as in this is being done for the first time and synchronize to the remote
 
-			initDir(dbName);
 			
+			String appRepo = "https://github.com/" + userName + "/" + remoteAppName;
 			// now add the remote
-			addRemote(dbName, appName, true);
+			addRemote(dbName, appRepo, true);
+
+			/*
+			String [] filesToIgnore = {"*.smss"};
+			
+			addFilesToIgnore(dbName, filesToIgnore);
 			
 			// get everything
 			fetchRemote(dbName, appName);
 			
+			// now that if we have everything remove ignore and pull again
+			removeAllIgnore(dbName);
+
+			*/
+			// get everything
+			fetchRemote(dbName, remoteAppName);
 			// check to see if there are conflicts
 			
 			// merge everything
-			merge(dbName, "master", appName + "/master");
+			merge(dbName, "master", remoteAppName + "/master");
 			
 			// push it back
-			pushRemote(dbName, appName);
+			pushRemote(dbName, remoteAppName);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
 	}
 	
-	// usecase 3 - you are synchronizing the app
-	public void fetchApp(String baseFolder, String dbName, String remoteAppName)
+	// gives you back the new files
+	// the key is ADD, MOD, REN, DEL
+	public Hashtable<String, List<String>> synchronize(String localAppName, String remoteAppName, String username, String password, boolean dual)
 	{
+
+		// already happened once so I will not do this again
+		
 		// get everything
-		fetchRemote(dbName, remoteAppName);
+		fetchRemote(localAppName, remoteAppName);
+		
+		// need to get a list of files to process
+		String thisMaster = "refs/heads/master";
+		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
+		Hashtable <String, List<String>> files = getFilesToAdd(localAppName, thisMaster, remoteMaster);
+		
+		// need something that will process files for SOLR
 		
 		// check to see if there are conflicts
+		// it is now done as part of merge
+		// merge everything
+		merge(localAppName, "master", remoteAppName + "/master");
+		
+		// push it back
+		if(dual)
+		pushRemote(localAppName, remoteAppName);
 		
 		
+		return files;
 	}
+	
 
-	// usecase 4 - publish your changes to remote repository
-	public void publishApp(String baseFolder, String appName, String userName, String password)
-	{
-		String dbName = baseFolder + "/" + appName;
-		
-		try {
-			makeRemoteRepository(appName, userName, password);
-			// making it for the first time
-			// if it already exists nothing can be done
-			pushRemote(dbName, appName);
-			
-		}catch (Exception ex)
-		{
-			
-		}
-	}
 	
 	public static void main(String [] args) throws Exception
 	{
 		GitHelper helper = new GitHelper();
 		String userName = "prabhuk12";
-		String password = "you need to use your password and username";
+		String password = "g2thub123";
 		
 		helper.listRemotes(userName, password);
 		
+		String baseFolder = "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossWeb";
+		
+		String appName = "https://github.com/prabhuk12/Mv2";
+		
+		//helper.makeRemoteFromApp(baseFolder, "Mv2", "Mv2", true, userName, password);
+		//helper.makeAppFromRemote(baseFolder, "MvGit", appName);
+		helper.synchronize(baseFolder + "/db/Mv2Git4", "Mv4", userName, password, true);
 		
 		String dir = "C:\\Users\\pkapaleeswaran\\workspacej3\\git\\NTrial3";
 		helper.getVersions(dir);
