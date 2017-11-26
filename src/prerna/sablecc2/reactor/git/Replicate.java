@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.git;
 
+import java.io.StringWriter;
+
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
@@ -39,8 +41,13 @@ public class Replicate extends AbstractReactor {
 		helper.makeAppFromRemote(baseFolder, dbName, keyValue.get(keysToGet[0]));
 
 		logger.info("Copy Complete");
+		
+		StringWriter sw = new StringWriter();
+		
+		sw.write("Success \n Repository At: " + dbName ); 
+		
 
-		return new NounMetadata("Success", PixelDataType.CONST_STRING);
+		return new NounMetadata(sw.getBuffer().toString(), PixelDataType.CONST_STRING);
 	}
 
 }

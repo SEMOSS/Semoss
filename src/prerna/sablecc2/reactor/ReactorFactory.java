@@ -462,6 +462,10 @@ public class ReactorFactory {
 		reactorHash.put("Drop", prerna.sablecc2.reactor.git.DropRemote.class);
 		reactorHash.put("Copy", prerna.sablecc2.reactor.git.Replicate.class);
 		reactorHash.put("App", prerna.sablecc2.reactor.git.MakeApp.class);
+		reactorHash.put("SearchTeam", prerna.sablecc2.reactor.git.SearchCollaborator.class);
+		reactorHash.put("Add", prerna.sablecc2.reactor.git.AddCollaborator.class);
+		reactorHash.put("Remove", prerna.sablecc2.reactor.git.RemoveCollaborator.class);
+		reactorHash.put("ListTeam", prerna.sablecc2.reactor.git.ListRepoCollabs.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
