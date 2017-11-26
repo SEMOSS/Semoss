@@ -42,7 +42,7 @@ public class Sync extends AbstractReactor {
 			Hashtable <String, List<String>> filesChanged = helper.synchronize(dbName, keyValue.get(keysToGet[1]), keyValue.get(keysToGet[2]), keyValue.get(keysToGet[3]), dual);
 
 			logger.info("Synchronize Complete");
-			StringBuffer output = new StringBuffer("SUCCESS >> ");
+			StringBuffer output = new StringBuffer("SUCCESS \r\n ");
 			output.append("ADDED : ");
 			if(filesChanged.containsKey("ADD"))
 				output.append(filesChanged.get("ADD").size());
