@@ -62,6 +62,7 @@ import org.kohsuke.github.GHCreateRepositoryBuilder;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.PagedIterator;
 
 public class GitHelper {
 	
@@ -859,7 +860,6 @@ public class GitHelper {
 	{
 		try {
 			GitHub gh = GitHub.connectUsingPassword(userName, password);
-			
 			GHRepository ghr = gh.getRepository(userName + "/" + remoteRepositoryName);
 			
 			Collection <GHUser> collabs = new Vector<GHUser>();
@@ -871,6 +871,53 @@ public class GitHelper {
 		}
 		//ghr.removeCollaborators(collabs);
 
+	}
+	
+	public Hashtable <String, String> searchUsers(String query, String userName, String password)
+	{
+		Hashtable <String, String> userHash = new Hashtable<String, String>();
+		try {
+			GitHub gh = GitHub.connectUsingPassword(userName, password);
+			PagedIterator <GHUser> users = gh.searchUsers().q(query).list().iterator();
+			
+			for(int userIndex = 0;users.hasNext() && userIndex < 10;userIndex++)
+			{
+				GHUser user = users.next();
+				String id = user.getLogin();
+				String name = user.getName();
+				name = name + ", Followers : " + user.getFollowersCount();
+				name = name + ", Repositories : " + user.getRepositories().size();
+				
+				userHash.put(id,  name);
+			}
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return userHash;
+	}
+	
+	public Vector<String> listCollaborators(String repo, String userName, String password)
+	{
+		Vector <String> collabVector = new Vector<String>(); 
+		try {
+			GitHub gh = GitHub.connectUsingPassword(userName, password);
+			GHRepository ghr = gh.getRepository(userName + "/" + repo);
+			Iterator <String> collabNames = ghr.getCollaboratorNames().iterator();
+			
+			while(collabNames.hasNext())
+			{
+				collabVector.add(collabNames.next());
+			}
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return collabVector;
 	}
 
 	public void removeCollaborator(String remoteRepositoryName, String userName, String password, String collaborator)
@@ -1343,8 +1390,8 @@ public class GitHelper {
 			{
 				makeLocalRepository(dbName);
 				// need to have the master
-				semossInit(dbName);
-				commitAll(dbName, true);
+				//semossInit(dbName);
+				//commitAll(dbName, true);
 				addRemote(dbName, appName, false);
 				
 			}
@@ -1493,12 +1540,15 @@ public class GitHelper {
 		String userName = "prabhuk12";
 		String password = "g2thub123";
 		
-		helper.listRemotes(userName, password);
+		
+		
+		//helper.listRemotes(userName, password);
 		
 		String baseFolder = "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossWeb";
 		
 		String appName = "https://github.com/prabhuk12/Mv2";
 		
+		helper.removeRemote(baseFolder + "/db/Mv2Git4", "Mv4");
 		//helper.makeRemoteFromApp(baseFolder, "Mv2", "Mv2", true, userName, password);
 		//helper.makeAppFromRemote(baseFolder, "MvGit", appName);
 		helper.synchronize(baseFolder + "/db/Mv2Git4", "Mv4", userName, password, true);
