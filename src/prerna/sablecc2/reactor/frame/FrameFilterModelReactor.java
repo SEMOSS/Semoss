@@ -184,7 +184,15 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		retMap.put("filterValues", filterValues);
 
 		// for numerical, also add the min/max
-		if(IMetaData.DATA_TYPES.NUMBER == dataframe.getMetaData().getHeaderTypeAsEnum(tableCol, tableName)) {
+		String alias = tableName;
+		if(!column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+			alias += "__" + column;
+		}
+		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
+		if(metaName == null) {
+			metaName = alias;
+		}
+		if(IMetaData.DATA_TYPES.NUMBER == dataframe.getMetaData().getHeaderTypeAsEnum(metaName)) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			innerSelector.setTable(tableName);
 			innerSelector.setColumn(column);
