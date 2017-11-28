@@ -192,7 +192,7 @@ public class ReactorFactory {
 	public static Map<String, Class> h2FrameHash;
 	public static Map<String, Class> tinkerFrameHash;
 	public static Map<String, Class> nativeFrameHash;
-	public static final String baseFolder = "C:\\Users\\rramirezjimenez\\dev\\Semoss";
+	public static final String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");	
 	public static final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
 	public static final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
 	public static final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
