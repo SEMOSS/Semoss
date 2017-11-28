@@ -6,6 +6,7 @@ DescriptiveStats prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor
 DropColumn prerna.sablecc2.reactor.frame.r.DropColumnReactor
 DropRows prerna.sablecc2.reactor.frame.r.DropRowsReactor
 ExtractLetters prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor
+ExtractNumbers prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor
 Histogram prerna.sablecc2.reactor.frame.r.HistogramReactor
 JoinColumns prerna.sablecc2.reactor.frame.r.JoinColumnsReactor
 Pivot prerna.sablecc2.reactor.frame.r.PivotReactor

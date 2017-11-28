@@ -192,7 +192,7 @@ public class ReactorFactory {
 	public static Map<String, Class> h2FrameHash;
 	public static Map<String, Class> tinkerFrameHash;
 	public static Map<String, Class> nativeFrameHash;
-	public static final String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+	public static final String baseFolder = "C:\\Users\\rramirezjimenez\\dev\\Semoss";
 	public static final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
 	public static final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
 	public static final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
@@ -487,6 +487,7 @@ public class ReactorFactory {
 		h2FrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.rdbms.DropColumnReactor.class);
 		h2FrameHash.put("DropRows", prerna.sablecc2.reactor.frame.rdbms.DropRowsReactor.class);
 		h2FrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.rdbms.ExtractAlphaCharsReactor.class);
+		h2FrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.rdbms.ExtractNumbersReactor.class);
 		h2FrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.rdbms.JoinColumnsReactor.class);
 		h2FrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.rdbms.RenameColumnReactor.class);
 		h2FrameHash.put("SortColumn", prerna.sablecc2.reactor.frame.rdbms.SortColumnReactor.class);
@@ -503,6 +504,7 @@ public class ReactorFactory {
 		rFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.r.DropColumnReactor.class);
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
 		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor.class);
+		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);
 		rFrameHash.put("Pivot", prerna.sablecc2.reactor.frame.r.PivotReactor.class);
 		rFrameHash.put("RegexReplaceColumnValue", prerna.sablecc2.reactor.frame.r.RegexReplaceColumnValueReactor.class);
