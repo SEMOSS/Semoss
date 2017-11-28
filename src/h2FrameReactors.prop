@@ -4,6 +4,7 @@ CountIf prerna.sablecc2.reactor.frame.rdbms.CountIfReactor
 DropColumn prerna.sablecc2.reactor.frame.rdbms.DropColumnReactor
 DropRows prerna.sablecc2.reactor.frame.rdbms.DropRowsReactor
 ExtractLetters prerna.sablecc2.reactor.frame.rdbms.ExtractAlphaCharsReactor
+ExtractNumbers prerna.sablecc2.reactor.frame.rdbms.ExtractNumbersReactor
 JoinColumns prerna.sablecc2.reactor.frame.rdbms.JoinColumnsReactor
 RenameColumn prerna.sablecc2.reactor.frame.rdbms.RenameColumnReactor
 SortColumn prerna.sablecc2.reactor.frame.rdbms.SortColumnReactor
