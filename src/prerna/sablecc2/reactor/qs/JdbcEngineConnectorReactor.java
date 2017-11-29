@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.QueryStruct2;
@@ -31,7 +32,16 @@ public class JdbcEngineConnectorReactor extends QueryStructReactor {
 			throw new IllegalArgumentException(e1.getMessage());
 		}
 		
-		RDBMSNativeEngine fakeEngine = new RDBMSNativeEngine();
+		//TODO: design pattern for this
+		//TODO: design pattern for this
+		//TODO: design pattern for this
+		//TODO: design pattern for this
+		RDBMSNativeEngine fakeEngine = null;
+		if(driver.toLowerCase().contains("impala")) {
+			fakeEngine = new ImpalaEngine();
+		} else {
+			fakeEngine = new RDBMSNativeEngine();
+		}
 		fakeEngine.setEngineName("FAKE_ENGINE");
 		fakeEngine.setConnection(con);
 		fakeEngine.setBasic(true);
