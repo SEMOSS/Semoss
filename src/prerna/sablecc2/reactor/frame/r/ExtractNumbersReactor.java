@@ -31,8 +31,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column
-						+ "));";
+				String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
 				try {
 					frame.executeRScript(script);
 					frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, "NUMBER");
@@ -47,7 +46,8 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
 				String update = table + "$" + newColumn + " <- " + table + "$" + column + ";";
-				update += table + "$" + newColumn + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
+				frame.executeRScript(update);
+				update = table + "$" + newColumn + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
 				frame.executeRScript(update);
 				metaData.addProperty(table, table + "__" + newColumn);
 				metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
