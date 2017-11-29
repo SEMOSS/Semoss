@@ -107,8 +107,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 					dataTypeMap = dataTypeMapList.get(i); 
 				}
 				// note that the csvHelper gets created in processTable
-				//processTable(fileName, dataTypeMap);
-				processTable(fileName, null);
+				processTable(fileName, dataTypeMap);
 			}
 			// add indexes for faster searching
 			addIndexes();
