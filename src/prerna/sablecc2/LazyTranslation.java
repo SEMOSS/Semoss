@@ -30,6 +30,7 @@ import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AGeneric;
+import prerna.sablecc2.node.AHelpExpr;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
 import prerna.sablecc2.node.AJavaOp;
@@ -122,11 +123,22 @@ public class LazyTranslation extends DepthFirstAdapter {
         	}
         }
 	}
+
+	@Override
+	public void inAHelpExpr(AHelpExpr node) {
+		String reactorId = node.getId().getText();
+		IReactor reactor = getReactor(reactorId, node.toString());
+		NounMetadata noun = new NounMetadata(reactor.getHelp(), PixelDataType.CONST_STRING);
+		if(curReactor == null) {
+			this.planner.addVariable("$RESULT", noun);
+		} else {
+			curReactor.getCurRow().add(noun);
+		}
+	};
 	
 	@Override
 	public void inAOutputRoutine(AOutputRoutine node) {
 		defaultIn(node);
-		this.isMeta = false;
 	}
 	
 	@Override
