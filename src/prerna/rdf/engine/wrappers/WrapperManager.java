@@ -28,7 +28,6 @@
 package prerna.rdf.engine.wrappers;
 
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrQuery;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerHeadersDataRowIterator2;
@@ -36,10 +35,8 @@ import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.solr.RawSolrSelectWrapper;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
-import prerna.engine.impl.tinker.RawTinkerSelectWrapper;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
@@ -86,6 +83,10 @@ public class WrapperManager {
 		}
 		case RDBMS : {
 			returnWrapper = new RawRDBMSSelectWrapper();
+			break;
+		}
+		case IMPALA : {
+			returnWrapper = new RawImpalaSelectWrapper(qs);
 			break;
 		}
 //		case SEMOSS_SESAME_REMOTE : {
@@ -158,6 +159,10 @@ public class WrapperManager {
 			returnWrapper = new RawRDBMSSelectWrapper();
 			break;
 		}
+		case IMPALA : {
+			returnWrapper = new RawImpalaSelectWrapper();
+			break;
+		}
 //		case SEMOSS_SESAME_REMOTE : {
 //			//TODO: need to build out RemoteSesameSelectWrapper
 //			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
@@ -168,10 +173,10 @@ public class WrapperManager {
 //			returnWrapper = new RemoteSesameSelectWrapper();
 //			break;
 //		}
-		case TINKER : {
-			returnWrapper = new RawTinkerSelectWrapper();
-			break;
-		}
+//		case TINKER : {
+//			returnWrapper = new RawTinkerSelectWrapper();
+//			break;
+//		}
 		default: {
 
 		}
@@ -212,15 +217,15 @@ public class WrapperManager {
 			returnWrapper = new RemoteSesameSelectWrapper();
 			break;
 		}
-		case TINKER : {
-			genQueryString = false;
-			returnWrapper = new RawTinkerSelectWrapper();
-			break;
-		}
-		case SOLR : {
-			genQueryString = false;
-			returnWrapper = new RawSolrSelectWrapper();
-		}
+//		case TINKER : {
+//			genQueryString = false;
+//			returnWrapper = new RawTinkerSelectWrapper();
+//			break;
+//		}
+//		case SOLR : {
+//			genQueryString = false;
+//			returnWrapper = new RawSolrSelectWrapper();
+//		}
 		default: {
 
 		}
@@ -236,7 +241,7 @@ public class WrapperManager {
 			returnWrapper.execute();
 		} else {
 			returnWrapper.setEngine(engine);
-			returnWrapper.setQueryStruct(qs);
+//			returnWrapper.setQueryStruct(qs);
 			returnWrapper.execute();
 		}
 
