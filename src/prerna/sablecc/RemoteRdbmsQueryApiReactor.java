@@ -7,9 +7,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
-import prerna.ds.TinkerMetaHelper;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -154,8 +152,8 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 		// determine the edge hash
 		// create a prim key
 		String[] headers = it.getDisplayVariables();
-		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
-		this.put("EDGE_HASH", edgeHash);
+//		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
+//		this.put("EDGE_HASH", edgeHash);
 
 		try {
 			ResultSetMetaData meta = it.getMetaData();

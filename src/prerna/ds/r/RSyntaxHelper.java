@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 
 public class RSyntaxHelper {
 
@@ -255,12 +255,12 @@ public class RSyntaxHelper {
 	 * @param dataType			The data type for each entry in the object[]
 	 * @return					String containing the equivalent r column vector
 	 */
-	public static String createRColVec(Object[] row, IMetaData.DATA_TYPES[] dataType) {
+	public static String createRColVec(Object[] row, SemossDataType[] dataType) {
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
 		int size = row.length;
 		for(; i < size; i++) {
-			if(dataType[i] == IMetaData.DATA_TYPES.STRING) {
+			if(dataType[i] == SemossDataType.STRING) {
 				str.append("\"").append(row[i]).append("\"");
 			} else {
 				str.append(row[i]);
@@ -280,16 +280,16 @@ public class RSyntaxHelper {
 	 * @param dataType			The data type for each entry in the object[]
 	 * @return					String containing the equivalent r column vector
 	 */
-	public static String createRColVec(List<Object> row, IMetaData.DATA_TYPES dataType) {
+	public static String createRColVec(List<Object> row, SemossDataType dataType) {
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
 		int size = row.size();
 		for(; i < size; i++) {
-			if(IMetaData.DATA_TYPES.STRING == dataType) {
+			if(SemossDataType.STRING == dataType) {
 				str.append("\"").append(row.get(i)).append("\"");
-			} else if(IMetaData.DATA_TYPES.NUMBER == dataType) {
+			} else if(SemossDataType.NUMBER == dataType) {
 				str.append(row.get(i).toString());
-			} else if(IMetaData.DATA_TYPES.DATE == dataType) {
+			} else if(SemossDataType.DATE == dataType) {
 				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d');");
 			} else {
 				// just in case this is not defined yet...
@@ -313,12 +313,12 @@ public class RSyntaxHelper {
 		return str.toString();
 	}
 
-	public static String formatFilterValue(Object value, IMetaData.DATA_TYPES dataType) {
-		if(IMetaData.DATA_TYPES.STRING == dataType) {
+	public static String formatFilterValue(Object value, SemossDataType dataType) {
+		if(SemossDataType.STRING == dataType) {
 			return "\"" + value + "\"";
-		} else if(IMetaData.DATA_TYPES.NUMBER == dataType) {
+		} else if(SemossDataType.NUMBER == dataType) {
 			return value.toString();
-		} else if(IMetaData.DATA_TYPES.DATE == dataType) {
+		} else if(SemossDataType.DATE == dataType) {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
 		} else {
 			// just in case this is not defined yet...

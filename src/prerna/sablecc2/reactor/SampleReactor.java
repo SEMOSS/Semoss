@@ -4,8 +4,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.GenRowStruct;
@@ -151,12 +151,12 @@ public class SampleReactor extends AbstractReactor {
 			for(int colIndex = 0;colIndex < inputs.size() && frame != null;colIndex++)
 			{
 				String thisCol = inputs.elementAt(colIndex);
-				IMetaData.DATA_TYPES thisType = frame.getMetaData().getHeaderTypeAsEnum(thisCol, null);
-				if(thisType == IMetaData.DATA_TYPES.STRING)
+				SemossDataType thisType = frame.getMetaData().getHeaderTypeAsEnum(thisCol, null);
+				if(thisType == SemossDataType.STRING)
 					method.append("String " + thisCol + " = (String)row.getField(" + thisCol + "); \n");
-				else if(thisType == IMetaData.DATA_TYPES.NUMBER)
+				else if(thisType == SemossDataType.NUMBER)
 					method.append("Double " + thisCol + " = (Double)row.getField(" + thisCol + "); \n");
-				else if(thisType == IMetaData.DATA_TYPES.DATE)
+				else if(thisType == SemossDataType.DATE)
 					method.append("Date " + thisCol + " = (Date)row.getField(" + thisCol + "); \n");					
 			}
 			

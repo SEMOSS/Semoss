@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -26,7 +26,7 @@ import prerna.util.Utility;
 public class RInterpreter2 extends AbstractQueryInterpreter {
 
 	private String dataTableName = null;
-	private Map<String, IMetaData.DATA_TYPES> colDataTypes;
+	private Map<String, SemossDataType> colDataTypes;
 
 	//keep track of the selectors
 	private StringBuilder selectorCriteria = new StringBuilder(); 
@@ -49,7 +49,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			throw new IllegalArgumentException("Please define the table name to use for the r data table query syntax to use");
 		}
 		if(this.colDataTypes == null) {
-			this.colDataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
+			this.colDataTypes = new Hashtable<String, SemossDataType>();
 		}
 
 		// note, that the join info in the QS has no meaning for a R frame as 
@@ -85,7 +85,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		// to output as dates
 		boolean addedColToDateChange = false;
 		for(String column : this.colDataTypes.keySet()) {
-			if(IMetaData.DATA_TYPES.DATE == this.colDataTypes.get(column)) {
+			if(SemossDataType.DATE == this.colDataTypes.get(column)) {
 				if(column.contains("__")) {
 					column = column.split("__")[1];
 				}
@@ -313,11 +313,11 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		boolean multi = false;
 		String myFilterFormatted = null;
 		// format the objects based on the type of the column
-		IMetaData.DATA_TYPES dataType = this.colDataTypes.get(this.dataTableName + "__" + leftColumnName);
+		SemossDataType dataType = this.colDataTypes.get(this.dataTableName + "__" + leftColumnName);
 		if(objects.size() > 1) {
 			multi = true;
 			myFilterFormatted = RSyntaxHelper.createRColVec(objects, dataType);
-		} else if(IMetaData.DATA_TYPES.DATE != dataType) {
+		} else if(SemossDataType.DATE != dataType) {
 			// dont bother doing this if we have a date
 			// since we cannot use "in" with dates
 			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), dataType);
@@ -329,13 +329,13 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		
 		if(multi) {
 			// special processing for date types
-			if(IMetaData.DATA_TYPES.DATE == dataType) {
+			if(SemossDataType.DATE == dataType) {
 				int size = objects.size();
 				if(thisComparator.equals("==")) {
 					filterCriteria.append("(");
 					for (int i = 0; i < size; i++) {
 						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" == ")
-						.append(RSyntaxHelper.formatFilterValue(objects.get(i), IMetaData.DATA_TYPES.DATE));
+						.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 						if ((i+1) < size) {
 							filterCriteria.append(" | ");
 						}
@@ -345,7 +345,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 					filterCriteria.append("(");
 					for (int i = 0; i < size; i++) {
 						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" != ")
-						.append(RSyntaxHelper.formatFilterValue(objects.get(i), IMetaData.DATA_TYPES.DATE));
+						.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 						if ((i+1) < size) {
 							filterCriteria.append(" & ");
 						}
@@ -353,7 +353,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 					filterCriteria.append(")");
 				} else {
 					// this will probably break...
-					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), IMetaData.DATA_TYPES.DATE);
+					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
 					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			} 
@@ -446,7 +446,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		this.dataTableName = dataTableName;
 	}
 
-	public void setColDataTypes(Map<String, IMetaData.DATA_TYPES> colDataTypes) {
+	public void setColDataTypes(Map<String, SemossDataType> colDataTypes) {
 		this.colDataTypes = colDataTypes;
 	}
 
@@ -487,9 +487,9 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		RInterpreter2 rI = new RInterpreter2();
 		rI.setQueryStruct(qsTest);
 
-		Map<String, IMetaData.DATA_TYPES> colDataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
-		colDataTypes.put("Title", IMetaData.DATA_TYPES.STRING);
-		colDataTypes.put("Other2", IMetaData.DATA_TYPES.STRING);
+		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
+		colDataTypes.put("Title", SemossDataType.STRING);
+		colDataTypes.put("Other2", SemossDataType.STRING);
 
 		rI.setColDataTypes(colDataTypes);
 

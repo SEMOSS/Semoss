@@ -10,8 +10,8 @@ import java.util.Vector;
 
 import com.google.gson.internal.StringMap;
 
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.UserPermissionsMasterDB;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
@@ -160,7 +160,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 
 //								DATA_TYPES dataType = frame.getDataType(fromColumn);
 								
-								DATA_TYPES dataType = Utility.convertStringToDataType(meta.getHeaderTypeAsString(fromColumn, null));
+								SemossDataType dataType = SemossDataType.convertStringToDataType(meta.getHeaderTypeAsString(fromColumn, null));
 								// TODO: need to expose this for other things aside from engine
 								IEngine engine = Utility.getEngine(this.engineName);
 								if(engine != null) {
@@ -198,7 +198,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 											eType = eType.replace("TYPE:", "");
 										}
 										
-										DATA_TYPES eDataType = Utility.convertStringToDataType(eType);
+										SemossDataType eDataType = SemossDataType.convertStringToDataType(eType);
 										if(eDataType != dataType) {
 											// this will loop to the next join
 											continue;

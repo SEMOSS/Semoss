@@ -42,7 +42,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import au.com.bytecode.opencsv.CSVReader;
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.algorithm.learning.matching.DomainValues;
 import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -1668,10 +1668,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			colInfo.put("name", cleanConcept);
 			String dataType = engine.getDataTypes(conceptURI);
 			if(dataType != null) {
-				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+				dataType = SemossDataType.convertStringToDataType(dataType).toString();
 			}
 			else {
-				dataType = IMetaData.DATA_TYPES.STRING.toString();
+				dataType = SemossDataType.STRING.toString();
 			}
 			colInfo.put("type", dataType);
 			allCols.add(colInfo);
@@ -1682,12 +1682,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				propInfo.put("name", cleanProp);
 				dataType = engine.getDataTypes(prop);
 				if(dataType != null) {
-					dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
+					dataType = SemossDataType.convertStringToDataType(dataType).toString();
 				}
 				else {
-					dataType = IMetaData.DATA_TYPES.STRING.toString();
+					dataType = SemossDataType.STRING.toString();
 				}
-				dataType = IMetaData.convertToDataTypeEnum(dataType).toString();
 				propInfo.put("type", dataType);
 				allCols.add(propInfo);
 			}
@@ -1775,7 +1774,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		for(int i = 0; i < headers.length; i++) {
 			HashMap<String, String> colDetails = new HashMap<String, String>();
 			colDetails.put("name", headers[i]);
-			String dataType = IMetaData.convertToDataTypeEnum(types[i]).toString();
+			String dataType = SemossDataType.convertStringToDataType(types[i]).toString();
 			colDetails.put("type", dataType);
 			tableDetails.put(headers[i], colDetails);
 		}
