@@ -148,14 +148,22 @@ public class GenRowFilters {
 			}
 			
 			if(recreateFilterCols) {
-				this.filteredColumns.clear();
-				for(QueryFilter filter : this.filterVec) {
-					this.filteredColumns.addAll(filter.getAllUsedColumns());
-				}
+				redetermineFilteredColumns();
 			}
 			return true;
 		} else {
 			return false;
+		}
+	}
+	
+	/**
+	 * Recalculate the filtered columns if an alteration has resulted
+	 * in us not knowing which columns are still filtered and which are not
+	 */
+	public void redetermineFilteredColumns() {
+		this.filteredColumns.clear();
+		for(QueryFilter filter : this.filterVec) {
+			this.filteredColumns.addAll(filter.getAllUsedColumns());
 		}
 	}
 	
