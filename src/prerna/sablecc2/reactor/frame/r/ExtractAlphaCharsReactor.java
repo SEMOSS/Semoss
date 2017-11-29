@@ -47,9 +47,9 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equalsIgnoreCase("STRING")) {
 					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
-					String update = table + "$" + newColumn + " <- " + table + "$" + column + ";";
+					String update = table + "$" + newColumn + " <- \"\";";
 					update += table + "$" + newColumn + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ");";
-					frame.executeRScript(update);
+					this.rJavaTranslator.runR(update);
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(table + "__" + newColumn, "String");
