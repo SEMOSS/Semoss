@@ -203,5 +203,6 @@ public class GreedyTranslation extends LazyTranslation {
 		}
 		curReactor = null;
 		prevReactor = null;
+		this.isMeta = false;
 	}
 }

@@ -153,6 +153,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAHelpExpr(AHelpExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAExprComponentBaseExpr(AExprComponentBaseExpr node)
     {
         defaultCase(node);
@@ -886,6 +892,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTRelType(TRelType node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTHelpToken(THelpToken node)
     {
         defaultCase(node);
     }

@@ -25,6 +25,7 @@ public interface Analysis extends Switch
     void caseAComparisonExpr(AComparisonExpr node);
     void caseAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node);
     void caseAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node);
+    void caseAHelpExpr(AHelpExpr node);
     void caseAExprComponentBaseExpr(AExprComponentBaseExpr node);
     void caseAPlusBaseExpr(APlusBaseExpr node);
     void caseAMinusBaseExpr(AMinusBaseExpr node);
@@ -149,6 +150,7 @@ public interface Analysis extends Switch
     void caseTAsOp(TAsOp node);
     void caseTCustom(TCustom node);
     void caseTRelType(TRelType node);
+    void caseTHelpToken(THelpToken node);
     void caseEOF(EOF node);
     void caseInvalidToken(InvalidToken node);
 }

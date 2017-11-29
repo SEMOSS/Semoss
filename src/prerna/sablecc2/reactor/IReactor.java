@@ -141,6 +141,8 @@ public interface IReactor {
 	void setInsight(Insight insight);
 	
 	Logger getLogger(String name);
+
+	String getHelp();
 	
 	/**
 	 * elements <- Generic Row <- Generic Noun <- Reactor
