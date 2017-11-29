@@ -14,6 +14,7 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 
 public class SolrIterator implements Iterator<IHeadersDataRow> {
+	
 	private SolrDocumentList list = null;
 	private long totalCount = 0;
 	private int returnSize = 0;
@@ -30,7 +31,6 @@ public class SolrIterator implements Iterator<IHeadersDataRow> {
 		this.returnSize = this.list.size();
 	}
 
-	// TODO not sure how i should take into consideration the count...
 	@Override
 	public boolean hasNext() {
 		if (this.curIndex < this.returnSize) {
