@@ -29,7 +29,7 @@ import org.h2.tools.Server;
 
 import com.google.gson.Gson;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.cache.ICache;
 import prerna.ds.RdbmsTableMetaData;
 import prerna.ds.util.RdbmsFrameUtility;
@@ -540,7 +540,7 @@ public class H2Builder2 {
 		}
 	}
 
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, Map<String, SemossDataType> typesMap) {
 		try {
 			// keep a batch size so we dont get heapspace
 			final int batchSize = 5000;
@@ -561,7 +561,7 @@ public class H2Builder2 {
 					// get the data types
 					types = new String[headers.length];
 					for (int i = 0; i < types.length; i++) {
-						types[i] = Utility.convertDataTypeToString(typesMap.get(headers[i]));
+						types[i] = SemossDataType.convertDataTypeToString(typesMap.get(headers[i]));
 					}
 					// alter the table to have the column information if not
 					// already present

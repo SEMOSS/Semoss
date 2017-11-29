@@ -6,8 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -29,7 +29,7 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		String columnName,
 		Double[] maxArr, 
 		Double[] minArr,
-		List<DATA_TYPES> dataTypes,
+		List<SemossDataType> dataTypes,
 		List<String> selectors) {
 		
 		this.frame = frame;

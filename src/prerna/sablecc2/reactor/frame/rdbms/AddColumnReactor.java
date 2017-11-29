@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -8,7 +8,6 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.util.Utility;
 
 public class AddColumnReactor extends AbstractFrameReactor {
 
@@ -30,7 +29,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 		// get new column type or set default to string
 		String dataType = getDataType();
 		// make sql data type
-		dataType = Utility.convertDataTypeToString(IMetaData.convertToDataTypeEnum(dataType));
+		dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
 		if (frame != null) {
 			String update = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
 			try {

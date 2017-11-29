@@ -18,8 +18,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
@@ -139,11 +138,11 @@ public class H2Frame extends AbstractTableDataFrame {
 		addRowsViaIterator(it, this.builder.getTableName(), this.metaData.getHeaderToTypeMap());
 	}
 	
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		addRowsViaIterator(it, this.builder.getTableName(), typesMap);
 	}
 	
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tempTableName, Map<String, DATA_TYPES> types) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tempTableName, Map<String, SemossDataType> types) {
 		long start = System.currentTimeMillis();
 		logger.info("Begin adding new rows into table = " + getTableName());
 		this.builder.addRowsViaIterator(it, tempTableName, types);
@@ -423,7 +422,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, String[] joinCols) {
 		int size = newHeaders.length;
-		IMetaData.DATA_TYPES[] types = new IMetaData.DATA_TYPES[size];
+		SemossDataType[] types = new SemossDataType[size];
 		for (int i = 0; i < newHeaders.length; i++) {
 			types[i] = this.metaData.getHeaderTypeAsEnum(newHeaders[i], this.builder.getTableName());
 		}

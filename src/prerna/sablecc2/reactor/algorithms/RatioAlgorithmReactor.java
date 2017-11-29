@@ -15,8 +15,8 @@ import java.util.Vector;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
@@ -77,9 +77,9 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		this.ratioFrameHeaders[1] = instanceColumnHeader + "_2";
 		this.ratioFrameHeaders[2] = "Ratio";
 
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[2] = IMetaData.DATA_TYPES.NUMBER.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.STRING.toString();
+		dataTypes[2] = SemossDataType.NUMBER.toString();
 
 		int headersIndex = 3;
 		for (int i = 0; i < attributeColumns.size(); i++) {
@@ -90,7 +90,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			} else {
 				this.ratioFrameHeaders[headersIndex] = SCORE_LABEL + attribute;
 			}
-			dataTypes[headersIndex] = IMetaData.DATA_TYPES.NUMBER.toString();
+			dataTypes[headersIndex] = SemossDataType.NUMBER.toString();
 			headersIndex++;
 		}
 		Map<String, Double> weights = getWeights();

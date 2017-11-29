@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -55,10 +55,10 @@ public class H2Importer implements IImporter {
 	 */
 	private void processInsertData() {
 		// get the meta information from the new metadata
-		Map<String, IMetaData.DATA_TYPES> rawDataTypeMap = this.dataframe.getMetaData().getHeaderToTypeMap();
+		Map<String, SemossDataType> rawDataTypeMap = this.dataframe.getMetaData().getHeaderToTypeMap();
 		
 		// TODO: this is annoying, need to get the frame on the same page as the meta
-		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new HashMap<String, IMetaData.DATA_TYPES>();
+		Map<String, SemossDataType> dataTypeMap = new HashMap<String, SemossDataType>();
 		for(String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
@@ -76,7 +76,7 @@ public class H2Importer implements IImporter {
 			int counter = 0;
 			for(String header : dataTypeMap.keySet()) {
 				newHeaders[counter] = header;
-				newTypes[counter] = Utility.convertDataTypeToString(dataTypeMap.get(header));
+				newTypes[counter] = SemossDataType.convertDataTypeToString(dataTypeMap.get(header));
 				counter++;
 			}
 			try {
@@ -113,12 +113,12 @@ public class H2Importer implements IImporter {
 		// we will lose this once we synchronize the frame with the new header info
 		String leftTableName = this.dataframe.getTableName();
 //		testGridData("select * from " + leftTableName);
-		Map<String, IMetaData.DATA_TYPES> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
+		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
 		
 		// define a new temporary table with a random name
 		// we will flush out the iterator into this table
 		String rightTableName = Utility.getRandomString(6);
-		Map<String, IMetaData.DATA_TYPES> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
+		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
 		this.dataframe.addRowsViaIterator(this.it, rightTableName, rightTableTypes);
 		
 		String mergeTable = rightTableName;
@@ -199,12 +199,12 @@ public class H2Importer implements IImporter {
 	private H2Frame performJoin(List<Join> joins) {
 		// need to know the starting headers
 		// we will lose this once we synchronize the frame with the new header info
-		Map<String, IMetaData.DATA_TYPES> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
+		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
 		
 		// define a new temporary table with a random name
 		// we will flush out the iterator into this table
 		String tempTableName = Utility.getRandomString(6);
-		Map<String, IMetaData.DATA_TYPES> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
+		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, rightTableTypes);
 
 		// we will also create a random table name as the return of this operation

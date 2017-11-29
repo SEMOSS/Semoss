@@ -4,7 +4,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.QueryStruct;
 import prerna.poi.main.helper.CSVFileHelper;
 
@@ -21,7 +21,7 @@ public class RCsvFileWrapper {
 	private Map<String, String> newHeaders;
 	
 	// store map of headers to data types
-	private Map<String, IMetaData.DATA_TYPES> dataTypes;
+	private Map<String, SemossDataType> dataTypes;
 	
 	// store the produced query to execute in order to apply
 	// the qs onto the dataframe
@@ -38,13 +38,13 @@ public class RCsvFileWrapper {
 		int size = dataTypeMap.keySet().size();
 		this.headersArr = headerNames.toArray(new String[]{});
 		this.dataTypesArr = new String[size];
-		this.dataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
+		this.dataTypes = new Hashtable<String, SemossDataType>();
 		this.newHeaders = newHeaders;
 		
 		int counter = 0;
 		for(String header : headersArr) {
 			dataTypesArr[counter] = dataTypeMap.get(header);
-			dataTypes.put(header, IMetaData.convertToDataTypeEnum(dataTypesArr[counter]));
+			dataTypes.put(header, SemossDataType.convertStringToDataType(dataTypesArr[counter]));
 			
 			counter++;
 		}
@@ -106,7 +106,7 @@ public class RCsvFileWrapper {
 		return this.dataTypesArr;
 	}
 	
-	public Map<String, IMetaData.DATA_TYPES> getDataTypes() {
+	public Map<String, SemossDataType> getDataTypes() {
 		return this.dataTypes;
 	}
 
