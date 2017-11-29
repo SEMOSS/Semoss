@@ -4,7 +4,7 @@ import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.ImpalaInterpreter;
 
-public class ImpalaEngine extends RDBMSNativeEngine{
+public class ImpalaEngine extends RDBMSNativeEngine {
 
 	public ImpalaEngine() {
 		

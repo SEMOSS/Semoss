@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.GenRowFilters;
@@ -206,10 +206,10 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 		this.builder.mergeFrame(key, newCol);
 	}
 	
-	public String convertDataTypeToString(IMetaData.DATA_TYPES type) {
-		if(type.equals(IMetaData.DATA_TYPES.NUMBER)) { 
+	public String convertDataTypeToString(SemossDataType type) {
+		if(type.equals(SemossDataType.NUMBER)) { 
 			return "double";
-		} else if(type.equals(IMetaData.DATA_TYPES.STRING)) {
+		} else if(type.equals(SemossDataType.STRING)) {
 			return "varchar(800)";
 		} else {
 			return "date";

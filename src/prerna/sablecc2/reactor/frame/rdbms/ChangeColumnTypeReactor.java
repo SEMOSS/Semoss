@@ -2,15 +2,13 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.util.Utility;
 
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 
@@ -64,12 +62,12 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			columnType = "STRING";
 		}
 		// check if data type is supported
-		DATA_TYPES dt = IMetaData.convertToDataTypeEnum(columnType);
+		SemossDataType dt = SemossDataType.convertStringToDataType(columnType);
 		if (dt == null) {
-			dt = DATA_TYPES.STRING;
+			dt = SemossDataType.STRING;
 		}
 		// make sql dataType
-		columnType = Utility.convertDataTypeToString(dt);
+		columnType = SemossDataType.convertDataTypeToString(dt);
 		return columnType;
 	}
 

@@ -10,9 +10,8 @@ import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
@@ -757,7 +756,7 @@ public class ImportUtility {
 
 	// get the data types based on the QueryStruct
 
-	public static Map<String, IMetaData.DATA_TYPES> getTypesFromQs(QueryStruct2 qs) {
+	public static Map<String, SemossDataType> getTypesFromQs(QueryStruct2 qs) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE) {
 			return getMetaDataFromEngineQs(qs);
@@ -775,21 +774,21 @@ public class ImportUtility {
 		}
 	}
 	
-	private static Map<String, DATA_TYPES> getMetaDataFromAlgorithmQs(AlgorithmQueryStruct qs) {
-		Map<String, IMetaData.DATA_TYPES> metaData = new HashMap<String, IMetaData.DATA_TYPES>();
+	private static Map<String, SemossDataType> getMetaDataFromAlgorithmQs(AlgorithmQueryStruct qs) {
+		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		Map<String, String> dataTypes = qs.getColumnTypes();
 		for(String hName : dataTypes.keySet()) {
 			if(hName.contains("__")) {
-				metaData.put(hName.split("__")[1], Utility.convertStringToDataType(dataTypes.get(hName)));
+				metaData.put(hName.split("__")[1], SemossDataType.convertStringToDataType(dataTypes.get(hName)));
 			} else {
-				metaData.put(hName, Utility.convertStringToDataType(dataTypes.get(hName)));
+				metaData.put(hName, SemossDataType.convertStringToDataType(dataTypes.get(hName)));
 			}
 		}
 		return metaData;
 	}
 
-	private static Map<String, IMetaData.DATA_TYPES> getMetaDataFromEngineQs(QueryStruct2 qs) {
-		Map<String, IMetaData.DATA_TYPES> metaData = new HashMap<String, IMetaData.DATA_TYPES>();
+	private static Map<String, SemossDataType> getMetaDataFromEngineQs(QueryStruct2 qs) {
+		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineName();
 		// loop through all the selectors
@@ -810,14 +809,14 @@ public class ImportUtility {
 					dataType = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
 				}
 			} 
-			IMetaData.DATA_TYPES dtEnum = IMetaData.convertToDataTypeEnum(dataType);
+			SemossDataType dtEnum = SemossDataType.convertStringToDataType(dataType);
 			metaData.put(alias, dtEnum);
 		}
 		return metaData;
 	}
 
-	private static Map<String, IMetaData.DATA_TYPES> getMetaDataFromFrameQs(QueryStruct2 qs) {
-		Map <String, IMetaData.DATA_TYPES> metaData = new HashMap<String, IMetaData.DATA_TYPES>();
+	private static Map<String, SemossDataType> getMetaDataFromFrameQs(QueryStruct2 qs) {
+		Map <String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		OwlTemporalEngineMeta owlMeta = qs.getFrame().getMetaData();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		// loop through all the selectors
@@ -835,14 +834,14 @@ public class ImportUtility {
 				}
 				dataType = owlMeta.getHeaderTypeAsString(uniqueName);
 			}
-			IMetaData.DATA_TYPES dtEnum = Utility.convertStringToDataType(dataType);
+			SemossDataType dtEnum = SemossDataType.convertStringToDataType(dataType);
 			metaData.put(alias, dtEnum);
 		}
 		return metaData;
 	}
 	
-	private static Map<String, IMetaData.DATA_TYPES> getMetaDataFromCsvQs(CsvQueryStruct qs) {
-		Map<String, IMetaData.DATA_TYPES> metaData = new HashMap<String, IMetaData.DATA_TYPES>();
+	private static Map<String, SemossDataType> getMetaDataFromCsvQs(CsvQueryStruct qs) {
+		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		Map<String, String> dataTypes = qs.getColumnTypes();
 		// loop through all the selectors
@@ -863,14 +862,14 @@ public class ImportUtility {
 					dataType = dataTypes.get(column);
 				}
 			} 
-			IMetaData.DATA_TYPES dtEnum = Utility.convertStringToDataType(dataType);
+			SemossDataType dtEnum = SemossDataType.convertStringToDataType(dataType);
 			metaData.put(alias, dtEnum);
 		}
 		return metaData;
 	}
 	
-	private static Map<String, IMetaData.DATA_TYPES> getMetaDataFromExcelQs(ExcelQueryStruct qs) {
-		Map<String, IMetaData.DATA_TYPES> metaData = new HashMap<String, IMetaData.DATA_TYPES>();
+	private static Map<String, SemossDataType> getMetaDataFromExcelQs(ExcelQueryStruct qs) {
+		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		Map<String, String> dataTypes = qs.getColumnTypes();
 
@@ -891,7 +890,7 @@ public class ImportUtility {
 					dataType = dataTypes.get(column);
 				}
 			}
-			IMetaData.DATA_TYPES dtEnum = Utility.convertStringToDataType(dataType);
+			SemossDataType dtEnum = SemossDataType.convertStringToDataType(dataType);
 			metaData.put(alias, dtEnum);
 		}
 		return metaData;

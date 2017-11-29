@@ -46,7 +46,7 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.QueryStruct;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator2;
@@ -151,7 +151,7 @@ public class RNativeEngine extends AbstractEngine {
 				}
 				
 				// convert it to a data type
-				Map <String, IMetaData.DATA_TYPES> conceptMetaMap = new Hashtable<String, IMetaData.DATA_TYPES>();
+				Map <String, SemossDataType> conceptMetaMap = new Hashtable<String, SemossDataType>();
 				Iterator <String> conceptKeys = conceptAndType.keySet().iterator();
 
 				// I need to create a CSVFileIterator
@@ -169,7 +169,7 @@ public class RNativeEngine extends AbstractEngine {
 					thisKey = Utility.getClassName(thisKey);
 					thisKey = thisKey.toUpperCase();
 					
-					IMetaData.DATA_TYPES newType = IMetaData.convertToDataTypeEnum(thisType);
+					SemossDataType newType = SemossDataType.convertStringToDataType(thisType);
 					conceptMetaMap.put(thisKey, newType);
 				}
 				

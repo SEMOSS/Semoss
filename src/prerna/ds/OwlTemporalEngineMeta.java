@@ -16,7 +16,7 @@ import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
@@ -441,7 +441,7 @@ public class OwlTemporalEngineMeta {
 		return relationships;
 	}
 	
-	public Map<String, IMetaData.DATA_TYPES> getHeaderToTypeMap() {
+	public Map<String, SemossDataType> getHeaderToTypeMap() {
 		String query = "select distinct ?header ?datatype where {"
 				+ "{"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -455,16 +455,16 @@ public class OwlTemporalEngineMeta {
 				+ "}";
 		
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
-		Map<String, IMetaData.DATA_TYPES> returnMap = new HashMap<String, IMetaData.DATA_TYPES>();
+		Map<String, SemossDataType> returnMap = new HashMap<String, SemossDataType>();
 		while(it.hasNext()) {
 			Object[] row = it.next().getValues();
-			returnMap.put(row[0].toString(), IMetaData.convertToDataTypeEnum(row[1].toString()));
+			returnMap.put(row[0].toString(), SemossDataType.convertStringToDataType(row[1].toString()));
 		}
 		
 		return returnMap;
 	}
 	
-	public IMetaData.DATA_TYPES getHeaderTypeAsEnum(String uniqueName) {
+	public SemossDataType getHeaderTypeAsEnum(String uniqueName) {
 		String parent = null;
 		if(uniqueName.contains("__")) {
 			parent = uniqueName.split("__")[0];
@@ -472,7 +472,7 @@ public class OwlTemporalEngineMeta {
 		return getHeaderTypeAsEnum(uniqueName, parent);
 	}
 	
-	public IMetaData.DATA_TYPES getHeaderTypeAsEnum(String uniqueName, String parentUniqueName) {
+	public SemossDataType getHeaderTypeAsEnum(String uniqueName, String parentUniqueName) {
 		String query = null;
 		if(parentUniqueName == null || parentUniqueName.isEmpty()) {
 			// we have a concept
@@ -496,7 +496,7 @@ public class OwlTemporalEngineMeta {
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		while(it.hasNext()) {
 			Object[] row = it.next().getValues();
-			return IMetaData.convertToDataTypeEnum(row[1].toString());
+			return SemossDataType.convertStringToDataType(row[1].toString());
 		}
 		
 		return null;

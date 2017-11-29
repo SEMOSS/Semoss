@@ -34,8 +34,7 @@ import org.stringtemplate.v4.ST;
 
 import com.google.gson.Gson;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
@@ -179,14 +178,14 @@ public class H2Builder {
 			e.printStackTrace();
 		}
 		
-		Map<String, IMetaData.DATA_TYPES> typesMap = new HashMap<String, IMetaData.DATA_TYPES>();
+		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
 		for(int i = 0; i < headers.length; i++) {
-			typesMap.put(headers[i], Utility.convertStringToDataType(types[i]));
+			typesMap.put(headers[i], SemossDataType.convertStringToDataType(types[i]));
 		}
 		addRowsViaIterator(iterator, tableName, typesMap);
 	}
 	
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, String tableName, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, String tableName, Map<String, SemossDataType> typesMap) {
 		try {
 			// keep a batch size so we dont get heapspace
 			final int batchSize = 5000;
@@ -206,7 +205,7 @@ public class H2Builder {
 					// get the data types
 					types = new String[headers.length];
 					for (int i = 0; i < types.length; i++) {
-						types[i] = Utility.convertDataTypeToString(typesMap.get(headers[i]));
+						types[i] = SemossDataType.convertDataTypeToString(typesMap.get(headers[i]));
 					}
 					// alter the table to have the column information if not
 					// already present
@@ -769,7 +768,7 @@ public class H2Builder {
 	 * @param updateColumns
 	 * @throws Exception 
 	 */
-	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, DATA_TYPES[] types, String[] startingHeaders, String[] joinColumns) throws Exception {
+	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, SemossDataType[] types, String[] startingHeaders, String[] joinColumns) throws Exception {
 		//step 1
 		//generate a table from the iterator
 		String tempTable = getNewTableName();

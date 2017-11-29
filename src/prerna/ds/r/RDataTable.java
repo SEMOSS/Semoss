@@ -10,9 +10,8 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.RInterpreter2;
@@ -99,10 +98,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
 		// we really need another way to get the data types....
-		Map<String, IMetaData.DATA_TYPES> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
+		Map<String, SemossDataType> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
 		
 		// TODO: this is annoying, need to get the frame on the same page as the meta
-		Map<String, IMetaData.DATA_TYPES> dataTypeMap = new HashMap<String, IMetaData.DATA_TYPES>();
+		Map<String, SemossDataType> dataTypeMap = new HashMap<String, SemossDataType>();
 		for(String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
@@ -110,7 +109,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		syncHeaders();
 	}
 	
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, IMetaData.DATA_TYPES> dataTypeMap) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
 		this.builder.createTableViaIterator(tableName, it, dataTypeMap);
 		syncHeaders();
 	}
@@ -172,7 +171,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
 		int numSelectors = attributeUniqueHeaderName.size();
-		List<IMetaData.DATA_TYPES> dataTypes = new Vector<IMetaData.DATA_TYPES>();
+		List<SemossDataType> dataTypes = new Vector<SemossDataType>();
 		Double[] max = new Double[numSelectors];
 		Double[] min = new Double[numSelectors];
 		
@@ -181,9 +180,9 @@ public class RDataTable extends AbstractTableDataFrame {
 			if(uniqueHeader == null) {
 				uniqueHeader = attributeUniqueHeaderName.get(i);
 			}
-			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
+			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
 			dataTypes.add(dataType);
-			if(dataType == DATA_TYPES.NUMBER) {
+			if(dataType == SemossDataType.NUMBER) {
 				max[i] = getMax(uniqueHeader);
 				min[i] = getMin(uniqueHeader);
 			}
