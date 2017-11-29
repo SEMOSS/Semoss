@@ -39,7 +39,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -168,8 +168,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] dataTypes = new String[2];
 		newHeaders[0] = mainColName;
 		newHeaders[1] = "Total";
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.NUMBER.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.NUMBER.toString();
 
 		// we will merge the new headers into our existing frame
 		frame.addNewColumn(newHeaders, dataTypes, frame.getTableName());
@@ -342,8 +342,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Last_Wave_For_System";
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
@@ -377,8 +377,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] dataTypes = new String[2];
 		headers[0] = "HostSiteAndFloater";
 		headers[1] = "Last_Wave_For_Site";
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
@@ -411,8 +411,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Site_Specific";
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
@@ -451,8 +451,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Central_Deployment";
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.STRING.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
@@ -493,8 +493,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] dataTypes = new String[2];
 		headers[0] = "System";
 		headers[1] = "Num_Sites";
-		dataTypes[0] = IMetaData.DATA_TYPES.STRING.toString();
-		dataTypes[1] = IMetaData.DATA_TYPES.NUMBER.toString();
+		dataTypes[0] = SemossDataType.STRING.toString();
+		dataTypes[1] = SemossDataType.NUMBER.toString();
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
@@ -541,10 +541,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		// then i will do a series of queries to fill a new frame
 		// that will instead be system, fy1, fy2, .. fyn, and have the cost as the cell value
 		String[] tempHeaders = new String[]{"System", "FY", "Cost"};
-		Map<String, IMetaData.DATA_TYPES> tempDataType = new Hashtable<String, IMetaData.DATA_TYPES>();
-		tempDataType.put("System", IMetaData.DATA_TYPES.STRING);
-		tempDataType.put("FY", IMetaData.DATA_TYPES.STRING);
-		tempDataType.put("Cost", IMetaData.DATA_TYPES.NUMBER);
+		Map<String, SemossDataType> tempDataType = new Hashtable<String, SemossDataType>();
+		tempDataType.put("System", SemossDataType.STRING);
+		tempDataType.put("FY", SemossDataType.STRING);
+		tempDataType.put("Cost", SemossDataType.NUMBER);
 		H2Frame tempFrame = new H2Frame();
 		tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getTableName());
 		tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
@@ -703,10 +703,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		H2Frame mainSustainmentFrame2 = new H2Frame(waveSiteSystemHeaders);
 		// execute the query
 		IEngine tapSite = Utility.getEngine("TAP_Site_Data");
-		Map<String, IMetaData.DATA_TYPES> dataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
-		dataTypes.put("Wave", IMetaData.DATA_TYPES.STRING);
-		dataTypes.put("HostSiteAndFloater", IMetaData.DATA_TYPES.STRING);
-		dataTypes.put("System", IMetaData.DATA_TYPES.STRING);
+		Map<String, SemossDataType> dataTypes = new Hashtable<String, SemossDataType>();
+		dataTypes.put("Wave", SemossDataType.STRING);
+		dataTypes.put("HostSiteAndFloater", SemossDataType.STRING);
+		dataTypes.put("System", SemossDataType.STRING);
 		IRawSelectWrapper rawWrapper = WrapperManager.getInstance().getRawWrapper(tapSite, waveSiteSystemBuilder.toString());
 		// add the data into the frame
 		mainSustainmentFrame2.addRowsViaIterator(rawWrapper, dataTypes);
@@ -775,11 +775,11 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				// then i will do a series of queries to fill a new frame
 				// that will instead be system, site, fy1, fy2, .. fyn, and have the cost as the cell value
 				String[] tempHeaders = new String[]{"System", "Site", "FYTag", "Cost"};
-				Map<String, IMetaData.DATA_TYPES> tempDataType = new Hashtable<String, IMetaData.DATA_TYPES>();
-				tempDataType.put("System", IMetaData.DATA_TYPES.STRING);
-				tempDataType.put("Site", IMetaData.DATA_TYPES.STRING);
-				tempDataType.put("FYTag", IMetaData.DATA_TYPES.STRING);
-				tempDataType.put("Cost", IMetaData.DATA_TYPES.NUMBER);
+				Map<String, SemossDataType> tempDataType = new Hashtable<String, SemossDataType>();
+				tempDataType.put("System", SemossDataType.STRING);
+				tempDataType.put("Site", SemossDataType.STRING);
+				tempDataType.put("FYTag", SemossDataType.STRING);
+				tempDataType.put("Cost", SemossDataType.NUMBER);
 				H2Frame tempFrame = new H2Frame(tempHeaders);
 				tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
 

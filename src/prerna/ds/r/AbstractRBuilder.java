@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -107,7 +107,7 @@ public abstract class AbstractRBuilder {
 	 * @param it					The iterator to flush into a r data table
 	 * @param typesMap				The data type of each column
 	 */
-	protected void createTableViaIterator(String tableName, Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	protected void createTableViaIterator(String tableName, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		/*
 		 * We have an iterator that comes for 3 main sources
 		 * 1) some kind of resultset (i.e. engine/endpoint) -> we flush this out to a csv file and load it
@@ -173,9 +173,9 @@ public abstract class AbstractRBuilder {
 			interp.setDataTableName(tableName);
 			interp.setQueryStruct(modifiedQs);
 			Map<String, String> strTypes = qs.getColumnTypes();
-			Map<String, IMetaData.DATA_TYPES> enumTypes = new HashMap<String, IMetaData.DATA_TYPES>();
+			Map<String, SemossDataType> enumTypes = new HashMap<String, SemossDataType>();
 			for(String key : strTypes.keySet()) {
-				enumTypes.put(key, Utility.convertStringToDataType(strTypes.get(key)));
+				enumTypes.put(key, SemossDataType.convertStringToDataType(strTypes.get(key)));
 			}
 			interp.setColDataTypes(enumTypes);
 			String query = interp.composeQuery();
@@ -220,9 +220,9 @@ public abstract class AbstractRBuilder {
 			interp.setDataTableName(tableName);
 			interp.setQueryStruct(modifiedQs);
 			Map<String, String> strTypes = qs.getColumnTypes();
-			Map<String, IMetaData.DATA_TYPES> enumTypes = new HashMap<String, IMetaData.DATA_TYPES>();
+			Map<String, SemossDataType> enumTypes = new HashMap<String, SemossDataType>();
 			for(String key : strTypes.keySet()) {
-				enumTypes.put(key, Utility.convertStringToDataType(strTypes.get(key)));
+				enumTypes.put(key, SemossDataType.convertStringToDataType(strTypes.get(key)));
 			}
 			interp.setColDataTypes(enumTypes);
 			String query = interp.composeQuery();
@@ -294,10 +294,10 @@ public abstract class AbstractRBuilder {
 	 * Modify columns to make sure they are numeric for math operations
 	 * @param typesMap
 	 */
-	private void alterColumnsToNumeric(String dataTableName, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	private void alterColumnsToNumeric(String dataTableName, Map<String, SemossDataType> typesMap) {
 		for(String header : typesMap.keySet()) {
-			IMetaData.DATA_TYPES type = typesMap.get(header);
-			if(type == IMetaData.DATA_TYPES.NUMBER) {
+			SemossDataType type = typesMap.get(header);
+			if(type == SemossDataType.NUMBER) {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(dataTableName, header) ) );
 			}
 		}
@@ -307,10 +307,10 @@ public abstract class AbstractRBuilder {
 	 * Modify columns to make sure they are in the date format
 	 * @param typesMap
 	 */
-	private void alterColumnsToDate(String dataTableName, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	private void alterColumnsToDate(String dataTableName, Map<String, SemossDataType> typesMap) {
 		for(String header : typesMap.keySet()) {
-			IMetaData.DATA_TYPES type = typesMap.get(header);
-			if(type == IMetaData.DATA_TYPES.DATE) {
+			SemossDataType type = typesMap.get(header);
+			if(type == SemossDataType.DATE) {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(this.dataTableName, header) ) );
 			}
 		}

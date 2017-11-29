@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
@@ -33,7 +33,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 			String columnName, 
 			Double[] maxArr, 
 			Double[] minArr, 
-			List<DATA_TYPES> dataTypes, 
+			List<SemossDataType> dataTypes, 
 			List<String> selectors) {
 		
 		this.builder = builder;

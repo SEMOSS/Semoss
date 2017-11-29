@@ -11,7 +11,7 @@ import java.util.Vector;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -555,8 +555,8 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
-			IMetaData.DATA_TYPES type = Utility.convertStringToDataType(dataType);
-			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
+			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
+			if(SemossDataType.NUMBER.equals(type)) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;
@@ -564,7 +564,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 				for(; i < size; i++) {
 					myObj.append(" , ").append(objects.get(i));
 				}
-			} else if(IMetaData.DATA_TYPES.DATE.equals(type)) {
+			} else if(SemossDataType.DATE.equals(type)) {
 				String leftWrapper = null;
 				String rightWrapper = null;
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
@@ -681,10 +681,10 @@ public class SQLInterpreter implements IQueryInterpreter{
 		// if we dont have it, we will do type casting...
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
-			IMetaData.DATA_TYPES type = Utility.convertStringToDataType(dataType);
-			if(IMetaData.DATA_TYPES.NUMBER.equals(type)) {
+			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
+			if(SemossDataType.NUMBER.equals(type)) {
 				myObj = object.toString();
-			} else if(IMetaData.DATA_TYPES.DATE.equals(type)) {
+			} else if(SemossDataType.DATE.equals(type)) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {

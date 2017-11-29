@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import cern.colt.Arrays;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -69,7 +69,7 @@ public class RImporter implements IImporter {
 		// we will flush out the iterator into a CSV file
 		// and use fread() into the temp name
 		String tempTableName = Utility.getRandomString(6);
-		Map<String, DATA_TYPES> types = ImportUtility.getTypesFromQs(this.qs);
+		Map<String, SemossDataType> types = ImportUtility.getTypesFromQs(this.qs);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, types);
 	
 		System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));

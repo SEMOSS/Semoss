@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -33,7 +33,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Column: " + columnToCount + " doesn't exist.");
 		}
 		// new column datatype is set to numeric
-		String dataType = Utility.convertDataTypeToString(IMetaData.convertToDataTypeEnum("NUMBER"));
+		String dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType("NUMBER"));
 		// clean new column name
 		newColumnName = getCleanNewColName(table, newColumnName);
 

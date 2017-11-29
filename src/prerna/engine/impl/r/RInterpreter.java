@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.QueryStruct;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -17,7 +17,7 @@ public class RInterpreter implements IQueryInterpreter {
 	private QueryStruct qs;
 	
 	private String dataTableName = "datatable";
-	private Map<String, IMetaData.DATA_TYPES> colDataTypes;
+	private Map<String, SemossDataType> colDataTypes;
 	
 	// keep track of the filters
 	// do this in builder since it can be very large
@@ -36,14 +36,14 @@ public class RInterpreter implements IQueryInterpreter {
 		this.dataTableName = dataTableName;
 	}
 	
-	public void setColDataTypes(Map<String, IMetaData.DATA_TYPES> colDataTypes) {
+	public void setColDataTypes(Map<String, SemossDataType> colDataTypes) {
 		this.colDataTypes = colDataTypes;
 	}
 	
 	@Override
 	public String composeQuery() {
 		if(colDataTypes == null) {
-			colDataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
+			colDataTypes = new Hashtable<String, SemossDataType>();
 		}
 		
 		// note, that the join info in the QS has no meaning for a R frame as 
@@ -105,7 +105,7 @@ public class RInterpreter implements IQueryInterpreter {
 		
 		//query is different if the data is date data type
 		//for dates, the query needs to be written as datatable$col == X | datatable$col == Y | datatable$col == Z
-		if (colDataTypes.get(colName) == IMetaData.DATA_TYPES.DATE) {
+		if (colDataTypes.get(colName) == SemossDataType.DATE) {
 			if (comparator.equals("=") || comparator.equals("==")) {
 				filterCriteria.append("(");
 				for (int i = 0; i < vector.size(); i++) {
@@ -165,12 +165,12 @@ public class RInterpreter implements IQueryInterpreter {
 	 * @param dataType			The data type for each entry in the object[]
 	 * @return					String containing the equivalent r column vector
 	 */
-	private String createRColVec(List<Object> row, IMetaData.DATA_TYPES dataType) {
+	private String createRColVec(List<Object> row, SemossDataType dataType) {
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
 		int size = row.size();
 		for(; i < size; i++) {
-			if(IMetaData.DATA_TYPES.STRING == dataType) {
+			if(SemossDataType.STRING == dataType) {
 				str.append("\"").append(row.get(i)).append("\"");
 			} else {
 				// just in case this is not defined yet...
@@ -194,8 +194,8 @@ public class RInterpreter implements IQueryInterpreter {
 		return str.toString();
 	}
 
-	private String formatFilterValue(Object value, IMetaData.DATA_TYPES dataType) {
-		if(IMetaData.DATA_TYPES.STRING == dataType || IMetaData.DATA_TYPES.DATE == dataType) {
+	private String formatFilterValue(Object value, SemossDataType dataType) {
+		if(SemossDataType.STRING == dataType || SemossDataType.DATE == dataType) {
 			return "\"" + value + "\"";
 		} else {
 			// just in case this is not defined yet...
@@ -263,10 +263,10 @@ public class RInterpreter implements IQueryInterpreter {
 		RInterpreter rI = new RInterpreter();
 		rI.setQueryStruct(qs);
 		
-		Map<String, IMetaData.DATA_TYPES> colDataTypes = new Hashtable<String, IMetaData.DATA_TYPES>();
-		colDataTypes.put("Title", IMetaData.DATA_TYPES.STRING);
-		colDataTypes.put("Nominated", IMetaData.DATA_TYPES.STRING);
-		colDataTypes.put("Movie_Budget", IMetaData.DATA_TYPES.NUMBER);
+		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
+		colDataTypes.put("Title", SemossDataType.STRING);
+		colDataTypes.put("Nominated", SemossDataType.STRING);
+		colDataTypes.put("Movie_Budget", SemossDataType.NUMBER);
 		rI.setColDataTypes(colDataTypes);
 		
 		String query = rI.composeQuery();

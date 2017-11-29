@@ -1,10 +1,7 @@
 package prerna.ds.sqlserver;
 
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
 
-import prerna.ds.TinkerMetaHelper;
 import prerna.ds.h2.H2Frame;
 
 public class SqlServerFrame extends H2Frame {
@@ -49,7 +46,7 @@ public class SqlServerFrame extends H2Frame {
 			counter++;
 		}
 		
-		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
+//		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 //		this.mergeEdgeHash(edgeHash, dataTypeMap);
 	}
 }

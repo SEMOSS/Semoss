@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
@@ -110,9 +109,9 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			columnType = "STRING";
 		}
 		// check if data type is supported
-		DATA_TYPES dt = IMetaData.convertToDataTypeEnum(columnType);
+		SemossDataType dt = SemossDataType.convertStringToDataType(columnType);
 		if (dt == null) {
-			dt = DATA_TYPES.STRING;
+			dt = SemossDataType.STRING;
 		}
 		return dt.toString();
 	}
