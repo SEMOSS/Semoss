@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -41,7 +41,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double getMax(String columnHeader) {
-		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == IMetaData.DATA_TYPES.NUMBER) {
+		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == SemossDataType.NUMBER) {
 			QueryMathSelector selector = new QueryMathSelector();
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			String[] split = columnHeader.split("__");
@@ -67,7 +67,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double getMin(String columnHeader) {
-		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == IMetaData.DATA_TYPES.NUMBER) {
+		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == SemossDataType.NUMBER) {
 			QueryMathSelector selector = new QueryMathSelector();
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			String[] split = columnHeader.split("__");

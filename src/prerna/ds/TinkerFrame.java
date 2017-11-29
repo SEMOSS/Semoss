@@ -82,7 +82,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		g.createIndex(TINKER_ID, Vertex.class);
 		g.createIndex(T.label.toString(), Edge.class);
 		g.createIndex(TINKER_ID, Edge.class);
-		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerNames);
+//		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerNames);
 //		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, null);
 	}
 	

@@ -9,12 +9,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import prerna.ds.QueryStruct;
-import prerna.ds.TinkerMetaHelper;
-import prerna.ds.util.CsvFileIterator;
-import prerna.ds.util.IFileIterator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -71,13 +66,13 @@ public class PastedDataReactor extends AbstractReactor {
 		String[] headers = helper.getHeaders();
 		this.put(PKQLEnum.COL_CSV, Arrays.asList(headers));
 		
-		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
-		this.put("EDGE_HASH", edgeHash);
-		
-		QueryStruct qs = new QueryStruct();
-		for(String header : headers) {
-			qs.addSelector(header, null);
-		}
+//		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
+//		this.put("EDGE_HASH", edgeHash);
+//		
+//		QueryStruct qs = new QueryStruct();
+//		for(String header : headers) {
+//			qs.addSelector(header, null);
+//		}
 //		Iterator it = CsvFileIterator.createInstance(IFileIterator.FILE_DATA_TYPE.STRING, fileName, delimiter.charAt(0), qs, null, null);
 //		
 //		String nodeStr = (String) myStore.get(whoAmI);

@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
 
 public class RdbmsQueryBuilder {
@@ -49,9 +48,9 @@ public class RdbmsQueryBuilder {
 	public static String createNewTableFromJoiningTables(
 			String returnTableName, 
 			String leftTableName, 
-			Map<String, DATA_TYPES> leftTableTypes,
+			Map<String, SemossDataType> leftTableTypes,
 			String rightTableName, 
-			Map<String, DATA_TYPES> rightTableTypes, 
+			Map<String, SemossDataType> rightTableTypes, 
 			List<Join> joins,
 			Map<String, String> leftTableAlias,
 			Map<String, String> rightTableAlias) 
@@ -104,9 +103,9 @@ public class RdbmsQueryBuilder {
 			}
 			
 			// need to make sure the data types are good to go
-			IMetaData.DATA_TYPES leftColType = leftTableTypes.get(leftTableName + "__" + leftTableJoinCol);
+			SemossDataType leftColType = leftTableTypes.get(leftTableName + "__" + leftTableJoinCol);
 			// the right column types are not tablename__colname...
-			IMetaData.DATA_TYPES rightColType = rightTableTypes.get(rightTableJoinCol);
+			SemossDataType rightColType = rightTableTypes.get(rightTableJoinCol);
 			
 			if(leftColType == rightColType) {
 				joinString.append(" ")
@@ -114,7 +113,7 @@ public class RdbmsQueryBuilder {
 						.append(" = ")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 			} else {
-				if(leftColType == IMetaData.DATA_TYPES.NUMBER && rightColType == IMetaData.DATA_TYPES.STRING) {
+				if(leftColType == SemossDataType.NUMBER && rightColType == SemossDataType.STRING) {
 					// one is a number
 					// other is a string
 					// convert the string to a number
@@ -123,7 +122,7 @@ public class RdbmsQueryBuilder {
 						.append(" = CAST(")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
 						.append(" AS DOUBLE)");
-				} else if(rightColType == IMetaData.DATA_TYPES.NUMBER && leftColType == IMetaData.DATA_TYPES.STRING) {
+				} else if(rightColType == SemossDataType.NUMBER && leftColType == SemossDataType.STRING) {
 					// one is a number
 					// other is a string
 					// convert the string to a number

@@ -6,8 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.GenRowFilters;
@@ -192,7 +192,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		if(metaName == null) {
 			metaName = alias;
 		}
-		if(IMetaData.DATA_TYPES.NUMBER == dataframe.getMetaData().getHeaderTypeAsEnum(metaName)) {
+		if(SemossDataType.NUMBER == dataframe.getMetaData().getHeaderTypeAsEnum(metaName)) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			innerSelector.setTable(tableName);
 			innerSelector.setColumn(column);

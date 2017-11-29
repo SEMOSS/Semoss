@@ -3,7 +3,7 @@ package prerna.sablecc.expressions.r.builder;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc.expressions.IExpressionSelector;
 
@@ -28,7 +28,7 @@ public class RColumnSelector implements IExpressionSelector {
 	public String toString() {
 		String tableName = frame.getTableName();
 		String uniqueName = tableName + "__" + columnName;
-		if(frame.getMetaData().getHeaderTypeAsEnum(uniqueName, tableName) == DATA_TYPES.DATE) {
+		if(frame.getMetaData().getHeaderTypeAsEnum(uniqueName, tableName) == SemossDataType.DATE) {
 			StringBuilder builder = new StringBuilder();
 			builder.append("format(").append(columnName).append(", '%m/%d/%Y')");
 			return builder.toString();

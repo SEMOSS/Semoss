@@ -97,7 +97,7 @@ import org.openrdf.query.Binding;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
-import prerna.algorithm.api.IMetaData;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
@@ -1904,28 +1904,28 @@ public class Utility {
 		return returnType;
 	}
 	
-	public static String convertDataTypeToString(IMetaData.DATA_TYPES type) {
-		if(IMetaData.DATA_TYPES.NUMBER == type) { 
-			return "double";
-		} else if(IMetaData.DATA_TYPES.DATE == type) {
-			return "date";
-		} else {
-			return "varchar(800)";
-		}
-	}
-	
-	public static IMetaData.DATA_TYPES convertStringToDataType(String dataType) {
-		if(isNumericType(dataType)) {
-			return IMetaData.DATA_TYPES.NUMBER;
-		} else if(isDateType(dataType)) {
-			return IMetaData.DATA_TYPES.DATE;
-		} else if(isStringType(dataType)) {
-			return IMetaData.DATA_TYPES.STRING;
-		} else {
-			LOGGER.info(" >>> COULDN'T DETERMINE THE DATA TYPE CONVERSION FOR VALUE : " + dataType);
-			return IMetaData.DATA_TYPES.STRING;
-		}
-	}
+//	public static String convertDataTypeToString(SemossDataType type) {
+//		if(SemossDataType.NUMBER == type) { 
+//			return "double";
+//		} else if(SemossDataType.DATE == type) {
+//			return "date";
+//		} else {
+//			return "varchar(800)";
+//		}
+//	}
+//	
+//	public static SemossDataType convertStringToDataType(String dataType) {
+//		if(isNumericType(dataType)) {
+//			return SemossDataType.NUMBER;
+//		} else if(isDateType(dataType)) {
+//			return SemossDataType.DATE;
+//		} else if(isStringType(dataType)) {
+//			return SemossDataType.STRING;
+//		} else {
+//			LOGGER.info(" >>> COULDN'T DETERMINE THE DATA TYPE CONVERSION FOR VALUE : " + dataType);
+//			return SemossDataType.STRING;
+//		}
+//	}
 
 	public static boolean isH2DataType(String dataType) {
 		if(
@@ -2943,7 +2943,7 @@ public class Utility {
 		return portStr;
 	}
 	
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, IMetaData.DATA_TYPES> typesMap) {
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		long start = System.currentTimeMillis();
 		
 		// make sure file is empty so we are only inserting the new values
@@ -2972,7 +2972,7 @@ public class Utility {
 	        StringBuilder builder = null;
 	        // create typesArr as an array for faster searching
 	        String[] headers = null;
-	        IMetaData.DATA_TYPES[] typesArr = null;
+	        SemossDataType[] typesArr = null;
 	        
 	        // we need to iterate and write the headers during the first time
 			if(it.hasNext()) {
@@ -2983,7 +2983,7 @@ public class Utility {
 				i = 0;
 				headers = row.getHeaders();
 				size = headers.length;
-				typesArr = new IMetaData.DATA_TYPES[size];
+				typesArr = new SemossDataType[size];
 				builder = new StringBuilder();
 				for(; i < size; i++) {
 					builder.append("\"").append(headers[i]).append("\"");
@@ -3000,7 +3000,7 @@ public class Utility {
 				builder = new StringBuilder();
 				i = 0;
 				for(; i < size; i ++) {
-					if(typesArr[i] == IMetaData.DATA_TYPES.STRING) {
+					if(typesArr[i] == SemossDataType.STRING) {
 						builder.append("\"").append(dataRow[i]).append("\"");
 					} else {
 						builder.append(dataRow[i]);
@@ -3021,7 +3021,7 @@ public class Utility {
 				builder = new StringBuilder();
 				i = 0;
 				for(; i < size; i ++) {
-					if(typesArr[i] == IMetaData.DATA_TYPES.STRING) {
+					if(typesArr[i] == SemossDataType.STRING) {
 						builder.append("\"").append(dataRow[i]).append("\"");
 					} else {
 						builder.append(dataRow[i]);

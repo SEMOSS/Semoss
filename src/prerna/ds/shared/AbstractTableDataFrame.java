@@ -14,9 +14,8 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IMetaData;
-import prerna.algorithm.api.IMetaData.DATA_TYPES;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -219,13 +218,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if(uniqueName == null) {
 			uniqueName = name;
 		}
-		DATA_TYPES dataType = null;
+		SemossDataType dataType = null;
 		if(uniqueName.contains("__")) {
 			dataType = this.metaData.getHeaderTypeAsEnum(uniqueName, uniqueName.split("__")[0]);
 		} else {
 			dataType = this.metaData.getHeaderTypeAsEnum(uniqueName, null);
 		}
-		return dataType.equals(IMetaData.DATA_TYPES.NUMBER);
+		return dataType.equals(SemossDataType.NUMBER);
 	}
 
 	@Override
@@ -322,7 +321,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if(uniqueColName == null) {
 			uniqueColName = columnHeader;
 		}
-		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == IMetaData.DATA_TYPES.NUMBER) {
+		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == SemossDataType.NUMBER) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(uniqueColName.contains("__")) {
 				String[] split = uniqueColName.split("__");
@@ -382,7 +381,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if(uniqueColName == null) {
 			uniqueColName = columnHeader;
 		}
-		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == IMetaData.DATA_TYPES.NUMBER) {
+		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == SemossDataType.NUMBER) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(uniqueColName.contains("__")) {
 				String[] split = uniqueColName.split("__");
@@ -552,7 +551,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
 		int numSelectors = attributeUniqueHeaderName.size();
-		List<IMetaData.DATA_TYPES> dataTypes = new Vector<IMetaData.DATA_TYPES>();
+		List<SemossDataType> dataTypes = new Vector<SemossDataType>();
 		Double[] max = new Double[numSelectors];
 		Double[] min = new Double[numSelectors];
 		
@@ -561,9 +560,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			if(uniqueHeader == null) {
 				uniqueHeader = attributeUniqueHeaderName.get(i);
 			}
-			DATA_TYPES dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
+			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
 			dataTypes.add(dataType);
-			if(dataType == DATA_TYPES.NUMBER) {
+			if(dataType == SemossDataType.NUMBER) {
 				max[i] = getMax(uniqueHeader);
 				min[i] = getMin(uniqueHeader);
 			}

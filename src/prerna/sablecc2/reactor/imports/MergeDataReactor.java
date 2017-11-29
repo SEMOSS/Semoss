@@ -7,8 +7,8 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.IMetaData;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -107,7 +107,7 @@ public class MergeDataReactor extends AbstractReactor {
 					}
 					NounMetadata lNoun = new NounMetadata(q, PixelDataType.COLUMN);
 					NounMetadata rNoun = null;
-					if(frame.getMetaData().getHeaderTypeAsEnum(s) == IMetaData.DATA_TYPES.NUMBER) {
+					if(frame.getMetaData().getHeaderTypeAsEnum(s) == SemossDataType.NUMBER) {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
 					} else {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
