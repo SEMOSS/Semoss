@@ -39,7 +39,7 @@ public interface IEngineWrapper {
 
 	void setQuery(String query);
 	
-	void setQueryStruct(QueryStruct qs);
+//	void setQueryStruct(QueryStruct qs);
 	
 	void setEngine(IEngine engine);
 	

@@ -9,7 +9,6 @@ import org.apache.solr.client.solrj.SolrQuery.ORDER;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
-import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -156,11 +155,6 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 			}
 		}
 		this.query.setFields(selectorValues.toArray(new String[] {}));
-	}
-
-	@Override
-	public void setQueryStruct(QueryStruct2 qs) {
-		this.qs = qs;
 	}
 
 	public static void main(String[] args) {

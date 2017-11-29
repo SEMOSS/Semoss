@@ -33,7 +33,6 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRemoteQueryable;
@@ -44,7 +43,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	
 	protected transient IEngine engine = null;
 	protected transient String query = null;
-	protected transient QueryStruct qs;
+//	protected transient QueryStruct qs;
 
 	protected String ID = null;
 	protected String api = null;
@@ -103,10 +102,10 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 		this.query = query;
 	}
 	
-	@Override
-	public void setQueryStruct(QueryStruct qs) {
-		this.qs = qs;
-	}
+//	@Override
+//	public void setQueryStruct(QueryStruct qs) {
+//		this.qs = qs;
+//	}
 
 	@Override
 	public void setEngine(IEngine engine) {

@@ -220,19 +220,20 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// if it is RDBMS vs RDF
 		IEngine.ENGINE_TYPE engineType = null;
 		String engineTypeString = null;
-		if(prop.getProperty("ENGINE_TYPE").contains("RDBMS")) {
+		String propEngType = prop.getProperty("ENGINE_TYPE");
+		if(propEngType.contains("RDBMS") || propEngType.contains("Impala")) {
 			engineType = IEngine.ENGINE_TYPE.RDBMS;
 			engineTypeString = "TYPE:RDBMS";
-		} else if(prop.getProperty("ENGINE_TYPE").contains("Tinker")) {
+		} else if(propEngType.contains("Tinker")) {
 			engineType = IEngine.ENGINE_TYPE.TINKER;
 			engineTypeString = "TYPE:TINKER";
-		} else if(prop.getProperty("ENGINE_TYPE").contains("Solr")) {
+		} else if(propEngType.contains("Solr")) {
 			engineType = IEngine.ENGINE_TYPE.SOLR;
 			engineTypeString = "TYPE:SOLR";
-		} else 	if(prop.getProperty("ENGINE_TYPE").contains("RNative")) {
+		} else 	if(propEngType.contains("RNative")) {
 			engineType = IEngine.ENGINE_TYPE.R; // process it as a flat file I bet 
 			engineTypeString = "TYPE:R";
-		}else {
+		} else {
 			engineType = IEngine.ENGINE_TYPE.SESAME;
 			engineTypeString = "TYPE:RDF";
 		}
