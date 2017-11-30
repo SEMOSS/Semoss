@@ -48,30 +48,26 @@ public class QueryFilter {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		QueryFilter queryFilter = (QueryFilter) obj;
-		if (queryFilter == null) {
-			return false;
-		} else {
-			int count = 0;
+		if(obj instanceof QueryFilter) {
+			QueryFilter queryFilter = (QueryFilter) obj;
+			// compare comparator
+			if (this.comparator.toString().equals(queryFilter.comparator.toString())) {
+				return false;
+			}
 			// compare left side
 			if (this.lComparison.getValue().toString().equals(queryFilter.lComparison.getValue().toString())) {
-				count++;
+				return false;
 			}
 			// compare right side
 			if (this.rComparison.getValue().toString().equals(queryFilter.rComparison.getValue().toString())) {
-				count++;
-			}
-			// compare comparator
-			if (this.comparator.toString().equals(queryFilter.comparator.toString())) {
-				count++;
-			}
-			// if all 3 comparison match then they are equal
-			if (count == 3) {
-				return true;
-			} else {
 				return false;
 			}
+
+			// if we get to this point
+			// everything was the same
+			return true;
 		}
+		return false;
 	}
 
 	/**
