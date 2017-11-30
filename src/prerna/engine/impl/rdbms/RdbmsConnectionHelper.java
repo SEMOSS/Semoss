@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.apache.commons.dbcp2.BasicDataSource;
+
 public class RdbmsConnectionHelper {
 	
 	public static final String ASTER = "ASTER_DB";
@@ -24,6 +26,9 @@ public class RdbmsConnectionHelper {
 	public static final String IMPALA = "IMPALA";
 	public static final String IMPALA_DRIVER = "com.cloudera.impala.jdbc4.Driver";
 	
+	public static final String REDSHIFT = "REDSHIFT";
+	public static final String REDSHIFT_DRIVER = "com.amazon.redshift.jdbc.Driver";
+
 	public static final String MARIADB = "MARIA_DB";
 	public static final String MARIADB_DRIVER = "org.mariadb.jdbc.Driver";
 	
@@ -93,7 +98,10 @@ public class RdbmsConnectionHelper {
 				Class.forName(SQLSERVER_DRIVER);
 			} else if (driver.equalsIgnoreCase(TERADATA)) {
 				Class.forName(TERADATA_DRIVER);
-			} else {
+			} else if (driver.equalsIgnoreCase(REDSHIFT)) {
+				Class.forName(REDSHIFT_DRIVER);
+			} 
+			else {
 				throw new SQLException("Invalid driver");
 			}
 		} catch (ClassNotFoundException e) {
@@ -271,7 +279,17 @@ public class RdbmsConnectionHelper {
 				} else {
 					connectionUrl = connectionUrl.replace(":PORT", "");
 				}
-			} 
+			}
+			
+			 else if (driver.equalsIgnoreCase(REDSHIFT)) {
+				Class.forName(REDSHIFT_DRIVER);
+				connectionUrl = "jdbc:redshift://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+				if (port != null && !port.isEmpty()) {
+					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
+				} else {
+					connectionUrl = connectionUrl.replace(":PORT", "");
+				}
+			}
 			
 			else {
 				throw new SQLException("Invalid driver");
@@ -303,5 +321,24 @@ public class RdbmsConnectionHelper {
 		}
 		
 		return conn;
+	}
+	
+	/**
+	 * 
+	 * @param driver
+	 * @param connectURI
+	 * @param userName
+	 * @param password
+	 * @return
+	 * @throws SQLException
+	 */
+	public static BasicDataSource getDataSourceFromPool(String driver, String connectURI, String userName, String password) throws SQLException {
+		BasicDataSource ds = new BasicDataSource();
+		ds.setDriverClassName(driver);
+		ds.setUrl(connectURI);
+		ds.setUsername(userName);
+		ds.setPassword(password);
+		ds.setDefaultAutoCommit(false);
+		return ds;
 	}
 }
