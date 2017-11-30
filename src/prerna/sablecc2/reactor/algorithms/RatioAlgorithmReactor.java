@@ -384,7 +384,11 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 	private void optimizeFrame(ITableDataFrame dataframe, String instanceColumn) {
 		if (dataframe instanceof H2Frame) {
 			H2Frame hFrame = (H2Frame) dataframe;
-			hFrame.addColumnIndex(instanceColumn.split("__")[1]);
+			String uniqueName = hFrame.getMetaData().getUniqueNameFromAlias(instanceColumn);
+			if(uniqueName == null) {
+				uniqueName = instanceColumn;
+			}
+			hFrame.addColumnIndex(uniqueName.split("__")[1]);
 		}
 	}
 
