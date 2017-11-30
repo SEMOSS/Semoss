@@ -6,7 +6,6 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -36,8 +35,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
 		if(overrideFrame()) {
-			planner.addProperty("FRAME", "FRAME", newFrame);
-			planner.getVarStore().put(Insight.CUR_FRAME_KEY, noun);
+			this.insight.setDataMaker(newFrame);
 		}
 		
 		return noun;

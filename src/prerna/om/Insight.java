@@ -628,7 +628,6 @@ public class Insight {
 		return null;
 	}
 	
-	// currently only used via newdashboard in NameServer
 	public void setDataMaker(IDataMaker datamaker) {
 		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
 	}

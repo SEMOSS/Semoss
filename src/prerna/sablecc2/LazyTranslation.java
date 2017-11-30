@@ -1026,13 +1026,12 @@ public class LazyTranslation extends DepthFirstAdapter {
 			}
 		}
 	}
-    
+
     public IDataMaker getDataMaker() {
-    	try {
-    		return (IDataMaker) planner.getProperty("FRAME", "FRAME");
-    	} catch(Exception e) {
-    		return null;
-    	}
+    	// TODO: need to account for multiple data makers
+    	// i.e. when a data maker is referenced
+    	// put it in the planner for use here
+   		return this.insight.getDataMaker();
     }
     
     //////////////////////////////////////////////////////////////////

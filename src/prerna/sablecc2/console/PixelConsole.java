@@ -100,11 +100,11 @@ public class PixelConsole {
 //		DIHelper.getInstance().setLocalProperty("MinImpact", coreEngine);
 		
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
+		coreEngine = new BigDataEngine();
+		coreEngine.setEngineName("Forms_TAP_Core_Data");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", coreEngine);
 //		
 //		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDF.smss";
 //		coreEngine = new BigDataEngine();
