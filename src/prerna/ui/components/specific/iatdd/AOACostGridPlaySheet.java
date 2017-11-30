@@ -36,13 +36,52 @@ public class AOACostGridPlaySheet extends GridPlaySheet {
 			Object[] row = it.next().getValues();
 
 			//getting all the costs per product per vendor  
-			String vendor = (String) row [0];
-			String packages = (String) row[1];
-			double licensecost = ((double) row [2]);
-			double hardwarecost = ((double) row [3]);
-			double deploymentcost = ((double) row [4]);
-			double maintenancecost = ((double) row [5]);
-			double modificationcost = ((double) row[6]);
+			String vendor = (String) row [6];
+			String packages = (String) row[5];
+			double licensecost = 0;
+			double hardwarecost = 0;
+			double deploymentcost = 0;
+			double maintenancecost = 0;
+			double modificationcost = 0;
+			//row2
+			if (row[2] instanceof String){
+				licensecost = Double.parseDouble((String) row[2]);
+			}
+			else { 
+				licensecost = ((double) row [2]);
+			}
+			
+			//row3
+			if (row[1] instanceof String){
+				hardwarecost = Double.parseDouble((String) row[1]);
+			}
+			else { 
+				hardwarecost = ((double) row [1]);
+			}
+			
+			//row4
+			if (row[0] instanceof String){
+				deploymentcost = Double.parseDouble((String) row[0]);
+			}
+			else { 
+				deploymentcost = ((double) row [0]);
+			}
+			
+			//row5
+			if (row[3] instanceof String){
+				maintenancecost = Double.parseDouble((String) row[3]);
+			}
+			else { 
+				maintenancecost = ((double) row [3]);
+			}
+			
+			//row6
+			if (row[4] instanceof String){
+				modificationcost = Double.parseDouble((String) row[4]);
+			}
+			else { 
+				modificationcost = ((double) row [4]);
+			}
 
 			Hashtable<String, Double> costTable = new Hashtable<String, Double> (); 
 
@@ -138,12 +177,12 @@ public class AOACostGridPlaySheet extends GridPlaySheet {
 			Object[] row = new Object[]{vendor, license, hardware, deployment, maintenance, modification};
 			dataFrame.addRow(row, newHeaders);
 			Hashtable<String, Object> rowValues = new Hashtable<String, Object>();
-			rowValues.put(headers[0], vendor);
+			rowValues.put(headers[6], vendor);
 			rowValues.put(headers[2], license);
-			rowValues.put(headers[3], hardware);
-			rowValues.put(headers[4], deployment);
-			rowValues.put(headers[5], maintenance);
-			rowValues.put(headers[6], modification);
+			rowValues.put(headers[1], hardware);
+			rowValues.put(headers[0], deployment);
+			rowValues.put(headers[3], maintenance);
+			rowValues.put(headers[4], modification);
 			data.add(rowValues);
 		}
 	}
