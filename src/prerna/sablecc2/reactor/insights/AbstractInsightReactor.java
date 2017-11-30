@@ -46,7 +46,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String RECIPE = "recipe";
 	protected static final String LAYOUT = "layout";
 	protected static final String IMAGE_URL = "image";
-	protected static final String RECIPE_FILE = "recipe.json";
+	protected static final String RECIPE_FILE = ".mosfet";
 
 	protected String getEngine() {
 		// look at all the ways the insight panel could be passed
@@ -195,14 +195,15 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void saveRecipeToFile(String engineName, String rdbmsID, String[] recipeToSave) {
+	protected void saveRecipeToFile(String engineName, String rdbmsID, String insightName, String[] recipeToSave) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		// format recipe file
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		output.put("engine", engineName);
-		output.put("rdbmsID", rdbmsID);
+		output.put("rdbmsId", rdbmsID);
+		output.put("insightName", insightName);
 		String recipe = "";
 		for (String pixel : recipeToSave) {
 			recipe += pixel;
@@ -224,7 +225,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			} catch (IOException e1) {
 				LOGGER.error("Error in writing recipe file to path " + recipePath);
 				e1.printStackTrace();
-
 			}
 		} else {
 			LOGGER.error("Error in writing recipe file to path " + recipePath);
