@@ -21,9 +21,6 @@ public class GreedyTranslation extends LazyTranslation {
 
 	public GreedyTranslation(PixelRunner runner, Insight insight) {
 		super(insight);
-		if(insight.getDataMaker() != null) {
-			this.planner.addProperty("FRAME", "FRAME", insight.getDataMaker());
-		}
 		this.runner = runner;
 	}
 	

@@ -89,7 +89,7 @@ public abstract class OpBasicMath extends OpReactor {
 	protected double evaluateString(String operation, NounMetadata frameColNoun) {
 		// to enter here
 		// it is assumed that the value is a string within the frame
-		IDataMaker dataMaker = this.planner.getFrame();
+		IDataMaker dataMaker = this.insight.getDataMaker();
 		String frameColName = frameColNoun.getValue().toString();
 		
 		if(dataMaker instanceof ITableDataFrame) {
