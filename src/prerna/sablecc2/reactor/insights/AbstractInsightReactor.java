@@ -205,11 +205,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		output.put("rdbmsId", rdbmsID);
 		output.put("insightName", insightName);
 		output.put("layout", layout);
-		String recipe = "";
+		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
-			recipe += pixel;
+			recipe.append(pixel).append("\n");
 		}
-		output.put("recipe", recipe);
+		output.put("recipe", recipe.toString());
 
 		String json = gson.toJson(output);
 		File path = new File(recipePath);

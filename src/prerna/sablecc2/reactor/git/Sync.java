@@ -120,9 +120,11 @@ public class Sync extends AbstractReactor {
 	
 	private List<String> getMosfetFiles(List<String> potentialFiles) {
 		List<String> mosfetFiles = new Vector<String>();
-		for(String f : potentialFiles) {
-			if(f.endsWith(".mosfet")) {
-				mosfetFiles.add(f);
+		if(potentialFiles != null) {
+			for(String f : potentialFiles) {
+				if(f.endsWith(".mosfet")) {
+					mosfetFiles.add(f);
+				}
 			}
 		}
 		return mosfetFiles;
