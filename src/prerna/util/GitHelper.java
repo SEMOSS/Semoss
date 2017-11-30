@@ -1529,7 +1529,7 @@ public class GitHelper {
 	{
 
 		// already happened once so I will not do this again
-		
+		commitAll(localAppName, true);
 		// get everything
 		String remoteUserName = remoteAppName.split("/")[0];
 		remoteAppName = remoteAppName.split("/")[1];
