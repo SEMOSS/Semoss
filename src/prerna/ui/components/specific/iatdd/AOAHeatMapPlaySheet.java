@@ -35,24 +35,26 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 		if(origDataFrame == null) {
 			origDataFrame = dataFrame;
 		}
+		
 		String[] headers = origDataFrame.getColumnHeaders();
 		Iterator<IHeadersDataRow> it = origDataFrame.iterator();	
 		while(it.hasNext()) {
 			Object[] row = it.next().getValues();
+			System.out.println(row);
 			
 			//calculate ServiceScore based on checked services 
 			double avgSS = 0;
 			int countNum = 0;
 			if(useAirForce) {
-				avgSS += ((double) row[4]);
+				avgSS += ((double) row[0]);
 				countNum++;
 			}
 			if(useArmy) {
-				avgSS += ((double) row[5]);
+				avgSS += ((double) row[1]);
 				countNum++;
 			}
 			if(useNavy) {
-				avgSS += ((double) row[6]);
+				avgSS += ((double) row[4]);
 				countNum++;
 			}
 			
@@ -62,13 +64,13 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 			double reqValue = Double.parseDouble(rankings.get(Utility.getInstanceName(row[3].toString())));
 			
 			//declare FulfillmentScore based on average of all fulfillment scores that product had for each mission task (done in query) 
-			double fulfillment = ((double) row [7]);
+			double fulfillment = ((double) row [2]);
 			
 			//calculate ProductScore based on product's ServiceScore, RankingScore and FulfillmentScore
 			double avgPS = (avgSS * fulfillment * reqValue);	
 			
 			String mission = (String) row[3];
-			String packages = (String) row[1];
+			String packages = (String) row[5];
 			
 			// add package to mission to package score
 			if(packageMissionHash.containsKey(packages)) {
@@ -82,7 +84,7 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 		}
 		
 		//re-order packages and format to send to front end
-		String[] newHeaders = new String[]{headers[1], headers[3], "Package Score"};
+		String[] newHeaders = new String[]{headers[5], headers[3], "Package_Score"};
 		dataFrame = new H2Frame(newHeaders);
 		for(String packages : packageMissionHash.keySet()) {
 			Map<String, Double> missionHash = packageMissionHash.get(packages);
@@ -92,7 +94,7 @@ public class AOAHeatMapPlaySheet extends HeatMapPlaySheet{
 				System.out.println("ORDERING: "+ packages +" "+ mission +" "+ packageScore);
 				dataFrame.addRow(row, newHeaders);
 				Hashtable<String, Object> rowValues = new Hashtable<String, Object>();
-				rowValues.put(headers[1], packages);
+				rowValues.put(headers[5], packages);
 				rowValues.put(headers[3], mission);
 				rowValues.put("Package Score", packageScore);
 				data.add(rowValues);

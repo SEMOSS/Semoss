@@ -94,7 +94,12 @@ public class HeatMapPlaySheet extends BrowserPlaySheet {
 			String methodName = listElement[xIdx].toString();
 			String groupName = listElement[yIdx].toString();
 			String key = methodName +"-"+groupName;
-			double count = (Double) listElement[heatIdx];
+			double count = 0;
+			if (listElement[heatIdx] instanceof String){
+				count = Double.parseDouble((String) listElement[heatIdx]);
+			} else { 
+				count = (Double) listElement[heatIdx];
+			}
 			elementHash.put(xName, methodName);
 			elementHash.put(yName, groupName);
 			elementHash.put(var[heatIdx], count);
