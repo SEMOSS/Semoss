@@ -17,7 +17,6 @@ import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.VarStore;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public class PixelPlanner {
 	
@@ -56,15 +55,6 @@ public class PixelPlanner {
 		g.dropIndex(PixelPlanner.TINKER_TYPE, Vertex.class);
 		g.dropIndex(PixelPlanner.TINKER_ID, Vertex.class);
 		g.dropIndex(PixelPlanner.TINKER_ID, Edge.class);
-	}
-	
-	public PixelPlanner(IDataMaker dataMaker) {
-		this();
-		addProperty("FRAME", "FRAME", dataMaker);
-	}
-	
-	public IDataMaker getFrame() {
-		return (IDataMaker)getProperty("FRAME", "FRAME");
 	}
 	
 	//**********************PROPERTY METHODS*******************************//
