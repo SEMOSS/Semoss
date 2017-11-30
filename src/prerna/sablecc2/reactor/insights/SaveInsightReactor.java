@@ -71,7 +71,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		saveRecipeToFile(engineName, newRdbmsId, insightName, recipeToSave);
+		saveRecipeToFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
 		logger.info("3) Done...");
 		
 		// we can't save these layouts so ignore image
