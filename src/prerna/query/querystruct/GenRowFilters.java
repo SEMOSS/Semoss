@@ -35,6 +35,11 @@ public class GenRowFilters {
 		this.filterVec.add(newFilter);
 		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
 	}
+	
+	public void removeFilter(int index) {
+		this.filterVec.remove(index);
+		redetermineFilteredColumns();
+	}
 
 	public boolean hasFilter(String column) {
 		return this.filteredColumns.contains(column);
@@ -162,7 +167,7 @@ public class GenRowFilters {
 	 */
 	public void redetermineFilteredColumns() {
 		this.filteredColumns.clear();
-		for(QueryFilter filter : this.filterVec) {
+		for (QueryFilter filter : this.filterVec) {
 			this.filteredColumns.addAll(filter.getAllUsedColumns());
 		}
 	}
