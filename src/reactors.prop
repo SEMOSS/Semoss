@@ -88,6 +88,7 @@ Query prerna.sablecc2.reactor.qs.QueryReactor
 QueryAll prerna.sablecc2.reactor.qs.QueryAllReactor
 Ratio prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor
 Remove prerna.sablecc2.reactor.git.RemoveCollaborator
+RemoveFrameFilter prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor
 RemoveLogicalNames prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor
 RemovePanelComment prerna.sablecc2.reactor.panel.comments.RemovePanelCommentReactor
 RemovePanelEvents prerna.sablecc2.reactor.panel.events.RemovePanelEventsReactor
@@ -116,6 +117,7 @@ RunOutlier prerna.sablecc2.reactor.algorithms.OutlierAlgorithmReactor
 RunPlan prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor
 RunSimilarity prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor
 RunXray prerna.sablecc2.reactor.algorithms.XRayReactor
+Save prerna.sablecc2.reactor.git.SaveFile
 SaveInsight prerna.sablecc2.reactor.insights.SaveInsightReactor
 SaveTaxScenario prerna.sablecc2.reactor.storage.TaxSaveScenarioReactor
 SearchTeam prerna.sablecc2.reactor.git.SearchCollaborator
