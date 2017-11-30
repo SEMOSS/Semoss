@@ -42,6 +42,7 @@ public class MosfitSyncHelper {
 
 	private Logger logger;
 	private SolrIndexEngine solrE;
+	private String fileDir;
 	
 	public MosfitSyncHelper() {
 		
@@ -64,6 +65,8 @@ public class MosfitSyncHelper {
 			outputError("Could not establish connnection with solr");
 			return;
 		}
+		
+		this.fileDir = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\";
 		
 		// process add
 		if(filesChanged.containsKey(ADD)) {
@@ -109,7 +112,7 @@ public class MosfitSyncHelper {
 
 	private void processAddedFiles(List<String> list) {
 		for(String fileLocation : list) {
-			File mosfetFile = new File(fileLocation);
+			File mosfetFile = new File(this.fileDir + fileLocation);
 			Map<String, Object> mapData = getMosfitMap(mosfetFile);
 			if(mapData == null) {
 				outputError("MOSFET file is not in valid JSON format");
@@ -134,7 +137,7 @@ public class MosfitSyncHelper {
 	
 	private void processModifiedFiles(List<String> list) {
 		for(String fileLocation : list) {
-			File mosfetFile = new File(fileLocation);
+			File mosfetFile = new File(this.fileDir + fileLocation);
 			Map<String, Object> mapData = getMosfitMap(mosfetFile);
 			if(mapData == null) {
 				outputError("MOSFET file is not in valid JSON format");
@@ -159,7 +162,7 @@ public class MosfitSyncHelper {
 	
 	private void processDelete(List<String> list) {
 		for(String fileLocation : list) {
-			File mosfetFile = new File(fileLocation);
+			File mosfetFile = new File(this.fileDir + fileLocation);
 			Map<String, Object> mapData = getMosfitMap(mosfetFile);
 			if(mapData == null) {
 				outputError("MOSFET file is not in valid JSON format");
