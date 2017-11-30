@@ -40,6 +40,41 @@ public class QueryFilter {
 	}
 	
 	/**
+	 * See if the two query filters are equal in order to be equal, the left
+	 * side, right side, and comparator must match
+	 * 
+	 * @param queryFilter
+	 * @return
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		QueryFilter queryFilter = (QueryFilter) obj;
+		if (queryFilter == null) {
+			return false;
+		} else {
+			int count = 0;
+			// compare left side
+			if (this.lComparison.getValue().toString().equals(queryFilter.lComparison.getValue().toString())) {
+				count++;
+			}
+			// compare right side
+			if (this.rComparison.getValue().toString().equals(queryFilter.rComparison.getValue().toString())) {
+				count++;
+			}
+			// compare comparator
+			if (this.comparator.toString().equals(queryFilter.comparator.toString())) {
+				count++;
+			}
+			// if all 3 comparison match then they are equal
+			if (count == 3) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+
+	/**
 	 * See if the filter is using a specific column
 	 * @param column
 	 * @return

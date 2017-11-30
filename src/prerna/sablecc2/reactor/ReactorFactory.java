@@ -60,6 +60,7 @@ import prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor;
 import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.GetFrameFilterReactor;
+import prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
@@ -419,6 +420,7 @@ public class ReactorFactory {
 		reactorHash.put("AddFrameFilter", AddFrameFilterReactor.class);
 		reactorHash.put("GetFrameFilters", GetFrameFilterReactor.class);
 		reactorHash.put("SetFrameFilter", SetFrameFilterReactor.class);
+		reactorHash.put("RemoveFrameFilter", RemoveFrameFilterReactor.class);
 		reactorHash.put("UnfilterFrame", UnfilterFrameReactor.class);
 		reactorHash.put("InsightMetamodel", InsightMetamodelReactor.class);
 		reactorHash.put("FrameFilterModel", FrameFilterModelReactor.class);
