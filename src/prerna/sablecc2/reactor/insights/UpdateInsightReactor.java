@@ -79,7 +79,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		LOGGER.info("2) Done");
 		//update recipe text file
 		LOGGER.info("3) Update "+ RECIPE_FILE);
-		updateRecipeFile(engineName, rdbmsId, insightName, recipeToSave);
+		updateRecipeFile(engineName, rdbmsId, insightName, layout, recipeToSave);
 		LOGGER.info("3) Done");
 		
 		// we can't save these layouts so ignore image
@@ -141,12 +141,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String[] recipeToSave) {
+	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		recipeLocation += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
 		try {
 			FileUtils.deleteDirectory(new File(recipeLocation));
-			saveRecipeToFile(engineName, rdbmsID, insightName, recipeToSave);
+			saveRecipeToFile(engineName, rdbmsID, insightName, layout, recipeToSave);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

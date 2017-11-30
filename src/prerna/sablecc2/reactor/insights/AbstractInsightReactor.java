@@ -195,7 +195,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void saveRecipeToFile(String engineName, String rdbmsID, String insightName, String[] recipeToSave) {
+	protected void saveRecipeToFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -204,6 +204,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		output.put("engine", engineName);
 		output.put("rdbmsId", rdbmsID);
 		output.put("insightName", insightName);
+		output.put("layout", layout);
 		String recipe = "";
 		for (String pixel : recipeToSave) {
 			recipe += pixel;

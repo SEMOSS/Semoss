@@ -401,6 +401,7 @@ public final class SolrUtility {
 			final String ENGINE_KEY = "engine";
 			final String RDBMS_ID_KEY = "rdbmsId";
 			final String INSIGHT_NAME_KEY = "insightName";
+			final String LAYOUT_KEY = "layout";
 			
 			File mosfetFile = new File(fileLocation);
 			Map<String, Object> mapData = null;
@@ -413,6 +414,7 @@ public final class SolrUtility {
 			String engineName = mapData.get(ENGINE_KEY).toString();
 			String id = mapData.get(RDBMS_ID_KEY).toString();
 			String name = mapData.get(INSIGHT_NAME_KEY).toString();
+			String layout = mapData.get(LAYOUT_KEY).toString();
 			
 			// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
 			String currDate = SolrIndexEngine.getDateFormat().format(new Date(mosfetFile.lastModified()));
@@ -432,8 +434,8 @@ public final class SolrUtility {
 			queryResults.put(SolrIndexEngine.ENGINES, engineSet);
 			queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 			queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-			
-			// 4) index all the documents at the same time for efficiency
+			queryResults.put(SolrIndexEngine.LAYOUT, layout);
+
 			try {
 				solrE.addInsight(engineName + id, queryResults);
 			} catch (SolrServerException | IOException e) {
@@ -451,7 +453,8 @@ public final class SolrUtility {
 			final String ENGINE_KEY = "engine";
 			final String RDBMS_ID_KEY = "rdbmsId";
 			final String INSIGHT_NAME_KEY = "insightName";
-			
+			final String LAYOUT_KEY = "layout";
+
 			// this has all the details
 			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
 			
@@ -467,7 +470,8 @@ public final class SolrUtility {
 				String engineName = mapData.get(ENGINE_KEY).toString();
 				String id = mapData.get(RDBMS_ID_KEY).toString();
 				String name = mapData.get(INSIGHT_NAME_KEY).toString();
-				
+				String layout = mapData.get(LAYOUT_KEY).toString();
+
 				// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
 				String currDate = SolrIndexEngine.getDateFormat().format(new Date(mosfetFile.lastModified()));
 				// set all the users to be default...
@@ -486,7 +490,8 @@ public final class SolrUtility {
 				queryResults.put(SolrIndexEngine.ENGINES, engineSet);
 				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
-				
+				queryResults.put(SolrIndexEngine.LAYOUT, layout);
+
 				try {
 					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
 				} catch (Exception e) {
