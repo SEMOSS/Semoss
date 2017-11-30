@@ -363,7 +363,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			colSelector.setColumn(split[1]);
 		} else {
 			colSelector.setTable(attributeCol);
-			colSelector.setTable(null);
+			colSelector.setColumn(null);
 		}
 		qs.addSelector(colSelector);
 		QueryFilter instanceFilter = new QueryFilter(new NounMetadata(instanceColumn, PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
