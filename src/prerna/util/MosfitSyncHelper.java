@@ -90,16 +90,20 @@ public class MosfitSyncHelper {
 		// so we do it all at once here
 		
 		// add all the solr documents we need to process
-		try {
-			solrE.addInsights(this.solrDocsToAdd);
-		} catch (SolrServerException | IOException e) {
-			e.printStackTrace();
+		if(!this.solrDocsToAdd.isEmpty()) {
+			try {
+				this.solrE.addInsights(this.solrDocsToAdd);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
 		}
 		// remove all the solr documents we need to remove
-		try {
-			solrE.removeInsight(solrDocsToRemove);
-		} catch (SolrServerException | IOException e) {
-			e.printStackTrace();
+		if(!this.solrDocsToRemove.isEmpty()) {
+			try {
+				this.solrE.removeInsight(this.solrDocsToRemove);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

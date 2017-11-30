@@ -445,6 +445,13 @@ public class GitHelper {
 					   }
 				}			
 			}
+			} catch (CheckoutConflictException e) {
+				List<String> delFiles = e.getConflictingPaths();
+				wipeFiles(delFiles);
+				commitAll(localRepository, true);
+				numAttempts++;
+				// I will attempt this just one more time to merge
+				merge(localRepository, startPoint, branchName, numAttempts, maxAttempts);
 			} catch (NoFilepatternException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -474,11 +481,11 @@ public class GitHelper {
 				e.printStackTrace();
 			}
 	}
-	public void wipeFiles(Vector <String> filesToWipe)
+	public void wipeFiles(List <String> filesToWipe)
 	{
 		for(int fileIndex = 0;fileIndex < filesToWipe.size();fileIndex++)
 		{
-			File file = new File(filesToWipe.elementAt(fileIndex));
+			File file = new File(filesToWipe.get(fileIndex));
 			if(file.exists())
 				file.delete();
 		}
@@ -1264,6 +1271,17 @@ public class GitHelper {
 		runProcess(dir, commands, true);
 	}
 	
+	public void pushRemote(String dir, String repoName, String remoteUserName, String branchName, String username, String password) {
+		List <String> commands = new Vector<String>();
+		commands.add("git");
+		commands.add("push");
+		commands.add("--set-upstream");
+		commands.add("https://" + username + ":" + password + "@github.com/" + username + "/" + repoName);
+		commands.add(branchName);
+
+		runProcess(dir, commands, true);
+	}
+	
 	
 	public void addAll(String dir)
 	{
@@ -1390,8 +1408,8 @@ public class GitHelper {
 			{
 				makeLocalRepository(dbName);
 				// need to have the master
-				//semossInit(dbName);
-				//commitAll(dbName, true);
+				semossInit(dbName);
+				commitAll(dbName, true);
 				addRemote(dbName, appName, false);
 				
 			}
@@ -1441,6 +1459,9 @@ public class GitHelper {
 		// git init
 		// create the remote repository
 		String dbName = baseFolder + "/db/" + appName;
+		
+		String remoteUserName = remoteAppName.split("/")[0];
+		remoteAppName = remoteAppName.split("/")[1];
 		
 		try {
 			initDir(dbName);
@@ -1494,7 +1515,7 @@ public class GitHelper {
 			merge(dbName, "master", remoteAppName + "/master");
 			
 			// push it back
-			pushRemote(dbName, remoteAppName);
+			pushRemote(dbName, remoteAppName, remoteUserName, "master", userName, password);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1510,6 +1531,9 @@ public class GitHelper {
 		// already happened once so I will not do this again
 		
 		// get everything
+		String remoteUserName = remoteAppName.split("/")[0];
+		remoteAppName = remoteAppName.split("/")[1];
+
 		fetchRemote(localAppName, remoteAppName);
 		
 		// need to get a list of files to process
@@ -1526,7 +1550,7 @@ public class GitHelper {
 		
 		// push it back
 		if(dual)
-		pushRemote(localAppName, remoteAppName);
+		pushRemote(localAppName, remoteAppName, remoteUserName, "master", username, password);
 		
 		
 		return files;
