@@ -679,6 +679,7 @@ public class ReactorFactory {
 		writeHashToFile(ReactorFactory.tinkerFrameHash, ReactorFactory.TINKER_FRAME_PROP_PATH);
 		writeHashToFile(ReactorFactory.nativeFrameHash, ReactorFactory.NATIVE_FRAME_PROP_PATH);
 	}
+	
 	private static void writeHashToFile (Map<String, Class> hash, String path) {
 		try {
 			PrintWriter pw = new PrintWriter(new File(path));
