@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.git;
 
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -10,10 +12,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.GitHelper;
+import prerna.util.MosfitSyncHelper;
 
 public class Sync extends AbstractReactor {
 
-	
 	public Sync()
 	{
 		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual"};
@@ -64,22 +66,66 @@ public class Sync extends AbstractReactor {
 			else
 				output.append("0");
 
+
 			logger.info("Indexing your changes");
+			// will update solr and in the engine rdbms insights database
+			MosfitSyncHelper indexHelper = new MosfitSyncHelper();
+			indexHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged));
+			logger.info("Index complete");
 
-			// need something to add these files to  SOLR
-			// Process to Solr (filesChanged)
-			// removing the files or reindexing the files etc. 
-			logger.info("Index Complete");
-			
 			return new NounMetadata(output.toString(), PixelDataType.CONST_STRING);
-
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			logger.fatal(e.getMessage());
-
 		}
 		return null;
+	}
+	
+	/**
+	 * Need to get the appropriate files to perform indexing!
+	 * @param filesChanged
+	 * @return
+	 */
+	private Map<String, List<String>> getMosfetFiles(Map <String, List<String>> filesChanged) {
+		Map<String, List<String>> mosfetFiles = new Hashtable<String, List<String>>();
+		if(filesChanged.containsKey("ADD")) {
+			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			if(!files.isEmpty()) {
+				mosfetFiles.put("ADD", files);
+			}
+		}
+		
+		if(filesChanged.containsKey("MOD")) {
+			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			if(!files.isEmpty()) {
+				mosfetFiles.put("ADD", files);
+			}		
+		}
+		
+		if(filesChanged.containsKey("REN")) {
+			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			if(!files.isEmpty()) {
+				mosfetFiles.put("ADD", files);
+			}		
+		}
+		
+		if(filesChanged.containsKey("DEL")) {
+			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			if(!files.isEmpty()) {
+				mosfetFiles.put("ADD", files);
+			}		
+		}
+		return mosfetFiles;
+	}
+	
+	private List<String> getMosfetFiles(List<String> potentialFiles) {
+		List<String> mosfetFiles = new Vector<String>();
+		for(String f : potentialFiles) {
+			if(f.endsWith(".mosfet")) {
+				mosfetFiles.add(f);
+			}
+		}
+		return mosfetFiles;
 	}
 
 }
