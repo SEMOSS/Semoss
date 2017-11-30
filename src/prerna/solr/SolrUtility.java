@@ -34,6 +34,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -427,7 +428,7 @@ public final class SolrUtility {
 			// have all the relevant fields now, so store with appropriate schema name
 			// create solr document and add into docs list
 			Map<String, Object>  queryResults = new  HashMap<> ();
-			queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+			queryResults.put(SolrIndexEngine.STORAGE_NAME, "MAHER MODIFIED " + name);
 			queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 			queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 			queryResults.put(SolrIndexEngine.USER_ID, userID);
@@ -437,7 +438,7 @@ public final class SolrUtility {
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 			try {
-				solrE.addInsight(engineName + id, queryResults);
+				solrE.addInsight(engineName + "__" + id, queryResults);
 			} catch (SolrServerException | IOException e) {
 				e.printStackTrace();
 			}
@@ -525,4 +526,13 @@ public final class SolrUtility {
 		}
 	}
 
+	public static void main(String[] args) {
+		TestUtilityMethods.loadDIHelper();
+		try {
+			SolrUtility.addMosfetFileToSolrInsightCore("C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS\\57\\.mosfet");
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			e.printStackTrace();
+		}
+	}
+	
 }
