@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,6 +26,8 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -36,13 +39,13 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class SolrUtility {
-	
+
 	private static final Logger LOGGER = Logger.getLogger(SolrUtility.class);
-	
+
 	private SolrUtility() {
-		
+
 	}
-	
+
 	/**
 	 * Add the engine instances into the solr index engine
 	 * @param engineToAdd					The IEngine to add into the solr index engine
@@ -196,7 +199,7 @@ public final class SolrUtility {
 		// get the engine name		
 		// generate the appropriate query to execute on the local master engine to get the time stamp
 		LOGGER.info("SOLR'ing on " + engineName);
-		
+
 		String engineFile = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
 
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
@@ -210,7 +213,7 @@ public final class SolrUtility {
 		File solrDocFile = null;
 		// boolean is we should be updating the solr values
 		boolean forceUpdateSolr = false;
-		
+
 		try {
 			fis = new FileInputStream(engineFile);
 			prop.load(fis);
@@ -221,13 +224,13 @@ public final class SolrUtility {
 				solrDocLocation = baseFolder + "/" + solrDocLocation;
 				solrDocFile = new File(solrDocLocation);
 			}
-			
+
 			// see if force update
 			String smssForceUpdateString = prop.getProperty(Constants.SOLR_RELOAD);
 			if (smssForceUpdateString != null && !smssForceUpdateString.isEmpty()) {
 				forceUpdateSolr = Boolean.parseBoolean(smssForceUpdateString);
 			}
-			
+
 			// find when the database was last modified to see the time
 			dbLocation = (String)prop.get(Constants.RDBMS_INSIGHTS);
 			String dbFileLocation = baseFolder + "/" + dbLocation + ".mv.db";
@@ -281,7 +284,7 @@ public final class SolrUtility {
 					RDBMSNativeEngine rne = new RDBMSNativeEngine();
 					rne.makeConnection(jdbcURL, userName, password);
 					MetaHelper helper = new MetaHelper(null, null, null, rne);
-					
+
 					List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
 					/*
 					 * The unique document is the engineName concatenated with the engine unique rdbms name (which is just a number)
@@ -371,7 +374,7 @@ public final class SolrUtility {
 				}
 			}
 			LOGGER.info("Completed " + engineName);
-			
+
 			if(forceUpdateSolr) {
 				LOGGER.info(engineName + " is changing solr boolean on smss");
 				Utility.changePropMapFileValue(engineFile, Constants.SOLR_RELOAD, "false");	
@@ -382,7 +385,125 @@ public final class SolrUtility {
 			LOGGER.info("Exists !!");
 		}
 	}
+
+	/**
+	 * Used to update the data within a GIT synchronized file
+	 * @param engineName
+	 * @throws KeyManagementException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 */
+	public static void addMosfetFileToSolrInsightCore(String fileLocation) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		// get the solr index engine
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+		// if the solr is active...
+		if (solrE.serverActive()) {
+			final String ENGINE_KEY = "engine";
+			final String RDBMS_ID_KEY = "rdbmsId";
+			final String INSIGHT_NAME_KEY = "insightName";
+			
+			File mosfetFile = new File(fileLocation);
+			Map<String, Object> mapData = null;
+			try {
+				mapData = new ObjectMapper().readValue(mosfetFile, Map.class);
+			} catch (IOException e1) {
+				throw new IllegalArgumentException("MOSFET file is not in valid JSON format");
+			}
+			
+			String engineName = mapData.get(ENGINE_KEY).toString();
+			String id = mapData.get(RDBMS_ID_KEY).toString();
+			String name = mapData.get(INSIGHT_NAME_KEY).toString();
+			
+			// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
+			String currDate = SolrIndexEngine.getDateFormat().format(new Date(mosfetFile.lastModified()));
+			// set all the users to be default...
+			String userID = "default";
+
+			Set<String> engineSet = new HashSet<String>();
+			engineSet.add(engineName);
+
+			// have all the relevant fields now, so store with appropriate schema name
+			// create solr document and add into docs list
+			Map<String, Object>  queryResults = new  HashMap<> ();
+			queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+			queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
+			queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
+			queryResults.put(SolrIndexEngine.USER_ID, userID);
+			queryResults.put(SolrIndexEngine.ENGINES, engineSet);
+			queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
+			queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+			
+			// 4) index all the documents at the same time for efficiency
+			try {
+				solrE.addInsight(engineName + id, queryResults);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
+			LOGGER.info("Completed adding " + fileLocation + " into solr");
+		}
+	}
 	
+	public static void addMosfetFileToSolrInsightCore(List<String> fileLocations) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		// get the solr index engine
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+		// if the solr is active...
+		if (solrE.serverActive()) {
+			final String ENGINE_KEY = "engine";
+			final String RDBMS_ID_KEY = "rdbmsId";
+			final String INSIGHT_NAME_KEY = "insightName";
+			
+			// this has all the details
+			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+			
+			for(String fileLocation : fileLocations) {
+				File mosfetFile = new File(fileLocation);
+				Map<String, Object> mapData = null;
+				try {
+					mapData = new ObjectMapper().readValue(mosfetFile, Map.class);
+				} catch (IOException e1) {
+					throw new IllegalArgumentException("MOSFET file is not in valid JSON format");
+				}
+				
+				String engineName = mapData.get(ENGINE_KEY).toString();
+				String id = mapData.get(RDBMS_ID_KEY).toString();
+				String name = mapData.get(INSIGHT_NAME_KEY).toString();
+				
+				// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
+				String currDate = SolrIndexEngine.getDateFormat().format(new Date(mosfetFile.lastModified()));
+				// set all the users to be default...
+				String userID = "default";
+	
+				Set<String> engineSet = new HashSet<String>();
+				engineSet.add(engineName);
+	
+				// have all the relevant fields now, so store with appropriate schema name
+				// create solr document and add into docs list
+				Map<String, Object>  queryResults = new  HashMap<> ();
+				queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
+				queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
+				queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
+				queryResults.put(SolrIndexEngine.USER_ID, userID);
+				queryResults.put(SolrIndexEngine.ENGINES, engineSet);
+				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
+				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+				
+				try {
+					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			// index all the documents at the same time for efficiency
+			try {
+				solrE.addInsights(docs);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
+			LOGGER.info("Completed adding documents into solr");
+		}
+	}
+
 	/**
 	 * Delete all the insights surrounding a specified engine
 	 * @param engineName				
@@ -398,5 +519,5 @@ public final class SolrUtility {
 			e.printStackTrace();
 		}
 	}
-	
+
 }

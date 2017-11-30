@@ -39,9 +39,9 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// used for embed url
 		String imageURL = getImageURL();
 		int id = this.getRdbmsId();
-		String rdbmsID = "";
+		String rdbmsId = "";
 		if (id > 0) {
-			rdbmsID += id;
+			rdbmsId += id;
 		} else {
 			throw new IllegalArgumentException("Invalid rdbms id");
 		}
@@ -67,31 +67,31 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// fill in image Url endpoint with engine name
 		// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
 		imageURL = imageURL.replace("<engine>", engineName);
-		imageURL = imageURL.replace("<id>", rdbmsID);
+		imageURL = imageURL.replace("<id>", rdbmsId);
 		
 		// update insight db
 		LOGGER.info("1) Updating insight in rdbms");
-		admin.updateInsight(rdbmsID, insightName, layout, recipeToSave);
+		admin.updateInsight(rdbmsId, insightName, layout, recipeToSave);
 		LOGGER.info("1) Done");
 		// update solr
 		LOGGER.info("2) Update insight in solr");
-		editExistingInsightInSolr(engineName, rdbmsID, insightName, layout, "", new ArrayList<String>(), "", imageURL);
+		editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "", imageURL);
 		LOGGER.info("2) Done");
 		//update recipe text file
 		LOGGER.info("3) Update "+ RECIPE_FILE);
-		updateRecipeFile(engineName, rdbmsID, recipeToSave);
+		updateRecipeFile(engineName, rdbmsId, insightName, recipeToSave);
 		LOGGER.info("3) Done");
 		
 		// we can't save these layouts so ignore image
 		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
 			LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
 		} else {
-			updateSolrImage(rdbmsID, rdbmsID, imageURL, engineName);
+			updateSolrImage(rdbmsId, rdbmsId, imageURL, engineName);
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
-		returnMap.put("core_engine_id", rdbmsID);
+		returnMap.put("core_engine_id", rdbmsId);
 		returnMap.put("core_engine", engineName);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
@@ -141,12 +141,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String engineName, String rdbmsID, String[] recipeToSave) {
+	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String[] recipeToSave) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		recipeLocation += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
 		try {
 			FileUtils.deleteDirectory(new File(recipeLocation));
-			saveRecipeToFile(engineName, rdbmsID, recipeToSave);
+			saveRecipeToFile(engineName, rdbmsID, insightName, recipeToSave);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
