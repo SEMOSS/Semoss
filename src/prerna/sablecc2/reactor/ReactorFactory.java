@@ -206,54 +206,49 @@ public class ReactorFactory {
 		
 		// check if external reactor paths exists if not load reactors defined in this class
 		reactorHash = new HashMap<>();
+		createReactorHash(reactorHash);
 		// build generic reactor hash
 		Path reactorPath = Paths.get(REACTOR_PROP_PATH);
 		if (Files.exists(reactorPath)) {
 			buildReactorHashFromPropertyFile(reactorHash, REACTOR_PROP_PATH);
-		} else {
-			createReactorHash(reactorHash);
 		}
 
 		// build expression hash
 		expressionHash = new HashMap<>();
+		populateExpressionSet(expressionHash);
 		Path expressionPath = Paths.get(EXPRESSION_PROP_PATH);
 		if (Files.exists(expressionPath)) {
 			buildReactorHashFromPropertyFile(expressionHash, EXPRESSION_PROP_PATH);
-		} else {
-			populateExpressionSet(expressionHash);
 		}
 
 		// populate the frame specific hashes
 		rFrameHash = new HashMap<>();
+		populateRFrameHash(rFrameHash);
 		Path rFramePath = Paths.get(R_FRAME_PROP_PATH);
 		if (Files.exists(rFramePath)) {
 			buildReactorHashFromPropertyFile(rFrameHash, R_FRAME_PROP_PATH);
-		} else {
-			populateRFrameHash(rFrameHash);
 		}
 
 		h2FrameHash = new HashMap<>();
+		populateH2FrameHash(h2FrameHash);
 		Path h2FramePath = Paths.get(H2_FRAME_PROP_PATH);
 		if (Files.exists(h2FramePath)) {
 			buildReactorHashFromPropertyFile(h2FrameHash, H2_FRAME_PROP_PATH);
-		} else {
-			populateH2FrameHash(h2FrameHash);
 		}
 		
 		tinkerFrameHash = new HashMap<>();
+		populateTinkerFrameHash(tinkerFrameHash);
 		Path tinkerFramePath = Paths.get(TINKER_FRAME_PROP_PATH);
 		if (Files.exists(tinkerFramePath)) {
 			buildReactorHashFromPropertyFile(tinkerFrameHash, TINKER_FRAME_PROP_PATH);
-		} else {
-			populateTinkerFrameHash(tinkerFrameHash);
 		}
+	
 
 		nativeFrameHash = new HashMap<>();
+		populateNativeFrameHash(nativeFrameHash);
 		Path nativeFramePath = Paths.get(NATIVE_FRAME_PROP_PATH);
 		if (Files.exists(nativeFramePath)) {
 			buildReactorHashFromPropertyFile(nativeFrameHash, NATIVE_FRAME_PROP_PATH);
-		} else {
-			populateNativeFrameHash(nativeFrameHash);
 		}
 	}
 	
