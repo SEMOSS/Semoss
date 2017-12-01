@@ -212,7 +212,7 @@ public class MosfitSyncHelper {
 	
 	private void addInsightToEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
 		IEngine engine = Utility.getEngine(engineName);
-		InsightAdministrator admin = new InsightAdministrator(engine);
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		String[] pixelRecipeToSave = new String[]{recipe};
 		admin.addInsight(id, insightName, layout, pixelRecipeToSave );
@@ -220,7 +220,7 @@ public class MosfitSyncHelper {
 	
 	private void modifyInsightInEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
 		IEngine engine = Utility.getEngine(engineName);
-		InsightAdministrator admin = new InsightAdministrator(engine);
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		String[] pixelRecipeToSave = new String[]{recipe};
 		admin.updateInsight(id, insightName, layout, pixelRecipeToSave);
@@ -228,7 +228,7 @@ public class MosfitSyncHelper {
 	
 	private void deleteInsightFromEngineRdbms(String engineName, String id) {
 		IEngine engine = Utility.getEngine(engineName);
-		InsightAdministrator admin = new InsightAdministrator(engine);
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		admin.dropInsight(id);
 	}
 	
