@@ -147,10 +147,21 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		//iterate through combinations
 		logger.setLevel(Level.OFF);
 		try {
-			for (int ii = 0; ii < instanceValuesList.size(); ii++) {
-				Object sourceInstance = instanceValuesList.get(ii);
-				for (int j = ii + 1; j < instanceValuesList.size(); j++) {
-					Object targetInstance = instanceValuesList.get(j);
+			for (int sourceIndex = 0; sourceIndex < instanceValuesList.size(); sourceIndex++) {
+				Object sourceInstance = instanceValuesList.get(sourceIndex);
+
+				// so we do not need to calculate this so many times
+				// we will grab and store all the values for the source
+				// and just grab for each target
+				List<List<String>> sourceAttributesStore = new Vector<List<String>>();
+				for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
+					String attribute = attributeColumns.get(attributeIndex);
+					List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn, sourceInstance, attribute);
+					sourceAttributesStore.add(sourceAttributes);
+				}
+				
+				for (int targetIndex = sourceIndex + 1; targetIndex < instanceValuesList.size(); targetIndex++) {
+					Object targetInstance = instanceValuesList.get(targetIndex);
 
 					Object[] cells = new Object[this.ratioFrameHeaders.length];
 					cells[0] = sourceInstance;
@@ -159,11 +170,10 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 					int cellsIndex = 3;
 					// get instance values for first attribute
 					double ratio = 0;
-					for (int i = 0; i < attributeColumns.size(); i++) {
-						String attribute = attributeColumns.get(i);
-						// we have the source and target ... lets calculate the
-						// similarity
-						List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn, sourceInstance, attribute);
+					for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
+						String attribute = attributeColumns.get(attributeIndex);
+						// we have the source and target ... lets calculate the similarity
+						List<String> sourceAttributes = sourceAttributesStore.get(attributeIndex);
 						List<String> targetAttributes = getAttributeValuesForInstance(frame, instanceColumn, targetInstance, attribute);
 
 						// get the union size
