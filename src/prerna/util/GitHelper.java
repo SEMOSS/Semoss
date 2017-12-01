@@ -1515,6 +1515,13 @@ public class GitHelper {
 				removeAllIgnore(dbName);
 				addRemote(dbName, appName, false);
 			}
+			// else leave the ignore
+			else
+			{
+				// add it
+				String [] filesToIgnore = new String[] {"*.db", "*.jnl"};
+				checkoutIgnore(dbName, filesToIgnore);
+			}
 			// I dont need to do that since I will manually move it 
 			// so no ignore files
 			/*
@@ -1583,8 +1590,10 @@ public class GitHelper {
 				}
 			}
 			else
+			{
+				removeAllIgnore(dbName); // removes all the ignores so it can go in
 				makeRemoteRepository(remoteAppName, userName, password);
-			
+			}
 			// this will assume that everything is fine
 			// as in this is being done for the first time and synchronize to the remote
 
