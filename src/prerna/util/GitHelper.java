@@ -696,15 +696,102 @@ public class GitHelper {
 	{
 		try
 		{
+			// remove from checkout
 			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
 	
 			config.setString("core", null, "sparseCheckout", "false");
 			config.save();
+			
+			// remove from checkin
+			File myNewFile = new File(localRepository + "/.gitignore"); //\\sparse-checkout");
+
+			// I have to delete for now
+			myNewFile.delete();
+			
 		}catch(Exception ex)
 		{
 			
 		}
 	}
+	
+	private void checkinIgnore(String localRepository, String [] files)
+	{
+		// this will go into the checkin ignore
+		// a.k.a .gitignore
+		try {
+			
+			// see if the old file is there
+			
+			File myNewFile = new File(localRepository + "/.gitignore"); //\\sparse-checkout");
+			
+			PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(myNewFile)));
+			//pw.println("/*");
+			for(int fileIndex = 0; fileIndex <= files.length;fileIndex++)
+				pw.println(files[fileIndex]);
+			pw.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void removeIgnores(String localRepository)
+	{
+		
+		try {
+			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+
+			config.setString("core", null, "sparseCheckout", "false");
+			config.save();
+			
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+			
+		
+	}
+	
+	private void checkoutIgnore(String localRepository, String [] files)
+	{
+		// this will go into the sparse checkout
+		try {
+			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+
+			config.setString("core", null, "sparseCheckout", "true");
+			config.save();
+			
+			File myFile2 = new File(localRepository + "/.git/info/sparse-checkout");
+
+			// dont create it if it exists
+			if(!myFile2.exists())
+			{
+				File myNewFile = new File(localRepository + "/.git/info"); //\\sparse-checkout");
+				if(!myNewFile.exists())
+					myNewFile.mkdir();
+				
+				PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(myFile2)));
+				pw.println("/*");
+				for(int fileIndex = 0; fileIndex <= files.length;fileIndex++)
+					pw.println("!"+files[fileIndex]);
+				pw.close();
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	
 	public void addFilesToIgnore(String localRepository, String [] files)
 	{
@@ -1056,11 +1143,11 @@ public class GitHelper {
 			List <String> renFiles = new Vector<String>();
 			List <String> delFiles = new Vector<String>();
 			for (DiffEntry entry : diff) {
-			    System.out.println("Entry: " + entry);
+			    String fileName = dir + "/" + entry.getNewPath(); 
+			    System.out.println("Entry: " + fileName);
 			    System.out.println("File : " + entry.getNewPath());
 			    System.out.println("File : " + entry.getOldId());
 			    System.out.println("File : " + entry.getNewId());
-			    String fileName = entry.getNewPath(); 
 			    if(entry.getChangeType() == ChangeType.ADD)
 			    	addFiles.add(fileName);
 			    if(entry.getChangeType() == ChangeType.MODIFY)
@@ -1410,12 +1497,23 @@ public class GitHelper {
 				// need to have the master
 				semossInit(dbName);
 				commitAll(dbName, true);
-				addRemote(dbName, appName, false);
 				
 			}
 			else
 			{
 				// need to throw exception to say the app name exists, need to give a different app name
+				
+				// need to see if I am adding a new remote or an old remote
+				// if it is a new remote
+				// I should figuree out a way to put the ignore files
+				
+			}
+			Hashtable <String, String> remotes = listConfigRemotes(dbName);
+
+			if(!remotes.containsKey(appInstanceName))
+			{
+				removeAllIgnore(dbName);
+				addRemote(dbName, appName, false);
 			}
 			// I dont need to do that since I will manually move it 
 			// so no ignore files
@@ -1532,7 +1630,11 @@ public class GitHelper {
 		commitAll(localAppName, true);
 		// get everything
 		String remoteUserName = remoteAppName.split("/")[0];
-		remoteAppName = remoteAppName.split("/")[1];
+		remoteAppName = remoteAppName.split("/")[1]; 
+
+		// need something that will process files for SOLR
+		String [] filesToIgnore = new String[] {"*.db", "*.jnl"};
+		checkoutIgnore(localAppName, filesToIgnore);
 
 		fetchRemote(localAppName, remoteAppName);
 		
@@ -1541,7 +1643,6 @@ public class GitHelper {
 		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
 		Hashtable <String, List<String>> files = getFilesToAdd(localAppName, thisMaster, remoteMaster);
 		
-		// need something that will process files for SOLR
 		
 		// check to see if there are conflicts
 		// it is now done as part of merge
@@ -1550,8 +1651,11 @@ public class GitHelper {
 		
 		// push it back
 		if(dual)
-		pushRemote(localAppName, remoteAppName, remoteUserName, "master", username, password);
-		
+		{
+			pushRemote(localAppName, remoteAppName, remoteUserName, "master", username, password);
+			// need something that will process files for SOLR
+			checkinIgnore(localAppName, filesToIgnore);
+		}	
 		
 		return files;
 	}
