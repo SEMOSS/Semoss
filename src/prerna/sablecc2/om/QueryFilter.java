@@ -40,37 +40,6 @@ public class QueryFilter {
 	}
 	
 	/**
-	 * See if the two query filters are equal in order to be equal, the left
-	 * side, right side, and comparator must match
-	 * 
-	 * @param queryFilter
-	 * @return
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if(obj instanceof QueryFilter) {
-			QueryFilter queryFilter = (QueryFilter) obj;
-			// compare comparator
-			if (this.comparator.toString().equals(queryFilter.comparator.toString())) {
-				return false;
-			}
-			// compare left side
-			if (this.lComparison.getValue().toString().equals(queryFilter.lComparison.getValue().toString())) {
-				return false;
-			}
-			// compare right side
-			if (this.rComparison.getValue().toString().equals(queryFilter.rComparison.getValue().toString())) {
-				return false;
-			}
-
-			// if we get to this point
-			// everything was the same
-			return true;
-		}
-		return false;
-	}
-
-	/**
 	 * See if the filter is using a specific column
 	 * @param column
 	 * @return
@@ -268,6 +237,227 @@ public class QueryFilter {
 		return copy;
 	}
 	
+	/**
+	 * Determine if 2 filters are modifying the same column
+	 * @param otherQueryFilter
+	 * @return
+	 */
+	public boolean equivalentColumnModifcation(QueryFilter otherQueryFilter) {
+		// regardless of the order
+		// the comparators must match
+		if(!this.comparator.toString().equals(otherQueryFilter.comparator.toString())) {
+			return false;
+		}
+		
+		FILTER_TYPE thisFilterType = determineFilterType(this);
+		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
+
+		if(thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// compare left hand side
+			if(!this.lComparison.getValue().toString().equals(otherQueryFilter.lComparison.getValue().toString())) {
+				return false;
+			}
+		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// compare right hand side
+			if(!this.rComparison.getValue().toString().equals(otherQueryFilter.rComparison.getValue().toString())) {
+				return false;
+			}
+		} else if(thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// compare left hand side to right hand side
+			if(!this.lComparison.getValue().toString().equals(otherQueryFilter.rComparison.getValue().toString())) {
+				return false;
+			}
+		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// compare right hand side to left hand side
+			if(!this.rComparison.getValue().toString().equals(otherQueryFilter.lComparison.getValue().toString())) {
+				return false;
+			}
+		} else {
+			// it is not col to value or value to col
+			// just return false
+			return false;
+		}
+		
+		// got to this point
+		// they match
+		return true;
+	}
+	
+	public void subtractInstanceFilters(QueryFilter otherQueryFilter) {
+		FILTER_TYPE thisFilterType = determineFilterType(this);
+		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
+
+		if(thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// remove the values of the right hand side from this right hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisRHS = new Vector<Object>();
+			Object thisRhsObj = this.rComparison.getValue();
+			if(thisRhsObj instanceof List) {
+				thisRHS = (List<Object>) thisRhsObj;
+			} else {
+				thisRHS.add(thisRhsObj);
+			}
+			
+			List<Object> otherRHS = new Vector<Object>();
+			Object otherRhsObj = otherQueryFilter.rComparison.getValue();
+			if(otherRhsObj instanceof List) {
+				otherRHS = (List<Object>) otherRhsObj;
+			} else {
+				otherRHS.add(otherRhsObj);
+			}
+			
+			// remove the values
+			thisRHS.removeAll(otherRHS);
+			
+			// recreate this 
+			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
+			
+		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// remove the values of the left hand side from this left hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisLHS = new Vector<Object>();
+			Object thisLhsObj = this.lComparison.getValue();
+			if(thisLhsObj instanceof List) {
+				thisLHS = (List<Object>) thisLhsObj;
+			} else {
+				thisLHS.add(thisLhsObj);
+			}
+			
+			List<Object> otherLHS = new Vector<Object>();
+			Object otherLhsObj = otherQueryFilter.lComparison.getValue();
+			if(otherLhsObj instanceof List) {
+				otherLHS = (List<Object>) otherLhsObj;
+			} else {
+				otherLHS.add(otherLhsObj);
+			}
+			
+			// remove the values
+			thisLHS.removeAll(otherLHS);
+			
+			// recreate this 
+			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
+			
+			
+		} else if(thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// remove the values of the left hand side from this right hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisRHS = new Vector<Object>();
+			Object thisRhsObj = this.rComparison.getValue();
+			if(thisRhsObj instanceof List) {
+				thisRHS = (List<Object>) thisRhsObj;
+			} else {
+				thisRHS.add(thisRhsObj);
+			}
+			
+			List<Object> otherLHS = new Vector<Object>();
+			Object otherLhsObj = otherQueryFilter.lComparison.getValue();
+			if(otherLhsObj instanceof List) {
+				otherLHS = (List<Object>) otherLhsObj;
+			} else {
+				otherLHS.add(otherLhsObj);
+			}
+			
+			// remove the values
+			thisRHS.removeAll(otherLHS);
+
+			// recreate this 
+			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
+
+			
+		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// remove the values of the right hand side from this left hand side
+
+			// lets make sure everything is a list
+			// even if it is a single value
+			List<Object> thisLHS = new Vector<Object>();
+			Object thisLhsObj = this.lComparison.getValue();
+			if(thisLhsObj instanceof List) {
+				thisLHS = (List<Object>) thisLhsObj;
+			} else {
+				thisLHS.add(thisLhsObj);
+			}
+			
+			List<Object> otherRHS = new Vector<Object>();
+			Object otherRhsObj = otherQueryFilter.rComparison.getValue();
+			if(otherRhsObj instanceof List) {
+				otherRHS = (List<Object>) otherRhsObj;
+			} else {
+				otherRHS.add(otherRhsObj);
+			}
+			
+			// remove the values
+			thisLHS.removeAll(otherRHS);
+			
+			// recreate this 
+			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
+		}
+	}
+	
+	public boolean isEmptyFilterValues() {
+		FILTER_TYPE thisFilterType = determineFilterType(this);
+		if(thisFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			// is right hand side a list
+			// and is it empty
+			Object rObj = rComparison.getValue();
+			if(rObj instanceof List) {
+				if(((List) rObj).isEmpty()) {
+					return true;
+				}
+			}
+		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			// is left hand side a list
+			// and is it empty
+			Object lObj = lComparison.getValue();
+			if(lObj instanceof List) {
+				if(((List) lObj).isEmpty()) {
+					return true;
+				}
+			}
+		}
+		
+		// got to this point
+		// it is not empty
+		return false;
+	}
+	
+
+	/**
+	 * See if the two query filters are equal in order to be equal, the left
+	 * side, right side, and comparator must match
+	 * 
+	 * @param queryFilter
+	 * @return
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof QueryFilter) {
+			QueryFilter otherQueryFilter = (QueryFilter) obj;
+			// compare comparator
+			if(!this.comparator.toString().equals(otherQueryFilter.comparator.toString())) {
+				return false;
+			}
+			// compare left side
+			if(!this.lComparison.getValue().toString().equals(otherQueryFilter.lComparison.getValue().toString())) {
+				return false;
+			}
+			// compare right side
+			if(!this.rComparison.getValue().toString().equals(otherQueryFilter.rComparison.getValue().toString())) {
+				return false;
+			}
+
+			// if we get to this point
+			// everything was the same
+			return true;
+		}
+		return false;
+	}
+
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
 	/////////////////////// STATIC METHODS /////////////////////////
@@ -365,6 +555,18 @@ public class QueryFilter {
 		} else if(comparator.equals("<=")) {
 			return true;
 		}
+		return false;
+	}
+	
+	public static boolean comparatorNotNumeric(String comparator) {
+		if(comparator.equals("==")) {
+			return true;
+		} else if(comparator.equals("!=")) {
+			return true;
+		} else if(comparator.equals("<>")) {
+			return true;
+		}
+		
 		return false;
 	}
 	
@@ -553,5 +755,5 @@ public class QueryFilter {
 
 		return false;
 	}
-	
+
 }
