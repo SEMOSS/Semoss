@@ -1670,7 +1670,7 @@ public class GitHelper {
 		
 		String dir = "C:\\Users\\pkapaleeswaran\\workspacej3\\git\\NTrial3";
 	
-		helper.removeAllIgnore(dir);
+		//helper.removeAllIgnore(dir);
 		
 		helper.checkinIgnore(dir, new String[]{"*.db"});
 		helper.checkoutIgnore(dir, new String[]{"*.db"});
