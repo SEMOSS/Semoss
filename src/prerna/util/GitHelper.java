@@ -1642,7 +1642,7 @@ public class GitHelper {
 		remoteAppName = remoteAppName.split("/")[1]; 
 
 		// need something that will process files for SOLR
-		String [] filesToIgnore = new String[] {"*.db", "*.jnl"};
+		String [] filesToIgnore = new String[] {"**/*.mv.db", "**/*.db", "**/.*\\.db", "**/\\.mv\\.db", "**/.*\\.jnl"};
 		checkoutIgnore(localAppName, filesToIgnore);
 
 		fetchRemote(localAppName, remoteAppName);
@@ -1661,9 +1661,9 @@ public class GitHelper {
 		// push it back
 		if(dual)
 		{
+			checkinIgnore(localAppName, filesToIgnore);
 			pushRemote(localAppName, remoteAppName, remoteUserName, "master", username, password);
 			// need something that will process files for SOLR
-			checkinIgnore(localAppName, filesToIgnore);
 		}	
 		
 		return files;
