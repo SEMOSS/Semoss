@@ -1369,15 +1369,26 @@ public class GitHelper {
 		runProcess(dir, commands, true);
 	}
 	
+	public void addAll(String dir) {
+		addAll(dir, false);
+	}
 	
-	public void addAll(String dir)
+	public void addAll(String dir, boolean reset)
 	{
 		List <String> commands = new Vector<String>();
 		commands.add("git");
 		commands.add("add");
-		commands.add("*");
-
+		commands.add(".");
 		runProcess(dir, commands, true);
+
+		if(reset) {
+			commands.clear();
+			commands.add("git");
+			commands.add("reset");
+			commands.add("--");
+			commands.add("*.db");
+			runProcess(dir, commands, true);
+		}
 	}
 	
 	public void addSpecific(String dir, String [] fileNames)
@@ -1396,8 +1407,13 @@ public class GitHelper {
 	
 	public void commitAll(String dir, boolean add)
 	{
+		commitAll(dir, add, false);
+	}
+	
+	public void commitAll(String dir, boolean add, boolean reset)
+	{
 		if(add)
-			addAll(dir);
+			addAll(dir, reset);
 		
 		// make the directory if not already there		
 		List <String> commands = new Vector<String>();
@@ -1634,17 +1650,18 @@ public class GitHelper {
 	// the key is ADD, MOD, REN, DEL
 	public Hashtable<String, List<String>> synchronize(String localAppName, String remoteAppName, String username, String password, boolean dual)
 	{
-
-		// already happened once so I will not do this again
-		commitAll(localAppName, true);
 		// get everything
 		String remoteUserName = remoteAppName.split("/")[0];
 		remoteAppName = remoteAppName.split("/")[1]; 
 
+		removeAllIgnore(remoteAppName);
 		// need something that will process files for SOLR
-		String [] filesToIgnore = new String[] {"**/*.mv.db", "**/*.db", "**/.*\\.db", "**/\\.mv\\.db", "**/.*\\.jnl"};
+		String [] filesToIgnore = new String[] {"*.mv.db"};
 		checkoutIgnore(localAppName, filesToIgnore);
 
+		// already happened once so I will not do this again
+		commitAll(localAppName, true, true);
+		
 		fetchRemote(localAppName, remoteAppName);
 		
 		// need to get a list of files to process
