@@ -714,7 +714,7 @@ public class GitHelper {
 		}
 	}
 	
-	private void checkinIgnore(String localRepository, String [] files)
+	public void checkinIgnore(String localRepository, String [] files)
 	{
 		// this will go into the checkin ignore
 		// a.k.a .gitignore
@@ -726,7 +726,7 @@ public class GitHelper {
 			
 			PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(myNewFile)));
 			//pw.println("/*");
-			for(int fileIndex = 0; fileIndex <= files.length;fileIndex++)
+			for(int fileIndex = 0; fileIndex < files.length;fileIndex++)
 				pw.println(files[fileIndex]);
 			pw.close();
 		} catch (FileNotFoundException e) {
@@ -738,7 +738,7 @@ public class GitHelper {
 		}
 	}
 	
-	private void removeIgnores(String localRepository)
+	public void removeIgnores(String localRepository)
 	{
 		
 		try {
@@ -759,7 +759,7 @@ public class GitHelper {
 		
 	}
 	
-	private void checkoutIgnore(String localRepository, String [] files)
+	public void checkoutIgnore(String localRepository, String [] files)
 	{
 		// this will go into the sparse checkout
 		try {
@@ -779,7 +779,7 @@ public class GitHelper {
 				
 				PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(myFile2)));
 				pw.println("/*");
-				for(int fileIndex = 0; fileIndex <= files.length;fileIndex++)
+				for(int fileIndex = 0; fileIndex < files.length;fileIndex++)
 					pw.println("!"+files[fileIndex]);
 				pw.close();
 			}
@@ -1668,7 +1668,12 @@ public class GitHelper {
 		String userName = "prabhuk12";
 		String password = "g2thub123";
 		
+		String dir = "C:\\Users\\pkapaleeswaran\\workspacej3\\git\\NTrial3";
+	
+		helper.removeAllIgnore(dir);
 		
+		helper.checkinIgnore(dir, new String[]{"*.db"});
+		helper.checkoutIgnore(dir, new String[]{"*.db"});
 		
 		//helper.listRemotes(userName, password);
 		
@@ -1681,7 +1686,6 @@ public class GitHelper {
 		//helper.makeAppFromRemote(baseFolder, "MvGit", appName);
 		helper.synchronize(baseFolder + "/db/Mv2Git4", "Mv4", userName, password, true);
 		
-		String dir = "C:\\Users\\pkapaleeswaran\\workspacej3\\git\\NTrial3";
 		helper.getVersions(dir);
 		//helper.mergeRepo(dir, "Trial2");
 		helper.listConfigRemotes(dir);
