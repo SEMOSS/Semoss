@@ -88,13 +88,6 @@ public class InsightAdministrator {
 		insightName = escapeForSQLStatement(insightName);
 		layout = escapeForSQLStatement(layout);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightEngine, GET_LAST_INSIGHT_ID);
-		Object lastIdNum = 0;
-		if(wrapper.hasNext()){ // need to call hasNext before you call next()
-			lastIdNum = wrapper.next().getValues()[0];
-		}
-		wrapper.cleanUp();
-		
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
 				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
 				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES (")
