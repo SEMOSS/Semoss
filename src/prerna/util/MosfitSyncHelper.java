@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -237,12 +238,14 @@ public class MosfitSyncHelper {
 		}
 	}
 	
-	public static Map<String, Object> getMosfitMap(File mosfetFile) {
+	public Map<String, Object> getMosfitMap(File mosfetFile) {
 		Map<String, Object> mapData = null;
 		try {
 			mapData = new ObjectMapper().readValue(mosfetFile, Map.class);
-		} catch (IOException e1) {
-			throw new IllegalArgumentException("MOSFET file is not in valid JSON format");
+		} catch(FileNotFoundException e) {
+			outputError("MOSFET file could not be found at location: " + mosfetFile.getPath());
+		} catch (IOException e) {
+			outputError("MOSFET file is not in valid JSON format");
 		}
 		return mapData;
 	}

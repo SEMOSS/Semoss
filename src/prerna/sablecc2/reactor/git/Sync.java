@@ -70,6 +70,7 @@ public class Sync extends AbstractReactor {
 			logger.info("Indexing your changes");
 			// will update solr and in the engine rdbms insights database
 			MosfitSyncHelper indexHelper = new MosfitSyncHelper();
+			indexHelper.setLogger(getLogger(this.getClass().getName()));
 			indexHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged));
 			logger.info("Index complete");
 
