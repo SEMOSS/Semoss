@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class PRoutineOrVar extends Node
+public abstract class POrComparison extends Node
 {
     // Empty body
 }

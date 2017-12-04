@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class PFilter extends Node
+public abstract class PRepeatingOrComparison extends Node
 {
     // Empty body
 }

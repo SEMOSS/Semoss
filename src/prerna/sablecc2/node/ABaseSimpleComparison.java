@@ -5,18 +5,18 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AComparisonExpr extends PExpr
+public final class ABaseSimpleComparison extends PBaseSimpleComparison
 {
     private PBaseExpr _left_;
     private TComparator _comparator_;
     private PBaseExpr _right_;
 
-    public AComparisonExpr()
+    public ABaseSimpleComparison()
     {
         // Constructor
     }
 
-    public AComparisonExpr(
+    public ABaseSimpleComparison(
         @SuppressWarnings("hiding") PBaseExpr _left_,
         @SuppressWarnings("hiding") TComparator _comparator_,
         @SuppressWarnings("hiding") PBaseExpr _right_)
@@ -33,7 +33,7 @@ public final class AComparisonExpr extends PExpr
     @Override
     public Object clone()
     {
-        return new AComparisonExpr(
+        return new ABaseSimpleComparison(
             cloneNode(this._left_),
             cloneNode(this._comparator_),
             cloneNode(this._right_));
@@ -42,7 +42,7 @@ public final class AComparisonExpr extends PExpr
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAComparisonExpr(this);
+        ((Analysis) sw).caseABaseSimpleComparison(this);
     }
 
     public PBaseExpr getLeft()

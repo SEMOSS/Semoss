@@ -18,9 +18,13 @@ import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
+import prerna.sablecc2.node.ABaseSimpleComparison;
+import prerna.sablecc2.node.ABasicAndComparisonTerm;
+import prerna.sablecc2.node.ABasicOrComparisonTerm;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
-import prerna.sablecc2.node.AComparisonExpr;
+import prerna.sablecc2.node.AComplexAndComparisonExpr;
+import prerna.sablecc2.node.AComplexOrComparisonExpr;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
@@ -72,7 +76,9 @@ import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
+import prerna.sablecc2.reactor.expression.OpAnd;
 import prerna.sablecc2.reactor.expression.OpFilter;
+import prerna.sablecc2.reactor.expression.OpOr;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.QueryExpressionAssimilator;
@@ -693,7 +699,64 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAComparisonExpr(AComparisonExpr node) {
+    public void inAComplexAndComparisonExpr(AComplexAndComparisonExpr node) {
+    	defaultIn(node);
+    	IReactor opReactor = new OpAnd();
+    	initReactor(opReactor);
+    	syncResult();
+    }
+    
+    @Override
+    public void outAComplexAndComparisonExpr(AComplexAndComparisonExpr node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
+    @Override
+    public void inAComplexOrComparisonExpr(AComplexOrComparisonExpr node) {
+    	defaultIn(node);
+    	IReactor opReactor = new OpAnd();
+    	initReactor(opReactor);
+    	syncResult();
+    }
+    
+    @Override
+    public void outAComplexOrComparisonExpr(AComplexOrComparisonExpr node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
+    @Override
+    public void inABasicAndComparisonTerm(ABasicAndComparisonTerm node) {
+    	defaultIn(node);
+    	IReactor opReactor = new OpAnd();
+    	initReactor(opReactor);
+    	syncResult();
+    }
+    
+    @Override
+    public void outABasicAndComparisonTerm(ABasicAndComparisonTerm node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
+    @Override
+    public void inABasicOrComparisonTerm(ABasicOrComparisonTerm node) {
+    	defaultIn(node);
+    	IReactor opReactor = new OpOr();
+    	initReactor(opReactor);
+    	syncResult();
+    }
+    
+    
+    @Override
+    public void outABasicOrComparisonTerm(ABasicOrComparisonTerm node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
+    @Override
+    public void inABaseSimpleComparison(ABaseSimpleComparison node) {
     	defaultIn(node);
     	// I feel like mostly it would be this and not frame op
     	// I almost feel I should remove the frame op col def
@@ -703,15 +766,15 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void outAComparisonExpr(AComparisonExpr node) {
+    public void outABaseSimpleComparison(ABaseSimpleComparison node) {
     	defaultOut(node);
     	deInitReactor();
     }
 
     @Override
-    public void caseAComparisonExpr(AComparisonExpr node)
+    public void caseABaseSimpleComparison(ABaseSimpleComparison node)
     {
-        inAComparisonExpr(node);
+        inABaseSimpleComparison(node);
         if(node.getLeft() != null)
         {
             node.getLeft().apply(this);
@@ -724,7 +787,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         {
             node.getRight().apply(this);
         }
-        outAComparisonExpr(node);
+        outABaseSimpleComparison(node);
     }
     
     @Override

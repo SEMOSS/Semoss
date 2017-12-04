@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class POtherMap extends Node
+public abstract class PMasterExpr extends Node
 {
     // Empty body
 }

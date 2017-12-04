@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AExpressionScriptstart extends PScriptstart
+public final class ANormalMasterExpr extends PMasterExpr
 {
-    private PMasterExpr _masterExpr_;
+    private PExpr _expr_;
 
-    public AExpressionScriptstart()
+    public ANormalMasterExpr()
     {
         // Constructor
     }
 
-    public AExpressionScriptstart(
-        @SuppressWarnings("hiding") PMasterExpr _masterExpr_)
+    public ANormalMasterExpr(
+        @SuppressWarnings("hiding") PExpr _expr_)
     {
         // Constructor
-        setMasterExpr(_masterExpr_);
+        setExpr(_expr_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AExpressionScriptstart(
-            cloneNode(this._masterExpr_));
+        return new ANormalMasterExpr(
+            cloneNode(this._expr_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAExpressionScriptstart(this);
+        ((Analysis) sw).caseANormalMasterExpr(this);
     }
 
-    public PMasterExpr getMasterExpr()
+    public PExpr getExpr()
     {
-        return this._masterExpr_;
+        return this._expr_;
     }
 
-    public void setMasterExpr(PMasterExpr node)
+    public void setExpr(PExpr node)
     {
-        if(this._masterExpr_ != null)
+        if(this._expr_ != null)
         {
-            this._masterExpr_.parent(null);
+            this._expr_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AExpressionScriptstart extends PScriptstart
             node.parent(this);
         }
 
-        this._masterExpr_ = node;
+        this._expr_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._masterExpr_);
+            + toString(this._expr_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._masterExpr_ == child)
+        if(this._expr_ == child)
         {
-            this._masterExpr_ = null;
+            this._expr_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AExpressionScriptstart extends PScriptstart
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._masterExpr_ == oldChild)
+        if(this._expr_ == oldChild)
         {
-            setMasterExpr((PMasterExpr) newChild);
+            setExpr((PExpr) newChild);
             return;
         }
 

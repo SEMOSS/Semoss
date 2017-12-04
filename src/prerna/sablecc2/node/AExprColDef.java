@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AExprColDef extends PColDef
 {
-    private PExpr _expr_;
+    private PMasterExpr _masterExpr_;
 
     public AExprColDef()
     {
@@ -15,10 +15,10 @@ public final class AExprColDef extends PColDef
     }
 
     public AExprColDef(
-        @SuppressWarnings("hiding") PExpr _expr_)
+        @SuppressWarnings("hiding") PMasterExpr _masterExpr_)
     {
         // Constructor
-        setExpr(_expr_);
+        setMasterExpr(_masterExpr_);
 
     }
 
@@ -26,7 +26,7 @@ public final class AExprColDef extends PColDef
     public Object clone()
     {
         return new AExprColDef(
-            cloneNode(this._expr_));
+            cloneNode(this._masterExpr_));
     }
 
     @Override
@@ -35,16 +35,16 @@ public final class AExprColDef extends PColDef
         ((Analysis) sw).caseAExprColDef(this);
     }
 
-    public PExpr getExpr()
+    public PMasterExpr getMasterExpr()
     {
-        return this._expr_;
+        return this._masterExpr_;
     }
 
-    public void setExpr(PExpr node)
+    public void setMasterExpr(PMasterExpr node)
     {
-        if(this._expr_ != null)
+        if(this._masterExpr_ != null)
         {
-            this._expr_.parent(null);
+            this._masterExpr_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AExprColDef extends PColDef
             node.parent(this);
         }
 
-        this._expr_ = node;
+        this._masterExpr_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._expr_);
+            + toString(this._masterExpr_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._expr_ == child)
+        if(this._masterExpr_ == child)
         {
-            this._expr_ = null;
+            this._masterExpr_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AExprColDef extends PColDef
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._expr_ == oldChild)
+        if(this._masterExpr_ == oldChild)
         {
-            setExpr((PExpr) newChild);
+            setMasterExpr((PMasterExpr) newChild);
             return;
         }
 
