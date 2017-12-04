@@ -19,7 +19,13 @@ Helpers
  single_quote_word = single_quote not_single_quote* single_quote;
  url_unescaped_chars = ('-' | '_' | '.' | '!' | '~' | '*' | '+' | ''' | '(' | ')' | '%');
  encoded_values = (letter_s | letter_b | digit | url_unescaped_chars);
-
+ not_hash = [all - '#'];
+ not_star = [all - '*'];
+ not_star_not_slash = [all - ['*' + '/']];
+ traditional_comment = '/*' not_star+ '*'+ (not_star_not_slash not_star* '*'+)* '/';
+ documentation_comment = '/**' '*'* (not_star_not_slash not_star* '*'+)* '/';
+ hash_comment = '##' not_hash+ (not_hash | ('#' not_hash)+)* '##'; 
+ 
 Tokens
  meta = 'META';
  number = ['0' .. '9']+;
@@ -33,6 +39,7 @@ Tokens
  mod = '%';
  pow = '^';
  word = (single_quote_word | double_quote_word);
+ comment = traditional_comment | documentation_comment | hash_comment;
  mult = '*';
  comma = ',';
  div = '/';
@@ -64,6 +71,7 @@ Tokens
  custom = '|';
  rel_type = ('inner.join' | 'outer.join' | 'right.outer.join' | 'left.outer.join' | 'cross.join' | 'self.join' ); 
  help_token = '-- help' | '--help';
+
  
 Ignored Tokens
  blank;
@@ -80,7 +88,9 @@ Productions
  // or an assignment from the series of scripts
  routine = 
 	{output} script semicolon 
-	| {assign} assignment semicolon;
+	| {assign} assignment semicolon
+	| {main_comment} comment
+	;
  
  // i need a way to allow for an embedded_script
  // but i need it to not conflict with a formula
@@ -117,6 +127,7 @@ Productions
   | {embedded_scriptchain} l_par mandatory_scriptchain r_par 
   | {embedded_assignment} l_par id equal script r_par
   | {help} id help_token
+  | {comment} comment
   ;
  
  // expr component goes from a defined reactor all the way down to basic number/string
