@@ -93,6 +93,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMainCommentRoutine(AMainCommentRoutine node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAMandatoryScriptchain(AMandatoryScriptchain node)
     {
         defaultCase(node);
@@ -160,6 +166,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAHelpExpr(AHelpExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseACommentExpr(ACommentExpr node)
     {
         defaultCase(node);
     }
@@ -808,6 +820,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTWord(TWord node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTComment(TComment node)
     {
         defaultCase(node);
     }
