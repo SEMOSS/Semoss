@@ -83,9 +83,9 @@ class ModForms {
 		// 3) remove ato
 		query = "SELECT DISTINCT ?system ?ato WHERE {"
 				+ "{?system a <http://semoss.org/ontologies/Concept/System>}"
-				+ "{?system <http://semoss.org/ontologies/Relation/Contains/ATO_DATE> ?ato}"
+				+ "{?system <http://semoss.org/ontologies/Relation/Contains/ATO_Date> ?ato}"
 				+ "}";
-		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/ATO_DATE");
+		removeExistingProperties(formsEngine, query, "http://semoss.org/ontologies/Relation/Contains/ATO_Date");
 		
 		// 4) remove availability actual
 		query = "SELECT DISTINCT ?system ?avail WHERE {"
