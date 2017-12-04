@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AExpressionScriptstart extends PScriptstart
+public final class ABasicAndComparisonTerm extends PComparisonTerm
 {
-    private PMasterExpr _masterExpr_;
+    private PAndComparison _andComparison_;
 
-    public AExpressionScriptstart()
+    public ABasicAndComparisonTerm()
     {
         // Constructor
     }
 
-    public AExpressionScriptstart(
-        @SuppressWarnings("hiding") PMasterExpr _masterExpr_)
+    public ABasicAndComparisonTerm(
+        @SuppressWarnings("hiding") PAndComparison _andComparison_)
     {
         // Constructor
-        setMasterExpr(_masterExpr_);
+        setAndComparison(_andComparison_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AExpressionScriptstart(
-            cloneNode(this._masterExpr_));
+        return new ABasicAndComparisonTerm(
+            cloneNode(this._andComparison_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAExpressionScriptstart(this);
+        ((Analysis) sw).caseABasicAndComparisonTerm(this);
     }
 
-    public PMasterExpr getMasterExpr()
+    public PAndComparison getAndComparison()
     {
-        return this._masterExpr_;
+        return this._andComparison_;
     }
 
-    public void setMasterExpr(PMasterExpr node)
+    public void setAndComparison(PAndComparison node)
     {
-        if(this._masterExpr_ != null)
+        if(this._andComparison_ != null)
         {
-            this._masterExpr_.parent(null);
+            this._andComparison_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AExpressionScriptstart extends PScriptstart
             node.parent(this);
         }
 
-        this._masterExpr_ = node;
+        this._andComparison_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._masterExpr_);
+            + toString(this._andComparison_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._masterExpr_ == child)
+        if(this._andComparison_ == child)
         {
-            this._masterExpr_ = null;
+            this._andComparison_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AExpressionScriptstart extends PScriptstart
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._masterExpr_ == oldChild)
+        if(this._andComparison_ == oldChild)
         {
-            setMasterExpr((PMasterExpr) newChild);
+            setAndComparison((PAndComparison) newChild);
             return;
         }
 

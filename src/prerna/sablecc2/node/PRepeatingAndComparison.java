@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class PNumberOrString extends Node
+public abstract class PRepeatingAndComparison extends Node
 {
     // Empty body
 }

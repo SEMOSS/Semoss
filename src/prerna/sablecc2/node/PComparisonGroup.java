@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class PScalarList extends Node
+public abstract class PComparisonGroup extends Node
 {
     // Empty body
 }
