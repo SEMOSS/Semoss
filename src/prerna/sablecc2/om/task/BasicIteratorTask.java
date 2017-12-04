@@ -11,6 +11,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
@@ -131,7 +132,19 @@ public class BasicIteratorTask extends AbstractTask {
 				offset = this.startOffset;
 			}
 			this.qs.setOffSet(offset + this.internalOffset);
+			boolean addedOrder = false;
+			if(this.qs.getOrderBy().isEmpty()) {
+				// need to add an implicit order
+				IQuerySelector firstSelector = this.qs.getSelectors().get(0);
+				this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+				addedOrder = true;
+			}
 			generateIterator(this.qs);
+			// we got the iterator
+			// if we added an order, remove it
+			if(addedOrder) {
+				this.qs.getOrderBy().clear();
+			}
 		}
 	}
 	
