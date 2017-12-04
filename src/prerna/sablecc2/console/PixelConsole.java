@@ -57,9 +57,9 @@ public class PixelConsole {
 				String pixel = reader.readLine();   
 				pixel = pixel.trim();
 				if(!pixel.isEmpty()) {
-					if(!pixel.endsWith(";")) {
-						pixel = pixel + ";";
-					}
+//					if(!pixel.endsWith(";")) {
+//						pixel = pixel + ";";
+//					}
 					long start = System.currentTimeMillis();
 					Map<String, Object> returnData = run(insight, pixel);
 					System.out.println(gson.toJson(returnData));
