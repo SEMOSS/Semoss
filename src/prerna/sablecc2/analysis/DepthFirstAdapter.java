@@ -110,6 +110,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAAssignRoutine(node);
     }
 
+    public void inAMainCommentRoutine(AMainCommentRoutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMainCommentRoutine(AMainCommentRoutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMainCommentRoutine(AMainCommentRoutine node)
+    {
+        inAMainCommentRoutine(node);
+        if(node.getComment() != null)
+        {
+            node.getComment().apply(this);
+        }
+        outAMainCommentRoutine(node);
+    }
+
     public void inAMandatoryScriptchain(AMandatoryScriptchain node)
     {
         defaultIn(node);
@@ -414,6 +435,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getHelpToken().apply(this);
         }
         outAHelpExpr(node);
+    }
+
+    public void inACommentExpr(ACommentExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outACommentExpr(ACommentExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseACommentExpr(ACommentExpr node)
+    {
+        inACommentExpr(node);
+        if(node.getComment() != null)
+        {
+            node.getComment().apply(this);
+        }
+        outACommentExpr(node);
     }
 
     public void inAExprComponentBaseExpr(AExprComponentBaseExpr node)
