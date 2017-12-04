@@ -133,9 +133,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        if(node.getExpr() != null)
+        if(node.getMasterExpr() != null)
         {
-            node.getExpr().apply(this);
+            node.getMasterExpr().apply(this);
         }
         outAMandatoryScriptchain(node);
     }
@@ -183,9 +183,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAExpressionScriptstart(AExpressionScriptstart node)
     {
         inAExpressionScriptstart(node);
-        if(node.getExpr() != null)
+        if(node.getMasterExpr() != null)
         {
-            node.getExpr().apply(this);
+            node.getMasterExpr().apply(this);
         }
         outAExpressionScriptstart(node);
     }
@@ -225,9 +225,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAOtherscript(AOtherscript node)
     {
         inAOtherscript(node);
-        if(node.getExpr() != null)
+        if(node.getMasterExpr() != null)
         {
-            node.getExpr().apply(this);
+            node.getMasterExpr().apply(this);
         }
         if(node.getCustom() != null)
         {
@@ -265,6 +265,48 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAAssignment(node);
     }
 
+    public void inANormalMasterExpr(ANormalMasterExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANormalMasterExpr(ANormalMasterExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANormalMasterExpr(ANormalMasterExpr node)
+    {
+        inANormalMasterExpr(node);
+        if(node.getExpr() != null)
+        {
+            node.getExpr().apply(this);
+        }
+        outANormalMasterExpr(node);
+    }
+
+    public void inAComparisonMasterExpr(AComparisonMasterExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAComparisonMasterExpr(AComparisonMasterExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAComparisonMasterExpr(AComparisonMasterExpr node)
+    {
+        inAComparisonMasterExpr(node);
+        if(node.getComparisonExpr() != null)
+        {
+            node.getComparisonExpr().apply(this);
+        }
+        outAComparisonMasterExpr(node);
+    }
+
     public void inABaseExprExpr(ABaseExprExpr node)
     {
         defaultIn(node);
@@ -284,35 +326,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getBaseExpr().apply(this);
         }
         outABaseExprExpr(node);
-    }
-
-    public void inAComparisonExpr(AComparisonExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAComparisonExpr(AComparisonExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAComparisonExpr(AComparisonExpr node)
-    {
-        inAComparisonExpr(node);
-        if(node.getRight() != null)
-        {
-            node.getRight().apply(this);
-        }
-        if(node.getComparator() != null)
-        {
-            node.getComparator().apply(this);
-        }
-        if(node.getLeft() != null)
-        {
-            node.getLeft().apply(this);
-        }
-        outAComparisonExpr(node);
     }
 
     public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node)
@@ -1021,9 +1034,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        if(node.getExpr() != null)
+        if(node.getMasterExpr() != null)
         {
-            node.getExpr().apply(this);
+            node.getMasterExpr().apply(this);
         }
         if(node.getLPar() != null)
         {
@@ -1046,9 +1059,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAOtherExpr(AOtherExpr node)
     {
         inAOtherExpr(node);
-        if(node.getExpr() != null)
+        if(node.getMasterExpr() != null)
         {
-            node.getExpr().apply(this);
+            node.getMasterExpr().apply(this);
         }
         if(node.getComma() != null)
         {
@@ -1245,9 +1258,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAExprColDef(AExprColDef node)
     {
         inAExprColDef(node);
-        if(node.getExpr() != null)
+        if(node.getMasterExpr() != null)
         {
-            node.getExpr().apply(this);
+            node.getMasterExpr().apply(this);
         }
         outAExprColDef(node);
     }
@@ -1820,6 +1833,351 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getLPar().apply(this);
         }
         outAExplicitRel(node);
+    }
+
+    public void inATermComparisonExpr(ATermComparisonExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outATermComparisonExpr(ATermComparisonExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseATermComparisonExpr(ATermComparisonExpr node)
+    {
+        inATermComparisonExpr(node);
+        if(node.getComparisonTerm() != null)
+        {
+            node.getComparisonTerm().apply(this);
+        }
+        outATermComparisonExpr(node);
+    }
+
+    public void inAComparisonGroupComparisonExpr(AComparisonGroupComparisonExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAComparisonGroupComparisonExpr(AComparisonGroupComparisonExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAComparisonGroupComparisonExpr(AComparisonGroupComparisonExpr node)
+    {
+        inAComparisonGroupComparisonExpr(node);
+        if(node.getComparisonGroup() != null)
+        {
+            node.getComparisonGroup().apply(this);
+        }
+        outAComparisonGroupComparisonExpr(node);
+    }
+
+    public void inAComplexOrComparisonExpr(AComplexOrComparisonExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAComplexOrComparisonExpr(AComplexOrComparisonExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAComplexOrComparisonExpr(AComplexOrComparisonExpr node)
+    {
+        inAComplexOrComparisonExpr(node);
+        if(node.getComparisonExpr() != null)
+        {
+            node.getComparisonExpr().apply(this);
+        }
+        if(node.getOrComparator() != null)
+        {
+            node.getOrComparator().apply(this);
+        }
+        if(node.getComparisonGroup() != null)
+        {
+            node.getComparisonGroup().apply(this);
+        }
+        outAComplexOrComparisonExpr(node);
+    }
+
+    public void inAComplexAndComparisonExpr(AComplexAndComparisonExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAComplexAndComparisonExpr(AComplexAndComparisonExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAComplexAndComparisonExpr(AComplexAndComparisonExpr node)
+    {
+        inAComplexAndComparisonExpr(node);
+        if(node.getComparisonExpr() != null)
+        {
+            node.getComparisonExpr().apply(this);
+        }
+        if(node.getAndComparator() != null)
+        {
+            node.getAndComparator().apply(this);
+        }
+        if(node.getComparisonGroup() != null)
+        {
+            node.getComparisonGroup().apply(this);
+        }
+        outAComplexAndComparisonExpr(node);
+    }
+
+    public void inABasicComparisonTerm(ABasicComparisonTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABasicComparisonTerm(ABasicComparisonTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABasicComparisonTerm(ABasicComparisonTerm node)
+    {
+        inABasicComparisonTerm(node);
+        if(node.getBaseSimpleComparison() != null)
+        {
+            node.getBaseSimpleComparison().apply(this);
+        }
+        outABasicComparisonTerm(node);
+    }
+
+    public void inABasicAndComparisonTerm(ABasicAndComparisonTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABasicAndComparisonTerm(ABasicAndComparisonTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABasicAndComparisonTerm(ABasicAndComparisonTerm node)
+    {
+        inABasicAndComparisonTerm(node);
+        if(node.getAndComparison() != null)
+        {
+            node.getAndComparison().apply(this);
+        }
+        outABasicAndComparisonTerm(node);
+    }
+
+    public void inABasicOrComparisonTerm(ABasicOrComparisonTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABasicOrComparisonTerm(ABasicOrComparisonTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABasicOrComparisonTerm(ABasicOrComparisonTerm node)
+    {
+        inABasicOrComparisonTerm(node);
+        if(node.getOrComparison() != null)
+        {
+            node.getOrComparison().apply(this);
+        }
+        outABasicOrComparisonTerm(node);
+    }
+
+    public void inAComparisonGroup(AComparisonGroup node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAComparisonGroup(AComparisonGroup node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAComparisonGroup(AComparisonGroup node)
+    {
+        inAComparisonGroup(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getComparisonExpr() != null)
+        {
+            node.getComparisonExpr().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAComparisonGroup(node);
+    }
+
+    public void inAAndComparison(AAndComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAndComparison(AAndComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAndComparison(AAndComparison node)
+    {
+        inAAndComparison(node);
+        {
+            List<PRepeatingAndComparison> copy = new ArrayList<PRepeatingAndComparison>(node.getMoreRight());
+            Collections.reverse(copy);
+            for(PRepeatingAndComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        if(node.getAndComparator() != null)
+        {
+            node.getAndComparator().apply(this);
+        }
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        outAAndComparison(node);
+    }
+
+    public void inARepeatingAndComparison(ARepeatingAndComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARepeatingAndComparison(ARepeatingAndComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARepeatingAndComparison(ARepeatingAndComparison node)
+    {
+        inARepeatingAndComparison(node);
+        if(node.getBaseSimpleComparison() != null)
+        {
+            node.getBaseSimpleComparison().apply(this);
+        }
+        if(node.getAndComparator() != null)
+        {
+            node.getAndComparator().apply(this);
+        }
+        outARepeatingAndComparison(node);
+    }
+
+    public void inAOrComparison(AOrComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAOrComparison(AOrComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAOrComparison(AOrComparison node)
+    {
+        inAOrComparison(node);
+        {
+            List<PRepeatingOrComparison> copy = new ArrayList<PRepeatingOrComparison>(node.getMoreRight());
+            Collections.reverse(copy);
+            for(PRepeatingOrComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        if(node.getOrComparator() != null)
+        {
+            node.getOrComparator().apply(this);
+        }
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        outAOrComparison(node);
+    }
+
+    public void inARepeatingOrComparison(ARepeatingOrComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARepeatingOrComparison(ARepeatingOrComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARepeatingOrComparison(ARepeatingOrComparison node)
+    {
+        inARepeatingOrComparison(node);
+        if(node.getBaseSimpleComparison() != null)
+        {
+            node.getBaseSimpleComparison().apply(this);
+        }
+        if(node.getOrComparator() != null)
+        {
+            node.getOrComparator().apply(this);
+        }
+        outARepeatingOrComparison(node);
+    }
+
+    public void inABaseSimpleComparison(ABaseSimpleComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABaseSimpleComparison(ABaseSimpleComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABaseSimpleComparison(ABaseSimpleComparison node)
+    {
+        inABaseSimpleComparison(node);
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        if(node.getComparator() != null)
+        {
+            node.getComparator().apply(this);
+        }
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        outABaseSimpleComparison(node);
     }
 
     public void inAJavaOp(AJavaOp node)

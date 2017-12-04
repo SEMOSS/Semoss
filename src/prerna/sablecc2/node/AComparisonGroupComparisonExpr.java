@@ -5,46 +5,46 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AExpressionScriptstart extends PScriptstart
+public final class AComparisonGroupComparisonExpr extends PComparisonExpr
 {
-    private PMasterExpr _masterExpr_;
+    private PComparisonGroup _comparisonGroup_;
 
-    public AExpressionScriptstart()
+    public AComparisonGroupComparisonExpr()
     {
         // Constructor
     }
 
-    public AExpressionScriptstart(
-        @SuppressWarnings("hiding") PMasterExpr _masterExpr_)
+    public AComparisonGroupComparisonExpr(
+        @SuppressWarnings("hiding") PComparisonGroup _comparisonGroup_)
     {
         // Constructor
-        setMasterExpr(_masterExpr_);
+        setComparisonGroup(_comparisonGroup_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AExpressionScriptstart(
-            cloneNode(this._masterExpr_));
+        return new AComparisonGroupComparisonExpr(
+            cloneNode(this._comparisonGroup_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAExpressionScriptstart(this);
+        ((Analysis) sw).caseAComparisonGroupComparisonExpr(this);
     }
 
-    public PMasterExpr getMasterExpr()
+    public PComparisonGroup getComparisonGroup()
     {
-        return this._masterExpr_;
+        return this._comparisonGroup_;
     }
 
-    public void setMasterExpr(PMasterExpr node)
+    public void setComparisonGroup(PComparisonGroup node)
     {
-        if(this._masterExpr_ != null)
+        if(this._comparisonGroup_ != null)
         {
-            this._masterExpr_.parent(null);
+            this._comparisonGroup_.parent(null);
         }
 
         if(node != null)
@@ -57,23 +57,23 @@ public final class AExpressionScriptstart extends PScriptstart
             node.parent(this);
         }
 
-        this._masterExpr_ = node;
+        this._comparisonGroup_ = node;
     }
 
     @Override
     public String toString()
     {
         return ""
-            + toString(this._masterExpr_);
+            + toString(this._comparisonGroup_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._masterExpr_ == child)
+        if(this._comparisonGroup_ == child)
         {
-            this._masterExpr_ = null;
+            this._comparisonGroup_ = null;
             return;
         }
 
@@ -84,9 +84,9 @@ public final class AExpressionScriptstart extends PScriptstart
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._masterExpr_ == oldChild)
+        if(this._comparisonGroup_ == oldChild)
         {
-            setMasterExpr((PMasterExpr) newChild);
+            setComparisonGroup((PComparisonGroup) newChild);
             return;
         }
 
