@@ -129,13 +129,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseABaseExprExpr(ABaseExprExpr node)
+    public void caseANormalMasterExpr(ANormalMasterExpr node)
     {
         defaultCase(node);
     }
 
     @Override
-    public void caseAComparisonExpr(AComparisonExpr node)
+    public void caseAComparisonMasterExpr(AComparisonMasterExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABaseExprExpr(ABaseExprExpr node)
     {
         defaultCase(node);
     }
@@ -495,6 +501,84 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseATermComparisonExpr(ATermComparisonExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAComparisonGroupComparisonExpr(AComparisonGroupComparisonExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAComplexOrComparisonExpr(AComplexOrComparisonExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAComplexAndComparisonExpr(AComplexAndComparisonExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABasicComparisonTerm(ABasicComparisonTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABasicAndComparisonTerm(ABasicAndComparisonTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABasicOrComparisonTerm(ABasicOrComparisonTerm node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAComparisonGroup(AComparisonGroup node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAndComparison(AAndComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARepeatingAndComparison(ARepeatingAndComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAOrComparison(AOrComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARepeatingOrComparison(ARepeatingOrComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABaseSimpleComparison(ABaseSimpleComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAJavaOp(AJavaOp node)
     {
         defaultCase(node);
@@ -748,6 +832,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTComparator(TComparator node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTAndComparator(TAndComparator node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTOrComparator(TOrComparator node)
     {
         defaultCase(node);
     }

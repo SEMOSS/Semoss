@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class POthernoun extends Node
+public abstract class PBaseSimpleComparison extends Node
 {
     // Empty body
 }

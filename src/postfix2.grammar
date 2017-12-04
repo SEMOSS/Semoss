@@ -37,6 +37,8 @@ Tokens
  comma = ',';
  div = '/';
  comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '==' | '<>');
+ and_comparator = ' AND ';
+ or_comparator = ' OR ';
  equal = '=';
  selectorid = ('s='| 's');
  optionid = 'o=';
@@ -64,7 +66,7 @@ Tokens
  help_token = '-- help' | '--help';
  
 Ignored Tokens
-blank;
+ blank;
 
 Productions 
 
@@ -83,11 +85,11 @@ Productions
  // i need a way to allow for an embedded_script
  // but i need it to not conflict with a formula
  // so this is basically just enforcing that there is a pipe
- mandatory_scriptchain = expr otherscript+;
+ mandatory_scriptchain = master_expr otherscript+;
  
  script = scriptstart otherscript*;
- scriptstart = {expression} expr | {meta} meta;
- otherscript = custom expr;
+ scriptstart = {expression} master_expr | {meta} meta;
+ otherscript = custom master_expr;
 
  // an assignment if a word or number equal to
  // some kind of evaluation
@@ -104,9 +106,12 @@ Productions
  // this is the highest level object that the user interacts with
  // this is a base expression -> which goes all the way down to a basic number/string
  // and it includes comparisons
+
+ master_expr = {normal} expr
+	| {comparison} comparison_expr;
+ 
  expr =
   {base_expr} base_expr
-  | {comparison} [left]:base_expr comparator [right]:base_expr
   // note that the embedded_assignment can be set to an inner script!
   // or we can have a full inner script just for fun as well!
   | {embedded_scriptchain} l_par mandatory_scriptchain r_par 
@@ -156,8 +161,8 @@ Productions
  formula = l_par expr r_par;
  
  // need to allow a list of expressions
- list = l_par expr other_expr+ r_par;
- other_expr = comma expr;
+ list = l_par master_expr other_expr+ r_par;
+ other_expr = comma master_expr;
  
  // operation is how is how we define PKSL functions (reactors)
  // previously had frameop and operation_formula
@@ -171,7 +176,7 @@ Productions
  othercol =  comma col_def;
  
  // col def is an expression, a prop, or a relationship
- col_def = {expr} expr 
+ col_def = {expr} master_expr 
 		| {prop} prop 
 		| {relation} relationship
 		;
@@ -202,23 +207,34 @@ Productions
  explicit_rel = l_par [lcol]:col_def [comma1]:comma rel_type [comma2]:comma [rcol]:col_def [comma3]:comma [relationship_name]:col_def r_par;
  
  ///////////////////////////////////////////////////////////////////////
- /////////////////////// JSON composites //////////////////////////////
- //////////////////////////////////////////////////////////////////////
+ /////////////////////////// COMPARISONS ///////////////////////////////
+ /////////////////////////////////////////////////////////////////////// 
  
+ comparison_expr = {term} comparison_term
+		| {comparison_group} comparison_group
+		| {complex_or} comparison_group or_comparator comparison_expr
+		| {complex_and} comparison_group and_comparator comparison_expr
+		;
+
+ comparison_term = {basic} base_simple_comparison
+	| {basic_and} and_comparison
+	| {basic_or} or_comparison
+	;		
+		
+ comparison_group = l_par comparison_expr r_par;
  
-/*jsonarrayvalue = l_brac scalar* r_brac;
-jsonvalueoptions = {array} jsonarrayvalue | {scalar} scalar | {node} jsonnode;
-jsonkeyvalue = id colon jsonvalueoptions;
-anotherjsonkeyvalue = comma jsonkeyvalue;
-*/
- 
- 
+ and_comparison = [left]:base_simple_comparison and_comparator [right]:base_simple_comparison [more_right]:repeating_and_comparison*;
+ repeating_and_comparison = and_comparator base_simple_comparison;
+
+ or_comparison = [left]:base_simple_comparison or_comparator [right]:base_simple_comparison [more_right]:repeating_or_comparison*;
+ repeating_or_comparison = or_comparator base_simple_comparison;
+
+ base_simple_comparison = [left]:base_expr comparator [right]:base_expr;
+
  ///////////////////////////////////////////////////////////////////////
  ////////////////////////// END COMPOSITES  ////////////////////////////
  ///////////////////////////////////////////////////////////////////////
- 
- 
- 
+  
  ///////////////////////////////////////////////////////////////////////
  ////////////////////////////// OTHER  /////////////////////////////////
  ///////////////////////////////////////////////////////////////////////
