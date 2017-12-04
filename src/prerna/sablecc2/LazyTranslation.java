@@ -23,6 +23,7 @@ import prerna.sablecc2.node.ABasicAndComparisonTerm;
 import prerna.sablecc2.node.ABasicOrComparisonTerm;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
+import prerna.sablecc2.node.ACommentExpr;
 import prerna.sablecc2.node.AComplexAndComparisonExpr;
 import prerna.sablecc2.node.AComplexOrComparisonExpr;
 import prerna.sablecc2.node.AConfiguration;
@@ -39,6 +40,7 @@ import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
 import prerna.sablecc2.node.AJavaOp;
 import prerna.sablecc2.node.AList;
+import prerna.sablecc2.node.AMainCommentRoutine;
 import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapEntry;
 import prerna.sablecc2.node.AMapList;
@@ -192,6 +194,25 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAMetaScriptstart(AMetaScriptstart node) {
 		this.isMeta = true;
+	}
+	
+	@Override
+	public void inAMainCommentRoutine(AMainCommentRoutine node) {
+		String comment = node.getComment().getText();
+		NounMetadata noun = new NounMetadata(comment, PixelDataType.CONST_STRING, PixelOperationType.RECIPE_COMMENT);
+		this.planner.addVariable("$RESULT", noun);
+		postProcess(node.toString().trim());
+	}
+	
+	@Override
+	public void inACommentExpr(ACommentExpr node) {
+		String comment = node.getComment().getText();
+		NounMetadata noun = new NounMetadata(comment, PixelDataType.CONST_STRING, PixelOperationType.RECIPE_COMMENT);
+		if(curReactor == null) {
+			this.planner.addVariable("$RESULT", noun);
+		} else {
+			curReactor.getCurRow().add(noun);
+		}
 	}
 	
 	//////////////////////////////////////////

@@ -15,6 +15,7 @@ public interface Analysis extends Switch
     void caseAConfiguration(AConfiguration node);
     void caseAOutputRoutine(AOutputRoutine node);
     void caseAAssignRoutine(AAssignRoutine node);
+    void caseAMainCommentRoutine(AMainCommentRoutine node);
     void caseAMandatoryScriptchain(AMandatoryScriptchain node);
     void caseAScript(AScript node);
     void caseAExpressionScriptstart(AExpressionScriptstart node);
@@ -27,6 +28,7 @@ public interface Analysis extends Switch
     void caseAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node);
     void caseAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node);
     void caseAHelpExpr(AHelpExpr node);
+    void caseACommentExpr(ACommentExpr node);
     void caseAExprComponentBaseExpr(AExprComponentBaseExpr node);
     void caseAPlusBaseExpr(APlusBaseExpr node);
     void caseAMinusBaseExpr(AMinusBaseExpr node);
@@ -136,6 +138,7 @@ public interface Analysis extends Switch
     void caseTMod(TMod node);
     void caseTPow(TPow node);
     void caseTWord(TWord node);
+    void caseTComment(TComment node);
     void caseTMult(TMult node);
     void caseTComma(TComma node);
     void caseTDiv(TDiv node);
