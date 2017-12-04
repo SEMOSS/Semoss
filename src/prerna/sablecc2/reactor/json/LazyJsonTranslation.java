@@ -23,9 +23,9 @@ import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
+import prerna.sablecc2.node.ABaseSimpleComparison;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
-import prerna.sablecc2.node.AComparisonExpr;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
@@ -700,7 +700,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAComparisonExpr(AComparisonExpr node) {
+    public void inABaseSimpleComparison(ABaseSimpleComparison node) {
     	defaultIn(node);
     	// I feel like mostly it would be this and not frame op
     	// I almost feel I should remove the frame op col def
@@ -710,15 +710,15 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void outAComparisonExpr(AComparisonExpr node) {
+    public void outABaseSimpleComparison(ABaseSimpleComparison node) {
     	defaultOut(node);
     	deInitReactor();
     }
 
     @Override
-    public void caseAComparisonExpr(AComparisonExpr node)
+    public void caseABaseSimpleComparison(ABaseSimpleComparison node)
     {
-        inAComparisonExpr(node);
+    	inABaseSimpleComparison(node);
         if(node.getLeft() != null)
         {
             node.getLeft().apply(this);
@@ -731,7 +731,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
         {
             node.getRight().apply(this);
         }
-        outAComparisonExpr(node);
+        outABaseSimpleComparison(node);
     }
     
     @Override

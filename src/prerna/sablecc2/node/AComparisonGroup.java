@@ -2,34 +2,29 @@
 
 package prerna.sablecc2.node;
 
-import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AList extends PList
+public final class AComparisonGroup extends PComparisonGroup
 {
     private TLPar _lPar_;
-    private PMasterExpr _masterExpr_;
-    private final LinkedList<POtherExpr> _otherExpr_ = new LinkedList<POtherExpr>();
+    private PComparisonExpr _comparisonExpr_;
     private TRPar _rPar_;
 
-    public AList()
+    public AComparisonGroup()
     {
         // Constructor
     }
 
-    public AList(
+    public AComparisonGroup(
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") PMasterExpr _masterExpr_,
-        @SuppressWarnings("hiding") List<?> _otherExpr_,
+        @SuppressWarnings("hiding") PComparisonExpr _comparisonExpr_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
         setLPar(_lPar_);
 
-        setMasterExpr(_masterExpr_);
-
-        setOtherExpr(_otherExpr_);
+        setComparisonExpr(_comparisonExpr_);
 
         setRPar(_rPar_);
 
@@ -38,17 +33,16 @@ public final class AList extends PList
     @Override
     public Object clone()
     {
-        return new AList(
+        return new AComparisonGroup(
             cloneNode(this._lPar_),
-            cloneNode(this._masterExpr_),
-            cloneList(this._otherExpr_),
+            cloneNode(this._comparisonExpr_),
             cloneNode(this._rPar_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAList(this);
+        ((Analysis) sw).caseAComparisonGroup(this);
     }
 
     public TLPar getLPar()
@@ -76,16 +70,16 @@ public final class AList extends PList
         this._lPar_ = node;
     }
 
-    public PMasterExpr getMasterExpr()
+    public PComparisonExpr getComparisonExpr()
     {
-        return this._masterExpr_;
+        return this._comparisonExpr_;
     }
 
-    public void setMasterExpr(PMasterExpr node)
+    public void setComparisonExpr(PComparisonExpr node)
     {
-        if(this._masterExpr_ != null)
+        if(this._comparisonExpr_ != null)
         {
-            this._masterExpr_.parent(null);
+            this._comparisonExpr_.parent(null);
         }
 
         if(node != null)
@@ -98,33 +92,7 @@ public final class AList extends PList
             node.parent(this);
         }
 
-        this._masterExpr_ = node;
-    }
-
-    public LinkedList<POtherExpr> getOtherExpr()
-    {
-        return this._otherExpr_;
-    }
-
-    public void setOtherExpr(List<?> list)
-    {
-        for(POtherExpr e : this._otherExpr_)
-        {
-            e.parent(null);
-        }
-        this._otherExpr_.clear();
-
-        for(Object obj_e : list)
-        {
-            POtherExpr e = (POtherExpr) obj_e;
-            if(e.parent() != null)
-            {
-                e.parent().removeChild(e);
-            }
-
-            e.parent(this);
-            this._otherExpr_.add(e);
-        }
+        this._comparisonExpr_ = node;
     }
 
     public TRPar getRPar()
@@ -157,8 +125,7 @@ public final class AList extends PList
     {
         return ""
             + toString(this._lPar_)
-            + toString(this._masterExpr_)
-            + toString(this._otherExpr_)
+            + toString(this._comparisonExpr_)
             + toString(this._rPar_);
     }
 
@@ -172,14 +139,9 @@ public final class AList extends PList
             return;
         }
 
-        if(this._masterExpr_ == child)
+        if(this._comparisonExpr_ == child)
         {
-            this._masterExpr_ = null;
-            return;
-        }
-
-        if(this._otherExpr_.remove(child))
-        {
+            this._comparisonExpr_ = null;
             return;
         }
 
@@ -202,28 +164,10 @@ public final class AList extends PList
             return;
         }
 
-        if(this._masterExpr_ == oldChild)
+        if(this._comparisonExpr_ == oldChild)
         {
-            setMasterExpr((PMasterExpr) newChild);
+            setComparisonExpr((PComparisonExpr) newChild);
             return;
-        }
-
-        for(ListIterator<POtherExpr> i = this._otherExpr_.listIterator(); i.hasNext();)
-        {
-            if(i.next() == oldChild)
-            {
-                if(newChild != null)
-                {
-                    i.set((POtherExpr) newChild);
-                    newChild.parent(this);
-                    oldChild.parent(null);
-                    return;
-                }
-
-                i.remove();
-                oldChild.parent(null);
-                return;
-            }
         }
 
         if(this._rPar_ == oldChild)

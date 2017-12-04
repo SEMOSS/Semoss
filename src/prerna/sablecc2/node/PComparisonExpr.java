@@ -2,7 +2,7 @@
 
 package prerna.sablecc2.node;
 
-public abstract class PScriptchain extends Node
+public abstract class PComparisonExpr extends Node
 {
     // Empty body
 }

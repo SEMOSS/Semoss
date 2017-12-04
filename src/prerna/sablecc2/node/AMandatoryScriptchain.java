@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AMandatoryScriptchain extends PMandatoryScriptchain
 {
-    private PExpr _expr_;
+    private PMasterExpr _masterExpr_;
     private final LinkedList<POtherscript> _otherscript_ = new LinkedList<POtherscript>();
 
     public AMandatoryScriptchain()
@@ -17,11 +17,11 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
     }
 
     public AMandatoryScriptchain(
-        @SuppressWarnings("hiding") PExpr _expr_,
+        @SuppressWarnings("hiding") PMasterExpr _masterExpr_,
         @SuppressWarnings("hiding") List<?> _otherscript_)
     {
         // Constructor
-        setExpr(_expr_);
+        setMasterExpr(_masterExpr_);
 
         setOtherscript(_otherscript_);
 
@@ -31,7 +31,7 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
     public Object clone()
     {
         return new AMandatoryScriptchain(
-            cloneNode(this._expr_),
+            cloneNode(this._masterExpr_),
             cloneList(this._otherscript_));
     }
 
@@ -41,16 +41,16 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
         ((Analysis) sw).caseAMandatoryScriptchain(this);
     }
 
-    public PExpr getExpr()
+    public PMasterExpr getMasterExpr()
     {
-        return this._expr_;
+        return this._masterExpr_;
     }
 
-    public void setExpr(PExpr node)
+    public void setMasterExpr(PMasterExpr node)
     {
-        if(this._expr_ != null)
+        if(this._masterExpr_ != null)
         {
-            this._expr_.parent(null);
+            this._masterExpr_.parent(null);
         }
 
         if(node != null)
@@ -63,7 +63,7 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
             node.parent(this);
         }
 
-        this._expr_ = node;
+        this._masterExpr_ = node;
     }
 
     public LinkedList<POtherscript> getOtherscript()
@@ -96,7 +96,7 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
     public String toString()
     {
         return ""
-            + toString(this._expr_)
+            + toString(this._masterExpr_)
             + toString(this._otherscript_);
     }
 
@@ -104,9 +104,9 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._expr_ == child)
+        if(this._masterExpr_ == child)
         {
-            this._expr_ = null;
+            this._masterExpr_ = null;
             return;
         }
 
@@ -122,9 +122,9 @@ public final class AMandatoryScriptchain extends PMandatoryScriptchain
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._expr_ == oldChild)
+        if(this._masterExpr_ == oldChild)
         {
-            setExpr((PExpr) newChild);
+            setMasterExpr((PMasterExpr) newChild);
             return;
         }
 
