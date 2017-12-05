@@ -25,6 +25,9 @@ public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
 		
 		// get the engine so i can get the new insight
 		IEngine engine = Utility.getEngine(engineName);
+		if(engine == null) {
+			throw new IllegalArgumentException("Cannot find engine = " + engineName);
+		}
 		List<Insight> in = engine.getInsight(rdbmsId);
 		Insight newInsight = in.get(0);
 		

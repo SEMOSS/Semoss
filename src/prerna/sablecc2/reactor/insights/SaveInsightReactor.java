@@ -52,9 +52,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			layout = "grid";
 		}
 
-		IEngine coreEngine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(engineName);
+		if(engine == null) {
+			throw new IllegalArgumentException("Cannot find engine = " + engineName);
+		}
 		// add the recipe to the insights database
-		InsightAdministrator admin = new InsightAdministrator(coreEngine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
 		logger.info("1) Add insight " + insightName + " to rdbms store...");
 		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave);
