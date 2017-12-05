@@ -57,9 +57,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			layout = "grid";
 		}
 
-		IEngine coreEngine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(engineName);
+		if(engine == null) {
+			throw new IllegalArgumentException("Cannot find engine = " + engineName);
+		}
 		// add the recipe to the insights database
-		InsightAdministrator admin = new InsightAdministrator(coreEngine.getInsightDatabase());
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
 		// fill in image Url endpoint with engine name
 		// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
