@@ -24,7 +24,8 @@ collision_resolver <- function(df1, col1, mode, max_dist, method, q, p){
 	#########################################################################
 	
 	# to denormalize matchColumn is aggregated with a delimiter
-	delimiter <- '+++DELIMITER+++'
+	
+	delimiter <- '2342234COLLISION_DELIMITER5728934'
 	# remove silimar row values where instances match itself
 	results <- results[results$replacementValue != results$matchColumn,]
 	
@@ -117,7 +118,6 @@ collision_resolver <- function(df1, col1, mode, max_dist, method, q, p){
 	# clean up values
 	rm(ldf)
 	rm(delimiter)
-	rm(countString)
 	rm(matchString)
 	rm(joinedDf)
 	rm(matchCountAgg)
