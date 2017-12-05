@@ -68,7 +68,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		long startTime = System.currentTimeMillis();
 		this.rJavaTranslator.runR(rsb.toString());
 		long endTime = System.currentTimeMillis();
-		logger.info("Time to execute R script" + (endTime - startTime));
+		logger.info("Time to execute R script: " + (endTime - startTime));
 
 		// get json string this string contains \n characters
 		// so parse into json object here
