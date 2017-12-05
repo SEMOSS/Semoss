@@ -33,7 +33,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String engineName = getEngine();
-		int rdbmsId = getRdbmsId();
+		String rdbmsId = getRdbmsId();
 		Object params = getParams();
 		List<String> additionalPixels = getAdditionalPixels();
 

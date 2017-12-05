@@ -277,7 +277,7 @@ public class AbstractEngineCreator {
 		insightRDBMSEngine.openDB(null);
 		
 		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
-				+ "ID INT, "
+				+ "ID VARCHAR(50), "
 				+ "QUESTION_NAME VARCHAR(255), "
 				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
 				+ "QUESTION_LAYOUT VARCHAR(225), "
