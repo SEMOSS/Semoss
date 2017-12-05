@@ -123,7 +123,7 @@ public class InsightsConverter2 {
 		while(manager.hasNext()) {
 			IHeadersDataRow row = manager.next();
 			Object[] values = row.getValues();
-			Integer id = ((Number) values[0]).intValue();
+			String id = (String) values[0];
 			Clob clob = (Clob) values[1];
 			String layout = (String) values[2];
 			
@@ -152,7 +152,7 @@ public class InsightsConverter2 {
 	 * @param layout 
 	 * @param dmcList
 	 */
-	private void processInsight(Integer id, String layout, List<DataMakerComponent> dmcList) {
+	private void processInsight(String id, String layout, List<DataMakerComponent> dmcList) {
 		LOGGER.info("STARTING TO PROCESS ID = " + id );
 
 		/*

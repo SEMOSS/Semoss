@@ -21,11 +21,11 @@ public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String engineName = getEngine();
-		int rdbmsId = getRdbmsId();
+		String rdbmsId = getRdbmsId();
 		
 		// get the engine so i can get the new insight
 		IEngine engine = Utility.getEngine(engineName);
-		List<Insight> in = engine.getInsight(rdbmsId + "");
+		List<Insight> in = engine.getInsight(rdbmsId);
 		Insight newInsight = in.get(0);
 		
 		// OLD INSIGHT
