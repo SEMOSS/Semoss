@@ -1,13 +1,19 @@
 package prerna.ds.util;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
+import prerna.util.Utility;
 
 public class RdbmsQueryBuilder {
 
@@ -570,5 +576,83 @@ public class RdbmsQueryBuilder {
 	/******************************
 	 * FILTER QUERIES
 	 ******************************/
+	
+	
+	public static String createTableFromFile(String fileName, Map <String, String> conceptTypes)
+	{
+		// if the fileName db exists delete it
+		// I also need to think about multi-user ?
+		// may be not, not until they move to the new version ok
+		String dbName = fileName;
+		dbName = fileName.replace(".csv", "");
+		dbName = fileName.replace(".tsv", "");
+		
+		try {
+			File file = new File(dbName + ".mv.db");
+			if(file.exists()) {
+				FileUtils.forceDelete(file);
+			}
+			file = new File(dbName + ".trace.db");
+			if(file.exists()) {
+				FileUtils.forceDelete(file);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		
+		StringBuffer dropTable = new StringBuffer("DROP TABLE IF EXISTS ");
+		StringBuffer createString = new StringBuffer("CREATE TABLE ");
+		StringBuffer selectString = new StringBuffer("SELECT ");
+		 
+		Iterator <String> keys = conceptTypes.keySet().iterator();
+		int count = 0;
+		while(keys.hasNext())
+		{
+			String name = keys.next();
+			String tableName = Utility.getInstanceName(name);
+			String type = conceptTypes.get(name);
+			name = Utility.getClassName(name);
+			
+			if(count == 0) {
+				createString.append(tableName + " (");
+				dropTable.append(tableName + "; ");
+			}
+			type = type.replace("TYPE:", "");
+
+			StringBuffer tempSelect = new StringBuffer(""); 
+			
+			if(name.contains("UNIQUE_ROW_ID")) {
+				tempSelect.append("ROWNUM()");
+			} else {
+				if(type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT") || type.equalsIgnoreCase("NUMBER"))
+					tempSelect.append("CONVERT(" + name + ", " +"Double)");
+				else if(type.equalsIgnoreCase("Integer"))
+					tempSelect.append("CONVERT(" + name + ", " +"Int)");
+				else if(type.equalsIgnoreCase("Date"))
+					tempSelect.append("CONVERT(" + name + ", " +"Date)");
+				else if(type.equalsIgnoreCase("Bigint") || type.equalsIgnoreCase("Long"))
+					tempSelect.append("CONVERT(" + name + ", " +"Bigint)");
+				else if(type.equalsIgnoreCase("boolean"))
+					tempSelect.append("CONVERT(" + name + ", " +"boolean)");
+				else //if(type.contains("varchar"))
+					tempSelect.append(name);
+			}
+			if(count == 0) {
+				createString.append(name + " " + type);
+				selectString.append(tempSelect);
+			} else {
+				createString.append(", " + name + " " + type);
+				selectString.append(", " + tempSelect);
+			}
+			count++; 
+		}
+		
+		createString.append(") AS ").append(selectString).append(" from CSVREAD('" + fileName + "');");
+		dropTable.append(createString);
+		return dropTable.toString();
+	}
+	
+	
 }
 
