@@ -211,7 +211,6 @@ public class ClusterEngine extends AbstractEngine {
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
 		return prop;
