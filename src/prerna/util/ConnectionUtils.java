@@ -28,7 +28,6 @@
 package prerna.util;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -40,6 +39,7 @@ import java.sql.Statement;
  * @version $Revision: 1.0 $
  */
 public class ConnectionUtils {
+	
 	public static void closeAllConnections(Connection con, ResultSet rs, Statement ps){
 		if(rs!=null){
 			try{
