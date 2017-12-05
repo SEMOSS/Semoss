@@ -38,12 +38,9 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String[] recipeToSave = getRecipe();
 		// used for embed url
 		String imageURL = getImageURL();
-		int id = this.getRdbmsId();
-		String rdbmsId = "";
-		if (id > 0) {
-			rdbmsId += id;
-		} else {
-			throw new IllegalArgumentException("Invalid rdbms id");
+		String rdbmsId = getRdbmsId();
+		if(rdbmsId == null) {
+			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
 		}
 
 		// for testing... should always be passed in
@@ -122,7 +119,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		solrModifyInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 		solrModifyInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
 		solrModifyInsights.put(SolrIndexEngine.IMAGE_URL, imageURL);
-
 		solrModifyInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
 		solrModifyInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
 

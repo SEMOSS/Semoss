@@ -7,9 +7,9 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineName = getEngine();
-		int rdbmsId = getRdbmsId();
+		String rdbmsId = getRdbmsId();
 		String imageURL = this.getImageURL();
-		if (engineName != null && rdbmsId > 0 && imageURL != null) {
+		if (engineName != null && rdbmsId != null && imageURL != null) {
 			imageURL = imageURL.replace("<engine>", engineName);
 			imageURL = imageURL.replace("<id>", rdbmsId+"");
 			updateSolrImage(rdbmsId + "", rdbmsId + "", imageURL, engineName);
