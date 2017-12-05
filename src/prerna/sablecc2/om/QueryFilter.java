@@ -198,7 +198,7 @@ public class QueryFilter {
 	 * @return
 	 */
 	private boolean isAdditive(String comparator) {
-		if(this.comparator.equals("==") || this.comparator.equals("!=") || this.comparator.equals("<>")) {
+		if(this.comparator.equals("==") || this.comparator.equals("!=") || this.comparator.equals("<>") || this.comparator.equals("?like")) {
 			return true;
 		}
 		return false;
