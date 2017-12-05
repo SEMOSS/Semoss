@@ -547,6 +547,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			for(; i < size; i++) {
 				newObjects = new Vector<Object>();
 				newObjects.add(objects.get(i));
+				myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
 				filterBuilder.append(" OR LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
 				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 			}
