@@ -120,7 +120,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 		solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
 		solrInsights.put(SolrIndexEngine.DESCRIPTION, description);
-		solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, Integer.parseInt(insightIdToSave));
+		solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, insightIdToSave);
 		solrInsights.put(SolrIndexEngine.USER_ID, userId);
 
 		// TODO: figure out which engines are used within this insight

@@ -1,12 +1,11 @@
 package prerna.engine.impl;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class InsightAdministrator {
 
@@ -16,7 +15,7 @@ public class InsightAdministrator {
 	private static final String COL_QUESTION_NAME = "QUESTION_NAME";
 	private static final String COL_QUESTION_LAYOUT = "QUESTION_LAYOUT";
 	private static final String COL_QUESTION_PKQL = "QUESTION_PKQL";
-	private static final String GET_LAST_INSIGHT_ID = "SELECT DISTINCT " + COL_QUESTION_ID + " FROM " + TABLE_NAME + " ORDER BY " + COL_QUESTION_ID + " DESC";
+//	private static final String GET_LAST_INSIGHT_ID = "SELECT DISTINCT " + COL_QUESTION_ID + " FROM " + TABLE_NAME + " ORDER BY " + COL_QUESTION_ID + " DESC";
 
 	private IEngine insightEngine;
 	
@@ -38,20 +37,12 @@ public class InsightAdministrator {
 		
 		insightName = escapeForSQLStatement(insightName);
 		layout = escapeForSQLStatement(layout);
-		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightEngine, GET_LAST_INSIGHT_ID);
-		Object lastIdNum = 0;
-		if(wrapper.hasNext()){ // need to call hasNext before you call next()
-			lastIdNum = wrapper.next().getValues()[0];
-		}
-		wrapper.cleanUp();
-		
-		String lastIDNum = ((int)lastIdNum+1) + "";
+		String newId = UUID.randomUUID().toString();
 		
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
 				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
-				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES (")
-				.append(lastIDNum).append(", ").append("'").append(insightName).append("', ")
+				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES ('")
+				.append(newId).append("', ").append("'").append(insightName).append("', ")
 				.append("'").append(layout).append("', (");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
@@ -69,7 +60,7 @@ public class InsightAdministrator {
 		this.insightEngine.commit();
 		
 		// return the new rdbms id
-		return lastIDNum;
+		return newId;
 	}
 	
 	/**
@@ -90,8 +81,8 @@ public class InsightAdministrator {
 		
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
 				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
-				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES (")
-				.append(insightId).append(", ").append("'").append(insightName).append("', ")
+				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES ('")
+				.append(insightId).append("', ").append("'").append(insightName).append("', ")
 				.append("'").append(layout).append("', (");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
@@ -138,7 +129,7 @@ public class InsightAdministrator {
 				updateQuery.append(",");
 			}
 		}
-		updateQuery.append(") WHERE ").append(COL_QUESTION_ID).append(" = ").append(existingRdbmsId);
+		updateQuery.append(") WHERE ").append(COL_QUESTION_ID).append(" = '").append(existingRdbmsId).append("'");
 		
 		// now run the query and commit
 		this.insightEngine.insertData(updateQuery.toString());

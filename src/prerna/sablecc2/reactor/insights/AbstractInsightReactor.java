@@ -93,22 +93,15 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return null;
 	}
 	
-	protected int getRdbmsId() {
+	protected String getRdbmsId() {
 		// see if it was passed directly in with the lower case key ornaments
 		GenRowStruct genericIdGrs = this.store.getNoun(RDBMS_ID);
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
-			return (int) genericIdGrs.get(0);
-		}
-		
-		// see if it is in the curRow
-		// if it was passed directly in as a variable
-		List<NounMetadata> intNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
-		if(intNouns != null && !intNouns.isEmpty()) {
-			return (int) intNouns.get(0).getValue();
+			return genericIdGrs.get(0).toString();
 		}
 		
 		// well, you are out of luck
-		return -1;
+		return null;
 	}
 	
 	protected String[] getRecipe() {
