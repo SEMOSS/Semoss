@@ -194,6 +194,40 @@ public abstract class AbstractEngine implements IEngine {
 					prop.put(Constants.USERNAME, insightUsername);
 					insightRDBMS.setProperties(prop);
 					insightRDBMS.openDB(null);
+					
+					boolean tableExists = false;
+					ResultSet rs = null;
+					try {
+						rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
+						if (rs.next()) {
+							  tableExists = true;
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					} finally {
+						try {
+							if(rs != null) {
+								rs.close();
+							}
+						} catch(SQLException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					if(tableExists) {
+						String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
+						IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
+						while(wrap.hasNext()) {
+							String val = wrap.next().getValues()[0] + "";
+							if(!val.equals("VARCHAR")) {
+								String update = "ALTER TABLE QUESTION_ID ALTER COLUMN ID VARCHAR(50);";
+								this.insightRDBMS.insertData(update);
+								this.insightRDBMS.commit();
+							}
+						}
+						wrap.cleanUp();
+					}
+					
 				}
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
@@ -345,7 +379,7 @@ public abstract class AbstractEngine implements IEngine {
 					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
 		
 					if(oldId != null) {
-						insightRDBMS.insertData("UPDATE QUESTION_ID SET ID=" + oldId + " WHERE ID=" + insightIdToSave);
+						insightRDBMS.insertData("UPDATE QUESTION_ID SET ID='" + oldId + "' WHERE ID='" + insightIdToSave + "'");
 						insightIdToSave = oldId;
 					}
 					
@@ -360,7 +394,7 @@ public abstract class AbstractEngine implements IEngine {
 					solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 					solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
 					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
-					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, Integer.parseInt(insightIdToSave));
+					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, insightIdToSave);
 					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
 		
 					// TODO: figure out which engines are used within this insight
@@ -388,7 +422,7 @@ public abstract class AbstractEngine implements IEngine {
 					// add the new insight
 					// and modify the id
 					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
-					insightRDBMS.insertData("UPDATE QUESTION_ID SET ID=" + oldId + " WHERE ID=" + insightIdToSave);
+					insightRDBMS.insertData("UPDATE QUESTION_ID SET ID='" + oldId + "' WHERE ID='" + insightIdToSave + "'");
 				}
 			} catch(Exception e) {
 				e.printStackTrace();
@@ -1136,7 +1170,6 @@ public abstract class AbstractEngine implements IEngine {
 		for(int i = 0; i < numIDs; i++) {
 			String id = questionIDs[i];
 			try {
-				Integer.parseInt(id);
 				idString = idString + "'" + id + "'";
 				if(i != numIDs - 1) {
 					idString = idString + ", ";
