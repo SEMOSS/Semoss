@@ -530,20 +530,39 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		} else {
 			objects.add(rightComp.getValue());
 		}
-		String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
-
+		
+		
 		StringBuilder filterBuilder = new StringBuilder();
-		if(thisComparator.trim().equals("==")) {
-			filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
-			filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
-		} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
-			filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
-			filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
-		} else if(thisComparator.trim().equals("?like")) {
-			filterBuilder.append("LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
+		if(thisComparator.trim().equals("?like")) {
+			// like requires OR statements for multiple
+			// cannot use same logic as IN :(
+			int i = 0;
+			int size = objects.size();
+			List<Object> newObjects = new Vector<Object>();
+			newObjects.add(objects.get(i));
+			String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+			filterBuilder.append("( LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
 			filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+			i++;
+			for(; i < size; i++) {
+				newObjects = new Vector<Object>();
+				newObjects.add(objects.get(i));
+				filterBuilder.append(" OR LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+			}
+			filterBuilder.append(")");
 		} else {
-			filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+			String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
+	
+			if(thisComparator.trim().equals("==")) {
+				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
+			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
+			} else {
+				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+			}
 		}
 
 		String conceptKey = leftConcept + leftProperty;
