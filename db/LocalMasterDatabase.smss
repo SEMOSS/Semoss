@@ -1,15 +1,8 @@
 Base Properties
-ENGINE                LocalMasterDatabase
-ENGINE_TYPE    prerna.engine.impl.rdbms.RDBMSNativeEngine
- 
-RDBMS_INSIGHTS           db/LocalMasterDatabase/insights_database
-INSIGHTS             db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
-ONTOLOGY         db/LocalMasterDatabase/MasterDatabase_Custom_Map.prop
-OWL      db/LocalMasterDatabase/MasterDatabase_OWL.OWL
-PKQL_UPDATED               true
-FILL_EMPTY_DATATYPES              false
-XML       db/LocalMasterDatabase/LocalMasterDatabase_Questions.XML
-DREAMER            db/LocalMasterDatabase/MasterDatabase_Questions.properties
+ENGINE	LocalMasterDatabase
+ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
+RDBMS_INSIGHTS	db/LocalMasterDatabase/insights_database
+OWL	db/LocalMasterDatabase/MasterDatabase_OWL.OWL
  
 DRIVER org.h2.Driver
 USERNAME        sa
