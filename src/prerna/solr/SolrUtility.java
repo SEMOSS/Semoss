@@ -317,7 +317,7 @@ public final class SolrUtility {
 						// 3) start to get all the relevant metadata surrounding the insight
 
 						// get the unique id of the insight within the engine
-						String id = (String) ss.getVar("ID") + "";
+						String id = ss.getVar("ID") + "";
 						// get the question name
 						String name = (String) ss.getVar("QUESTION_NAME");
 						// get the question layout

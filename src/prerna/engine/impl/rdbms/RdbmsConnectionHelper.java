@@ -68,41 +68,41 @@ public class RdbmsConnectionHelper {
 	 * @throws SQLException 
 	 */
 	public static Connection getConnection(String connectionUrl, String userName, String password, String driver) throws SQLException {
-		driver = driver.toUpperCase();
+		String driverType = driver.toUpperCase();
 		try {
-			if (driver.equalsIgnoreCase(ASTER)) {
+			if (driverType.equalsIgnoreCase(ASTER)) {
 				Class.forName(ASTER_DRIVER);
-			} else if (driver.equalsIgnoreCase(CASSANDRA)) {
+			} else if (driverType.equalsIgnoreCase(CASSANDRA)) {
 				Class.forName(CASSANDRA_DRIVER);
-			} else if (driver.equalsIgnoreCase(DB2)) {
+			} else if (driverType.equalsIgnoreCase(DB2)) {
 				Class.forName(DB2_DRIVER);
-			} else if (driver.equalsIgnoreCase(DERBY)) {
+			} else if (driverType.equalsIgnoreCase(DERBY)) {
 				Class.forName(DERBY_DRIVER);
-			} else if (driver.equalsIgnoreCase(H2)) {
+			} else if (driverType.equalsIgnoreCase(H2)) {
 				Class.forName(H2_DRIVER);
-			} else if (driver.equalsIgnoreCase(IMPALA)) {
+			} else if (driverType.equalsIgnoreCase(IMPALA)) {
 				Class.forName(IMPALA_DRIVER);
-			} else if (driver.equalsIgnoreCase(MARIADB)) {
+			} else if (driverType.equalsIgnoreCase(MARIADB)) {
 				Class.forName(MARIADB_DRIVER);
-			} else if (driver.equalsIgnoreCase(MYSQL)) {
+			} else if (driverType.equalsIgnoreCase(MYSQL)) {
 				Class.forName(MYSQL_DRIVER);
-			} else if (driver.equalsIgnoreCase(ORACLE)) {
+			} else if (driverType.equalsIgnoreCase(ORACLE)) {
 				Class.forName(ORACLE_DRIVER);
-			} else if (driver.equalsIgnoreCase(PHOENIX)) {
+			} else if (driverType.equalsIgnoreCase(PHOENIX)) {
 				Class.forName(PHOENIX_DRIVER);
-			} else if (driver.equalsIgnoreCase(POSTGRES)) {
+			} else if (driverType.equalsIgnoreCase(POSTGRES)) {
 				Class.forName(POSTGRES_DRIVER);
-			} else if (driver.equalsIgnoreCase(SAP_HANA)) {
+			} else if (driverType.equalsIgnoreCase(SAP_HANA)) {
 				Class.forName(SAP_HANA_DRIVER);
-			} else if (driver.equalsIgnoreCase(SQLSERVER)) {
+			} else if (driverType.equalsIgnoreCase(SQLSERVER)) {
 				Class.forName(SQLSERVER_DRIVER);
-			} else if (driver.equalsIgnoreCase(TERADATA)) {
+			} else if (driverType.equalsIgnoreCase(TERADATA)) {
 				Class.forName(TERADATA_DRIVER);
-			} else if (driver.equalsIgnoreCase(REDSHIFT)) {
+			} else if (driverType.equalsIgnoreCase(REDSHIFT)) {
 				Class.forName(REDSHIFT_DRIVER);
 			} 
 			else {
-				throw new SQLException("Invalid driver");
+				Class.forName(driver);
 			}
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
