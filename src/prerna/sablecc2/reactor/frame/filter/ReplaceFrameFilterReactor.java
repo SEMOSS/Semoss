@@ -11,7 +11,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.QueryFilter;
 
-public class RemoveFrameFilterReactor extends AbstractFilterReactor {
+public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 
 	@Override
 	public NounMetadata execute() {
@@ -25,30 +25,22 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 			throw new IllegalArgumentException("No frame is defined in the insight to remove the filters from");
 		}
 
-		// get the filters that were inputted
-		List<QueryFilter> deleteFilters = getDeleteFilters();
+		// get the filters to replace
+		List<QueryFilter> replaceFilters = getReplaceFilters();
 		
-		// keep track of empty filters to remove the index if we need to
+		// keep track of filters indices we are going to replace
 		List<Integer> indicesToRemove = new Vector<Integer>();
 		
 		//for each qf...
-		for (QueryFilter deleteFilter : deleteFilters) {
+		for (QueryFilter replaceFilter : replaceFilters) {
 			// compare the filter with existing filters to only delete the correct one, assuming it does exist
 			List<QueryFilter> currentFilters = filters.getFilters();
 			for (int filterIndex = 0; filterIndex < currentFilters.size(); filterIndex++) {
 				QueryFilter curFilter = currentFilters.get(filterIndex);
-				if (QueryFilter.comparatorNotNumeric(curFilter.getComparator()) && 
-						QueryFilter.comparatorNotNumeric(deleteFilter.getComparator()) &&
-						curFilter.equivalentColumnModifcation(deleteFilter)) 
-				{
-					// if comparator is not numeric in both
-					// and they are equivalent
-					curFilter.subtractInstanceFilters(deleteFilter);
-					// is the filter now gone?
-					if(curFilter.isEmptyFilterValues()) {
-						// grab the index
-						indicesToRemove.add(filterIndex);
-					}
+				if (curFilter.equivalentColumnModifcation(replaceFilter)) {
+					// we have a match
+					// we will remove this instance
+					indicesToRemove.add(filterIndex);
 				}
 			}
 		}
@@ -61,6 +53,11 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 				// remove the filter at the index specified by the index list
 				filters.removeFilter(indicesToRemove.get(i - 1).intValue());
 			}
+		}
+		
+		// now we add the new filters
+		for (QueryFilter replaceFilter : replaceFilters) {
+			filters.addFilters(replaceFilter);
 		}
 
 		return new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
@@ -76,7 +73,7 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 	 * get the filters to be deleted
 	 * @return
 	 */
-	private List<QueryFilter> getDeleteFilters() {
+	private List<QueryFilter> getReplaceFilters() {
 		//retrieve filter input
 		GenRowFilters grf = getFilters();
 		List<QueryFilter> qfList = grf.getFilters();
