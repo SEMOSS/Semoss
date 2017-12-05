@@ -82,7 +82,6 @@ public class AbstractEngineCreator {
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
 		((AbstractEngine) engine).setProperties(prop);
@@ -139,7 +138,6 @@ public class AbstractEngineCreator {
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
@@ -267,7 +265,6 @@ public class AbstractEngineCreator {
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.TEMP_CONNECTION_URL, queryUtil.getTempConnectionURL());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
