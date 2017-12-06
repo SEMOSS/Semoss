@@ -78,9 +78,9 @@ import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
-import prerna.sablecc2.reactor.expression.OpAnd;
-import prerna.sablecc2.reactor.expression.OpFilter;
-import prerna.sablecc2.reactor.expression.OpOr;
+import prerna.sablecc2.reactor.expression.filter.OpAnd;
+import prerna.sablecc2.reactor.expression.filter.OpFilter;
+import prerna.sablecc2.reactor.expression.filter.OpOr;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.QueryExpressionAssimilator;
@@ -736,7 +736,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAComplexOrComparisonExpr(AComplexOrComparisonExpr node) {
     	defaultIn(node);
-    	IReactor opReactor = new OpAnd();
+    	IReactor opReactor = new OpOr();
     	initReactor(opReactor);
     	syncResult();
     }

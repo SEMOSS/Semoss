@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,21 +27,25 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 		}
 
 		// get the filters to replace
-		List<SimpleQueryFilter> replaceFilters = getReplaceFilters();
+		List<IQueryFilter> replaceFilters = getReplaceFilters();
 		
 		// keep track of filters indices we are going to replace
 		List<Integer> indicesToRemove = new Vector<Integer>();
 		
 		//for each qf...
-		for (SimpleQueryFilter replaceFilter : replaceFilters) {
-			// compare the filter with existing filters to only delete the correct one, assuming it does exist
-			List<SimpleQueryFilter> currentFilters = filters.getFilters();
-			for (int filterIndex = 0; filterIndex < currentFilters.size(); filterIndex++) {
-				SimpleQueryFilter curFilter = currentFilters.get(filterIndex);
-				if (curFilter.equivalentColumnModifcation(replaceFilter)) {
-					// we have a match
-					// we will remove this instance
-					indicesToRemove.add(filterIndex);
+		for (IQueryFilter replaceFilter : replaceFilters) {
+			if(replaceFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				// compare the filter with existing filters to only delete the correct one, assuming it does exist
+				List<IQueryFilter> currentFilters = filters.getFilters();
+				for (int filterIndex = 0; filterIndex < currentFilters.size(); filterIndex++) {
+					IQueryFilter curFilter = currentFilters.get(filterIndex);
+					if(curFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						if ( ((SimpleQueryFilter)curFilter).equivalentColumnModifcation( (SimpleQueryFilter) replaceFilter)) {
+							// we have a match
+							// we will remove this instance
+							indicesToRemove.add(filterIndex);
+						}
+					}
 				}
 			}
 		}
@@ -56,7 +61,7 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 		}
 		
 		// now we add the new filters
-		for (SimpleQueryFilter replaceFilter : replaceFilters) {
+		for (IQueryFilter replaceFilter : replaceFilters) {
 			filters.addFilters(replaceFilter);
 		}
 
@@ -73,10 +78,10 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 	 * get the filters to be deleted
 	 * @return
 	 */
-	private List<SimpleQueryFilter> getReplaceFilters() {
+	private List<IQueryFilter> getReplaceFilters() {
 		//retrieve filter input
 		GenRowFilters grf = getFilters();
-		List<SimpleQueryFilter> qfList = grf.getFilters();
+		List<IQueryFilter> qfList = grf.getFilters();
 		return qfList;
 	}
 }

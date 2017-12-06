@@ -7,7 +7,10 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -43,7 +46,7 @@ public class QueryStructConverter {
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		List<SimpleQueryFilter> origGrf = qs.getFilters().getFilters();
+		List<IQueryFilter> origGrf = qs.getFilters().getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
 			GenRowFilters convertedGrf = new GenRowFilters();
 			for(int i = 0; i < origGrf.size(); i++) {
@@ -235,7 +238,37 @@ public class QueryStructConverter {
 	 * @param meta
 	 * @return
 	 */
-	private static SimpleQueryFilter convertFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	private static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+		if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta);
+		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return convertAndQueryFilter((AndQueryFilter) queryFilter, meta);
+		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return convertOrQueryFilter((OrQueryFilter) queryFilter, meta);
+		} else {
+			return null;
+		}
+	}
+	
+	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+		OrQueryFilter newF = new OrQueryFilter();
+		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
+		for(IQueryFilter f : andFilterList) {
+			newF.addFilter(convertFilter(f, meta));
+		}
+		return newF;
+	}
+
+	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+		AndQueryFilter newF = new AndQueryFilter();
+		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
+		for(IQueryFilter f : andFilterList) {
+			newF.addFilter(convertFilter(f, meta));
+		}
+		return newF;
+	}
+
+	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
 		NounMetadata newL = null;
 		NounMetadata newR = null;
 

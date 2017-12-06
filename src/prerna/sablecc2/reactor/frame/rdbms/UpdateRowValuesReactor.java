@@ -63,7 +63,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 			GenRowFilters grf = qs.getFilters();
 			Set<String> filteredColumns = grf.getAllFilteredColumns();
 			for (String column : filteredColumns) {
-				List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(column);
+				List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(column);
 				for (SimpleQueryFilter queryFilter : filterList) {
 					String sqlCondition = "";
 					FILTER_TYPE type = SimpleQueryFilter.determineFilterType(queryFilter);

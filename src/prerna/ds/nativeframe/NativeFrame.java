@@ -14,7 +14,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
@@ -179,11 +179,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// but want to override
 		GenRowFilters qsGrs = qs.getFilters();
 		Set<String> qsFilterCols = qsGrs.getAllFilteredColumns();
-		List<SimpleQueryFilter> importFilters = this.qs.getFilters().getFilters();
+		List<IQueryFilter> importFilters = this.qs.getFilters().getFilters();
 		// if the qsFilterCols doesn't have the base import filter
 		// add the filter
 		// otherwise, do nothing
-		for(SimpleQueryFilter filter : importFilters) {
+		for(IQueryFilter filter : importFilters) {
 			Set<String> importColsFilters = filter.getAllUsedColumns();
 			if(!qsFilterCols.containsAll(importColsFilters)) {
 				// the import filter is not being overridden

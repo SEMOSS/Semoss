@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,33 +27,41 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 		}
 
 		// get the filters that were inputted
-		List<SimpleQueryFilter> deleteFilters = getDeleteFilters();
+		List<IQueryFilter> allDeleteFilters = getDeleteFilters();
 		
 		// keep track of empty filters to remove the index if we need to
 		List<Integer> indicesToRemove = new Vector<Integer>();
-		
+
 		//for each qf...
-		for (SimpleQueryFilter deleteFilter : deleteFilters) {
-			// compare the filter with existing filters to only delete the correct one, assuming it does exist
-			List<SimpleQueryFilter> currentFilters = filters.getFilters();
-			for (int filterIndex = 0; filterIndex < currentFilters.size(); filterIndex++) {
-				SimpleQueryFilter curFilter = currentFilters.get(filterIndex);
-				if (SimpleQueryFilter.comparatorNotNumeric(curFilter.getComparator()) && 
-						SimpleQueryFilter.comparatorNotNumeric(deleteFilter.getComparator()) &&
-						curFilter.equivalentColumnModifcation(deleteFilter)) 
-				{
-					// if comparator is not numeric in both
-					// and they are equivalent
-					curFilter.subtractInstanceFilters(deleteFilter);
-					// is the filter now gone?
-					if(curFilter.isEmptyFilterValues()) {
-						// grab the index
-						indicesToRemove.add(filterIndex);
+		for (IQueryFilter deleteFilters : allDeleteFilters) {
+			// only consider simple filters
+			if(deleteFilters.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter deleteFilter = (SimpleQueryFilter) deleteFilters;
+				// compare the filter with existing filters to only delete the correct one, assuming it does exist
+				List<IQueryFilter> allCurrentFilters = filters.getFilters();
+				for (int filterIndex = 0; filterIndex < allCurrentFilters.size(); filterIndex++) {
+					IQueryFilter currentFilter = allCurrentFilters.get(filterIndex);
+					// only consider simple filters
+					if(currentFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						SimpleQueryFilter curFilter = (SimpleQueryFilter) currentFilter;
+						if (IQueryFilter.comparatorNotNumeric(curFilter.getComparator()) && 
+								IQueryFilter.comparatorNotNumeric(deleteFilter.getComparator()) &&
+								curFilter.equivalentColumnModifcation(deleteFilter)) 
+						{
+							// if comparator is not numeric in both
+							// and they are equivalent
+							curFilter.subtractInstanceFilters(deleteFilter);
+							// is the filter now gone?
+							if(curFilter.isEmptyFilterValues()) {
+								// grab the index
+								indicesToRemove.add(filterIndex);
+							}
+						}
 					}
 				}
 			}
 		}
-		
+
 		// do we have things to remove?
 		if(!indicesToRemove.isEmpty()) {
 			Collections.sort(indicesToRemove);
@@ -76,10 +85,10 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 	 * get the filters to be deleted
 	 * @return
 	 */
-	private List<SimpleQueryFilter> getDeleteFilters() {
+	private List<IQueryFilter> getDeleteFilters() {
 		//retrieve filter input
 		GenRowFilters grf = getFilters();
-		List<SimpleQueryFilter> qfList = grf.getFilters();
+		List<IQueryFilter> qfList = grf.getFilters();
 		return qfList;
 	}
 }
