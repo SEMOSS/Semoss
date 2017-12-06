@@ -15,7 +15,7 @@ public class GenRowFilters {
 	 */
 	
 	// keep the list of filter objects to execute
-	private List<QueryFilter> filterVec = new Vector<QueryFilter>();
+	private List<SimpleQueryFilter> filterVec = new Vector<SimpleQueryFilter>();
 	
 	// keep the list of filtered columns instead of iterating through
 	private Set<String> filteredColumns = new HashSet<String>();
@@ -24,11 +24,11 @@ public class GenRowFilters {
 		
 	}
 
-	public List<QueryFilter> getFilters() {
+	public List<SimpleQueryFilter> getFilters() {
 		return this.filterVec;
 	}
 	
-	public void addFilters(QueryFilter newFilter) {
+	public void addFilters(SimpleQueryFilter newFilter) {
 		this.filterVec.add(newFilter);
 		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
 	}
@@ -58,7 +58,7 @@ public class GenRowFilters {
 		return toString.toString();
 	}
 
-	public void merge(QueryFilter filter) {
+	public void merge(SimpleQueryFilter filter) {
 		GenRowFilters grf = new GenRowFilters();
 		grf.addFilters(filter);
 		merge(grf);
@@ -72,10 +72,10 @@ public class GenRowFilters {
 		// all variables pertaining to the main set of filters will start with m_
 		// all variables pertaining to the incoming filters will start with i_
 		
-		List<QueryFilter> newFiltersToAppend = new Vector<QueryFilter>();
+		List<SimpleQueryFilter> newFiltersToAppend = new Vector<SimpleQueryFilter>();
 		Set<String> newColumnsToFilter = new HashSet<String>();
 		
-		NEW_FILTERS_LOOP : for(QueryFilter i_filter : incomingFilters.filterVec) {
+		NEW_FILTERS_LOOP : for(SimpleQueryFilter i_filter : incomingFilters.filterVec) {
 			// get the new filter
 			Set<String> i_usedCols = i_filter.getAllUsedColumns();
 			String i_comparator = i_filter.getComparator();
@@ -94,7 +94,7 @@ public class GenRowFilters {
 			// if we find something where we need to merge
 			// we will figure out how to merge
 			// else, we will just add it
-			for(QueryFilter m_filter : this.filterVec) {
+			for(SimpleQueryFilter m_filter : this.filterVec) {
 				// get the columns for the existing filter
 				Set<String> m_usedCols = m_filter.getAllUsedColumns();
 				String m_comparator = m_filter.getComparator();
@@ -137,13 +137,13 @@ public class GenRowFilters {
 			// we have an existing filter that affects this column
 			// get an iterator so we can remove while we iterate
 			boolean recreateFilterCols = false;
-			Iterator<QueryFilter> filterIt = this.filterVec.iterator();
+			Iterator<SimpleQueryFilter> filterIt = this.filterVec.iterator();
 			while(filterIt.hasNext()) {
-				QueryFilter filter = filterIt.next();
+				SimpleQueryFilter filter = filterIt.next();
 				if(filter.containsColumn(column)) {
 					filterIt.remove();
 					this.filteredColumns.remove(column);
-					if(QueryFilter.determineFilterType(filter) == QueryFilter.FILTER_TYPE.COL_TO_COL) {
+					if(SimpleQueryFilter.determineFilterType(filter) == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
 						recreateFilterCols = true;
 					}
 				}
@@ -164,7 +164,7 @@ public class GenRowFilters {
 	 */
 	public void redetermineFilteredColumns() {
 		this.filteredColumns.clear();
-		for (QueryFilter filter : this.filterVec) {
+		for (SimpleQueryFilter filter : this.filterVec) {
 			this.filteredColumns.addAll(filter.getAllUsedColumns());
 		}
 	}
@@ -201,8 +201,8 @@ public class GenRowFilters {
 	 */
 	public GenRowFilters copy() {
 		GenRowFilters copy = new GenRowFilters();
-		for(QueryFilter filter : this.filterVec) {
-			QueryFilter fCopy = filter.copy();
+		for(SimpleQueryFilter filter : this.filterVec) {
+			SimpleQueryFilter fCopy = filter.copy();
 			copy.addFilters(fCopy);
 		}
 		return copy;
@@ -213,8 +213,8 @@ public class GenRowFilters {
 	 * @param column
 	 * @return
 	 */
-	public List<QueryFilter> getAllQueryFiltersContainingColumn(String column) {
-		List<QueryFilter> filterList = new Vector<QueryFilter>();
+	public List<SimpleQueryFilter> getAllQueryFiltersContainingColumn(String column) {
+		List<SimpleQueryFilter> filterList = new Vector<SimpleQueryFilter>();
 		// since we already store all the filtered columns
 		// if what is passed is not in the list
 		// return an empty list
@@ -223,7 +223,7 @@ public class GenRowFilters {
 		if(!this.filteredColumns.contains(column)) {
 			return filterList;
 		}
-		for(QueryFilter f : this.filterVec) {
+		for(SimpleQueryFilter f : this.filterVec) {
 			if(f.containsColumn(column)) {
 				filterList.add(f);
 			}

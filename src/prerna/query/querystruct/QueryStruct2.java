@@ -13,7 +13,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -99,7 +99,7 @@ public class QueryStruct2 {
 	//////////////////// FILTERING /////////////////////
 	////////////////////////////////////////////////////
 
-	public void addFilter(QueryFilter newFilter) {
+	public void addFilter(SimpleQueryFilter newFilter) {
 		GenRowFilters newGrf = new GenRowFilters();
 		newGrf.addFilters(newFilter);
 		this.filters.merge(newGrf);
