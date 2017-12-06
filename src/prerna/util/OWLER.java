@@ -50,7 +50,7 @@ public class OWLER {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public OWLER( String owlPath, IEngine.ENGINE_TYPE type) {
+	public OWLER(String owlPath, IEngine.ENGINE_TYPE type) {
 		this.owlPath = owlPath;
 		this.type = type;
 		
