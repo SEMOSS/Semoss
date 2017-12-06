@@ -37,7 +37,9 @@ public class Sync extends AbstractReactor {
 			String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]);	
 			
 			// if nothing is sent it means it is dual
-			boolean dual = !keyValue.containsKey(keysToGet[4]);
+			boolean dual = false;
+			if(keyValue.containsKey(keysToGet[4]) && keyValue.get(keysToGet[4]).equalsIgnoreCase("true"))
+				dual = true;
 			
 			// if it is null or true dont worry
 			logger.info("Synchronizing now");
