@@ -1,9 +1,12 @@
-package prerna.sablecc2.om;
+package prerna.query.querystruct.filters;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
 
 public class QueryFilter {
 

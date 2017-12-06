@@ -3,6 +3,8 @@ package prerna.rdf.main;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.openrdf.model.vocabulary.RDF;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
@@ -85,6 +87,7 @@ public class ModForms2 {
 		
 		final String subprefix = "http://health.mil/ontologies/Concept/" + headers[0] + "/";
 		final String objprefix = "http://health.mil/ontologies/Concept/" + headers[1] + "/";
+		final String objType = "http://semoss.org/ontologies/Concept/" + headers[1];
 		final String basePred = "http://semoss.org/ontologies/Relation";
 		final String relPred = "http://semoss.org/ontologies/Relation/" + relationship;
 		final String instancePred = "http://health.mil/ontologies/Relation/" + relationship + "/";
@@ -92,13 +95,15 @@ public class ModForms2 {
 		Object[] row = null;
 		while((row = helper.getNextRow()) != null) {
 			String system = row[0].toString();
-			String portfolio = row[1].toString();
+			String portfolio = Utility.cleanString(row[1].toString(), true);
 
 			String sub = subprefix + system;
 			String obj = objprefix + portfolio;
 			eng.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, basePred, obj, true});
 			eng.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, relPred, obj, true});
 			eng.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, instancePred +  system + ":" + portfolio, obj, true});
+			
+			eng.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{obj, RDF.TYPE.toString(), objType, true});
 		}
 	}
 
@@ -107,7 +112,6 @@ public class ModForms2 {
 		List<Object[]> triplesToRemove = new ArrayList<Object[]>();
 		while(manager.hasNext()) {
 			Object[] row = manager.next().getRawValues();
-		
 			triplesToRemove.add(new Object[]{row[0], row[1], row[2], true});
 		}
 		

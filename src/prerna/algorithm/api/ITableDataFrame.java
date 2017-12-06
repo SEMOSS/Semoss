@@ -7,9 +7,9 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.sablecc2.om.QueryFilter;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public interface ITableDataFrame extends IDataMaker {

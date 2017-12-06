@@ -3,10 +3,10 @@ package prerna.sablecc2.reactor.frame.filter;
 import java.util.List;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class AbstractFilterReactor extends AbstractReactor {
