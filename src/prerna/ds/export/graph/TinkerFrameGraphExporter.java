@@ -21,6 +21,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.ui.helpers.TypeColorShapeTable;
@@ -122,7 +123,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 			for(String v : vertexNames) {
 				GraphTraversal traversal = __.has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(v));
 				
-				List<SimpleQueryFilter> colFilters = filterGrs.getAllQueryFiltersContainingColumn(v);
+				List<SimpleQueryFilter> colFilters = filterGrs.getAllSimpleQueryFiltersContainingColumn(v);
 				if(colFilters.isEmpty()) {
 					continue;
 				}
@@ -138,7 +139,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 					} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 						// here, lcomp is the values and rComp is a the column
 						// so same as above, but switch the order
-						processFilterColToValues(traversal, rComp, lComp, SimpleQueryFilter.getReverseNumericalComparator(comp));
+						processFilterColToValues(traversal, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp));
 					}
 				}
 				unionT.add(traversal);
@@ -227,8 +228,8 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 				GraphTraversal traversal = __.V().has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(start));
 				
 				// make sure both have filters
-				List<SimpleQueryFilter> startFilters = filterGrs.getAllQueryFiltersContainingColumn(start);
-				List<SimpleQueryFilter> endFilters = filterGrs.getAllQueryFiltersContainingColumn(end);
+				List<SimpleQueryFilter> startFilters = filterGrs.getAllSimpleQueryFiltersContainingColumn(start);
+				List<SimpleQueryFilter> endFilters = filterGrs.getAllSimpleQueryFiltersContainingColumn(end);
 
 				// add filters to start
 				for(SimpleQueryFilter filter : startFilters) {
@@ -243,7 +244,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 					} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 						// here, lcomp is the values and rComp is a the column
 						// so same as above, but switch the order
-						processFilterColToValues(traversal, rComp, lComp, SimpleQueryFilter.getReverseNumericalComparator(comp));
+						processFilterColToValues(traversal, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp));
 					}
 				}
 				
@@ -262,7 +263,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 					} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 						// here, lcomp is the values and rComp is a the column
 						// so same as above, but switch the order
-						processFilterColToValues(traversal, rComp, lComp, SimpleQueryFilter.getReverseNumericalComparator(comp));
+						processFilterColToValues(traversal, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp));
 					}
 				}
 				

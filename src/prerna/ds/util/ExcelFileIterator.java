@@ -8,6 +8,7 @@ import java.util.Set;
 
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -86,7 +87,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 				// check valid index
 				if (rowIndex >= 0) {
 					//list of all filters on a given column
-					List<SimpleQueryFilter> nextSet = this.filters.getAllQueryFiltersContainingColumn(col);
+					List<SimpleQueryFilter> nextSet = this.filters.getAllSimpleQueryFiltersContainingColumn(col);
 					for (SimpleQueryFilter filter : nextSet) {
 						//get all filter information
 						FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
@@ -94,18 +95,18 @@ public class ExcelFileIterator extends AbstractFileIterator {
 						NounMetadata rightComp = filter.getRComparison();
 						String comparator = filter.getComparator();
 
-						if (filterType == filterType.COL_TO_COL) {
+						if (filterType == FILTER_TYPE.COL_TO_COL) {
 							//TODO
 							//isValid = isValid && filterColToCol(leftComp, rightComp, row, comparator, rowIndex);
-						} else if (filterType == filterType.COL_TO_VALUES) {
+						} else if (filterType == FILTER_TYPE.COL_TO_VALUES) {
 							// Genre = ['Action'] example
 							isValid = isValid && filterColToValues(leftComp, rightComp, row, comparator, rowIndex);
 
-						} else if (filterType == filterType.VALUES_TO_COL) {
+						} else if (filterType == FILTER_TYPE.VALUES_TO_COL) {
 							// here the left and rightcomps are reversed, so send them to the method in opposite order and reverse comparator
 							// 50000 > MovieBudget gets sent as MovieBudget < 50000
-							isValid = isValid && filterColToValues(rightComp, leftComp, row, SimpleQueryFilter.getReverseNumericalComparator(comparator), rowIndex);
-						} else if (filterType == filterType.VALUE_TO_VALUE) {
+							isValid = isValid && filterColToValues(rightComp, leftComp, row, IQueryFilter.getReverseNumericalComparator(comparator), rowIndex);
+						} else if (filterType == FILTER_TYPE.VALUE_TO_VALUE) {
 							//?????????
 							
 						}

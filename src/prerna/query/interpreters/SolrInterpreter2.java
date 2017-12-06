@@ -11,6 +11,7 @@ import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -49,24 +50,28 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	private void addFilters() {
-		List<SimpleQueryFilter> filters = qs.getFilters().getFilters();
-		for (SimpleQueryFilter filter : filters) {
-			FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
-			NounMetadata leftComp = filter.getLComparison();
-			NounMetadata rightComp = filter.getRComparison();
-			String thisComparator = filter.getComparator();
-			if (filterType == filterType.COL_TO_COL) {
-				// TODO
-			} else if (filterType == filterType.COL_TO_VALUES) {
-				// column = ['value'] 
-				filterColToValues(leftComp, rightComp, thisComparator);
-			} else if (filterType == filterType.VALUES_TO_COL) {
-				// here the left and rightcomps are reversed, so send them to
-				// the method in opposite order and reverse comparator
-				// value > column gets sent as column < value
-				filterColToValues(rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator));
-			} else if (filterType == filterType.VALUE_TO_VALUE) {
-				// ?????????
+		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		for (IQueryFilter f : filters) {
+			if(f.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter filter = (SimpleQueryFilter) f;
+				FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
+				NounMetadata leftComp = filter.getLComparison();
+				NounMetadata rightComp = filter.getRComparison();
+				String thisComparator = filter.getComparator();
+				if (filterType == FILTER_TYPE.COL_TO_COL) {
+					// TODO:
+					// TODO:
+					// TODO:
+					// TODO:
+				} else if (filterType == FILTER_TYPE.COL_TO_VALUES) {
+					// column = ['value'] 
+					filterColToValues(leftComp, rightComp, thisComparator);
+				} else if (filterType == FILTER_TYPE.VALUES_TO_COL) {
+					// here the left and rightcomps are reversed, so send them to
+					// the method in opposite order and reverse comparator
+					// value > column gets sent as column < value
+					filterColToValues(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+				}
 			}
 		}
 	}

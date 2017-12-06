@@ -8,6 +8,9 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -232,65 +235,115 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 
 	//////////////////////////////////// start adding filters /////////////////////////////////////
 
-	private void addFilters() {
-		List<SimpleQueryFilter> filters = qs.getFilters().getFilters();
-		for(SimpleQueryFilter filter : filters) {
-			if (filterCriteria.length() > 0) {
-				filterCriteria.append(" & ");
-			}
-			NounMetadata leftComp = filter.getLComparison();
-			NounMetadata rightComp = filter.getRComparison();
-			String thisComparator = filter.getComparator();
-			if(thisComparator.equals("<>")) {
-				thisComparator = "!=";
-			}
-			
-			FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
-			if(fType == FILTER_TYPE.COL_TO_COL) {
-				addColToColFilter(leftComp, rightComp, thisComparator);
-			} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-				addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
-			} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
-				// same logic as above, just switch the order and reverse the comparator if it is numeric
-				addColToValuesFilter(filter, rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator));
-			} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
-				// WHY WOULD YOU DO THIS!!!
-//				addValueToValueFilter(rightComp, leftComp, thisComparator);
+	public void addFilters() {
+		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		for(IQueryFilter filter : filters) {
+			StringBuilder filterSyntax = processFilter(filter);
+			if(filterSyntax != null) {
+				if (filterCriteria.length() > 0) {
+					filterCriteria.append(" & ");
+				}
+				this.filterCriteria.append(filterSyntax.toString());
 			}
 		}
 	}
-
-	private void addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
-		String leftColumnSelector = leftComp.getValue().toString();
 	
-		String leftColumnName = leftColumnSelector;
-		if(leftColumnSelector.split("__").length == 2)	
-			leftColumnName = leftColumnSelector.split("__")[1];
+	private StringBuilder processFilter(IQueryFilter filter) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilter((SimpleQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilter((AndQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilter((OrQueryFilter) filter);
+		}
+		return null;
+	}
+	
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" | ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
 
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" & ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
 		
+		FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
+		if(fType == FILTER_TYPE.COL_TO_COL) {
+			return addColToColFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addColToValuesFilter(filter, rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			// WHY WOULD YOU DO THIS!!!
+		}
+		return null;
+	}
+
+	private StringBuilder addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		String leftColumnSelector = leftComp.getValue().toString();
 		String rightColumnSelector = rightComp.getValue().toString();
+
+		String leftColumnName = leftColumnSelector;
+		if(leftColumnSelector.split("__").length == 2) {
+			leftColumnName = leftColumnSelector.split("__")[1];
+		}
 		
 		String rightColumnName = rightColumnSelector;
-		if(rightColumnSelector.split("__").length == 2)	
+		if(rightColumnSelector.split("__").length == 2) {
 			rightColumnName = rightColumnSelector.split("__")[1];
-
+		}
+		
+		StringBuilder filterBuilder = new StringBuilder();
 		if(thisComparator.equals("==")) {
-			filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
+			filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
 			.append(" == ").append(this.dataTableName).append("$").append(rightColumnName);
 		} else if(thisComparator.equals("!=")) {
-			filterCriteria.append("!( ").append(this.dataTableName).append("$").append(leftColumnName).append(" ")
+			filterBuilder.append("!( ").append(this.dataTableName).append("$").append(leftColumnName).append(" ")
 			.append(" == ").append(this.dataTableName).append("$").append(rightColumnName).append(")");
 		} else if(thisComparator.equals("?like")) {
-			filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
+			filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
 			.append(" %like% ").append(this.dataTableName).append("$").append(rightColumnName);
 		} else {
 			// these are some math operations
-			filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
+			filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
 			.append(thisComparator).append(" ").append(this.dataTableName).append("$").append(rightColumnName);
 		}
+		return filterBuilder;
 	}
 	
-	private void addColToValuesFilter(SimpleQueryFilter filter, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addColToValuesFilter(SimpleQueryFilter filter, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// grab the left column name
 		String leftColumnSelector = leftComp.getValue().toString();
 		String leftColumnName = leftColumnSelector;
@@ -323,58 +376,56 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), dataType);
 		}
 		
-		if(myFilterFormatted.isEmpty() || myFilterFormatted.equals("\"\"")) {
-			return;
-		}
-		
+		StringBuilder filterBuilder = new StringBuilder();
 		if(multi) {
 			// special processing for date types
 			if(SemossDataType.DATE == dataType) {
 				int size = objects.size();
 				if(thisComparator.equals("==")) {
-					filterCriteria.append("(");
+					filterBuilder.append("(");
 					for (int i = 0; i < size; i++) {
-						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" == ")
-						.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+						filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" == ")
+								.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 						if ((i+1) < size) {
-							filterCriteria.append(" | ");
+							filterBuilder.append(" | ");
 						}
 					}
-					filterCriteria.append(")");
+					filterBuilder.append(")");
 				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					filterCriteria.append("(");
+					filterBuilder.append("(");
 					for (int i = 0; i < size; i++) {
-						filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" != ")
-						.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+						filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" != ")
+								.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 						if ((i+1) < size) {
-							filterCriteria.append(" & ");
+							filterBuilder.append(" & ");
 						}
 					}
-					filterCriteria.append(")");
+					filterBuilder.append(")");
 				} else {
 					// this will probably break...
 					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
-					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+					filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			} 
 			// now all the other types
 			else {
 				if(thisComparator.equals("==")) {
-					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted);
+					filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted);
 				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					filterCriteria.append("!(").append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
+					filterBuilder.append("!(").append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
 				} else {
 					// this will probably break...
-					filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+					filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			}
 		} else {
 			if(thisComparator.equals("?like")) {
-				filterCriteria.append("tolower(").append(this.dataTableName).append("$").append(leftColumnName).append(") %like% tolower(").append(myFilterFormatted).append(")");
+				filterBuilder.append("tolower(").append(this.dataTableName).append("$").append(leftColumnName).append(") %like% tolower(").append(myFilterFormatted).append(")");
 			} else {
-				filterCriteria.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
 		}
+		return filterBuilder;
 	}
 	
 	//////////////////////////////////// end adding filters /////////////////////////////////////

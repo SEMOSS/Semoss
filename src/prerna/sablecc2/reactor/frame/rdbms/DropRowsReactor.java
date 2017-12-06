@@ -29,7 +29,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 			GenRowFilters grf = qs.getFilters();
 			Set<String> filteredColumns = grf.getAllFilteredColumns();
 			for (String filColumn : filteredColumns) {
-				List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
+				List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);
 				for (SimpleQueryFilter queryFilter : filterList) {
 					String table = "";
 					String column = "";

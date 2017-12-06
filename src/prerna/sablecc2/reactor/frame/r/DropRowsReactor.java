@@ -44,7 +44,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 				GenRowFilters grf = qs.getFilters();
 				Set<String> filteredColumns = grf.getAllFilteredColumns();
 				for (String filColumn : filteredColumns) {
-					List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
+					List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);
 					for (SimpleQueryFilter queryFilter : filterList) {
 						// col to values the left comparison will be the column
 						NounMetadata leftComp = queryFilter.getLComparison();

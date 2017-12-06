@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import java.util.List;
 
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 
@@ -14,9 +15,15 @@ public class QueryFilterReactor extends QueryStructReactor {
 			throw new IllegalArgumentException("No filter founds to append into the query");
 		}
 		for(int i = 0; i < filters.size(); i++) {
-			SimpleQueryFilter nextFilter = (SimpleQueryFilter)filters.get(i);
-			if(nextFilter != null && isValidFilter(nextFilter)) {
-				qs.addFilter(nextFilter);
+			IQueryFilter nextFilter = (IQueryFilter)filters.get(i);
+			if(nextFilter != null) {
+				if(nextFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					if(isValidFilter((SimpleQueryFilter) nextFilter)) {
+						qs.addFilter(nextFilter);
+					}
+				} else {
+					qs.addFilter(nextFilter);
+				}
 			}
 		}
 		return qs;

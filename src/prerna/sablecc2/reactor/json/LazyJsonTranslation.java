@@ -78,7 +78,7 @@ import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.PowAssimilator;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.VectorReactor;
-import prerna.sablecc2.reactor.expression.OpFilter;
+import prerna.sablecc2.reactor.expression.filter.OpFilter;
 import prerna.sablecc2.reactor.json.validator.JsonValidatorReactorFactory;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapMapReactor;
