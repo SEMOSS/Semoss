@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.ds.r.RDataTable;
 import prerna.query.querystruct.QueryStruct2;
@@ -30,10 +31,13 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
-		//get frame name
+		// get frame name
 		String table = frame.getTableName();
 		
-		//get inputs
+		// create a string builder to keep track of the scripts to execute
+		StringBuilder sb = new StringBuilder();
+		
+		// get inputs
 		String updateCol = getUpdateColumn();
 		// separate the column name from the frame name
 		if (updateCol.contains("__")) {
@@ -42,12 +46,29 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 
 		// second noun will be the value to update (the new value)
 		String value = getNewValue();
+		
+		// get data type of column being updated
+		String updateDataType = getColumnType(table, updateCol);
 
+		// account for quotes around the new value if needed
+		if (updateDataType.contains("character") || updateDataType.contains("string")
+				|| updateDataType.contains("factor")) {
+			value = "\"" + value + "\"";
+		}
+		
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		///////////////////// QUERY FILTER//////////////////////////////////
+		///////////////////////////////////////////////////////////////////
+		
 		// the third noun will be a filter; we can get the qs from this
 		QueryStruct2 qs = getQueryStruct();
 		// get all of the filters from this querystruct
 		GenRowFilters grf = qs.getFilters();
 		Set<String> filteredColumns = grf.getAllFilteredColumns();
+		// create a string builder to keep track of our r scripts so that we
+		// only have to execute them once
+
 		for (String filColumn : filteredColumns) {
 			List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
 			for (SimpleQueryFilter queryFilter : filterList) {
@@ -58,42 +79,65 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 				// split if contains the table name in the column name
 				if (columnComp.contains("__")) {
 					columnComp = columnComp.split("__")[1];
-					}
-					// get the comparator from the queryFilter
-					String nounComparator = queryFilter.getComparator();
-					// clean nounComparator for rScript
-					if (nounComparator.trim().equals("=")) {
-						nounComparator = "==";
-					} else if (nounComparator.equals("<>")) {
-						nounComparator = "!=";
-					}
-					// the right comparison will be the comparison value
-					NounMetadata rightComp = queryFilter.getRComparison();
-					String valueComp = rightComp.getValue() + "";
+				}
+				// get the comparator from the queryFilter
+				String nounComparator = queryFilter.getComparator();
+				// clean nounComparator for rScript
+				if (nounComparator.trim().equals("=")) {
+					nounComparator = "==";
+				} else if (nounComparator.equals("<>")) {
+					nounComparator = "!=";
+				}
+				
+				////////////////////////////////////////////////////////////////////
+				////////////////////////////////////////////////////////////////////
+				/////////////////////QUERY FILTER RIGHT COMPARISON/////////////////
+				///////////////////////////////////////////////////////////////////
+			
+				// the right comparison will be the comparison value
+				NounMetadata rightComp = queryFilter.getRComparison();
 
-					// account for quotes in the script where needed
-					String comparisonColType = getColumnType(table, columnComp);
+				// account for quotes in the script where needed
+				String comparisonColType = getColumnType(table, columnComp);		
+
+				// now deal with the values that are being updated; there can be more than one (e.g., Genre == "Albert", "Alex", "Amy")
+				// this will give us the right side object - which may be a vector
+				Object rightCompValue = rightComp.getValue();
+
+				if (rightCompValue instanceof Vector) {
+					Vector rightVector = (Vector) rightCompValue;
+					// iterate through to get each value on the right side of the filter
+					for (int i = 0; i < rightVector.size(); i++) {
+						String valueComp = rightVector.get(i) + "";
+						// account for quotes needed for the r script
+						if (comparisonColType.contains("character") || comparisonColType.contains("string") || comparisonColType.contains("factor")) {
+							valueComp = "\"" + valueComp + "\"";
+						}
+						// we will make multiple scripts - once each time we
+						// loop through; and we will append all of these to the
+						// string builder to be executed at once
+						String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator + valueComp + "] <- " + value + ";";
+						sb.append(script);
+					}
+
+				} else {
+					String valueComp = rightComp.getValue() + "";
 					if (comparisonColType.contains("character") || comparisonColType.contains("string") || comparisonColType.contains("factor")) {
 						valueComp = "\"" + valueComp + "\"";
+						// define the r script to be executed
+						// script is of the form: FRAME$Nominated[FRAME$Nominated=="Y"] <- "N"
+						String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator + valueComp + "] <- " + value + ";";
+						// append the single script to the string builder
+						sb.append(script);
 					}
-
-					// get data type of column being updated
-					String updateDataType = getColumnType(table, updateCol);
-
-					// account for quotes in the script where needed
-					if (updateDataType.contains("character") || updateDataType.contains("string") || updateDataType.contains("factor")) {
-						value = "\"" + value + "\"";
-					}
-
-					// define the r script to be executed
-					// script is of the form:
-					// FRAME$Nominated[FRAME$Nominated=="Y"] <- "N"
-					String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator + valueComp + "] <- " + value;
-
-					// execute the r script
-					frame.executeRScript(script);
 				}
 			}
+		}
+
+		//execute the r scripts
+		if (sb.length() > 0) {
+			this.rJavaTranslator.runR(sb.toString());
+		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
