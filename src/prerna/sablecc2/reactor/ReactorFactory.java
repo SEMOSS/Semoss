@@ -514,7 +514,7 @@ public class ReactorFactory {
 		rFrameHash.put("RemoveDuplicateRows", prerna.sablecc2.reactor.frame.r.RemoveDuplicateRowsReactor.class);
 		rFrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.r.RenameColumnReactor.class);
 		rFrameHash.put("ReplaceColumnValue", prerna.sablecc2.reactor.frame.r.ReplaceColumnValueReactor.class);
-		rFrameHash.put("SortColum", prerna.sablecc2.reactor.frame.r.SortColumnReactor.class);
+		rFrameHash.put("SortColumn", prerna.sablecc2.reactor.frame.r.SortColumnReactor.class);
 		rFrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.r.SplitColumnReactor.class);
 		rFrameHash.put("SplitUnpivot", prerna.sablecc2.reactor.frame.r.SplitUnpivotReactor.class);
 		rFrameHash.put("ToLowerCase", prerna.sablecc2.reactor.frame.r.ToLowerCaseReactor.class);
