@@ -10,7 +10,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerAlgorithmUtility;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -61,7 +61,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 		}
 		NounMetadata colMeta = new NounMetadata(columnHeader, PixelDataType.COLUMN);
 		NounMetadata valuesMeta = new NounMetadata(values, PixelDataType.CONST_STRING);
-		QueryFilter filter = new QueryFilter(colMeta, "==", valuesMeta);
+		SimpleQueryFilter filter = new SimpleQueryFilter(colMeta, "==", valuesMeta);
 		this.dataframe.addFilter(filter);
 		
 		// set the output so the FE knows what occurred
@@ -76,7 +76,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	protected void filterNode(String columnHeader, List<Object> values) {
 		NounMetadata colMeta = new NounMetadata(columnHeader, PixelDataType.COLUMN);
 		NounMetadata valuesMeta = new NounMetadata(values, PixelDataType.CONST_STRING);
-		QueryFilter filter = new QueryFilter(colMeta, "==", valuesMeta);
+		SimpleQueryFilter filter = new SimpleQueryFilter(colMeta, "==", valuesMeta);
 		((ITableDataFrame) this.dataframe).addFilter(filter);
 		
 		// set the output so the FE knows what occurred
@@ -91,7 +91,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	protected void filterNode(String columnHeader, String value) {
 		NounMetadata colMeta = new NounMetadata(columnHeader, PixelDataType.COLUMN);
 		NounMetadata valuesMeta = new NounMetadata(value, PixelDataType.CONST_STRING);
-		QueryFilter filter = new QueryFilter(colMeta, "==", valuesMeta);
+		SimpleQueryFilter filter = new SimpleQueryFilter(colMeta, "==", valuesMeta);
 		((ITableDataFrame) this.dataframe).addFilter(filter);
 		
 		// set the output so the FE knows what occurred

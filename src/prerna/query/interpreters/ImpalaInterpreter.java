@@ -18,8 +18,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
@@ -64,7 +64,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	// and the values are values
 	private Map<String, String> andWhereFilters = new HashMap<String, String>();
 	private Map<String, String> orWhereFilters = new HashMap<String, String>();
-	private Map<String, List<QueryFilter>> processedFilters = new HashMap<String, List<QueryFilter>>();
+	private Map<String, List<SimpleQueryFilter>> processedFilters = new HashMap<String, List<SimpleQueryFilter>>();
 
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 
@@ -604,20 +604,20 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 	public void addFilters()
 	{
-		List<QueryFilter> filters = qs.getFilters().getFilters();
-		for(QueryFilter filter : filters) {
+		List<SimpleQueryFilter> filters = qs.getFilters().getFilters();
+		for(SimpleQueryFilter filter : filters) {
 			NounMetadata leftComp = filter.getLComparison();
 			NounMetadata rightComp = filter.getRComparison();
 			String thisComparator = filter.getComparator();
 
-			FILTER_TYPE fType = QueryFilter.determineFilterType(filter);
+			FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
 			if(fType == FILTER_TYPE.COL_TO_COL) {
 				addColToColFilter(leftComp, rightComp, thisComparator);
 			} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
 				addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
 			} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 				// same logic as above, just switch the order and reverse the comparator if it is numeric
-				addColToValuesFilter(filter, rightComp, leftComp, QueryFilter.getReverseNumericalComparator(thisComparator));
+				addColToValuesFilter(filter, rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator));
 			} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 				// WHY WOULD YOU DO THIS!!!
 				addValueToValueFilter(rightComp, leftComp, thisComparator);
@@ -632,7 +632,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private void addColToValuesFilter(QueryFilter qFilterObj, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private void addColToValuesFilter(SimpleQueryFilter qFilterObj, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
 		String left_concept_property = leftComp.getValue().toString();
 
@@ -684,10 +684,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			// add this filter object to the list
 			this.processedFilters.get(conceptKey).add(qFilterObj);
 		} else if(this.processedFilters.containsKey(conceptKey)) {
-			List<QueryFilter> otherFilters = this.processedFilters.get(conceptKey);
+			List<SimpleQueryFilter> otherFilters = this.processedFilters.get(conceptKey);
 			boolean requireOr = false;
-			for(QueryFilter otherFilterObj : otherFilters) {
-				requireOr = QueryFilter.requireOrBetweenFilters(qFilterObj, otherFilterObj);
+			for(SimpleQueryFilter otherFilterObj : otherFilters) {
+				requireOr = SimpleQueryFilter.requireOrBetweenFilters(qFilterObj, otherFilterObj);
 				if(requireOr) {
 					break;
 				}
@@ -702,7 +702,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			otherFilters.add(qFilterObj);
 		} else {
 			this.andWhereFilters.put(uniqueKey, filterBuilder.toString());
-			List<QueryFilter> processedFiltersForColumn = new Vector<QueryFilter>();
+			List<SimpleQueryFilter> processedFiltersForColumn = new Vector<SimpleQueryFilter>();
 			processedFiltersForColumn.add(qFilterObj);
 			this.processedFilters.put(conceptKey, processedFiltersForColumn);
 		}

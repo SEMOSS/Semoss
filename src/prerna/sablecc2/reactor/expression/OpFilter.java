@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.task.ITask;
@@ -19,7 +19,7 @@ public class OpFilter extends OpBasic {
 		if(this.parentReactor instanceof QueryFilterReactor || this.parentReactor instanceof AbstractFilterReactor) {
 			// we want to return a filter object
 			// so it can be integrated with the query struct
-			QueryFilter filter = generateFilterObject();
+			SimpleQueryFilter filter = generateFilterObject();
 			return new NounMetadata(filter, PixelDataType.FILTER);
 		}
 		
@@ -116,7 +116,7 @@ public class OpFilter extends OpBasic {
 	 * Generate the filter object that will be used by the query struct
 	 * @return
 	 */
-	private QueryFilter generateFilterObject() {
+	private SimpleQueryFilter generateFilterObject() {
 		// need to consider list fo values
 		// can have column == [set of values]
 		// can also have [set of values] == column
@@ -147,9 +147,9 @@ public class OpFilter extends OpBasic {
 			}
 		}
 		
-		QueryFilter filter = null;
+		SimpleQueryFilter filter = null;
 		if(!lSet.isEmpty() && !rSet.isEmpty()) {
-			filter = new QueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
+			filter = new SimpleQueryFilter(getNounForFilter(lSet), comparator, getNounForFilter(rSet));
 		} else {
 			// TODO: throw warning that the filter for the query is invalid!
 			// reason for warning is because for param insights where FE will

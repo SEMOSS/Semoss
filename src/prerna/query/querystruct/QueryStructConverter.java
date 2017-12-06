@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -43,7 +43,7 @@ public class QueryStructConverter {
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		List<QueryFilter> origGrf = qs.getFilters().getFilters();
+		List<SimpleQueryFilter> origGrf = qs.getFilters().getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
 			GenRowFilters convertedGrf = new GenRowFilters();
 			for(int i = 0; i < origGrf.size(); i++) {
@@ -235,7 +235,7 @@ public class QueryStructConverter {
 	 * @param meta
 	 * @return
 	 */
-	private static QueryFilter convertFilter(QueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	private static SimpleQueryFilter convertFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
 		NounMetadata newL = null;
 		NounMetadata newR = null;
 
@@ -264,7 +264,7 @@ public class QueryStructConverter {
 			newR = origR;
 		}
 
-		QueryFilter newF = new QueryFilter(newL, queryFilter.getComparator(), newR);
+		SimpleQueryFilter newF = new SimpleQueryFilter(newL, queryFilter.getComparator(), newR);
 		return newF;
 	}
 }
