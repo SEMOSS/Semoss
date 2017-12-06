@@ -11,8 +11,8 @@ import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.NounMetadata;
@@ -49,9 +49,9 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	private void addFilters() {
-		List<QueryFilter> filters = qs.getFilters().getFilters();
-		for (QueryFilter filter : filters) {
-			FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
+		List<SimpleQueryFilter> filters = qs.getFilters().getFilters();
+		for (SimpleQueryFilter filter : filters) {
+			FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
 			NounMetadata leftComp = filter.getLComparison();
 			NounMetadata rightComp = filter.getRComparison();
 			String thisComparator = filter.getComparator();
@@ -64,7 +64,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 				// here the left and rightcomps are reversed, so send them to
 				// the method in opposite order and reverse comparator
 				// value > column gets sent as column < value
-				filterColToValues(rightComp, leftComp, QueryFilter.getReverseNumericalComparator(thisComparator));
+				filterColToValues(rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator));
 			} else if (filterType == filterType.VALUE_TO_VALUE) {
 				// ?????????
 			}
@@ -172,7 +172,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 		// test filter
 		NounMetadata test2 = new NounMetadata("core_engine", PixelDataType.COLUMN);
 		NounMetadata test3 = new NounMetadata("movie", PixelDataType.CONST_STRING);
-		QueryFilter filter1 = new QueryFilter(test2, "=", test3);
+		SimpleQueryFilter filter1 = new SimpleQueryFilter(test2, "=", test3);
 		qs.addFilter(filter1);
 		// qs.addFilter("view_count", ">=", Arrays.asList(new Object[]{10}));
 

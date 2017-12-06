@@ -8,7 +8,7 @@ import java.util.Vector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 
-public class QueryFilter {
+public class SimpleQueryFilter implements IQueryFilter {
 
 	/**
 	 * Right now, tracking for these types of filters within querying
@@ -19,7 +19,7 @@ public class QueryFilter {
 	private NounMetadata lComparison = null; //the column we want to filter
 	private NounMetadata rComparison = null; //the values to bind the filter on
 	
-	public QueryFilter(NounMetadata lComparison, String comparator, NounMetadata rComparison)
+	public SimpleQueryFilter(NounMetadata lComparison, String comparator, NounMetadata rComparison)
 	{
 		this.lComparison = lComparison;
 		this.rComparison = rComparison;
@@ -103,7 +103,7 @@ public class QueryFilter {
 	 * can be appropriately constructed
 	 * @param otherFilter
 	 */
-	public void merge(QueryFilter otherFilter) {
+	public void merge(SimpleQueryFilter otherFilter) {
 		FILTER_TYPE thisType = determineFilterType(this);
 		FILTER_TYPE otherType = determineFilterType(otherFilter);
 		
@@ -235,8 +235,8 @@ public class QueryFilter {
 		this.comparator = getReverseComparator(this.comparator);
 	}
 	
-	public QueryFilter copy() {
-		QueryFilter copy = new QueryFilter(lComparison.copy(), comparator, rComparison.copy());
+	public SimpleQueryFilter copy() {
+		SimpleQueryFilter copy = new SimpleQueryFilter(lComparison.copy(), comparator, rComparison.copy());
 		return copy;
 	}
 	
@@ -245,7 +245,7 @@ public class QueryFilter {
 	 * @param otherQueryFilter
 	 * @return
 	 */
-	public boolean equivalentColumnModifcation(QueryFilter otherQueryFilter) {
+	public boolean equivalentColumnModifcation(SimpleQueryFilter otherQueryFilter) {
 		// regardless of the order
 		// the comparators must match
 		if(!this.comparator.toString().equals(otherQueryFilter.comparator.toString())) {
@@ -286,7 +286,7 @@ public class QueryFilter {
 		return true;
 	}
 	
-	public void subtractInstanceFilters(QueryFilter otherQueryFilter) {
+	public void subtractInstanceFilters(SimpleQueryFilter otherQueryFilter) {
 		FILTER_TYPE thisFilterType = determineFilterType(this);
 		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
 
@@ -439,8 +439,8 @@ public class QueryFilter {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if(obj instanceof QueryFilter) {
-			QueryFilter otherQueryFilter = (QueryFilter) obj;
+		if(obj instanceof SimpleQueryFilter) {
+			SimpleQueryFilter otherQueryFilter = (SimpleQueryFilter) obj;
 			// compare comparator
 			if(!this.comparator.toString().equals(otherQueryFilter.comparator.toString())) {
 				return false;
@@ -472,7 +472,7 @@ public class QueryFilter {
 	 * @param filter
 	 * @return
 	 */
-	public static FILTER_TYPE determineFilterType(QueryFilter filter) {
+	public static FILTER_TYPE determineFilterType(SimpleQueryFilter filter) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 
@@ -604,7 +604,7 @@ public class QueryFilter {
 	 * @param rightFilterObj
 	 * @return
 	 */
-	public static boolean requireOrBetweenFilters(QueryFilter leftFilterObj, QueryFilter rightFilterObj) {
+	public static boolean requireOrBetweenFilters(SimpleQueryFilter leftFilterObj, SimpleQueryFilter rightFilterObj) {
 		// require both comparators to be numeric
 		String lComparator = leftFilterObj.getComparator();
 		String rComparator = rightFilterObj.getComparator();

@@ -9,8 +9,8 @@ import java.util.Set;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.NounMetadata;
@@ -101,10 +101,10 @@ public class CsvFileIterator extends AbstractFileIterator {
 				// check valid index
 				if (rowIndex >= 0) {
 					//list of all filters on a given column
-					List<QueryFilter> nextSet = this.filters.getAllQueryFiltersContainingColumn(col);
-					for (QueryFilter filter : nextSet) {
+					List<SimpleQueryFilter> nextSet = this.filters.getAllQueryFiltersContainingColumn(col);
+					for (SimpleQueryFilter filter : nextSet) {
 						//get all filter information
-						FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
+						FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
 						NounMetadata leftComp = filter.getLComparison();
 						NounMetadata rightComp = filter.getRComparison();
 						String comparator = filter.getComparator();
@@ -119,7 +119,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 						} else if (filterType == filterType.VALUES_TO_COL) {
 							// here the left and rightcomps are reversed, so send them to the method in opposite order and reverse comparator
 							// 50000 > MovieBudget gets sent as MovieBudget < 50000
-							isValid = isValid && filterColToValues(rightComp, leftComp, row, QueryFilter.getReverseNumericalComparator(comparator), rowIndex);
+							isValid = isValid && filterColToValues(rightComp, leftComp, row, SimpleQueryFilter.getReverseNumericalComparator(comparator), rowIndex);
 						} else if (filterType == filterType.VALUE_TO_VALUE) {
 							//?????????
 							

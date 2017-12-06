@@ -6,7 +6,7 @@ import java.util.Set;
 import prerna.ds.r.RDataTable;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,8 +49,8 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		GenRowFilters grf = qs.getFilters();
 		Set<String> filteredColumns = grf.getAllFilteredColumns();
 		for (String filColumn : filteredColumns) {
-			List<QueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
-			for (QueryFilter queryFilter : filterList) {
+			List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
+			for (SimpleQueryFilter queryFilter : filterList) {
 				// col to values
 				// the column name will be the left comparison value
 				NounMetadata leftComp = queryFilter.getLComparison();

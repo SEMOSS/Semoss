@@ -7,8 +7,8 @@ import java.util.Set;
 import prerna.ds.h2.H2Frame;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -29,11 +29,11 @@ public class DropRowsReactor extends AbstractFrameReactor {
 			GenRowFilters grf = qs.getFilters();
 			Set<String> filteredColumns = grf.getAllFilteredColumns();
 			for (String filColumn : filteredColumns) {
-				List<QueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
-				for (QueryFilter queryFilter : filterList) {
+				List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
+				for (SimpleQueryFilter queryFilter : filterList) {
 					String table = "";
 					String column = "";
-					FILTER_TYPE type = QueryFilter.determineFilterType(queryFilter);
+					FILTER_TYPE type = SimpleQueryFilter.determineFilterType(queryFilter);
 					// col to values
 					NounMetadata leftComp = queryFilter.getLComparison();
 					String columnComp = leftComp.getValue() + "";
