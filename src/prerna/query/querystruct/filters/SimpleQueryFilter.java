@@ -43,61 +43,6 @@ public class SimpleQueryFilter implements IQueryFilter {
 	}
 	
 	/**
-	 * See if the filter is using a specific column
-	 * @param column
-	 * @return
-	 */
-	public boolean containsColumn(String column) {
-		// try and see if the left hand side contains the column we want
-		if(isCol(lComparison)) {
-			if(lComparison.getValue().toString().equals(column)) {
-				return true;
-			}
-		}
-		
-		// guess the left hand didn't... now try the right hand side
-		if(isCol(rComparison)) {
-			if(rComparison.getValue().toString().equals(column)) {
-				return true;
-			}
-		}
-		
-		// guess it also didn't, we are done
-		return false;
-	}
-	
-	/**
-	 * Get all the used columns for a given filter expression
-	 * @return
-	 */
-	public Set<String> getAllUsedColumns() {
-		Set<String> usedCols = new HashSet<String>();
-		//is the left hand side a column?
-		if(isCol(lComparison)) {
-			usedCols.add(lComparison.getValue().toString());
-		}
-
-		// guess the left hand didn't... now try the right hand side
-		if(isCol(rComparison)) {
-			usedCols.add(rComparison.getValue().toString());
-		}
-		return usedCols;
-	}
-	
-	/**
-	 * Check if the noun meta passed 
-	 * @param noun
-	 * @return
-	 */
-	private boolean isCol(NounMetadata noun) {
-		PixelDataType type = noun.getNounType();
-		if(type == PixelDataType.COLUMN) {
-			return true;
-		}
-		return false;
-	}
-	
-	/**
 	 * Looks at the type of the query filter
 	 * To figure out how to merge values such that the filters are consolidated and 
 	 * can be appropriately constructed
@@ -232,12 +177,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * Reverse this specific filters comparator
 	 */
 	public void reverseComparator() {
-		this.comparator = getReverseComparator(this.comparator);
-	}
-	
-	public SimpleQueryFilter copy() {
-		SimpleQueryFilter copy = new SimpleQueryFilter(lComparison.copy(), comparator, rComparison.copy());
-		return copy;
+		this.comparator = IQueryFilter.getReverseComparator(this.comparator);
 	}
 	
 	/**
@@ -461,6 +401,72 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return false;
 	}
 
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+	////////////////////////////////////////////////////
+
+	// PARENT METHODS
+	
+	@Override
+	public QUERY_FILTER_TYPE getQueryFilterType() {
+		return QUERY_FILTER_TYPE.SIMPLE;
+	}
+	
+	@Override
+	public IQueryFilter copy() {
+		IQueryFilter copy = new SimpleQueryFilter(lComparison.copy(), comparator, rComparison.copy());
+		return copy;
+	}
+	
+	@Override
+	public boolean containsColumn(String column) {
+		// try and see if the left hand side contains the column we want
+		if(isCol(lComparison)) {
+			if(lComparison.getValue().toString().equals(column)) {
+				return true;
+			}
+		}
+		
+		// guess the left hand didn't... now try the right hand side
+		if(isCol(rComparison)) {
+			if(rComparison.getValue().toString().equals(column)) {
+				return true;
+			}
+		}
+		
+		// guess it also didn't, we are done
+		return false;
+	}
+	
+	@Override
+	public Set<String> getAllUsedColumns() {
+		Set<String> usedCols = new HashSet<String>();
+		//is the left hand side a column?
+		if(isCol(lComparison)) {
+			usedCols.add(lComparison.getValue().toString());
+		}
+
+		// guess the left hand didn't... now try the right hand side
+		if(isCol(rComparison)) {
+			usedCols.add(rComparison.getValue().toString());
+		}
+		return usedCols;
+	}
+	
+	/**
+	 * Check if the noun meta passed 
+	 * @param noun
+	 * @return
+	 */
+	private boolean isCol(NounMetadata noun) {
+		PixelDataType type = noun.getNounType();
+		if(type == PixelDataType.COLUMN) {
+			return true;
+		}
+		return false;
+	}
+	
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
 	/////////////////////// STATIC METHODS /////////////////////////
@@ -504,100 +510,6 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return null;
 	}
 	
-	
-	/**
-	 * Method to provide the reverse of a given comparator
-	 * @param comparator
-	 * @return
-	 */
-	public static String getReverseComparator(String comparator) {
-		if(comparator.equals("==")) {
-			return "!=";
-		} else if(comparator.equals("!=") || comparator.equals("<>")) {
-			return "==";
-		} else if(comparator.equals(">")) {
-			return "<=";
-		} else if(comparator.equals(">=")) {
-			return "<";
-		} else if(comparator.equals("<")) {
-			return ">=";
-		} else if(comparator.equals("<=")) {
-			return ">";
-		} else if(comparator.equals("?like")) {
-			// ughhhh... return the same thing
-			return "?like";
-		}
-		return null;
-	}
-	
-	/**
-	 * Method to provide the reverse of a given numeric comparator
-	 * @param comparator
-	 * @return
-	 */
-	public static String getReverseNumericalComparator(String comparator) {
-		if(comparator.equals(">")) {
-			return "<=";
-		} else if(comparator.equals(">=")) {
-			return "<";
-		} else if(comparator.equals("<")) {
-			return ">=";
-		} else if(comparator.equals("<=")) {
-			return ">";
-		}
-		return comparator;
-	}
-	
-	public static boolean comparatorIsNumeric(String comparator) {
-		if(comparator.equals(">")) {
-			return true;
-		} else if(comparator.equals(">=")) {
-			return true;
-		} else if(comparator.equals("<")) {
-			return true;
-		} else if(comparator.equals("<=")) {
-			return true;
-		}
-		return false;
-	}
-	
-	public static boolean comparatorNotNumeric(String comparator) {
-		if(comparator.equals("==")) {
-			return true;
-		} else if(comparator.equals("!=")) {
-			return true;
-		} else if(comparator.equals("<>")) {
-			return true;
-		}
-		
-		return false;
-	}
-	
-	public static boolean comparatorIsSameSide(String comparator1, String comparator2) {
-		if(comparator1.equals(">")) {
-			if(comparator2.equals(">") || comparator2.equals(">=")) {
-				return true;
-			}
-		} else if(comparator1.equals(">=")) {
-			if(comparator2.equals(">") || comparator2.equals(">=")) {
-				return true;
-			}
-		} else if(comparator1.equals("<")) {
-			if(comparator2.equals("<") || comparator2.equals("<=")) {
-				return true;
-			}
-		} else if(comparator1.equals("<=")) {
-			if(comparator2.equals("<") || comparator2.equals("<=")) {
-				return true;
-			}
-		} else if(comparator1.equals("==") && comparator2.equals("==")) {
-			return true;
-		} else if(comparator1.equals("!=") && comparator2.equals("!=")) {
-			return true;
-		}
-		return false;
-	}
-	
 	/**
 	 * Determine if an OR vs AND is required between 2 filter values
 	 * @param leftFilterObj
@@ -608,11 +520,11 @@ public class SimpleQueryFilter implements IQueryFilter {
 		// require both comparators to be numeric
 		String lComparator = leftFilterObj.getComparator();
 		String rComparator = rightFilterObj.getComparator();
-		if(!comparatorIsNumeric(lComparator) || !comparatorIsNumeric(rComparator)) {
+		if(!IQueryFilter.comparatorIsNumeric(lComparator) || !IQueryFilter.comparatorIsNumeric(rComparator)) {
 			return false;
 		}
 		// and they cannot be facing the same direction
-		if(comparatorIsSameSide(lComparator, rComparator)) {
+		if(IQueryFilter.comparatorIsSameSide(lComparator, rComparator)) {
 			return false;
 		}
 		

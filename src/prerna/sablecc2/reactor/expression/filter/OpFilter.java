@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.expression;
+package prerna.sablecc2.reactor.expression.filter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,14 +9,12 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.JavaExecutable;
-import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
-import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 
-public class OpFilter extends OpBasic {
+public class OpFilter extends AbstractOpFiltering {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-		if(this.parentReactor instanceof QueryFilterReactor || this.parentReactor instanceof AbstractFilterReactor) {
+		if(isQuery()) {
 			// we want to return a filter object
 			// so it can be integrated with the query struct
 			SimpleQueryFilter filter = generateFilterObject();

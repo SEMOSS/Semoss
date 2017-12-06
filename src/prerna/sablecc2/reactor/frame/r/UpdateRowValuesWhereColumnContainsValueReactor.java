@@ -70,7 +70,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		// only have to execute them once
 
 		for (String filColumn : filteredColumns) {
-			List<SimpleQueryFilter> filterList = grf.getAllQueryFiltersContainingColumn(filColumn);
+			List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);
 			for (SimpleQueryFilter queryFilter : filterList) {
 				// col to values
 				// the column name will be the left comparison value
