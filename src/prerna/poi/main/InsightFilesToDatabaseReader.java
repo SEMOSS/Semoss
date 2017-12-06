@@ -171,6 +171,9 @@ public class InsightFilesToDatabaseReader {
 				// need to go back and clean the prop writer
 				smssLocation = propWriter.propFileName;
 				String owlPath = baseDirectory + "/" + propWriter.owlFile;
+				Map<String, String> paramHash = new Hashtable<String, String>();
+				paramHash.put("engine", engineName);
+				owlPath = Utility.fillParam2(owlPath, paramHash);
 	
 				// need to create the .temp file object before we upload so we can delete the file if an error occurs
 				tempPropFile = new File(smssLocation);
@@ -314,7 +317,10 @@ public class InsightFilesToDatabaseReader {
 			// need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
-
+			Map<String, String> paramHash = new Hashtable<String, String>();
+			paramHash.put("engine", engineName);
+			owlPath = Utility.fillParam2(owlPath, paramHash);
+			
 			// need to create the .temp file object before we upload so we can delete the file if an error occurs
 			tempPropFile = new File(smssLocation);
 			
