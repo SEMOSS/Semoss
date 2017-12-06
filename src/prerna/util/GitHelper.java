@@ -701,6 +701,8 @@ public class GitHelper {
 	
 			config.setString("core", null, "sparseCheckout", "false");
 			config.save();
+			File myNewFile2 = new File(localRepository + "/.git/info/sparse-checkout");
+			myNewFile2.delete();
 			
 			// remove from checkin
 			File myNewFile = new File(localRepository + "/.gitignore"); //\\sparse-checkout");
@@ -1363,7 +1365,7 @@ public class GitHelper {
 		commands.add("git");
 		commands.add("push");
 		commands.add("--set-upstream");
-		commands.add("https://" + username + ":" + password + "@github.com/" + username + "/" + repoName);
+		commands.add("https://" + username + ":" + password + "@github.com/" + remoteUserName + "/" + repoName);
 		commands.add(branchName);
 
 		runProcess(dir, commands, true);
@@ -1424,7 +1426,8 @@ public class GitHelper {
 
 		runProcess(dir, commands, true);
 	}
-	
+
+
 
 	public void runProcess(String dir, List <String> commands)
 	{
@@ -1653,6 +1656,7 @@ public class GitHelper {
 		// get everything
 		String remoteUserName = remoteAppName.split("/")[0];
 		remoteAppName = remoteAppName.split("/")[1]; 
+		
 
 		removeAllIgnore(remoteAppName);
 		// need something that will process files for SOLR
@@ -1684,6 +1688,43 @@ public class GitHelper {
 		}	
 		
 		return files;
+	}
+	
+	// check if a file is safe to save
+	public boolean isWritable(String baseFolder, String localAppName, String fileName, String remoteAppName)
+	{
+		boolean writable = true;
+		
+		// need to fetch this specific file
+		// and then try to see if the file has changed
+		// if there is a valid change i.e. the MOD vector is > 1 then writable becomes false
+		// else true
+		
+		// get everything
+		String remoteUserName = remoteAppName.split("/")[0];
+		remoteAppName = remoteAppName.split("/")[1]; 
+		
+
+		removeAllIgnore(remoteAppName);
+		// need something that will process files for SOLR
+		String [] filesToIgnore = new String[] {"*.mv.db"};
+		checkoutIgnore(localAppName, filesToIgnore);
+		
+		// hmm.. seems like I cannot get just tone file
+		// https://stackoverflow.com/questions/28375418/how-to-pull-a-single-file-from-a-server-repository-in-git
+		
+		fetchRemote(localAppName, remoteAppName);
+		checkout(localAppName, remoteAppName + "/master", fileName);
+
+		Hashtable <String, List<String>> files = getFilesToAdd(localAppName, "master", remoteAppName + "/master");
+
+		// if there is mod.. sorry mate nothing I can do
+		writable = files.get("MOD").size() > 0;
+
+		merge(localAppName, "master", remoteAppName + "/master");
+		
+		
+		return writable;
 	}
 	
 
