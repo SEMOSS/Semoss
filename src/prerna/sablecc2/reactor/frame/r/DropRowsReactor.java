@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.QueryFilter;
 
 public class DropRowsReactor extends AbstractRFrameReactor {
 

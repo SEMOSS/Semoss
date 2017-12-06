@@ -9,7 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.util.Utility;
 

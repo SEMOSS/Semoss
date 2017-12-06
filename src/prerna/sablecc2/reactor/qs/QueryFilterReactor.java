@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.qs;
 import java.util.List;
 
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
 
 public class QueryFilterReactor extends QueryStructReactor {
 
