@@ -2,9 +2,11 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DateFormat;
@@ -15,6 +17,7 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
@@ -394,12 +397,14 @@ public class GitHelper {
 		int curAttempts = 0;
 		int maxAttempts = 2;
 		if(autoResolve)
-			merge(localRepository, startPoint, branchName, curAttempts, maxAttempts);
+			merge(localRepository, startPoint, branchName, curAttempts, maxAttempts, false);
 		else
-			merge(localRepository, startPoint, branchName, 0,0);
+			merge(localRepository, startPoint, branchName, 0,0, false);
 	}
 	
-	public void merge(String localRepository, String startPoint, String branchName, int numAttempts, int maxAttempts)
+	
+	
+	public void merge(String localRepository, String startPoint, String branchName, int numAttempts, int maxAttempts, boolean delete)
 	{
 		try {
 			Git thisGit = Git.open(new File(localRepository));
@@ -435,23 +440,26 @@ public class GitHelper {
 							   delFiles.add(thisFile);
 					   }
 					   // inform the user he has to handle the conflicts
-					   if(numAttempts < maxAttempts)
+					   if(numAttempts < maxAttempts && delete)
 					   {
 							wipeFiles(delFiles);
 							commitAll(localRepository, true);
 							numAttempts++;
 							// I will attempt this just one more time to merge
-							merge(localRepository, startPoint, branchName, numAttempts, maxAttempts);
+							merge(localRepository, startPoint, branchName, numAttempts, maxAttempts, delete);
 					   }
 				}			
 			}
 			} catch (CheckoutConflictException e) {
-				List<String> delFiles = e.getConflictingPaths();
-				wipeFiles(delFiles);
-				commitAll(localRepository, true);
-				numAttempts++;
-				// I will attempt this just one more time to merge
-				merge(localRepository, startPoint, branchName, numAttempts, maxAttempts);
+				if(delete)
+				{
+					List<String> delFiles = e.getConflictingPaths();
+					wipeFiles(delFiles);
+					commitAll(localRepository, true);
+					numAttempts++;
+					// I will attempt this just one more time to merge
+					merge(localRepository, startPoint, branchName, numAttempts, maxAttempts, delete);
+				}
 			} catch (NoFilepatternException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -1462,11 +1470,16 @@ public class GitHelper {
 		
 		File dir = new File(fileName);
 		String targetDir = baseFolder + "/db";
+		
+		// I need to change the file to the app name
+		
 		FileFilter fileFilter = new WildcardFileFilter("*.smss");
 		 File[] files = dir.listFiles(fileFilter);
 		 for (int i = 0; i < files.length; i++) {
 		   try {
-			FileUtils.copyFileToDirectory(files[i], new File(targetDir));
+			   // need to make modification on the engine
+			   File file = changeEngine(files[i], appName);
+			   FileUtils.copyFileToDirectory(file, new File(targetDir));
 			
 			// in reality there may be other things we need to do
 			//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
@@ -1475,6 +1488,45 @@ public class GitHelper {
 			e.printStackTrace();
 		}
 		 }
+	}
+	
+	private File changeEngine(File file, String appName)
+	{
+		String mainDirectory = file.getParent();
+		String fileName = file.getName();
+		File newFile = null;
+		
+		try {
+			OutputStream fos = null;
+			
+			if((fileName + ".smss").equalsIgnoreCase(appName + ".smss"))
+			{
+				newFile = file; // nothing to do here
+			}
+			else
+			{
+				String newFileName = mainDirectory + "/" + appName + ".smss";
+				newFile = new File(newFileName);
+				fos = new FileOutputStream(newFile);
+			
+				Properties prop = new Properties();
+				prop.load(new FileInputStream(file));
+				
+				prop.put("ENGINE", appName);
+				
+				prop.store(fos, "Changing File Content for engine");
+				fos.close();
+
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return newFile;
 	}
 
 	private void moveDBToSMSS(String baseFolder, String appName, String smssName)
