@@ -13,9 +13,11 @@ import org.openrdf.query.TupleQueryResult;
 import com.hp.hpl.jena.vocabulary.XSD;
 
 import prerna.engine.api.IEngine;
-import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -27,8 +29,6 @@ import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
-import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
 import prerna.util.Utility;
 
 public class SparqlInterpreter2 extends AbstractQueryInterpreter {

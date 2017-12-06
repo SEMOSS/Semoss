@@ -11,12 +11,12 @@ import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
+import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
-import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
 
 public class SolrInterpreter2 extends AbstractQueryInterpreter {
 

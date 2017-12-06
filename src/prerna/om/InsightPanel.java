@@ -7,7 +7,7 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 
 public class InsightPanel {

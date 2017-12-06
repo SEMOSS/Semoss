@@ -6,14 +6,14 @@ import java.util.Set;
 
 import prerna.ds.h2.H2Frame;
 import prerna.poi.main.HeadersException;
-import prerna.query.querystruct.GenRowFilters;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.QueryFilter;
-import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
 public class UpdateRowValuesReactor extends AbstractFrameReactor {

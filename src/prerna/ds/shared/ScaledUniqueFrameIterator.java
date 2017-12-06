@@ -10,12 +10,12 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
 
 public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 

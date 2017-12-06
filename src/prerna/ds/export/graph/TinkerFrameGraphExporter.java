@@ -20,9 +20,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.QueryFilter;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 
