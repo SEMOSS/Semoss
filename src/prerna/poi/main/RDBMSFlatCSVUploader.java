@@ -69,7 +69,10 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String engineName = options.getDbName();
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
-		String owlPath = options.getOwlFileLocation();		
+		String owlPath = options.getOwlFileLocation();	
+		
+		// replace owl 
+		
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		
 		boolean error = false;
@@ -156,6 +159,9 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String owlPath = options.getOwlFileLocation();		
 		autoLoad = options.isAutoLoad();
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
+		paramHash2.put("engine", engineName);
+		owlPath = Utility.fillParam2(owlPath, paramHash2);
 		
 		boolean error = false;
 		

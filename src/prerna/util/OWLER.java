@@ -50,7 +50,7 @@ public class OWLER {
 	 * @param fileName				The location of the new OWL file
 	 * @param type					The type of the engine the OWL file is being created for
 	 */
-	public OWLER(String owlPath, IEngine.ENGINE_TYPE type) {
+	public OWLER( String owlPath, IEngine.ENGINE_TYPE type) {
 		this.owlPath = owlPath;
 		this.type = type;
 		
@@ -622,7 +622,7 @@ public class OWLER {
 	///////////////////// TESTING /////////////////////
 	public static void main(String [] args) {
 		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
-		OWLER owler = new OWLER("C:\\Users\\tbanach\\Workspace\\test5.owl", IEngine.ENGINE_TYPE.RDBMS);
+		OWLER owler = new OWLER( "C:\\Users\\tbanach\\Workspace\\test5.owl", IEngine.ENGINE_TYPE.RDBMS);
 //		owler.addConcept("Title Table", new String[] {"Title", "Date Released"}, new String[] {"varchar(800)", "varchar(800)"});
 //		owler.addConcept("Studio", "Studio", "varchar(800)");
 //		owler.addProp("Studio", "Address", "varchar(800)");

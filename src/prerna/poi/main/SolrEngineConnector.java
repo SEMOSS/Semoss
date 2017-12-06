@@ -101,8 +101,13 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 	}
 	
 	private File wirteSmssFile(String dbName, String smssLocation, String solrURL, String solrCoreName) throws IOException {
-		String owlPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_OWL.OWL";
-		String insightsRdbmsPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database";
+		// changing to params
+		
+		//String owlPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_OWL.OWL";
+		String owlPropValue = "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + dbName + "_OWL.OWL";
+		
+		//String insightsRdbmsPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database";
+		String insightsRdbmsPropValue = "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database";
 
 		File f = new File(smssLocation);
 		FileWriter pw = null;
@@ -112,6 +117,7 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 			pw.write(Constants.ENGINE + "\t" + dbName + "\n");
 			pw.write(Constants.ENGINE_TYPE + "\tprerna.engine.impl.solr.SolrEngine\n");
 			pw.write(Constants.OWL + "\t" + owlPropValue + "\n");
+			
 			pw.write(Constants.RDBMS_INSIGHTS + "\t" + insightsRdbmsPropValue + "\n");
 			pw.write("\n");
 			pw.write(Constants.SOLR_URL + "\t" + solrURL + "\n");
