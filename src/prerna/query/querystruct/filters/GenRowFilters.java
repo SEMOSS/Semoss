@@ -15,7 +15,7 @@ public class GenRowFilters {
 	 */
 	
 	// keep the list of filter objects to execute
-	private List<SimpleQueryFilter> filterVec = new Vector<SimpleQueryFilter>();
+	private List<IQueryFilter> filterVec = new Vector<IQueryFilter>();
 	
 	// keep the list of filtered columns instead of iterating through
 	private Set<String> filteredColumns = new HashSet<String>();
@@ -24,11 +24,11 @@ public class GenRowFilters {
 		
 	}
 
-	public List<SimpleQueryFilter> getFilters() {
+	public List<IQueryFilter> getFilters() {
 		return this.filterVec;
 	}
 	
-	public void addFilters(SimpleQueryFilter newFilter) {
+	public void addFilters(IQueryFilter newFilter) {
 		this.filterVec.add(newFilter);
 		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
 	}
@@ -72,50 +72,61 @@ public class GenRowFilters {
 		// all variables pertaining to the main set of filters will start with m_
 		// all variables pertaining to the incoming filters will start with i_
 		
-		List<SimpleQueryFilter> newFiltersToAppend = new Vector<SimpleQueryFilter>();
+		List<IQueryFilter> newFiltersToAppend = new Vector<IQueryFilter>();
 		Set<String> newColumnsToFilter = new HashSet<String>();
 		
-		NEW_FILTERS_LOOP : for(SimpleQueryFilter i_filter : incomingFilters.filterVec) {
-			// get the new filter
-			Set<String> i_usedCols = i_filter.getAllUsedColumns();
-			String i_comparator = i_filter.getComparator();
-			
-			// we can only merge if there is only 1 column used
-			// if 2 cols are used, it just gets added to the gen row filter
-			if(i_usedCols.size() != 1) {
-				// add this filter to the existing QueryFilter
+		NEW_FILTERS_LOOP : for(IQueryFilter incoming_filter : incomingFilters.filterVec) {
+			if(incoming_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter i_filter = (SimpleQueryFilter) incoming_filter;
+				// get the new filter
+				Set<String> i_usedCols = i_filter.getAllUsedColumns();
+				String i_comparator = i_filter.getComparator();
+				
+				// we can only merge if there is only 1 column used
+				// if 2 cols are used, it just gets added to the gen row filter
+				if(i_usedCols.size() != 1) {
+					// add this filter to the existing QueryFilter
+					newFiltersToAppend.add(i_filter);
+					newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
+					// continue through the loop
+					continue;
+				}
+				
+				// compare this new filter will all the existing filters
+				// if we find something where we need to merge
+				// we will figure out how to merge
+				// else, we will just add it
+				for(IQueryFilter my_filter : this.filterVec) {
+					if(my_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						SimpleQueryFilter m_filter = (SimpleQueryFilter) my_filter;
+						// get the columns for the existing filter
+						Set<String> m_usedCols = m_filter.getAllUsedColumns();
+						String m_comparator = m_filter.getComparator();
+						
+						// remember i_usedCols only contains a single column
+						// so m_usedCol must also have that exact same column to merge
+						// and, they must have the exact same comparator
+						if(i_usedCols.containsAll(m_usedCols) && i_comparator.equals(m_comparator)) {
+							// we can merge!
+							m_filter.merge(i_filter);
+							
+							// break out of the existing filters loop
+							// since we have already merged it
+							continue NEW_FILTERS_LOOP;
+						}
+					}
+				}
+				
+				// if we came to this point, we were not able to merge
+				// so add it to the list to append
 				newFiltersToAppend.add(i_filter);
 				newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
-				// continue through the loop
-				continue;
 			}
-			
-			// compare this new filter will all the existing filters
-			// if we find something where we need to merge
-			// we will figure out how to merge
-			// else, we will just add it
-			for(SimpleQueryFilter m_filter : this.filterVec) {
-				// get the columns for the existing filter
-				Set<String> m_usedCols = m_filter.getAllUsedColumns();
-				String m_comparator = m_filter.getComparator();
-				
-				// remember i_usedCols only contains a single column
-				// so m_usedCol must also have that exact same column to merge
-				// and, they must have the exact same comparator
-				if(i_usedCols.containsAll(m_usedCols) && i_comparator.equals(m_comparator)) {
-					// we can merge!
-					m_filter.merge(i_filter);
-					
-					// break out of the existing filters loop
-					// since we have already merged it
-					continue NEW_FILTERS_LOOP;
-				}
+			// i have no idea how i would merge AND/OR filters together
+			// so just add it
+			else {
+				newFiltersToAppend.add(incoming_filter);
 			}
-			
-			// if we came to this point, we were not able to merge
-			// so add it to the list to append
-			newFiltersToAppend.add(i_filter);
-			newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
 		}
 		
 		// now loop through and add all the new filters
@@ -137,13 +148,23 @@ public class GenRowFilters {
 			// we have an existing filter that affects this column
 			// get an iterator so we can remove while we iterate
 			boolean recreateFilterCols = false;
-			Iterator<SimpleQueryFilter> filterIt = this.filterVec.iterator();
+			Iterator<IQueryFilter> filterIt = this.filterVec.iterator();
 			while(filterIt.hasNext()) {
-				SimpleQueryFilter filter = filterIt.next();
+				IQueryFilter filter = filterIt.next();
 				if(filter.containsColumn(column)) {
 					filterIt.remove();
 					this.filteredColumns.remove(column);
-					if(SimpleQueryFilter.determineFilterType(filter) == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+					if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						// if its simple
+						// we will only need to recreate the filtered columns
+						// if it is a col-to-col since the other col may no longer be filtered
+						if(SimpleQueryFilter.determineFilterType( (SimpleQueryFilter) filter) == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+							recreateFilterCols = true;
+						}
+					} else {
+						// if we have a complex filter
+						// just recreate all the filter cols
+						// might come back and try to recalculate this
 						recreateFilterCols = true;
 					}
 				}
@@ -164,7 +185,7 @@ public class GenRowFilters {
 	 */
 	public void redetermineFilteredColumns() {
 		this.filteredColumns.clear();
-		for (SimpleQueryFilter filter : this.filterVec) {
+		for (IQueryFilter filter : this.filterVec) {
 			this.filteredColumns.addAll(filter.getAllUsedColumns());
 		}
 	}
@@ -201,8 +222,8 @@ public class GenRowFilters {
 	 */
 	public GenRowFilters copy() {
 		GenRowFilters copy = new GenRowFilters();
-		for(SimpleQueryFilter filter : this.filterVec) {
-			SimpleQueryFilter fCopy = filter.copy();
+		for(IQueryFilter filter : this.filterVec) {
+			IQueryFilter fCopy = filter.copy();
 			copy.addFilters(fCopy);
 		}
 		return copy;
@@ -213,7 +234,26 @@ public class GenRowFilters {
 	 * @param column
 	 * @return
 	 */
-	public List<SimpleQueryFilter> getAllQueryFiltersContainingColumn(String column) {
+	public List<IQueryFilter> getAllQueryFiltersContainingColumn(String column) {
+		List<IQueryFilter> filterList = new Vector<IQueryFilter>();
+		// since we already store all the filtered columns
+		// if what is passed is not in the list
+		// return an empty list
+		// else
+		// loop through and get all the queryfilter objects that touch this column
+		if(!this.filteredColumns.contains(column)) {
+			return filterList;
+		}
+		for(IQueryFilter f : this.filterVec) {
+			if(f.containsColumn(column)) {
+				filterList.add(f);
+			}
+		}
+		
+		return filterList;
+	}
+	
+	public List<SimpleQueryFilter> getAllSimpleQueryFiltersContainingColumn(String column) {
 		List<SimpleQueryFilter> filterList = new Vector<SimpleQueryFilter>();
 		// since we already store all the filtered columns
 		// if what is passed is not in the list
@@ -223,13 +263,14 @@ public class GenRowFilters {
 		if(!this.filteredColumns.contains(column)) {
 			return filterList;
 		}
-		for(SimpleQueryFilter f : this.filterVec) {
-			if(f.containsColumn(column)) {
-				filterList.add(f);
+		for(IQueryFilter f : this.filterVec) {
+			if(f.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				if(f.containsColumn(column)) {
+					filterList.add((SimpleQueryFilter)f);
+				}
 			}
 		}
 		
 		return filterList;
 	}
-	
 }

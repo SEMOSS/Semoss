@@ -19,7 +19,7 @@ import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.NounMetadata;
@@ -163,11 +163,14 @@ public abstract class AbstractRBuilder {
 			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
 
 			//add filters to the new qs
-			GenRowFilters gFilters = qs.getFilters();
-			for (int i = 0; i < gFilters.getFilters().size(); i++) {
-				SimpleQueryFilter singleFilter = gFilters.getFilters().get(i);
-				SimpleQueryFilter updatedFilter = updateFilter(tableName, singleFilter);
-				modifiedQs.addFilter(updatedFilter);
+			List<IQueryFilter> gFilters = qs.getFilters().getFilters();
+			for (int i = 0; i < gFilters.size(); i++) {
+				//TODO: example this update filter logic!
+				IQueryFilter sFilter = gFilters.get(i);
+				if(sFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					SimpleQueryFilter updatedFilter = updateFilter(tableName, (SimpleQueryFilter) sFilter);
+					modifiedQs.addFilter(updatedFilter);
+				}
 			}
 			RInterpreter2 interp = new RInterpreter2();
 			interp.setDataTableName(tableName);
@@ -210,11 +213,14 @@ public abstract class AbstractRBuilder {
 			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
 
 			//add filters to the new qs
-			GenRowFilters gFilters = qs.getFilters();
-			for (int i = 0; i < gFilters.getFilters().size(); i++) {
-				SimpleQueryFilter singleFilter = gFilters.getFilters().get(i);
-				SimpleQueryFilter updatedFilter = updateFilter(tableName, singleFilter);
-				modifiedQs.addFilter(updatedFilter);
+			List<IQueryFilter> gFilters = qs.getFilters().getFilters();
+			for (int i = 0; i < gFilters.size(); i++) {
+				//TODO: example this update filter logic!
+				IQueryFilter sFilter = gFilters.get(i);
+				if(sFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					SimpleQueryFilter updatedFilter = updateFilter(tableName, (SimpleQueryFilter) sFilter);
+					modifiedQs.addFilter(updatedFilter);
+				}
 			}
 			RInterpreter2 interp = new RInterpreter2();
 			interp.setDataTableName(tableName);
