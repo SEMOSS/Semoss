@@ -20,8 +20,8 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
@@ -165,8 +165,8 @@ public abstract class AbstractRBuilder {
 			//add filters to the new qs
 			GenRowFilters gFilters = qs.getFilters();
 			for (int i = 0; i < gFilters.getFilters().size(); i++) {
-				QueryFilter singleFilter = gFilters.getFilters().get(i);
-				QueryFilter updatedFilter = updateFilter(tableName, singleFilter);
+				SimpleQueryFilter singleFilter = gFilters.getFilters().get(i);
+				SimpleQueryFilter updatedFilter = updateFilter(tableName, singleFilter);
 				modifiedQs.addFilter(updatedFilter);
 			}
 			RInterpreter2 interp = new RInterpreter2();
@@ -212,8 +212,8 @@ public abstract class AbstractRBuilder {
 			//add filters to the new qs
 			GenRowFilters gFilters = qs.getFilters();
 			for (int i = 0; i < gFilters.getFilters().size(); i++) {
-				QueryFilter singleFilter = gFilters.getFilters().get(i);
-				QueryFilter updatedFilter = updateFilter(tableName, singleFilter);
+				SimpleQueryFilter singleFilter = gFilters.getFilters().get(i);
+				SimpleQueryFilter updatedFilter = updateFilter(tableName, singleFilter);
 				modifiedQs.addFilter(updatedFilter);
 			}
 			RInterpreter2 interp = new RInterpreter2();
@@ -239,26 +239,26 @@ public abstract class AbstractRBuilder {
 		return qs;
 	}
 	
-	private QueryFilter updateFilter(String tableName, QueryFilter filter) {
-		QueryFilter newFilter = null;
-		FILTER_TYPE fType = QueryFilter.determineFilterType(filter);
+	private SimpleQueryFilter updateFilter(String tableName, SimpleQueryFilter filter) {
+		SimpleQueryFilter newFilter = null;
+		FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
 		if(fType == FILTER_TYPE.COL_TO_COL) {
 			//change both left comparator and right comparator
 			String lHeader = filter.getLComparison().getValue().toString();
 			NounMetadata lNoun = new NounMetadata(tableName + "__" + lHeader, PixelDataType.COLUMN);
 			String rHeader = filter.getRComparison().getValue().toString();
 			NounMetadata rNoun = new NounMetadata(tableName + "__" + rHeader, PixelDataType.COLUMN);
-			newFilter = new QueryFilter(lNoun, filter.getComparator() , rNoun);
+			newFilter = new SimpleQueryFilter(lNoun, filter.getComparator() , rNoun);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
 			//change only the left comparator
 			String lHeader = filter.getLComparison().getValue().toString();
 			NounMetadata lNoun = new NounMetadata(tableName + "__" + lHeader, PixelDataType.COLUMN);
-			newFilter = new QueryFilter(lNoun, filter.getComparator(), filter.getRComparison());
+			newFilter = new SimpleQueryFilter(lNoun, filter.getComparator(), filter.getRComparison());
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			//change only the right comparator
 			String rHeader = filter.getRComparison().getValue().toString();
 			NounMetadata rNoun = new NounMetadata(tableName + "__" + rHeader, PixelDataType.COLUMN);
-			newFilter = new QueryFilter(filter.getLComparison(), filter.getComparator() , rNoun);
+			newFilter = new SimpleQueryFilter(filter.getLComparison(), filter.getComparator() , rNoun);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}

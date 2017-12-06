@@ -12,7 +12,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
@@ -70,7 +70,7 @@ public class RandomSampleReactor extends MathReactor {
 			filterValues.add(colValue);
 			NounMetadata valNoun = new NounMetadata(filterValues, PixelDataType.CONST_STRING);
 			NounMetadata colNoun = new NounMetadata(dataFrame.getTableName() + "__" + sampleColumn, PixelDataType.COLUMN);
-			QueryFilter qf = new QueryFilter(colNoun, "==", valNoun);
+			SimpleQueryFilter qf = new SimpleQueryFilter(colNoun, "==", valNoun);
 			GenRowFilters grf = new GenRowFilters();
 			grf.addFilters(qf);
 			dataFrame.setFilter(grf);

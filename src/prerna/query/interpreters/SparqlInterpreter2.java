@@ -16,8 +16,8 @@ import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -379,22 +379,22 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		this.bindWhereClause = new StringBuilder();
 		this.bindingsWhereClause = new StringBuilder();
 		
-		List<QueryFilter> filters = grf.getFilters();
+		List<SimpleQueryFilter> filters = grf.getFilters();
 		int numFilters = filters.size();
 		for(int i = 0; i < numFilters; i++) {
-			QueryFilter filter = filters.get(i);
+			SimpleQueryFilter filter = filters.get(i);
 			NounMetadata leftComp = filter.getLComparison();
 			NounMetadata rightComp = filter.getRComparison();
 			String thisComparator = filter.getComparator();
 			
-			FILTER_TYPE fType = QueryFilter.determineFilterType(filter);
+			FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
 			if(fType == FILTER_TYPE.COL_TO_COL) {
 				addColToColFilter(leftComp, rightComp, thisComparator);
 			} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
 				addColToValuesFilter(leftComp, rightComp, thisComparator, baseUri);
 			} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 				// same logic as above, just switch the order and reverse the comparator if it is numeric
-				addColToValuesFilter(rightComp, leftComp, QueryFilter.getReverseNumericalComparator(thisComparator), baseUri);
+				addColToValuesFilter(rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator), baseUri);
 			} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 				// WHY WOULD YOU DO THIS!!!
 				addValueToValueFilter(rightComp, leftComp, thisComparator);

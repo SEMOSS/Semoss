@@ -12,7 +12,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
@@ -117,7 +117,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			NounMetadata lComparison = new NounMetadata(tableCol, PixelDataType.COLUMN);
 			String comparator = "?like";
 			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
-			QueryFilter wFilter = new QueryFilter(lComparison, comparator, rComparison);
+			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			baseFilters.addFilters(wFilter);
 		}
 		
@@ -157,11 +157,11 @@ public class FrameFilterModelReactor extends AbstractReactor {
 				// we need create the inverse of the filters
 				// if they touch the column we care about
 				GenRowFilters inverseFilters = new GenRowFilters();
-				List<QueryFilter> baseFiltersList = baseFilters.getFilters();
-				for(QueryFilter filter : baseFiltersList) {
+				List<SimpleQueryFilter> baseFiltersList = baseFilters.getFilters();
+				for(SimpleQueryFilter filter : baseFiltersList) {
 					if(filter.containsColumn(tableCol)) {
 						// reverse the comparator
-						QueryFilter fCopy = filter.copy();
+						SimpleQueryFilter fCopy = filter.copy();
 						fCopy.reverseComparator();
 						inverseFilters.addFilters(fCopy);
 					} else {

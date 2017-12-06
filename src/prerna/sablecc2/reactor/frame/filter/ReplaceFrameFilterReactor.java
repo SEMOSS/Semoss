@@ -6,7 +6,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -26,17 +26,17 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 		}
 
 		// get the filters to replace
-		List<QueryFilter> replaceFilters = getReplaceFilters();
+		List<SimpleQueryFilter> replaceFilters = getReplaceFilters();
 		
 		// keep track of filters indices we are going to replace
 		List<Integer> indicesToRemove = new Vector<Integer>();
 		
 		//for each qf...
-		for (QueryFilter replaceFilter : replaceFilters) {
+		for (SimpleQueryFilter replaceFilter : replaceFilters) {
 			// compare the filter with existing filters to only delete the correct one, assuming it does exist
-			List<QueryFilter> currentFilters = filters.getFilters();
+			List<SimpleQueryFilter> currentFilters = filters.getFilters();
 			for (int filterIndex = 0; filterIndex < currentFilters.size(); filterIndex++) {
-				QueryFilter curFilter = currentFilters.get(filterIndex);
+				SimpleQueryFilter curFilter = currentFilters.get(filterIndex);
 				if (curFilter.equivalentColumnModifcation(replaceFilter)) {
 					// we have a match
 					// we will remove this instance
@@ -56,7 +56,7 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 		}
 		
 		// now we add the new filters
-		for (QueryFilter replaceFilter : replaceFilters) {
+		for (SimpleQueryFilter replaceFilter : replaceFilters) {
 			filters.addFilters(replaceFilter);
 		}
 
@@ -73,10 +73,10 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 	 * get the filters to be deleted
 	 * @return
 	 */
-	private List<QueryFilter> getReplaceFilters() {
+	private List<SimpleQueryFilter> getReplaceFilters() {
 		//retrieve filter input
 		GenRowFilters grf = getFilters();
-		List<QueryFilter> qfList = grf.getFilters();
+		List<SimpleQueryFilter> qfList = grf.getFilters();
 		return qfList;
 	}
 }

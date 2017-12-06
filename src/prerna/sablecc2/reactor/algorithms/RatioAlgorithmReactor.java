@@ -22,7 +22,7 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -376,7 +376,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			colSelector.setColumn(null);
 		}
 		qs.addSelector(colSelector);
-		QueryFilter instanceFilter = new QueryFilter(new NounMetadata(instanceColumn, PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
+		SimpleQueryFilter instanceFilter = new SimpleQueryFilter(new NounMetadata(instanceColumn, PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
 		qs.addFilter(instanceFilter);
 		Iterator<IHeadersDataRow> it = frame.query(qs);
 		while (it.hasNext()) {
