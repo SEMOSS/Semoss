@@ -21,19 +21,33 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		// init rJavaTranslator
 		init();
+		// check if fuzzy join package is installed
+		String hasPackage = this.rJavaTranslator.getString("as.character(\"fuzzyjoin\" %in% rownames(installed.packages()))");
+		if (!hasPackage.equalsIgnoreCase("true")) {
+			throw new IllegalArgumentException("The fuzzyjoin package is NOT installed");
+		}
+		// check if RJSONIO package is installed
+		hasPackage = this.rJavaTranslator.getString("as.character(\"RJSONIO\" %in% rownames(installed.packages()))");
+		if (!hasPackage.equalsIgnoreCase("true")) {
+			throw new IllegalArgumentException("The RJSONIO package is NOT installed");
+		}
+
+		// get frame and set up logger
 		RDataTable frame = (RDataTable) getFrame();
 		Logger logger = this.getLogger(CLASS_NAME);
 		frame.setLogger(logger);
 		String df = frame.getTableName();
 		String column = getColumn();
 
+		// create collision script inputs
 		StringBuilder rsb = new StringBuilder();
-		// create temp R frame with column values
+		// create temp R frame with unique column values
 		String randomDF = Utility.getRandomString(8);
 		rsb.append(randomDF + " <- data.frame(" + column + "=unique(" + df + "$" + column + "));");
 
-		// add column instance count
+		// add column instance count to temp frame
 		String countScript = randomDF + "$count <- NA; ";
 		countScript += "for (i in 1:nrow(" + randomDF + ")) { value <- " + randomDF + "$" + column
 				+ "[i]; count <- length(which(" + df + "$" + column + " == value)); " + randomDF
@@ -45,7 +59,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		collisionScriptPath = collisionScriptPath.replace("\\", "/");
 		rsb.append("source(\"" + collisionScriptPath + "\");");
 
-		// fuzzy join parameters
+		// add fuzzy join parameters
 		String method = "jw";
 		double maxdist = getDistance();
 		maxdist = 1 - maxdist;
@@ -64,11 +78,11 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		rsb.append("q=" + "0" + ",");
 		rsb.append("p=" + "0" + ");");
 
-		// run scripts
+		// run collision script
 		long startTime = System.currentTimeMillis();
 		this.rJavaTranslator.runR(rsb.toString());
 		long endTime = System.currentTimeMillis();
-		logger.info("Time to execute R script: " + (endTime - startTime));
+		logger.info("Time to execute R collision script: " + (endTime - startTime));
 
 		// get json string this string contains \n characters
 		// so parse into json object here
@@ -80,7 +94,17 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 				jsonMap = new ObjectMapper().readValue(json, List.class);
 			} catch (IOException e2) {
 			}
+		} else {
+			throw new IllegalArgumentException("No collisions found");
 		}
+
+		// clean up R temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + randomDF + ");");
+		cleanUpScript.append("rm(" + outputJSON + ");");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
+
 		return new NounMetadata(jsonMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
