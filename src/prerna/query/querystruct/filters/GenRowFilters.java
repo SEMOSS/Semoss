@@ -1,4 +1,4 @@
-package prerna.query.querystruct;
+package prerna.query.querystruct.filters;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -6,9 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
-
-import prerna.sablecc2.om.QueryFilter;
-import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
 
 public class GenRowFilters {
 
@@ -146,7 +143,7 @@ public class GenRowFilters {
 				if(filter.containsColumn(column)) {
 					filterIt.remove();
 					this.filteredColumns.remove(column);
-					if(QueryFilter.determineFilterType(filter) == FILTER_TYPE.COL_TO_COL) {
+					if(QueryFilter.determineFilterType(filter) == QueryFilter.FILTER_TYPE.COL_TO_COL) {
 						recreateFilterCols = true;
 					}
 				}

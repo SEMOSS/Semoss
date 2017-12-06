@@ -8,12 +8,12 @@ import java.util.Set;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.NounMetadata;
-import prerna.sablecc2.om.QueryFilter;
-import prerna.sablecc2.om.QueryFilter.FILTER_TYPE;
 import prerna.util.ArrayUtilityMethods;
 
 public class CsvFileIterator extends AbstractFileIterator {

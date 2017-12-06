@@ -11,13 +11,13 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.ExpressionIterator;
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
 
 public class RandomSampleReactor extends MathReactor {
 	

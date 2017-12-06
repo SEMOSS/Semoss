@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.panel.filter;
 import java.util.Set;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.GenRowFilters;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -16,7 +18,6 @@ import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.QueryFilter;
 
 public class QueryStructConverter {
 

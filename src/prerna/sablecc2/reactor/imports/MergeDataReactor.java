@@ -14,6 +14,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.QueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -21,7 +22,6 @@ import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.QueryFilter;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class MergeDataReactor extends AbstractReactor {
