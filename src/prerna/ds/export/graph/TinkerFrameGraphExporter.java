@@ -21,7 +21,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
@@ -122,23 +122,23 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 			for(String v : vertexNames) {
 				GraphTraversal traversal = __.has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(v));
 				
-				List<QueryFilter> colFilters = filterGrs.getAllQueryFiltersContainingColumn(v);
+				List<SimpleQueryFilter> colFilters = filterGrs.getAllQueryFiltersContainingColumn(v);
 				if(colFilters.isEmpty()) {
 					continue;
 				}
-				for(QueryFilter filter : colFilters) {
-					QueryFilter.FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
+				for(SimpleQueryFilter filter : colFilters) {
+					SimpleQueryFilter.FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
 					NounMetadata lComp = filter.getLComparison();
 					NounMetadata rComp = filter.getRComparison();
 					String comp = filter.getComparator();
 
-					if(filterType == QueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+					if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 						// here, lcomp is the column and rComp is a set of values
 						processFilterColToValues(traversal, lComp, rComp, comp);
-					} else if(filterType == QueryFilter.FILTER_TYPE.VALUES_TO_COL) {
+					} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 						// here, lcomp is the values and rComp is a the column
 						// so same as above, but switch the order
-						processFilterColToValues(traversal, rComp, lComp, QueryFilter.getReverseNumericalComparator(comp));
+						processFilterColToValues(traversal, rComp, lComp, SimpleQueryFilter.getReverseNumericalComparator(comp));
 					}
 				}
 				unionT.add(traversal);
@@ -227,42 +227,42 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 				GraphTraversal traversal = __.V().has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(start));
 				
 				// make sure both have filters
-				List<QueryFilter> startFilters = filterGrs.getAllQueryFiltersContainingColumn(start);
-				List<QueryFilter> endFilters = filterGrs.getAllQueryFiltersContainingColumn(end);
+				List<SimpleQueryFilter> startFilters = filterGrs.getAllQueryFiltersContainingColumn(start);
+				List<SimpleQueryFilter> endFilters = filterGrs.getAllQueryFiltersContainingColumn(end);
 
 				// add filters to start
-				for(QueryFilter filter : startFilters) {
-					QueryFilter.FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
+				for(SimpleQueryFilter filter : startFilters) {
+					SimpleQueryFilter.FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
 					NounMetadata lComp = filter.getLComparison();
 					NounMetadata rComp = filter.getRComparison();
 					String comp = filter.getComparator();
 
-					if(filterType == QueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+					if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 						// here, lcomp is the column and rComp is a set of values
 						processFilterColToValues(traversal, lComp, rComp, comp);
-					} else if(filterType == QueryFilter.FILTER_TYPE.VALUES_TO_COL) {
+					} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 						// here, lcomp is the values and rComp is a the column
 						// so same as above, but switch the order
-						processFilterColToValues(traversal, rComp, lComp, QueryFilter.getReverseNumericalComparator(comp));
+						processFilterColToValues(traversal, rComp, lComp, SimpleQueryFilter.getReverseNumericalComparator(comp));
 					}
 				}
 				
 				// out edge
 				traversal.as("startV").out(start + "+++" + end).has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(end));
 				// add filters to end
-				for(QueryFilter filter : endFilters) {
-					QueryFilter.FILTER_TYPE filterType = QueryFilter.determineFilterType(filter);
+				for(SimpleQueryFilter filter : endFilters) {
+					SimpleQueryFilter.FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
 					NounMetadata lComp = filter.getLComparison();
 					NounMetadata rComp = filter.getRComparison();
 					String comp = filter.getComparator();
 
-					if(filterType == QueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+					if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 						// here, lcomp is the column and rComp is a set of values
 						processFilterColToValues(traversal, lComp, rComp, comp);
-					} else if(filterType == QueryFilter.FILTER_TYPE.VALUES_TO_COL) {
+					} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 						// here, lcomp is the values and rComp is a the column
 						// so same as above, but switch the order
-						processFilterColToValues(traversal, rComp, lComp, QueryFilter.getReverseNumericalComparator(comp));
+						processFilterColToValues(traversal, rComp, lComp, SimpleQueryFilter.getReverseNumericalComparator(comp));
 					}
 				}
 				

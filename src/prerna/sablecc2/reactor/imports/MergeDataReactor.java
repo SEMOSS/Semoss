@@ -14,7 +14,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -112,7 +112,7 @@ public class MergeDataReactor extends AbstractReactor {
 					} else {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
 					}
-					QueryFilter filter = new QueryFilter(lNoun, "==", rNoun);
+					SimpleQueryFilter filter = new SimpleQueryFilter(lNoun, "==", rNoun);
 					qs.addFilter(filter);
 				} catch(Exception e) {
 					throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");

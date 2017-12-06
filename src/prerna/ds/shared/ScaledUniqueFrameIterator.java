@@ -10,7 +10,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -97,15 +97,15 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 	public List<Object[]> next() {
 		if(hasNext()) {
 			Object nextVal = valueIterator.next();
-			QueryFilter instanceFilter = null;
+			SimpleQueryFilter instanceFilter = null;
 			if(nextVal instanceof Number) {
-				instanceFilter = new QueryFilter(
+				instanceFilter = new SimpleQueryFilter(
 						new NounMetadata(uniqueColumnName, PixelDataType.COLUMN), 
 						"==", 
 						new NounMetadata(nextVal, PixelDataType.CONST_DECIMAL)
 						);
 			} else {
-				instanceFilter = new QueryFilter(
+				instanceFilter = new SimpleQueryFilter(
 						new NounMetadata(uniqueColumnName, PixelDataType.COLUMN), 
 						"==", 
 						new NounMetadata(nextVal, PixelDataType.CONST_STRING)

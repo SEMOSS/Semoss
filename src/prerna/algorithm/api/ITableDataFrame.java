@@ -9,7 +9,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.QueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
 public interface ITableDataFrame extends IDataMaker {
@@ -109,7 +109,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * Add a filter to the frame
 	 * @param filter
 	 */
-	void addFilter(QueryFilter filter);
+	void addFilter(SimpleQueryFilter filter);
 	
 	/**
 	 * Persist a filter on the frame

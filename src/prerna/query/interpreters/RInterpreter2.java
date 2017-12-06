@@ -8,8 +8,8 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.QueryFilter;
-import prerna.query.querystruct.filters.QueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -233,8 +233,8 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	//////////////////////////////////// start adding filters /////////////////////////////////////
 
 	private void addFilters() {
-		List<QueryFilter> filters = qs.getFilters().getFilters();
-		for(QueryFilter filter : filters) {
+		List<SimpleQueryFilter> filters = qs.getFilters().getFilters();
+		for(SimpleQueryFilter filter : filters) {
 			if (filterCriteria.length() > 0) {
 				filterCriteria.append(" & ");
 			}
@@ -245,14 +245,14 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				thisComparator = "!=";
 			}
 			
-			FILTER_TYPE fType = QueryFilter.determineFilterType(filter);
+			FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
 			if(fType == FILTER_TYPE.COL_TO_COL) {
 				addColToColFilter(leftComp, rightComp, thisComparator);
 			} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
 				addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
 			} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 				// same logic as above, just switch the order and reverse the comparator if it is numeric
-				addColToValuesFilter(filter, rightComp, leftComp, QueryFilter.getReverseNumericalComparator(thisComparator));
+				addColToValuesFilter(filter, rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator));
 			} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 				// WHY WOULD YOU DO THIS!!!
 //				addValueToValueFilter(rightComp, leftComp, thisComparator);
@@ -290,7 +290,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private void addColToValuesFilter(QueryFilter filter, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private void addColToValuesFilter(SimpleQueryFilter filter, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// grab the left column name
 		String leftColumnSelector = leftComp.getValue().toString();
 		String leftColumnName = leftColumnSelector;
@@ -477,7 +477,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		NounMetadata test2 = new NounMetadata(values, PixelDataType.CONST_INT);
 		NounMetadata test3 = new NounMetadata("Nominated", PixelDataType.CONST_STRING);
 
-		QueryFilter filter1 = new QueryFilter(test1, "=", test3);
+		SimpleQueryFilter filter1 = new SimpleQueryFilter(test1, "=", test3);
 		qsTest.addFilter(filter1);
 
 		//Vector filterData2 = new Vector<>();
