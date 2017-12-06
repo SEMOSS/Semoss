@@ -15,7 +15,10 @@ import com.hp.hpl.jena.vocabulary.XSD;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -373,33 +376,82 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			this.relationshipWhereClause.append("OPTIONAL{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("} ");
 		}
 	}
-
+	
 	private void addFilters(GenRowFilters grf, String baseUri) {
 		this.filtersWhereClause = new StringBuilder();
 		this.bindWhereClause = new StringBuilder();
 		this.bindingsWhereClause = new StringBuilder();
 		
-		List<SimpleQueryFilter> filters = grf.getFilters();
-		int numFilters = filters.size();
-		for(int i = 0; i < numFilters; i++) {
-			SimpleQueryFilter filter = filters.get(i);
-			NounMetadata leftComp = filter.getLComparison();
-			NounMetadata rightComp = filter.getRComparison();
-			String thisComparator = filter.getComparator();
-			
-			FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
-			if(fType == FILTER_TYPE.COL_TO_COL) {
-				addColToColFilter(leftComp, rightComp, thisComparator);
-			} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-				addColToValuesFilter(leftComp, rightComp, thisComparator, baseUri);
-			} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
-				// same logic as above, just switch the order and reverse the comparator if it is numeric
-				addColToValuesFilter(rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator), baseUri);
-			} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
-				// WHY WOULD YOU DO THIS!!!
-				addValueToValueFilter(rightComp, leftComp, thisComparator);
+		List<IQueryFilter> filters = grf.getFilters();
+		for(IQueryFilter filter : filters) {
+			boolean startSimple = filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE;
+			StringBuilder filterSyntax = processFilter(filter, baseUri, startSimple);
+			if(filterSyntax != null) {
+				// NOTE! we add the filter here and not within the individual methods
+				// so we can correctly do AND/OR filtering
+				this.filtersWhereClause.append("FILTER( ").append(filterSyntax.toString()).append(")");;
 			}
 		}
+	}
+	
+	private StringBuilder processFilter(IQueryFilter filter, String baseUri, boolean startSimple) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilter((SimpleQueryFilter) filter, baseUri, startSimple);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilter((AndQueryFilter) filter, baseUri);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilter((OrQueryFilter) filter, baseUri);
+		}
+		return null;
+	}
+
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String baseUri) {
+		StringBuilder filterBuilder = new StringBuilder("(");
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i != 0) {
+				filterBuilder.append(" || ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i), baseUri, false));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String baseUri) {
+		StringBuilder filterBuilder = new StringBuilder("(");
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i != 0) {
+				filterBuilder.append(" && ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i), baseUri, false));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String baseUri, boolean startSimple) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
+
+		FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
+		if(fType == FILTER_TYPE.COL_TO_COL) {
+			return addColToColFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return addColToValuesFilter(leftComp, rightComp, thisComparator, baseUri, startSimple);
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addColToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), baseUri, startSimple);
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			// WHY WOULD YOU DO THIS!!!
+		}
+		
+		return null;
 	}
 
 	/**
@@ -408,15 +460,17 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private void addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		String leftValue = leftComp.getValue().toString();
 		String rightValue = rightComp.getValue().toString();
 
 		String leftCleanVarName = defineConceptAndPropertyInFilter(leftValue);;
 		String rightCleanVarName = defineConceptAndPropertyInFilter(rightValue);
 		
-		this.filtersWhereClause.append("FILTER(?").append(leftCleanVarName).append(" ")
-				.append(thisComparator).append(" ?").append(rightCleanVarName).append(")");
+		StringBuilder filterBuilder = new StringBuilder();
+		filterBuilder.append("?").append(leftCleanVarName).append(" ")
+				.append(thisComparator).append(" ?").append(rightCleanVarName);
+		return filterBuilder;
 	}
 
 	/**
@@ -425,7 +479,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private void addColToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String baseUri) {
+	private StringBuilder addColToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String baseUri, boolean isSimple) {
 		String leftValue = leftComp.getValue().toString();
 		String leftCleanVarName = defineConceptAndPropertyInFilter(leftValue);
 		
@@ -441,7 +495,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}
-		addColToValuesFilter(leftCleanVarName, thisComparator, rightObjects, rightComp.getNounType(), isProp, baseUri);
+		return addColToValuesFilter(leftCleanVarName, thisComparator, rightObjects, rightComp.getNounType(), isProp, baseUri, isSimple);
 	}
 
 	/**
@@ -453,9 +507,10 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param nounType
 	 * @param isProp
 	 */
-	private void addColToValuesFilter(String leftCleanVarName, String thisComparator, List<Object> rightObjects, PixelDataType nounType, boolean isProp, String baseUri) {
+	private StringBuilder addColToValuesFilter(String leftCleanVarName, String thisComparator, List<Object> rightObjects, 
+			PixelDataType nounType, boolean isProp, String baseUri, boolean isSimple) {
 		int numObjects = rightObjects.size();
-		if(numObjects == 1 && thisComparator.equals("==")) {
+		if(numObjects == 1 && isSimple && thisComparator.equals("==")) {
 			// can add a bind
 			if(isProp) {
 				if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
@@ -468,7 +523,10 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 				this.bindWhereClause.append("BIND(<").append(baseUri).append(concpetType).append("/")
 							.append(rightObjects.get(0)).append("> AS ?").append(leftCleanVarName).append(")");
 			}
-		} else if(!bindingsAdded && numObjects > 1 && thisComparator.equals("==")){
+			// do not return anything
+			// since it is simple and we will append this at the start
+			return null;
+		} else if(!bindingsAdded && isSimple && numObjects > 1 && thisComparator.equals("==")){
 			// add bindings at end
 			this.bindingsWhereClause = new StringBuilder();
 			this.bindingsWhereClause.append("BINDINGS ?").append(leftCleanVarName).append("{");
@@ -490,10 +548,13 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			}
 			this.bindingsWhereClause.append("}");
 			this.bindingsAdded = true;
+			// do not return anything
+			// since it is simple and we will append this at the start
+			return null;
 		} else {
 			// add filter
 			// start the syntax
-			this.filtersWhereClause.append("FILTER(");
+			StringBuilder filterBuilder = new StringBuilder(); //"FILTER(");
 			// modify the == comparator to work on sparql
 			if(thisComparator.equals("==")) {
 				thisComparator = "=";
@@ -506,25 +567,25 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 					if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
 						for(int i = 0; i < numObjects; i++) {
 							if(i != 0) {
-								this.filtersWhereClause.append(" || ");
+								filterBuilder.append(" || ");
 							}
-							this.filtersWhereClause.append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
+							filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
 						}
 					} else {
 						for(int i = 0; i < numObjects; i++) {
 							if(i != 0) {
-								this.filtersWhereClause.append(" || ");
+								filterBuilder.append(" || ");
 							}
-							this.filtersWhereClause.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i)).append("\", 'i')");
+							filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i)).append("\", 'i')");
 						}
 					}
 				} else {
 					String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
 					for(int i = 0; i < numObjects; i++) {
 						if(i != 0) {
-							this.filtersWhereClause.append(" || ");
+							filterBuilder.append(" || ");
 						}
-						this.filtersWhereClause.append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
+						filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
 								.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i)).append("\", 'i')");
 					}
 				}
@@ -535,43 +596,33 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 							if(i != 0) {
 								this.filtersWhereClause.append(" || ");
 							}
-							this.filtersWhereClause.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ");
-							this.filtersWhereClause.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
+							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
+								.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
 						}
 					} else {
 						for(int i = 0; i < numObjects; i++) {
 							if(i != 0) {
-								this.filtersWhereClause.append(" || ");
+								filterBuilder.append(" || ");
 							}
-							this.filtersWhereClause.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ");
-							this.filtersWhereClause.append("\"").append(rightObjects.get(i)).append("\"");
+							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
+								.append("\"").append(rightObjects.get(i)).append("\"");
 						}
 					}
 				} else {
 					String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
 					for(int i = 0; i < numObjects; i++) {
 						if(i != 0) {
-							this.filtersWhereClause.append(" || ");
+							filterBuilder.append(" || ");
 						}
-						this.filtersWhereClause.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ");
-						this.filtersWhereClause.append("<").append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append(">");
+						filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
+							.append("<").append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append(">");
 					}
 				}
 			}
 			// close the filter object
-			this.filtersWhereClause.append(")");
+//			filterBuilder.append(")");
+			return filterBuilder;
 		}
-	}
-
-	/**
-	 * Add a value to value comparison
-	 * @param rightComp
-	 * @param leftComp
-	 * @param thisComparator
-	 */
-	private void addValueToValueFilter(NounMetadata rightComp, NounMetadata leftComp, String thisComparator) {
-		// TODO Auto-generated method stub
-
 	}
 
 	/**

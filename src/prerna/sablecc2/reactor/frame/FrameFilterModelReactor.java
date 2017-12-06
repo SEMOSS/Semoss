@@ -12,6 +12,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -157,15 +158,23 @@ public class FrameFilterModelReactor extends AbstractReactor {
 				// we need create the inverse of the filters
 				// if they touch the column we care about
 				GenRowFilters inverseFilters = new GenRowFilters();
-				List<SimpleQueryFilter> baseFiltersList = baseFilters.getFilters();
-				for(SimpleQueryFilter filter : baseFiltersList) {
-					if(filter.containsColumn(tableCol)) {
-						// reverse the comparator
-						SimpleQueryFilter fCopy = filter.copy();
-						fCopy.reverseComparator();
-						inverseFilters.addFilters(fCopy);
-					} else {
-						// just add it to the filters
+				List<IQueryFilter> baseFiltersList = baseFilters.getFilters();
+				for(IQueryFilter filter : baseFiltersList) {
+					// check if it is a simple or complex filter
+					if(filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+						if(filter.containsColumn(tableCol)) {
+							// reverse the comparator
+							SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
+							fCopy.reverseComparator();
+							inverseFilters.addFilters(fCopy);
+						} else {
+							// just add it to the filters
+							inverseFilters.addFilters(filter.copy());
+						}
+					} 
+					// okay, this is hard to figure out if it is not simple
+					// so just add it
+					else {
 						inverseFilters.addFilters(filter.copy());
 					}
 				}

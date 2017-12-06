@@ -18,6 +18,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -62,9 +65,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
-	private Map<String, String> andWhereFilters = new HashMap<String, String>();
-	private Map<String, String> orWhereFilters = new HashMap<String, String>();
-	private Map<String, List<SimpleQueryFilter>> processedFilters = new HashMap<String, List<SimpleQueryFilter>>();
+	private List<String> filterStatements = new Vector<String>();
+//	private Map<String, String> andWhereFilters = new HashMap<String, String>();
+//	private Map<String, String> orWhereFilters = new HashMap<String, String>();
+//	private Map<String, List<SimpleQueryFilter>> processedFilters = new HashMap<String, List<SimpleQueryFilter>>();
 
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 
@@ -176,25 +180,34 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		// add the join data
 		query.append(relationList.getJoinPath(startPoints));
 
-		boolean firstTime = true;
-		for(String key : this.andWhereFilters.keySet()) {
-			String whereStatement = this.andWhereFilters.get(key);
-			if(firstTime) {
-				firstTime = false;
-				query.append(" WHERE ").append(whereStatement);
+		int numFilters = this.filterStatements.size();
+		for(int i = 0; i < numFilters; i++) {
+			if(i == 0) {
+				query.append(" WHERE ");
 			} else {
-				query.append(" AND ").append(whereStatement);
+				query.append(" AND ");
 			}
+			query.append(this.filterStatements.get(i).toString());
 		}
-		for(String key : this.orWhereFilters.keySet()) {
-			String whereStatement = this.orWhereFilters.get(key);
-			if(firstTime) {
-				firstTime = false;
-				query.append(" WHERE ").append(whereStatement);
-			} else {
-				query.append(" OR ").append(whereStatement);
-			}
-		}
+//		boolean firstTime = true;
+//		for(String key : this.andWhereFilters.keySet()) {
+//			String whereStatement = this.andWhereFilters.get(key);
+//			if(firstTime) {
+//				firstTime = false;
+//				query.append(" WHERE ").append(whereStatement);
+//			} else {
+//				query.append(" AND ").append(whereStatement);
+//			}
+//		}
+//		for(String key : this.orWhereFilters.keySet()) {
+//			String whereStatement = this.orWhereFilters.get(key);
+//			if(firstTime) {
+//				firstTime = false;
+//				query.append(" WHERE ").append(whereStatement);
+//			} else {
+//				query.append(" OR ").append(whereStatement);
+//			}
+//		}
 
 		//grab the order by and get the corresponding display name for that order by column
 		query = appendGroupBy(query);
@@ -601,30 +614,81 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
-
-	public void addFilters()
-	{
-		List<SimpleQueryFilter> filters = qs.getFilters().getFilters();
-		for(SimpleQueryFilter filter : filters) {
-			NounMetadata leftComp = filter.getLComparison();
-			NounMetadata rightComp = filter.getRComparison();
-			String thisComparator = filter.getComparator();
-
-			FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
-			if(fType == FILTER_TYPE.COL_TO_COL) {
-				addColToColFilter(leftComp, rightComp, thisComparator);
-			} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-				addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
-			} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
-				// same logic as above, just switch the order and reverse the comparator if it is numeric
-				addColToValuesFilter(filter, rightComp, leftComp, SimpleQueryFilter.getReverseNumericalComparator(thisComparator));
-			} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
-				// WHY WOULD YOU DO THIS!!!
-				addValueToValueFilter(rightComp, leftComp, thisComparator);
+	
+	public void addFilters() {
+		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		for(IQueryFilter filter : filters) {
+			StringBuilder filterSyntax = processFilter(filter);
+			if(filterSyntax != null) {
+				this.filterStatements.add(filterSyntax.toString());
 			}
 		}
 	}
+	
+	private StringBuilder processFilter(IQueryFilter filter) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilter((SimpleQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilter((AndQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilter((OrQueryFilter) filter);
+		}
+		return null;
+	}
+	
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" OR ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
 
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" AND ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
+		
+		FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
+		if(fType == FILTER_TYPE.COL_TO_COL) {
+			return addColToColFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addColToValuesFilter(filter, rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			// WHY WOULD YOU DO THIS!!!
+			return addValueToValueFilter(rightComp, leftComp, thisComparator);
+		}
+		return null;
+	}
+	
 	/**
 	 * Add filter for a column to values
 	 * @param filter 
@@ -632,10 +696,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private void addColToValuesFilter(SimpleQueryFilter qFilterObj, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addColToValuesFilter(SimpleQueryFilter qFilterObj, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
 		String left_concept_property = leftComp.getValue().toString();
-
+		
 		String[] leftConProp = getConceptProperty(left_concept_property);
 		String leftConcept = leftConProp[0];
 		String leftProperty = leftConProp[1];
@@ -651,7 +715,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else if(frame != null) {
 			leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
 		}
-
+		
 		List<Object> objects = new Vector<Object>();
 		// ugh... this is gross
 		if(rightComp.getValue() instanceof List) {
@@ -659,53 +723,43 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else {
 			objects.add(rightComp.getValue());
 		}
-		String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
-
+		
+		
 		StringBuilder filterBuilder = new StringBuilder();
-		if(thisComparator.trim().equals("==")) {
-			filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
-			filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
-		} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
-			filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
-			filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
-		} else if(thisComparator.trim().equals("?like")) {
-			filterBuilder.append("LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
+		if(thisComparator.trim().equals("?like")) {
+			// like requires OR statements for multiple
+			// cannot use same logic as IN :(
+			int i = 0;
+			int size = objects.size();
+			List<Object> newObjects = new Vector<Object>();
+			newObjects.add(objects.get(i));
+			String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+			filterBuilder.append("( LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
 			filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
-		} else {
-			filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
-		}
-
-		String conceptKey = leftConcept + leftProperty;
-		String uniqueKey = conceptKey + thisComparator;
-		if(this.andWhereFilters.containsKey(uniqueKey)) {
-			// just add the filters together
-			this.andWhereFilters.put(uniqueKey, this.andWhereFilters.get(uniqueKey) + " AND " + filterBuilder.toString());
-
-			// add this filter object to the list
-			this.processedFilters.get(conceptKey).add(qFilterObj);
-		} else if(this.processedFilters.containsKey(conceptKey)) {
-			List<SimpleQueryFilter> otherFilters = this.processedFilters.get(conceptKey);
-			boolean requireOr = false;
-			for(SimpleQueryFilter otherFilterObj : otherFilters) {
-				requireOr = SimpleQueryFilter.requireOrBetweenFilters(qFilterObj, otherFilterObj);
-				if(requireOr) {
-					break;
-				}
+			i++;
+			for(; i < size; i++) {
+				newObjects = new Vector<Object>();
+				newObjects.add(objects.get(i));
+				myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+				filterBuilder.append(" OR LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 			}
-			if(requireOr) {
-				this.orWhereFilters.put(uniqueKey, filterBuilder.toString());
+			filterBuilder.append(")");
+		} else {
+			String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
+	
+			if(thisComparator.trim().equals("==")) {
+				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
+			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
 			} else {
-				this.andWhereFilters.put(uniqueKey, filterBuilder.toString());
+				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
-
-			// add this filter object to the list
-			otherFilters.add(qFilterObj);
-		} else {
-			this.andWhereFilters.put(uniqueKey, filterBuilder.toString());
-			List<SimpleQueryFilter> processedFiltersForColumn = new Vector<SimpleQueryFilter>();
-			processedFiltersForColumn.add(qFilterObj);
-			this.processedFilters.put(conceptKey, processedFiltersForColumn);
 		}
+		
+		return filterBuilder;
 	}
 
 	/**
@@ -714,10 +768,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private void addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
 		String left_concept_property = leftComp.getValue().toString();
-
+		
 		String[] leftConProp = getConceptProperty(left_concept_property);
 		String leftConcept = leftConProp[0];
 		String leftProperty = leftConProp[1];
@@ -731,9 +785,9 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 			leftDataType = leftDataType.replace("TYPE:", "");
 		}
-
+		
 		// get the right side
-
+		
 		String right_concept_property = rightComp.getValue().toString();
 		if(engine != null && !engine.isBasic()) {
 			List<String> parents = engine.getParentOfProperty2(right_concept_property);
@@ -755,7 +809,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
-
+		
 		StringBuilder filterBuilder = new StringBuilder();
 		filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
 		if(thisComparator.equals("==")) {
@@ -765,11 +819,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		}
 		filterBuilder.append(" ").append(thisComparator).append(" ").append(getAlias(rightConcept)).append(".").append(rightProperty);
 
-		// this will always be additive, we do not care what the key is
-		this.andWhereFilters.put(Utility.getRandomString(6), filterBuilder.toString());
+		return filterBuilder;
 	}
-
-	private void addValueToValueFilter(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
+	
+	private StringBuilder addValueToValueFilter(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
 		// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
 		// ... what is the point of this... this is a dumb thing... you are dumb
 
@@ -789,8 +842,8 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		}
 		//TODO: NEED TO CONSIDER DATES!!!
 		String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, comparator);
-
-
+		
+		
 		PixelDataType rCompType = rightComp.getNounType();
 		List<Object> rightObjects = new Vector<Object>();
 		// ugh... this is gross
@@ -799,7 +852,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}
-
+		
 		String rightDataType = null;
 		if(rCompType == PixelDataType.CONST_DECIMAL) {
 			rightDataType = "NUMBER";
@@ -812,7 +865,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
-
+		
 		StringBuilder filterBuilder = new StringBuilder();
 		filterBuilder.append(leftFilterFormatted.toString());
 		if(comparator.equals("==")) {
@@ -822,8 +875,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		}
 		filterBuilder.append(" ").append(comparator).append(" ").append(rightFilterFormatted);
 
-		// this will always be additive, we do not care what the key is
-		this.andWhereFilters.put(Utility.getRandomString(6), filterBuilder.toString());
+		return filterBuilder;
 	}
 
 	/**
@@ -837,7 +889,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	private String getFormatedObject(String dataType, List<Object> objects, String comparator) {
 		// this will hold the sql acceptable format of the object
 		StringBuilder myObj = new StringBuilder();
-
+		
 		// defining variables for looping
 		int i = 0;
 		int size = objects.size();
@@ -867,7 +919,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-
+				
 				// get the first value
 				String val = objects.get(0).toString();
 				String d = Utility.getDate(val);
@@ -890,7 +942,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-
+				
 				// get the first value
 				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
 				// get the first value
@@ -926,7 +978,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-
+				
 				// get the first value
 				String val = objects.get(0).toString();
 				String d = Utility.getDate(val);
@@ -949,7 +1001,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-
+				
 				// get the first value
 				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
 				// get the first value
@@ -962,10 +1014,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				}
 			}
 		}
-
+		
 		return myObj.toString();
 	}
-
+	
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
 
