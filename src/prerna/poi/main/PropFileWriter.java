@@ -103,6 +103,8 @@ public class PropFileWriter {
 			if(!engineDirectory.exists())
 				engineDirectory.mkdir();
 			// define the owlFile location
+			// replace the engine name with engine
+			//this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 			this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 			if(owlFile.contains("\\")) {
 				owlFile = owlFile.replaceAll("\\\\", "/");
@@ -128,6 +130,8 @@ public class PropFileWriter {
 					}
 				}
 			}
+			// change it to @engine@
+			this.owlFile = "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
@@ -199,7 +203,9 @@ public class PropFileWriter {
 			if (dbType == ImportOptions.DB_TYPE.RDF) {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 			}
-			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + dbname + System.getProperty("file.separator") + "insights_database" + "\n");
+			// replacing dbname with the engine name
+			// @engine@
+			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database" + "\n");
 			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
