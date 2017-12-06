@@ -139,7 +139,10 @@ public class AbstractEngineCreator {
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
-		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
+		
+		// setting as a parameter for engine
+		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
+		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 		((AbstractEngine) engine).setProperties(prop);

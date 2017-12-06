@@ -158,6 +158,12 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// the local master
 		// get the owl relative path from the base folder to get the full path
 		String owlFile = baseFolder + "/" + prop.getProperty(Constants.OWL);
+		String engineName = prop.getProperty(Constants.ENGINE);
+
+		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
+		paramHash2.put("engine", engineName);
+		owlFile = Utility.fillParam2(owlFile, paramHash2);
+
 		
 		// owl is stored as RDF/XML file
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
@@ -174,7 +180,6 @@ public class AddToMasterDB extends ModifyMasterDB {
 		// insert the engine first
 		// engine is a type of engine
 		// keep the engine URI
-		String engineName = prop.getProperty(Constants.ENGINE);
 		LOGGER.info("Starting to synchronize engine ::: " + engineName);
 		
 		// create the engine URI

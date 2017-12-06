@@ -101,6 +101,8 @@ public abstract class AbstractEngine implements IEngine {
 	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
 	public static final boolean RECREATE_SOLR = false;
 	
+	public String baseFolder = null;
+	
 	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
 
 	protected String engineName = null;
@@ -169,7 +171,12 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public void openDB(String propFile) {
 		try {
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			Hashtable <String, String> paramHash = new Hashtable <String, String>();
+			paramHash.put("BaseFolder", baseFolder);
+			if(getEngineName() != null)
+				paramHash.put("engine", getEngineName());
+
 			if(propFile != null) {
 				this.propFile = propFile;
 				logger.info("Opening DB - " + engineName);
@@ -178,6 +185,9 @@ public abstract class AbstractEngine implements IEngine {
 			if(prop != null) {
 				// load the rdbms insights db
 				insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
+				
+				insightDatabaseLoc = Utility.fillParam2(insightDatabaseLoc, paramHash);
+				
 //				// creating logic to delete file if not there
 //				if(insightDatabaseLoc != null && RECREATE_INSIGHTS) {
 //					String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + insightDatabaseLoc + ".mv.db";
@@ -246,6 +256,7 @@ public abstract class AbstractEngine implements IEngine {
 				
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
+				
 				if (owlFile != null) {
 					// need a check here to say if I am asking this to be remade or keep what it is
 					if(owlFile.equalsIgnoreCase("REMAKE"))
@@ -254,9 +265,9 @@ public abstract class AbstractEngine implements IEngine {
 						// see if the usefile is there
 						if(prop.containsKey(USE_FILE))
 						{
-							String csvFile = prop.getProperty(DATA_FILE);
+							String csvFile = prop.getProperty(DATA_FILE);	
 							owlFile = csvFile.replace("data/", "") + ".OWL";
-							Map <String, String> paramHash = new Hashtable<String, String>();
+							//Map <String, String> paramHash = new Hashtable<String, String>();
 							
 							paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
 							paramHash.put("ENGINE", getEngineName());
@@ -280,6 +291,7 @@ public abstract class AbstractEngine implements IEngine {
 					}
 					if(owlFile != null)
 					{					
+						owlFile = Utility.fillParam2(owlFile, paramHash);
 						logger.info("Loading OWL: " + owlFile);
 						setOWL(baseFolder + "/" + owlFile);
 					}
