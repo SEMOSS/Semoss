@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -232,8 +233,13 @@ public final class SolrUtility {
 				forceUpdateSolr = Boolean.parseBoolean(smssForceUpdateString);
 			}
 
+			Hashtable <String, String> paramHash = new Hashtable <String, String>();
+			paramHash.put("BaseFolder", baseFolder);
+			paramHash.put("engine", engineName);
+
 			// find when the database was last modified to see the time
 			dbLocation = (String)prop.get(Constants.RDBMS_INSIGHTS);
+			dbLocation = Utility.fillParam2(dbLocation, paramHash);
 			String dbFileLocation = baseFolder + "/" + dbLocation + ".mv.db";
 			File dbfile = new File(dbFileLocation);
 

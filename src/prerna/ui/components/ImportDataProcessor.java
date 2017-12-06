@@ -134,6 +134,13 @@ public class ImportDataProcessor {
 			// 		need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
+			
+			Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
+			paramHash2.put("engine", engineName);
+			owlPath = Utility.fillParam2(owlPath, paramHash2);
+
+			
+			
 			options.setSMSSLocation(smssLocation);
 			options.setOwlFileLocation(owlPath);
 			
@@ -446,7 +453,12 @@ public class ImportDataProcessor {
 		ENGINE_TYPE engineDbType = engine.getEngineType();
 		
 		String owlPath = engine.getOWL();
+		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
+		paramHash2.put("engine", engineName);
+		owlPath = Utility.fillParam2(owlPath, paramHash2);
+
 		options.setOwlFileLocation(owlPath);
+		
 		Hashtable<String, String>[] metamodelInfo;
 		
 		switch(engineDbType){
