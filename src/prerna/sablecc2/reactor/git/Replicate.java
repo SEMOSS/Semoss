@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.git;
 
-import java.io.StringWriter;
-
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
@@ -13,42 +11,40 @@ import prerna.util.GitHelper;
 
 public class Replicate extends AbstractReactor {
 
-	// clone from remote
-	// this assumes the local directory is not there
+	/**
+	 * Clone an existing remote app and bring it into the 
+	 * local semoss that is running for collaboration
+	 */
 	
-	public Replicate()
-	{
+	public Replicate() {
 		super.keysToGet = new String[]{"remoteapp", "app", "type"};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		// creates a remote repository
 		organizeKeys();
-		Logger logger = getLogger(this.getClass().getName());
-		
-		logger.info("Starting copy from remote : " + keyValue.get(keysToGet[0]));
-		logger.info("This can take a few minutes depending on the size of your app");
-		GitHelper helper = new GitHelper();
 
-		logger.info("Initialized");
+		String remoteApp = this.keyValue.get(this.keysToGet[0]);
+		if(remoteApp == null || remoteApp.isEmpty()) {
+			throw new IllegalArgumentException("Need to define a remote app");
+		}
+		String localAppName = this.keyValue.get(this.keysToGet[1]);
+		if(localAppName == null || localAppName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the local app name");
+		}
+		
+		Logger logger = getLogger(this.getClass().getName());
+		logger.info("Downloading app located at " + remoteApp);
+		logger.info("App will be named locally as " + localAppName);
 
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbName = keyValue.get(keysToGet[1]);	
-
-		logger.info("Creating Repo At " + dbName);
-
-		helper.makeAppFromRemote(baseFolder, dbName, keyValue.get(keysToGet[0]));
-
-		logger.info("Copy Complete");
-		
-		StringWriter sw = new StringWriter();
-		
-		sw.write("Success \n Repository At: " + dbName ); 
-		
-
-		return new NounMetadata(sw.getBuffer().toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
+		GitHelper helper = new GitHelper();
+		try {
+			helper.makeAppFromRemote(baseFolder, localAppName, remoteApp);
+			logger.info("Congratulations! Downloading your new app has been completed");
+		} catch(Exception e) {
+			throw new RuntimeException(e.getMessage());
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
-
 }

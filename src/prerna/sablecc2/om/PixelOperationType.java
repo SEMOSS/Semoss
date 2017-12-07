@@ -69,7 +69,8 @@ public enum PixelOperationType {
 	OLD_INSIGHT,
 	
 	// GIT_MARKET
-	MARKET_PLACE,
+	MARKET_PLACE, // general market routine
+	MARKET_PLACE_ADDITION,
 	
 	// SOME KIND OF OPERATION THAT WE WANT TO OUTPUT
 	RECIPE_COMMENT,
