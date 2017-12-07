@@ -56,6 +56,7 @@ public class MakeApp extends AbstractReactor {
 			helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
 			logger.info("Congratulations! You have successfully created your app " + remote);
 		} catch(Exception e) {
+			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
