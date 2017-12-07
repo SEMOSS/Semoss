@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GitHelper;
 
@@ -35,7 +36,7 @@ public class ListRepoCollabs extends AbstractReactor {
 
 		Vector <String> collabs = helper.listCollaborators(keyValue.get(keysToGet[0]),keyValue.get(keysToGet[1]), keyValue.get(keysToGet[2]));
 		
-		return new NounMetadata(collabs, PixelDataType.VECTOR);
+		return new NounMetadata(collabs, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
 
 }
