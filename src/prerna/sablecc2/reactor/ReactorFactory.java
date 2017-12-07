@@ -470,6 +470,8 @@ public class ReactorFactory {
 		reactorHash.put("Remove", prerna.sablecc2.reactor.git.RemoveCollaborator.class);
 		reactorHash.put("ListTeam", prerna.sablecc2.reactor.git.ListRepoCollabs.class);
 		reactorHash.put("Save", prerna.sablecc2.reactor.git.SaveFile.class);
+		reactorHash.put("IsGit", prerna.sablecc2.reactor.git.IsGit.class);
+		reactorHash.put("Login", prerna.sablecc2.reactor.git.LoginGit.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
