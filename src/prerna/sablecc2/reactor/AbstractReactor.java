@@ -19,6 +19,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -84,9 +85,26 @@ public abstract class AbstractReactor implements IReactor {
 		help.append("Inputs:\n");
 		int size = keysToGet.length;
 		for(int i = 0; i < size; i++) {
-			help.append("\tinput ").append(i).append(":\t").append(keysToGet[i]).append("\n");
+			String key = keysToGet[i];
+			help.append("\tinput ").append(i).append(":\t").append(key);
+			String description = getDescriptionForKey(key);
+			if(description != null) {
+				help.append("\t").append(description);
+			}
+			help.append("\n");
 		}
 		return help.toString();
+	}
+	
+	/**
+	 * Default is to grab keys from our standardized set
+	 * But users can override this method to append their own descriptions for keys
+	 * when they are not-standard / are extremely unique for their function
+	 * @param key
+	 * @return
+	 */
+	protected String getDescriptionForKey(String key) {
+		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
 	
 	@Override
