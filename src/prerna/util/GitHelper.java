@@ -1018,6 +1018,7 @@ public class GitHelper {
 				userMap.put("name", user.getName());
 				userMap.put("followers", user.getFollowersCount() + "");
 				userMap.put("repos", user.getRepositories().size() + "");
+				userList.add(userMap);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
