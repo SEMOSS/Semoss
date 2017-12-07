@@ -1014,10 +1014,14 @@ public class GitHelper {
 			{
 				GHUser user = users.next();
 				Map<String, String> userMap = new Hashtable<String, String>();
-				userMap.put("id", user.getLogin());
-				userMap.put("name", user.getName());
-				userMap.put("followers", user.getFollowersCount() + "");
-				userMap.put("repos", user.getRepositories().size() + "");
+				String id = user.getLogin() + "";
+				String name = user.getName() + "";
+				String follows = user.getFollowersCount() + "";
+				String repos = user.getRepositories().size() + "";
+				userMap.put("id", id);
+				userMap.put("name", name);
+				userMap.put("followers", follows);
+				userMap.put("repos", repos);
 				userList.add(userMap);
 			}
 		} catch (IOException e) {
