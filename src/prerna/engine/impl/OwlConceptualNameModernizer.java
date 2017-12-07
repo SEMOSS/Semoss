@@ -44,6 +44,10 @@ public class OwlConceptualNameModernizer {
 		// we dont want to load the entire engine
 
 		this.owlPath = baseFolder + "/" + prop.getProperty(Constants.OWL);
+		Hashtable <String, String> paramHash = new Hashtable<String, String>();
+		paramHash.put("engine", prop.getProperty(Constants.ENGINE));
+		owlPath = Utility.fillParam2(owlPath, paramHash);
+		
 		// owl is stored as RDF/XML file
 		this.rfse = new RDFFileSesameEngine();
 		this.rfse.openFile(this.owlPath, null, null);
