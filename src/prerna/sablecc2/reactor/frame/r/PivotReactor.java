@@ -27,6 +27,10 @@ public class PivotReactor extends AbstractRFrameReactor{
 	private static final String MAINTAIN_COLUMNS_KEY = "maintainCols";
 	private static final String AGGREGATE_FUNCTION_KEY = "function";
 	
+	public PivotReactor() {
+		this.keysToGet = new String[]{PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, MAINTAIN_COLUMNS_KEY, AGGREGATE_FUNCTION_KEY};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		//initialize the rJavaTranslator
@@ -174,5 +178,16 @@ public class PivotReactor extends AbstractRFrameReactor{
 		}
 		//don't throw an error because this input is optional
 		return "";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(PIVOT_COLUMN_KEY)) {
+			return "THIS IS THE COLUMN TO PIVOT ON";
+		} else if(key.equals(VALUE_COLUMN_KEY)) {
+			return "THIS IS THE VALUE COLUMN";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
