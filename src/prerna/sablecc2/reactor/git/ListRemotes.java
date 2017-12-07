@@ -25,7 +25,7 @@ public class ListRemotes extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appName = keyValue.get(keysToGet[0]);
+		String appName = this.keyValue.get(this.keysToGet[0]);
 		if(appName == null || appName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide the app name");
 		}
