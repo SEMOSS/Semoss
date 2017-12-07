@@ -1285,9 +1285,6 @@ public class GitHelper {
 		commands.add("remote");
 		commands.add("add");		
 		commands.add(repoName);
-		if(!remoteRepo.startsWith("http")) {
-			remoteRepo += "https://github.com/" + remoteRepo;
-		}
 		commands.add(remoteRepo);	
 		runProcess(dir, commands);
 		if(!dual)
@@ -1455,7 +1452,14 @@ public class GitHelper {
 		commands.add("-m");
 		commands.add("\"" + getDateMessage("Committed ") + "\"");
 
-		runProcess(dir, commands, true);
+		try {
+			runProcess(dir, commands, true);
+		} catch(Exception e) {
+			// there might be nothing to commit
+			// so we will ignore the exception in this case
+			// example, making a new remote from an existing
+			// app that doesn't have any local changes
+		}
 	}
 
 
@@ -1612,13 +1616,12 @@ public class GitHelper {
 		String appInstanceName = Utility.getInstanceName(appName);
 		String dbName = baseFolder + "/db/" + yourName4App;
 		try {
-			if(!checkLocalRepository(dbName))
+			if(!isGit(dbName))
 			{
 				makeLocalRepository(dbName);
 				// need to have the master
 				semossInit(dbName);
 				commitAll(dbName, true);
-				
 			}
 			else
 			{
@@ -1697,14 +1700,10 @@ public class GitHelper {
 		
 		String remoteInstanceAppName = remoteAppName.split("/")[1];
 		
-		try {
+		if(!isGit(dbName)) {
 			initDir(dbName);
-		} catch (Exception e1) 
-		{
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
 		}
-
+		
 		moveDBToSMSS(baseFolder, appName, appName + ".smss" );
 	
 		commitAll(dbName, true);
