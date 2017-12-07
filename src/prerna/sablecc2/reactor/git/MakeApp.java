@@ -11,40 +11,53 @@ import prerna.util.GitHelper;
 
 public class MakeApp extends AbstractReactor {
 
-	// clone from remote
-	// this assumes the local directory is not there
-	
-	public MakeApp()
-	{
-		super.keysToGet = new String[]{"app", "remote", "username", "password", "smss", "type"};
+	/**
+	 * Synchronize an existing app to a specified remote
+	 */
+
+	public MakeApp() {
+		super.keysToGet = new String[]{"app", "remote", "username", "password", "type"};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		// creates a remote repository
 		Logger logger = getLogger(this.getClass().getName());
-
 		logger.info("Welcome to App IF ANY : SEMOSS Marketplace");
-		organizeKeys();
-		GitHelper helper = new GitHelper();
-		
-		logger.info("Initialized");
-		
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String smss = keyValue.get(keysToGet[4]);
-		
-		// later pass SMSS
-		smss = smss.contains("null")?null:smss;
 
-		logger.info("Making your app global");
+		organizeKeys();
+		String appName = this.keyValue.get(this.keysToGet[0]);
+		if(appName == null || appName.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the app name");
+		}
+		String remote = this.keyValue.get(this.keysToGet[1]);
+		if(remote == null || remote.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the remote to publish the app");
+		}
+		String username = this.keyValue.get(this.keysToGet[2]);
+		if(username == null || username.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the username for the remote app");
+		}
+		String password = this.keyValue.get(this.keysToGet[3]);
+		if(password == null || password.isEmpty()) {
+			throw new IllegalArgumentException("Need to password for the remote app");
+		}
+		// this is not actually used at the moment
+		// String type = this.keyValue.get(this.keysToGet[5]);
+
+		logger.info("Using app name = " + appName);
+		logger.info("Using remote = " + remote);
+		logger.info("Using username = " + username);
+		logger.info("Beginning process to make your application global");
 		logger.info("This can take several minutes");
 
-		helper.makeRemoteFromApp(baseFolder, keyValue.get(keysToGet[0]), keyValue.get(keysToGet[1]), true, keyValue.get(keysToGet[2]), keyValue.get(keysToGet[3]));
-
-		logger.info("Congratulations - you have successfully created your app " + keyValue.get(keysToGet[1]));
-
-		return new NounMetadata("Success", PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		GitHelper helper = new GitHelper();
+		try {
+			helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
+			logger.info("Congratulations! You have successfully created your app " + remote);
+		} catch(Exception e) {
+			throw new RuntimeException(e.getMessage());
+		}
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
 	}
-
 }
