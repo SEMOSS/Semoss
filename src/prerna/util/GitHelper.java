@@ -96,6 +96,7 @@ public class GitHelper {
 		return (dirFile.isDirectory() && dirFile.isDirectory());
 	}
 	
+	
 	public boolean isCurrent(String repositoryName) throws IOException, IllegalStateException, GitAPIException
 	{
 		boolean retValue = true;
@@ -136,6 +137,22 @@ public class GitHelper {
 	            return treeParser;
 	        }
 	    }
+	 
+	 public  boolean login(String username, String password)
+	 {
+		 boolean valid = true;
+			try {
+				GitHub gh = GitHub.connectUsingPassword(username, password);
+				gh.getMyself();
+				valid = true;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				valid = false;
+			}
+			return valid;
+
+	 }
 
 	public boolean checkRemoteRepository(String repositoryName, String userName, String password) throws IOException
 	{
