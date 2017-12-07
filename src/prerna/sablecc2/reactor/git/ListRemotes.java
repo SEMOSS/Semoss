@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.GitHelper;
@@ -37,7 +38,7 @@ public class ListRemotes extends AbstractReactor {
 
 		Hashtable <String, String> repoList = helper.listConfigRemotes(dbName);
 		
-		return new NounMetadata(repoList, PixelDataType.MAP);
+		return new NounMetadata(repoList, PixelDataType.MAP, PixelOperationType.MARKET_PLACE);
 	}
 
 }
