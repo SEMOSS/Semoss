@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GitHelper;
 
@@ -36,7 +37,7 @@ public class SearchCollaborator extends AbstractReactor {
 		Hashtable <String, String> collabList = helper.searchUsers(keyValue.get(keysToGet[0]),keyValue.get(keysToGet[1]), keyValue.get(keysToGet[2]));
 		logger.info("Search Complete");
 		
-		return new NounMetadata(collabList, PixelDataType.MAP);
+		return new NounMetadata(collabList, PixelDataType.MAP, PixelOperationType.MARKET_PLACE);
 	}
 
 }
