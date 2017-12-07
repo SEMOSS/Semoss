@@ -17,6 +17,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStructConverter;
+import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -152,7 +153,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		return new RIterator2(builder, query);
+		RIterator2 baseIt = new RIterator2(builder, query);
+		RawRSelectWrapper it = new RawRSelectWrapper();
+		it.directExecution(baseIt);
+		return it;
 	}
 
 	@Override
@@ -164,7 +168,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		interp.setLogger(this.logger);
 		String query = interp.composeQuery();
-		RIterator2 it = new RIterator2(this.builder, query, qs);
+		RIterator2 baseIt = new RIterator2(this.builder, query, qs);
+		RawRSelectWrapper it = new RawRSelectWrapper();
+		it.directExecution(baseIt);
 		return it;
 	}
 	
