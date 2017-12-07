@@ -1285,6 +1285,9 @@ public class GitHelper {
 		commands.add("remote");
 		commands.add("add");		
 		commands.add(repoName);
+		if(!remoteRepo.startsWith("http")) {
+			remoteRepo += "https://github.com/" + remoteRepo;
+		}
 		commands.add(remoteRepo);	
 		runProcess(dir, commands);
 		if(!dual)
@@ -1640,7 +1643,7 @@ public class GitHelper {
 			if(!existing)
 			{
 				removeAllIgnore(dbName);
-				addRemote(dbName, appName, false);
+				addRemote(dbName, "https://github.com/" + appName, false);
 			}
 			// else leave the ignore
 			else
@@ -1692,8 +1695,7 @@ public class GitHelper {
 		// create the remote repository
 		String dbName = baseFolder + "/db/" + appName;
 		
-		String remoteUserName = remoteAppName.split("/")[0];
-		remoteAppName = remoteAppName.split("/")[1];
+		String remoteInstanceAppName = remoteAppName.split("/")[1];
 		
 		try {
 			initDir(dbName);
@@ -1708,7 +1710,7 @@ public class GitHelper {
 		commitAll(dbName, true);
 		
 		try {
-			if(checkRemoteRepository(remoteAppName, userName, password))
+			if(checkRemoteRepository(remoteInstanceAppName, userName, password))
 			{
 				if(!remote)
 				{
@@ -1719,13 +1721,13 @@ public class GitHelper {
 			else
 			{
 				removeAllIgnore(dbName); // removes all the ignores so it can go in
-				makeRemoteRepository(remoteAppName, userName, password);
+				makeRemoteRepository(remoteInstanceAppName, userName, password);
 			}
 			// this will assume that everything is fine
 			// as in this is being done for the first time and synchronize to the remote
 
 			
-			String appRepo = "https://github.com/" + userName + "/" + remoteAppName;
+			String appRepo = "https://github.com/" + userName + "/" + remoteInstanceAppName;
 			// now add the remote
 			addRemote(dbName, appRepo, true);
 
@@ -1742,14 +1744,14 @@ public class GitHelper {
 
 			*/
 			// get everything
-			fetchRemote(dbName, remoteAppName);
+			fetchRemote(dbName, remoteInstanceAppName);
 			// check to see if there are conflicts
 			
 			// merge everything
-			merge(dbName, "master", remoteAppName + "/master");
+			merge(dbName, "master", remoteInstanceAppName + "/master");
 			
 			// push it back
-			pushRemote(dbName, remoteAppName, remoteUserName, "master", userName, password);
+			pushRemote(dbName, remoteInstanceAppName, userName, "master", userName, password);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
