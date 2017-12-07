@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GitHelper;
 
@@ -38,7 +39,7 @@ public class List4User extends AbstractReactor {
 		Vector <String> repoList = helper.listRemotes(keyValue.get(keysToGet[0]), password);
 		logger.info("Repo List Complete");
 		
-		return new NounMetadata(repoList, PixelDataType.VECTOR);
+		return new NounMetadata(repoList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
 
 }
