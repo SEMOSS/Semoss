@@ -1013,14 +1013,9 @@ public class GitHelper {
 			for(int userIndex = 0;users.hasNext() && userIndex < 10; userIndex++)
 			{
 				GHUser user = users.next();
-				String id = user.getLogin();
-				String name = user.getName();
-				name = name + ", Followers : " + user.getFollowersCount();
-				name = name + ", Repositories : " + user.getRepositories().size();
-				
 				Map<String, String> userMap = new Hashtable<String, String>();
-				userMap.put("id", id);
-				userMap.put("name", name);
+				userMap.put("id", user.getLogin());
+				userMap.put("name", user.getName());
 				userMap.put("followers", user.getFollowersCount() + "");
 				userMap.put("repos", user.getRepositories().size() + "");
 			}
