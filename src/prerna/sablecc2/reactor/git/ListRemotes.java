@@ -14,31 +14,30 @@ import prerna.util.GitHelper;
 
 public class ListRemotes extends AbstractReactor {
 
-	// clone from remote
-	// this assumes the local directory is not there
+	/**
+	 * Get the list of remotes for a given app
+	 */
 	
-	
-	public ListRemotes()
-	{
+	public ListRemotes() {
 		this.keysToGet = new String[]{"app"};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		// creates a remote repository
-		Logger logger = getLogger(this.getClass().getName());
-
 		organizeKeys();
+		String appName = keyValue.get(keysToGet[0]);
+		if(appName == null || appName.isEmpty()) {
+			throw new IllegalArgumentException("Need to provide the app name");
+		}
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
 		String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]);	
-		logger.info("Getting remotes configures on " + dbName);
-		GitHelper helper = new GitHelper();
 
+		Logger logger = getLogger(this.getClass().getName());
+		logger.info("Getting remotes configures on " + dbName);
+		
+		GitHelper helper = new GitHelper();
 		List<Map<String, String>> repoList = helper.listConfigRemotes(dbName);
 		return new NounMetadata(repoList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
-
 }
