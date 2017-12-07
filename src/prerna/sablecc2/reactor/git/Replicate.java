@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.GitHelper;
@@ -47,7 +48,7 @@ public class Replicate extends AbstractReactor {
 		sw.write("Success \n Repository At: " + dbName ); 
 		
 
-		return new NounMetadata(sw.getBuffer().toString(), PixelDataType.CONST_STRING);
+		return new NounMetadata(sw.getBuffer().toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 
 }

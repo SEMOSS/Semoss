@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.GitHelper;
@@ -43,7 +44,7 @@ public class MakeApp extends AbstractReactor {
 
 		logger.info("Congratulations - you have successfully created your app " + keyValue.get(keysToGet[1]));
 
-		return new NounMetadata("Success", PixelDataType.CONST_STRING);
+		return new NounMetadata("Success", PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 
 }

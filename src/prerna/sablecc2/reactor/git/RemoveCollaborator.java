@@ -1,11 +1,10 @@
 package prerna.sablecc2.reactor.git;
 
-import java.util.Hashtable;
-
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GitHelper;
 
@@ -36,7 +35,7 @@ public class RemoveCollaborator extends AbstractReactor {
 		helper.removeCollaborator(keyValue.get(keysToGet[0]),keyValue.get(keysToGet[2]), keyValue.get(keysToGet[3]), keyValue.get(keysToGet[1]));
 		logger.info("Collaborator removed");
 		
-		return new NounMetadata("SUCCESS", PixelDataType.CONST_STRING);
+		return new NounMetadata("SUCCESS", PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 
 }
