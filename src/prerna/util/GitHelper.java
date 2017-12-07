@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -1490,6 +1491,12 @@ public class GitHelper {
 		 }
 	}
 	
+	public static boolean isGit(String localApp)
+	{
+		File file = new File(localApp + "/" + ".git");
+		return file.exists();
+	}
+	
 	private File changeEngine(File file, String appName)
 	{
 		String mainDirectory = file.getParent();
@@ -1505,6 +1512,8 @@ public class GitHelper {
 			}
 			else
 			{
+				String oldName = "db/" + fileName.replace(".smss", "");
+				String newName = "db/" + appName;
 				String newFileName = mainDirectory + "/" + appName + ".smss";
 				newFile = new File(newFileName);
 				fos = new FileOutputStream(newFile);
@@ -1513,6 +1522,21 @@ public class GitHelper {
 				prop.load(new FileInputStream(file));
 				
 				prop.put("ENGINE", appName);
+				
+				// accomodate for old stuff
+				Enumeration <Object> propKeys = prop.keys();
+				
+				while(propKeys.hasMoreElements())
+				{
+					String propKey = propKeys.nextElement() + "";
+					String propValue = prop.getProperty(propKey);
+					
+					if(propValue.contains(oldName))
+					{
+						propValue = propValue.replaceAll(oldName, newName);
+						prop.put(propKey, propValue);
+					}
+				}
 				
 				prop.store(fos, "Changing File Content for engine");
 				fos.close();
