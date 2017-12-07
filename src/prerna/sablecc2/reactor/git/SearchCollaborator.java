@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.git;
 
-import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -12,32 +13,32 @@ import prerna.util.GitHelper;
 
 public class SearchCollaborator extends AbstractReactor {
 
-	// clone from remote
-	// this assumes the local directory is not there
+	/**
+	 * Search for another user
+	 */
 	
-	
-	public SearchCollaborator()
-	{
-		this.keysToGet = new String[]{"search","username", "password"};
+	public SearchCollaborator() {
+		this.keysToGet = new String[]{"search", "username", "password"};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		// creates a remote repository
-		Logger logger = getLogger(this.getClass().getName());
-
 		organizeKeys();
-		logger.info("Establishing connection ");
-		logger.info("This can take several minutes depending on the speed of your internet ");
+
+		String searchTerm = this.keyValue.get(this.keysToGet[0]);
+		String username = this.keyValue.get(this.keysToGet[1]);
+		String password = this.keyValue.get(this.keysToGet[2]);
+		
+		// creates a remote repository
 		GitHelper helper = new GitHelper();
 
-		logger.info("Validating User ");
-
-		Hashtable <String, String> collabList = helper.searchUsers(keyValue.get(keysToGet[0]),keyValue.get(keysToGet[1]), keyValue.get(keysToGet[2]));
+		Logger logger = getLogger(this.getClass().getName());
+		logger.info("Establishing connection");
+		logger.info("This can take several minutes depending on the speed of your internet");
+		logger.info("Validating user");
+		logger.info("Searching for " + searchTerm);
+		List<Map<String, String>> collabList = helper.searchUsers(searchTerm, username, password);
 		logger.info("Search Complete");
-		
-		return new NounMetadata(collabList, PixelDataType.MAP, PixelOperationType.MARKET_PLACE);
+		return new NounMetadata(collabList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
-
 }

@@ -998,14 +998,19 @@ public class GitHelper {
 
 	}
 	
-	public Hashtable <String, String> searchUsers(String query, String userName, String password)
-	{
-		Hashtable <String, String> userHash = new Hashtable<String, String>();
+	/**
+	 * Return the first 10 users that best match a given username search
+	 * @param query
+	 * @param userName
+	 * @param password
+	 * @return
+	 */
+	public List<Map<String, String>> searchUsers(String query, String userName, String password) {
+		List<Map<String, String>> userList = new Vector<Map<String, String>>();
 		try {
 			GitHub gh = GitHub.connectUsingPassword(userName, password);
 			PagedIterator <GHUser> users = gh.searchUsers().q(query).list().iterator();
-			
-			for(int userIndex = 0;users.hasNext() && userIndex < 10;userIndex++)
+			for(int userIndex = 0;users.hasNext() && userIndex < 10; userIndex++)
 			{
 				GHUser user = users.next();
 				String id = user.getLogin();
@@ -1013,15 +1018,16 @@ public class GitHelper {
 				name = name + ", Followers : " + user.getFollowersCount();
 				name = name + ", Repositories : " + user.getRepositories().size();
 				
-				userHash.put(id,  name);
+				Map<String, String> userMap = new Hashtable<String, String>();
+				userMap.put("id", id);
+				userMap.put("name", name);
+				userMap.put("followers", user.getFollowersCount() + "");
+				userMap.put("repos", user.getRepositories().size() + "");
 			}
-			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		return userHash;
+		return userList;
 	}
 	
 	public Vector<String> listCollaborators(String repo, String userName, String password)
