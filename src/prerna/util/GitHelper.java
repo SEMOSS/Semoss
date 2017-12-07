@@ -985,7 +985,7 @@ public class GitHelper {
 	{
 		try {
 			GitHub gh = GitHub.connectUsingPassword(userName, password);
-			GHRepository ghr = gh.getRepository(userName + "/" + remoteRepositoryName);
+			GHRepository ghr = gh.getRepository(remoteRepositoryName);
 			
 			Collection <GHUser> collabs = new Vector<GHUser>();
 			collabs.add(gh.getUser(collaborator));
@@ -1029,7 +1029,7 @@ public class GitHelper {
 		Vector <String> collabVector = new Vector<String>(); 
 		try {
 			GitHub gh = GitHub.connectUsingPassword(userName, password);
-			GHRepository ghr = gh.getRepository(userName + "/" + repo);
+			GHRepository ghr = gh.getRepository(repo);
 			Iterator <String> collabNames = ghr.getCollaboratorNames().iterator();
 			
 			while(collabNames.hasNext())
@@ -1050,7 +1050,7 @@ public class GitHelper {
 		try {
 			GitHub gh = GitHub.connectUsingPassword(userName, password);
 			
-			GHRepository ghr = gh.getRepository(userName + "/" + remoteRepositoryName);
+			GHRepository ghr = gh.getRepository(remoteRepositoryName);
 			
 			Collection <GHUser> collabs = new Vector<GHUser>();
 			collabs.add(gh.getUser(collaborator));
@@ -1249,15 +1249,13 @@ public class GitHelper {
 		List <String> commands = new Vector<String>();
 		commands.add("git");
 		commands.add("init");
-		
 		runProcess(dir, commands);
 
-		commands = new Vector<String>();
-		commands.add("git");
-		commands.add("checkout");
-		commands.add("master");
-		
-		runProcess(dir, commands, true);
+//		commands = new Vector<String>();
+//		commands.add("git");
+//		commands.add("checkout");
+//		commands.add("master");
+//		runProcess(dir, commands, true);
 
 	}
 	
@@ -1477,6 +1475,10 @@ public class GitHelper {
 /*				while(p.isAlive())
 					Thread.sleep(1000);
 */			}
+			if(p.exitValue() == 1) {
+				System.out.println("Error on command " + commands);
+				throw new RuntimeException("Error occured while execution of a git command");
+			}
 		} catch (IOException | InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
