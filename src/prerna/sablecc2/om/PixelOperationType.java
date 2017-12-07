@@ -70,6 +70,7 @@ public enum PixelOperationType {
 	
 	// GIT_MARKET
 	MARKET_PLACE, // general market routine
+	MARKET_PLACE_INIT,
 	MARKET_PLACE_ADDITION,
 	
 	// SOME KIND OF OPERATION THAT WE WANT TO OUTPUT
