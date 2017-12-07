@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
@@ -28,15 +29,21 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns
 		boolean overrideColumn = getOverride();
+		// we need to check data types this will only be valid on non numeric values
+		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		// update existing columns
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
-				try {
-					frame.executeRScript(update);
-				} catch (Exception e) {
-					e.printStackTrace();
+				// check data type this is only valid on non numeric values
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				if (dataType != SemossDataType.NUMBER) {
+					String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
+					try {
+						frame.executeRScript(update);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
@@ -44,8 +51,8 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 		else {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-				if (dataType.equalsIgnoreCase("STRING")) {
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				if (dataType != SemossDataType.NUMBER) {
 					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					update += table + "$" + newColumn + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ");";

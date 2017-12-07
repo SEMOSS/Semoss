@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
@@ -27,16 +28,21 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns
 		boolean overrideColumn = getOverride();
+		// we need to check data types this will only be valid on non numeric values
+		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		// update existing columns
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
-				try {
-					frame.executeRScript(script);
-					frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, "NUMBER");
-				} catch (Exception e) {
-					e.printStackTrace();
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				if (dataType != SemossDataType.NUMBER) {
+					String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
+					try {
+						frame.executeRScript(script);
+						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.NUMBER.toString());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
@@ -44,14 +50,17 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		else {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
-				String update = table + "$" + newColumn + " <- " + table + "$" + column + ";";
-				frame.executeRScript(update);
-				update = table + "$" + newColumn + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
-				frame.executeRScript(update);
-				metaData.addProperty(table, table + "__" + newColumn);
-				metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
-				metaData.setDataTypeToProperty(table + "__" + newColumn, "NUMBER");
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				if (dataType != SemossDataType.NUMBER) {
+					String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
+					String update = table + "$" + newColumn + " <- \"\";";
+					frame.executeRScript(update);
+					update = table + "$" + newColumn + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
+					frame.executeRScript(update);
+					metaData.addProperty(table, table + "__" + newColumn);
+					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
+					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.NUMBER.toString());
+				}
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
