@@ -77,7 +77,6 @@ public class ImportDataProcessor {
 	 * @throws Exception 
 	 */
 	public void runProcessor(ImportOptions options) throws Exception {
-
 		ImportOptions.IMPORT_METHOD importMethod = options.getImportMethod();
 		String baseDir = options.getBaseFolder();
 
@@ -133,15 +132,12 @@ public class ImportDataProcessor {
 			// TODO: grabbing these values from the prop writer is pretty crap...
 			// 		need to go back and clean the prop writer
 			String smssLocation = propWriter.propFileName;
-			String owlPath = baseDirectory + "/" + propWriter.owlFile;
-			
-			Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
-			paramHash2.put("engine", engineName);
-			owlPath = Utility.fillParam2(owlPath, paramHash2);
-
-			
-			
 			options.setSMSSLocation(smssLocation);
+
+			String owlPath = baseDirectory + "/" + propWriter.owlFile;
+			Hashtable <String, String> paramHash = new Hashtable<String, String>();
+			paramHash.put("engine", engineName);
+			owlPath = Utility.fillParam2(owlPath, paramHash);
 			options.setOwlFileLocation(owlPath);
 			
 			// need to create the .temp file object before we upload so we can delete the file if an error occurs
