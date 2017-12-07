@@ -18,6 +18,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -543,41 +544,43 @@ public class GitHelper {
 		}
 	}	
 	
-	public Hashtable<String, String> listConfigRemotes(String localRepositoryName)
-	{
-		// for every URL it says if it is DUAL or PUBLISH or SUBSCRIBE
-		
-		Hashtable <String, String> retHash = new Hashtable<String, String>();
+	/**
+	 * Get the list of remote configurations associated with an app directory
+	 * Get the url
+	 * Get the namespace/appName
+	 * Get the type -> dual or subscript
+	 * @param localRepositoryName
+	 * @return
+	 */
+	public List<Map<String, String>> listConfigRemotes(String localRepositoryName) {
+		List<Map<String, String>> returnList = new Vector<Map<String, String>>();
 		try {
 			File file = new File(localRepositoryName);
 			Repository thisRepo = Git.open(file).getRepository();
 			
-			Object [] remNames = thisRepo.getRemoteNames().toArray();
-			
-			for(int remIndex = 0;remIndex < remNames.length;remIndex++)
-			{
+			String[] remNames = thisRepo.getRemoteNames().toArray(new String[]{});
+			for(int remIndex = 0; remIndex < remNames.length; remIndex++) {
 				String remName = remNames[remIndex] +"";
-				System.out.println("Name of Remote is " + remName);
 				String url = thisRepo.getConfig().getString("remote", remName, "url");
-		
-				System.out.println("URL " + url);
-
 				String upstream = thisRepo.getConfig().getString(remName, "upstream",  "url");
-
-				System.out.println("Upstream.. " + upstream);
 				
-				if(upstream != null && upstream.equalsIgnoreCase("DEFUNCT"))
-					retHash.put(remName, SUBSCRIBE);
-				else
-					retHash.put(remName, DUAL);
-				
+				Map<String, String> remoteMap = new Hashtable<String, String>();
+				remoteMap.put("url", url);
+				String appName = Utility.getClassName(url) + "/" + Utility.getInstanceName(url);
+				remoteMap.put("name", appName);
+				if(upstream != null && upstream.equalsIgnoreCase("DEFUNCT")) {
+					remoteMap.put("type", SUBSCRIBE);
+				} else {
+					remoteMap.put("type", DUAL);
+				}
+				System.out.println("We have remote with details " + remoteMap);
+				returnList.add(remoteMap);
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		return retHash;
+		return returnList;
 	}
 	
 	public void addRemote(String localRepository, String repositoryName, String userName) 
@@ -1620,9 +1623,18 @@ public class GitHelper {
 				// I should figuree out a way to put the ignore files
 				
 			}
-			Hashtable <String, String> remotes = listConfigRemotes(dbName);
-
-			if(!remotes.containsKey(appInstanceName))
+			List<Map<String, String>> remotes = listConfigRemotes(dbName);
+			// need to loop through and see if remote exists
+			boolean existing = false;
+			REMOTE_LOOP : for(Map<String, String> remoteMap : remotes) {
+				String existingRemoteAppName = remoteMap.get("name");
+				// need to compare combination of name space + app name
+				if(existingRemoteAppName.equals(appName)) {
+					existing = true;
+					break REMOTE_LOOP ;
+				}
+			}
+			if(!existing)
 			{
 				removeAllIgnore(dbName);
 				addRemote(dbName, appName, false);
