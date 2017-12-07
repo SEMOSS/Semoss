@@ -1,6 +1,10 @@
 package prerna.sablecc2.reactor.git;
 
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -38,7 +42,16 @@ public class ListRemotes extends AbstractReactor {
 
 		Hashtable <String, String> repoList = helper.listConfigRemotes(dbName);
 		
-		return new NounMetadata(repoList, PixelDataType.MAP, PixelOperationType.MARKET_PLACE);
+		// FE wants an array
+		List<Map<String, String>> returnList = new Vector<Map<String, String>>();
+		for(String key : repoList.keySet()) {
+			Map<String, String> singleKey = new HashMap<String, String>();
+			singleKey.put("name", key);
+			singleKey.put("type", repoList.get(key));
+			returnList.add(singleKey);
+		}
+		
+		return new NounMetadata(returnList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
 
 }
