@@ -59,6 +59,6 @@ public class MakeApp extends AbstractReactor {
 			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());
 		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_INIT);
 	}
 }
