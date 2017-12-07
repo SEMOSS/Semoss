@@ -17,6 +17,9 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 		if(eGrs == null) {
 			throw new IllegalArgumentException("Need to define the engine to get the concepts from");
 		}
+		if(eGrs.isEmpty()) {
+			throw new IllegalArgumentException("Must define a single engine");
+		}
 		if(eGrs.size() > 1) {
 			throw new IllegalArgumentException("Can only define one engine within this call");
 		}

@@ -68,6 +68,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		for (int i = 0; i <numCols; i++) {
 			headers[i] = headerInfo.get(i).get("alias").toString();
 		}
+		this.colTypes = builder.getColumnTypes(tempVarName);
 	}
 
 	public RIterator2(AbstractRBuilder builder, String rQuery) {
@@ -87,7 +88,6 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		
 		this.headers = builder.getColumnNames(tempVarName);
 		this.colTypes = builder.getColumnTypes(tempVarName);
-		
 	}
 
 	private String addLimitOffset(String tempVarQuery, int numRows, long limit, long offset) {
