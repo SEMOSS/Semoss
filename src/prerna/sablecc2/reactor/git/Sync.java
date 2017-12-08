@@ -100,23 +100,23 @@ public class Sync extends AbstractReactor {
 		}
 		
 		if(filesChanged.containsKey("MOD")) {
-			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			List<String> files = getMosfetFiles(filesChanged.get("MOD"));
 			if(!files.isEmpty()) {
-				mosfetFiles.put("ADD", files);
+				mosfetFiles.put("MOD", files);
 			}		
 		}
 		
 		if(filesChanged.containsKey("REN")) {
-			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			List<String> files = getMosfetFiles(filesChanged.get("REN"));
 			if(!files.isEmpty()) {
-				mosfetFiles.put("ADD", files);
+				mosfetFiles.put("REN", files);
 			}		
 		}
 		
 		if(filesChanged.containsKey("DEL")) {
-			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			List<String> files = getMosfetFiles(filesChanged.get("DEL"));
 			if(!files.isEmpty()) {
-				mosfetFiles.put("ADD", files);
+				mosfetFiles.put("DEL", files);
 			}		
 		}
 		return mosfetFiles;
