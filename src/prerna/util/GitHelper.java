@@ -1575,7 +1575,7 @@ public class GitHelper {
 		try {
 			OutputStream fos = null;
 			
-			if((fileName + ".smss").equalsIgnoreCase(appName + ".smss"))
+			if((fileName).equalsIgnoreCase(appName + ".smss"))
 			{
 				newFile = file; // nothing to do here
 			}
