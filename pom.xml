@@ -85,6 +85,10 @@
 			<id>clojars.org</id>
 			<url>http://clojars.org/repo</url>
 		</repository>
+		<repository>
+			<id>redshift</id>
+			<url>http://redshift-maven-repository.s3-website-us-east-1.amazonaws.com/release</url>
+		</repository>
 	</repositories>
 	<dependencies>
 		<dependency>
@@ -2099,6 +2103,23 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		
+		<!-- redshift -->
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk</artifactId>
+		    <version>1.11.106</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-databind</artifactId>
+		    <version>2.9.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.amazon.redshift</groupId>
+		    <artifactId>redshift-jdbc41</artifactId>
+		    <version>1.2.10.1009</version>
 		</dependency>
 	</dependencies>
 </project>
