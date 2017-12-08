@@ -64,6 +64,9 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.kohsuke.github.GHCreateRepositoryBuilder;
+import org.kohsuke.github.GHIssue;
+import org.kohsuke.github.GHIssueBuilder;
+import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -144,7 +147,7 @@ public class GitHelper {
 		 boolean valid = true;
 			try {
 				GitHub gh = GitHub.connectUsingPassword(username, password);
-				gh.getMyself();
+				gh.getMyself();	
 				valid = true;
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -152,15 +155,46 @@ public class GitHelper {
 				valid = false;
 			}
 			return valid;
-
 	 }
 
+	 public  void makeIssue(String username, String password, String repoName, String issue)
+	 {
+		 boolean valid = true;
+			try {
+				
+				
+				GitHub gh = GitHub.connectUsingPassword(username, password);
+				GHRepository repo = gh.getRepository(repoName);
+				GHIssueBuilder iss = repo.createIssue("7866-asdfkjjh");
+				iss.assignee(username);
+				GHIssue issue2 = iss.create();
+				issue2.setLabels(issue);
+				//iss.
+				
+				PagedIterator <GHIssue> issues = gh.searchIssues().q("7866-asdfkjjh").list().iterator();
+				//repo.getI
+				while(issues.hasNext())
+				{
+					GHIssue issue3 = issues.next();
+					repo.getIssue(issue3.getId()).comment("Hello");;
+//					issue3.comment("Interesting");
+//						System.out.println("Issues.. " + issue3);
+				}
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				valid = false;
+			}
+	 }
+
+	 
 	public boolean checkRemoteRepository(String repositoryName, String userName, String password) throws IOException
 	{
 		GitHubClient client = new GitHubClient();
 		client = client.createClient("https://github.com");
 		if(password != null)
-			client.setCredentials("prabhuk12", "g2thub123");
+			client.setCredentials(userName, password);
 		RepositoryService service = new RepositoryService(client);
 /*		for (org.eclipse.egit.github.core.Repository repo : service.getRepositories("prabhuk12"))
 		  System.out.println(repo.getName() + " Watchers: " + repo.getWatchers());	
@@ -176,7 +210,8 @@ public class GitHelper {
 		boolean returnVal = true;
 		try
 		{
-			service.getRepository(userName, repositoryName);
+			org.eclipse.egit.github.core.Repository repo = service.getRepository(userName, repositoryName);
+			//repo.
 		}catch (Exception ex)
 		{
 			returnVal = false;
@@ -420,7 +455,6 @@ public class GitHelper {
 		else
 			merge(localRepository, startPoint, branchName, 0,0, false);
 	}
-	
 	
 	
 	public void merge(String localRepository, String startPoint, String branchName, int numAttempts, int maxAttempts, boolean delete)
@@ -1571,6 +1605,10 @@ public class GitHelper {
 						propValue = propValue.replaceAll(oldName, newName);
 						prop.put(propKey, propValue);
 					}
+					else
+					{
+						prop.put(propKey, propValue);
+					}
 				}
 				
 				prop.store(fos, "Changing File Content for engine");
@@ -1846,8 +1884,11 @@ public class GitHelper {
 	public static void main(String [] args) throws Exception
 	{
 		GitHelper helper = new GitHelper();
+		
 		String userName = "prabhuk12";
 		String password = "g2thub123";
+
+		helper.makeIssue(userName, password, "prabhuk12/Mv3", "This is cool");
 		
 		String dir = "C:\\Users\\pkapaleeswaran\\workspacej3\\git\\NTrial3";
 	
