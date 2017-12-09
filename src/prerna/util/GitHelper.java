@@ -127,21 +127,24 @@ public class GitHelper {
 	 private AbstractTreeIterator prepareTreeParser(Repository repository, String ref) throws IOException {
 	        // from the commit we can build the tree which allows us to construct the TreeParser
 	        Ref head = repository.exactRef(ref);
-	        try (RevWalk walk = new RevWalk(repository)) {
-	            RevCommit commit = walk.parseCommit(head.getObjectId());
-	            RevTree tree = walk.parseTree(commit.getTree().getId());
-
-	            CanonicalTreeParser treeParser = new CanonicalTreeParser();
-	            try (ObjectReader reader = repository.newObjectReader()) {
-	                treeParser.reset(reader, tree.getId());
-	            }
-
-	            walk.dispose();
-
-	            return treeParser;
-	        }
-	    }
-	 
+	        if(head != null)
+	        {
+		        try (RevWalk walk = new RevWalk(repository)) {
+		            RevCommit commit = walk.parseCommit(head.getObjectId());
+		            RevTree tree = walk.parseTree(commit.getTree().getId());
+	
+		            CanonicalTreeParser treeParser = new CanonicalTreeParser();
+		            try (ObjectReader reader = repository.newObjectReader()) {
+		                treeParser.reset(reader, tree.getId());
+		            }
+	
+		            walk.dispose();
+	
+		            return treeParser;
+		        }
+		    }
+	        return null;
+	 }	 
 	 public  boolean login(String username, String password)
 	 {
 		 boolean valid = true;
@@ -305,7 +308,7 @@ public class GitHelper {
 		{
 			GitHub gh = GitHub.connectUsingPassword(userName, password);
 			GHCreateRepositoryBuilder ghr = gh.createRepository(repositoryName).description(getDateMessage("Repository created on ") + " By user " + userName);
-			ghr.autoInit(true).create();
+			ghr.autoInit(false).create();
 			System.out.println("Repository created");
 		}
 	}
@@ -1656,6 +1659,11 @@ public class GitHelper {
 		// add a remote repo with the app name and remote repo
 		// pull the app
 		// since this is the first time nothing to diff
+		
+		// see if the remote is even reachable
+		// this will avoid the need to delete it later
+		
+		
 		String appInstanceName = Utility.getInstanceName(appName);
 		String dbName = baseFolder + "/db/" + yourName4App;
 		try {
@@ -1733,72 +1741,82 @@ public class GitHelper {
 	// usecase 2 - you are starting locally and then establishing a remote repository for the same
 	// this is same as connect DB
 	// remote says if I should check the remote to see if I can parallely make one
-	public void makeRemoteFromApp(String baseFolder, String appName, String remoteAppName, boolean remote, String userName, String password)
+	public boolean makeRemoteFromApp(String baseFolder, String appName, String remoteAppName, boolean remote, String userName, String password)
 	{
 		// get to the base folder
 		// create directory one with the your name for app 
 		// git init
 		// create the remote repository
-		String dbName = baseFolder + "/db/" + appName;
 		
-		String remoteInstanceAppName = remoteAppName.split("/")[1];
+		// before anything try to login if that breaks come out of this with login failed
+		boolean login = login(userName, password);
 		
-		if(!isGit(dbName)) {
-			initDir(dbName);
-		}
+		if(login)
+		{
+			
+			String dbName = baseFolder + "/db/" + appName;
+			
+			String remoteInstanceAppName = remoteAppName.split("/")[1];
+			
+			if(!isGit(dbName)) {
+				initDir(dbName);
+			}
+			
+			moveDBToSMSS(baseFolder, appName, appName + ".smss" );
 		
-		moveDBToSMSS(baseFolder, appName, appName + ".smss" );
-	
-		commitAll(dbName, true);
-		
-		try {
-			if(checkRemoteRepository(remoteInstanceAppName, userName, password))
-			{
-				if(!remote)
+			commitAll(dbName, true);
+			
+			try {
+				if(checkRemoteRepository(remoteInstanceAppName, userName, password))
 				{
-					//throw an exception
-					return;
+					if(!remote)
+					{
+						//throw an exception
+						return false;
+					}
 				}
+				else
+				{
+					removeAllIgnore(dbName); // removes all the ignores so it can go in
+					makeRemoteRepository(remoteInstanceAppName, userName, password);
+				}
+				// this will assume that everything is fine
+				// as in this is being done for the first time and synchronize to the remote
+	
+				
+				String appRepo = "https://github.com/" + userName + "/" + remoteInstanceAppName;
+				// now add the remote
+				addRemote(dbName, appRepo, true);
+	
+				/*
+				String [] filesToIgnore = {"*.smss"};
+				
+				addFilesToIgnore(dbName, filesToIgnore);
+				
+				// get everything
+				fetchRemote(dbName, appName);
+				
+				// now that if we have everything remove ignore and pull again
+				removeAllIgnore(dbName);
+	
+				*/
+				// get everything
+				fetchRemote(dbName, remoteInstanceAppName);
+				// check to see if there are conflicts
+				
+				// merge everything
+				merge(dbName, "master", remoteInstanceAppName + "/master");
+				
+				// push it back
+				pushRemote(dbName, remoteInstanceAppName, userName, "master", userName, password);
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				login = false;
 			}
-			else
-			{
-				removeAllIgnore(dbName); // removes all the ignores so it can go in
-				makeRemoteRepository(remoteInstanceAppName, userName, password);
-			}
-			// this will assume that everything is fine
-			// as in this is being done for the first time and synchronize to the remote
-
-			
-			String appRepo = "https://github.com/" + userName + "/" + remoteInstanceAppName;
-			// now add the remote
-			addRemote(dbName, appRepo, true);
-
-			/*
-			String [] filesToIgnore = {"*.smss"};
-			
-			addFilesToIgnore(dbName, filesToIgnore);
-			
-			// get everything
-			fetchRemote(dbName, appName);
-			
-			// now that if we have everything remove ignore and pull again
-			removeAllIgnore(dbName);
-
-			*/
-			// get everything
-			fetchRemote(dbName, remoteInstanceAppName);
-			// check to see if there are conflicts
-			
-			// merge everything
-			merge(dbName, "master", remoteInstanceAppName + "/master");
-			
-			// push it back
-			pushRemote(dbName, remoteInstanceAppName, userName, "master", userName, password);
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+		return login;
 	}
 	
 	// gives you back the new files
@@ -1883,10 +1901,24 @@ public class GitHelper {
 	
 	public static void main(String [] args) throws Exception
 	{
+		
+		
+		
 		GitHelper helper = new GitHelper();
 		
 		String userName = "prabhuk12";
 		String password = "g2thub123";
+		String baseFolder = "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossWeb";
+		
+		// make the app from remote
+		//helper.makeAppFromRemote(baseFolder, "test", "prabhuk12/Trial1");
+		
+		//helper.makeRemoteRepository("Trial15", userName, password);
+		helper.makeRemoteFromApp(baseFolder, "test", "prabhuk12/Trial16", true, userName, password);
+		//helper.addRemote(baseFolder + "\\db\\test", "prabhuk12/Trial12", true);
+		
+		helper.synchronize(baseFolder + "\\db\\test", "prabhuk12/Trial16", userName, password, true);
+		
 
 		helper.makeIssue(userName, password, "prabhuk12/Mv3", "This is cool");
 		
@@ -1899,7 +1931,6 @@ public class GitHelper {
 		
 		//helper.listRemotes(userName, password);
 		
-		String baseFolder = "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossWeb";
 		
 		String appName = "https://github.com/prabhuk12/Mv2";
 		
