@@ -21,6 +21,7 @@ public class MakeApp extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		boolean output = false;
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Welcome to App IF ANY : SEMOSS Marketplace");
 
@@ -53,12 +54,12 @@ public class MakeApp extends AbstractReactor {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		GitHelper helper = new GitHelper();
 		try {
-			helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
+			output = helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
 			logger.info("Congratulations! You have successfully created your app " + remote);
 		} catch(Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());
 		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_INIT);
+		return new NounMetadata(output, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_INIT);
 	}
 }
