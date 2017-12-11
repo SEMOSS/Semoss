@@ -64,29 +64,32 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
-		// fill in image Url endpoint with engine name
-		// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
-		imageURL = imageURL.replace("<engine>", engineName);
-		imageURL = imageURL.replace("<id>", rdbmsId);
-		
 		// update insight db
 		LOGGER.info("1) Updating insight in rdbms");
 		admin.updateInsight(rdbmsId, insightName, layout, recipeToSave);
 		LOGGER.info("1) Done");
 		// update solr
 		LOGGER.info("2) Update insight in solr");
-		editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "", imageURL);
+		editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "");
 		LOGGER.info("2) Done");
 		//update recipe text file
 		LOGGER.info("3) Update "+ RECIPE_FILE);
 		updateRecipeFile(engineName, rdbmsId, insightName, layout, recipeToSave);
 		LOGGER.info("3) Done");
-		
-		// we can't save these layouts so ignore image
+		if (imageURL != null) {
+			// fill in image Url endpoint with engine name
+			// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
+			imageURL = imageURL.replace("<engine>", engineName);
+			imageURL = imageURL.replace("<id>", rdbmsId);
+			// we can't save these layouts so ignore image
 		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
-			LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
+				LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
+			} else {
+				updateSolrImage(rdbmsId, rdbmsId, imageURL, engineName);
+			}
 		} else {
-			updateSolrImage(rdbmsId, rdbmsId, imageURL, engineName);
+			String base64Image = getImage();
+			updateSolrImage(base64Image, rdbmsId, engineName);
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
@@ -110,7 +113,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param imageURL
 	 */
 	private void editExistingInsightInSolr(String engineName, String existingRdbmsId, String insightName, String layout,
-			String description, List<String> tags, String userId, String imageURL) {
+			String description, List<String> tags, String userId) {
 		Map<String, Object> solrModifyInsights = new HashMap<>();
 		DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 		Date date = new Date();
@@ -121,7 +124,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		solrModifyInsights.put(SolrIndexEngine.LAYOUT, layout);
 		solrModifyInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 		solrModifyInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-		solrModifyInsights.put(SolrIndexEngine.IMAGE_URL, imageURL);
 		solrModifyInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
 		solrModifyInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
 
