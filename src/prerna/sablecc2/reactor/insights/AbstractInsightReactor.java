@@ -1,7 +1,10 @@
 package prerna.sablecc2.reactor.insights;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.security.KeyManagementException;
@@ -12,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -45,7 +49,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String INSIGHT_NAME = "insightName";
 	protected static final String RECIPE = "recipe";
 	protected static final String LAYOUT = "layout";
-	protected static final String IMAGE_URL = "image";
+	protected static final String IMAGE_URL = "imageUrl";
+	protected static final String IMAGE = "image";
 	protected static final String RECIPE_FILE = ".mosfet";
 
 	protected String getEngine() {
@@ -146,6 +151,21 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return null;
 	}
 	
+	/**
+	 * 
+	 * @return base64 image string
+	 */
+	protected String getImage() {
+		GenRowStruct genericBaseURLGrs = this.store.getNoun(IMAGE);
+		if (genericBaseURLGrs != null && !genericBaseURLGrs.isEmpty()) {
+			String image = genericBaseURLGrs.get(0).toString();
+			return image;
+		}
+
+		// well, you are out of luck
+		return null;
+	}
+	
 	protected Object getParams() {
 		GenRowStruct paramGrs = this.store.getNoun(PARAM_KEY);
 		if(paramGrs == null || paramGrs.isEmpty()) {
@@ -226,6 +246,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Capture insight image from the embeded url link
+	 * Save image to file Semoss/images/engineName_insightID.png
+	 * 
 	 *	TODO remove param hack solr insightIDToView
 	 *
 	 * @param solrInsightIDToUpdate
@@ -265,6 +288,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 					// Update solr
 					Map<String, Object> solrInsights = new HashMap<>();
 					solrInsights.put(SolrIndexEngine.IMAGE, "\\images\\" + engineName + "_" + finalID + ".png");
+					solrInsights.put(SolrIndexEngine.IMAGE_URL, url);
 					try {
 						SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + finalID, solrInsights);
 						LOGGER.info("Updated solr id: " + finalID + " image");
@@ -294,6 +318,43 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		Thread t = new Thread(r);
 		t.setPriority(Thread.MAX_PRIORITY);
 		t.start();
+	}
+	
+	/**
+	 * Save base64 encoded image to file
+	 * Semoss/images/engineName_insightID.png
+	 * @param base64Image
+	 * @param insightId
+	 * @param engineName
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 */
+	protected void updateSolrImage(String base64Image, String insightId, String engineName) {
+		// set up path to save image to file
+		String baseImagePath = DIHelper.getInstance().getProperty("BaseFolder");
+		String imagePath = baseImagePath + "\\images\\" + engineName + "_" + insightId + ".png";
+		
+		// decode image and write to file
+		byte[] data = Base64.decodeBase64(base64Image);
+		try (OutputStream stream = new FileOutputStream(imagePath)) {
+			stream.write(data);
+			// update solr with image path to file
+			Map<String, Object> solrInsights = new HashMap<>();
+			solrInsights.put(SolrIndexEngine.IMAGE, "\\images\\" + engineName + "_" + insightId + ".png");
+			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrInsights);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
