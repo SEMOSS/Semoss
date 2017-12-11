@@ -8,6 +8,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.GitHelper;
+import prerna.util.Utility;
 
 public class MakeApp extends AbstractReactor {
 
@@ -24,12 +25,15 @@ public class MakeApp extends AbstractReactor {
 		boolean output = false;
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Welcome to App IF ANY : SEMOSS Marketplace");
+		
 
 		organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
 		if(appName == null || appName.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the app name");
 		}
+		// kill the engine
+		Utility.getEngine(appName).closeDB();
 		String remote = this.keyValue.get(this.keysToGet[1]);
 		if(remote == null || remote.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the remote to publish the app");
@@ -60,6 +64,10 @@ public class MakeApp extends AbstractReactor {
 			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());
 		}
+		
+		// open it back up
+		Utility.getEngine(appName);
+
 		return new NounMetadata(output, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_INIT);
 	}
 }
