@@ -37,7 +37,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String[] recipeToSave = getRecipe();
 		// used for embed url
 		String imageURL = getImageURL();
-
+		
 		// for testing... should always be passed in
 		if (recipeToSave == null || recipeToSave.length == 0) {
 			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
@@ -63,13 +63,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave);
 		logger.info("1) Done...");
 
-		// fill in image url
-		// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
-		imageURL = imageURL.replace("<engine>", engineName);
-		imageURL = imageURL.replace("<id>", newRdbmsId);
-
 		logger.info("2) Add insight to solr...");
-		addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "", imageURL);
+		addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
 		logger.info("2) Done...");
 		
 		//write recipe to file
@@ -77,13 +72,25 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		saveRecipeToFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
 		logger.info("3) Done...");
 		
-		// we can't save these layouts so ignore image
-		logger.info("4) Generate insight image...");
-		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
-			logger.info("4) Invalid... insight contains a layout that we cannot save an image for!!!");
-		} else {
-			logger.info("4) Generate new thread to save image...");
-			updateSolrImage(newRdbmsId, newRdbmsId, imageURL, engineName);
+		// capture image from image url
+		if (imageURL != null) {
+			// fill in image url
+			// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
+			imageURL = imageURL.replace("<engine>", engineName);
+			imageURL = imageURL.replace("<id>", newRdbmsId);
+			logger.info("4) Generate insight image...");
+			// we can't save these layouts so ignore image
+			if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
+				logger.info("4) Invalid... insight contains a layout that we cannot save an image for!!!");
+			} else {
+				logger.info("4) Generate new thread to save image...");
+				updateSolrImage(newRdbmsId, newRdbmsId, imageURL, engineName);
+			}
+		} 
+		// get base 64 image string and write to file
+		else {
+			String base64Image = getImage();
+			updateSolrImage(base64Image, newRdbmsId, engineName);
 		}
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
@@ -111,7 +118,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param imageURL
 	 */
 	private void addNewInsightToSolr(String engineName, String insightIdToSave, String insightName, String layout,
-			String description, List<String> tags, String userId, String imageURL) {
+			String description, List<String> tags, String userId) {
 		Map<String, Object> solrInsights = new HashMap<>();
 		DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 		Date date = new Date();
@@ -134,7 +141,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// for now, just send in an empty string
 		// save image url to recreate image later
 		solrInsights.put(SolrIndexEngine.IMAGE, "");
-		solrInsights.put(SolrIndexEngine.IMAGE_URL, imageURL);
 
 		try {
 			SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
