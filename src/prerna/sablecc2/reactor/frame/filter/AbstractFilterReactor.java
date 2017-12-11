@@ -4,7 +4,7 @@ import java.util.List;
 
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -22,7 +22,7 @@ public abstract class AbstractFilterReactor extends AbstractReactor {
 		GenRowFilters grf = new GenRowFilters();
 		int size = this.curRow.size();
 		for(int i = 0; i < size; i++) {
-			SimpleQueryFilter nextFilter = (SimpleQueryFilter) this.curRow.get(i);
+			IQueryFilter nextFilter = (IQueryFilter) this.curRow.get(i);
 			if(nextFilter != null) {
 				grf.addFilters(nextFilter);
 			}
