@@ -26,6 +26,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
@@ -66,7 +67,6 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.kohsuke.github.GHCreateRepositoryBuilder;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueBuilder;
-import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -962,15 +962,20 @@ public class GitHelper {
 	{
 		try {
 			Git thisGit = Git.open(new File(localRepository));
+			AddCommand addc = null;
 			if(add)
-				thisGit.add().addFilepattern(".").call();
-			
-			// need to do reset
-			if(reset)
 			{
-				thisGit.reset().addPath("*.db").call();
-				thisGit.reset().addPath("*.jnl").call();
+				addc = thisGit.add().addFilepattern(".");
+			
+				// need to do reset
+				if(reset)
+				{
+					thisGit.reset().addPath("*.db").call();
+					thisGit.reset().addPath("*.jnl").call();
+				}
+				addc.call();
 			}
+			
 			thisGit.commit().setMessage(getDateMessage("Commited on.. ")).setAll(true).call();
 		} catch (NoHeadException e) {
 			// TODO Auto-generated catch block
