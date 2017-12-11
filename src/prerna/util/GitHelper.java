@@ -32,6 +32,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PushCommand;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.AbortedByHookException;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
@@ -960,12 +961,16 @@ public class GitHelper {
 	
 	public void commit(String localRepository, boolean add, boolean reset)
 	{
+		// if you want to reset.. it will ignore
+		// if you dont want to reset it will not ignore
+		String files = getModFiles(localRepository, !reset);
+		
 		try {
 			Git thisGit = Git.open(new File(localRepository));
 			AddCommand addc = null;
 			if(add)
 			{
-				addc = thisGit.add().addFilepattern(".");
+				addc = thisGit.add().addFilepattern(files);
 			
 				// need to do reset
 				if(reset)
@@ -976,7 +981,7 @@ public class GitHelper {
 				addc.call();
 			}
 			
-			thisGit.commit().setMessage(getDateMessage("Commited on.. ")).setAll(true).call();
+			thisGit.commit().setMessage(getDateMessage("Commited on.. ")).call();
 		} catch (NoHeadException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1423,6 +1428,85 @@ public class GitHelper {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	// get the modified files to add
+	public String getModFiles(String dbName, boolean ignore)
+	{
+				
+		StringBuffer output = new StringBuffer();
+		
+		try {
+			Git thisGit = Git.open(new File(dbName));
+			Status status = thisGit.status().call();
+			
+			Iterator <String> addedFiles = status.getAdded().iterator();
+			
+			/*
+			while(addedFiles.hasNext())
+			{
+				String daFile = addedFiles.next();
+				output.append(" ");
+				output.append(daFile);
+			}
+			*/
+			
+			Iterator <String> modFiles = status.getModified().iterator();
+			while(modFiles.hasNext())
+			{
+				String daFile = modFiles.next();
+				if(!isIgnore(daFile) || ignore)
+				{
+					output.append(" ");
+					output.append(daFile);
+				}
+			}
+
+			Iterator <String> upFiles = status.getUntracked().iterator();
+			while(upFiles.hasNext())
+			{
+				String daFile = upFiles.next();
+				if(!isIgnore(daFile) || ignore)
+				{
+					output.append(" ");
+					output.append(daFile);
+				}
+			}
+
+			/*
+			Iterator <String> chFiles = status.getChanged().iterator();
+			while(chFiles.hasNext())
+			{
+				String daFile = chFiles.next();
+				output.append(" ");
+				output.append(daFile);
+			}*/
+			
+			//status.get
+
+			
+		} catch (NoWorkTreeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return output.toString();
+	}
+	
+	public boolean isIgnore(String file)
+	{
+		String [] list = new String[]{".db", ".jnl"};
+		boolean ignore = false;
+		for(int igIndex = 0;igIndex < list.length && !ignore;igIndex++)
+			ignore = file.endsWith(list[igIndex]);
+		return ignore;
+		
 	}
 
 	// command line starts here - PROCESS Builder
@@ -1974,7 +2058,7 @@ public class GitHelper {
 		String baseFolder = "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossWeb";
 		
 		//helper.makeRemoteFromApp(baseFolder, "Mv4", "prabhuk12/Mv42", true, userName, password);
-		
+		helper.commit(baseFolder + "\\db\\Mv5");
 		
 		helper.makeAppFromRemote(baseFolder, "Mv5","prabhuk12/Mv42");
 		helper.synchronize(baseFolder + "\\db\\Mv5", "prabhuk12/Mv42", userName, password, true);
