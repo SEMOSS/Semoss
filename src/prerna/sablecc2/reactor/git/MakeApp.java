@@ -33,7 +33,6 @@ public class MakeApp extends AbstractReactor {
 			throw new IllegalArgumentException("Need to specify the app name");
 		}
 		// kill the engine
-		Utility.getEngine(appName).closeDB();
 		String remote = this.keyValue.get(this.keysToGet[1]);
 		if(remote == null || remote.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the remote to publish the app");
@@ -57,6 +56,7 @@ public class MakeApp extends AbstractReactor {
 
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		GitHelper helper = new GitHelper();
+		Utility.getEngine(appName).closeDB();
 		try {
 			output = helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
 			logger.info("Congratulations! You have successfully created your app " + remote);
