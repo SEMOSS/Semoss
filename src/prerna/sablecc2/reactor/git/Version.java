@@ -39,7 +39,7 @@ public class Version extends AbstractReactor {
 			if(helper.checkLocalRepository(dbName))
 				helper.makeLocalRepository(dbName);
 			logger.info("Creating initial version");
-			helper.commitAll(dbName, true);
+			helper.commit(dbName, true, false);
 			logger.info("Complete");
 
 		} catch (GitAPIException e) {
