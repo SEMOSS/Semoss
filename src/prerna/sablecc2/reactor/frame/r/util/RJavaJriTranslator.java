@@ -37,8 +37,12 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				retEngine = (Rengine) this.insight.getVarStore().get(R_ENGINE).getValue();
 			}
 		}
-		logger.info("Connection right now is set to: " + retEngine);
-
+		if(retEngine == null) {
+			logger.info("R Connection has not been defined yet");
+		} else {
+			logger.info("Connection right now is set to: " + retEngine);
+		}
+		
 		String OS = java.lang.System.getProperty("os.name").toLowerCase();
 		if(retEngine == null) {
 			try {
