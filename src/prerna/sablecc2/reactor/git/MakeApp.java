@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.git;
 
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -55,19 +56,23 @@ public class MakeApp extends AbstractReactor {
 		logger.info("This can take several minutes");
 
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		GitHelper helper = new GitHelper();
+		
+		// remove the app
 		Utility.getEngine(appName).closeDB();
+		DIHelper.getInstance().removeLocalProperty(appName);
+		
+		GitHelper helper = new GitHelper();
 		try {
 			output = helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
 			logger.info("Congratulations! You have successfully created your app " + remote);
 		} catch(Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());
+		} finally {
+			// open it back up
+			Utility.getEngine(appName);
 		}
 		
-		// open it back up
-		Utility.getEngine(appName);
-
 		return new NounMetadata(output, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_INIT);
 	}
 }
