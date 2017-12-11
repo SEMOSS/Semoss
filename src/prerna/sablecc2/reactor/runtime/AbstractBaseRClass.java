@@ -2008,6 +2008,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		// build a query struct to set limit on number of values being passed
 		// into the routine
+		this.logger.info("Generating random subset of data for column " + column + " to use for semantic blending");
 		QueryStruct2 qs = new QueryStruct2();
 		qs.setLimit(((Number) Double.parseDouble(randomVals)).longValue());
 		QueryColumnSelector selector = new QueryColumnSelector(column);
@@ -2025,7 +2026,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			Object[] values = it.next().getRawValues();
 			instanceList.add(values);
 		}
-
+		this.logger.info("Done generating random subset");
+		
 		// this string defines the names of the columns in the table that we are
 		// building
 		String colNameString = colName + "= character()";
@@ -2051,6 +2053,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String df2 = "PredictionTable" + Utility.getRandomString(10);
 		String baseRScriptPath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts";
 		String rScriptPath = (baseRScriptPath + "\\master_concept.r").replace("\\", "/");
+
+		this.logger.info("Running semantic blending script...");
+		this.logger.info("This process may take a few minutes depending on the type of data and internet speed");
 
 		// run r commands to get output
 		// source the r script
