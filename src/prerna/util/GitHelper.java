@@ -28,6 +28,7 @@ import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
+import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
@@ -963,25 +964,31 @@ public class GitHelper {
 	{
 		// if you want to reset.. it will ignore
 		// if you dont want to reset it will not ignore
-		String files = getModFiles(localRepository, !reset);
 		
 		try {
 			Git thisGit = Git.open(new File(localRepository));
 			AddCommand addc = null;
 			if(add)
 			{
-				addc = thisGit.add().addFilepattern(files);
+				getModFiles(localRepository, !reset);
+				//thisGit.add().addFilepattern("Mv2.smss").call();
 			
 				// need to do reset
 				if(reset)
 				{
-					thisGit.reset().addPath("*.db").call();
-					thisGit.reset().addPath("*.jnl").call();
+					//thisGit.reset().addPath("*.db").call();
+					//thisGit.reset().addPath("*.jnl").call();
 				}
-				addc.call();
+				//addc.call();
 			}
 			
-			thisGit.commit().setMessage(getDateMessage("Commited on.. ")).call();
+			CommitCommand cc = thisGit.commit();
+			
+			
+/*			for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+				cc.setOnly(files.get(fileIndex));
+*/			
+			cc.setMessage(getDateMessage("Commited on.. ")).call();
 		} catch (NoHeadException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1431,16 +1438,18 @@ public class GitHelper {
 	}
 	
 	// get the modified files to add
-	public String getModFiles(String dbName, boolean ignore)
+	public List<String> getModFiles(String dbName, boolean ignore)
 	{
 				
-		StringBuffer output = new StringBuffer();
+		Vector <String> output = new Vector<String>();
 		
 		try {
 			Git thisGit = Git.open(new File(dbName));
 			Status status = thisGit.status().call();
 			
 			Iterator <String> addedFiles = status.getAdded().iterator();
+			
+			AddCommand ac = thisGit.add();
 			
 			/*
 			while(addedFiles.hasNext())
@@ -1457,8 +1466,7 @@ public class GitHelper {
 				String daFile = modFiles.next();
 				if(!isIgnore(daFile) || ignore)
 				{
-					output.append(" ");
-					output.append(daFile);
+					ac.addFilepattern(daFile);
 				}
 			}
 
@@ -1468,10 +1476,12 @@ public class GitHelper {
 				String daFile = upFiles.next();
 				if(!isIgnore(daFile) || ignore)
 				{
-					output.append(" ");
-					output.append(daFile);
+					ac.addFilepattern(daFile);
 				}
 			}
+
+			ac.call();
+			thisGit.close();
 
 			/*
 			Iterator <String> chFiles = status.getChanged().iterator();
@@ -1495,8 +1505,8 @@ public class GitHelper {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		return output.toString();
+		//getModFiles(dbName, ignore);
+		return output;
 	}
 	
 	public boolean isIgnore(String file)
@@ -2058,7 +2068,7 @@ public class GitHelper {
 		String baseFolder = "C:\\Users\\pkapaleeswaran\\workspacej3\\SemossWeb";
 		
 		//helper.makeRemoteFromApp(baseFolder, "Mv4", "prabhuk12/Mv42", true, userName, password);
-		helper.commit(baseFolder + "\\db\\Mv5");
+		helper.commit(baseFolder + "\\db\\Mv2");
 		
 		helper.makeAppFromRemote(baseFolder, "Mv5","prabhuk12/Mv42");
 		helper.synchronize(baseFolder + "\\db\\Mv5", "prabhuk12/Mv42", userName, password, true);
