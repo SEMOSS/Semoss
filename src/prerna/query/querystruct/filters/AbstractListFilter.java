@@ -63,14 +63,22 @@ public abstract class AbstractListFilter implements IQueryFilter {
 		String type = this.getQueryFilterType().toString();
 		boolean first = true;
 		for(IQueryFilter f : this.filterList) {
+			QUERY_FILTER_TYPE fType = f.getQueryFilterType();
 			if(first) {
-				builder.append("[ ").append(f.getStringRepresentation());
+				if(fType == QUERY_FILTER_TYPE.SIMPLE) {
+					builder.append(f.getStringRepresentation());
+				} else {
+					builder.append("(").append(f.getStringRepresentation()).append(")");
+				}
 				first = false;
 			} else {
-				builder.append(" ").append(type).append(" ").append(f.getStringRepresentation());
+				if(fType == QUERY_FILTER_TYPE.SIMPLE) {
+					builder.append(" ").append(type).append(" ").append(f.getStringRepresentation());
+				} else {
+					builder.append(" ").append(type).append(" (").append(f.getStringRepresentation()).append(")");
+				}
 			}
 		}
-		builder.append(" ]");
 		return builder.toString();
 	}
 	
