@@ -105,7 +105,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 					List<SimpleQueryFilter> nextSet = this.filters.getAllSimpleQueryFiltersContainingColumn(col);
 					for (SimpleQueryFilter filter : nextSet) {
 						//get all filter information
-						FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
+						FILTER_TYPE filterType = filter.getFilterType();
 						NounMetadata leftComp = filter.getLComparison();
 						NounMetadata rightComp = filter.getRComparison();
 						String comparator = filter.getComparator();

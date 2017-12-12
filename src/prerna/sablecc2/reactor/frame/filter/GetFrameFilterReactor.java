@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.frame.filter;
 
+import java.util.ArrayList;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.NounMetadata;
@@ -12,11 +14,17 @@ public class GetFrameFilterReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
-		GenRowFilters filters = new GenRowFilters();
+		GenRowFilters filters = null;
 		if (frame != null) {
 			filters = frame.getFrameFilters();
+		} else {
+			throw new IllegalArgumentException("No frame currently exists within the insight");
 		}
-		return new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		if(filters == null) {
+			// just return an empty l ist
+			return new NounMetadata(new ArrayList<Object>(), PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		}
+		return new NounMetadata(filters.getFormatedFilters(), PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
 	}
 
 }

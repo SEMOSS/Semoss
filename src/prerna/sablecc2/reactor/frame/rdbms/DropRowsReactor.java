@@ -33,7 +33,6 @@ public class DropRowsReactor extends AbstractFrameReactor {
 				for (SimpleQueryFilter queryFilter : filterList) {
 					String table = "";
 					String column = "";
-					FILTER_TYPE type = SimpleQueryFilter.determineFilterType(queryFilter);
 					// col to values
 					NounMetadata leftComp = queryFilter.getLComparison();
 					String columnComp = leftComp.getValue() + "";

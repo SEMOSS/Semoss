@@ -54,7 +54,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 		for (IQueryFilter f : filters) {
 			if(f.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter filter = (SimpleQueryFilter) f;
-				FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
+				FILTER_TYPE filterType = filter.getFilterType();
 				NounMetadata leftComp = filter.getLComparison();
 				NounMetadata rightComp = filter.getRComparison();
 				String thisComparator = filter.getComparator();
