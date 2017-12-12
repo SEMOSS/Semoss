@@ -30,4 +30,5 @@ public class AndQueryFilter extends AbstractListFilter {
 	public QUERY_FILTER_TYPE getQueryFilterType() {
 		return QUERY_FILTER_TYPE.AND;
 	}
+	
 }

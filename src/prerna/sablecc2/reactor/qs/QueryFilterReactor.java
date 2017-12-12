@@ -30,7 +30,7 @@ public class QueryFilterReactor extends QueryStructReactor {
 	}
 	
 	private boolean isValidFilter(SimpleQueryFilter filter) {
-		SimpleQueryFilter.FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
+		SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 		if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 			// make sure right side has values
 			Object rightSide = filter.getRComparison().getValue();
