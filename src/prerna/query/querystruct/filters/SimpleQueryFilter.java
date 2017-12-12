@@ -1,7 +1,9 @@
 package prerna.query.querystruct.filters;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -19,6 +21,9 @@ public class SimpleQueryFilter implements IQueryFilter {
 	private NounMetadata lComparison = null; //the column we want to filter
 	private NounMetadata rComparison = null; //the values to bind the filter on
 	
+	// since we grab this a lot of times
+	private transient FILTER_TYPE thisFilterType = null;;
+	
 	public SimpleQueryFilter(NounMetadata lComparison, String comparator, NounMetadata rComparison)
 	{
 		this.lComparison = lComparison;
@@ -28,6 +33,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 		} else {
 			this.comparator = comparator;
 		}
+		this.thisFilterType = determineFilterType(this);
 	}
 
 	public NounMetadata getLComparison() {
@@ -49,14 +55,13 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @param otherFilter
 	 */
 	public void merge(SimpleQueryFilter otherFilter) {
-		FILTER_TYPE thisType = determineFilterType(this);
 		FILTER_TYPE otherType = determineFilterType(otherFilter);
 		
 		if(!this.comparator.equals(otherFilter.comparator)) {
 			throw new IllegalArgumentException("Cannot merge these filters. Comparators must match.");
 		}
 		
-		if(thisType == FILTER_TYPE.COL_TO_VALUES && otherType == FILTER_TYPE.COL_TO_VALUES) {
+		if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherType == FILTER_TYPE.COL_TO_VALUES) {
 			// both match
 			// and are col to values
 			// merge the r noun
@@ -68,7 +73,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			// merge them based on the comparator type
 			this.rComparison = determineMerge(this.comparator, myRFilter, otherRFilter, this.rComparison.getNounType());
 		
-		} else if(thisType == FILTER_TYPE.COL_TO_VALUES && otherType == FILTER_TYPE.VALUES_TO_COL) {
+		} else if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherType == FILTER_TYPE.VALUES_TO_COL) {
 			// merge the rNoun with the lNoun
 			
 			// take the right hand side for the existing values
@@ -78,7 +83,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			// merge them based on the comparator type
 			this.rComparison = determineMerge(this.comparator, myRFilter, otherLFilter, this.rComparison.getNounType());
 			
-		} else if(thisType == FILTER_TYPE.VALUES_TO_COL && otherType == FILTER_TYPE.COL_TO_VALUES) {
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherType == FILTER_TYPE.COL_TO_VALUES) {
 			// merge the lNoun with the rNoun
 			
 			// take the left hand side for the existing values
@@ -88,7 +93,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			// merge them based on the comparator type
 			this.lComparison = determineMerge(this.comparator, myLFilter, otherRFilter, this.lComparison.getNounType());
 			
-		} else if(thisType == FILTER_TYPE.VALUES_TO_COL && otherType == FILTER_TYPE.VALUES_TO_COL) {
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherType == FILTER_TYPE.VALUES_TO_COL) {
 			// both match
 			// and are values to col
 			// merge the l nouns
@@ -227,10 +232,9 @@ public class SimpleQueryFilter implements IQueryFilter {
 	}
 	
 	public void subtractInstanceFilters(SimpleQueryFilter otherQueryFilter) {
-		FILTER_TYPE thisFilterType = determineFilterType(this);
 		FILTER_TYPE otherFilterType = determineFilterType(otherQueryFilter);
 
-		if(thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+		if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
 			// remove the values of the right hand side from this right hand side
 
 			// lets make sure everything is a list
@@ -257,7 +261,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			// recreate this 
 			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
 			
-		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
 			// remove the values of the left hand side from this left hand side
 
 			// lets make sure everything is a list
@@ -285,7 +289,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			this.lComparison = new NounMetadata(thisLHS, this.lComparison.getNounType(), this.lComparison.getOpType());
 			
 			
-		} else if(thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
+		} else if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES && otherFilterType == FILTER_TYPE.VALUES_TO_COL) {
 			// remove the values of the left hand side from this right hand side
 
 			// lets make sure everything is a list
@@ -313,7 +317,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			this.rComparison = new NounMetadata(thisRHS, this.rComparison.getNounType(), this.rComparison.getOpType());
 
 			
-		} else if(thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL && otherFilterType == FILTER_TYPE.COL_TO_VALUES) {
 			// remove the values of the right hand side from this left hand side
 
 			// lets make sure everything is a list
@@ -467,6 +471,78 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return false;
 	}
 	
+	public FILTER_TYPE getFilterType() {
+		return this.thisFilterType;
+	}
+	
+	@Override
+	public Object getSimpleFormat() {
+		Map<String, Object> lMap = new HashMap<String, Object>();
+		lMap.put("type", lComparison.getNounType());
+		lMap.put("value", lComparison.getValue());
+		
+		Map<String, Object> rMap = new HashMap<String, Object>();
+		rMap.put("type", rComparison.getNounType());
+		rMap.put("value", rComparison.getValue());
+		
+		Map<String, Object> ret = new HashMap<String, Object>();
+		ret.put("filterType", this.getQueryFilterType());
+		ret.put("left", lMap);
+		ret.put("right", rMap);
+		return ret;
+	}
+	
+	@Override
+	public String getStringRepresentation() {
+		if(this.thisFilterType == FILTER_TYPE.COL_TO_VALUES) {
+			Object rObj = this.rComparison.getValue();
+			if(rObj instanceof List) {
+				int size = ((List) rObj).size();
+				if(size == 1) {
+					return this.lComparison.getValue() + " " + this.comparator + " " + ((List) rObj).get(0);
+				} else {
+					StringBuilder builder = new StringBuilder("[");
+					boolean first = true;
+					for(int i = 0; i < size; i++) {
+						if(first) {
+							builder.append( ((List) rObj).get(i) );
+							first = false;
+							continue;
+						}
+						if(i == 5) {
+							builder.append(", ...");
+							break;
+						}
+						builder.append(", ").append( ((List) rObj).get(i) );
+					}
+					builder.append(" ]");
+					return this.lComparison.getValue() + " " + this.comparator + " " + builder.toString();
+				}
+			} else {
+				return this.lComparison.getValue() + " " + this.comparator + " " + rObj;
+			}
+		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL) {
+			Object lObj = this.lComparison.getValue();
+			if(lObj instanceof List) {
+				int size = ((List) lObj).size();
+				if(size == 1) {
+					return this.rComparison.getValue() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + ((List) lObj).get(0);
+				} else {
+					StringBuilder builder = new StringBuilder("[");
+					for(int i = 0; i < size || i < 5; i++) {
+						builder.append( ((List) lObj).get(i) ).append(", ");
+					}
+					builder.append("... ]");
+					return this.rComparison.getValue() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + builder.toString();
+				}
+			} else {
+				return this.rComparison.getValue() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + lObj;
+			}
+		} else {
+			return this.lComparison.getValue() + " " + this.comparator + " " + this.rComparison.getValue();
+		}
+	}
+	
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
 	/////////////////////// STATIC METHODS /////////////////////////
@@ -478,7 +554,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @param filter
 	 * @return
 	 */
-	public static FILTER_TYPE determineFilterType(SimpleQueryFilter filter) {
+	private static FILTER_TYPE determineFilterType(SimpleQueryFilter filter) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 
@@ -530,11 +606,11 @@ public class SimpleQueryFilter implements IQueryFilter {
 		
 		// we only care about filters which are col to values or values to col
 		// get the type and see
-		FILTER_TYPE lType = determineFilterType(leftFilterObj);
+		FILTER_TYPE lType = leftFilterObj.getFilterType();
 		if( lType != FILTER_TYPE.COL_TO_VALUES && lType != FILTER_TYPE.VALUES_TO_COL) {
 			return false;
 		}
-		FILTER_TYPE rType = determineFilterType(rightFilterObj);
+		FILTER_TYPE rType = rightFilterObj.getFilterType();
 		if( rType != FILTER_TYPE.COL_TO_VALUES && rType != FILTER_TYPE.VALUES_TO_COL) {
 			return false;
 		}

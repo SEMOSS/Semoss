@@ -9,7 +9,6 @@ import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -66,7 +65,6 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 				List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(column);
 				for (SimpleQueryFilter queryFilter : filterList) {
 					String sqlCondition = "";
-					FILTER_TYPE type = SimpleQueryFilter.determineFilterType(queryFilter);
 					// col to values
 					NounMetadata leftComp = queryFilter.getLComparison();
 					String columnComp = leftComp.getValue() + "";

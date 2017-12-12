@@ -21,14 +21,14 @@ public class OrQueryFilter extends AbstractListFilter {
 	}
 
 	@Override
-	public QUERY_FILTER_TYPE getQueryFilterType() {
-		return QUERY_FILTER_TYPE.OR;
-	}
-
-	@Override
 	public IQueryFilter copy() {
 		List<IQueryFilter> cList = copy(this.filterList);
 		return new OrQueryFilter(cList);
+	}
+	
+	@Override
+	public QUERY_FILTER_TYPE getQueryFilterType() {
+		return QUERY_FILTER_TYPE.OR;
 	}
 
 }

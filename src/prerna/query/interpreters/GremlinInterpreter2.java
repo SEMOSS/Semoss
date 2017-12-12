@@ -263,7 +263,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	 */
 	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec) {
 		for(SimpleQueryFilter filter : filterVec) {
-			SimpleQueryFilter.FILTER_TYPE filterType = SimpleQueryFilter.determineFilterType(filter);
+			SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 			NounMetadata lComp = filter.getLComparison();
 			NounMetadata rComp = filter.getRComparison();
 			String comp = filter.getComparator();

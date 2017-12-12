@@ -1,7 +1,9 @@
 package prerna.query.querystruct.filters;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -41,6 +43,35 @@ public abstract class AbstractListFilter implements IQueryFilter {
 			}
 		}
 		return false;
+	}
+	
+	@Override
+	public Object getSimpleFormat() {
+		Map<String, Object> ret = new HashMap<String, Object>();
+		ret.put("filterType", this.getQueryFilterType());
+		List<Object> values = new Vector<Object>();
+		for(IQueryFilter f : this.filterList) {
+			values.add(f.getSimpleFormat());
+		}
+		ret.put("value", values);
+		return ret;
+	}
+	
+	@Override
+	public String getStringRepresentation() {
+		StringBuilder builder = new StringBuilder();
+		String type = this.getQueryFilterType().toString();
+		boolean first = true;
+		for(IQueryFilter f : this.filterList) {
+			if(first) {
+				builder.append("[ ").append(f.getStringRepresentation());
+				first = false;
+			} else {
+				builder.append(" ").append(type).append(" ").append(f.getStringRepresentation());
+			}
+		}
+		builder.append(" ]");
+		return builder.toString();
 	}
 	
 	/**
