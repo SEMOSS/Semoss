@@ -31,6 +31,9 @@ public interface IQueryFilter {
 	 */
 	IQueryFilter copy();
 
+	String getStringRepresentation();
+
+	Object getSimpleFormat();
 	
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
@@ -65,6 +68,7 @@ public interface IQueryFilter {
 	
 	/**
 	 * Method to provide the reverse of a given numeric comparator
+	 * Otherwise, return the same value
 	 * @param comparator
 	 * @return
 	 */
