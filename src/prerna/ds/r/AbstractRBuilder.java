@@ -247,7 +247,7 @@ public abstract class AbstractRBuilder {
 	
 	private SimpleQueryFilter updateFilter(String tableName, SimpleQueryFilter filter) {
 		SimpleQueryFilter newFilter = null;
-		FILTER_TYPE fType = SimpleQueryFilter.determineFilterType(filter);
+		FILTER_TYPE fType = filter.getFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
 			//change both left comparator and right comparator
 			String lHeader = filter.getLComparison().getValue().toString();

@@ -1,9 +1,11 @@
 package prerna.query.querystruct.filters;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -46,6 +48,17 @@ public class GenRowFilters {
 		return this.filterVec.isEmpty();
 	}
 	
+	public Object getFormatedFilters() {
+		List<Object> ret = new Vector<Object>();
+		for(IQueryFilter f : filterVec) {
+			Map<String, Object> format = new HashMap<String, Object>();
+			format.put("filterObj", f.getSimpleFormat());
+			format.put("filterStr", f.getStringRepresentation());
+			ret.add(format);
+		}
+		return ret;
+	}
+	
 	/**
 	 * Overriding toString for debugging
 	 */
@@ -58,7 +71,7 @@ public class GenRowFilters {
 		return toString.toString();
 	}
 
-	public void merge(SimpleQueryFilter filter) {
+	public void merge(IQueryFilter filter) {
 		GenRowFilters grf = new GenRowFilters();
 		grf.addFilters(filter);
 		merge(grf);
@@ -158,7 +171,7 @@ public class GenRowFilters {
 						// if its simple
 						// we will only need to recreate the filtered columns
 						// if it is a col-to-col since the other col may no longer be filtered
-						if(SimpleQueryFilter.determineFilterType( (SimpleQueryFilter) filter) == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+						if( ((SimpleQueryFilter) filter).getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
 							recreateFilterCols = true;
 						}
 					} else {

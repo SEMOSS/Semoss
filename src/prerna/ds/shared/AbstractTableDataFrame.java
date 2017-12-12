@@ -21,7 +21,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryMathSelector;
@@ -471,7 +471,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public void addFilter(SimpleQueryFilter filter) {
+	public void addFilter(IQueryFilter filter) {
 		this.grf.merge(filter);
 		this.clearCachedInfo();
 	}
