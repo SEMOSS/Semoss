@@ -487,6 +487,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 		
 		Map<String, Object> ret = new HashMap<String, Object>();
 		ret.put("filterType", this.getQueryFilterType());
+		ret.put("comparator", this.comparator);
 		ret.put("left", lMap);
 		ret.put("right", rMap);
 		return ret;
