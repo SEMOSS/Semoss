@@ -9,6 +9,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class ColumnCountReactor extends AbstractRFrameReactor {
@@ -23,9 +24,11 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	 * 3) panelId (defaults to zero if nothing is entered)
 	 */
 	
-	private static final String COLUMN = "column";
 	private static final String TOP = "top";
-	private static final String PANEL = "panel";
+	
+	public ColumnCountReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), TOP, ReactorKeysEnum.PANEL.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -138,7 +141,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		//////////////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(COLUMN);
+		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";
@@ -169,7 +172,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	// get panel id using key "PANEL"
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
@@ -177,4 +180,17 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		}
 		return "0";
 	}
+	
+	//////////////////////////////////KEYS////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if(key.equals(TOP)) {
+			return "Indicates if a column should be sorted by descending frequency";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
+	
+	
 }

@@ -28,6 +28,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.imports.RImporter;
 import prerna.util.Constants;
@@ -38,14 +39,16 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = RatioAlgorithmReactor.class.getName();
 
-	private static final String ATTRIBUTES_KEY = "attributes";
-	private static final String INSTANCE_KEY = "instance";
 	private static final String WEIGHTS_KEY = "weight";
 
 	//keys for resulting frame
 	private static final String SCORE_LABEL = "Score_";
 
 	private String[] ratioFrameHeaders;
+	
+	public RatioAlgorithmReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), WEIGHTS_KEY};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -415,7 +418,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 
 	private String getInstanceColumn() {
 		//check if instance column was input with the key
-		GenRowStruct instanceGrs = this.store.getNoun(INSTANCE_KEY);
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
 		if(instanceGrs != null && !instanceGrs.isEmpty()) {
 			return (String) instanceGrs.get(0);
 		}
@@ -425,7 +428,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 
 	private List<String> getAttributes() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ATTRIBUTES_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if (columnGrs != null && !columnGrs.isEmpty()) {
 			List<String> attributes = new Vector<String>();
 			for(int i = 0; i < columnGrs.size(); i++) {
@@ -475,5 +478,16 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			}
 		}
 		return weightMap;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(WEIGHTS_KEY)) {
+			return "The weights";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

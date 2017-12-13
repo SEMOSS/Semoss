@@ -22,6 +22,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import weka.associations.Apriori;
 import weka.associations.AssociationRule;
@@ -41,8 +42,6 @@ public class WekaAprioriReactor extends AbstractReactor {
 	private static final String CONFIDENCE_LEVEL = "confPer";
 	private static final String MIN_SUPPORT = "minSupport";
 	private static final String MAX_SUPPORT = "maxSupport";
-	private static final String ATTRIBUTES = "attributes";
-	private static final String PANEL = "panel";
 
 	private Instances instancesData;
 
@@ -65,6 +64,10 @@ public class WekaAprioriReactor extends AbstractReactor {
 	 * minSupport = [minSupport], maxSupport = [maxSupport], skipAttributes =
 	 * [skipAttributes]);
 	 */
+	
+	public WekaAprioriReactor() {
+		this.keysToGet = new String[]{NUM_RULES, CONFIDENCE_LEVEL, MIN_SUPPORT, MAX_SUPPORT, ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.PANEL.getKey() };
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -309,7 +312,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 		List<String> retList = new ArrayList<String>();
 
 		// check if attributeList was entered with key or not
-		GenRowStruct columnGrs = this.store.getNoun(ATTRIBUTES);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[4]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());
@@ -331,7 +334,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[5]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
@@ -353,5 +356,21 @@ public class WekaAprioriReactor extends AbstractReactor {
 		}
 		return 0;
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(NUM_RULES)) {
+			return "The number of rules to output";
+		} else if (key.equals(CONFIDENCE_LEVEL)) {
+			return "The minimum confidence level";
+		} else if (key.equals(MIN_SUPPORT)) {
+			return "The minimum number of rows required for rule (percentage of total rows of data)";
+		} else if (key.equals(MAX_SUPPORT)) {
+			return "The maximum number of rows required for rule (percentage of total rows of data)";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

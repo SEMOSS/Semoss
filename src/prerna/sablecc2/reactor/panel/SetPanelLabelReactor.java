@@ -7,10 +7,13 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class SetPanelLabelReactor extends AbstractInsightPanelReactor {
-
-	private static final String PANEL_LABEL_KEY = "panelLabel";
+	
+	public SetPanelLabelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.PANEL_LABEL_KEY.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -25,7 +28,7 @@ public class SetPanelLabelReactor extends AbstractInsightPanelReactor {
 	
 	private String getPanelLabel() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(PANEL_LABEL_KEY);
+		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return genericReactorGrs.get(0).toString();
 		}

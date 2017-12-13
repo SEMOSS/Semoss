@@ -17,15 +17,13 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
 public class SimilarityAlgorithmReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = SimilarityAlgorithmReactor.class.getName();
-	
-	private static final String ATTRIBUTES_KEY = "attributes";
-	private static final String INSTANCE_KEY = "instance";
 
 	private List<String> attributeNamesList;
 	private String[] attributeNames;
@@ -36,6 +34,10 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 	/**
 	 * RunSimilarity(instance = column, columns = attributeNamesList);
 	 */ 
+
+	public SimilarityAlgorithmReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -149,7 +151,7 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 
 	private String getInstanceColumn() {
 		//check if instance column was input with the key 
-		GenRowStruct instanceIndexGrs = this.store.getNoun(INSTANCE_KEY);
+		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
 		String instanceColumn = "";
 		NounMetadata instanceColumnNoun;
 		if (instanceIndexGrs != null) {
@@ -169,7 +171,7 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 		// see if defined as individual key
 		List<String> retList = new ArrayList<String>();
 		retList.add(instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(ATTRIBUTES_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();

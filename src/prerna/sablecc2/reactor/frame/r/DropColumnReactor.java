@@ -8,13 +8,18 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class DropColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor drops columns from the frame The inputs to the reactor are:
+	 * This reactor drops columns from the frame. The inputs to the reactor are:
 	 * 1) list of columns to drop
 	 */
+	
+	public DropColumnReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -71,10 +76,10 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			String colName = inputsGRS.getNoun(i).getValue() + "";
 			if (colName.length() == 0) {
-				throw new IllegalArgumentException("Need to define the new column name");
+				throw new IllegalArgumentException("Need to define the column to drop");
 			}
 			return colName;
 		}
-		throw new IllegalArgumentException("Need to define the new column name");
+		throw new IllegalArgumentException("Need to define the column to drop");
 	}
 }

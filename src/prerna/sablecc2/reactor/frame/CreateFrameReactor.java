@@ -10,12 +10,17 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class CreateFrameReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateFrameReactor.class.getName();
 	private static final String OVERRIDE = "override";
+	
+	public CreateFrameReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.ALIAS.getKey(), OVERRIDE};
+	}
 	
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
@@ -75,6 +80,17 @@ public class CreateFrameReactor extends AbstractReactor {
 		}
 		// default is to override
 		return true;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(OVERRIDE)) {
+			return "Indicates if the current frame should be overriden";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

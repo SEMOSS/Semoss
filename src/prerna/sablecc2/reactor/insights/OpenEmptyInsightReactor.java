@@ -11,9 +11,14 @@ import prerna.om.InsightStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class OpenEmptyInsightReactor extends AbstractInsightReactor {
+	
+	public OpenEmptyInsightReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PARAM_KEY.getKey()};
+	}
 	
 	@Override
 	public NounMetadata execute() {

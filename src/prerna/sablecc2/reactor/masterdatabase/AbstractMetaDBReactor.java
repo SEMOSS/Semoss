@@ -4,6 +4,7 @@ import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 /**
@@ -11,12 +12,10 @@ import prerna.sablecc2.reactor.AbstractReactor;
  *
  */
 public abstract class AbstractMetaDBReactor extends AbstractReactor {
-
-	private static final String ENGINE = "engine";
-	private static final String CONCEPT = "concept";
-	private static final String DESCRIPTION = "description";
+	
+	protected static final String DESCRIPTION = "description";
 	protected static final String VALUE_DELIMITER = ":::";
-	private static final String VALUES = "values";
+	protected static final String VALUES = "values";
 
 	/**
 	 * Get engine name input from pixel
@@ -24,14 +23,14 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getEngine() {
-		GenRowStruct engineGRS = this.store.getNoun(ENGINE);
+		GenRowStruct engineGRS = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
 		if (engineGRS != null) {
 			NounMetadata noun = engineGRS.getNoun(0);
 			if (noun != null) {
 				return noun.getValue() + "";
 			}
 		}
-		throw new IllegalArgumentException("Need to define the " + ENGINE + " to be updated");
+		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.ENGINE.getKey() + " to be updated");
 	}
 
 	/**
@@ -40,14 +39,14 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getConcept() {
-		GenRowStruct conceptGRS = this.store.getNoun(CONCEPT);
+		GenRowStruct conceptGRS = this.store.getNoun(ReactorKeysEnum.CONCEPT.getKey());
 		if (conceptGRS != null) {
 			NounMetadata noun = conceptGRS.getNoun(0);
 			if (noun != null) {
 				return noun.getValue() + "";
 			}
 		}
-		throw new IllegalArgumentException("Need to define the " + CONCEPT + " to be updated");
+		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.CONCEPT.getKey() + " to be updated");
 	}
 
 	/**
@@ -86,5 +85,19 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + VALUES + " to be updated");
 	}
-
+	
+	///////////////////////// KEYS /////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(DESCRIPTION)) {
+			return "The description for the concept";
+		} else if (key.equals(VALUES)) {
+			return "The value to be updated for the concept";
+		}
+		else {
+			return super.getDescriptionForKey(key);
+		}
+	}
+	
 }

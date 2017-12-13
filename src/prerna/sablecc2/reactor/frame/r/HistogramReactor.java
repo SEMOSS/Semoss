@@ -6,6 +6,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 
 public class HistogramReactor extends AbstractRFrameReactor {
@@ -18,9 +19,9 @@ public class HistogramReactor extends AbstractRFrameReactor {
 	 * 3) the panel id - defaults to zero if nothing is entered
 	 */
 	
-	private static final String COLUMN = "column";
-	private static final String BREAKS = "breaks";
-	private static final String PANEL = "panel";
+	public HistogramReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.BREAKS.getKey(), ReactorKeysEnum.PANEL.getKey()};
+	}
 	
 	@Override
 	public NounMetadata execute() {
@@ -108,7 +109,7 @@ public class HistogramReactor extends AbstractRFrameReactor {
 	
 	//get column using key "COLUMN"
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(COLUMN);
+		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";
@@ -123,7 +124,7 @@ public class HistogramReactor extends AbstractRFrameReactor {
 	//get number of breaks using key "BREAKS"
 	private int getNumBreaks() {
 		int numBreaks = 0;
-		GenRowStruct breaksGRS = this.store.getNoun(BREAKS);
+		GenRowStruct breaksGRS = this.store.getNoun(keysToGet[1]);
 		if (breaksGRS != null) {
 			NounMetadata noun2 = breaksGRS.getNoun(0);
 			if (noun2 != null) {
@@ -136,7 +137,7 @@ public class HistogramReactor extends AbstractRFrameReactor {
 	//get panel id using key "PANEL"
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
