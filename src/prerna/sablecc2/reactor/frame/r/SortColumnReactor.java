@@ -5,16 +5,20 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class SortColumnReactor extends AbstractRFrameReactor {
 
 	/**
 	 * This reactor sorts a column based on a given sort direction The inputs to
 	 * the reactor are:
-	 * 
 	 * 1) the column to sort 
 	 * 2) the sort direction
 	 */
+	
+	public SortColumnReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.SORT.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

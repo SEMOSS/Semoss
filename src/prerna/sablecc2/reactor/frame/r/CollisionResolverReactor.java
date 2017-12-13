@@ -12,12 +12,16 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class CollisionResolverReactor extends AbstractRFrameReactor {
 	public static final String DISTANCE_KEY = "dist";
-	public static final String COLUMN_KEY = "column";
 	private static final String CLASS_NAME = CollisionResolverReactor.class.getName();
+	
+	public CollisionResolverReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), DISTANCE_KEY};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -110,7 +114,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 
 	private String getColumn() {
 		String column = "";
-		GenRowStruct grs = this.store.getNoun(COLUMN_KEY);
+		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		NounMetadata noun;
 		if (grs != null) {
 			noun = grs.getNoun(0);
@@ -133,6 +137,17 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 			distance = (double) noun.getValue();
 		}
 		return distance;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(DISTANCE_KEY)) {
+			return "The similarity threshold";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

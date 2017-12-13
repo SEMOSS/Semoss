@@ -10,12 +10,16 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 	// pixel input keys
-	public static final String COLUMNS = "columns";
 	public static final String OVERRIDE = "override";
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
+	
+	public ExtractAlphaCharsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), OVERRIDE};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -67,7 +71,7 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		GenRowStruct grs = this.store.getNoun(COLUMNS);
+		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		Vector<String> columns = new Vector<String>();
 		NounMetadata noun;
 		if (grs != null) {
@@ -93,5 +97,16 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 			override = (Boolean) noun.getValue();
 		}
 		return override;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(OVERRIDE)) {
+			return "Indicates if the existing column will be overridden or if a new column will be created with \"_ALPHA\" appended";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

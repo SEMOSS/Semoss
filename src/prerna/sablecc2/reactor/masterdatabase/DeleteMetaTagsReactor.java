@@ -8,9 +8,14 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 
 public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
+	
+	public DeleteMetaTagsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+	}
 
 	@Override
 	public NounMetadata execute() {

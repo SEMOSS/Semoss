@@ -10,9 +10,14 @@ import prerna.om.OldInsight;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
+	
+	public GetSavedInsightRecipeReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

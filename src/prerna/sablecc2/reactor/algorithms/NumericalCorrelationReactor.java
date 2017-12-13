@@ -18,15 +18,16 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class NumericalCorrelationReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = NumericalCorrelationReactor.class.getName();
 	
-	private static final String COLUMN_KEY = "columns";
-	private static final String DEFAULT_VALUE_KEY = "defaultValue";
-	private static final String PANEL_KEY = "panel";
+	public NumericalCorrelationReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -185,7 +186,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 	
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(COLUMN_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[0]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -208,7 +209,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 	
 	private double getDefaultValue() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(DEFAULT_VALUE_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if(columnGrs != null) {
 			List<Object> columns = columnGrs.getAllNumericColumns();
 			if(columns.size() > 0) {
@@ -228,7 +229,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

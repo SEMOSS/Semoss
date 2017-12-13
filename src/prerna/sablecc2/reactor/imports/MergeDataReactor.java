@@ -22,11 +22,14 @@ import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class MergeDataReactor extends AbstractReactor {
-
-	private static final String FRAME = "frame";
+	
+	public MergeDataReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey(), ReactorKeysEnum.JOINS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute()  {
@@ -138,7 +141,7 @@ public class MergeDataReactor extends AbstractReactor {
 	
 	private ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(FRAME);
+		GenRowStruct frameGrs = this.store.getNoun(keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}

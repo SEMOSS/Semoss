@@ -12,6 +12,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class DropRowsReactor extends AbstractRFrameReactor {
 
@@ -20,6 +21,10 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 	 * are: 1) the filter comparison for dropping rows
 	 */
 
+	public DropRowsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey()};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		// initialize rJavaTranslator - we will need this for method to get the data type

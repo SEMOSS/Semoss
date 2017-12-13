@@ -9,10 +9,13 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class PanelCloneReactor extends AbstractInsightPanelReactor {
-
-	private static final String CLONE_PANEL_KEY = "cloneId";
+	
+	public PanelCloneReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.CLONE_PANEL_KEY.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -37,7 +40,7 @@ public class PanelCloneReactor extends AbstractInsightPanelReactor {
 	
 	private String getClonePanelId() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(CLONE_PANEL_KEY);
+		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return genericReactorGrs.get(0).toString();
 		}

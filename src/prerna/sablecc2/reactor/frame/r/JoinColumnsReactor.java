@@ -6,17 +6,21 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class JoinColumnsReactor extends AbstractRFrameReactor {
 
 	/**
 	 * This reactor joins columns, and puts the joined string into a new column
 	 * with values separated by a separator The inputs to the reactor are: 
-	 * 1)
-	 * the new column name 
-	 * 2) the delimeter 
+	 * 1) the new column name 
+	 * 2) the delimiter 
 	 * 3) the columns to join
 	 */
+	
+	public JoinColumnsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DELIMITER.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

@@ -18,6 +18,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
@@ -25,9 +26,7 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = OutlierAlgorithmReactor.class.getName();
 
-	private static final String INSTANCE_KEY = "instance";
 	private static final String NUMRUNS_KEY = "numRuns";
-	private static final String ATRIBUTES_KEY = "attributes";
 	private static final String SUBSETSIZE_KEY = "subsetSize";
 	
 	private static Random random = new Random();
@@ -36,6 +35,10 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 	/**
 	 * RunOutlier(instance = column, subsetSize = [numSubsetSize], numRuns = [numRuns], columns = attributeNamesList);
 	 */ 
+	
+	public OutlierAlgorithmReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), SUBSETSIZE_KEY, NUMRUNS_KEY, ReactorKeysEnum.ATTRIBUTES.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -170,7 +173,7 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 		retList.add(instanceColumn); // always add instance column to attribute list at index 0
 		
 		// check if attributeList was entered with key or not
-		GenRowStruct columnGrs = this.store.getNoun(ATRIBUTES_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();
@@ -195,7 +198,7 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 
 	private String getInstanceCol() {
 		// check if the instance column is entered with a key
-		GenRowStruct instanceIndexGrs = this.store.getNoun(INSTANCE_KEY);
+		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
 		String instanceCol = "";
 		NounMetadata instanceIndexNoun;
 		if (instanceIndexGrs != null) {
@@ -245,6 +248,19 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 			subsetSize = ((Number) subsetSizeNoun.getValue()).intValue();
 		}
 		return subsetSize;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SUBSETSIZE_KEY)) {
+			return "The subset size";
+		} else if (key.equals(NUMRUNS_KEY)) {
+			return "The number of runs";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

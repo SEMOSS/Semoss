@@ -19,12 +19,15 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
-
-	private static final String ADDITIONAL_PIXELS = "additionalPixels";
+	
+	public OpenInsightReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.ADDITIONAL_PIXELS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -95,7 +98,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	}
 
 	private List<String> getAdditionalPixels() {
-		GenRowStruct additionalPixels = this.store.getNoun(ADDITIONAL_PIXELS);
+		GenRowStruct additionalPixels = this.store.getNoun(keysToGet[3]);
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			List<String> pixels = new Vector<String>();
 			int size = additionalPixels.size();

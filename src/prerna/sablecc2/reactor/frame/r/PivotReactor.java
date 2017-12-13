@@ -180,12 +180,18 @@ public class PivotReactor extends AbstractRFrameReactor{
 		return "";
 	}
 	
+	///////////////////////// KEYS /////////////////////////////////////
+	
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if(key.equals(PIVOT_COLUMN_KEY)) {
-			return "THIS IS THE COLUMN TO PIVOT ON";
+			return "The column to pivot on";
 		} else if(key.equals(VALUE_COLUMN_KEY)) {
-			return "THIS IS THE VALUE COLUMN";
+			return "The column to turn into values for the selected pivot column";
+		} else if (key.equals(MAINTAIN_COLUMNS_KEY)) {
+			return "Any additional columns to keep in the frame";
+		} else if (key.equals(AGGREGATE_FUNCTION_KEY)) {
+			return "The function used to aggregate columns";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
