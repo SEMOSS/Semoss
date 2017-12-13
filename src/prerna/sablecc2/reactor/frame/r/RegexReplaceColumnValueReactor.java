@@ -5,6 +5,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 
@@ -16,6 +17,10 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 	 * 2) the regex to look for
 	 * 3) value to replace the regex with 
 	 */
+	
+	public RegexReplaceColumnValueReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(), ReactorKeysEnum.NEW_VALUE.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

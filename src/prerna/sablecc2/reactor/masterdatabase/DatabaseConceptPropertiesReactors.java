@@ -9,9 +9,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DatabaseConceptPropertiesReactors extends AbstractReactor {
+	
+	public DatabaseConceptPropertiesReactors() {
+		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPTS.getKey(), "engine"};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -34,6 +39,17 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 		
 		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptPropertiesRDBMS(conceptLogicals, engineFilter);
 		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("engine")) {
+			return "The optional engine filter";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

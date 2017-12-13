@@ -54,7 +54,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	protected String jobId;
 	
-	public String [] keysToGet = {"username", "password"};
+	public String [] keysToGet = new String[]{"no keys defined"};
 	public Hashtable<String, String> keyValue = new Hashtable<String, String>();
 
 	// convenience method to allow order or named noun
@@ -89,7 +89,7 @@ public abstract class AbstractReactor implements IReactor {
 			help.append("\tinput ").append(i).append(":\t").append(key);
 			String description = getDescriptionForKey(key);
 			if(description != null) {
-				help.append("\t").append(description);
+				help.append(" =\t").append(description);
 			}
 			help.append("\n");
 		}
@@ -210,7 +210,7 @@ public abstract class AbstractReactor implements IReactor {
 	public void closeNoun(String noun) {
 		curRow = store.getNoun("all");
 	}
-
+	
 	@Override
 	public NounStore getNounStore() {
 		// I need to see if I have a child

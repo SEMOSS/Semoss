@@ -4,6 +4,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 
 public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
@@ -14,6 +15,10 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 	 * 1) the engine
 	 * 2) the the concept
 	 */
+	
+	public GetMetaDescriptionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey()};
+	}
 	
 	@Override
 	public NounMetadata execute() {

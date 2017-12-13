@@ -10,11 +10,13 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class DeleteFrameFilterReactor extends AbstractFilterReactor {
-
-	// this constant used when we specify the indexes for the filters that we want to remove
-	private static final String INDEX = "index";
+	
+	public DeleteFrameFilterReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INDEX.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -52,7 +54,7 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 	private List<Integer> getOrderedIndexes() {
 		List<Integer> indexList = new ArrayList<Integer>();
 		// this grs will contain all indexes, each as a separate noun
-		GenRowStruct formatGRS = this.store.getNoun(INDEX);
+		GenRowStruct formatGRS = this.store.getNoun(keysToGet[0]);
 		if (formatGRS != null && formatGRS.size() > 0) {
 			for (int i = 0; i < formatGRS.size(); i++) {
 				indexList.add(((Number)formatGRS.getNoun(i).getValue()).intValue());

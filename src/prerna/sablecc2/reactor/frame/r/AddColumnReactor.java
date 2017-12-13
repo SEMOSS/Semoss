@@ -6,6 +6,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class AddColumnReactor extends AbstractRFrameReactor {
@@ -15,6 +16,10 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 	 * 1) the name for the new column 
 	 * 2) the new column type
 	 */
+	
+	public AddColumnReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

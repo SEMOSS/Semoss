@@ -8,12 +8,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class RemoveLogicalNameReactor extends AbstractReactor {
-	private static final String ENGINE_KEY = "engine";
-	private static final String CONCEPT_KEY = "concept";
-	private static final String LOGICAL_NAME_KEY = "logicalNames";
+	
+	public RemoveLogicalNameReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -28,30 +30,30 @@ public class RemoveLogicalNameReactor extends AbstractReactor {
 	}
 
 	private String getEngineName() {
-		GenRowStruct instanceGrs = this.store.getNoun(ENGINE_KEY);
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			String engine = (String) instanceGrs.get(0);
 			if (engine.length() > 0) {
 				return engine;
 			}
 		}
-		throw new IllegalArgumentException("Need to define " + ENGINE_KEY);
+		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
 	}
 
 	private String getConcept() {
-		GenRowStruct instanceGrs = this.store.getNoun(CONCEPT_KEY);
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[1]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			String concept = (String) instanceGrs.get(0);
 			if (concept.length() > 0) {
 				return concept;
 			}
 		}
-		throw new IllegalArgumentException("Need to define " + CONCEPT_KEY);
+		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
 	}
 
 	private List<String> getLogicalNames() {
 		Vector<String> logicalNames = new Vector<String>();
-		GenRowStruct instanceGrs = this.store.getNoun(LOGICAL_NAME_KEY);
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[2]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			for (int i = 0; i < instanceGrs.size(); i++) {
 				String name = (String) instanceGrs.get(i);

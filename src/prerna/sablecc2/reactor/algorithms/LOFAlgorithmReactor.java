@@ -19,6 +19,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
@@ -27,8 +28,6 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 	private static final String CLASS_NAME = LOFAlgorithmReactor.class.getName();
 
 	private static final String K_NEIGHBORS = "kNeighbors";
-	private static final String INSTANCE_KEY = "instance";
-	private static final String ATTRIBUTES = "attributes";
 
 	private String[] attributeNames;
 	private List<String> attributeNamesList;
@@ -53,6 +52,10 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 	/*
 	 * RunLOF(instance = col, subsetSize = 25, columns = col1, col2, ...);
 	 */
+	
+	public LOFAlgorithmReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), K_NEIGHBORS, ReactorKeysEnum.ATTRIBUTES.getKey()};
+	}
 	
 	@Override
 	public NounMetadata execute() {
@@ -324,7 +327,7 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 	//////////////////////////////////////////////////////////////
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceIndexGrs = this.store.getNoun(INSTANCE_KEY);
+		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
 		String instanceIndex = "";
 		NounMetadata instanceIndexNoun;
 		if (instanceIndexGrs != null) {
@@ -355,7 +358,7 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 	private List<String> getColumns() {
 		List<String> retList = new ArrayList<String>();
 		retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(ATTRIBUTES);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();
@@ -374,5 +377,16 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 			}
 		}
 		return retList;
+	}
+	
+///////////////////////// KEYS /////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(K_NEIGHBORS)) {
+			return "The k neighborhood size";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

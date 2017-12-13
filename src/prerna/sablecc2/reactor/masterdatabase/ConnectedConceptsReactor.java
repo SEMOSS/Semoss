@@ -9,9 +9,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ConnectedConceptsReactor extends AbstractReactor {
+	
+	public ConnectedConceptsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPTS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
