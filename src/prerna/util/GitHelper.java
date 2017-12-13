@@ -1422,7 +1422,7 @@ public class GitHelper {
 	
 	public static boolean isGit(String localApp)
 	{
-		File file = new File(localApp + "/" + ".git");
+		File file = new File(localApp + "/version/" + ".git");
 		return file.exists();
 	}
 	
@@ -1518,7 +1518,7 @@ public class GitHelper {
 			   try {
 				   // need to make modification on the engine
 				   FileUtils.copyFileToDirectory(files[i], dbFile);
-				   files[i].delete();
+//				   files[i].delete();
 				// in reality there may be other things we need to do
 				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 			} catch (IOException e) {
