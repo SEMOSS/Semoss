@@ -31,7 +31,7 @@ public class ListRemotes extends AbstractReactor {
 		}
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]);	
+		String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]) + "/version";	
 
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Getting remotes configures on " + dbName);
