@@ -28,6 +28,7 @@
 package prerna.nameserver;
 
 import java.sql.Connection;
+import java.sql.Statement;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
@@ -50,31 +51,71 @@ public class DeleteFromMasterDB extends ModifyMasterDB {
 	public boolean deleteEngineRDBMS(String engineName)
 	{
 		System.err.println("Removing engine from Local Master " + engineName);
-		try
-		{
+		try {
 			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = engine.makeConnection();
-			if( ((RDBMSNativeEngine)engine).getTableCount() >= 7)
-			{
-				
-				String relationDelete = "delete from enginerelation where engine in (select id from engine where enginename='" + engineName +"')";
-				String conceptDelete = "delete from engineconcept where engine in (select id from engine where enginename='" + engineName +"')";
-				String engineDelete = "delete from engine where enginename='" + engineName +"'";
-				String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
-				
-				conn.createStatement().execute(relationDelete);
-				conn.createStatement().execute(conceptDelete);
-				conn.createStatement().execute(engineDelete);
-				conn.createStatement().execute(kvDelete);
-				
-				//TODO:
-				// PK -> I am putting this here as a fix for this so
-				// when we load a new db with this same name in the future
-				// it is good
-				engine.conceptIdHash = null;
-			}			
-		}catch(Exception ex)
-		{
+
+			String relationDelete = "delete from enginerelation where engine in (select id from engine where enginename='" + engineName +"')";
+			String conceptDelete = "delete from engineconcept where engine in (select id from engine where enginename='" + engineName +"')";
+			String engineDelete = "delete from engine where enginename='" + engineName +"'";
+			String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
+
+			Statement stmt = null;
+			
+			// delete relation
+			try {
+				stmt = conn.createStatement();
+				stmt.execute(relationDelete);
+			} catch(Exception e) {
+				// ignore
+			} finally {
+				if(stmt != null) {
+					stmt.close();
+				}
+			}
+			
+			// delete concept
+			try {
+				stmt = conn.createStatement();
+				stmt.execute(conceptDelete);
+			} catch(Exception e) {
+				// ignore
+			} finally {
+				if(stmt != null) {
+					stmt.close();
+				}
+			}
+			
+			// delete engine
+			try {
+				stmt = conn.createStatement();
+				stmt.execute(engineDelete);
+			} catch(Exception e) {
+				// ignore
+			} finally {
+				if(stmt != null) {
+					stmt.close();
+				}
+			}
+			
+			// delete kv
+			try {
+				stmt = conn.createStatement();
+				stmt.execute(kvDelete);
+			} catch(Exception e) {
+				// ignore
+			} finally {
+				if(stmt != null) {
+					stmt.close();
+				}
+			}
+			
+			//TODO:
+			// PK -> I am putting this here as a fix for this so
+			// when we load a new db with this same name in the future
+			// it is good
+			engine.conceptIdHash = null;
+		} catch(Exception ex) {
 			ex.printStackTrace();
 			return false;
 		}
