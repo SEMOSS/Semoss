@@ -204,7 +204,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	protected void saveRecipeToFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
+		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		// format recipe file
 		HashMap<String, Object> output = new HashMap<String, Object>();
@@ -221,7 +221,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		String json = gson.toJson(output);
 		File path = new File(recipePath);
 		// create insight directory
-		if (path.mkdir()) {
+		if (path.mkdirs()) {
 			recipePath += "\\" + RECIPE_FILE;
 			// create file
 			File f = new File(recipePath);
