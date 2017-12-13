@@ -12,10 +12,13 @@ import java.util.Vector;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+
+import com.ibm.icu.text.SimpleDateFormat;
 
 import cern.colt.Arrays;
 import prerna.poi.main.HeadersException;
@@ -28,7 +31,8 @@ public class XLFileHelper {
 	int colStarter = 0;
 	
 	private static final int NUM_ROWS_TO_PREDICT_TYPES = 1000;
-
+	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+	
 	private	Workbook workbook = null;
 	private FileInputStream sourceFile = null;
 	private String fileLocation = null;
@@ -300,6 +304,11 @@ public class XLFileHelper {
 				return thisCell.getNumericCellValue() + "";
 			} else if(thisCell.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
 				return thisCell.getBooleanCellValue() + "";
+			} else if(thisCell.getCellType() == Cell.CELL_TYPE_FORMULA) {
+				// get random date formulas
+				if(DateUtil.isCellDateFormatted(thisCell)) {
+					return formatter.format(thisCell.getDateCellValue());
+				}
 			}
 		}
 		return "";
