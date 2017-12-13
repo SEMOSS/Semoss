@@ -6,6 +6,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class TrimReactor extends AbstractRFrameReactor {
 
@@ -14,6 +15,10 @@ public class TrimReactor extends AbstractRFrameReactor {
 	 * The inputs to the reactor are: 
 	 * 1) the columns to update
 	 */
+	
+	public TrimReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

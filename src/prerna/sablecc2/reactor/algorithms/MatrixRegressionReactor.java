@@ -21,6 +21,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class MatrixRegressionReactor extends AbstractReactor {
@@ -29,8 +30,10 @@ public class MatrixRegressionReactor extends AbstractReactor {
 
 	private static final String Y_COLUMN = "yColumn";
 	private static final String X_COLUMNS = "xColumns";
-	private static final String DEFAULT_VALUE_KEY = "defaultValue";
-	private static final String PANEL_KEY = "panel";
+	
+	public MatrixRegressionReactor() {
+		this.keysToGet = new String[]{Y_COLUMN, X_COLUMNS, ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -251,7 +254,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 
 	private double getDefaultValue() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(DEFAULT_VALUE_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if(columnGrs != null) {
 			List<Object> columns = columnGrs.getAllNumericColumns();
 			if(columns.size() > 0) {
@@ -271,13 +274,26 @@ public class MatrixRegressionReactor extends AbstractReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
 			}
 		}
 		return null;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(X_COLUMNS)) {
+			return "x variable input";
+		} else if (key.equals(Y_COLUMN)) {
+			return "y variable input";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
 
@@ -298,4 +314,8 @@ class OLSCalculator extends OLSMultipleLinearRegression {
 	public double[] getEstimateArray() {
 		return getX().operate(calculateBeta()).toArray();
 	}
+	
+	
+	
+	
 }

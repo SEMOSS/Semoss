@@ -7,11 +7,10 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class AbstractFilterReactor extends AbstractReactor {
-
-	protected static final String PANEL_KEY = "panel";
 
 	/**
 	 * Get the filters passed into the reactor
@@ -34,7 +33,7 @@ public abstract class AbstractFilterReactor extends AbstractReactor {
 		InsightPanel panel = null;
 
 		// see if panel was passed via generic reactor
-		GenRowStruct genericGrs = this.store.getNoun(PANEL_KEY);
+		GenRowStruct genericGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
 		if(genericGrs != null && !genericGrs.isEmpty()) {
 			String panelId = genericGrs.get(0).toString();
 			panel = this.insight.getInsightPanel(panelId);

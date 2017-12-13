@@ -15,6 +15,10 @@ public class GetFrameHeaderMetadataReactor extends AbstractReactor {
 
 	private static final String ALL_NUMERIC_KEY = "allNumeric";
 	
+	public GetFrameHeaderMetadataReactor() {
+		this.keysToGet = new String[]{ALL_NUMERIC_KEY};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		ITableDataFrame dm = (ITableDataFrame) this.insight.getDataMaker();

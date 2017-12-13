@@ -21,6 +21,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class FrameFilterModelReactor extends AbstractReactor {
@@ -34,43 +35,41 @@ public class FrameFilterModelReactor extends AbstractReactor {
 	 * 4) offset <- optional
 	 * 5) panel <- optional
 	 */
-
-	private static final String COLUMN_KEY = "column";
-	private static final String FILTER_WORD_KEY = "filterWord";
-	private static final String LIMIT_KEY = "limit";
-	private static final String OFFSET_KEY = "offset";
-	private static final String PANEL_KEY = "panel";
+	
+	public FrameFilterModelReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
+	}
 
 	@Override
 	public NounMetadata execute() {
 		ITableDataFrame dataframe = (ITableDataFrame) this.insight.getDataMaker();
 
-		GenRowStruct colGrs = this.store.getNoun(COLUMN_KEY);
+		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
 		if(colGrs == null || colGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to set the column for the filter model");
 		}
 		String tableCol = colGrs.get(0).toString();
 
 		String filterWord = null;
-		GenRowStruct filterWordGrs = this.store.getNoun(FILTER_WORD_KEY);
+		GenRowStruct filterWordGrs = this.store.getNoun(keysToGet[1]);
 		if(filterWordGrs != null && !filterWordGrs.isEmpty()) {
 			filterWord = filterWordGrs.get(0).toString();
 		}
 
 		int limit = -1;
-		GenRowStruct limitGrs = this.store.getNoun(LIMIT_KEY);
+		GenRowStruct limitGrs = this.store.getNoun(keysToGet[2]);
 		if(limitGrs != null && !limitGrs.isEmpty()) {
 			limit = ((Number) limitGrs.get(0)).intValue();
 		}
 
 		int offset = -1;
-		GenRowStruct offsetGrs = this.store.getNoun(OFFSET_KEY);
+		GenRowStruct offsetGrs = this.store.getNoun(keysToGet[3]);
 		if(offsetGrs != null && !offsetGrs.isEmpty()) {
 			offset = ((Number) offsetGrs.get(0)).intValue();
 		}
 
 		InsightPanel panel = null;
-		GenRowStruct panelGrs = this.store.getNoun(PANEL_KEY);
+		GenRowStruct panelGrs = this.store.getNoun(keysToGet[4]);
 		if(panelGrs != null && !panelGrs.isEmpty()) {
 			panel = (InsightPanel) panelGrs.get(0);
 		}

@@ -17,6 +17,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
@@ -27,9 +28,6 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	/**
 	 * RunClustering(instance = column, numClusters = #, columns = attributeNamesList);
 	 */
-	public static final String INSTANCE_KEY = "instance";
-	public static final String CLUSTER_KEY = "numClusters";
-	public static final String COLUMN_KEY = "columns";
 	
 	private String[] attributeNames;
 	private List<String> attributeNamesList;
@@ -42,6 +40,10 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	private int instanceIndex;
 	private boolean addToFrame = true;
 	private AlgorithmSingleColStore<Integer> results = new AlgorithmSingleColStore<Integer>();
+	
+	public ClusteringAlgorithmReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -285,7 +287,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	//////////////////////////////////////////////////////////////
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceGrs = this.store.getNoun(INSTANCE_KEY);
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
 		String instanceCol = "";
 		NounMetadata instanceColNoun;
 		if (instanceGrs != null) {
@@ -301,7 +303,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	}
 	
 	private int getNumClusters() {
-		GenRowStruct numClustersGrs = this.store.getNoun(CLUSTER_KEY);
+		GenRowStruct numClustersGrs = this.store.getNoun(keysToGet[1]);
 		int numClusters = -1;
 		NounMetadata numClustersNoun;
 		if(numClustersGrs != null) {
@@ -320,7 +322,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		// see if defined as indiviudal key
 		List<String> retList = new ArrayList<String>();
 		retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(COLUMN_KEY);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();

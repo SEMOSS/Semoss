@@ -5,6 +5,7 @@ import java.util.Map;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class SetInsightOrnamentReactor extends AbstractReactor {
@@ -12,6 +13,10 @@ public class SetInsightOrnamentReactor extends AbstractReactor {
 	/**
 	 * Used to set insight level ornaments - e.g. client mode for the insight (no "booger" on side menu)
 	 */
+	
+	public SetInsightOrnamentReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSIGHT_ORNAMENT.getKey()};
+	}
 	
 	@Override
 	public NounMetadata execute() {

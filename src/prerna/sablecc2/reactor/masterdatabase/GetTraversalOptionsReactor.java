@@ -10,12 +10,16 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetTraversalOptionsReactor extends AbstractReactor {
 
 	private static final String USING_LOGICAL = "logical";
-	private static final String VALUES = "values";
+	
+	public GetTraversalOptionsReactor() {
+		this.keysToGet = new String[]{USING_LOGICAL, ReactorKeysEnum.VALUES.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -54,7 +58,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getConceptualInputNames() {
-		GenRowStruct valuesGrs = this.store.getNoun(VALUES);
+		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[1]);
 		if(valuesGrs != null && valuesGrs.size() > 0) {
 			int numInputs = valuesGrs.size();
 			List<String> inputs = new Vector<String>();
@@ -89,7 +93,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getLogicalInputNames() {
-		GenRowStruct valuesGrs = this.store.getNoun(VALUES);
+		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[1]);
 		if(valuesGrs != null && valuesGrs.size() > 0) {
 			int numInputs = valuesGrs.size();
 			List<String> inputs = new Vector<String>();
@@ -116,5 +120,16 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 		}
 		
 		return false;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(USING_LOGICAL)) {
+			return "Boolean value to indicate if logical names should be used";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

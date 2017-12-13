@@ -17,6 +17,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 
@@ -24,8 +25,6 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = MultiClusteringAlgorithmReactor.class.getName();
 	
-	private static final String INSTANCE_KEY = "instance";
-	private static final String ATTRIBUTES = "attributes";
 	private static final String MIN_NUM_CLUSTERS = "minNumClusters";
 	private static final String MAX_NUM_CLUSTERS = "maxNumClusters";
 
@@ -43,6 +42,10 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 	/**
 	 * RunMultiClustering(instance = column, minNumClusters = min#, maxNumCluster = max#, col1, col2....);
 	 */
+	
+	public MultiClusteringAlgorithmReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), MIN_NUM_CLUSTERS, MAX_NUM_CLUSTERS, ReactorKeysEnum.ATTRIBUTES.getKey()};
+	}
 	
 	@Override
 	public NounMetadata execute() {
@@ -259,17 +262,17 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		//set instance column
 		GenRowStruct instanceColGRS = new GenRowStruct();
 		instanceColGRS.addColumn(instanceColumn);
-		nounStore.addNoun(ClusteringAlgorithmReactor.INSTANCE_KEY, instanceColGRS);
+		nounStore.addNoun(ReactorKeysEnum.INSTANCE_KEY.getKey(), instanceColGRS);
 		//set number of clusters
 		GenRowStruct clusterNumGRS = new GenRowStruct();
 		clusterNumGRS.addInteger(numClusters);
-		nounStore.addNoun(ClusteringAlgorithmReactor.CLUSTER_KEY, clusterNumGRS);
+		nounStore.addNoun(ReactorKeysEnum.CLUSTER_KEY.getKey(), clusterNumGRS);
 		//set attribute columns need to remove instance column
 		GenRowStruct columnsGRS = new GenRowStruct();
 		for(int i = 1; i < attributeNamesList.size(); i++) {
 			columnsGRS.addColumn(attributeNamesList.get(i));	
 		}
-		nounStore.addNoun(ClusteringAlgorithmReactor.COLUMN_KEY, columnsGRS);
+		nounStore.addNoun(ReactorKeysEnum.COLUMNS.getKey(), columnsGRS);
 		
 		//set frame 
 		alg.setInsight(this.insight);
@@ -292,7 +295,7 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 	//////////////////////////////////////////////////////////////
 	
 	private String getInstanceColumn() {
-		GenRowStruct instanceIndexGrs = this.store.getNoun(INSTANCE_KEY);
+		GenRowStruct instanceIndexGrs = this.store.getNoun(keysToGet[0]);
 		String instanceIndex = "";
 		NounMetadata instanceIndexNoun;
 		if (instanceIndexGrs != null) {
@@ -339,7 +342,7 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		// see if defined as indiviudal key
 		List<String> retList = new ArrayList<String>();
 		retList.add(this.instanceColumn);
-		GenRowStruct columnGrs = this.store.getNoun(ATTRIBUTES);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				String attribute = noun.getValue().toString();
@@ -359,5 +362,17 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		}
 		return retList;
 	}
-
+	
+///////////////////////// KEYS /////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(MIN_NUM_CLUSTERS)) {
+			return "The minimum number of clusters";
+		} else if (key.equals(MAX_NUM_CLUSTERS)) {
+			return "The maximum number of clusters";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

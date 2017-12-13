@@ -15,6 +15,10 @@ public class CountIfReactor extends AbstractRFrameReactor {
 	 * 2) the regex 
 	 * 3) the new column name
 	 */
+	
+	public CountIfReactor() {
+		this.keysToGet = new String[]{"countCol", "regex", "newCol"};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -99,4 +103,16 @@ public class CountIfReactor extends AbstractRFrameReactor {
 		String column = noun.getValue().toString();
 		return column;
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("countCol")) {
+			return "The column used to count instances of the regular expression";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
+
 }
