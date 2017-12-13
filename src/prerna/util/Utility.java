@@ -2649,8 +2649,12 @@ public class Utility {
 
 		Date rdbmsDate = adder.getEngineDate(engineName);
 		String owlFileName = baseFolder + "/" + prop.getProperty(Constants.OWL);
-		File owlFile = new File(owlFileName);
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		Map<String, String> paramHash = new Hashtable<String, String>();
+		paramHash.put("engine", prop.getProperty(Constants.ENGINE));
+		owlFileName = Utility.fillParam2(owlFileName, paramHash);
+		
+		File owlFile = new File(owlFileName);
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
 
 /*		String engineURL = "http://semoss.org/ontologies/meta/engine/" + Utility.cleanString(engineName, true);
