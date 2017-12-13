@@ -420,7 +420,14 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			}
 		} else {
 			if(thisComparator.equals("?like")) {
-				filterBuilder.append("tolower(").append(this.dataTableName).append("$").append(leftColumnName).append(") %like% tolower(").append(myFilterFormatted).append(")");
+				if(SemossDataType.STRING == dataType) {
+					filterBuilder.append("tolower(").append(this.dataTableName).append("$").append(leftColumnName).append(") %like% tolower(").append(myFilterFormatted).append(")");
+				} else {
+					if(myFilterFormatted.isEmpty()) {
+						myFilterFormatted = "\"\"";
+					}
+					filterBuilder.append("tolower(as.character(").append(this.dataTableName).append("$").append(leftColumnName).append(")) %like% tolower(").append(myFilterFormatted).append(")");
+				}
 			} else {
 				filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
