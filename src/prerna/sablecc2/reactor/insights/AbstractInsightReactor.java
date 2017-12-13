@@ -30,6 +30,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
@@ -40,23 +41,16 @@ import prerna.util.insight.InsightScreenshot;
 public abstract class AbstractInsightReactor extends AbstractReactor {
 	private static final Logger LOGGER = LogManager.getLogger(AbstractInsightReactor.class.getName());
 
-	// used for running insights
-	protected static final String ENGINE_KEY = "engine";
-	protected static final String RDBMS_ID = "id";
-	protected static final String PARAM_KEY = "params";
+	
 
 	// used for saving a base insight
-	protected static final String INSIGHT_NAME = "insightName";
-	protected static final String RECIPE = "recipe";
-	protected static final String LAYOUT = "layout";
-	protected static final String IMAGE_URL = "imageUrl";
 	protected static final String IMAGE = "image";
 	protected static final String RECIPE_FILE = ".mosfet";
 
 	protected String getEngine() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericEngineGrs = this.store.getNoun(ENGINE_KEY);
+		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			return (String) genericEngineGrs.get(0);
 		}
@@ -81,7 +75,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected String getInsightName() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericEngineGrs = this.store.getNoun(INSIGHT_NAME);
+		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.INSIGHT_NAME.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			return (String) genericEngineGrs.get(0);
 		}
@@ -100,7 +94,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getRdbmsId() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(RDBMS_ID);
+		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.INSIGHT_ID.getKey());
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return genericIdGrs.get(0).toString();
 		}
@@ -111,7 +105,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String[] getRecipe() {
 		// it must be passed directly into its own grs
-		GenRowStruct genericRecipeGrs = this.store.getNoun(RECIPE);
+		GenRowStruct genericRecipeGrs = this.store.getNoun(ReactorKeysEnum.RECIPE.getKey());
 		if(genericRecipeGrs != null && !genericRecipeGrs.isEmpty()) {
 			int size = genericRecipeGrs.size();
 			String[] recipe = new String[size];
@@ -127,7 +121,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getLayout() {
 		// it must be passed directly into its own grs
-		GenRowStruct genericLayoutGrs = this.store.getNoun(LAYOUT);
+		GenRowStruct genericLayoutGrs = this.store.getNoun(ReactorKeysEnum.LAYOUT_KEY.getKey());
 		if(genericLayoutGrs != null && !genericLayoutGrs.isEmpty()) {
 			return genericLayoutGrs.get(0).toString();
 		}
@@ -137,7 +131,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	protected String getImageURL() {
-		GenRowStruct genericBaseURLGrs = this.store.getNoun(IMAGE_URL);
+		GenRowStruct genericBaseURLGrs = this.store.getNoun(ReactorKeysEnum.IMAGE_URL.getKey());
 		if(genericBaseURLGrs != null && !genericBaseURLGrs.isEmpty()) {
 			try {
 				String imageURL = URLDecoder.decode(genericBaseURLGrs.get(0).toString(), "UTF-8");
@@ -167,7 +161,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	protected Object getParams() {
-		GenRowStruct paramGrs = this.store.getNoun(PARAM_KEY);
+		GenRowStruct paramGrs = this.store.getNoun(ReactorKeysEnum.PARAM_KEY.getKey());
 		if(paramGrs == null || paramGrs.isEmpty()) {
 			return null;
 		}

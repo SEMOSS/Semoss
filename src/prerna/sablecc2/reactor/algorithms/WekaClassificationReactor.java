@@ -21,6 +21,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -32,8 +33,10 @@ public class WekaClassificationReactor extends AbstractReactor {
 	private static final String CLASS_NAME = WekaClassificationReactor.class.getName();
 
 	private static final String CLASSIFICATION_COLUMN = "classify";
-	private static final String ATTRIBUTES = "attributes";
-	private static final String PANEL = "panel";
+	
+	public WekaClassificationReactor() {
+		this.keysToGet = new String[]{CLASSIFICATION_COLUMN, ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.PANEL.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -306,7 +309,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 	
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(ATTRIBUTES);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -331,12 +334,23 @@ public class WekaClassificationReactor extends AbstractReactor {
 	
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[2]);
 		if(columnGrs != null) {
 			if(columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();
 			}
 		}
 		return null;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(CLASSIFICATION_COLUMN)) {
+			return "The classification column";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

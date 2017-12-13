@@ -6,6 +6,7 @@ import prerna.nameserver.AddToMasterDB;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 
 public class AddMetaLinkReactor extends  AbstractMetaDBReactor  {
@@ -20,6 +21,11 @@ public class AddMetaLinkReactor extends  AbstractMetaDBReactor  {
 	 *  id, link, link1:::link2:::link3:::...
 	 *  
 	 */
+	
+	public AddMetaLinkReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		String engine = getEngine();

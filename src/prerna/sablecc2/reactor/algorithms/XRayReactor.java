@@ -28,6 +28,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.util.Constants;
@@ -49,6 +50,10 @@ import prerna.util.Utility;
  * RunXray("xrayConfigFile");
  */
 public class XRayReactor extends AbstractRFrameReactor {
+	
+	public XRayReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

@@ -8,8 +8,13 @@ import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class SetPanelPositionReactor extends AbstractInsightPanelReactor {
+	
+	public SetPanelPositionReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.PANEL_POSITION_KEY.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

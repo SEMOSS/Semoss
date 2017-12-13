@@ -11,8 +11,13 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
+	
+	public ReplaceFrameFilterReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

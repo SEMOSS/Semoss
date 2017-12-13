@@ -8,17 +8,19 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class RenameColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor renames a column It replaces all portions of the current
-	 * cell value that is an exact match to the input value The inputs to the
-	 * reactor are: 
-	 * 1) the column to update 
-	 * 2) the regex to look for 
-	 * 3) value to replace the regex with
+	 * This reactor renames a column 
+	 * 1) the original column
+	 * 2) the new column name 
 	 */
+	
+	public RenameColumnReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

@@ -9,12 +9,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class SetPanelViewReactor extends AbstractInsightPanelReactor {
-
-	private static final String PANEL_VIEW_KEY = "panelView";
-	private static final String PANEL_VIEW_OPTIONS_KEY = "panelViewOptions";
+	
+	public SetPanelViewReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.PANEL_VIEW_KEY.getKey(), ReactorKeysEnum.PANEL_VIEW_OPTIONS_KEY.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -38,7 +40,7 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 
 	private String getPanelView() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(PANEL_VIEW_KEY);
+		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return genericReactorGrs.get(0).toString();
 		}
@@ -55,7 +57,7 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 
 	private String getPanelViewOptions() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericReactorGrs = this.store.getNoun(PANEL_VIEW_OPTIONS_KEY);
+		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[2]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return Utility.decodeURIComponent(genericReactorGrs.get(0).toString());
 		}
@@ -66,7 +68,7 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 		if(strNouns != null && !strNouns.isEmpty()) {
 			if(strNouns.size() > 1) {
 				return Utility.decodeURIComponent(strNouns.get(1).getValue().toString());
-			} else if(this.store.getNoun(PANEL_VIEW_KEY) != null){
+			} else if(this.store.getNoun(keysToGet[1]) != null){
 				// only return a valid view options at index 0 if and only if
 				// the panel view is not set at index 0
 				return Utility.decodeURIComponent(strNouns.get(0).getValue().toString());

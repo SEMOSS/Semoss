@@ -7,6 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class DescriptiveStatsReactor extends AbstractRFrameReactor {
 
@@ -15,9 +16,11 @@ public class DescriptiveStatsReactor extends AbstractRFrameReactor {
 	 * 1) column to get stats on
 	 * 2) panelId (defaults to zero if no panel id is entered)
 	 */
+
 	
-	private static final String COLUMN = "column";
-	private static final String PANEL = "panel";
+	public DescriptiveStatsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -99,7 +102,7 @@ public class DescriptiveStatsReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getNoun(COLUMN);
+		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
 			NounMetadata noun1 = columnGRS.getNoun(0);
 			String column = noun1.getValue() + "";
@@ -114,7 +117,7 @@ public class DescriptiveStatsReactor extends AbstractRFrameReactor {
 	// get panel id using key "PANEL"
 	private String getPanelId() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(PANEL);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				return columnGrs.get(0).toString();

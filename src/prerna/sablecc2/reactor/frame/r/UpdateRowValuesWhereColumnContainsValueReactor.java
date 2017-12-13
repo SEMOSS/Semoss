@@ -12,6 +12,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFrameReactor {
 
@@ -23,6 +24,10 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 	 * 2) the new value
 	 * 3) the filter condition
 	 */
+	
+	public UpdateRowValuesWhereColumnContainsValueReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {

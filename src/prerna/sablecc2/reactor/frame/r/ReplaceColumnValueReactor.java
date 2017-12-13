@@ -5,6 +5,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	
@@ -15,6 +16,10 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	 * 2) the old value
 	 * 3) the new value
 	 */
+	
+	public ReplaceColumnValueReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
