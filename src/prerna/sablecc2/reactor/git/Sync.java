@@ -24,7 +24,6 @@ public class Sync extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		Logger logger = getLogger(this.getClass().getName());
 		try {
 			organizeKeys();
@@ -72,9 +71,7 @@ public class Sync extends AbstractReactor {
 
 			logger.info("Indexing your changes");
 			// will update solr and in the engine rdbms insights database
-			MosfitSyncHelper indexHelper = new MosfitSyncHelper();
-			indexHelper.setLogger(getLogger(this.getClass().getName()));
-			indexHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged));
+			MosfitSyncHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged), logger);
 			logger.info("Index complete");
 
 			return new NounMetadata(output.toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);

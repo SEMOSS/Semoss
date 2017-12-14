@@ -45,39 +45,34 @@ public class MosfitSyncHelper {
 	private static final String LAYOUT_KEY = "layout";
 	private static final String RECIPE_KEY = "recipe";
 
-	private Logger logger;
-	private SolrIndexEngine solrE;
-
-	public MosfitSyncHelper() {
-
-	}
-
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-
-	// keeping track of the solr documents I want to add
-	private List<SolrInputDocument> solrDocsToAdd = new Vector<SolrInputDocument>();
-	// keeping track of solr documents to remove
-	private List<String> solrDocsToRemove = new Vector<String>();
-
-	public void synchronizeInsightChanges(Map<String, List<String>> filesChanged) {
-		// get the solr index engine
+	private static SolrIndexEngine solrE;
+	
+	static {
 		try {
-			this.solrE = SolrIndexEngine.getInstance();
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e1) {
-			outputError("Could not establish connnection with solr");
-			return;
+			solrE = SolrIndexEngine.getInstance();
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			// well, this sucks
 		}
+	}
+
+	private MosfitSyncHelper() {
+
+	}
+
+	public static void synchronizeInsightChanges(Map<String, List<String>> filesChanged, Logger logger) {
+		// keeping track of the solr documents I want to add
+		List<SolrInputDocument> solrDocsToAdd = new Vector<SolrInputDocument>();
+		// keeping track of solr documents to remove
+		List<String> solrDocsToRemove = new Vector<String>();
 
 		// process add
 		if(filesChanged.containsKey(ADD)) {
-			processAddedFiles(filesChanged.get(ADD));
+			processAddedFiles(filesChanged.get(ADD), solrDocsToAdd, logger);
 		}
 
 		// process mod
 		if(filesChanged.containsKey(MOD)) {
-			processModifiedFiles(filesChanged.get(MOD));
+			processModifiedFiles(filesChanged.get(MOD), solrDocsToAdd, logger);
 		}
 
 		// TODO: how to handle rename
@@ -88,121 +83,114 @@ public class MosfitSyncHelper {
 
 		// process delete
 		if(filesChanged.containsKey(DEL)) {
-			processDelete(filesChanged.get(DEL));
+			processDelete(filesChanged.get(DEL), solrDocsToRemove, logger);
 		}
 
 		// we store the solr results because solr indexing is slow
 		// so we do it all at once here
-
+		addToSolr(solrDocsToAdd);
 		// add all the solr documents we need to process
-		if(!this.solrDocsToAdd.isEmpty()) {
-			try {
-				this.solrE.addInsights(this.solrDocsToAdd);
-			} catch (SolrServerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-		// remove all the solr documents we need to remove
-		if(!this.solrDocsToRemove.isEmpty()) {
-			try {
-				this.solrE.removeInsight(this.solrDocsToRemove);
-			} catch (SolrServerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
+		removeFromSolr(solrDocsToRemove);
 	}
 
-	private void processAddedFiles(List<String> list) {
+	private static void processAddedFiles(List<String> list, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
 		for(String fileLocation : list) {
 			File mosfetFile = new File(fileLocation);
 			Map<String, Object> mapData = null;
 			try {
 				mapData = getMosfitMap(mosfetFile);
 			} catch(IllegalArgumentException e) {
-				outputError(e.getMessage());
+				outputError(logger, e.getMessage());
 			}
 			if(mapData == null) {
-				outputError("MOSFET file is not in valid JSON format");
-				continue;
+				outputError(logger, "MOSFET file is not in valid JSON format");
+				return;
 			}
-
-			String engineName = mapData.get(ENGINE_KEY).toString();
-			String id = mapData.get(RDBMS_ID_KEY).toString();
-			String name = mapData.get(INSIGHT_NAME_KEY).toString();
-			String layout = mapData.get(LAYOUT_KEY).toString();
-			String recipe = mapData.get(RECIPE_KEY).toString();
-
-			// solr is simple
-			// we just go through and add it
-			// if it is an add/modify, we have the same steps
-			addSolrDocToProcess(mosfetFile, engineName, id, name, layout);
-
-			// need to add the insight in the rdbms engine
-			addInsightToEngineRdbms(engineName, id, name, layout, recipe);
+			processAddedFile(mapData, getCurDateForFile(mosfetFile), solrDocsToAdd, logger);
 		}
 	}
 
-	private void processModifiedFiles(List<String> list) {
+	private static void processAddedFile(Map<String, Object> mapData, String lastModDate, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
+		String engineName = mapData.get(ENGINE_KEY).toString();
+		String id = mapData.get(RDBMS_ID_KEY).toString();
+		String name = mapData.get(INSIGHT_NAME_KEY).toString();
+		String layout = mapData.get(LAYOUT_KEY).toString();
+		String recipe = mapData.get(RECIPE_KEY).toString();
+
+		// solr is simple
+		// we just go through and add it
+		// if it is an add/modify, we have the same steps
+		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
+
+		// need to add the insight in the rdbms engine
+		addInsightToEngineRdbms(engineName, id, name, layout, recipe);
+	}
+
+	private static void processModifiedFiles(List<String> list, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
 		for(String fileLocation : list) {
 			File mosfetFile = new File(fileLocation);
 			Map<String, Object> mapData = null;
 			try {
 				mapData = getMosfitMap(mosfetFile);
 			} catch(IllegalArgumentException e) {
-				outputError(e.getMessage());
+				outputError(logger, e.getMessage());
 			}
 			if(mapData == null) {
-				outputError("MOSFET file is not in valid JSON format");
+				outputError(logger, "MOSFET file is not in valid JSON format");
 				continue;
 			}
-
-			String engineName = mapData.get(ENGINE_KEY).toString();
-			String id = mapData.get(RDBMS_ID_KEY).toString();
-			String name = mapData.get(INSIGHT_NAME_KEY).toString();
-			String layout = mapData.get(LAYOUT_KEY).toString();
-			String recipe = mapData.get(RECIPE_KEY).toString();
-
-			// solr is simple
-			// we just go through and add it
-			// if it is an add/modify, we have the same steps
-			addSolrDocToProcess(mosfetFile, engineName, id, name, layout);
-
-			// need to update the insight in the rdbms engine
-			modifyInsightInEngineRdbms(engineName, id, name, layout, recipe);
+			processModifiedFiles(mapData, getCurDateForFile(mosfetFile), solrDocsToAdd, logger);
 		}
 	}
 
-	private void processDelete(List<String> list) {
+	private static void processModifiedFiles(Map<String, Object> mapData, String lastModDate, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
+		String engineName = mapData.get(ENGINE_KEY).toString();
+		String id = mapData.get(RDBMS_ID_KEY).toString();
+		String name = mapData.get(INSIGHT_NAME_KEY).toString();
+		String layout = mapData.get(LAYOUT_KEY).toString();
+		String recipe = mapData.get(RECIPE_KEY).toString();
+
+		// solr is simple
+		// we just go through and add it
+		// if it is an add/modify, we have the same steps
+		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
+
+		// need to update the insight in the rdbms engine
+		modifyInsightInEngineRdbms(engineName, id, name, layout, recipe);
+	}
+
+	private static void processDelete(List<String> list, List<String> solrDocsToRemove, Logger logger) {
 		for(String fileLocation : list) {
 			File mosfetFile = new File(fileLocation);
 			Map<String, Object> mapData = null;
 			try {
 				mapData = getMosfitMap(mosfetFile);
 			} catch(IllegalArgumentException e) {
-				outputError(e.getMessage());
+				outputError(logger, e.getMessage());
 			}
 			if(mapData == null) {
-				outputError("MOSFET file is not in valid JSON format");
+				outputError(logger, "MOSFET file is not in valid JSON format");
 				continue;
 			}
 
 			String engineName = mapData.get(ENGINE_KEY).toString();
 			String id = mapData.get(RDBMS_ID_KEY).toString();
-
-			// solr is simple
-			// we just add the id to remove
-			this.solrDocsToRemove.add(engineName + "__" + id);
-
-			// need to delete the insight in the rdbms engine
-			deleteInsightFromEngineRdbms(engineName, id);
+			processDelete(engineName, id, solrDocsToRemove);
 		}
 	}
+	
+	private static void processDelete(String engineName, String id, List<String> solrDocsToRemove) {
+		// solr is simple
+		// we just add the id to remove
+		solrDocsToRemove.add(engineName + "__" + id);
 
-	private void addSolrDocToProcess(File mosfetFile, String engineName, String id, String name, String layout) {
+		// need to delete the insight in the rdbms engine
+		deleteInsightFromEngineRdbms(engineName, id);
+	}
+
+	private static void addSolrDocToProcess(List<SolrInputDocument> solrDocsToAdd, String lastModDate, String engineName, String id, String name, String layout) {
 		// if the solr is active...
-		if (this.solrE.serverActive()) {
-			// get the current date which will be used to store in "created_on" and "modified_on" fields within schema
-			String currDate = SolrIndexEngine.getDateFormat().format(new Date(mosfetFile.lastModified()));
+		if (solrE != null && solrE.serverActive()) {
 			// set all the users to be default...
 			String userID = "default";
 
@@ -213,8 +201,8 @@ public class MosfitSyncHelper {
 			// create solr document and add into docs list
 			Map<String, Object>  queryResults = new  HashMap<> ();
 			queryResults.put(SolrIndexEngine.STORAGE_NAME, name);
-			queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
-			queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
+			queryResults.put(SolrIndexEngine.CREATED_ON, lastModDate);
+			queryResults.put(SolrIndexEngine.MODIFIED_ON, lastModDate);
 			queryResults.put(SolrIndexEngine.USER_ID, userID);
 			queryResults.put(SolrIndexEngine.ENGINES, engineSet);
 			queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
@@ -222,14 +210,14 @@ public class MosfitSyncHelper {
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 			try {
-				this.solrDocsToAdd.add(this.solrE.createDocument(engineName + "_" + id, queryResults));
+				solrDocsToAdd.add(solrE.createDocument(engineName + "_" + id, queryResults));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	private void addInsightToEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
+	private static void addInsightToEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
 		IEngine engine = Utility.getEngine(engineName);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
@@ -237,7 +225,7 @@ public class MosfitSyncHelper {
 		admin.addInsight(id, insightName, layout, pixelRecipeToSave );
 	}
 
-	private void modifyInsightInEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
+	private static void modifyInsightInEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
 		IEngine engine = Utility.getEngine(engineName);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
@@ -245,13 +233,13 @@ public class MosfitSyncHelper {
 		admin.updateInsight(id, insightName, layout, pixelRecipeToSave);
 	}
 
-	private void deleteInsightFromEngineRdbms(String engineName, String id) {
+	private static void deleteInsightFromEngineRdbms(String engineName, String id) {
 		IEngine engine = Utility.getEngine(engineName);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		admin.dropInsight(id);
 	}
 
-	private void outputError(String errorMessage) {
+	private static void outputError(Logger logger, String errorMessage) {
 		if(logger != null) {
 			logger.info("ERROR!!! " + errorMessage);
 		}
@@ -268,6 +256,27 @@ public class MosfitSyncHelper {
 		}
 		return mapData;
 	}
+	
+	private static void removeFromSolr(List<String> solrDocsToRemove) {
+		// remove all the solr documents we need to remove
+		if(solrE != null && !solrDocsToRemove.isEmpty()) {
+			try {
+				solrE.removeInsight(solrDocsToRemove);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private static void addToSolr(List<SolrInputDocument> solrDocsToAdd) {
+		if(solrE != null && !solrDocsToAdd.isEmpty()) {
+			try {
+				solrE.addInsights(solrDocsToAdd);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
 	/**
 	 * Get the insight name for the input mosfet file
@@ -280,8 +289,11 @@ public class MosfitSyncHelper {
 		return name;
 	}
 
-	public static File renameMosfit(File mosfetFile, String newInsightName) {
+	public static File renameMosfit(File mosfetFile, String newInsightName, Logger logger) {
 		Map<String, Object> mapData = getMosfitMap(mosfetFile);
+		String origId = mapData.get(RDBMS_ID_KEY).toString();
+		String engineName = mapData.get(ENGINE_KEY).toString();
+		
 		String newRandomId = UUID.randomUUID().toString();
 
 		// general structure is db / version / insight id / .mosfet
@@ -293,8 +305,8 @@ public class MosfitSyncHelper {
 		newInsightDir.mkdirs();
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		mapData.put("rdbmsId", newRandomId);
-		mapData.put("insightName", newInsightName);
+		mapData.put(RDBMS_ID_KEY, newRandomId);
+		mapData.put(INSIGHT_NAME_KEY, newInsightName);
 
 		String json = gson.toJson(mapData);
 		File newMosfetFile = new File(newInsightDirLoc + "/.mosfet");
@@ -304,7 +316,37 @@ public class MosfitSyncHelper {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
+
+		// now that we have the new one
+		// let us add it
+		List<SolrInputDocument> solrDocsToAdd = new Vector<SolrInputDocument>();
+		processAddedFile(mapData, getCurDate(), solrDocsToAdd, logger);
+		addToSolr(solrDocsToAdd);
+		// we want to delete the old
+		List<String> solrDocsToRemove = new Vector<String>();
+		processDelete(engineName, origId, solrDocsToRemove);
+		removeFromSolr(solrDocsToRemove);
+		mosfetFile.delete();
+		mosfetFile.getParentFile().delete();
+		
 		return newMosfetFile;
 	}
 
+
+	/**
+	 * Get the last modified date for a file
+	 * @param mosfetFile
+	 * @return
+	 */
+	private static String getCurDateForFile(File mosfetFile) {
+		return SolrIndexEngine.getDateFormat().format(new Date(mosfetFile.lastModified()));
+	}
+
+	/**
+	 * Get the current date
+	 * @return
+	 */
+	private static String getCurDate() {
+		return SolrIndexEngine.getDateFormat().format(new Date());
+	}
 }
