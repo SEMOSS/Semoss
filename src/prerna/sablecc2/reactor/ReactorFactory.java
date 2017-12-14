@@ -472,6 +472,7 @@ public class ReactorFactory {
 		reactorHash.put("Save", prerna.sablecc2.reactor.git.SaveFile.class);
 		reactorHash.put("IsGit", prerna.sablecc2.reactor.git.IsGit.class);
 		reactorHash.put("Login", prerna.sablecc2.reactor.git.LoginGit.class);
+		reactorHash.put("RemoveRemote", prerna.sablecc2.reactor.git.RemoveRemote.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
