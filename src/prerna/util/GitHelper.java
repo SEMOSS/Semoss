@@ -644,6 +644,7 @@ public class GitHelper {
 	
 	public void addRemote(String localRepository, String repositoryName, boolean dual) 
 	{
+		String repoUserName = repositoryName.split("/")[0];
 		String repoAlias = repositoryName.split("/")[1];
 		try {
 			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
