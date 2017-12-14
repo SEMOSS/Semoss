@@ -28,7 +28,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.solr.SolrIndexEngine;
 
-public class MosfitSyncHelper {
+public class MosfetSyncHelper {
+
+	public static final String RECIPE_FILE = ".mosfet";
 
 	// ADDED
 	private static final String ADD = "ADD";
@@ -55,7 +57,7 @@ public class MosfitSyncHelper {
 		}
 	}
 
-	private MosfitSyncHelper() {
+	private MosfetSyncHelper() {
 
 	}
 
@@ -309,7 +311,7 @@ public class MosfitSyncHelper {
 		mapData.put(INSIGHT_NAME_KEY, newInsightName);
 
 		String json = gson.toJson(mapData);
-		File newMosfetFile = new File(newInsightDirLoc + "/.mosfet");
+		File newMosfetFile = new File(newInsightDirLoc + "/" + RECIPE_FILE);
 		try {
 			// write json to file
 			FileUtils.writeStringToFile(newMosfetFile, json);
@@ -331,7 +333,49 @@ public class MosfitSyncHelper {
 		
 		return newMosfetFile;
 	}
+	
+	/**
+	 * Save insight recipe to db/engineName/insightName/recipe.json
+	 *  json includes 
+	 *  	engine: engineName
+	 *  	rdbmsID: rdbmsID
+	 *  	recipe: pixel;pixel;...
+	 * 
+	 * @param engineName
+	 * @param rdbmsID
+	 * @param recipeToSave
+	 */
+	public static File makeMosfitFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
+		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		// format recipe file
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("engine", engineName);
+		output.put("rdbmsId", rdbmsID);
+		output.put("insightName", insightName);
+		output.put("layout", layout);
+		StringBuilder recipe = new StringBuilder();
+		for (String pixel : recipeToSave) {
+			recipe.append(pixel).append("\n");
+		}
+		output.put("recipe", recipe.toString());
 
+		String json = gson.toJson(output);
+		File path = new File(recipePath);
+		// create insight directory
+		path.mkdirs();
+		recipePath += "\\" + RECIPE_FILE;
+		// create file
+		File f = new File(recipePath);
+		try {
+			// write json to file
+			FileUtils.writeStringToFile(f, json);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		return f;
+	}
 
 	/**
 	 * Get the last modified date for a file
