@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,13 +15,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
@@ -33,19 +28,16 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
-import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightScreenshot;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
-	private static final Logger LOGGER = LogManager.getLogger(AbstractInsightReactor.class.getName());
 
-	
+	private static final Logger LOGGER = LogManager.getLogger(AbstractInsightReactor.class.getName());
 
 	// used for saving a base insight
 	protected static final String IMAGE = "image";
-	protected static final String RECIPE_FILE = ".mosfet";
 
 	protected String getEngine() {
 		// look at all the ways the insight panel could be passed
@@ -189,52 +181,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			}
 		}
 		return decodedRecipe;
-	}
-	
-	/**
-	 * Save insight recipe to db/engineName/insightName/recipe.json
-	 *  json includes 
-	 *  	engine: engineName
-	 *  	rdbmsID: rdbmsID
-	 *  	recipe: pixel;pixel;...
-	 * 
-	 * @param engineName
-	 * @param rdbmsID
-	 * @param recipeToSave
-	 */
-	protected void saveRecipeToFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
-		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		// format recipe file
-		HashMap<String, Object> output = new HashMap<String, Object>();
-		output.put("engine", engineName);
-		output.put("rdbmsId", rdbmsID);
-		output.put("insightName", insightName);
-		output.put("layout", layout);
-		StringBuilder recipe = new StringBuilder();
-		for (String pixel : recipeToSave) {
-			recipe.append(pixel).append("\n");
-		}
-		output.put("recipe", recipe.toString());
-
-		String json = gson.toJson(output);
-		File path = new File(recipePath);
-		// create insight directory
-		if (path.mkdirs()) {
-			recipePath += "\\" + RECIPE_FILE;
-			// create file
-			File f = new File(recipePath);
-			try {
-				// write json to file
-				FileUtils.writeStringToFile(f, json);
-			} catch (IOException e1) {
-				LOGGER.error("Error in writing recipe file to path " + recipePath);
-				e1.printStackTrace();
-			}
-		} else {
-			LOGGER.error("Error in writing recipe file to path " + recipePath);
-		}
 	}
 	
 	/**
