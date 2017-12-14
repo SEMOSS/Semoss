@@ -13,7 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.GitHelper;
-import prerna.util.MosfitSyncHelper;
+import prerna.util.MosfetSyncHelper;
 
 public class Sync extends AbstractReactor {
 
@@ -71,7 +71,7 @@ public class Sync extends AbstractReactor {
 
 			logger.info("Indexing your changes");
 			// will update solr and in the engine rdbms insights database
-			MosfitSyncHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged), logger);
+			MosfetSyncHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged), logger);
 			logger.info("Index complete");
 
 			return new NounMetadata(output.toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
