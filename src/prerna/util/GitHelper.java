@@ -1522,7 +1522,6 @@ public class GitHelper {
 			   try {
 				   // need to make modification on the engine
 				   FileUtils.copyFileToDirectory(files[i], dbFile);
-//				   files[i].delete();
 				// in reality there may be other things we need to do
 				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 			} catch (IOException e) {
@@ -1530,8 +1529,6 @@ public class GitHelper {
 				e.printStackTrace();
 			}
 		 }
-
-		
 	}
 
 	public void semossInit(String dir)
@@ -1568,6 +1565,27 @@ public class GitHelper {
 		return output;
 	}
 	
+	public List<String> [] getFiles(String dbName, Iterator <String> iterator)
+	{
+		List <String> retOutput = new Vector <String>();
+		List <String> retFiles = new Vector <String>();
+		while(iterator.hasNext())
+		{
+			String daFile = dbName + "/" + iterator.next();
+			// make the call to maher's method to get the name of the file
+			String fileName = MosfitSyncHelper.getInsightName(new File(daFile));
+			retOutput.add(fileName);
+			// need to give the file as well
+			retFiles.add(daFile);
+		}
+		
+		List <String> [] finalOutput = new List[2];
+		finalOutput[0] = retOutput;
+		finalOutput[1] = retFiles;
+		
+		return finalOutput;
+	}
+		
 	// get the modified files to add
 	public List<String> addFiles(String dbName, boolean ignore)
 	{
@@ -2276,16 +2294,49 @@ public class GitHelper {
 		return writable;
 	}
 	
-	public void deleteRepo(String remoteRepoName, String userName, String password)
+	public Hashtable<String, List<String>> getStatus(String dbName)
 	{
-		// need to see if we should remove local repository as well
+		Hashtable <String, List<String>> output = new Hashtable<String, List<String>>();
+		try {
+			Git thisGit = Git.open(new File(dbName));
+
+			Status status = thisGit.status().call();
+			
+			boolean added = false;
+
+			List <String>[] addVec = getFiles(dbName, status.getAdded().iterator());
+			List <String>[] modVec = getFiles(dbName, status.getModified().iterator());
+			List <String>[] delVec = getFiles(dbName, status.getRemoved().iterator());
+			List <String>[] conVec = getFiles(dbName, status.getConflicting().iterator());
+
+			output.put("ADD", addVec[0]);
+			output.put("ADD_FILES", addVec[1]);
+			output.put("MOD", modVec[0]);
+			output.put("MOD_FILES", modVec[1]);
+			output.put("DEL", delVec[0]);
+			output.put("DEL_FILES", delVec[1]);
+			output.put("CON", conVec[0]);
+			output.put("CON_FILES", conVec[1]);
+			
+			thisGit.close();
+			
+		} catch (NoWorkTreeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//getModFiles(dbName, ignore);
+		return output;
 	}
 
 	
 	public static void main(String [] args) throws Exception
 	{
-		
-		
 		
 		GitHelper helper = new GitHelper();
 		
