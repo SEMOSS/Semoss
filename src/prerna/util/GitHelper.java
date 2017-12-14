@@ -1574,7 +1574,7 @@ public class GitHelper {
 		{
 			String daFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version/" + iterator.next();
 			// make the call to maher's method to get the name of the file
-			String fileName = MosfitSyncHelper.getInsightName(new File(daFile));
+			String fileName = MosfetSyncHelper.getInsightName(new File(daFile));
 			retOutput.add(fileName);
 			// need to give the file as well
 			retFiles.add(daFile);

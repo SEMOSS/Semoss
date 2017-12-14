@@ -9,7 +9,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.MosfitSyncHelper;
+import prerna.util.MosfetSyncHelper;
 
 public class GitRenameMosfitFileReactor extends AbstractReactor {
 
@@ -21,7 +21,7 @@ public class GitRenameMosfitFileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(this.getClass().getName());
 		organizeKeys();
-		MosfitSyncHelper.renameMosfit(new File(this.keyValue.get(this.keysToGet[0])), this.keyValue.get(this.keysToGet[1]), logger);
+		MosfetSyncHelper.renameMosfit(new File(this.keyValue.get(this.keysToGet[0])), this.keyValue.get(this.keysToGet[1]), logger);
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
 	}
 

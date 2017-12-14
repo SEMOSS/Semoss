@@ -25,6 +25,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
@@ -73,7 +74,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "");
 		LOGGER.info("2) Done");
 		//update recipe text file
-		LOGGER.info("3) Update "+ RECIPE_FILE);
+		LOGGER.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
 		updateRecipeFile(engineName, rdbmsId, insightName, layout, recipeToSave);
 		LOGGER.info("3) Done");
 		if (imageURL != null) {
@@ -144,10 +145,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 */
 	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		recipeLocation += "\\" + Constants.DB + "\\" + engineName + "\\" + rdbmsID;
+		recipeLocation += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
 		try {
 			FileUtils.deleteDirectory(new File(recipeLocation));
-			saveRecipeToFile(engineName, rdbmsID, insightName, layout, recipeToSave);
+			MosfetSyncHelper.makeMosfitFile(engineName, rdbmsID, insightName, layout, recipeToSave);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
