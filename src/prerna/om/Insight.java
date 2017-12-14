@@ -350,17 +350,12 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	
+
 	// run a new pixel routine
 	public synchronized Map<String, Object> runPixel(String pixelString) {
 		PixelRunner runner = getPixelRunner();
-		try {
-			LOGGER.info("Running >>> " + pixelString);
-			runner.runPixel(pixelString, this);
-		} catch(Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Error with " + pixelString + "\n" + e.getMessage());
-		}
+		LOGGER.info("Running >>> " + pixelString);
+		runner.runPixel(pixelString, this);
 		return collectPixelData(runner);
 	}
 
@@ -370,23 +365,18 @@ public class Insight {
 		int size = pixelList.size();
 		for(int i = 0; i < size; i++) {
 			String pixelString = pixelList.get(i);
-			try {
-				LOGGER.info("Running >>> " + pixelString);
-				runner.runPixel(pixelString, this);
-			} catch(Exception e) {
-				throw new IllegalArgumentException("Error with " + pixelString + "\n" + e.getMessage());
-			}
+			LOGGER.info("Running >>> " + pixelString);
+			runner.runPixel(pixelString, this);
 		}
 		return collectPixelData(runner);
 	}
-	
+
 	/**
 	 * 
 	 * @param runner
 	 * @return
 	 */
 	private Map<String, Object> collectPixelData(PixelRunner runner) {
-		Map<String, Object> retData = new Hashtable<String, Object>();
 		// get the return values
 		List<NounMetadata> resultList = runner.getResults();
 		// get the expression which created the return
@@ -394,6 +384,8 @@ public class Insight {
 		List<String> pixelStrings = runner.getPixelExpressions();
 		List<Boolean> isMeta = runner.isMeta();
 		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
+		boolean invalidSyntax = runner.isInvalidSyntax();
+		
 		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
 		String expression = null;
 		for (int i = 0; i < pixelStrings.size(); i++) {
@@ -405,7 +397,8 @@ public class Insight {
 			ret.put("pixelExpression", expression);
 			// save the expression for future use
 			// only if it is not meta
-			if (!isMeta.get(i)) {
+			// and if it is not invalid syntax
+			if (!isMeta.get(i) && !invalidSyntax) {
 				ret.put("isMeta", false);
 				this.pixelList.add(expression);
 			} else {
@@ -414,6 +407,8 @@ public class Insight {
 			// add it to the list
 			retValues.add(ret);
 		}
+		
+		Map<String, Object> retData = new Hashtable<String, Object>();
 		retData.put("pixelReturn", retValues);
 		retData.put("insightID", this.insightId);
 		return retData;
