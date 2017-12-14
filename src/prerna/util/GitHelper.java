@@ -1145,6 +1145,7 @@ public class GitHelper {
 	public void addSpecificFiles(Git thisGit, List<String> files) {
 		AddCommand ac = thisGit.add();
 		for(String daFile : files) {
+			daFile = "./" + daFile.substring(daFile.indexOf("version") + 8);
 			ac.addFilepattern(daFile);
 		}
 		try {
