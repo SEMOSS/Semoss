@@ -42,6 +42,7 @@ public class PixelRunner {
 	private List<String> pixelExpression = new Vector<String>();
 	private List<Boolean> isMeta = new Vector<Boolean>();
 	private Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
+	private boolean invalidSyntax = false;
 	
 	public static void main(String[] args) throws Exception {
 		String pixel = "A = 10; B = \"Apple\";";
@@ -97,7 +98,7 @@ public class PixelRunner {
 			Start tree = p.parse();
 			// apply the translation.
 			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException | RuntimeException e) {
+		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
@@ -110,7 +111,8 @@ public class PixelRunner {
 				   System.out.println("error around " + expression.substring(Math.max(findIndex - 15, 0), Math.min(findIndex + 15, expression.length())));
 				}
 			}
-			addResult(expression, new NounMetadata(eMessage, PixelDataType.ERROR, PixelOperationType.ERROR), false);
+			this.invalidSyntax = true;
+			addResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.INVALID_SYNTAX), false);
 		}
 		return;
 	}
@@ -322,5 +324,9 @@ public class PixelRunner {
 	
 	public Map<String, String> getEncodedTextToOriginal() {
 		return this.encodedTextToOriginal;
+	}
+
+	public boolean isInvalidSyntax() {
+		return invalidSyntax;
 	}
 }
