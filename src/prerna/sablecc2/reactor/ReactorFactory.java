@@ -474,6 +474,7 @@ public class ReactorFactory {
 		reactorHash.put("Login", prerna.sablecc2.reactor.git.LoginGit.class);
 		reactorHash.put("RemoveRemote", prerna.sablecc2.reactor.git.RemoveRemote.class);
 		reactorHash.put("GitStatus", prerna.sablecc2.reactor.git.GitStatusReactor.class);
+		reactorHash.put("RenameMosfitFile", prerna.sablecc2.reactor.git.GitRenameMosfitFileReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
