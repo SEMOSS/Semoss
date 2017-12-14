@@ -2,6 +2,7 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -376,7 +377,46 @@ public class MosfetSyncHelper {
 		}
 		return f;
 	}
+	
+	public static File updateMosfitFile(File mosfetFile, String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		// format recipe file
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("engine", engineName);
+		output.put("rdbmsId", rdbmsID);
+		output.put("insightName", insightName);
+		output.put("layout", layout);
+		StringBuilder recipe = new StringBuilder();
+		for (String pixel : recipeToSave) {
+			recipe.append(pixel).append("\n");
+		}
+		output.put("recipe", recipe.toString());
 
+		String json = gson.toJson(output);
+		FileOutputStream writer = null;
+		try {
+			writer = new FileOutputStream(mosfetFile);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		try {
+			// write json to file
+			FileUtils.writeStringToFile(mosfetFile, json);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		return mosfetFile;
+	}
 	/**
 	 * Get the last modified date for a file
 	 * @param mosfetFile
