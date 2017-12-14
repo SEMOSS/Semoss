@@ -225,11 +225,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			recipePath += "\\" + RECIPE_FILE;
 			// create file
 			File f = new File(recipePath);
-			StringBuilder sb = new StringBuilder();
-			sb.append(json);
 			try {
 				// write json to file
-				FileUtils.writeStringToFile(f, sb.toString());
+				FileUtils.writeStringToFile(f, json);
 			} catch (IOException e1) {
 				LOGGER.error("Error in writing recipe file to path " + recipePath);
 				e1.printStackTrace();
