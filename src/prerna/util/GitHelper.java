@@ -2299,7 +2299,8 @@ public class GitHelper {
 	{
 		Hashtable <String, List<String>> output = new Hashtable<String, List<String>>();
 		try {
-			Git thisGit = Git.open(new File(dbName));
+			String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version";
+			Git thisGit = Git.open(new File(location));
 
 			Status status = thisGit.status().call();
 			
