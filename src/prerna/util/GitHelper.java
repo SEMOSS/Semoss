@@ -2310,7 +2310,10 @@ public class GitHelper {
 			List <String>[] modVec = getFiles(dbName, status.getModified().iterator());
 			List <String>[] delVec = getFiles(dbName, status.getRemoved().iterator());
 			List <String>[] conVec = getFiles(dbName, status.getConflicting().iterator());
+			List <String>[] untrackVec = getFiles(dbName, status.getUntracked().iterator());
 
+			output.put("NEW", untrackVec[0]);
+			output.put("NEW_FILES", untrackVec[1]);
 			output.put("ADD", addVec[0]);
 			output.put("ADD_FILES", addVec[1]);
 			output.put("MOD", modVec[0]);
