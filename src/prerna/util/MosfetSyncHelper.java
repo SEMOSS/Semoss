@@ -2,7 +2,6 @@ package prerna.util;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -393,20 +392,11 @@ public class MosfetSyncHelper {
 		output.put("recipe", recipe.toString());
 
 		String json = gson.toJson(output);
-		FileOutputStream writer = null;
+		mosfetFile.delete();
 		try {
-			writer = new FileOutputStream(mosfetFile);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			if(writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+			mosfetFile.createNewFile();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 		
 		try {
