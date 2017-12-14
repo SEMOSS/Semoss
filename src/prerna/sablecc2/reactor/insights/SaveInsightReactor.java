@@ -21,6 +21,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.solr.SolrIndexEngine;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
@@ -69,7 +70,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		saveRecipeToFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
+		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
 		logger.info("3) Done...");
 		
 		// capture image from image url
