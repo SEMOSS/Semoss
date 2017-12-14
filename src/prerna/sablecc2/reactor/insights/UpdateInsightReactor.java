@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
@@ -144,14 +143,9 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
-		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		recipeLocation += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
-		try {
-			FileUtils.deleteDirectory(new File(recipeLocation));
-			MosfetSyncHelper.makeMosfitFile(engineName, rdbmsID, insightName, layout, recipeToSave);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID + "\\" + MosfetSyncHelper.RECIPE_FILE;
+		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, recipeToSave);
 	}
 
 }
