@@ -100,6 +100,24 @@ public class GitHelper {
 	public static final String SUBSCRIBE = "SUBSCRIBE";
 	public static final String PUBLISH = "PUBLISH";
 
+	/**
+	 * Determine if username/password is valid
+	 * @param username
+	 * @param password
+	 * @return
+	 */
+	public boolean login(String username, String password) {
+		boolean valid = true;
+		try {
+			GitHub gh = GitHub.connectUsingPassword(username, password);
+			gh.getMyself();	
+		} catch (IOException e) {
+			e.printStackTrace();
+			valid = false;
+		}
+		return valid;
+	}
+
 	public boolean checkLocalRepository(String repositoryName) throws IOException
 	{
 		File dirFile = new File(repositoryName);
@@ -151,22 +169,8 @@ public class GitHelper {
 		        }
 		    }
 	        return null;
-	 }	 
-	 public  boolean login(String username, String password)
-	 {
-		 boolean valid = true;
-			try {
-				GitHub gh = GitHub.connectUsingPassword(username, password);
-				gh.getMyself();	
-				valid = true;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				valid = false;
-			}
-			return valid;
 	 }
-
+	 
 	 public  void makeIssue(String username, String password, String repoName, String issue)
 	 {
 		 boolean valid = true;
