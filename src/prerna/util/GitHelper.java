@@ -2078,7 +2078,9 @@ public class GitHelper {
 		
 		// before anything try to login if that breaks come out of this with login failed
 		boolean login = login(userName, password);
-		
+		if(login == false) {
+			throw new IllegalArgumentException("Invalid Git credentials");
+		}
 		if(login)
 		{
 			

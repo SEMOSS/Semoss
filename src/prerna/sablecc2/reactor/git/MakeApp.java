@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.git;
 
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
