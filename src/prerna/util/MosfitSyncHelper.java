@@ -111,7 +111,12 @@ public class MosfitSyncHelper {
 	private void processAddedFiles(List<String> list) {
 		for(String fileLocation : list) {
 			File mosfetFile = new File(fileLocation);
-			Map<String, Object> mapData = getMosfitMap(mosfetFile);
+			Map<String, Object> mapData = null;
+			try {
+				mapData = getMosfitMap(mosfetFile);
+			} catch(IllegalArgumentException e) {
+				outputError(e.getMessage());
+			}
 			if(mapData == null) {
 				outputError("MOSFET file is not in valid JSON format");
 				continue;
@@ -136,7 +141,12 @@ public class MosfitSyncHelper {
 	private void processModifiedFiles(List<String> list) {
 		for(String fileLocation : list) {
 			File mosfetFile = new File(fileLocation);
-			Map<String, Object> mapData = getMosfitMap(mosfetFile);
+			Map<String, Object> mapData = null;
+			try {
+				mapData = getMosfitMap(mosfetFile);
+			} catch(IllegalArgumentException e) {
+				outputError(e.getMessage());
+			}
 			if(mapData == null) {
 				outputError("MOSFET file is not in valid JSON format");
 				continue;
@@ -161,7 +171,12 @@ public class MosfitSyncHelper {
 	private void processDelete(List<String> list) {
 		for(String fileLocation : list) {
 			File mosfetFile = new File(fileLocation);
-			Map<String, Object> mapData = getMosfitMap(mosfetFile);
+			Map<String, Object> mapData = null;
+			try {
+				mapData = getMosfitMap(mosfetFile);
+			} catch(IllegalArgumentException e) {
+				outputError(e.getMessage());
+			}
 			if(mapData == null) {
 				outputError("MOSFET file is not in valid JSON format");
 				continue;
@@ -238,16 +253,26 @@ public class MosfitSyncHelper {
 		}
 	}
 	
-	public Map<String, Object> getMosfitMap(File mosfetFile) {
+	public static Map<String, Object> getMosfitMap(File mosfetFile) {
 		Map<String, Object> mapData = null;
 		try {
 			mapData = new ObjectMapper().readValue(mosfetFile, Map.class);
 		} catch(FileNotFoundException e) {
-			outputError("MOSFET file could not be found at location: " + mosfetFile.getPath());
+			throw new IllegalArgumentException("MOSFET file could not be found at location: " + mosfetFile.getPath());
 		} catch (IOException e) {
-			outputError("MOSFET file is not in valid JSON format");
+			throw new IllegalArgumentException("MOSFET file is not in valid JSON format");
 		}
 		return mapData;
 	}
 	
+	/**
+	 * Get the insight name for the input mosfet file
+	 * @param mosfetFile
+	 * @return
+	 */
+	public static String getInsightName(File mosfetFile) {
+		Map<String, Object> mapData = getMosfitMap(mosfetFile);
+		String name = mapData.get(INSIGHT_NAME_KEY).toString();
+		return name;
+	}
 }
