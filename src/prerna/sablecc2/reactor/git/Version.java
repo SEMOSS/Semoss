@@ -29,7 +29,7 @@ public class Version extends AbstractReactor {
 		try {
 			
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			String dbName = baseFolder + "/" + keyValue.get(keysToGet[0]);	
+			String dbName = baseFolder + "db/" + keyValue.get(keysToGet[0]);	
 			logger.info("Converting " + dbName + " to a versionable app");
 			
 			logger.info("Checking to see if it is already versioned");
