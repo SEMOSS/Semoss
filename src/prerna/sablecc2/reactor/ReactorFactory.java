@@ -462,6 +462,7 @@ public class ReactorFactory {
 		reactorHash.put("ListRepo", prerna.sablecc2.reactor.git.List4User.class);
 		reactorHash.put("ListRemote", prerna.sablecc2.reactor.git.ListRemotes.class);
 		reactorHash.put("Sync", prerna.sablecc2.reactor.git.Sync.class);
+		reactorHash.put("SyncSpecific", prerna.sablecc2.reactor.git.SyncSpecific.class);
 		reactorHash.put("Drop", prerna.sablecc2.reactor.git.DropRemote.class);
 		reactorHash.put("Copy", prerna.sablecc2.reactor.git.Replicate.class);
 		reactorHash.put("App", prerna.sablecc2.reactor.git.MakeApp.class);

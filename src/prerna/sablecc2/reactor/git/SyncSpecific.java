@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -15,10 +16,10 @@ import prerna.util.DIHelper;
 import prerna.util.GitHelper;
 import prerna.util.MosfetSyncHelper;
 
-public class Sync extends AbstractReactor {
+public class SyncSpecific extends AbstractReactor {
 
-	public Sync() {
-		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual"};
+	public SyncSpecific() {
+		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual", "files"};
 	}
 	
 	@Override
@@ -41,9 +42,17 @@ public class Sync extends AbstractReactor {
 				dual = true;
 			}
 			
+			List<String> filesToSync = getFilesToSync();
+			
 			// if it is null or true dont worry
 			logger.info("Synchronizing now");
-			Hashtable <String, List<String>> filesChanged = helper.synchronize(dbName, keyValue.get(keysToGet[1]), keyValue.get(keysToGet[2]), keyValue.get(keysToGet[3]), dual);
+			Hashtable <String, List<String>> filesChanged = helper.synchronizeSpecific(
+					dbName, 
+					keyValue.get(keysToGet[1]), 
+					keyValue.get(keysToGet[2]), 
+					keyValue.get(keysToGet[3]), 
+					filesToSync,
+					dual);
 
 			logger.info("Synchronize Complete");
 			StringBuffer output = new StringBuffer("SUCCESS \r\n ");
@@ -74,7 +83,7 @@ public class Sync extends AbstractReactor {
 
 			logger.info("Indexing your changes");
 			// will update solr and in the engine rdbms insights database
-			MosfetSyncHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged), logger);
+			MosfetSyncHelper.synchronizeInsightChanges(getMosfetFiles(filesChanged, filesToSync), logger);
 			logger.info("Index complete");
 
 			return new NounMetadata(output.toString(), PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
@@ -90,31 +99,31 @@ public class Sync extends AbstractReactor {
 	 * @param filesChanged
 	 * @return
 	 */
-	private Map<String, List<String>> getMosfetFiles(Map <String, List<String>> filesChanged) {
+	private Map<String, List<String>> getMosfetFiles(Map <String, List<String>> filesChanged, List<String> filesToSync) {
 		Map<String, List<String>> mosfetFiles = new Hashtable<String, List<String>>();
 		if(filesChanged.containsKey("ADD")) {
-			List<String> files = getMosfetFiles(filesChanged.get("ADD"));
+			List<String> files = getMosfetFiles(filesChanged.get("ADD"), filesToSync);
 			if(!files.isEmpty()) {
 				mosfetFiles.put("ADD", files);
 			}
 		}
 		
 		if(filesChanged.containsKey("MOD")) {
-			List<String> files = getMosfetFiles(filesChanged.get("MOD"));
+			List<String> files = getMosfetFiles(filesChanged.get("MOD"), filesToSync);
 			if(!files.isEmpty()) {
 				mosfetFiles.put("MOD", files);
 			}		
 		}
 		
 		if(filesChanged.containsKey("REN")) {
-			List<String> files = getMosfetFiles(filesChanged.get("REN"));
+			List<String> files = getMosfetFiles(filesChanged.get("REN"), filesToSync);
 			if(!files.isEmpty()) {
 				mosfetFiles.put("REN", files);
 			}		
 		}
 		
 		if(filesChanged.containsKey("DEL")) {
-			List<String> files = getMosfetFiles(filesChanged.get("DEL"));
+			List<String> files = getMosfetFiles(filesChanged.get("DEL"), filesToSync);
 			if(!files.isEmpty()) {
 				mosfetFiles.put("DEL", files);
 			}		
@@ -122,16 +131,25 @@ public class Sync extends AbstractReactor {
 		return mosfetFiles;
 	}
 	
-	private List<String> getMosfetFiles(List<String> potentialFiles) {
+	private List<String> getMosfetFiles(List<String> potentialFiles, List<String> filesToSync) {
 		List<String> mosfetFiles = new Vector<String>();
 		if(potentialFiles != null) {
 			for(String f : potentialFiles) {
-				if(f.endsWith(".mosfet")) {
+				if(f.endsWith(".mosfet") && filesToSync.contains(f)) {
 					mosfetFiles.add(f);
 				}
 			}
 		}
 		return mosfetFiles;
+	}
+	
+	private List<String> getFilesToSync() {
+		List<String> filesToSync = new Vector<String>();
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		for(int i = 0; i < grs.size(); i++) {
+			filesToSync.add(grs.get(i).toString());
+		}
+		return filesToSync;
 	}
 
 }

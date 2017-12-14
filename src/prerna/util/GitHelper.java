@@ -1073,6 +1073,87 @@ public class GitHelper {
 
 	}
 	
+	/**
+	 * Synchronize files to a specific Git repo
+	 * @param localAppName
+	 * @param remoteAppName
+	 * @param username
+	 * @param password
+	 * @param filesToAdd
+	 * @param dual
+	 * @return 
+	 */
+	public Hashtable<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String username, String password, List<String> filesToAdd, boolean dual) {
+		localAppName = localAppName + "/version";
+		remoteAppName = remoteAppName.split("/")[1]; 
+		commitSpecific(localAppName, filesToAdd, true);
+		fetchRemote(localAppName, remoteAppName, username, password);
+		
+		// need to get a list of files to process
+		String thisMaster = "refs/heads/master";
+		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
+		
+		// check to see if there are conflicts
+		// it is now done as part of merge
+		// merge everything
+		merge(localAppName, "master", remoteAppName + "/master");
+		List <String> conflicted = getConflictedFiles(localAppName);
+		
+		// need to return back conflicted files
+		// need to have conversation with front end on it
+		if(conflicted.size() > 0) {
+			// we cannot proceed with merging.. until the conflicts are resolved
+			abortMerge(localAppName);
+		} 
+		// push it back
+		else if(dual) {
+			push(localAppName, remoteAppName, "master",username, password);
+		}	
+		return getFilesToAdd(localAppName, thisMaster, remoteMaster);
+	}
+	
+	/**
+	 * Commit a specific set of files within a git directory
+	 * @param localRepository
+	 * @param files
+	 * @param add
+	 * @param reset
+	 */
+	public void commitSpecific(String localRepository, List<String> files, boolean add) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if(add) {
+			addSpecificFiles(thisGit, files);
+		}
+		CommitCommand cc = thisGit.commit();
+		try {
+			cc.setMessage(getDateMessage("Commited on.. ")).call();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Add specific files to a given git
+	 * @param thisGit
+	 * @param files
+	 */
+	public void addSpecificFiles(Git thisGit, List<String> files) {
+		AddCommand ac = thisGit.add();
+		for(String daFile : files) {
+			ac.addFilepattern(daFile);
+		}
+		try {
+			ac.call();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	
 	// push to remote
 	public void pushToRemote(String localRepoName, String remoteRepo, String userName, String password, boolean add)
