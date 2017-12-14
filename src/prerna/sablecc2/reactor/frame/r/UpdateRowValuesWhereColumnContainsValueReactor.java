@@ -129,12 +129,14 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 					String valueComp = rightComp.getValue() + "";
 					if (comparisonColType.contains("character") || comparisonColType.contains("string") || comparisonColType.contains("factor")) {
 						valueComp = "\"" + valueComp + "\"";
-						// define the r script to be executed
-						// script is of the form: FRAME$Nominated[FRAME$Nominated=="Y"] <- "N"
-						String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator + valueComp + "] <- " + value + ";";
-						// append the single script to the string builder
-						sb.append(script);
 					}
+					// define the r script to be executed
+					// script is of the form:
+					// FRAME$Nominated[FRAME$Nominated=="Y"] <- "N"
+					String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator
+							+ valueComp + "] <- " + value + ";";
+					// append the single script to the string builder
+					sb.append(script);
 				}
 			}
 		}
