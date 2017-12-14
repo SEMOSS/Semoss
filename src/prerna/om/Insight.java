@@ -123,6 +123,7 @@ public class Insight {
 	public Insight() {
 		this.pixelList = new Vector<String>();
 		this.taskStore = new TaskStore();
+		this.insightId = "TEMP_ID";
 	}
 
 	/**
