@@ -77,5 +77,6 @@ public enum PixelOperationType {
 	RECIPE_COMMENT,
 	OPERATION,
 	WARNING,
-	ERROR; 
+	ERROR,
+	INVALID_SYNTAX; 
 }
