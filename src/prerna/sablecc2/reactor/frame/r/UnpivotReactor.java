@@ -6,6 +6,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class UnpivotReactor extends AbstractRFrameReactor {
@@ -50,8 +51,26 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 			}
 			concatString = concatString + ")";
 		}
-			
-		String script = tempName + "<- melt(" + table + concatString + ");";
+		
+		// we want to make sure the new columns that we add
+		// are in fact unique
+		// so we will loop through and ensure that
+		final String defaultVarName = "varaible";
+		final String defaultValueName = "value";
+		int headerNum = 1;
+		String[] allColumns = frame.getColumnHeaders();
+		String varName = defaultValueName;
+		String valueName = defaultValueName;
+		while(ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, varName) 
+				|| ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, valueName)) {
+			varName = defaultVarName + "_" + headerNum;
+			valueName = defaultValueName + "_" + headerNum;
+		}
+		
+		// now that we have unique values
+		// we can proceed with the script
+		String script = tempName + "<- melt(" + table + ", variable.name = \"" + varName + "\", value.name = \"" + valueName + "\"," + concatString + ");";
+
 		// run the first script to unpivot into the temp frame
 		frame.executeRScript(script);
 		// if we are to replace the existing frame

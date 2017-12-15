@@ -2433,17 +2433,12 @@ public class GitHelper {
 			e.printStackTrace();
 		}
 
-		List<Map<String, String>> addVec = getFiles(dbName, "ADD", status.getAdded().iterator());
-		List<Map<String, String>> modVec = getFiles(dbName, "MOD", status.getModified().iterator());
-		List<Map<String, String>> delVec = getFiles(dbName, "DEL", status.getRemoved().iterator());
-		List<Map<String, String>> conVec = getFiles(dbName, "CON", status.getConflicting().iterator());
-		List<Map<String, String>> untrackVec = getFiles(dbName, "NEW", status.getUntracked().iterator());
-
-		output.addAll(addVec);
-		output.addAll(modVec);
-		output.addAll(delVec);
-		output.addAll(conVec);
-		output.addAll(untrackVec);
+		output.addAll(getFiles(dbName, "ADD", status.getAdded().iterator()));
+		output.addAll(getFiles(dbName, "MOD", status.getModified().iterator()));
+		output.addAll(getFiles(dbName, "DEL", status.getRemoved().iterator()));
+		output.addAll(getFiles(dbName, "DEL", status.getMissing().iterator()));
+		output.addAll(getFiles(dbName, "CON", status.getConflicting().iterator()));
+		output.addAll(getFiles(dbName, "NEW", status.getUntracked().iterator()));
 
 		thisGit.close();
 		return output;
