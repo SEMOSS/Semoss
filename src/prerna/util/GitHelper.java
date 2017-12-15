@@ -1086,12 +1086,14 @@ public class GitHelper {
 	public Hashtable<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String username, String password, List<String> filesToAdd, boolean dual) {
 		localAppName = localAppName + "/version";
 		remoteAppName = remoteAppName.split("/")[1]; 
-		commitSpecific(localAppName, filesToAdd, true);
 		fetchRemote(localAppName, remoteAppName, username, password);
+		commitSpecific(localAppName, filesToAdd, true);
 		
 		// need to get a list of files to process
 		String thisMaster = "refs/heads/master";
 		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
+		
+		Hashtable<String, List<String>> returnFiles = getFilesToAdd(localAppName, thisMaster, remoteMaster);
 		
 		// check to see if there are conflicts
 		// it is now done as part of merge
@@ -1109,7 +1111,7 @@ public class GitHelper {
 		else if(dual) {
 			push(localAppName, remoteAppName, "master",username, password);
 		}	
-		return getFilesToAdd(localAppName, thisMaster, remoteMaster);
+		return returnFiles;
 	}
 	
 	/**
@@ -1127,7 +1129,7 @@ public class GitHelper {
 			e.printStackTrace();
 		}
 		if(add) {
-			addSpecificFiles(thisGit, files);
+			addSpecificFiles(localRepository, files);
 		}
 		CommitCommand cc = thisGit.commit();
 		try {
@@ -1142,10 +1144,19 @@ public class GitHelper {
 	 * @param thisGit
 	 * @param files
 	 */
-	public void addSpecificFiles(Git thisGit, List<String> files) {
+	public void addSpecificFiles(String localRepository, List<String> files) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		AddCommand ac = thisGit.add();
 		for(String daFile : files) {
-			daFile = "./" + daFile.substring(daFile.indexOf("version") + 8);
+			if(daFile.contains("version")) {
+				daFile = daFile.substring(daFile.indexOf("version") + 8);
+			}
+			daFile = daFile.replace("\\", "/");
 			ac.addFilepattern(daFile);
 		}
 		try {
@@ -1153,6 +1164,7 @@ public class GitHelper {
 		} catch (GitAPIException e) {
 			e.printStackTrace();
 		}
+		thisGit.close();
 	}
 	
 	
@@ -1656,6 +1668,9 @@ public class GitHelper {
 		{
 			String daFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version/" + iterator.next();
 			// make the call to maher's method to get the name of the file
+			if(!daFile.endsWith(".mosfet")) {
+				continue;
+			}
 			String fileName = MosfetSyncHelper.getInsightName(new File(daFile));
 			retOutput.add(fileName);
 			// need to give the file as well
