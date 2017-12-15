@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.git;
 
-import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,8 +19,8 @@ public class GitStatusReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		GitHelper helper = new GitHelper();
-		Hashtable<String, List<String>> fileInfo = helper.getStatus(this.keyValue.get(this.keysToGet[0]));
-		return new NounMetadata(fileInfo, PixelDataType.MAP, PixelOperationType.MARKET_PLACE);
+		List<Map<String, String>> fileInfo = helper.getStatus(this.keyValue.get(this.keysToGet[0]));
+		return new NounMetadata(fileInfo, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
 
 }
