@@ -1660,6 +1660,29 @@ public class GitHelper {
 		return output;
 	}
 	
+	/**
+	 * Get the modified files
+	 * @param dbName
+	 * @param fileType
+	 * @param iterator
+	 * @return
+	 */
+	public List<Map<String, String>> getFiles(String dbName, String fileType, Iterator<String> iterator) {
+		List<Map<String, String>> retFiles = new Vector<Map<String, String>>();
+		while(iterator.hasNext()) {
+			String daFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version/" + iterator.next();
+			if(!daFile.endsWith(".mosfet")) {
+				continue;
+			}
+			String fileName = MosfetSyncHelper.getInsightName(new File(daFile));
+			Map<String, String> fileData = new Hashtable<String, String>();
+			fileData.put("fileName", fileName);
+			fileData.put("fileLoc", daFile);
+			fileData.put("fileType", fileType);
+		}
+		return retFiles;
+	}
+	
 	public List<String> [] getFiles(String dbName, Iterator <String> iterator)
 	{
 		List <String> retOutput = new Vector <String>();
@@ -2392,50 +2415,38 @@ public class GitHelper {
 		return writable;
 	}
 	
-	public Hashtable<String, List<String>> getStatus(String dbName)
+	public List<Map<String, String>> getStatus(String dbName)
 	{
-		Hashtable <String, List<String>> output = new Hashtable<String, List<String>>();
+		List<Map<String, String>> output = new Vector<Map<String, String>>();
+		String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version";
+		Git thisGit = null;
+		Status status = null;
 		try {
-			String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version";
-			Git thisGit = Git.open(new File(location));
-
-			Status status = thisGit.status().call();
-			
-			boolean added = false;
-
-			List <String>[] addVec = getFiles(dbName, status.getAdded().iterator());
-			List <String>[] modVec = getFiles(dbName, status.getModified().iterator());
-			List <String>[] delVec = getFiles(dbName, status.getRemoved().iterator());
-			List <String>[] conVec = getFiles(dbName, status.getConflicting().iterator());
-			List <String>[] untrackVec = getFiles(dbName, status.getUntracked().iterator());
-
-			output.put("NEW", untrackVec[0]);
-			output.put("NEW_FILES", untrackVec[1]);
-			output.put("ADD", addVec[0]);
-			output.put("ADD_FILES", addVec[1]);
-			output.put("MOD", modVec[0]);
-			output.put("MOD_FILES", modVec[1]);
-			output.put("DEL", delVec[0]);
-			output.put("DEL_FILES", delVec[1]);
-			output.put("CON", conVec[0]);
-			output.put("CON_FILES", conVec[1]);
-			
-			thisGit.close();
-			
-		} catch (NoWorkTreeException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			thisGit = Git.open(new File(location));
+			status = thisGit.status().call();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoWorkTreeException e) {
 			e.printStackTrace();
 		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//getModFiles(dbName, ignore);
+
+		List<Map<String, String>> addVec = getFiles(dbName, "ADD", status.getAdded().iterator());
+		List<Map<String, String>> modVec = getFiles(dbName, "MOD", status.getModified().iterator());
+		List<Map<String, String>> delVec = getFiles(dbName, "DEL", status.getRemoved().iterator());
+		List<Map<String, String>> conVec = getFiles(dbName, "CON", status.getConflicting().iterator());
+		List<Map<String, String>> untrackVec = getFiles(dbName, "NEW", status.getUntracked().iterator());
+
+		output.addAll(addVec);
+		output.addAll(modVec);
+		output.addAll(delVec);
+		output.addAll(conVec);
+		output.addAll(untrackVec);
+
+		thisGit.close();
 		return output;
 	}
-
 	
 	public static void main(String [] args) throws Exception
 	{
