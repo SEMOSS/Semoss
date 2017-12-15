@@ -1679,6 +1679,7 @@ public class GitHelper {
 			fileData.put("fileName", fileName);
 			fileData.put("fileLoc", daFile);
 			fileData.put("fileType", fileType);
+			retFiles.add(fileData);
 		}
 		return retFiles;
 	}
