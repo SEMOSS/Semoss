@@ -255,6 +255,9 @@ public class ReactorFactory {
 	
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
+		// used to print all of the reactors
+		reactorHash.put("Help", HelpReactor.class);
+		
 		// used to generate the base Job for the pksl commands being executed
 		reactorHash.put("Job", JobReactor.class); // defines the job
 
