@@ -8,6 +8,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class SplitUnpivotReactor extends AbstractRFrameReactor {
@@ -16,13 +17,13 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	 * This reactor splits columns based on a separator
 	 * The split values will be combined into a single column
 	 * The inputs to the reactor are: 
-	 * 1) the columns to split "cols"
+	 * 1) the columns to split "columns"
 	 * 2) the delimiters "delimiters" 
 	 */
-
-	private static final String COLUMNS_KEY = "cols";
-	private static final String DELIMITER_KEY = "delimiters";
-
+	
+	public SplitUnpivotReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITERS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -119,7 +120,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		//inputs are passed based on a key
 		//store in a vector of inputs
 		List<String> delInputs = new Vector<String>();
-		GenRowStruct delGRS = this.store.getNoun(DELIMITER_KEY);
+		GenRowStruct delGRS = this.store.getNoun(keysToGet[1]);
 		if (delGRS != null) {
 			int size = delGRS.size();
 			if (size > 0) {
@@ -135,7 +136,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	private List<String> getColumns() {
 		//if it was passed based on a key
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(COLUMNS_KEY);
+		GenRowStruct colGRS = this.store.getNoun(keysToGet[0]);
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
