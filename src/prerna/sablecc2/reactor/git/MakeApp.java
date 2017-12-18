@@ -17,7 +17,7 @@ public class MakeApp extends AbstractReactor {
 	 */
 
 	public MakeApp() {
-		super.keysToGet = new String[]{"app", "remote", "username", "password", "type"};
+		super.keysToGet = new String[]{"app", "remote", "username", "password", "database", "type"};
 	}
 
 	@Override
@@ -43,6 +43,11 @@ public class MakeApp extends AbstractReactor {
 		if(password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Need to password for the remote app");
 		}
+		String databaseStr = this.keyValue.get(this.keysToGet[4]);
+		boolean syncDatabase = true;
+		if(databaseStr != null && databaseStr.equals("false")) {
+			syncDatabase = false;
+		}
 		// this is not actually used at the moment
 		// String type = this.keyValue.get(this.keysToGet[5]);
 
@@ -54,14 +59,18 @@ public class MakeApp extends AbstractReactor {
 
 		try {
 			// close the app
-			Utility.getEngine(appName).closeDB();
-			DIHelper.getInstance().removeLocalProperty(appName);
+			if(syncDatabase) {
+				Utility.getEngine(appName).closeDB();
+				DIHelper.getInstance().removeLocalProperty(appName);
+			}
 			// make app to remote
-			GitCreator.makeRemoteFromApp(appName, remote, username, password);
+			GitCreator.makeRemoteFromApp(appName, remote, username, password, syncDatabase);
 			logger.info("Congratulations! You have successfully created your app " + remote);
 		} finally {
 			// open it back up
-			Utility.getEngine(appName);
+			if(syncDatabase) {
+				Utility.getEngine(appName);
+			}
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_INIT);
