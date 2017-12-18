@@ -1,6 +1,7 @@
 package prerna.util.git;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -8,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -31,6 +34,81 @@ public class GitSynchronizer {
 	 */
 	private GitSynchronizer() {
 
+	}
+	
+	public static void syncDatabases(String localAppName, String remoteAppName, String username, String password) {
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String appFolder = baseFolder + "/db/" + localAppName;
+		
+		// the remote location
+		// is of the form account_name/repo_name
+		// so we want to split this out
+		String[] remoteLocationSplit = remoteAppName.split("/");
+		String accountName = remoteLocationSplit[0];
+		String repoName = remoteLocationSplit[1];
+		
+		// we need to move the database files from the current db
+		// into the version folder
+		pushFilesToVersionFolder(appFolder);
+		
+		String versionFolder = appFolder + "/version";
+		// we want to get rid of the ignore 
+		GitUtils.removeAllIgnore(versionFolder);
+		// now we push everything locally
+		GitPushUtils.addAllFiles(versionFolder, true);
+		GitPushUtils.commitAddedFiles(versionFolder);
+		GitPushUtils.push(versionFolder, repoName, "master", username, password);
+
+		// add back the ignore
+		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
+		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
+		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
+	}
+	
+	private static void pushFilesToVersionFolder(String appFolder) {
+		// make a version folder if it does not already exist
+		File versionDir = new File(appFolder + "/version");
+		if(!versionDir.exists()) {
+			versionDir.mkdirs();
+		}
+		// we need to push the db/owl/jnl into this folder
+		List<String> grabItems = new Vector<String>();
+		grabItems.add("*.db");
+		grabItems.add("*.jnl");
+		grabItems.add("*.OWL");
+		FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
+		File appDir = new File(appFolder);
+		File[] filesToMove = appDir.listFiles(fileFilter);
+		File[] currentVersionFiles = versionDir.listFiles(fileFilter);
+		int numFiles = filesToMove.length;
+		for(int i = 0; i < numFiles; i++) {
+			try {
+				// if the current version folder
+				// has a file with the same name
+				// as one we are about to push
+				// delete it
+				CURFILE_LOOP : for(File curFile : currentVersionFiles) {
+					if(filesToMove[i].getName().equals(curFile.getName())) {
+						// we found a file that matches
+						// delete it so we can copy the new one to replace
+						curFile.delete();
+						break CURFILE_LOOP ;
+					}
+				}
+				FileUtils.copyFileToDirectory(filesToMove[i], versionDir);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		// we also need to move the smss file
+		String smssLocation = appDir.getParent() + "/" + appDir.getName() + ".smss";
+		File smssFile = new File(smssLocation);
+		try {
+			FileUtils.copyFileToDirectory(smssFile, versionDir);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
