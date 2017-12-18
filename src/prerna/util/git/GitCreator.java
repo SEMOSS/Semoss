@@ -28,7 +28,7 @@ public class GitCreator {
 	 * @param username
 	 * @param password
 	 */
-	public static void makeRemoteFromApp(String appName, String remoteLocation, String username, String password) {
+	public static void makeRemoteFromApp(String appName, String remoteLocation, String username, String password, boolean syncDatabase) {
 		// first, need to login
 		GitHub git = GitUtils.login(username, password);
 
@@ -49,14 +49,18 @@ public class GitCreator {
 			GitRepoUtils.makeLocalAppGitVersionFolder(dbFolder);
 		}
 
+		String versionFolder = dbFolder + "/version";
+		File versionDir = new File(versionFolder);
+		if(!versionDir.exists()) {
+			versionDir.mkdirs();
+		}
 		// the folder we use the /version folder
 		// we want to push the database + metadata files into the /version
 		// this way, when another SEMOSS user pulls the information
 		// they will have the data to use
-		pushFilesToVersionFolder(dbFolder);
-
+		pushFilesToVersionFolder(dbFolder, versionFolder, syncDatabase);
+		
 		// now we push everything locally
-		String versionFolder = dbFolder + "/version";
 		GitPushUtils.addAllFiles(versionFolder, true);
 		GitPushUtils.commitAddedFiles(versionFolder);
 
@@ -79,19 +83,18 @@ public class GitCreator {
 		GitPushUtils.push(versionFolder, repoName, "master", username, password);
 	}
 	
-	private static void pushFilesToVersionFolder(String appFolder) {
-		// make a version folder if it does not already exist
-		File versionDir = new File(appFolder + "/version");
-		if(!versionDir.exists()) {
-			versionDir.mkdirs();
-		}
+	private static void pushFilesToVersionFolder(String appFolder, String gitFolder, boolean syncDatabase) {
+		File appDir = new File(appFolder);
+		File versionDir = new File(gitFolder);
+
 		// we need to push the db/owl/jnl into this folder
 		List<String> grabItems = new Vector<String>();
-		grabItems.add("*.db");
-		grabItems.add("*.jnl");
 		grabItems.add("*.OWL");
+		if(syncDatabase) {
+			grabItems.add("*.db");
+			grabItems.add("*.jnl");
+		}
 		FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
-		File appDir = new File(appFolder);
 		File[] filesToMove = appDir.listFiles(fileFilter);
 		int numFiles = filesToMove.length;
 		for(int i = 0; i < numFiles; i++) {
