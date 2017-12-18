@@ -202,9 +202,8 @@ public class ReactorFactory {
 	public static final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
 	public static final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
 	public static final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
+
 	static {
-		// path for external reactor
-		
 		// check if external reactor paths exists if not load reactors defined in this class
 		reactorHash = new HashMap<>();
 		createReactorHash(reactorHash);
@@ -473,10 +472,8 @@ public class ReactorFactory {
 		reactorHash.put("Add", prerna.sablecc2.reactor.git.AddCollaborator.class);
 		reactorHash.put("Remove", prerna.sablecc2.reactor.git.RemoveCollaborator.class);
 		reactorHash.put("ListTeam", prerna.sablecc2.reactor.git.ListRepoCollabs.class);
-		reactorHash.put("Save", prerna.sablecc2.reactor.git.SaveFile.class);
 		reactorHash.put("IsGit", prerna.sablecc2.reactor.git.IsGit.class);
 		reactorHash.put("Login", prerna.sablecc2.reactor.git.LoginGit.class);
-		reactorHash.put("RemoveRemote", prerna.sablecc2.reactor.git.RemoveRemote.class);
 		reactorHash.put("GitStatus", prerna.sablecc2.reactor.git.GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", prerna.sablecc2.reactor.git.GitRenameMosfitFileReactor.class);
 	}
