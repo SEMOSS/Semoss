@@ -566,7 +566,7 @@ public class MasterDatabaseUtility {
 			// select distinct c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine and e.enginename = 'actor';
 			// I am getting the logical and the physical
 			try {
-				String conceptQuery = "select distinct e.enginename from engine e"; //, c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine";
+				String conceptQuery = "select distinct e.enginename from engine e order by enginename"; //, c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine";
 				stmt = conn.createStatement();
 				rs = stmt.executeQuery(conceptQuery);
 				while(rs.next()) {
