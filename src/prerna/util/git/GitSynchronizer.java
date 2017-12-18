@@ -66,20 +66,19 @@ public class GitSynchronizer {
 	}
 	
 	private static void pushFilesToVersionFolder(String appFolder) {
-		// make a version folder if it does not already exist
+		File appDir = new File(appFolder);
 		File versionDir = new File(appFolder + "/version");
-		if(!versionDir.exists()) {
-			versionDir.mkdirs();
-		}
+
 		// we need to push the db/owl/jnl into this folder
 		List<String> grabItems = new Vector<String>();
 		grabItems.add("*.db");
 		grabItems.add("*.jnl");
 		grabItems.add("*.OWL");
 		FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
-		File appDir = new File(appFolder);
+		
 		File[] filesToMove = appDir.listFiles(fileFilter);
 		File[] currentVersionFiles = versionDir.listFiles(fileFilter);
+		
 		int numFiles = filesToMove.length;
 		for(int i = 0; i < numFiles; i++) {
 			try {
