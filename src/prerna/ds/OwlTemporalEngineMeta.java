@@ -846,7 +846,7 @@ public class OwlTemporalEngineMeta {
 			} else {
 				QueryColumnSelector qsSelector = new QueryColumnSelector();
 				qsSelector.setTable(header);
-				qsSelector.setColumn(QueryStruct.PRIM_KEY_PLACEHOLDER);
+				qsSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 				qsSelector.setAlias(header);
 				qs.addSelector(qsSelector);
 			}

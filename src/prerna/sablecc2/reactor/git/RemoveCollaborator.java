@@ -6,36 +6,31 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.GitHelper;
+import prerna.util.git.GitCollaboratorUtils;
 
 public class RemoveCollaborator extends AbstractReactor {
 
-	// clone from remote
-	// this assumes the local directory is not there
-	
-	
-	public RemoveCollaborator()
-	{
+	public RemoveCollaborator() {
 		this.keysToGet = new String[]{"repository", "collaborator","username", "password"};
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		// creates a remote repository
-		Logger logger = getLogger(this.getClass().getName());
-
 		organizeKeys();
+
+		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Establishing connection ");
 		logger.info("This can take several minutes depending on the speed of your internet ");
-		GitHelper helper = new GitHelper();
 
-		logger.info("Removing Collaborator ");
-
-		helper.removeCollaborator(keyValue.get(keysToGet[0]),keyValue.get(keysToGet[2]), keyValue.get(keysToGet[3]), keyValue.get(keysToGet[1]));
-		logger.info("Collaborator removed");
-		
-		return new NounMetadata("SUCCESS", PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
+		String repository = this.keyValue.get(this.keysToGet[0]);
+		String collaborator = this.keyValue.get(this.keysToGet[1]);
+		String username = this.keyValue.get(this.keysToGet[2]);
+		String password = this.keyValue.get(this.keysToGet[3]);
+				
+		logger.info("Removing Collaborator...");
+		GitCollaboratorUtils.removeCollaborator(repository, username, password, collaborator);
+		logger.info("Collaborator Removed");
+		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 
 }
