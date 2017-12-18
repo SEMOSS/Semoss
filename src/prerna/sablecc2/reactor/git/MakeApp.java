@@ -7,8 +7,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
-import prerna.util.GitHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitCreator;
 
 public class MakeApp extends AbstractReactor {
 
@@ -25,7 +25,6 @@ public class MakeApp extends AbstractReactor {
 		boolean output = false;
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Welcome to App IF ANY : SEMOSS Marketplace");
-		
 
 		organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
@@ -54,15 +53,17 @@ public class MakeApp extends AbstractReactor {
 		logger.info("Beginning process to make your application global");
 		logger.info("This can take several minutes");
 
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+//		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		
 		// remove the app
 		Utility.getEngine(appName).closeDB();
 		DIHelper.getInstance().removeLocalProperty(appName);
 		
-		GitHelper helper = new GitHelper();
+//		GitHelper helper = new GitHelper();
 		try {
-			output = helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
+			GitCreator.makeRemoteFromApp(appName, remote, username, password);
+			output = true;
+//			output = helper.makeRemoteFromApp(baseFolder, appName, remote, true, username, password);
 			logger.info("Congratulations! You have successfully created your app " + remote);
 		} catch(Exception e) {
 			e.printStackTrace();
