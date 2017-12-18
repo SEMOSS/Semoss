@@ -8,6 +8,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class SplitColumnReactor extends AbstractRFrameReactor {
@@ -20,11 +21,12 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 	 * 2) the columns to split 
 	 */
 
-	private static final String COLUMNS_KEY = "columns";
-	private static final String SEPARATOR_KEY = "sep";
 	private static final String SEARCH_TYPE = "search";
-	
 	private static final String REGEX = "Regex";
+	
+	public SplitColumnReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE};
+	}
 	
 	@Override
 	public NounMetadata execute() {
@@ -117,7 +119,7 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getNoun(SEPARATOR_KEY);
+		GenRowStruct separatorGrs = this.store.getNoun(keysToGet[1]);
 		if(separatorGrs == null || separatorGrs.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
@@ -141,7 +143,7 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 		List<String> cols = new ArrayList<String>();
 
 		// try its own key
-		GenRowStruct colsGrs = this.store.getNoun(COLUMNS_KEY);
+		GenRowStruct colsGrs = this.store.getNoun(keysToGet[0]);
 		if(colsGrs != null && !colsGrs.isEmpty()) {
 			int size = colsGrs.size();
 			for(int i = 0; i < size; i++) {
@@ -159,6 +161,17 @@ public class SplitColumnReactor extends AbstractRFrameReactor {
 		}
 		
 		throw new IllegalArgumentException("Need to define the columns to split");
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SEARCH_TYPE)) {
+			return "The type of search: Regex or an Exact Match";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 	
 }
