@@ -12,13 +12,15 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
+import prerna.util.Utility;
 import prerna.util.git.GitSynchronizer;
 
 public class SyncSpecific extends AbstractReactor {
 
 	public SyncSpecific() {
-		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual", "files"};
+		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual", "files", "database"};
 	}
 
 	@Override
@@ -31,7 +33,7 @@ public class SyncSpecific extends AbstractReactor {
 		String password = this.keyValue.get(this.keysToGet[3]);
 		String dualStr = this.keyValue.get(this.keysToGet[4]);
 		List<String> filesToSync = getFilesToSync();
-
+		String databaseStr = this.keyValue.get(this.keysToGet[6]);
 
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Starting the synchronization process");
@@ -40,6 +42,25 @@ public class SyncSpecific extends AbstractReactor {
 		boolean dual = false;
 		if(dualStr == null || dualStr.equals("true")) {
 			dual = true;
+		}
+
+		boolean database = false;
+		if(databaseStr != null && databaseStr.equals("true")) {
+			database = true;
+		}
+		
+		if(database) {
+			try {
+				logger.info("Synchronizing Database Now... ");
+				// remove the app
+				Utility.getEngine(appName).closeDB();
+				DIHelper.getInstance().removeLocalProperty(appName);
+				GitSynchronizer.syncDatabases(appName, remoteApp, username, password);
+				logger.info("Synchronize Database Complete");
+			} finally {
+				// open it back up
+				Utility.getEngine(appName);
+			}
 		}
 
 		// if it is null or true dont worry

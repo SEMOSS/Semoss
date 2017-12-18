@@ -11,13 +11,15 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
+import prerna.util.Utility;
 import prerna.util.git.GitSynchronizer;
 
 public class Sync extends AbstractReactor {
 
 	public Sync() {
-		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual"};
+		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual", "database"};
 	}
 
 	@Override
@@ -29,6 +31,7 @@ public class Sync extends AbstractReactor {
 		String username = this.keyValue.get(this.keysToGet[2]);
 		String password = this.keyValue.get(this.keysToGet[3]);
 		String dualStr = this.keyValue.get(this.keysToGet[4]);
+		String databaseStr = this.keyValue.get(this.keysToGet[5]);
 
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Starting the synchronization process");
@@ -39,11 +42,30 @@ public class Sync extends AbstractReactor {
 			dual = true;
 		}
 
+		boolean database = false;
+		if(databaseStr != null && databaseStr.equals("true")) {
+			database = true;
+		}
+
+		if(database) {
+			try {
+				logger.info("Synchronizing Database Now... ");
+				// remove the app
+				Utility.getEngine(appName).closeDB();
+				DIHelper.getInstance().removeLocalProperty(appName);
+				GitSynchronizer.syncDatabases(appName, remoteApp, username, password);
+				logger.info("Synchronize Database Complete");
+			} finally {
+				// open it back up
+				Utility.getEngine(appName);
+			}
+		}
+
 		// if it is null or true dont worry
-		logger.info("Synchronizing now... ");
+		logger.info("Synchronizing Insights Now... ");
 		Map<String, List<String>> filesChanged = GitSynchronizer.synchronize(appName, remoteApp, username, password, dual);
-		logger.info("Synchronize Complete");
-		
+		logger.info("Synchronize Insights Complete");
+
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");
 		output.append("ADDED : ");
 		if(filesChanged.containsKey("ADD")) {
