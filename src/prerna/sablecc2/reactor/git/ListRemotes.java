@@ -10,7 +10,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
-import prerna.util.GitHelper;
+import prerna.util.git.GitRepoUtils;
 
 public class ListRemotes extends AbstractReactor {
 
@@ -36,8 +36,7 @@ public class ListRemotes extends AbstractReactor {
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Getting remotes configures on " + dbName);
 		
-		GitHelper helper = new GitHelper();
-		List<Map<String, String>> repoList = helper.listConfigRemotes(dbName);
+		List<Map<String, String>> repoList = GitRepoUtils.listConfigRemotes(dbName);
 		return new NounMetadata(repoList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
 }

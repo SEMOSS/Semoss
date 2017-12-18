@@ -6,8 +6,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.DIHelper;
-import prerna.util.GitHelper;
+import prerna.util.git.GitConsumer;
 
 public class Replicate extends AbstractReactor {
 
@@ -23,7 +22,7 @@ public class Replicate extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
+		
 		String remoteApp = this.keyValue.get(this.keysToGet[0]);
 		if(remoteApp == null || remoteApp.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a remote app");
@@ -37,14 +36,8 @@ public class Replicate extends AbstractReactor {
 		logger.info("Downloading app located at " + remoteApp);
 		logger.info("App will be named locally as " + localAppName);
 
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		GitHelper helper = new GitHelper();
-		try {
-			helper.makeAppFromRemote(baseFolder, localAppName, remoteApp);
-			logger.info("Congratulations! Downloading your new app has been completed");
-		} catch(Exception e) {
-			throw new RuntimeException(e.getMessage());
-		}
+		GitConsumer.makeAppFromRemote(localAppName, remoteApp);
+		logger.info("Congratulations! Downloading your new app has been completed");
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 }
