@@ -1,58 +1,46 @@
 package prerna.sablecc2.reactor.git;
 
-import java.io.IOException;
-
 import org.apache.log4j.Logger;
-import org.eclipse.jgit.api.errors.GitAPIException;
 
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
-import prerna.util.GitHelper;
+import prerna.util.git.GitPushUtils;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class Version extends AbstractReactor {
 
-	// versionize
-	
-	
-	public Version()
-	{
+	public Version() {
 		this.keysToGet = new String[]{"app"};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		organizeKeys();
+
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String appFolder = baseFolder + "db/" + keyValue.get(keysToGet[0]);	
 		
 		Logger logger = getLogger(this.getClass().getName());
-		try {
-			
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			String dbName = baseFolder + "db/" + keyValue.get(keysToGet[0]);	
-			logger.info("Converting " + dbName + " to a versionable app");
-			
-			logger.info("Checking to see if it is already versioned");
-			
-			GitHelper helper = new GitHelper();
+		logger.info("Converting " + appFolder + " to a versionable app");
+		logger.info("Checking to see if it is already versioned");
 
-			if(helper.checkLocalRepository(dbName))
-				helper.makeLocalRepository(dbName);
+		if(GitUtils.isGit(appFolder)) {
+			logger.info("App is already versionable");
+		} else {
 			logger.info("Creating initial version");
-			helper.commit(dbName, true, false);
-			logger.info("Complete");
-
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			logger.fatal("API" + e.getMessage());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			logger.fatal(e.getMessage());
+			GitRepoUtils.makeLocalAppGitVersionFolder(appFolder);
+			// we create a version folder
+			String versionFolder = appFolder + "/version";
+			GitPushUtils.addAllFiles(versionFolder, false);
+			GitPushUtils.commitAddedFiles(versionFolder);
 		}
-		
-		return null;
+		logger.info("Complete");
+
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
 	}
 
 }
