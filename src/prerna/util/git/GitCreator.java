@@ -78,7 +78,7 @@ public class GitCreator {
 		// now push our local to the remote repo
 		GitPushUtils.push(versionFolder, repoName, "master", username, password);
 	}
-
+	
 	private static void pushFilesToVersionFolder(String appFolder) {
 		// make a version folder if it does not already exist
 		File versionDir = new File(appFolder + "/version");
@@ -111,5 +111,4 @@ public class GitCreator {
 			e.printStackTrace();
 		}
 	}
-
 }
