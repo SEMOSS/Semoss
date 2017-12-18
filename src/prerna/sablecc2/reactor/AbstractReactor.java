@@ -60,19 +60,20 @@ public abstract class AbstractReactor implements IReactor {
 	// convenience method to allow order or named noun
 	public void organizeKeys()
 	{
-		if(this.getNounStore().size() > 1)
-		{
-			for(int keyIndex = 0;keyIndex < keysToGet.length;keyIndex++)
-			{
-				String nounValue = this.getNounStore().getNoun(keysToGet[keyIndex]).get(0) + "";
-				keyValue.put(keysToGet[keyIndex], nounValue);
+		if(this.getNounStore().size() > 1) {
+			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+				String key = keysToGet[keyIndex];
+				if(this.store.getNoun(key) != null) {
+					String nounValue = this.store.getNoun(key).get(0) + "";
+					keyValue.put(keysToGet[keyIndex], nounValue);	
+				}
 			}
-		}
-		else
-		{
+		} else {
 			GenRowStruct struct = this.getCurRow();
-			for(int keyIndex = 0;keyIndex < keysToGet.length && keyIndex < struct.size();keyIndex++)
+			int structSize = struct.size();
+			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
 				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
+			}
 		}
 	}
 	
