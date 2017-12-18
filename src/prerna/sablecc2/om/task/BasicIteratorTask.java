@@ -148,9 +148,14 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 	}
 	
+	public QueryStruct2 getQueryStruct() {
+		return this.qs;
+	}
+	
 	//TODO: come back to this and why it is used
 	@Deprecated
 	public Iterator getIterator() {
 		return this.iterator;
 	}
+	
 }
