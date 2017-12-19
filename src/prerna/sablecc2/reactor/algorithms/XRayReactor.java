@@ -32,6 +32,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.util.Constants;
+import prerna.util.GoogleAnalytics;
 import prerna.util.Utility;
 
 /**
@@ -218,6 +219,10 @@ public class XRayReactor extends AbstractRFrameReactor {
 		GenerateH2FrameFromRVariableReactor sync = new GenerateH2FrameFromRVariableReactor();
 		sync.syncFromR(this.rJavaTranslator, rFrameName, frame);
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
+		
+		// track GA data
+		GoogleAnalytics.trackAnalyticsPixel(this.insight, "XRay");
+		
 		return noun;
 	}
 
