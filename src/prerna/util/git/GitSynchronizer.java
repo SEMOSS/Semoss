@@ -166,7 +166,11 @@ public class GitSynchronizer {
 		remoteAppName = remoteAppName.split("/")[1]; 
 
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
+		// add the files we need to
 		GitPushUtils.addAllFiles(versionFolder, false);
+		// drop the files that are missing / deleted
+		GitDestroyer.removeFiles(versionFolder);
+		// commit
 		GitPushUtils.commitAddedFiles(versionFolder);
 
 		GitRepoUtils.fetchRemote(versionFolder, remoteAppName, username, password);

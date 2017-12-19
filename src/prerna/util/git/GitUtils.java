@@ -280,12 +280,17 @@ public class GitUtils {
 			if(!daFile.endsWith(".mosfet")) {
 				continue;
 			}
-			String fileName = MosfetSyncHelper.getInsightName(new File(daFile));
+			File f = new File(daFile);
+			String fileName = f.getParentFile().getName();
+			// f does not exist when the file type is missing or deleted
+			if(f.exists()) {
+				fileName = MosfetSyncHelper.getInsightName(new File(daFile));
+			}
 			Map<String, String> fileData = new Hashtable<String, String>();
 			fileData.put("fileName", fileName);
 			fileData.put("fileLoc", daFile);
 			fileData.put("fileType", fileType);
-			retFiles.add(fileData);
+			retFiles.add(fileData);	
 		}
 		return retFiles;
 	}
