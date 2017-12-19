@@ -54,20 +54,25 @@ public class GitCreator {
 		if(!versionDir.exists()) {
 			versionDir.mkdirs();
 		}
-		// the folder we use the /version folder
-		// we want to push the database + metadata files into the /version
-		// this way, when another SEMOSS user pulls the information
-		// they will have the data to use
-		pushFilesToVersionFolder(dbFolder, versionFolder, syncDatabase);
+		// write a random file so we can add/commit
+		GitUtils.semossInit(versionFolder);
 		
-		// now we push everything locally
-		GitPushUtils.addAllFiles(versionFolder, true);
+		// if we are going to sync the databases
+		// we will add them in a separate add statement
+		// or, if we have any, we delete them
+		if(syncDatabase) {
+			pushFilesToVersionFolder(dbFolder, versionFolder);
+			GitPushUtils.addSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, false));
+		} else {
+			// if the files are present, we want to remove them so they dont get pushed
+			// to this new repository
+			GitRemover.removeSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, true));
+		}
+		GitPushUtils.addAllFiles(versionFolder, false);
 		GitPushUtils.commitAddedFiles(versionFolder);
 
 		// now that our local is all good
 		// we need to push this to the remote instance
-		// first, remove all the ignores if present
-		GitUtils.removeAllIgnore(versionFolder);
 		// make the remote on git
 		GitRepoUtils.makeRemoteRepository(git, username, repoName);
 
@@ -76,26 +81,15 @@ public class GitCreator {
 		// now fetch it
 		// this will shift us from our local to the master
 		GitRepoUtils.fetchRemote(versionFolder, repoName, username, password);
-		// merge everything
-		// TODO: why do we need to do this???
-		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
 		// now push our local to the remote repo
 		GitPushUtils.push(versionFolder, repoName, "master", username, password);
 	}
 	
-	private static void pushFilesToVersionFolder(String appFolder, String gitFolder, boolean syncDatabase) {
-		File appDir = new File(appFolder);
+	private static void pushFilesToVersionFolder(String appFolder, String gitFolder) {
 		File versionDir = new File(gitFolder);
+		File appDir = new File(appFolder);
 
-		// we need to push the db/owl/jnl into this folder
-		List<String> grabItems = new Vector<String>();
-		grabItems.add("*.OWL");
-		if(syncDatabase) {
-			grabItems.add("*.db");
-			grabItems.add("*.jnl");
-		}
-		FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
-		File[] filesToMove = appDir.listFiles(fileFilter);
+		File[] filesToMove = getDatabaseFiles(appFolder, false);
 		int numFiles = filesToMove.length;
 		for(int i = 0; i < numFiles; i++) {
 			try {
@@ -106,12 +100,32 @@ public class GitCreator {
 		}
 
 		// we also need to move the smss file
-		String smssLocation = appDir.getParent() + "/" + appDir.getName() + ".smss";
-		File smssFile = new File(smssLocation);
+		File smssFile = getSmssFile(appDir);
 		try {
 			FileUtils.copyFileToDirectory(smssFile, versionDir);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private static File[] getDatabaseFiles(String folder, boolean includeSmss) {
+		File appDir = new File(folder);
+		// we need to push the db/owl/jnl into this folder
+		List<String> grabItems = new Vector<String>();
+		grabItems.add("*.db");
+		grabItems.add("*.jnl");
+		grabItems.add("*.OWL");
+		if(includeSmss) {
+			grabItems.add("*.smss");
+		}
+		FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
+		File[] filesToMove = appDir.listFiles(fileFilter);
+		return filesToMove;
+	}
+	
+	private static File getSmssFile(File appDir) {
+		String smssLocation = appDir.getParent() + "/" + appDir.getName() + ".smss";
+		File smssFile = new File(smssLocation);
+		return smssFile;
 	}
 }
