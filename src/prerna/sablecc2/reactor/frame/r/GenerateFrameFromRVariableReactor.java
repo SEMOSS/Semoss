@@ -1,16 +1,20 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import org.rosuda.REngine.Rserve.RConnection;
-
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 
 public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
+	
+	public GenerateFrameFromRVariableReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
