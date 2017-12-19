@@ -5,6 +5,7 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.H2Importer;
 import prerna.util.Constants;
@@ -17,6 +18,10 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	 * This reactor takes an r frame and synchronizes it to an h2 frame in
 	 * semoss inputs are: 1) r data table name
 	 */
+	
+	public GenerateH2FrameFromRVariableReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
