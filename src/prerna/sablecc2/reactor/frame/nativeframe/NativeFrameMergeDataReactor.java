@@ -21,6 +21,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
+import prerna.util.GoogleAnalytics;
 
 public class NativeFrameMergeDataReactor extends AbstractReactor {
 
@@ -40,9 +41,9 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		List<Join> joins = this.curRow.getAllJoins();
 		// first convert the join to use the physical frame name in the selector
 		joins = convertJoins(joins, frame.getMetaData());
-		// if we have an inner join, add the current values as a filter on the query
-		// important for performance on large dbs when the user has already 
-		// filtered to small subset
+
+		// track GA data
+		GoogleAnalytics.trackDataImport(this.insight, qs);
 
 		// Format and send Google Analytics data
 		String engine = qs.getEngineName() + "";
