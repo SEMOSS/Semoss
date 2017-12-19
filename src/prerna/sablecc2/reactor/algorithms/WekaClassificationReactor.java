@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.GoogleAnalytics;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.J48;
@@ -178,7 +179,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 		vizData.put("stats", statList);
 
 		// track GA data
-		insight.trackPixels("analytics", "Classification");
+		GoogleAnalytics.trackAnalyticsPixel(this.insight, "Classification");
 		
 		// now return this object
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
