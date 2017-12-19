@@ -11,12 +11,12 @@ import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 
-public class GitRemover {
+public class GitDestroyer {
 
 	/**
 	 * This class is not intended to be extended or used outside of its static method
 	 */
-	private GitRemover() {
+	private GitDestroyer() {
 
 	}
 
