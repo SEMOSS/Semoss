@@ -109,7 +109,6 @@ public class Insight {
 	// GA Values
 	private String prevType = null;
 	private String thisPrevExpression = null;
-	private final boolean TRACKING_OFF = true;
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -420,9 +419,6 @@ public class Insight {
 	 * @param curExpression
 	 */
 	public void trackPixels(String curType, String curExpression) {
-		if(TRACKING_OFF) {
-			return;
-		}
 		String thisType = curType;
 		String prevType = this.prevType;
 		String thisExpression = curExpression;

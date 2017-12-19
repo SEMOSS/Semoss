@@ -24,6 +24,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.GoogleAnalytics;
 
 public class MergeDataReactor extends AbstractReactor {
 	
@@ -45,40 +46,13 @@ public class MergeDataReactor extends AbstractReactor {
 		List<Join> joins = this.curRow.getAllJoins();
 		// first convert the join to use the physical frame name in the selector
 		joins = convertJoins(joins, frame.getMetaData());
+
+		// track GA data
+		GoogleAnalytics.trackDataImport(this.insight, qs);
+		
 		// if we have an inner join, add the current values as a filter on the query
 		// important for performance on large dbs when the user has already 
 		// filtered to small subset
-
-		// Format and send Google Analytics data
-		String engine = qs.getEngineName() + "";
-		// if the engine doesnt have a name then the data is coming from a temp table
-		if (qs.getEngineName() == null){
-			String tempFrameName = qs.getFrame() + "";
-			engine = "TempFrame_" + tempFrameName ;
-		}
-		String curExpression = "";
-		List<IQuerySelector> selectors = qs.getSelectors();
-		for (int i = 0; i < selectors.size(); i++) {
-			IQuerySelector selector = selectors.get(i);
-			String columnSelected = "";
-			if (selector instanceof QueryColumnSelector) {
-				// we can get a table and column
-				columnSelected = ((QueryColumnSelector) selector).getTable() + "__" + ((QueryColumnSelector) selector).getAlias();
-			} else {
-				// only alias
-				columnSelected = selector.getAlias();
-			}
-			curExpression = curExpression + engine + ":" + columnSelected;
-			if (i != (selectors.size() - 1)) {
-				curExpression += ";";
-			}
-		}
-		if (curExpression.equals("") && engine.equals("DIRECT_ENGINE_CONNECTION")){
-			curExpression = curExpression + engine ;
-		}
-		insight.trackPixels("dataquery", curExpression);
-		
-		//continue...
 		for(Join j : joins) {
 			// s is the frame name
 			String s = j.getSelector();
