@@ -43,7 +43,7 @@ public class GitPushUtils {
 		Iterator <String> upFiles = status.getUntracked().iterator();
 		while(upFiles.hasNext()) {
 			String daFile = upFiles.next();
-			if(ignoreTheIgnoreFiles || !isIgnore(daFile)) {
+			if(ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
 				added = true;
 				ac.addFilepattern(daFile);
 			}
@@ -53,7 +53,7 @@ public class GitPushUtils {
 		Iterator <String> modFiles = status.getModified().iterator();
 		while(modFiles.hasNext()) {
 			String daFile = modFiles.next();
-			if(ignoreTheIgnoreFiles || !isIgnore(daFile)) {
+			if(ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
 				added = true;
 				ac.addFilepattern(daFile);
 			}
@@ -77,6 +77,41 @@ public class GitPushUtils {
 	 * @param files
 	 */
 	public static void addSpecificFiles(String localRepository, List<String> files) {
+		if(files == null || files.size() == 0) {
+			return;
+		}
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
+		}
+		AddCommand ac = thisGit.add();
+		for(String daFile : files) {
+			if(daFile.contains("version")) {
+				daFile = daFile.substring(daFile.indexOf("version") + 8);
+			}
+			daFile = daFile.replace("\\", "/");
+			ac.addFilepattern(daFile);
+		}
+		try {
+			ac.call();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
+		}
+		thisGit.close();
+	}
+	
+	/**
+	 * Add specific files to a given git
+	 * @param thisGit
+	 * @param files
+	 */
+	public static void addSpecificFiles(String localRepository, File[] files) {
+		if(files == null || files.length == 0) {
+			return;
+		}
 		Git thisGit = null;
 		try {
 			thisGit = Git.open(new File(localRepository));
@@ -84,7 +119,8 @@ public class GitPushUtils {
 			e.printStackTrace();
 		}
 		AddCommand ac = thisGit.add();
-		for(String daFile : files) {
+		for(File f : files) {
+			String daFile = f.getAbsolutePath();
 			if(daFile.contains("version")) {
 				daFile = daFile.substring(daFile.indexOf("version") + 8);
 			}
@@ -138,19 +174,5 @@ public class GitPushUtils {
 		} catch (GitAPIException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	/**
-	 * Determine if a file is one to ignore
-	 * @param fileName
-	 * @return
-	 */
-	private static boolean isIgnore(String fileName) {
-		String [] list = new String[]{".db", ".jnl"};
-		boolean ignore = false;
-		for(int igIndex = 0; igIndex < list.length && !ignore; igIndex++) {
-			ignore = fileName.endsWith(list[igIndex]);
-		}
-		return ignore;
 	}
 }
