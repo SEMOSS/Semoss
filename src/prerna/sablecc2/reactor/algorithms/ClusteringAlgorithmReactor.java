@@ -20,6 +20,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.GoogleAnalytics;
 
 public class ClusteringAlgorithmReactor extends AbstractReactor {
 	
@@ -157,7 +158,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		}
 
 		// track GA data
-		insight.trackPixels("analytics", "Clustering");
+		GoogleAnalytics.trackAnalyticsPixel(this.insight, "Clustering");
 		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
