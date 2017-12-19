@@ -10,6 +10,7 @@ import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.JavaExecutable;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ArrayUtilityMethods;
@@ -30,6 +31,11 @@ public abstract class OpBasicMath extends OpReactor {
 	 * 		make generic expression class that uses
 	 * 		existing classes
 	 */
+	
+	public OpBasicMath() {
+		this.keysToGet = new String[]{ReactorKeysEnum.NUMERIC_VALUES.getKey()};
+	}
+	
 	
 	@Override
 	public NounMetadata execute() {
