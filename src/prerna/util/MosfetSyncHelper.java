@@ -357,7 +357,7 @@ public class MosfetSyncHelper {
 		output.put("layout", layout);
 		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
-			recipe.append(pixel).append("\n");
+			recipe.append(pixel);
 		}
 		output.put("recipe", recipe.toString());
 
@@ -387,7 +387,7 @@ public class MosfetSyncHelper {
 		output.put("layout", layout);
 		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
-			recipe.append(pixel).append("\n");
+			recipe.append(pixel);
 		}
 		output.put("recipe", recipe.toString());
 
