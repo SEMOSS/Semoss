@@ -460,22 +460,23 @@ public class ReactorFactory {
 		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
 		
 		// Git it
-		reactorHash.put("Version", prerna.sablecc2.reactor.git.Version.class);
-		reactorHash.put("ListRepo", prerna.sablecc2.reactor.git.List4User.class);
-		reactorHash.put("ListRemote", prerna.sablecc2.reactor.git.ListRemotes.class);
-		reactorHash.put("Sync", prerna.sablecc2.reactor.git.Sync.class);
-		reactorHash.put("SyncSpecific", prerna.sablecc2.reactor.git.SyncSpecific.class);
-		reactorHash.put("Drop", prerna.sablecc2.reactor.git.DropRemote.class);
-		reactorHash.put("Copy", prerna.sablecc2.reactor.git.Replicate.class);
-		reactorHash.put("App", prerna.sablecc2.reactor.git.MakeApp.class);
-		reactorHash.put("SearchTeam", prerna.sablecc2.reactor.git.SearchCollaborator.class);
-		reactorHash.put("Add", prerna.sablecc2.reactor.git.AddCollaborator.class);
-		reactorHash.put("Remove", prerna.sablecc2.reactor.git.RemoveCollaborator.class);
-		reactorHash.put("ListTeam", prerna.sablecc2.reactor.git.ListRepoCollabs.class);
-		reactorHash.put("IsGit", prerna.sablecc2.reactor.git.IsGit.class);
-		reactorHash.put("Login", prerna.sablecc2.reactor.git.LoginGit.class);
-		reactorHash.put("GitStatus", prerna.sablecc2.reactor.git.GitStatusReactor.class);
-		reactorHash.put("RenameMosfitFile", prerna.sablecc2.reactor.git.GitRenameMosfitFileReactor.class);
+		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
+		reactorHash.put("ListRepo", prerna.util.git.reactors.List4User.class);
+		reactorHash.put("ListRemote", prerna.util.git.reactors.ListRemotes.class);
+		reactorHash.put("Sync", prerna.util.git.reactors.Sync.class);
+		reactorHash.put("SyncSpecific", prerna.util.git.reactors.SyncSpecific.class);
+		reactorHash.put("Drop", prerna.util.git.reactors.DropRemote.class);
+		reactorHash.put("Delete", prerna.util.git.reactors.DeleteRemote.class);
+		reactorHash.put("Copy", prerna.util.git.reactors.Replicate.class);
+		reactorHash.put("App", prerna.util.git.reactors.MakeApp.class);
+		reactorHash.put("SearchTeam", prerna.util.git.reactors.SearchCollaborator.class);
+		reactorHash.put("Add", prerna.util.git.reactors.AddCollaborator.class);
+		reactorHash.put("Remove", prerna.util.git.reactors.RemoveCollaborator.class);
+		reactorHash.put("ListTeam", prerna.util.git.reactors.ListRepoCollabs.class);
+		reactorHash.put("IsGit", prerna.util.git.reactors.IsGit.class);
+		reactorHash.put("Login", prerna.util.git.reactors.LoginGit.class);
+		reactorHash.put("GitStatus", prerna.util.git.reactors.GitStatusReactor.class);
+		reactorHash.put("RenameMosfitFile", prerna.util.git.reactors.GitRenameMosfitFileReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
