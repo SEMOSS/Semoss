@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -15,12 +14,12 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 	
 	public DatabaseConceptPropertiesReactors() {
-		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPTS.getKey(), "engine"};
+		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPTS.getKey(), ReactorKeysEnum.ENGINE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct conceptNamesGrs = this.store.getNoun("concepts");
+		GenRowStruct conceptNamesGrs = this.store.getNoun(keysToGet[0]);
 		if(conceptNamesGrs == null) {
 			throw new IllegalArgumentException("Need to define the concepts to find relations");
 		}
@@ -31,7 +30,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 		}
 		
 		// account for optional engine filter
-		GenRowStruct engineFilterGrs = this.store.getNoun("engine");
+		GenRowStruct engineFilterGrs = this.store.getNoun(keysToGet[1]);
 		String engineFilter = null;
 		if(engineFilterGrs != null) {
 			engineFilter = engineFilterGrs.get(0).toString();
@@ -45,7 +44,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("engine")) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The optional engine filter";
 		} else {
 			return super.getDescriptionForKey(key);
