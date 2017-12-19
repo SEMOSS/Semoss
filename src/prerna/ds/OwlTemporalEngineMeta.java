@@ -308,6 +308,37 @@ public class OwlTemporalEngineMeta {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
+	public List<String[]> getDatabaseInformation(String uniqueName) {
+		String query = "select distinct "
+				+ "?header "
+				+ "(coalesce(?qs, 'unknown') as ?qsName) "
+				+ "where {"
+				+ "{" 
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "}";
+		
+		List<String[]> ret = new Vector<String[]>();
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		while(it.hasNext()) {
+			Object[] values = it.next().getValues();
+			String qsString = values[1].toString(); 
+			String[] split = qsString.split(":::");
+			ret.add(split);
+		}
+		
+		return ret;
+	}
+	
 	public String getUniqueNameFromAlias(String alias) {
 		String query = "select distinct ?header where {"
 				+ "{"

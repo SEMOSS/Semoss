@@ -21,6 +21,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.solr.SolrIndexEngine;
+import prerna.util.GoogleAnalytics;
 import prerna.util.Utility;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
@@ -77,10 +78,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		insightMap.put("core_engine", newInsight.getEngineName());
 		insightMap.put("core_engine_id", newInsight.getRdbmsId());
 		
-		// Send data to GA
-		String curExpression = engineName + ":" + rdbmsId + "__" + newInsight.getInsightName();
-		insight.trackPixels("openinsight", curExpression);
-		
+		// track GA data
+		GoogleAnalytics.trackInsightExecution(this.insight, "openinsight", engineName, rdbmsId, newInsight.getInsightName());
+
 		insightMap.put("insightData", newInsight.reRunPixelInsight());
 		insightMap.put("params", params);
 
@@ -91,7 +91,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				| IOException e) {
 			e.printStackTrace();
 		}
-
 
 		// return the recipe steps
 		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_SAVED_INSIGHT);

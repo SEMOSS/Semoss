@@ -9,6 +9,7 @@ import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.util.GoogleAnalytics;
 
 public class FileSourceReactor extends QueryStructReactor {
 
@@ -73,14 +74,10 @@ public class FileSourceReactor extends QueryStructReactor {
 		// Formatting and Tracking for Google Analytics
 		String FileName = getFileName();
 		List<String> heads = new ArrayList<String>(dataTypes.keySet());
-		String curExpression = "";
-		for (int i = 0; i < heads.size(); i++) {
-			curExpression = curExpression + FileName + ":" + heads.get(i);
-			if (i != (heads.size() - 1)) {
-				curExpression += ";";
-			}
-		}
-		insight.trackPixels("draganddrop", curExpression);
+
+		// track GA data
+		GoogleAnalytics.trackDragAndDrop(this.insight, heads, FileName);
+
 		return qs;
 	}
 
