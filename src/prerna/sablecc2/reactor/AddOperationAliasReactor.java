@@ -5,11 +5,11 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Properties;
-
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 public class AddOperationAliasReactor extends AbstractReactor {
@@ -20,6 +20,10 @@ public class AddOperationAliasReactor extends AbstractReactor {
 	 * 1) the name of the reactor 
 	 * 2) the alias for the reactor
 	 */
+	
+	public AddOperationAliasReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.REACTOR.getKey(), ReactorKeysEnum.ALIAS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -174,6 +178,17 @@ public class AddOperationAliasReactor extends AbstractReactor {
 			pw.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(keysToGet[0])) {
+			return "The name of the reactor";
+		} else {
+			return super.getDescriptionForKey(key);
 		}
 	}
 }
