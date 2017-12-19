@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -20,7 +19,7 @@ public class ConnectedConceptsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct conceptNamesGrs = this.store.getNoun("concepts");
+		GenRowStruct conceptNamesGrs = this.store.getNoun(keysToGet[0]);
 		if(conceptNamesGrs == null) {
 			throw new IllegalArgumentException("Need to define the concepts to find relations");
 		}
