@@ -21,6 +21,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.solr.SolrIndexEngine;
+import prerna.util.GoogleAnalytics;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 
@@ -93,15 +94,15 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			String base64Image = getImage();
 			updateSolrImage(base64Image, newRdbmsId, engineName);
 		}
-
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("core_engine_id", newRdbmsId);
 		returnMap.put("core_engine", engineName);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
-		
-		String curExpression = engineName + ":" + newRdbmsId + "__" + insightName;
-		insight.trackPixels("saveinsight", curExpression);
+
+		// track GA data
+		GoogleAnalytics.trackInsightExecution(this.insight, "saveinsight", engineName, newRdbmsId, insightName);
+
 		return noun;
 	}
 

@@ -8,14 +8,13 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.GoogleAnalytics;
 
 public class ImportDataReactor extends AbstractReactor {
 	
@@ -35,35 +34,9 @@ public class ImportDataReactor extends AbstractReactor {
 		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);
 		
-		// Format and send Google Analytics data
-		String engine = qs.getEngineName() + "";
-		// if the engine doesnt have a name then the data is coming from a temp table
-		if (qs.getEngineName() == null){
-			String tempFrameName = qs.getFrame() + "";
-			engine = "TempFrame_" + tempFrameName ;
-		}
-		String curExpression = "";
-		List<IQuerySelector> selectors = qs.getSelectors();
-		for (int i = 0; i < selectors.size(); i++) {
-			IQuerySelector selector = selectors.get(i);
-			String columnSelected = "";
-			if (selector instanceof QueryColumnSelector) {
-				// we can get a table and column
-				columnSelected = ((QueryColumnSelector) selector).getTable() + "__" + ((QueryColumnSelector) selector).getAlias();
-			} else {
-				// only alias
-				columnSelected = selector.getAlias();
-			}
-			curExpression = curExpression + engine + ":" + columnSelected;
-			if (i != (selectors.size() - 1)) {
-				curExpression += ";";
-			}
-		}
-		if (curExpression.equals("") && engine.equals("DIRECT_ENGINE_CONNECTION")){
-			curExpression = curExpression + engine ;
-		}
-		insight.trackPixels("dataquery", curExpression);
-	
+		// track GA data
+		GoogleAnalytics.trackDataImport(this.insight, qs);
+		
 		// insert the data
 		IImporter importer = ImportFactory.getImporter(frame, qs);
 		importer.insertData();
