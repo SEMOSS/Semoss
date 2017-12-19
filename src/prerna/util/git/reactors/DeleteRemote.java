@@ -29,7 +29,7 @@ public class DeleteRemote extends AbstractReactor {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String appFolder = baseFolder + "/db/" + appName + "/version";
 		// remove it from remote
-		GitRepoUtils.removeRemote(appFolder, remoteApp);
+		GitRepoUtils.deleteRemoteRepositorySettings(appFolder, remoteApp);
 		// drop it from external
 		GitRepoUtils.deleteRemoteRepository(remoteApp, username, password);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
