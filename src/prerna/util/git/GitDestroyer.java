@@ -35,18 +35,18 @@ public class GitDestroyer {
 		boolean removed = false;
 
 		// get removed files
-		Iterator <String> upFiles = status.getRemoved().iterator();
-		while(upFiles.hasNext()) {
+		Iterator <String> remFiles = status.getRemoved().iterator();
+		while(remFiles.hasNext()) {
 			removed = true;
-			String daFile = upFiles.next();
+			String daFile = remFiles.next();
 			rm.addFilepattern(daFile);
 		}
 
 		// get missing files
-		Iterator <String> modFiles = status.getMissing().iterator();
-		while(modFiles.hasNext()) {
+		Iterator <String> misFiles = status.getMissing().iterator();
+		while(misFiles.hasNext()) {
 			removed = true;
-			String daFile = upFiles.next();
+			String daFile = misFiles.next();
 			rm.addFilepattern(daFile);
 		}
 
