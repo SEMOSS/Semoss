@@ -11,6 +11,7 @@ import java.util.Vector;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
@@ -104,6 +105,25 @@ public class GitRepoUtils {
 				e.printStackTrace();
 				throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
 			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param localRepository
+	 * @param repositoryName
+	 */
+	public static void deleteRemoteRepositorySettings(String localRepository, String repositoryName) {
+		try {
+			File file = new File(localRepository);
+			Git gFile = Git.open(file);
+			RemoteRemoveCommand remover = gFile.remoteRemove();
+			remover.setName(repositoryName);
+			remover.call();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
 		}
 	}
 
