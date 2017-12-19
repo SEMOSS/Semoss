@@ -3,20 +3,18 @@ package prerna.sablecc2.reactor.frame;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetFrameHeaderMetadataReactor extends AbstractReactor {
-
-	private static final String ALL_NUMERIC_KEY = "allNumeric";
 	
 	public GetFrameHeaderMetadataReactor() {
-		this.keysToGet = new String[]{ALL_NUMERIC_KEY};
+		this.keysToGet = new String[]{ReactorKeysEnum.ALL_NUMERIC_KEY.getKey()};
 	}
 	
 	@Override
@@ -34,7 +32,7 @@ public class GetFrameHeaderMetadataReactor extends AbstractReactor {
 	}
 	
 	private boolean returnOnlyNumeric() {
-		GenRowStruct numGrs = this.store.getNoun(ALL_NUMERIC_KEY);
+		GenRowStruct numGrs = this.store.getNoun(keysToGet[0]);
 		if(numGrs != null) {
 			if(numGrs.size() > 0) {
 				List<Object> val = numGrs.getValuesOfType(PixelDataType.BOOLEAN);
