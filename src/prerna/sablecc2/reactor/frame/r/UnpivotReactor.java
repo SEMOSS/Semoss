@@ -55,11 +55,11 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		// we want to make sure the new columns that we add
 		// are in fact unique
 		// so we will loop through and ensure that
-		final String defaultVarName = "varaible";
+		final String defaultVarName = "variable";
 		final String defaultValueName = "value";
 		int headerNum = 1;
 		String[] allColumns = frame.getColumnHeaders();
-		String varName = defaultValueName;
+		String varName = defaultVarName;
 		String valueName = defaultValueName;
 		while(ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, varName) 
 				|| ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, valueName)) {
