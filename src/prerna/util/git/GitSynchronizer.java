@@ -120,20 +120,22 @@ public class GitSynchronizer {
 	 * @param dual
 	 * @return 
 	 */
-	public static Map<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String username, String password, List<String> filesToAdd, boolean dual) {
+	public static Map<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String username, String password, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String versionFolder = baseFolder + "/db/" + localAppName + "/version";
 		
 		remoteAppName = remoteAppName.split("/")[1]; 
 		GitRepoUtils.fetchRemote(versionFolder, remoteAppName, username, password);
-		GitPushUtils.addSpecificFiles(versionFolder, filesToAdd);
+		List<String>[] filesSplit = determineFileOperation(filesToSync);
+		GitPushUtils.addSpecificFiles(versionFolder, filesSplit[0]);
+		GitDestroyer.removeSpecificFiles(versionFolder, filesSplit[1]);
 		GitPushUtils.commitAddedFiles(versionFolder);
 		
 		// need to get a list of files to process
 		String thisMaster = "refs/heads/master";
 		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
 		
-		Hashtable<String, List<String>> returnFiles = getFilesToAdd(versionFolder, thisMaster, remoteMaster);
+		Hashtable<String, List<String>> returnFiles = getFilesToAdd(versionFolder, remoteMaster, thisMaster);
 		
 		// check to see if there are conflicts
 		// it is now done as part of merge
@@ -152,6 +154,31 @@ public class GitSynchronizer {
 			GitPushUtils.push(versionFolder, remoteAppName, "master",username, password);
 		}
 		return returnFiles;
+	}
+	
+	/**
+	 * If the file exists, then we want to add the file
+	 * If the file doesn't exist, then we want to remove the file
+	 * @param filesToSync
+	 * @return
+	 */
+	private static List<String>[] determineFileOperation(List<String> filesToSync) {
+		List<String>[] fileOps = new Vector[2];
+		List<String> addFiles = new Vector<String>();
+		List<String> delFiles = new Vector<String>();
+		
+		for(String filePath : filesToSync) {
+			File f = new File(filePath);
+			if(f.exists()) {
+				addFiles.add(filePath);
+			} else {
+				delFiles.add(filePath);
+			}
+		}
+		
+		fileOps[0] = addFiles;
+		fileOps[1] = delFiles;
+		return fileOps;
 	}
 	
 	public static Map<String, List<String>> synchronize(String localAppName, String remoteAppName, String username, String password, boolean dual)
@@ -178,7 +205,7 @@ public class GitSynchronizer {
 		// need to get a list of files to process
 		String thisMaster = "refs/heads/master";
 		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
-		Hashtable <String, List<String>> files = getFilesToAdd(versionFolder, thisMaster, remoteMaster);
+		Hashtable <String, List<String>> files = getFilesToAdd(versionFolder, remoteMaster, thisMaster);
 
 		// check to see if there are conflicts
 		// it is now done as part of merge
@@ -251,16 +278,14 @@ public class GitSynchronizer {
 				System.out.println("File : " + entry.getOldId());
 				System.out.println("File : " + entry.getNewId());
 				
-				if(entry.getChangeType() == ChangeType.ADD) {
+				ChangeType cType = entry.getChangeType();
+				if(cType == ChangeType.ADD) {
 					addFiles.add(fileName);
-				}
-				if(entry.getChangeType() == ChangeType.MODIFY) {
+				} else if(cType == ChangeType.MODIFY) {
 					modFiles.add(fileName);
-				}
-				if(entry.getChangeType() == ChangeType.RENAME) {
+				} else if(cType == ChangeType.RENAME) {
 					renFiles.add(fileName);
-				}
-				if(entry.getChangeType() == ChangeType.DELETE) {
+				} else if(cType == ChangeType.DELETE) {
 					delFiles.add(fileName);
 				}
 			}
