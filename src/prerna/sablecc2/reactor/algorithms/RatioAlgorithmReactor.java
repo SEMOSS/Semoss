@@ -33,6 +33,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.imports.RImporter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.GoogleAnalytics;
 import prerna.util.Utility;
 
 public class RatioAlgorithmReactor extends AbstractReactor {
@@ -335,7 +336,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 //		System.out.println(counter);
 //		return null;
 
-		insight.trackPixels("analytics", "Ratio");
+		GoogleAnalytics.trackAnalyticsPixel(this.insight, "Ratio");
 		
 		this.insight.setDataMaker(newFrame);
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
