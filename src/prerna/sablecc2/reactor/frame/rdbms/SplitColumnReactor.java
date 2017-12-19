@@ -143,6 +143,9 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
 		String separator = separatorGrs.get(0).toString();
+		if(separator.isEmpty()) {
+			throw new IllegalArgumentException("Need to define a separator to split the column with");
+		}
 		return separator;
 	}
 
