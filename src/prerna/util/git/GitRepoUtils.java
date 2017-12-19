@@ -118,7 +118,7 @@ public class GitRepoUtils {
 			File file = new File(localRepository);
 			Git gFile = Git.open(file);
 			RemoteRemoveCommand remover = gFile.remoteRemove();
-			remover.setName(repositoryName);
+			remover.setName(repositoryName.split("/")[1]);
 			remover.call();
 		} catch (IOException e) {
 			e.printStackTrace();
