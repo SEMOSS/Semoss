@@ -1,12 +1,11 @@
 package prerna.sablecc2.reactor.expression;
 
 import java.math.BigDecimal;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class OpSumIf extends OpBasic {
 	
@@ -14,6 +13,7 @@ public class OpSumIf extends OpBasic {
 	
 	public OpSumIf() {
 		this.operation = "SumIf";
+		this.keysToGet = new String[]{ReactorKeysEnum.VALUES.getKey(), ReactorKeysEnum.CRITERIA.getKey(), ReactorKeysEnum.SUM_RANGE.getKey()};
 	}
 	
 	@Override
