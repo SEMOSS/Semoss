@@ -18,6 +18,7 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.kohsuke.github.GHCreateRepositoryBuilder;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import prerna.util.Utility;
@@ -34,7 +35,7 @@ public class GitRepoUtils {
 	private GitRepoUtils() {
 
 	}
-	
+
 	/**
 	 * Generate a version folder within an app and init a local Git repo
 	 * @param appFolder
@@ -51,7 +52,7 @@ public class GitRepoUtils {
 			throw new IllegalArgumentException("Error in initializing local Git repository");
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param gh
@@ -67,7 +68,7 @@ public class GitRepoUtils {
 			throw new IllegalArgumentException("Error with creating remote repository at " + username + "/" + repoName);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param localRepository
@@ -82,6 +83,51 @@ public class GitRepoUtils {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Unable to drop remote");
 		}
+	}
+
+	/**
+	 * Delete a repository
+	 * @param repositoryName
+	 * @param username
+	 * @param password
+	 * @throws IOException
+	 */
+	public static void deleteRemoteRepository(String repositoryName, String username, String password) {
+		String repoName = repositoryName.split("/")[1];
+		if(checkRemoteRepository(repoName, username, password)) {
+			GitHub gh = GitUtils.login(username, password);
+			GHRepository ghr = null;
+			try {
+				ghr = gh.getRepository(repositoryName);
+				ghr.delete();
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
+			}
+		}
+	}
+
+	/**
+	 * Check if a repo exists
+	 * @param repositoryName
+	 * @param username
+	 * @param password
+	 * @return
+	 * @throws IOException
+	 */
+	public static boolean checkRemoteRepository(String repositoryName, String username, String password) {
+		GitHubClient client = GitHubClient.createClient("https://github.com");
+		if(password != null) {
+			client.setCredentials(username, password);
+		}
+		RepositoryService service = new RepositoryService(client);
+		boolean returnVal = true;
+		try {
+			service.getRepository(username, repositoryName);
+		} catch (Exception ex) {
+			throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for username " + username);
+		}
+		return returnVal;
 	}
 
 	/**
@@ -102,7 +148,7 @@ public class GitRepoUtils {
 			throw new IllegalArgumentException("Error with adding the remote repository");
 		}
 	}
-	
+
 	/**
 	 * Switch to a specific git remote
 	 * @param localRepo
@@ -132,14 +178,14 @@ public class GitRepoUtils {
 			e.printStackTrace();
 		}
 	}
-	
-	
+
+
 	/**
 	 * 
 	 * Configuration based remote methods
 	 * 
 	 */
-	
+
 	/**
 	 * Get the list of remote configurations associated with an app directory
 	 * Get the url
@@ -153,13 +199,13 @@ public class GitRepoUtils {
 		try {
 			File file = new File(localRepositoryName);
 			Repository thisRepo = Git.open(file).getRepository();
-			
+
 			String[] remNames = thisRepo.getRemoteNames().toArray(new String[]{});
 			for(int remIndex = 0; remIndex < remNames.length; remIndex++) {
 				String remName = remNames[remIndex] +"";
 				String url = thisRepo.getConfig().getString("remote", remName, "url");
 				String upstream = thisRepo.getConfig().getString(remName, "upstream",  "url");
-				
+
 				Map<String, String> remoteMap = new Hashtable<String, String>();
 				remoteMap.put("url", url);
 				String appName = Utility.getClassName(url) + "/" + Utility.getInstanceName(url);
@@ -175,10 +221,10 @@ public class GitRepoUtils {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		return returnList;
 	}
-	
+
 	/**
 	 * Get the list of repos for a given user
 	 * @param username
@@ -198,7 +244,7 @@ public class GitRepoUtils {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		return remoteRepos;
 	}
 }
