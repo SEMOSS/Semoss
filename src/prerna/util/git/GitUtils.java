@@ -71,6 +71,16 @@ public class GitUtils {
 		Date date = new Date();
 		return prefixString + " <d>" + dateFormat.format(date);
 	}
+	
+	public static void semossInit(String dir) {
+		String newFile = dir + "/SEMOSS.INIT";
+		File myFile = new File(newFile);
+		try {
+			myFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
@@ -204,6 +214,20 @@ public class GitUtils {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Determine if a file is one to ignore
+	 * @param fileName
+	 * @return
+	 */
+	public static boolean isIgnore(String fileName) {
+		String [] list = new String[]{".db", ".jnl"};
+		boolean ignore = false;
+		for(int igIndex = 0; igIndex < list.length && !ignore; igIndex++) {
+			ignore = fileName.endsWith(list[igIndex]);
+		}
+		return ignore;
 	}
 	
 	///////////////////////////////////////////////////////

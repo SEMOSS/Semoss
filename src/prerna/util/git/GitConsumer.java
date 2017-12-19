@@ -48,7 +48,7 @@ public class GitConsumer {
 
 		String versionFolder = dbFolder + "/version";
 		// write a random file so we can add/commit
-		semossInit(versionFolder);
+		GitUtils.semossInit(versionFolder);
 		// add/commit all the files
 		GitPushUtils.addAllFiles(versionFolder, false);
 		GitPushUtils.commitAddedFiles(versionFolder);
@@ -198,16 +198,4 @@ public class GitConsumer {
 
 		return newFile;
 	}
-
-	private static void semossInit(String dir) {
-		String newFile = dir + "/SEMOSS.INIT";
-		File myFile = new File(newFile);
-		try {
-			myFile.createNewFile();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-
 }
