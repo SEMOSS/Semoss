@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.Map;
-
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -18,7 +17,7 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct eGrs = this.store.getNoun("engine");
+		GenRowStruct eGrs = this.store.getNoun(keysToGet[0]);
 		if(eGrs == null) {
 			throw new IllegalArgumentException("Need to define the engine to get the concepts from");
 		}
