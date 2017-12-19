@@ -63,9 +63,9 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		String valueName = defaultValueName;
 		while(ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, varName) 
 				|| ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, valueName)) {
-			headerNum++;
 			varName = defaultVarName + "_" + headerNum;
 			valueName = defaultValueName + "_" + headerNum;
+			headerNum++;
 		}
 		
 		// now that we have unique values
