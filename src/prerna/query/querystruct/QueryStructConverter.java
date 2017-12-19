@@ -89,7 +89,7 @@ public class QueryStructConverter {
 		return convertedQs;
 	}
 
-	private static Map<String, Map<String, List>> convertJoins(Map<String, Map<String, List>> joins, OwlTemporalEngineMeta meta) {
+	public static Map<String, Map<String, List>> convertJoins(Map<String, Map<String, List>> joins, OwlTemporalEngineMeta meta) {
 		Map<String, Map<String, List>> convertedJoins = new HashMap<String, Map<String, List>>();
 		for(String startCol : joins.keySet()) {
 			// grab the comp map before doing conversions
@@ -131,7 +131,7 @@ public class QueryStructConverter {
 	 * @param selector
 	 * @return
 	 */
-	private static IQuerySelector convertSelector(IQuerySelector selector, OwlTemporalEngineMeta meta) {
+	public static IQuerySelector convertSelector(IQuerySelector selector, OwlTemporalEngineMeta meta) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return convertConstantSelector((QueryConstantSelector) selector, meta);
@@ -209,7 +209,7 @@ public class QueryStructConverter {
 	 * @param meta
 	 * @return
 	 */
-	private static QueryColumnOrderBySelector convertOrderBySelector(QueryColumnOrderBySelector selector, OwlTemporalEngineMeta meta) {
+	public static QueryColumnOrderBySelector convertOrderBySelector(QueryColumnOrderBySelector selector, OwlTemporalEngineMeta meta) {
 		String newQsName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
 		if(newQsName == null) {
 			// nothing to do
@@ -238,7 +238,7 @@ public class QueryStructConverter {
 	 * @param meta
 	 * @return
 	 */
-	private static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
+	public static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta) {
 		if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
