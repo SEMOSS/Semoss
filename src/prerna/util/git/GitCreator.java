@@ -66,7 +66,7 @@ public class GitCreator {
 		} else {
 			// if the files are present, we want to remove them so they dont get pushed
 			// to this new repository
-			GitRemover.removeSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, true));
+			GitDestroyer.removeSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, true));
 		}
 		GitPushUtils.addAllFiles(versionFolder, false);
 		GitPushUtils.commitAddedFiles(versionFolder);
