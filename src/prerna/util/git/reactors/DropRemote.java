@@ -25,7 +25,7 @@ public class DropRemote extends AbstractReactor {
 		String appName = this.keyValue.get(this.keysToGet[1]);
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = baseFolder + "/" + appName;
+		String appFolder = baseFolder + "/db/" + appName + "/version";
 		GitRepoUtils.removeRemote(appFolder, remoteApp);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
