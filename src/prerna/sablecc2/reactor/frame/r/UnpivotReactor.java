@@ -1,12 +1,15 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.Arrays;
+import java.util.List;
+
 import prerna.ds.r.RDataTable;
+import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class UnpivotReactor extends AbstractRFrameReactor {
@@ -55,22 +58,17 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		// we want to make sure the new columns that we add
 		// are in fact unique
 		// so we will loop through and ensure that
-		final String defaultVarName = "variable";
-		final String defaultValueName = "value";
-		int headerNum = 1;
-		String[] allColumns = frame.getColumnHeaders();
-		String varName = defaultVarName;
-		String valueName = defaultValueName;
-		while(ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, varName) 
-				|| ArrayUtilityMethods.arrayContainsValueIgnoreCase(allColumns, valueName)) {
-			varName = defaultVarName + "_" + headerNum;
-			valueName = defaultValueName + "_" + headerNum;
-			headerNum++;
-		}
+		// and also guarantee that they are in sync
+		HeadersException headerChecker = HeadersException.getInstance();
+		List<String> allColumns = Arrays.asList(frame.getColumnHeaders());
+		// we make the assumption that the start headers are already clean
+		String[] newColumns = headerChecker.cleanAndMatchColumnNumbers("variable_1", "value_1", allColumns);
+		String varName = newColumns[0];
+		String valueName = newColumns[1];
 		
 		// now that we have unique values
 		// we can proceed with the script
-		String script = tempName + "<- melt(" + table + ", variable.name = \"" + varName + "\", value.name = \"" + valueName + "\"," + concatString + ");";
+		String script = tempName + "<- melt(" + table + ", variable.name = \"" + varName + "\", value.name = \"" + valueName + "\"" + concatString + ");";
 
 		// run the first script to unpivot into the temp frame
 		frame.executeRScript(script);
