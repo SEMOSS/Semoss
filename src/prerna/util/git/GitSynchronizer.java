@@ -56,6 +56,7 @@ public class GitSynchronizer {
 		GitUtils.removeAllIgnore(versionFolder);
 		// now we push everything locally
 		GitPushUtils.addAllFiles(versionFolder, true);
+		GitDestroyer.removeFiles(versionFolder, true);
 		GitPushUtils.commitAddedFiles(versionFolder);
 		GitPushUtils.push(versionFolder, repoName, "master", username, password);
 
@@ -196,7 +197,7 @@ public class GitSynchronizer {
 		// add the files we need to
 		GitPushUtils.addAllFiles(versionFolder, false);
 		// drop the files that are missing / deleted
-		GitDestroyer.removeFiles(versionFolder);
+		GitDestroyer.removeFiles(versionFolder, false);
 		// commit
 		GitPushUtils.commitAddedFiles(versionFolder);
 
