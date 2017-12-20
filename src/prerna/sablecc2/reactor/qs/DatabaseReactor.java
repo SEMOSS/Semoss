@@ -1,9 +1,14 @@
 package prerna.sablecc2.reactor.qs;
 
 import prerna.query.querystruct.QueryStruct2;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class DatabaseReactor extends QueryStructReactor {
 
+	public DatabaseReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+	}
+	
 	@Override
 	QueryStruct2 createQueryStruct() {
 		//get the selectors
