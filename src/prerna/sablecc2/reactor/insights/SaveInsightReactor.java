@@ -20,6 +20,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.GoogleAnalytics;
 import prerna.util.MosfetSyncHelper;
@@ -28,6 +29,10 @@ import prerna.util.Utility;
 public class SaveInsightReactor extends AbstractInsightReactor {
 
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
+	
+	public SaveInsightReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
+	}
 	
 	@Override
 	public NounMetadata execute() {
@@ -149,6 +154,18 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e1) {
 			e1.printStackTrace();
+		}
+	}
+	
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(IMAGE)) {
+			return "The base64 image string - used if there is no image URL";
+		} else {
+			return super.getDescriptionForKey(key);
 		}
 	}
 
