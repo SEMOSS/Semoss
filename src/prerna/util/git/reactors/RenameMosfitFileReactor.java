@@ -11,9 +11,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.MosfetSyncHelper;
 
-public class GitRenameMosfitFileReactor extends AbstractReactor {
+public class RenameMosfitFileReactor extends AbstractReactor {
 
-	public GitRenameMosfitFileReactor() {
+	public RenameMosfitFileReactor() {
 		this.keysToGet = new String[]{"mosfet", ReactorKeysEnum.INSIGHT_NAME.getKey()};
 	}
 	

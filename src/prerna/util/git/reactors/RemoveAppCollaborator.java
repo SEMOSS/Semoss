@@ -5,13 +5,16 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitCollaboratorUtils;
 
-public class RemoveCollaborator extends AbstractReactor {
+public class RemoveAppCollaborator extends AbstractReactor {
 
-	public RemoveCollaborator() {
-		this.keysToGet = new String[]{"repository", "collaborator","username", "password"};
+	public RemoveAppCollaborator() {
+		this.keysToGet = new String[]{
+				ReactorKeysEnum.REPOSITORY.getKey(), "collaborator", 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override
