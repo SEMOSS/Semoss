@@ -27,7 +27,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 	private static final String CLASS_NAME = NumericalCorrelationReactor.class.getName();
 	
 	public NumericalCorrelationReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.DEFAULT_VALUE_KEY.getKey(), ReactorKeysEnum.PANEL.getKey()};
 	}
 
 	@Override
