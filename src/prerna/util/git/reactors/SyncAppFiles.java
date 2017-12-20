@@ -37,8 +37,8 @@ public class SyncAppFiles extends AbstractReactor {
 		String username = this.keyValue.get(this.keysToGet[2]);
 		String password = this.keyValue.get(this.keysToGet[3]);
 		String dualStr = this.keyValue.get(this.keysToGet[4]);
+		String databaseStr = this.keyValue.get(this.keysToGet[5]);
 		List<String> filesToSync = getFilesToSync();
-		String databaseStr = this.keyValue.get(this.keysToGet[6]);
 
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Starting the synchronization process");
@@ -164,7 +164,7 @@ public class SyncAppFiles extends AbstractReactor {
 
 	private List<String> getFilesToSync() {
 		List<String> filesToSync = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
 		for(int i = 0; i < grs.size(); i++) {
 			filesToSync.add(grs.get(i).toString());
 		}
