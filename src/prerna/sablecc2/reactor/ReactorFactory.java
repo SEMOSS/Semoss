@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
@@ -176,6 +177,22 @@ import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.git.reactors.AddAppCollaborator;
+import prerna.util.git.reactors.CopyAppRepo;
+import prerna.util.git.reactors.DeleteAppRepo;
+import prerna.util.git.reactors.DropAppRepo;
+import prerna.util.git.reactors.GitStatusReactor;
+import prerna.util.git.reactors.InitAppRepo;
+import prerna.util.git.reactors.IsGit;
+import prerna.util.git.reactors.ListAppCollaborators;
+import prerna.util.git.reactors.ListAppRemotes;
+import prerna.util.git.reactors.ListUserApps;
+import prerna.util.git.reactors.LoginGit;
+import prerna.util.git.reactors.RemoveAppCollaborator;
+import prerna.util.git.reactors.RenameMosfitFileReactor;
+import prerna.util.git.reactors.SearchAppCollaborator;
+import prerna.util.git.reactors.SyncApp;
+import prerna.util.git.reactors.SyncAppFiles;
 
 public class ReactorFactory {
 
@@ -459,22 +476,40 @@ public class ReactorFactory {
 		
 		// Git it
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
-		reactorHash.put("ListRepo", prerna.util.git.reactors.List4User.class);
-		reactorHash.put("ListRemote", prerna.util.git.reactors.ListRemotes.class);
-		reactorHash.put("Sync", prerna.util.git.reactors.Sync.class);
-		reactorHash.put("SyncSpecific", prerna.util.git.reactors.SyncSpecific.class);
-		reactorHash.put("Drop", prerna.util.git.reactors.DropRemote.class);
-		reactorHash.put("Delete", prerna.util.git.reactors.DeleteRemote.class);
-		reactorHash.put("Copy", prerna.util.git.reactors.Replicate.class);
-		reactorHash.put("App", prerna.util.git.reactors.MakeApp.class);
-		reactorHash.put("SearchTeam", prerna.util.git.reactors.SearchCollaborator.class);
-		reactorHash.put("Add", prerna.util.git.reactors.AddCollaborator.class);
-		reactorHash.put("Remove", prerna.util.git.reactors.RemoveCollaborator.class);
-		reactorHash.put("ListTeam", prerna.util.git.reactors.ListRepoCollabs.class);
+		reactorHash.put("ListRepo", prerna.util.git.reactors.ListUserApps.class);
+		reactorHash.put("ListRemote", prerna.util.git.reactors.ListAppRemotes.class);
+		reactorHash.put("Sync", prerna.util.git.reactors.SyncApp.class);
+		reactorHash.put("SyncSpecific", prerna.util.git.reactors.SyncAppFiles.class);
+		reactorHash.put("Drop", prerna.util.git.reactors.DropAppRepo.class);
+		reactorHash.put("Delete", prerna.util.git.reactors.DeleteAppRepo.class);
+		reactorHash.put("Copy", prerna.util.git.reactors.CopyAppRepo.class);
+		reactorHash.put("App", prerna.util.git.reactors.InitAppRepo.class);
+		reactorHash.put("SearchTeam", prerna.util.git.reactors.SearchAppCollaborator.class);
+		reactorHash.put("Add", prerna.util.git.reactors.AddAppCollaborator.class);
+		reactorHash.put("Remove", prerna.util.git.reactors.RemoveAppCollaborator.class);
+		reactorHash.put("ListTeam", prerna.util.git.reactors.ListAppCollaborators.class);
 		reactorHash.put("IsGit", prerna.util.git.reactors.IsGit.class);
 		reactorHash.put("Login", prerna.util.git.reactors.LoginGit.class);
 		reactorHash.put("GitStatus", prerna.util.git.reactors.GitStatusReactor.class);
-		reactorHash.put("RenameMosfitFile", prerna.util.git.reactors.GitRenameMosfitFileReactor.class);
+		reactorHash.put("RenameMosfitFile", prerna.util.git.reactors.RenameMosfitFileReactor.class);
+
+		reactorHash.put("InitAppRepo", InitAppRepo.class);
+		reactorHash.put("AddAppCollaborator", AddAppCollaborator.class);
+		reactorHash.put("RemoveAppCollaborator", RemoveAppCollaborator.class);
+		reactorHash.put("SearchAppCollaborator", SearchAppCollaborator.class);
+		reactorHash.put("ListAppCollaborators", ListAppCollaborators.class);
+		reactorHash.put("CopyAppRepo", CopyAppRepo.class);
+		reactorHash.put("DeleteAppRepo", DeleteAppRepo.class);
+		reactorHash.put("DropAppRepo", DropAppRepo.class);
+		reactorHash.put("SyncApp", SyncApp.class);
+		reactorHash.put("SyncAppFiles", SyncAppFiles.class);
+		reactorHash.put("ListAppRemotes", ListAppRemotes.class);
+		reactorHash.put("ListUserApps", ListUserApps.class);
+		reactorHash.put("IsGit", IsGit.class);
+		reactorHash.put("Login", LoginGit.class);
+		reactorHash.put("GitStatus", GitStatusReactor.class);
+		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
+		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {

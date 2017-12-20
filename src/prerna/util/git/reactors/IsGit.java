@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.git.GitUtils;
@@ -12,7 +13,7 @@ import prerna.util.git.GitUtils;
 public class IsGit extends AbstractReactor {
 
 	public IsGit() {
-		this.keysToGet = new String[]{"app"};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
 	}
 
 	@Override
