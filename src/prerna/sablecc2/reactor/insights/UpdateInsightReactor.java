@@ -31,7 +31,7 @@ import prerna.util.Utility;
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
 	private static final Logger LOGGER = Logger.getLogger(UpdateInsightReactor.class.getName());
-	
+
 	public UpdateInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
 	}
@@ -87,16 +87,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			imageURL = imageURL.replace("<engine>", engineName);
 			imageURL = imageURL.replace("<id>", rdbmsId);
 			// we can't save these layouts so ignore image
-		if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
+			if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
 				LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
 			} else {
 				updateSolrImage(rdbmsId, rdbmsId, imageURL, engineName);
 			}
 		} else {
 			String base64Image = getImage();
+			if(base64Image != null && !base64Image.trim().isEmpty()) {
+				updateSolrImage(base64Image, rdbmsId, engineName);
+			}
 			updateSolrImage(base64Image, rdbmsId, engineName);
 		}
-		
+
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("core_engine_id", rdbmsId);
@@ -139,7 +142,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			e1.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Update recipe: delete the old file and save as new
 	 * 
@@ -152,7 +155,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID + "\\" + MosfetSyncHelper.RECIPE_FILE;
 		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, recipeToSave);
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
