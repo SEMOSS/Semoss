@@ -23,6 +23,7 @@ import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryMathSelector;
 
 public class GoogleAnalytics extends Thread {
 
@@ -282,7 +283,12 @@ public class GoogleAnalytics extends Thread {
 		for(int i = 0; i < selectors.size(); i++) {
 			IQuerySelector selector = selectors.get(i);
 			String alias = selector.getAlias();
-			String name = selector.getQueryStructName();
+			String name = "";
+			if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH ){
+				name = ((QueryMathSelector) selector).getInnerSelector().getQueryStructName() + "";
+			}else{
+				name = selector.getQueryStructName();
+			}
 			aliasHash.put(alias, name);
 		}
 
