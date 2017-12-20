@@ -8,14 +8,13 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class JdbcEngineConnectorReactor extends QueryStructReactor {
-
-	// constants used to get pixel inputs
-	private static final String DB_DRIVER_KEY = "dbDriver";
-	private static final String CONNECTION_STRING_KEY = "connectionString";
-	private static final String USERNAME_KEY = "userName";
-	private static final String PASSWORD_KEY = "password";
+	
+	public JdbcEngineConnectorReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.USERNAME.getKey()};
+	}
 	
 	@Override
 	QueryStruct2 createQueryStruct() {
@@ -55,34 +54,34 @@ public class JdbcEngineConnectorReactor extends QueryStructReactor {
 	 * Pixel inputs
 	 */
 	private String getConnectionString() {
-		GenRowStruct grs = this.store.getNoun(CONNECTION_STRING_KEY);
+		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
-		throw new IllegalArgumentException("Need to define " + CONNECTION_STRING_KEY);
+		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
 	}
 
 	private String getDbDriver() {
-		GenRowStruct grs = this.store.getNoun(DB_DRIVER_KEY);
+		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
-		throw new IllegalArgumentException("Need to define " + DB_DRIVER_KEY);
+		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
 	}
 
 	private String getPassword() {
-		GenRowStruct grs = this.store.getNoun(PASSWORD_KEY);
+		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
 		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
-		throw new IllegalArgumentException("Need to define " + PASSWORD_KEY);
+		throw new IllegalArgumentException("Need to define " + keysToGet[2]);
 	}
 
 	private String getUserName() {
-		GenRowStruct grs = this.store.getNoun(USERNAME_KEY);
+		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
 		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
-		throw new IllegalArgumentException("Need to define " + USERNAME_KEY);
+		throw new IllegalArgumentException("Need to define " + keysToGet[3]);
 	}
 }
