@@ -22,7 +22,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	 */
 	
 	public SplitUnpivotReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITERS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey()};
 	}
 
 	@Override

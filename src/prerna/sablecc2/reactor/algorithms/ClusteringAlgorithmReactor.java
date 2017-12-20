@@ -43,7 +43,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 	private AlgorithmSingleColStore<Integer> results = new AlgorithmSingleColStore<Integer>();
 	
 	public ClusteringAlgorithmReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
 	}
 
 	@Override

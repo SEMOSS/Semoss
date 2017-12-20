@@ -19,7 +19,7 @@ public class CreateFrameReactor extends AbstractReactor {
 	private static final String OVERRIDE = "override";
 	
 	public CreateFrameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE, ReactorKeysEnum.ALIAS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), OVERRIDE};
 	}
 	
 	public NounMetadata execute() {

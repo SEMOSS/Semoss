@@ -8,7 +8,7 @@ public class OpSumProduct extends OpBasic {
 
 	public OpSumProduct() {
 		this.operation="sumproduct";
-		this.keysToGet = new String[]{ReactorKeysEnum.ARRAYS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ARRAY.getKey()};
 		
 	}
 
