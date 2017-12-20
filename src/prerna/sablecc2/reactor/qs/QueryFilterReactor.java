@@ -1,13 +1,17 @@
 package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
-
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class QueryFilterReactor extends QueryStructReactor {
+	
+	public QueryFilterReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey()};
+	}
 
 	QueryStruct2 createQueryStruct() {
 		List<Object> filters = this.curRow.getValuesOfType(PixelDataType.FILTER);
