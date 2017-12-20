@@ -7,13 +7,15 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitCollaboratorUtils;
 
-public class ListRepoCollabs extends AbstractReactor {
+public class ListAppCollaborators extends AbstractReactor {
 
-	public ListRepoCollabs() {
-		this.keysToGet = new String[]{"repository", "username", "password"};
+	public ListAppCollaborators() {
+		this.keysToGet = new String[]{ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override

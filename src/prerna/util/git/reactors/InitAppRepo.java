@@ -5,19 +5,23 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitCreator;
 
-public class MakeApp extends AbstractReactor {
+public class InitAppRepo extends AbstractReactor {
 
 	/**
 	 * Synchronize an existing app to a specified remote
 	 */
 
-	public MakeApp() {
-		super.keysToGet = new String[]{"app", "remote", "username", "password", "database", "type"};
+	public InitAppRepo() {
+		super.keysToGet = new String[]{
+				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
+				"syncDatabase"};
 	}
 
 	@Override
@@ -30,10 +34,9 @@ public class MakeApp extends AbstractReactor {
 		if(appName == null || appName.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the app name");
 		}
-		// kill the engine
-		String remote = this.keyValue.get(this.keysToGet[1]);
-		if(remote == null || remote.isEmpty()) {
-			throw new IllegalArgumentException("Need to specify the remote to publish the app");
+		String repository = this.keyValue.get(this.keysToGet[1]);
+		if(repository == null || repository.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the repository to publish the app");
 		}
 		String username = this.keyValue.get(this.keysToGet[2]);
 		if(username == null || username.isEmpty()) {
@@ -52,7 +55,7 @@ public class MakeApp extends AbstractReactor {
 		// String type = this.keyValue.get(this.keysToGet[5]);
 
 		logger.info("Using app name = " + appName);
-		logger.info("Using remote = " + remote);
+		logger.info("Using remote = " + repository);
 		logger.info("Using username = " + username);
 		logger.info("Beginning process to make your application global");
 		logger.info("This can take several minutes");
@@ -64,8 +67,8 @@ public class MakeApp extends AbstractReactor {
 				DIHelper.getInstance().removeLocalProperty(appName);
 			}
 			// make app to remote
-			GitCreator.makeRemoteFromApp(appName, remote, username, password, syncDatabase);
-			logger.info("Congratulations! You have successfully created your app " + remote);
+			GitCreator.makeRemoteFromApp(appName, repository, username, password, syncDatabase);
+			logger.info("Congratulations! You have successfully created your app " + repository);
 		} finally {
 			// open it back up
 			if(syncDatabase) {
