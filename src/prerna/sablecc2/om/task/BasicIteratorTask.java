@@ -4,14 +4,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
@@ -107,12 +112,29 @@ public class BasicIteratorTask extends AbstractTask {
 		} else {
 			ITableDataFrame frame = qs.getFrame();
 			frame.setLogger(this.logger);
+			optimizeFrame(frame, qs.getOrderBy());
 			iterator = frame.query(qs);
 		}
 		setHeaderInfo(qs.getHeaderInfo());
 		setSortInfo(qs.getSortInfo());
 	}
 	
+	private void optimizeFrame(ITableDataFrame dataframe, List<QueryColumnOrderBySelector> orderBys) {
+		if (dataframe instanceof H2Frame) {
+			H2Frame hFrame = (H2Frame) dataframe;
+			Set<String> indexedCols = hFrame.getColumnsWithIndexes();
+			OwlTemporalEngineMeta meta = hFrame.getMetaData();
+			for(int i = 0; i < orderBys.size(); i++) {
+				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
+				QueryColumnOrderBySelector convertedOrderByS = QueryStructConverter.convertOrderBySelector(origOrderS, meta);
+				String col = convertedOrderByS.getColumn();
+				if(!indexedCols.contains(col)) {
+					hFrame.addColumnIndex(col);
+				}
+			}
+		}
+	}
+
 	public void optimizeQuery(int collectNum) {
 		// already have a limit defined
 		// just continue;
