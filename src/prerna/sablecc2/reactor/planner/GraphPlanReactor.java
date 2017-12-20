@@ -17,11 +17,16 @@ import prerna.om.SEMOSSVertex;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.util.Utility;
 
 public class GraphPlanReactor extends AbstractReactor {
+	
+	public GraphPlanReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PLANNER.toString()};
+	}
 
 	@Override
 	public NounMetadata execute() {
