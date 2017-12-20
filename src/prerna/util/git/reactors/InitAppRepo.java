@@ -21,7 +21,7 @@ public class InitAppRepo extends AbstractReactor {
 		super.keysToGet = new String[]{
 				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				"syncDatabase"};
+				ReactorKeysEnum.SYNC_DATABASE.getKey()};
 	}
 
 	@Override
