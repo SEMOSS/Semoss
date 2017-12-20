@@ -2,8 +2,13 @@ package prerna.sablecc2.reactor.qs;
 
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class QueryReactor extends QueryStructReactor {
+	
+	public QueryReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_KEY.getKey()};
+	}
 	
 	@Override
 	QueryStruct2 createQueryStruct() {
