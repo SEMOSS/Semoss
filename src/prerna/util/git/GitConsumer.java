@@ -107,6 +107,7 @@ public class GitConsumer {
 			try {
 				// need to make modification on the engine
 				FileUtils.copyFileToDirectory(files[i], dbFile);
+				files[i].delete();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
