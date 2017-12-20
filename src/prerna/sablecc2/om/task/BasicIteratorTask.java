@@ -166,6 +166,9 @@ public class BasicIteratorTask extends AbstractTask {
 			// if we added an order, remove it
 			if(addedOrder) {
 				this.qs.getOrderBy().clear();
+				// also clear it on the task
+				// we dont want to send it to the FE
+				setSortInfo(qs.getSortInfo());
 			}
 		}
 	}
