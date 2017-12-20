@@ -67,6 +67,7 @@ public enum ReactorKeysEnum {
 	SORT("sort", 											"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
 	STATEMENT("statement", 									"Statement to be evaluated"),
 	SUM_RANGE("sumRange", 									"Range that values to sum over"),
+	SYNC_DATABASE("syncDatabase", 							"True/False value to detetermine if the database should be published with the app"),
 	TASK("task", 											"Task object (can retrieve the object by using Task(taskId) with taskId is the unique id for the task)"),
 	TASK_ID("taskId", 										"Unique id of the task within the insight"),
 	TRAVERSAL_KEY("traversal", 								"The traversal"),
