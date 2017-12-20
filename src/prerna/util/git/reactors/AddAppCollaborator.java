@@ -13,7 +13,7 @@ public class AddAppCollaborator extends AbstractReactor {
 
 	public AddAppCollaborator() {
 		this.keysToGet = new String[]{
-				ReactorKeysEnum.REPOSITORY.getKey(), "collaborator", 
+				ReactorKeysEnum.REPOSITORY.getKey(), ReactorKeysEnum.COLLABORATOR.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	

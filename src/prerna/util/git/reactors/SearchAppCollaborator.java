@@ -19,7 +19,7 @@ public class SearchAppCollaborator extends AbstractReactor {
 	 */
 	
 	public SearchAppCollaborator() {
-		this.keysToGet = new String[]{"search", 
+		this.keysToGet = new String[]{ReactorKeysEnum.COLLABORATOR.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
