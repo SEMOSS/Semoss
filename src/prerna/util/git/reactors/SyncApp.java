@@ -23,7 +23,7 @@ public class SyncApp extends AbstractReactor {
 		this.keysToGet = new String[]{
 				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				"dual", ReactorKeysEnum.SYNC_DATABASE.getKey()};
+				ReactorKeysEnum.SYNC_PULL.getKey(), ReactorKeysEnum.SYNC_DATABASE.getKey()};
 	}
 
 	@Override
