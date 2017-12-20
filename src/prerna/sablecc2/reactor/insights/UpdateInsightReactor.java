@@ -21,6 +21,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -30,6 +31,10 @@ import prerna.util.Utility;
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
 	private static final Logger LOGGER = Logger.getLogger(UpdateInsightReactor.class.getName());
+	
+	public UpdateInsightReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -147,5 +152,15 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID + "\\" + MosfetSyncHelper.RECIPE_FILE;
 		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, recipeToSave);
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(IMAGE)) {
+			return "The base64 image string - used if the the image URL is null";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }
