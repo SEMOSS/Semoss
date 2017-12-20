@@ -24,7 +24,7 @@ public class SyncAppFiles extends AbstractReactor {
 		this.keysToGet = new String[]{
 				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				"dual", "syncDatabase",
+				"dual", ReactorKeysEnum.SYNC_DATABASE.getKey(),
 				"files"};
 	}
 
