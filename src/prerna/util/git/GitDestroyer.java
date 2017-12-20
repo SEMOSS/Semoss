@@ -20,7 +20,7 @@ public class GitDestroyer {
 
 	}
 
-	public static void removeFiles(String localRepository) {
+	public static void removeFiles(String localRepository, boolean ignoreTheIgnoreFiles) {
 		Git thisGit = null;
 		Status status = null;
 		try {
@@ -37,17 +37,21 @@ public class GitDestroyer {
 		// get removed files
 		Iterator <String> remFiles = status.getRemoved().iterator();
 		while(remFiles.hasNext()) {
-			removed = true;
 			String daFile = remFiles.next();
-			rm.addFilepattern(daFile);
+			if(ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+				rm.addFilepattern(daFile);
+				removed = true;
+			}
 		}
 
 		// get missing files
 		Iterator <String> misFiles = status.getMissing().iterator();
 		while(misFiles.hasNext()) {
-			removed = true;
 			String daFile = misFiles.next();
-			rm.addFilepattern(daFile);
+			if(ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+				rm.addFilepattern(daFile);
+				removed = true;
+			}
 		}
 
 		if(removed) {
