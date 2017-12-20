@@ -10,16 +10,20 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitSynchronizer;
 
-public class Sync extends AbstractReactor {
+public class SyncApp extends AbstractReactor {
 
-	public Sync() {
-		this.keysToGet = new String[]{"app", "remoteApp", "username", "password", "dual", "database"};
+	public SyncApp() {
+		this.keysToGet = new String[]{
+				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.REPOSITORY.getKey(), 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
+				"dual", "syncDatabase"};
 	}
 
 	@Override
@@ -27,7 +31,7 @@ public class Sync extends AbstractReactor {
 		organizeKeys();
 
 		String appName = this.keyValue.get(this.keysToGet[0]);
-		String remoteApp = this.keyValue.get(this.keysToGet[1]);
+		String repository = this.keyValue.get(this.keysToGet[1]);
 		String username = this.keyValue.get(this.keysToGet[2]);
 		String password = this.keyValue.get(this.keysToGet[3]);
 		String dualStr = this.keyValue.get(this.keysToGet[4]);
@@ -53,7 +57,7 @@ public class Sync extends AbstractReactor {
 				// remove the app
 				Utility.getEngine(appName).closeDB();
 				DIHelper.getInstance().removeLocalProperty(appName);
-				GitSynchronizer.syncDatabases(appName, remoteApp, username, password);
+				GitSynchronizer.syncDatabases(appName, repository, username, password);
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
@@ -63,7 +67,7 @@ public class Sync extends AbstractReactor {
 
 		// if it is null or true dont worry
 		logger.info("Synchronizing Insights Now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronize(appName, remoteApp, username, password, dual);
+		Map<String, List<String>> filesChanged = GitSynchronizer.synchronize(appName, repository, username, password, dual);
 		logger.info("Synchronize Insights Complete");
 
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");

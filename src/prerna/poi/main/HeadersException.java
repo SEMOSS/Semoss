@@ -1,14 +1,13 @@
 package prerna.poi.main;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Vector;
 import java.util.regex.Pattern;
 
 import prerna.util.Constants;
@@ -462,16 +461,26 @@ public class HeadersException {
 		return new String[]{header1, header2};
 	}
 	
-	public String[] getCleanHeaders(String[] headers) {
-		String[] newHeaders = new String[headers.length];
-		ArrayList<String> temp = new ArrayList<String>(Arrays.asList(headers));
-		for (int j = 0; j < headers.length; j++) {
-			String header = temp.get(0);
-			temp.remove(0);
-			String cleanHeader = recursivelyFixHeaders(header, temp);
-			newHeaders[j] = cleanHeader;
-		}
-		return newHeaders;
-	}
+    /**
+    * Takes an array of headers and validates each header against itself
+    * and returns the clean new header list.
+    * 
+     * @param headers
+    * @return
+    */
+    public String[] getCleanHeaders(String[] headers) {        
+          int numCols = headers.length; 
+          List<String> newUniqueHeaders = new Vector<String>(numCols);
+
+          for(int colIdx = 0; colIdx < numCols; colIdx++) {
+                 String origHeader = headers[colIdx];
+                 // validate header against other clean headers
+                 String newHeader = recursivelyFixHeaders(origHeader, newUniqueHeaders);
+                 // add it to the unique headers list so it can be used to validate others
+                 newUniqueHeaders.add(newHeader);
+          }            
+          return newUniqueHeaders.toArray(new String[] {} );
+    }
+
 
 }

@@ -6,13 +6,14 @@ import java.util.Map;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitUtils;
 
 public class GitStatusReactor extends AbstractReactor {
 
 	public GitStatusReactor() {
-		this.keysToGet = new String[]{"app"};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
 	}
 	
 	@Override
