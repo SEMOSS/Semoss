@@ -321,8 +321,12 @@ public class GoogleAnalytics extends Thread {
 							}
 							exprBuilder.append("[");
 							int size = dbInfo.size();
+							boolean processedFirst = false;
 							for(int i = 0; i < size; i++) {
 								String[] engineQs = dbInfo.get(i);
+								if(engineQs.length != 2) {
+									continue;
+								}
 								String db = engineQs[0];
 								String conceptProp = engineQs[1];
 								String table = conceptProp;
@@ -332,8 +336,10 @@ public class GoogleAnalytics extends Thread {
 									table = conceptPropSplit[0];
 									column = conceptPropSplit[1];
 								}
-								if(i > 0) {
+								if(processedFirst) {
 									exprBuilder.append(",");
+								} else {
+									processedFirst = true;
 								}
 								exprBuilder.append("{\"dbName\":\"").append(db).append("\",\"tableName\": \"")
 								.append(table).append("\",\"columnName\": \"").append(column)
