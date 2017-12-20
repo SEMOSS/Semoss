@@ -4,8 +4,13 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class FrameReactor extends QueryStructReactor {
+	
+	public FrameReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey()};
+	}
 
 	@Override
 	QueryStruct2 createQueryStruct() {
