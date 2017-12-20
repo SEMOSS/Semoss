@@ -5,7 +5,7 @@ public enum ReactorKeysEnum {
 	ADDITIONAL_PIXELS("additionalPixels",					"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
 	ALL_NUMERIC_KEY("allNumeric", 							"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 											"An alias to assign for an operation or output"),
-	APP("app", 												"Name of the app on local version"),
+	APP("app", 												"Name of the app on the local SEMOSS instance"),
 	ARRAY("array", 											"An array of input values"),
 	ATTRIBUTES("attributes", 								"List of columns used as properties/characteristics to describe an instance/object"),
 	BREAKS("breaks", 										"Number of divisions"),
