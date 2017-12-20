@@ -8,18 +8,19 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.git.GitRepoUtils;
 
-public class ListRemotes extends AbstractReactor {
+public class ListAppRemotes extends AbstractReactor {
 
 	/**
 	 * Get the list of remotes for a given app
 	 */
 	
-	public ListRemotes() {
-		this.keysToGet = new String[]{"app"};
+	public ListAppRemotes() {
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
 	}
 	
 	@Override

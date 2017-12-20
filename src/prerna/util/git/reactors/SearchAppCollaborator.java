@@ -8,17 +8,19 @@ import org.apache.log4j.Logger;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitCollaboratorUtils;
 
-public class SearchCollaborator extends AbstractReactor {
+public class SearchAppCollaborator extends AbstractReactor {
 
 	/**
 	 * Search for another user
 	 */
 	
-	public SearchCollaborator() {
-		this.keysToGet = new String[]{"search", "username", "password"};
+	public SearchAppCollaborator() {
+		this.keysToGet = new String[]{"search", 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override
