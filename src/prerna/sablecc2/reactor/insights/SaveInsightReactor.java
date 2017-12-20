@@ -97,7 +97,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// get base 64 image string and write to file
 		else {
 			String base64Image = getImage();
-			updateSolrImage(base64Image, newRdbmsId, engineName);
+			if(base64Image != null && !base64Image.trim().isEmpty()) {
+				updateSolrImage(base64Image, newRdbmsId, engineName);
+			}
 		}
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
