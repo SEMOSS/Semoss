@@ -91,16 +91,12 @@ public class GitConsumer {
 	private static void moveSMSSToDB(String baseFolder, String appName)
 	{
 		// need to account for version here
-
 		String fileName = baseFolder + "/db/" + appName + "/version";
-
 		String dbName = baseFolder + "/db/" + appName ;
-
 		File dir = new File(fileName);
 		String targetDir = baseFolder + "/db";
 
 		// now move the dbs
-
 		List <String> otherStuff = new Vector<String>();
 		otherStuff.add("*.db");
 		otherStuff.add("*.OWL");
@@ -111,14 +107,11 @@ public class GitConsumer {
 			try {
 				// need to make modification on the engine
 				FileUtils.copyFileToDirectory(files[i], dbFile);
-				files[i].delete();
-				// in reality there may be other things we need to do
-				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}		
+
 		// I need to change the file to the app name
 		// first move the smss
 		fileFilter = new WildcardFileFilter("*.smss");
@@ -129,11 +122,7 @@ public class GitConsumer {
 				// need to make modification on the engine
 				File file = changeEngine(files[i], appName);
 				FileUtils.copyFileToDirectory(file, targetFile );
-
-				// in reality there may be other things we need to do
-				//files[i].renameTo(new File(targetDir + "/" + appName + ".smss"));
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -148,12 +137,10 @@ public class GitConsumer {
 		try {
 			OutputStream fos = null;
 
-			if((fileName).equalsIgnoreCase(appName + ".smss"))
-			{
+			if((fileName).equalsIgnoreCase(appName + ".smss")) {
 				newFile = file; // nothing to do here
 			}
-			else
-			{
+			else {
 				String oldName = "db/" + fileName.replace(".smss", "");
 				String newName = "db/" + appName;
 				String newFileName = mainDirectory + "/" + appName + ".smss";
@@ -167,7 +154,6 @@ public class GitConsumer {
 
 				// accomodate for old stuff
 				Enumeration <Object> propKeys = prop.keys();
-
 				while(propKeys.hasMoreElements())
 				{
 					String propKey = propKeys.nextElement() + "";
@@ -183,16 +169,12 @@ public class GitConsumer {
 						prop.put(propKey, propValue);
 					}
 				}
-
 				prop.store(fos, "Changing File Content for engine");
 				fos.close();
-
 			}
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
