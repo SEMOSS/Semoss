@@ -1,17 +1,19 @@
 package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
-
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class WithReactor extends QueryStructReactor {
-
-	protected static final String PANEL_KEY = "panel";
+	
+	public WithReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
+	}
 
 	@Override
 	QueryStruct2 createQueryStruct() {
@@ -31,7 +33,7 @@ public class WithReactor extends QueryStructReactor {
 		InsightPanel panel = null;
 
 		// see if panel was passed via generic reactor
-		GenRowStruct genericGrs = this.store.getNoun(PANEL_KEY);
+		GenRowStruct genericGrs = this.store.getNoun(keysToGet[0]);
 		if(genericGrs != null && !genericGrs.isEmpty()) {
 			String panelId = genericGrs.get(0).toString();
 			panel = this.insight.getInsightPanel(panelId);

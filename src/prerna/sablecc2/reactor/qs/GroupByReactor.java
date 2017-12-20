@@ -1,8 +1,13 @@
 package prerna.sablecc2.reactor.qs;
 
 import prerna.query.querystruct.QueryStruct2;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class GroupByReactor extends QueryStructReactor {
+	
+	public GroupByReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
 	QueryStruct2 createQueryStruct() {
 		int size = curRow.size();
