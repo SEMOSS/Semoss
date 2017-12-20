@@ -273,7 +273,7 @@ public class MultiClusteringAlgorithmReactor extends AbstractReactor {
 		for(int i = 1; i < attributeNamesList.size(); i++) {
 			columnsGRS.addColumn(attributeNamesList.get(i));	
 		}
-		nounStore.addNoun(ReactorKeysEnum.COLUMNS.getKey(), columnsGRS);
+		nounStore.addNoun(ReactorKeysEnum.ATTRIBUTES.getKey(), columnsGRS);
 		
 		//set frame 
 		alg.setInsight(this.insight);
