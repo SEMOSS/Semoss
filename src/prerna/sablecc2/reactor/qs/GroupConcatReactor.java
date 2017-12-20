@@ -6,8 +6,13 @@ import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class GroupConcatReactor extends SelectReactor {
+	
+	public GroupConcatReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 
 	@Override
 	QueryStruct2 createQueryStruct() {

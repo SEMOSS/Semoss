@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
 import java.util.Vector;
-
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -10,8 +9,13 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class SelectReactor extends QueryStructReactor {	
+	
+	public SelectReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 	
 	QueryStruct2 createQueryStruct() {
 		GenRowStruct qsInputs = this.getCurRow();
