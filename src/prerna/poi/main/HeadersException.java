@@ -407,10 +407,59 @@ public class HeadersException {
 		if(origHeader.matches(".*_\\d+")) {
 			String strNumbers = origHeader.substring(origHeader.lastIndexOf("_") + 1, origHeader.length());
 			num = Integer.parseInt(strNumbers);
+			
+			// remove the existing appendage of the number
+			origHeader = origHeader.substring(0, origHeader.lastIndexOf("_"));
 		}
 		origHeader = origHeader  + "_" + (++num);
 		
 		return origHeader;
+	}
+	
+	public String[] cleanAndMatchColumnNumbers(String header1, String header2, List<String> otherColumns) {
+		if(header1.equalsIgnoreCase(header2)) {
+			throw new IllegalArgumentException("Cannot match the header to itself");
+		}
+		
+		header1 = recursivelyFixHeaders(header1, otherColumns);
+		header2 = recursivelyFixHeaders(header2, otherColumns);
+		
+		int header1Num = 0;
+		int header2Num = 0;
+		if(header1.matches(".*_\\d+")) {
+			String strNumbers = header1.substring(header1.lastIndexOf("_") + 1, header1.length());
+			header1Num = Integer.parseInt(strNumbers);
+		}
+		if(header2.matches(".*_\\d+")) {
+			String strNumbers = header2.substring(header2.lastIndexOf("_") + 1, header2.length());
+			header2Num = Integer.parseInt(strNumbers);
+		}
+		
+		boolean hasAltered = false;
+		if(header1Num != header2Num) {
+			// we have to do another alteration
+			// which requires to perform another check for uniqueness
+			hasAltered = true;
+
+			// make them match
+			int maxNum = Math.max(header1Num, header2Num);
+			if(maxNum == header1Num) {
+				// update the header2 to be the larger
+				String origHeader2 = header2.substring(0, header2.lastIndexOf("_"));
+				header2 = origHeader2 + "_" + maxNum;
+			} else {
+				// update the header1 to be the larger
+				String origHeader1 = header1.substring(0, header1.lastIndexOf("_"));
+				header1 = origHeader1 + "_" + maxNum;
+			}
+		}
+		
+		if(hasAltered) {
+			// gotta run through the routine again
+			return cleanAndMatchColumnNumbers(header1, header2, otherColumns);
+		}
+		
+		return new String[]{header1, header2};
 	}
 	
 	public String[] getCleanHeaders(String[] headers) {
