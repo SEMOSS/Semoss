@@ -87,7 +87,7 @@ public class CreateFrameReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(OVERRIDE)) {
-			return "Indicates if the current frame should be overriden; default value of true";
+			return "Indicates if the current frame should be overridden; default value of true";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
