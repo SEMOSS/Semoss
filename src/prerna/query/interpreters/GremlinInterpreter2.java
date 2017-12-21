@@ -56,11 +56,11 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	public Iterator composeIterator() {
 		generateSelectors();
 		traverseRelations();
+		addOrderBy();
 		setSelectors();
 		if(this.qs.isDistinct()) {
 			this.gt.dedup();
 		}
-		addOrderBy();
 		
 		String query = this.gt.toString();
 		if(query.length() > 500) {
@@ -499,7 +499,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.incr).as(tableName);
+					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.incr); //.as(tableName);
 				} else {
 					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.decr).as(tableName);
 				}
