@@ -55,8 +55,7 @@ public class GoogleAnalytics extends Thread {
 		String prevType = thisprevType;
 		String eventLabel = thisExpression;
 		String previousEvent = prevExpression;
-		String ID;
-		ID = System.getProperty("user.name");
+		String ID = System.getProperty("user.name");
 
 		if (previousEvent == null){
 			previousEvent = "";
@@ -90,7 +89,7 @@ public class GoogleAnalytics extends Thread {
 		} catch (URISyntaxException e) {
 			return;
 		}
-		System.out.println("GOOGLE ANALYTICS: "+uri);
+
 		HttpPost post = new HttpPost(uri);
 		try {
 			client.execute(post);
