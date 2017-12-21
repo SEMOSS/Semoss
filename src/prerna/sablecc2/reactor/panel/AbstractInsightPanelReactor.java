@@ -6,12 +6,13 @@ import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 
-	protected static final String PANEL_KEY = "panel";
-	protected static final String TRAVERSAL_KEY = "key";
+//	protected static final String PANEL_KEY = "panel";
+	protected static final String TRAVERSAL_KEY = ReactorKeysEnum.TRAVERSAL.getKey();
 
 	protected InsightPanel getInsightPanel() {
 		// look at all the ways the insight panel could be passed
