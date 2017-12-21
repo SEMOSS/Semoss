@@ -149,7 +149,7 @@ public class GitSynchronizer {
 		String thisMaster = "refs/heads/master";
 		String remoteMaster = "refs/remotes/" + repoName +"/master";
 		
-		Hashtable<String, List<String>> returnFiles = getFilesToAdd(versionFolder, remoteMaster, thisMaster);
+		Hashtable<String, List<String>> returnFiles = getFilesToAdd(versionFolder, thisMaster, remoteMaster);
 		
 		// check to see if there are conflicts
 		// it is now done as part of merge
@@ -203,8 +203,14 @@ public class GitSynchronizer {
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
 		// get everything
-		String remoteUserName = remoteAppName.split("/")[0];
-		remoteAppName = remoteAppName.split("/")[1]; 
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
 
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		// add the files we need to
@@ -214,17 +220,17 @@ public class GitSynchronizer {
 		// commit
 		GitPushUtils.commitAddedFiles(versionFolder);
 
-		GitRepoUtils.fetchRemote(versionFolder, remoteAppName, username, password);
+		GitRepoUtils.fetchRemote(versionFolder, repoName, username, password);
 
 		// need to get a list of files to process
 		String thisMaster = "refs/heads/master";
-		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
-		Hashtable <String, List<String>> files = getFilesToAdd(versionFolder, remoteMaster, thisMaster);
+		String remoteMaster = "refs/remotes/" + repoName +"/master";
+		Hashtable <String, List<String>> files = getFilesToAdd(versionFolder, thisMaster, remoteMaster);
 
 		// check to see if there are conflicts
 		// it is now done as part of merge
 		// merge everything
-		GitMergeHelper.merge(versionFolder, "master", remoteAppName + "/master", 0, 2, true);
+		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
 
 		List<String> conflicted = getConflictedFiles(versionFolder);
 		// TODO: need to return back conflicted files
@@ -238,7 +244,7 @@ public class GitSynchronizer {
 		// and the user wants to push as well as pull
 		else if(dual) {
 			GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
-			GitPushUtils.push(versionFolder, remoteAppName, "master",username, password);
+			GitPushUtils.push(versionFolder, repoName, "master",username, password);
 		}
 
 		return files;
@@ -264,6 +270,13 @@ public class GitSynchronizer {
 		return output;
 	}
 
+	/**
+	 * 
+	 * @param dir
+	 * @param baseRepo			This is usually the local repo
+	 * @param newRepo			This is usually the remote repo
+	 * @return
+	 */
 	private static Hashtable <String, List<String>> getFilesToAdd(String dir, String baseRepo, String newRepo)
 	{
 		// this assumes that you have run a fetch
@@ -286,21 +299,33 @@ public class GitSynchronizer {
 			List <String> renFiles = new Vector<String>();
 			List <String> delFiles = new Vector<String>();
 			for (DiffEntry entry : diff) {
-				String fileName = dir + "/" + entry.getNewPath(); 
-				System.out.println("Entry: " + fileName);
-				System.out.println("File : " + entry.getNewPath());
-				System.out.println("File : " + entry.getOldId());
-				System.out.println("File : " + entry.getNewId());
+				// if the new path is /dev/null
+				// it means we are adding a new file to the newRepo that currently doesn't exist
+				// so it thinks it is a file delete but that is not actually the case
+				String newEntryPath = entry.getNewPath();
+				// if the old path is /dev/null
+				// it means we are adding a new file to the baseRepo that currnetly doesn't exist
+				String oldEntryPath = entry.getOldPath();
+				
+				String filePath = dir + "/" + newEntryPath; 
+				System.out.println("Entry: " + filePath);
 				
 				ChangeType cType = entry.getChangeType();
 				if(cType == ChangeType.ADD) {
-					addFiles.add(fileName);
+					addFiles.add(filePath);
 				} else if(cType == ChangeType.MODIFY) {
-					modFiles.add(fileName);
+					modFiles.add(filePath);
 				} else if(cType == ChangeType.RENAME) {
-					renFiles.add(fileName);
+					renFiles.add(filePath);
 				} else if(cType == ChangeType.DELETE) {
-					delFiles.add(fileName);
+					if(newEntryPath.equals("/dev/null")) {
+						// if it is /dev/null, it actually means we added a file
+						// to the repo that wasn't previously there
+						// so we will treat it like an add instead of a delete
+						addFiles.add(dir + "/" + oldEntryPath);
+					} else {
+						delFiles.add(filePath);
+					}
 				}
 			}
 			if(addFiles.size() > 0) {
