@@ -85,7 +85,7 @@ public class GitConsumer {
 		GitPushUtils.commitAddedFiles(versionFolder);
 
 		// move the smss to the db folder
-		moveSMSSToDB(baseFolder, yourName4App );
+		moveSMSSToDB(baseFolder, yourName4App);
 	}
 
 	private static void moveSMSSToDB(String baseFolder, String appName)
