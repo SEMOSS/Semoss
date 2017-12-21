@@ -3,12 +3,16 @@ package prerna.sablecc2.reactor.task;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.GoogleAnalytics;
 
 public class TaskOptionsReactor extends TaskBuilderReactor {
+	
+	public TaskOptionsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.OPTIONS.getKey()};
+	}
 
 	@Override
 	protected void buildTask() {
