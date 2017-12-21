@@ -36,4 +36,17 @@ public abstract class AbstractLambdaTaskReactor extends TaskBuilderReactor {
 		}
 		return imports;
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("CODE")) {
+			return "The code block for the lambda function";
+		} else if (key.equals(IMPORTS_KEY)) {
+			return "The imports to add as part of the class";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }
