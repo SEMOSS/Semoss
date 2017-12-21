@@ -26,6 +26,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.om.Insight;
 import prerna.solr.SolrIndexEngine;
 
 public class MosfetSyncHelper {
@@ -125,7 +126,13 @@ public class MosfetSyncHelper {
 		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
 
 		// need to add the insight in the rdbms engine
-		addInsightToEngineRdbms(engineName, id, name, layout, recipe);
+		IEngine engine = Utility.getEngine(engineName);
+		// we want to make sure the file isn't added because we made the insight
+		// and is in fact a new one made by another collaborator
+		Vector<Insight> ins = engine.getInsight(id);
+		if(ins == null || ins.isEmpty() || (ins.size() == 1 && ins.get(0) == null) ) {
+			addInsightToEngineRdbms(engine, id, name, layout, recipe);
+		}
 	}
 
 	private static void processModifiedFiles(List<String> list, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
@@ -219,8 +226,7 @@ public class MosfetSyncHelper {
 		}
 	}
 
-	private static void addInsightToEngineRdbms(String engineName, String id, String insightName, String layout, String recipe) {
-		IEngine engine = Utility.getEngine(engineName);
+	private static void addInsightToEngineRdbms(IEngine engine, String id, String insightName, String layout, String recipe) {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		String[] pixelRecipeToSave = new String[]{recipe};
