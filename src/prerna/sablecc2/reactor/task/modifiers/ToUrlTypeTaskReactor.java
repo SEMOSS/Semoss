@@ -7,13 +7,16 @@ import java.util.Map;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.AbstractTaskOperation;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 
 public class ToUrlTypeTaskReactor extends TaskBuilderReactor {
 
-	private static final String COLUMNS_KEY = "columns";
+	public ToUrlTypeTaskReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+	}
 	
 	@Override
 	protected void buildTask() {
@@ -50,7 +53,7 @@ public class ToUrlTypeTaskReactor extends TaskBuilderReactor {
 	}
 	
 	private List<String> getColumns() {
-		GenRowStruct colGrs = this.store.getNoun(COLUMNS_KEY);
+		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			int size = colGrs.size();
 			List<String> columns = new ArrayList<String>();
