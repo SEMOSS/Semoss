@@ -61,7 +61,7 @@ public class GitSynchronizer {
 		GitUtils.removeAllIgnore(versionFolder);
 		// now we push everything locally
 		GitPushUtils.addAllFiles(versionFolder, true);
-		GitDestroyer.removeFiles(versionFolder, true);
+		GitDestroyer.removeFiles(versionFolder, true, true);
 		GitPushUtils.commitAddedFiles(versionFolder);
 		GitPushUtils.push(versionFolder, repoName, "master", username, password);
 
@@ -142,7 +142,7 @@ public class GitSynchronizer {
 		GitRepoUtils.fetchRemote(versionFolder, repoName, username, password);
 		List<String>[] filesSplit = determineFileOperation(filesToSync);
 		GitPushUtils.addSpecificFiles(versionFolder, filesSplit[0]);
-		GitDestroyer.removeSpecificFiles(versionFolder, filesSplit[1]);
+		GitDestroyer.removeSpecificFiles(versionFolder, true, filesSplit[1]);
 		GitPushUtils.commitAddedFiles(versionFolder);
 		
 		// need to get a list of files to process
@@ -210,7 +210,7 @@ public class GitSynchronizer {
 		// add the files we need to
 		GitPushUtils.addAllFiles(versionFolder, false);
 		// drop the files that are missing / deleted
-		GitDestroyer.removeFiles(versionFolder, false);
+		GitDestroyer.removeFiles(versionFolder, false, true);
 		// commit
 		GitPushUtils.commitAddedFiles(versionFolder);
 
