@@ -3,9 +3,7 @@ package prerna.sablecc2.reactor.export;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
-
 import org.apache.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
@@ -15,15 +13,19 @@ import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class IterateReactor extends AbstractReactor {
 
 	private static final String IN_MEM_STORE = "store";
-	private static final String USE_FRAME_FILTERS = "useFrameFilters";
 
 	private BasicIteratorTask task;
+	
+	public IterateReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey(), ReactorKeysEnum.USE_FRAME_FILTERS.getKey()};
+	}
 	
 	public NounMetadata execute() {
 		return createJob();
@@ -118,7 +120,7 @@ public class IterateReactor extends AbstractReactor {
 	}
 	
 	private boolean useFrameFilters() {
-		GenRowStruct grs = this.store.getNoun(USE_FRAME_FILTERS);
+		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return (boolean) grs.get(0);
 		}
