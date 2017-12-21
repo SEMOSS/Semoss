@@ -24,11 +24,11 @@ public class GitCreator {
 	/**
 	 * Push an app to Git
 	 * @param appName
-	 * @param remoteLocation
+	 * @param remoteAppName
 	 * @param username
 	 * @param password
 	 */
-	public static void makeRemoteFromApp(String appName, String remoteLocation, String username, String password, boolean syncDatabase) {
+	public static void makeRemoteFromApp(String appName, String remoteAppName, String username, String password, boolean syncDatabase) {
 		// first, need to login
 		GitHub git = GitUtils.login(username, password);
 
@@ -39,10 +39,15 @@ public class GitCreator {
 		// the remote location
 		// is of the form account_name/repo_name
 		// so we want to split this out
-		String[] remoteLocationSplit = remoteLocation.split("/");
-		String accountName = remoteLocationSplit[0];
-		String repoName = remoteLocationSplit[1];
-
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
+		
 		// now, we need to check and see if this folder is also a git
 		boolean isGit = GitUtils.isGit(dbFolder);
 		if(!isGit) {
