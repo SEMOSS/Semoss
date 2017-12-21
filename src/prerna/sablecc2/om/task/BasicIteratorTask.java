@@ -128,7 +128,7 @@ public class BasicIteratorTask extends AbstractTask {
 				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
 				QueryColumnOrderBySelector convertedOrderByS = QueryStructConverter.convertOrderBySelector(origOrderS, meta);
 				String col = convertedOrderByS.getColumn();
-				if(!indexedCols.contains(col)) {
+				if(!QueryStruct2.PRIM_KEY_PLACEHOLDER.equals(col) && !indexedCols.contains(col)) {
 					hFrame.addColumnIndex(col);
 				}
 			}
