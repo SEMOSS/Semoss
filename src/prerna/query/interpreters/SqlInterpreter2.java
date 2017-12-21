@@ -13,6 +13,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
@@ -902,7 +903,9 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			String columnConceptualName = orderBySelector.getColumn();
 			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
 			
+			boolean origPrim = false;
 			if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+				origPrim = true;
 				columnConceptualName = getPrimKey4Table(tableConceptualName);
 			} else {
 				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
@@ -911,7 +914,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			StringBuilder thisOrderBy = new StringBuilder();
 			
 			// might want to order by a derived column being returned
-			if(this.selectorAliases.contains(tableConceptualName)) {
+			if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
 				// either instantiate the string builder or add a comma for multi sort
 				thisOrderBy.append("\"").append(tableConceptualName).append("\"");
 			} 
