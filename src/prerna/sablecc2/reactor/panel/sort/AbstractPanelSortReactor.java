@@ -7,13 +7,11 @@ import java.util.Vector;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 
 public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReactor {
 
-	private static final String COLUMNS_KEY = "cols";
-	private static final String DIRECTION_KEY = "dirs";
-	
 	/**
 	 * Grab the sort information from the curRow of the reactor
 	 * @return
@@ -53,7 +51,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	private List<String> getOrderByColumns() {
 		// if it was passed based on the key
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colsGrs = this.store.getNoun(COLUMNS_KEY);
+		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.COLUMNS.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
@@ -79,7 +77,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 	private List<String> getSortDirections() {
 		// if it was passed based on the key
 		List<String> sortDirections = new Vector<String>();
-		GenRowStruct colsGrs = this.store.getNoun(DIRECTION_KEY);
+		GenRowStruct colsGrs = this.store.getNoun(ReactorKeysEnum.SORT.getKey());
 		if(colsGrs != null) {
 			int size = colsGrs.size();
 			if(size > 0) {
