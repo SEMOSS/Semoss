@@ -19,7 +19,7 @@ public class CollectReactor extends TaskBuilderReactor {
 	private int limit = 0;
 	
 	public CollectReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INCLUDE_META_KEY.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.TASK.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.INCLUDE_META_KEY.getKey()};
 	}
 	
 	public NounMetadata execute() {
@@ -57,7 +57,7 @@ public class CollectReactor extends TaskBuilderReactor {
 	//return if we should get the metadata for the task
 	private boolean collectMeta() {
 		// try the key
-		GenRowStruct includeMetaGrs = store.getNoun(keysToGet[0]);
+		GenRowStruct includeMetaGrs = store.getNoun(keysToGet[2]);
 		if(includeMetaGrs != null && !includeMetaGrs.isEmpty()) {
 			return (boolean) includeMetaGrs.get(0);
 		}
