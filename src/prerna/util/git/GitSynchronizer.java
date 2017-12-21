@@ -43,9 +43,14 @@ public class GitSynchronizer {
 		// the remote location
 		// is of the form account_name/repo_name
 		// so we want to split this out
-		String[] remoteLocationSplit = remoteAppName.split("/");
-		String accountName = remoteLocationSplit[0];
-		String repoName = remoteLocationSplit[1];
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
 		
 		// we need to move the database files from the current db
 		// into the version folder
@@ -125,8 +130,16 @@ public class GitSynchronizer {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String versionFolder = baseFolder + "/db/" + localAppName + "/version";
 		
-		remoteAppName = remoteAppName.split("/")[1]; 
-		GitRepoUtils.fetchRemote(versionFolder, remoteAppName, username, password);
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
+		
+		GitRepoUtils.fetchRemote(versionFolder, repoName, username, password);
 		List<String>[] filesSplit = determineFileOperation(filesToSync);
 		GitPushUtils.addSpecificFiles(versionFolder, filesSplit[0]);
 		GitDestroyer.removeSpecificFiles(versionFolder, filesSplit[1]);
@@ -134,14 +147,14 @@ public class GitSynchronizer {
 		
 		// need to get a list of files to process
 		String thisMaster = "refs/heads/master";
-		String remoteMaster = "refs/remotes/" + remoteAppName +"/master";
+		String remoteMaster = "refs/remotes/" + repoName +"/master";
 		
 		Hashtable<String, List<String>> returnFiles = getFilesToAdd(versionFolder, remoteMaster, thisMaster);
 		
 		// check to see if there are conflicts
 		// it is now done as part of merge
 		// merge everything
-		GitMergeHelper.merge(versionFolder, "master", remoteAppName + "/master", 0, 2, true);
+		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
 		List <String> conflicted = getConflictedFiles(versionFolder);
 		
 		if(conflicted.size() > 0) {
@@ -152,7 +165,7 @@ public class GitSynchronizer {
 		// only push back if there are no conflicts
 		// and the user wants to push as well as pull
 		else if(dual) {
-			GitPushUtils.push(versionFolder, remoteAppName, "master",username, password);
+			GitPushUtils.push(versionFolder, repoName, "master",username, password);
 		}
 		return returnFiles;
 	}
