@@ -17,6 +17,10 @@ public class FilterLambdaTaskReactor extends AbstractLambdaTaskReactor {
 	 * data from the noun store / prop store
 	 */
 	
+	public FilterLambdaTaskReactor() {
+		this.keysToGet = new String[]{"CODE", IMPORTS_KEY};
+	}
+	
 	@Override
 	protected void buildTask() {
 		String code = getCode();
