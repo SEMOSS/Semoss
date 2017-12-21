@@ -5,6 +5,7 @@ import java.util.List;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
@@ -16,6 +17,10 @@ public class GrabScalarElementReactor extends AbstractReactor {
 	 */
 	
 	private static final String CLEAN_UP_KEY = "cleanUp";
+	
+	public GrabScalarElementReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), CLEAN_UP_KEY};
+	}
 	
 	@Override
 	public NounMetadata execute() {
@@ -67,4 +72,15 @@ public class GrabScalarElementReactor extends AbstractReactor {
 		return true;
 	}
 	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(CLEAN_UP_KEY)) {
+			return "Boolean indication to clear the task - defaults to true";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
+
 }
