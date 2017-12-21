@@ -134,6 +134,13 @@ public class GitCollaboratorUtils {
 			while(collabNames.hasNext()) {
 				collabVector.add(collabNames.next());
 			}
+		} catch(org.kohsuke.github.HttpException e) {
+			// 403 is forbidden access erro code
+			if(e.getResponseCode() == 403) {
+				throw new IllegalArgumentException("User " + username + " does not have permission to get list of collaborators from repository " + remoteRepositoryName);
+			}
+			// if other error code, throw generic error
+			throw new IllegalArgumentException("Error getting list of collaborators for repository");
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error getting list of collaborators for repository");
