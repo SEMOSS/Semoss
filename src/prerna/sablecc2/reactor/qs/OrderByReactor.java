@@ -5,11 +5,12 @@ import java.util.Vector;
 
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class OrderByReactor extends QueryStructReactor {
 
-	private static final String COLUMNS_KEY = "cols";
-	private static final String DIRECTION_KEY = "dirs";
+	private static final String COLUMNS_KEY = ReactorKeysEnum.COLUMNS.getKey();
+	private static final String DIRECTION_KEY = ReactorKeysEnum.SORT.getKey();
 	
 	QueryStruct2 createQueryStruct() {
 		List<String> colInputs = getOrderByColumns();

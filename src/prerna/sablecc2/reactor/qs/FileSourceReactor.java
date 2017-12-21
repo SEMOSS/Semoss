@@ -9,17 +9,18 @@ import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.GoogleAnalytics;
 
 public class FileSourceReactor extends QueryStructReactor {
 
 	//keys to get inputs from pixel command
-	private static final String FILE = "file";
+	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
+	private static final String FILENAME = ReactorKeysEnum.FILE_NAME.getKey();
 	private static final String SHEET_NAME = "sheetName";
-	private static final String DATA_TYPES = "dataTypeMap";
-	private static final String DELIMITER = "delim";
-	private static final String HEADER_NAMES = "newHeaders";
-	private static final String FILENAME = "fileName";
+	private static final String DATA_TYPES = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
+	private static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
+	private static final String HEADER_NAMES = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
 
 	/**
 	 * FileRead args 
@@ -143,14 +144,14 @@ public class FileSourceReactor extends QueryStructReactor {
 	}
 
 	private String getFileLocation() {
-		GenRowStruct fileGRS = this.store.getNoun(FILE);
+		GenRowStruct fileGRS = this.store.getNoun(FILEPATH);
 		String fileLocation = "";
 		NounMetadata fileNoun;
 		if (fileGRS != null) {
 			fileNoun = fileGRS.getNoun(0);
 			fileLocation = (String) fileNoun.getValue();
 		} else {
-			throw new IllegalArgumentException("Need to specify " + FILE + "=[filePath] in pixel command");
+			throw new IllegalArgumentException("Need to specify " + FILEPATH + "=[filePath] in pixel command");
 		}
 		return fileLocation;
 	}
