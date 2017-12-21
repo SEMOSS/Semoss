@@ -20,7 +20,7 @@ public class GitDestroyer {
 
 	}
 
-	public static void removeFiles(String localRepository, boolean ignoreTheIgnoreFiles) {
+	public static void removeFiles(String localRepository, boolean ignoreTheIgnoreFiles, boolean deleteFile) {
 		Git thisGit = null;
 		Status status = null;
 		try {
@@ -31,7 +31,8 @@ public class GitDestroyer {
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 
-		RmCommand rm = thisGit.rm();
+		// if we want to delete the file, setCached needs to be set to false
+		RmCommand rm = thisGit.rm().setCached(!deleteFile);
 		boolean removed = false;
 
 		// get removed files
@@ -66,7 +67,7 @@ public class GitDestroyer {
 		thisGit.close();
 	}
 
-	public static void removeSpecificFiles(String localRepository, List<String> files) {
+	public static void removeSpecificFiles(String localRepository, boolean deleteFile, List<String> files) {
 		if(files == null || files.size() == 0) {
 			return;
 		}
@@ -78,7 +79,8 @@ public class GitDestroyer {
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 
-		RmCommand rm = thisGit.rm();
+		// if we want to delete the file, setCached needs to be set to false
+		RmCommand rm = thisGit.rm().setCached(!deleteFile);
 		for(String daFile : files) {
 			if(daFile.contains("version")) {
 				daFile = daFile.substring(daFile.indexOf("version") + 8);
@@ -97,7 +99,7 @@ public class GitDestroyer {
 		thisGit.close();
 	}
 	
-	public static void removeSpecificFiles(String localRepository, File... files) {
+	public static void removeSpecificFiles(String localRepository, boolean deleteFile, File... files) {
 		if(files == null || files.length == 0) {
 			return;
 		}
@@ -109,7 +111,8 @@ public class GitDestroyer {
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 
-		RmCommand rm = thisGit.rm();
+		// if we want to delete the file, setCached needs to be set to false
+		RmCommand rm = thisGit.rm().setCached(!deleteFile);
 		for(File f : files) {
 			String daFile = f.getAbsolutePath();
 			if(daFile.contains("version")) {

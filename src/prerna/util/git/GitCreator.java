@@ -61,12 +61,15 @@ public class GitCreator {
 		// we will add them in a separate add statement
 		// or, if we have any, we delete them
 		if(syncDatabase) {
+			// these may have been removed from git before
+			// so we need to remove the ignore file to properly add
+			GitUtils.removeAllIgnore(versionFolder);
 			pushFilesToVersionFolder(dbFolder, versionFolder);
-			GitPushUtils.addSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, false));
+			GitPushUtils.addSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, true));
 		} else {
 			// if the files are present, we want to remove them so they dont get pushed
 			// to this new repository
-			GitDestroyer.removeSpecificFiles(versionFolder, getDatabaseFiles(versionFolder, true));
+			GitDestroyer.removeSpecificFiles(versionFolder, false, getDatabaseFiles(versionFolder, false));
 		}
 		GitPushUtils.addAllFiles(versionFolder, false);
 		GitPushUtils.commitAddedFiles(versionFolder);
