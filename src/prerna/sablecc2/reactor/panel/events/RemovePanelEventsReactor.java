@@ -4,9 +4,14 @@ import prerna.om.InsightPanel;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 
 public class RemovePanelEventsReactor extends AbstractInsightPanelReactor {
+	
+	public RemovePanelEventsReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.TRAVERSAL.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
