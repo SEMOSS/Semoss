@@ -38,7 +38,7 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 		int inputSize = this.getCurRow().size(); 
 	
 		// first input is what we want to name the new column
-		String newColName = getNewColName();
+		String newColName = getCleanNewHeader(table, getNewColName());
 		
 		// second input is the delimeter/separator
 		String separator = getSeparator();
