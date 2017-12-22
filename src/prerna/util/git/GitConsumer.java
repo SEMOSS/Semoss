@@ -85,16 +85,14 @@ public class GitConsumer {
 		GitPushUtils.commitAddedFiles(versionFolder);
 
 		// move the smss to the db folder
-		moveSMSSToDB(baseFolder, yourName4App);
+		moveDataFilesToApp(baseFolder, yourName4App);
 	}
 
-	private static void moveSMSSToDB(String baseFolder, String appName)
-	{
+	public static void moveDataFilesToApp(String baseFolder, String appName) {
 		// need to account for version here
-		String fileName = baseFolder + "/db/" + appName + "/version";
-		String dbName = baseFolder + "/db/" + appName ;
-		File dir = new File(fileName);
-		String targetDir = baseFolder + "/db";
+		String appFolder = baseFolder + "/db/" + appName ;
+		String versionFolder = appFolder + "/version";
+		File dir = new File(versionFolder);
 
 		// now move the dbs
 		List <String> otherStuff = new Vector<String>();
@@ -102,7 +100,7 @@ public class GitConsumer {
 		otherStuff.add("*.OWL");
 		FileFilter fileFilter = new WildcardFileFilter(otherStuff);
 		File [] files = dir.listFiles(fileFilter);
-		File dbFile = new File(dbName);
+		File dbFile = new File(appFolder);
 		for (int i = 0; i < files.length; i++) {
 			try {
 				// need to make modification on the engine
@@ -111,12 +109,33 @@ public class GitConsumer {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}		
+		}
+
+		File gitDataDir = new File(versionFolder + "/data");
+		if(gitDataDir.exists()) {
+			File appDataDir = new File(appFolder + "/data");
+			if(!appDataDir.exists()) {
+				appDataDir.mkdir();
+			}
+			// move everything over
+			File [] dataFiles = gitDataDir.listFiles();
+			for (int i = 0; i < dataFiles.length; i++) {
+				try {
+					// move the data files into the app data folder
+					FileUtils.copyFileToDirectory(dataFiles[i], appDataDir);
+					files[i].delete();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 
 		// I need to change the file to the app name
 		// first move the smss
 		fileFilter = new WildcardFileFilter("*.smss");
 		files = dir.listFiles(fileFilter);
+
+		String targetDir = baseFolder + "/db";
 		File targetFile = new File(targetDir);
 		for (int i = 0; i < files.length; i++) {
 			try {
