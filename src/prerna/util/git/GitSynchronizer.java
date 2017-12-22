@@ -69,6 +69,9 @@ public class GitSynchronizer {
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
+		
+		// we now need to move over these new files
+		GitConsumer.moveDataFilesToApp(baseFolder, localAppName);
 	}
 	
 	private static void pushFilesToVersionFolder(String appFolder) {
