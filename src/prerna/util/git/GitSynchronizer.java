@@ -73,7 +73,8 @@ public class GitSynchronizer {
 	
 	private static void pushFilesToVersionFolder(String appFolder) {
 		File appDir = new File(appFolder);
-		File versionDir = new File(appFolder + "/version");
+		String versionFolder = appFolder + "/version";
+		File versionDir = new File(versionFolder);
 
 		// we need to push the db/owl/jnl into this folder
 		List<String> grabItems = new Vector<String>();
@@ -106,6 +107,8 @@ public class GitSynchronizer {
 			}
 		}
 
+		pushDataFolder(appFolder, versionFolder);
+		
 		// we also need to move the smss file
 		String smssLocation = appDir.getParent() + "/" + appDir.getName() + ".smss";
 		File smssFile = new File(smssLocation);
@@ -113,6 +116,45 @@ public class GitSynchronizer {
 			FileUtils.copyFileToDirectory(smssFile, versionDir);
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	private static void pushDataFolder(String appFolder, String gitFolder) {
+		String dataFile = appFolder + "/data";
+		File dataDir = new File(dataFile);
+		if(dataDir.exists()) {
+			String gitDataFolder = gitFolder + "/data";
+			File gitDataDir = new File(gitDataFolder);
+			gitDataDir.mkdir();
+			
+			List<String> grabItems = new Vector<String>();
+			grabItems.add("*.csv");
+			grabItems.add("*.tsv");
+			FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
+			File[] filesToMove = dataDir.listFiles(fileFilter);
+			
+			File[] curDataFiles = gitDataDir.listFiles(fileFilter);
+			
+			int numFiles = filesToMove.length;
+			for(int i = 0; i < numFiles; i++) {
+				try {
+					// if the current version folder
+					// has a file with the same name
+					// as one we are about to push
+					// delete it
+					CURFILE_LOOP : for(File curFile : curDataFiles) {
+						if(filesToMove[i].getName().equals(curFile.getName())) {
+							// we found a file that matches
+							// delete it so we can copy the new one to replace
+							curFile.delete();
+							break CURFILE_LOOP ;
+						}
+					}
+					FileUtils.copyFileToDirectory(filesToMove[i], gitDataDir);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
