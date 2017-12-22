@@ -106,6 +106,9 @@ public class GitCreator {
 				e.printStackTrace();
 			}
 		}
+		
+		// push the data folder if it exists
+		pushDataFolder(appFolder, gitFolder);
 
 		// we also need to move the smss file
 		File smssFile = getSmssFile(appDir);
@@ -116,6 +119,36 @@ public class GitCreator {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param appFolder
+	 * @param gitFolder
+	 */
+	private static void pushDataFolder(String appFolder, String gitFolder) {
+		String dataFile = appFolder + "/data";
+		File dataDir = new File(dataFile);
+		if(dataDir.exists()) {
+			String gitDataFolder = gitFolder + "/data";
+			File gitDataDir = new File(gitDataFolder);
+			gitDataDir.mkdir();
+			
+			List<String> grabItems = new Vector<String>();
+			grabItems.add("*.csv");
+			grabItems.add("*.tsv");
+			FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
+			File[] filesToMove = dataDir.listFiles(fileFilter);
+			
+			int numFiles = filesToMove.length;
+			for(int i = 0; i < numFiles; i++) {
+				try {
+					FileUtils.copyFileToDirectory(filesToMove[i], gitDataDir);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	private static File[] getDatabaseFiles(String folder, boolean includeSmss) {
 		File appDir = new File(folder);
 		// we need to push the db/owl/jnl into this folder
@@ -123,6 +156,8 @@ public class GitCreator {
 		grabItems.add("*.db");
 		grabItems.add("*.jnl");
 		grabItems.add("*.OWL");
+		grabItems.add("*.csv");
+		grabItems.add("*.tsv");
 		if(includeSmss) {
 			grabItems.add("*.smss");
 		}
