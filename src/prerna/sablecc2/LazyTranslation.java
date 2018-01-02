@@ -83,8 +83,10 @@ import prerna.sablecc2.reactor.expression.filter.OpFilter;
 import prerna.sablecc2.reactor.expression.filter.OpOr;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
-import prerna.sablecc2.reactor.qs.QueryExpressionAssimilator;
-import prerna.sablecc2.reactor.qs.QueryStructReactor;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.QueryFilterReactor;
+import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
+import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -305,7 +307,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	IReactor opReactor;
     	// TODO: how do get this out of here...
-    	if(this.curReactor != null && this.curReactor instanceof QueryStructReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor) {
     		opReactor = new prerna.sablecc2.reactor.qs.AsReactor();
     	} else {
     		opReactor = new prerna.sablecc2.reactor.AsReactor();
@@ -422,8 +424,23 @@ public class LazyTranslation extends DepthFirstAdapter {
     	//something could be a column but not loaded into a frame yet...i.e. select pixel in import
     	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pixels one by one into the graph in any order
     	if(curReactor != null) {
-	    	curReactor.getCurRow().addColumn(column);
-	    	curReactor.setProp(node.toString().trim(), column);
+    		if(curReactor instanceof QuerySelectReactor || curReactor instanceof QuerySelectorExpressionAssimilator) {
+    			// this is part of a query 
+    			// add it as a proper query selector object
+    			QueryColumnSelector s = new QueryColumnSelector();
+    			if(column.contains("__")) {
+    				String[] split = column.split("__");
+    				s.setTable(split[0]);
+    				s.setColumn(split[1]);
+    			} else {
+    				s.setTable(column);
+    				s.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+    			}
+		    	curReactor.getCurRow().addColumn(s);
+    		} else {
+		    	curReactor.getCurRow().addColumn(column);
+		    	curReactor.setProp(node.toString().trim(), column);
+    		}
     	} else {
     		if(this.planner.hasVariable(column)) {
         		this.planner.addVariable("$RESULT", this.planner.getVariableValue(column));
@@ -845,25 +862,17 @@ public class LazyTranslation extends DepthFirstAdapter {
 
     @Override
     public void inAPlusBaseExpr(APlusBaseExpr node) {
-        if(curReactor instanceof Assimilator) {
-        	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
-        	qAssm.setMathExpr("+");
-        	qAssm.setPixel("EXPR", node.toString().trim());
-    		initReactor(qAssm);	
-        	return;
-        }
-        
-    	defaultIn(node);
-		Assimilator assm = new Assimilator();
-		
-		String leftKey = node.getLeft().toString().trim();
-		String rightKey = node.getRight().toString().trim();
-		initExpressionToReactor(assm, leftKey, rightKey, "+");
-		
-		assm.setPixel("EXPR", node.toString().trim());
-		initReactor(assm);	
+    	String nodeExpr = node.toString().trim();
+    	if(requireAssimilator(nodeExpr, "+")) {
+	    	defaultIn(node);
+			
+	    	Assimilator assm = new Assimilator();
+	    	String leftKey = node.getLeft().toString().trim();
+			String rightKey = node.getRight().toString().trim();
+			initExpressionToReactor(assm, leftKey, rightKey, "+");
+			assm.setPixel("EXPR", nodeExpr);
+			initReactor(assm);
+    	}
     }
     
     @Override
@@ -878,34 +887,26 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inAMinusBaseExpr(AMinusBaseExpr node) {
-    	if(curReactor instanceof Assimilator) {
-        	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
-        	qAssm.setMathExpr("-");
-        	qAssm.setPixel("EXPR", node.toString().trim());
-    		initReactor(qAssm);	
-        	return;
-        }
-    	
-    	defaultIn(node);
-		Assimilator assm = new Assimilator();
-		
-		String leftKey = null;
-		if(node.getLeft() == null) {
-			// if no left key is defined
-			// then what we really have is a negative number
-			// but the rightKey could be something a lot more complex
-			// so for now, we will just pretend the leftKey is 0
-			leftKey = "0.0";
-		} else {
-			leftKey = node.getLeft().toString().trim();
-		}
-		String rightKey = node.getRight().toString().trim();
-		initExpressionToReactor(assm, leftKey, rightKey, "-");
-		
-		assm.setPixel("EXPR", node.toString().trim());
-		initReactor(assm);
+    	String nodeExpr = node.toString().trim();
+    	if(requireAssimilator(nodeExpr, "-")) {
+	    	defaultIn(node);
+			
+	    	Assimilator assm = new Assimilator();
+	    	String leftKey = null;
+			if(node.getLeft() == null) {
+				// if no left key is defined
+				// then what we really have is a negative number
+				// but the rightKey could be something a lot more complex
+				// so for now, we will just pretend the leftKey is 0
+				leftKey = "0.0";
+			} else {
+				leftKey = node.getLeft().toString().trim();
+			}
+			String rightKey = node.getRight().toString().trim();
+			initExpressionToReactor(assm, leftKey, rightKey, "-");
+			assm.setPixel("EXPR", nodeExpr);
+			initReactor(assm);
+    	}
     }
     
     @Override
@@ -919,25 +920,17 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inADivBaseExpr(ADivBaseExpr node) {
-    	if(curReactor instanceof Assimilator) {
-        	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
-        	qAssm.setMathExpr("/");
-        	qAssm.setPixel("EXPR", node.toString().trim());
-    		initReactor(qAssm);	
-        	return;
-        }
-    	
-    	defaultIn(node);
-		Assimilator assm = new Assimilator();
-		
-		String leftKey = node.getLeft().toString().trim();
-		String rightKey = node.getRight().toString().trim();
-		initExpressionToReactor(assm, leftKey, rightKey, "/");
-		
-		assm.setPixel("EXPR", node.toString().trim());
-		initReactor(assm);
+    	String nodeExpr = node.toString().trim();
+    	if(requireAssimilator(nodeExpr, "/")) {
+	    	defaultIn(node);
+			
+	    	Assimilator assm = new Assimilator();
+	    	String leftKey = node.getLeft().toString().trim();
+			String rightKey = node.getRight().toString().trim();
+			initExpressionToReactor(assm, leftKey, rightKey, "/");
+			assm.setPixel("EXPR", nodeExpr);
+			initReactor(assm);
+    	}
     }
     
     @Override
@@ -951,25 +944,17 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inAMultBaseExpr(AMultBaseExpr node) {
-    	if(curReactor instanceof Assimilator) {
-        	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
-        	qAssm.setMathExpr("*");
-        	qAssm.setPixel("EXPR", node.toString().trim());
-    		initReactor(qAssm);	
-        	return;
-        }
-    	
-    	defaultIn(node);
-		Assimilator assm = new Assimilator();
-		
-		String leftKey = node.getLeft().toString().trim();
-		String rightKey = node.getRight().toString().trim();
-		initExpressionToReactor(assm, leftKey, rightKey, "*");
-		
-		assm.setPixel("EXPR", node.toString().trim());
-		initReactor(assm);
+    	String nodeExpr = node.toString().trim();
+    	if(requireAssimilator(nodeExpr, "*")) {
+	    	defaultIn(node);
+			
+	    	Assimilator assm = new Assimilator();
+	    	String leftKey = node.getLeft().toString().trim();
+			String rightKey = node.getRight().toString().trim();
+			initExpressionToReactor(assm, leftKey, rightKey, "*");
+			assm.setPixel("EXPR", nodeExpr);
+			initReactor(assm);
+    	}
     }
     
     @Override
@@ -979,6 +964,66 @@ public class LazyTranslation extends DepthFirstAdapter {
     	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
     		deInitReactor();
     	}
+    }
+    
+    @Override
+    public void inAModBaseExpr(AModBaseExpr node) {
+    	String nodeExpr = node.toString().trim();
+    	if(requireAssimilator(nodeExpr, "%")) {
+	    	defaultIn(node);
+			
+	    	Assimilator assm = new Assimilator();
+	    	String leftKey = node.getLeft().toString().trim();
+			String rightKey = node.getRight().toString().trim();
+			initExpressionToReactor(assm, leftKey, rightKey, "%");
+			assm.setPixel("EXPR", nodeExpr);
+			initReactor(assm);
+    	}
+    }
+    
+    @Override
+    public void outAModBaseExpr(AModBaseExpr node)
+    {
+    	defaultOut(node);
+    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
+    		deInitReactor();
+    	}
+    }
+    
+    /**
+     * Use this to determine if we need to make an assimilator
+     * Otherwise, figure out what reactor we need to generate
+     * @param nodeExpr
+     * @param math
+     * @return
+     */
+    private boolean requireAssimilator(String nodeExpr, String math) {
+    	if(curReactor instanceof Assimilator) {
+        	return false;
+    	} else if(curReactor instanceof QuerySelectorExpressionAssimilator) {
+    		QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
+        	qAssm.setMathExpr(math);
+        	qAssm.setPixel("EXPR", nodeExpr);
+    		initReactor(qAssm);	
+        	return false;
+    	} else if(curReactor instanceof QuerySelectReactor) {  
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
+        	qAssm.setMathExpr(math);
+        	qAssm.setPixel("EXPR", nodeExpr);
+    		initReactor(qAssm);	
+        	return false;
+        } 
+    	// if the parent is a filter
+    	// we need to aggregate this side of the column expression
+    	else if(curReactor.getParentReactor() instanceof QueryFilterReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
+        	qAssm.setMathExpr(math);
+        	qAssm.setPixel("EXPR", nodeExpr);
+    		initReactor(qAssm);	
+        	return false;
+        }
+    	
+    	return true;
     }
     
     @Override
@@ -997,47 +1042,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void outAPower(APower node) {
     	defaultOut(node);
     	// deinit this only if this is the same node
-    	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
-    		deInitReactor();
-    	}
-    }
-    
-    @Override
-    public void inAModBaseExpr(AModBaseExpr node) {
-    	if(curReactor instanceof Assimilator) {
-        	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
-        	qAssm.setMathExpr("%");
-        	qAssm.setPixel("EXPR", node.toString().trim());
-    		initReactor(qAssm);	
-        	return;
-        }
-    	
-    	defaultIn(node);
-		Assimilator assm = new Assimilator();
-		
-		String leftKey = null;
-		if(node.getLeft() == null) {
-			// if no left key is defined
-			// then what we really have is a negative number
-			// but the rightKey could be something a lot more complex
-			// so for now, we will just pretend the leftKey is 0
-			leftKey = "0.0";
-		} else {
-			leftKey = node.getLeft().toString().trim();
-		}
-		String rightKey = node.getRight().toString().trim();
-		initExpressionToReactor(assm, leftKey, rightKey, "-");
-		
-		assm.setPixel("EXPR", node.toString().trim());
-		initReactor(assm);
-    }
-    
-    @Override
-    public void outAModBaseExpr(AModBaseExpr node)
-    {
-    	defaultOut(node);
     	if((node.toString()).trim().equalsIgnoreCase(curReactor.getOriginalSignature())) {
     		deInitReactor();
     	}

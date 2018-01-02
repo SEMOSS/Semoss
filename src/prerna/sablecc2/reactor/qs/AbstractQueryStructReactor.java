@@ -23,13 +23,13 @@ import prerna.sablecc2.reactor.AbstractReactor;
  * 
  * 			QueryStructReactor is responsible for grabbing any input querystructs and passing the output
  */
-public abstract class QueryStructReactor extends AbstractReactor {
+public abstract class AbstractQueryStructReactor extends AbstractReactor {
 
 	protected QueryStruct2 qs;
 	protected String[] selectorAlias;
 	
 	// method to override in the specific qs classes
-	abstract QueryStruct2 createQueryStruct();
+	protected abstract QueryStruct2 createQueryStruct();
 
 	@Override
 	public Object Out() {

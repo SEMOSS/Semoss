@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.selectors;
 
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -7,11 +7,11 @@ import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 
-public class MinReactor extends SelectReactor {
+public class SumReactor extends QuerySelectReactor {
 	
 	@Override
-	QueryStruct2 createQueryStruct() {
-		QueryAggregationEnum aggregationFunction = QueryAggregationEnum.MIN;
+	protected QueryStruct2 createQueryStruct() {
+		QueryAggregationEnum aggregationFunction = QueryAggregationEnum.SUM;
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
