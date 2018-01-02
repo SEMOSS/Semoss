@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.selectors;
 
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -8,14 +8,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class UniqueGroupConcatReactor extends SelectReactor {
+public class UniqueGroupConcatReactor extends QuerySelectReactor {
 	
 	public UniqueGroupConcatReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
 	}
 
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		QueryAggregationEnum aggregationFunction = QueryAggregationEnum.UNIQUE_GROUP_CONCAT;
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
