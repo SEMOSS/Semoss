@@ -57,6 +57,7 @@ import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperationList;
@@ -424,7 +425,12 @@ public class SQLQueryParser extends AbstractQueryParser {
 		//so basically if you have a more complex query 
 		try {
 			SetOperationList setList = (SetOperationList) selectStatement.getSelectBody();
-			plainSelectList = setList.getPlainSelects();
+			List<SelectBody> allSelectors = setList.getSelects();
+			for(SelectBody s : allSelectors) {
+				if(s instanceof PlainSelect) {
+					plainSelectList.add((PlainSelect) s);
+				}
+			}
 		} catch (Exception e){
 			//System.out.println("more simple query");
 			PlainSelect plainSel = (PlainSelect) selectStatement.getSelectBody();

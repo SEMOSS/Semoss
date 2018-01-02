@@ -922,7 +922,7 @@
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
 			<artifactId>jsqlparser</artifactId>
-			<version>0.9</version>
+			<version>1.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
