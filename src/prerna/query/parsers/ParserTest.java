@@ -1,4 +1,4 @@
-package prerna.test.calcite;
+package prerna.query.parsers;
 
 import java.util.Date;
 import java.util.Hashtable;
@@ -43,16 +43,6 @@ import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.util.SelectUtils;
 import net.sf.jsqlparser.util.TablesNamesFinder;
-
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOrderBy;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
-
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -91,7 +81,6 @@ public class ParserTest {
 		PlainSelect sb = (PlainSelect)select.getSelectBody();
 		List <SelectItem> items = sb.getSelectItems();
 
-		sb.getWhere().accept(new SqlExpressionVisitor());
 		OrExpression expr = (OrExpression)sb.getWhere();
 
 		QueryStruct2 qs = new QueryStruct2();
@@ -975,7 +964,7 @@ public class ParserTest {
 		
 	}
 
-	public static void main2(String [] args) throws SqlParseException
+/*	public static void main2(String [] args) throws SqlParseException
 	{
 		String query = "Select * from employee";
 		query =  "select distinct c.logicalname, ec.physicalname from "
@@ -1016,5 +1005,5 @@ public class ParserTest {
 		String sqlBack = spw.format(node);
 		System.out.println("node .. " + node);
 	}
-	
+	*/
 }
