@@ -133,32 +133,33 @@ import prerna.sablecc2.reactor.planner.GraphPlanReactor;
 import prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor;
 import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
 import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
-import prerna.sablecc2.reactor.qs.AverageReactor;
-import prerna.sablecc2.reactor.qs.CountReactor;
-import prerna.sablecc2.reactor.qs.DatabaseReactor;
-import prerna.sablecc2.reactor.qs.DirectJdbcConnectionReactor;
-import prerna.sablecc2.reactor.qs.FileSourceReactor;
-import prerna.sablecc2.reactor.qs.FrameReactor;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.GroupByReactor;
-import prerna.sablecc2.reactor.qs.GroupConcatReactor;
-import prerna.sablecc2.reactor.qs.JdbcEngineConnectorReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
-import prerna.sablecc2.reactor.qs.MaxReactor;
-import prerna.sablecc2.reactor.qs.MedianReactor;
-import prerna.sablecc2.reactor.qs.MinReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.OrderByReactor;
 import prerna.sablecc2.reactor.qs.QueryAllReactor;
 import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
-import prerna.sablecc2.reactor.qs.QueryStructReactor;
-import prerna.sablecc2.reactor.qs.SelectReactor;
-import prerna.sablecc2.reactor.qs.StandardDeviationReactor;
-import prerna.sablecc2.reactor.qs.SumReactor;
-import prerna.sablecc2.reactor.qs.UniqueCountReactor;
-import prerna.sablecc2.reactor.qs.UniqueGroupConcatReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
+import prerna.sablecc2.reactor.qs.selectors.AverageReactor;
+import prerna.sablecc2.reactor.qs.selectors.CountReactor;
+import prerna.sablecc2.reactor.qs.selectors.GroupConcatReactor;
+import prerna.sablecc2.reactor.qs.selectors.MaxReactor;
+import prerna.sablecc2.reactor.qs.selectors.MedianReactor;
+import prerna.sablecc2.reactor.qs.selectors.MinReactor;
+import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
+import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
+import prerna.sablecc2.reactor.qs.selectors.StandardDeviationReactor;
+import prerna.sablecc2.reactor.qs.selectors.SumReactor;
+import prerna.sablecc2.reactor.qs.selectors.UniqueCountReactor;
+import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
+import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
+import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
+import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
+import prerna.sablecc2.reactor.qs.source.FrameReactor;
+import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
 import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
@@ -287,7 +288,7 @@ public class ReactorFactory {
 		// Query Struct Reactors
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
-		reactorHash.put("Select", SelectReactor.class);
+		reactorHash.put("Select", QuerySelectReactor.class);
 		reactorHash.put("Average", AverageReactor.class);
 		reactorHash.put("Mean", AverageReactor.class);
 		reactorHash.put("Sum", SumReactor.class);
@@ -628,7 +629,8 @@ public class ReactorFactory {
 			// reducer or as a selector
 			if (expressionHash.containsKey(reactorId.toUpperCase())) {
 				// if this expression is not a selector
-				if (!(parentReactor instanceof QueryStructReactor)) {
+				if (!(parentReactor instanceof AbstractQueryStructReactor) && 
+						!(parentReactor instanceof QuerySelectorExpressionAssimilator)) {
 					reactor = (IReactor) expressionHash.get(reactorId.toUpperCase()).newInstance();
 					reactor.setPixel(reactorId, nodeString);
 					return reactor;

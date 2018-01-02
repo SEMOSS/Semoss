@@ -4,10 +4,10 @@ import java.util.List;
 
 import prerna.query.querystruct.QueryStruct2;
 
-public class AsReactor extends QueryStructReactor {
+public class AsReactor extends AbstractQueryStructReactor {
 
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		//add the inputs from the store as well as this operation
 		// first is all the inputs
 		// really has one job pick the parent.. 

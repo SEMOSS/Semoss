@@ -82,8 +82,8 @@ import prerna.sablecc2.reactor.expression.filter.OpFilter;
 import prerna.sablecc2.reactor.json.validator.JsonValidatorReactorFactory;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapMapReactor;
-import prerna.sablecc2.reactor.qs.QueryExpressionAssimilator;
-import prerna.sablecc2.reactor.qs.QueryStructReactor;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -276,7 +276,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	IReactor opReactor;
     	// TODO: how do get this out of here...
-    	if(this.curReactor != null && this.curReactor instanceof QueryStructReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor) {
     		opReactor = new prerna.sablecc2.reactor.qs.AsReactor();
     	} else {
     		opReactor = new prerna.sablecc2.reactor.AsReactor();
@@ -770,8 +770,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inAPlusBaseExpr(APlusBaseExpr node) {
         if(curReactor instanceof Assimilator) {
         	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        } else if(curReactor instanceof AbstractQueryStructReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("+");
         	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
@@ -803,8 +803,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inAMinusBaseExpr(AMinusBaseExpr node) {
     	if(curReactor instanceof Assimilator) {
         	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        } else if(curReactor instanceof AbstractQueryStructReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("-");
         	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
@@ -844,8 +844,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inADivBaseExpr(ADivBaseExpr node) {
     	if(curReactor instanceof Assimilator) {
         	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        } else if(curReactor instanceof AbstractQueryStructReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("/");
         	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
@@ -876,8 +876,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inAMultBaseExpr(AMultBaseExpr node) {
     	if(curReactor instanceof Assimilator) {
         	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        } else if(curReactor instanceof AbstractQueryStructReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("*");
         	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
@@ -929,8 +929,8 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     public void inAModBaseExpr(AModBaseExpr node) {
     	if(curReactor instanceof Assimilator) {
         	return;
-        } else if(curReactor instanceof QueryStructReactor) {
-        	QueryExpressionAssimilator qAssm = new QueryExpressionAssimilator();
+        } else if(curReactor instanceof AbstractQueryStructReactor) {
+        	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr("%");
         	qAssm.setPixel("EXPR", node.toString().trim());
     		initReactor(qAssm);	
