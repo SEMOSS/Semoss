@@ -7,12 +7,12 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class OrderByReactor extends QueryStructReactor {
+public class OrderByReactor extends AbstractQueryStructReactor {
 
 	private static final String COLUMNS_KEY = ReactorKeysEnum.COLUMNS.getKey();
 	private static final String DIRECTION_KEY = ReactorKeysEnum.SORT.getKey();
 	
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		List<String> colInputs = getOrderByColumns();
 		List<String> sortDirs = getSortDirections();
 		int colSize = colInputs.size();

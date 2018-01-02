@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.source;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -11,11 +11,12 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class TextInputReactor extends QueryStructReactor {
+public class TextInputReactor extends AbstractQueryStructReactor {
 
 	//keys to get inputs from pixel command
 	private static final String FILE_INFO = "fileData";
@@ -33,7 +34,7 @@ public class TextInputReactor extends QueryStructReactor {
 	 */
 
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		CsvQueryStruct qs = null;
 
 		// get inputs

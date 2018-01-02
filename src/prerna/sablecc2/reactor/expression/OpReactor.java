@@ -61,14 +61,21 @@ public abstract class OpReactor extends AbstractReactor implements JavaExecutabl
 		} else if(nounType == PixelDataType.COLUMN) {
 			// column might be a variable that is already stored
 			// if it is, do a replacement with the assignment noun
-			NounMetadata assignmentNoun = this.planner.getVariableValue((String)noun.getValue());
-			if(assignmentNoun != null) {
-				evaluatedNoun = assignmentNoun;
-			} else {
+			Object value = noun.getValue();
+			if(value instanceof String) {
+				NounMetadata assignmentNoun = this.planner.getVariableValue((String) value);
+				if(assignmentNoun != null) {
+					evaluatedNoun = assignmentNoun;
+				} else {
+					evaluatedNoun = noun;
+				}
+			} 
+			// this is some kind of selector for a query filter 
+			// since op filter is used
+			else {
 				evaluatedNoun = noun;
 			}
 		} else if(nounType == PixelDataType.VECTOR) {
-			
 			//For each noun in the list we also want to execute
 			List<NounMetadata> nounVector = (List<NounMetadata>)noun.getValue();
 			List<NounMetadata> evaluatedNounVector = new ArrayList<>(nounVector.size());

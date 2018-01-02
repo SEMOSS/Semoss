@@ -7,13 +7,13 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class QueryFilterReactor extends QueryStructReactor {
+public class QueryFilterReactor extends AbstractQueryStructReactor {
 	
 	public QueryFilterReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey()};
 	}
 
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		List<Object> filters = this.curRow.getValuesOfType(PixelDataType.FILTER);
 		if(filters.isEmpty()) {
 			throw new IllegalArgumentException("No filter founds to append into the query");

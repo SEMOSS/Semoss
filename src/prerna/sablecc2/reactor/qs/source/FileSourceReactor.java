@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.source;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +10,10 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.GoogleAnalytics;
 
-public class FileSourceReactor extends QueryStructReactor {
+public class FileSourceReactor extends AbstractQueryStructReactor {
 
 	//keys to get inputs from pixel command
 	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
@@ -37,7 +38,7 @@ public class FileSourceReactor extends QueryStructReactor {
 	 */
 
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		QueryStruct2 qs = null;
 
 		// get inputs
