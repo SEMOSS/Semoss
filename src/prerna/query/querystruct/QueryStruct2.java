@@ -183,6 +183,10 @@ public class QueryStruct2 {
 		this.groupBy = groupBy;
 	}
 	
+	public void addGroupBy(QueryColumnSelector selector) {
+		this.groupBy.add(selector);
+	}
+	
 	public void addGroupBy(String concept, String property) {
 		if(property == null) {
 			property = PRIM_KEY_PLACEHOLDER; 

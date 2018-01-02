@@ -9,14 +9,14 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class WithReactor extends QueryStructReactor {
+public class WithReactor extends AbstractQueryStructReactor {
 	
 	public WithReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
 	}
 
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		InsightPanel panel = getPanel();
 		GenRowFilters panelFilters = panel.getPanelFilters();
 		qs.mergeFilters(panelFilters);

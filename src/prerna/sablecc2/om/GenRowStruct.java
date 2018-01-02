@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.reactor.IReactor;
 
 public class GenRowStruct {
@@ -52,6 +53,11 @@ public class GenRowStruct {
 	public void addColumn(String column)
 	{
 		add(column.trim(), PixelDataType.COLUMN);
+	}
+	
+	public void addColumn(QueryColumnSelector column)
+	{
+		add(column, PixelDataType.COLUMN);
 	}
 	
 	public void addMap(Map<Object, Object> map) {

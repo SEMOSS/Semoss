@@ -4,14 +4,14 @@ import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class QueryReactor extends QueryStructReactor {
+public class QueryReactor extends AbstractQueryStructReactor {
 	
 	public QueryReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_KEY.getKey()};
 	}
 	
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		//grab the query
 		String query = (String) curRow.get(0);
 		

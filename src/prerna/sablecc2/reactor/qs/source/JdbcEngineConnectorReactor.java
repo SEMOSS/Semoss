@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.source;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -9,15 +9,16 @@ import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
-public class JdbcEngineConnectorReactor extends QueryStructReactor {
+public class JdbcEngineConnectorReactor extends AbstractQueryStructReactor {
 	
 	public JdbcEngineConnectorReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.USERNAME.getKey()};
 	}
 	
 	@Override
-	QueryStruct2 createQueryStruct() {
+	protected QueryStruct2 createQueryStruct() {
 		String userName = getUserName();
 		String password = getPassword();
 		String driver = getDbDriver();

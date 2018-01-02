@@ -1,20 +1,22 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.selectors;
+
+import java.util.List;
 
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.reactor.AbstractReactor;
 
-public class QueryExpressionAssimilator extends QueryStructReactor {
+public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 
 	private String mathExpr;
 	
 	@Override
-	QueryStruct2 createQueryStruct() {
+	public NounMetadata execute() {
 		GenRowStruct qsInputs = this.getCurRow();
 		IQuerySelector leftSelector = getSelector(qsInputs.getNoun(0));
 		IQuerySelector rightSelector = getSelector(qsInputs.getNoun(1));
@@ -48,8 +50,7 @@ public class QueryExpressionAssimilator extends QueryStructReactor {
 					newSelector.setLeftSelector(leftOfLeftSelector);
 					newSelector.setRightSelector(newRightSelector);
 					newSelector.setMathExpr(leftSideMathExpression);
-					qs.addSelector(newSelector);
-					return qs;
+					return composeNewSelector(newSelector);
 				}
 			} else if(rightSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 				QueryArithmeticSelector rightArithSelector = (QueryArithmeticSelector) rightSelector;
@@ -70,8 +71,7 @@ public class QueryExpressionAssimilator extends QueryStructReactor {
 					newSelector.setLeftSelector(newLeftSelector);
 					newSelector.setRightSelector(rightOfRightSelector);
 					newSelector.setMathExpr(rightSideMathExpression);
-					qs.addSelector(newSelector);
-					return qs;
+					return composeNewSelector(newSelector);
 				}
 			}
 		}
@@ -80,26 +80,33 @@ public class QueryExpressionAssimilator extends QueryStructReactor {
 		newSelector.setLeftSelector(leftSelector);
 		newSelector.setRightSelector(rightSelector);
 		newSelector.setMathExpr(this.mathExpr);
-		qs.addSelector(newSelector);
-		return qs;
+		return composeNewSelector(newSelector);
 	}
 	
-	public IQuerySelector getSelector(NounMetadata input) {
+	private NounMetadata composeNewSelector(IQuerySelector selector) {
+		return new NounMetadata(selector, PixelDataType.COLUMN);
+	}
+	
+	public void setMathExpr(String mathExpr) {
+		this.mathExpr = mathExpr;
+	}
+	
+	private IQuerySelector getSelector(NounMetadata input) {
 		PixelDataType nounType = input.getNounType();
 		if(nounType == PixelDataType.QUERY_STRUCT) {
 			// remember, if it is an embedded selector
 			// we return a full QueryStruct even if it has just one selector
 			// inside of it
-			return ((QueryStruct2) input.getValue()).getSelectors().get(0);
+			QueryStruct2 qs = (QueryStruct2) input.getValue();
+			List<IQuerySelector> selectors = qs.getSelectors();
+			if(selectors.isEmpty()) {
+				// umm... merge the other QS stuff
+				qs.merge(qs);
+				return null;
+			}
+			return selectors.get(0);
 		} else if(nounType == PixelDataType.COLUMN) {
-			String thisSelector = input.getValue() + "";
-			if(thisSelector.contains("__")){
-				String[] selectorSplit = thisSelector.split("__");
-				return getColumnSelector(selectorSplit[0], selectorSplit[1]);
-			}
-			else {
-				return getColumnSelector(thisSelector, null);
-			}
+			return (IQuerySelector) input.getValue();
 		} else {
 			// we have a constant...
 			QueryConstantSelector cSelect = new QueryConstantSelector();
@@ -107,19 +114,5 @@ public class QueryExpressionAssimilator extends QueryStructReactor {
 			return cSelect;
 		}
 	}
-
-	public IQuerySelector getColumnSelector(String table, String column) {
-		QueryColumnSelector selector = new QueryColumnSelector();
-		selector.setTable(table);
-		if(column == null) {
-			selector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
-		} else {
-			selector.setColumn(column);
-		}
-		return selector;
-	}
 	
-	public void setMathExpr(String mathExpr) {
-		this.mathExpr = mathExpr;
-	}
 }
