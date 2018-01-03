@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 
@@ -478,12 +479,22 @@ public class SimpleQueryFilter implements IQueryFilter {
 	@Override
 	public Object getSimpleFormat() {
 		Map<String, Object> lMap = new HashMap<String, Object>();
-		lMap.put("type", lComparison.getNounType());
-		lMap.put("value", lComparison.getValue());
+		PixelDataType lType = lComparison.getNounType();
+		lMap.put("type", lType);
+		if(lType == PixelDataType.COLUMN) {
+			lMap.put("value", ((IQuerySelector) lComparison.getValue()).getQueryStructName());
+		} else {
+			lMap.put("value", lComparison.getValue());
+		}
 		
 		Map<String, Object> rMap = new HashMap<String, Object>();
-		rMap.put("type", rComparison.getNounType());
-		rMap.put("value", rComparison.getValue());
+		PixelDataType rType = rComparison.getNounType();
+		rMap.put("type", rType);
+		if(rType == PixelDataType.COLUMN) {
+			rMap.put("value", ((IQuerySelector) rComparison.getValue()).getQueryStructName());
+		} else {
+			rMap.put("value", rComparison.getValue());
+		}
 		
 		Map<String, Object> ret = new HashMap<String, Object>();
 		ret.put("filterType", this.getQueryFilterType());
@@ -500,7 +511,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			if(rObj instanceof List) {
 				int size = ((List) rObj).size();
 				if(size == 1) {
-					return this.lComparison.getValue() + " " + this.comparator + " " + ((List) rObj).get(0);
+					return ((IQuerySelector) this.lComparison.getValue()).getQueryStructName() + " " + this.comparator + " " + ((List) rObj).get(0);
 				} else {
 					StringBuilder builder = new StringBuilder("[");
 					boolean first = true;
@@ -520,7 +531,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 					return this.lComparison.getValue() + " " + this.comparator + " " + builder.toString();
 				}
 			} else {
-				return this.lComparison.getValue() + " " + this.comparator + " " + rObj;
+				return ((IQuerySelector) this.lComparison.getValue()).getQueryStructName() + " " + this.comparator + " " + rObj;
 			}
 		} else if(this.thisFilterType == FILTER_TYPE.VALUES_TO_COL) {
 			Object lObj = this.lComparison.getValue();
@@ -534,11 +545,13 @@ public class SimpleQueryFilter implements IQueryFilter {
 						builder.append( ((List) lObj).get(i) ).append(", ");
 					}
 					builder.append("... ]");
-					return this.rComparison.getValue() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + builder.toString();
+					return ((IQuerySelector) this.rComparison.getValue()).getQueryStructName() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + builder.toString();
 				}
 			} else {
-				return this.rComparison.getValue() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + lObj;
+				return ((IQuerySelector) this.rComparison.getValue()).getQueryStructName() + " " + IQueryFilter.getReverseNumericalComparator(this.comparator) + " " + lObj;
 			}
+		} else if(this.thisFilterType == FILTER_TYPE.COL_TO_COL) {
+			return ((IQuerySelector) this.lComparison.getValue()).getQueryStructName() + " " + this.comparator + " " + ((IQuerySelector) this.rComparison.getValue()).getQueryStructName();
 		} else {
 			return this.lComparison.getValue() + " " + this.comparator + " " + this.rComparison.getValue();
 		}
