@@ -82,7 +82,13 @@ public class MergeDataReactor extends AbstractReactor {
 					while(it.hasNext()) {
 						values.add(it.next().getValues()[0]);
 					}
-					NounMetadata lNoun = new NounMetadata(q, PixelDataType.COLUMN);
+					// create a selector
+					// just set the table to be the alias
+					// the frame will auto convert to physical
+					QueryColumnSelector qSelector = new QueryColumnSelector();
+					qSelector.setTable(q);
+					qSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+					NounMetadata lNoun = new NounMetadata(qSelector, PixelDataType.COLUMN);
 					NounMetadata rNoun = null;
 					if(frame.getMetaData().getHeaderTypeAsEnum(s) == SemossDataType.NUMBER) {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
