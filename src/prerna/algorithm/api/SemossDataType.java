@@ -19,6 +19,9 @@ public enum SemossDataType {
 	}
 	
 	public static SemossDataType convertStringToDataType(String dataType) {
+		if(dataType == null) {
+			return null;
+		}
 		if(Utility.isNumericType(dataType)) {
 			return SemossDataType.NUMBER;
 		} else if(Utility.isDateType(dataType)) {
