@@ -511,6 +511,8 @@ public class ReactorFactory {
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
+		
+		reactorHash.put("SendEmail", SendEmailReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
