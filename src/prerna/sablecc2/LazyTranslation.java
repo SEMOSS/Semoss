@@ -424,7 +424,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     	//something could be a column but not loaded into a frame yet...i.e. select pixel in import
     	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pixels one by one into the graph in any order
     	if(curReactor != null) {
-    		if(curReactor instanceof QuerySelectReactor || curReactor instanceof QuerySelectorExpressionAssimilator) {
+    		if(curReactor instanceof QuerySelectReactor 
+    				|| curReactor instanceof QuerySelectorExpressionAssimilator 
+    				|| (curReactor instanceof OpFilter && ((OpFilter) curReactor).isQuery()) ) {
     			// this is part of a query 
     			// add it as a proper query selector object
     			QueryColumnSelector s = new QueryColumnSelector();

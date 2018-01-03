@@ -13,7 +13,6 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.algorithm.impl.specific.tap.SysOptUtilityMethods;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
@@ -65,9 +64,6 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	// key is always a combination of concept and comparator
 	// and the values are values
 	private List<String> filterStatements = new Vector<String>();
-//	private Map<String, String> andWhereFilters = new HashMap<String, String>();
-//	private Map<String, String> orWhereFilters = new HashMap<String, String>();
-//	private Map<String, List<SimpleQueryFilter>> processedFilters = new HashMap<String, List<SimpleQueryFilter>>();
 	
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
@@ -263,7 +259,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
 			return processMathSelector((QueryMathSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) {
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) { 
 			return processMultiMathSelector((QueryMultiColMathSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
@@ -547,12 +543,12 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		
 		FILTER_TYPE fType = filter.getFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			return addColToColFilter(leftComp, rightComp, thisComparator);
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addColToValuesFilter(filter, rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 			return addValueToValueFilter(rightComp, leftComp, thisComparator);
@@ -567,24 +563,30 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addColToValuesFilter(SimpleQueryFilter qFilterObj, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
-		String left_concept_property = leftComp.getValue().toString();
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, false);
+		String leftDataType = leftSelector.getDataType();
 		
-		String[] leftConProp = getConceptProperty(left_concept_property);
-		String leftConcept = leftConProp[0];
-		String leftProperty = leftConProp[1];
-
-		String leftDataType = null;
-		if(engine != null && !engine.isBasic()) {
-			leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
-			// ugh, need to try if it is a property
-			if(leftDataType == null) {
-				leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
+		// if it is null, then we know we have a column
+		// need to grab from metadata
+		if(leftDataType == null) {
+			String left_concept_property = leftSelector.getQueryStructName();
+			String[] leftConProp = getConceptProperty(left_concept_property);
+			String leftConcept = leftConProp[0];
+			String leftProperty = leftConProp[1];
+	
+			if(engine != null && !engine.isBasic()) {
+				leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
+				// ugh, need to try if it is a property
+				if(leftDataType == null) {
+					leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
+				}
+				leftDataType = leftDataType.replace("TYPE:", "");
+			} else if(frame != null) {
+				leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
 			}
-			leftDataType = leftDataType.replace("TYPE:", "");
-		} else if(frame != null) {
-			leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
 		}
 		
 		List<Object> objects = new Vector<Object>();
@@ -605,28 +607,27 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			List<Object> newObjects = new Vector<Object>();
 			newObjects.add(objects.get(i));
 			String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
-			filterBuilder.append("( LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
+			filterBuilder.append("( LOWER(").append(leftSelectorExpression);
 			filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 			i++;
 			for(; i < size; i++) {
 				newObjects = new Vector<Object>();
 				newObjects.add(objects.get(i));
 				myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
-				filterBuilder.append(" OR LOWER(").append(getAlias(leftConcept)).append(".").append(leftProperty);
+				filterBuilder.append(" OR LOWER(").append(leftSelectorExpression);
 				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 			}
 			filterBuilder.append(")");
 		} else {
+			filterBuilder.append("(").append(leftSelectorExpression).append(")");
 			String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
-	
+
 			if(thisComparator.trim().equals("==")) {
-				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
 				filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
 			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
 				filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
 			} else {
-				filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				filterBuilder.append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
 		}
 		
@@ -639,56 +640,23 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
-		String left_concept_property = leftComp.getValue().toString();
-		
-		String[] leftConProp = getConceptProperty(left_concept_property);
-		String leftConcept = leftConProp[0];
-		String leftProperty = leftConProp[1];
-
-		String leftDataType = null;
-		if(engine != null && !engine.isBasic()) {
-			leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
-			// ugh, need to try if it is a property
-			if(leftDataType == null) {
-				leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
-			}
-			leftDataType = leftDataType.replace("TYPE:", "");
-		}
-		
-		// get the right side
-		
-		String right_concept_property = rightComp.getValue().toString();
-		if(engine != null && !engine.isBasic()) {
-			List<String> parents = engine.getParentOfProperty2(right_concept_property);
-			if(parents != null) {
-				// since we can have 2 tables that have the same column
-				// we need to pick one with the table that already exists
-				for(String parent : parents) {
-					if(aliases.containsKey(Utility.getInstanceName(parent))) {
-						right_concept_property = Utility.getInstanceName(parent) + "__" + right_concept_property;
-						break;
-					}
-				}
-			}
-		}
-		String[] rightConProp = getConceptProperty(right_concept_property);
-		String rightConcept = rightConProp[0];
-		String rightProperty = rightConProp[1];
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
 
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
 		
 		StringBuilder filterBuilder = new StringBuilder();
-		filterBuilder.append(getAlias(leftConcept)).append(".").append(leftProperty);
+		filterBuilder.append(processSelector(leftSelector, false));
 		if(thisComparator.equals("==")) {
 			thisComparator = "=";
 		} else if(thisComparator.equals("<>")) {
 			thisComparator = "!=";
 		}
-		filterBuilder.append(" ").append(thisComparator).append(" ").append(getAlias(rightConcept)).append(".").append(rightProperty);
+		filterBuilder.append(" ").append(thisComparator).append(" ").append(processSelector(rightSelector, false));
 
 		return filterBuilder;
 	}
