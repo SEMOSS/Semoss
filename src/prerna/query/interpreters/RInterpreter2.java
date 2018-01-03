@@ -133,7 +133,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			}
 			
 			String tempName = "V" + i;
-			selectorBuilder.append(tempName).append("=").append(processSelector(selector));
+			selectorBuilder.append(tempName).append("=").append(processSelector(selector, false));
 			outputNames.append(alias).append("=").append(tempName);
 			
 			// also keep track of headers
@@ -144,19 +144,6 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		this.selectorCriteria.append(selectorBuilder).append(outputNames).append(") }");
 	}
 	
-	private List<IQuerySelector> removeFakeSelector(List <IQuerySelector> allSelectors)
-	{
-		for(int i = 0; i < allSelectors.size(); i++) {
-			IQuerySelector selector = allSelectors.get(i);
-			String alias = selector.getAlias();
-			if(headersToRemove.contains(alias))
-				allSelectors.remove(selector);
-		}
-		
-		return allSelectors;
-		
-	}
-	
 	/**
 	 * Method is used to generate the appropriate syntax for each type of selector
 	 * Note, this returns everything without the alias since this is called again from
@@ -164,18 +151,18 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	 * @param selector
 	 * @return
 	 */
-	private String processSelector(IQuerySelector selector) {
+	private String processSelector(IQuerySelector selector, boolean includeTableName) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-			return processColumnSelector((QueryColumnSelector) selector);
+			return processColumnSelector((QueryColumnSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return processMathSelector((QueryMathSelector) selector);
+			return processMathSelector((QueryMathSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) {
-			return processMultiMathSelector((QueryMultiColMathSelector) selector);
+			return processMultiMathSelector((QueryMultiColMathSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
-			return processArithmeticSelector((QueryArithmeticSelector) selector);
+			return processArithmeticSelector((QueryArithmeticSelector) selector, includeTableName);
 		}
 		return null;
 	}
@@ -189,25 +176,28 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 
-	private String processColumnSelector(QueryColumnSelector selector) {
+	private String processColumnSelector(QueryColumnSelector selector, boolean includeTableName) {
+		if(includeTableName) {
+			return this.dataTableName + "$" + selector.getColumn();
+		}
 		return selector.getColumn();
 	}
 	
-	private String processMathSelector(QueryMathSelector selector) {
+	private String processMathSelector(QueryMathSelector selector, boolean includeTableName) {
 		IQuerySelector innerSelector = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
 		if(math == QueryAggregationEnum.GROUP_CONCAT) {
-			return math.getRSyntax() + "(na.omit(" + processSelector(innerSelector) + "), collapse = \", \")";
+			return math.getRSyntax() + "(na.omit(" + processSelector(innerSelector, includeTableName) + "), collapse = \", \")";
 		} else if (math == QueryAggregationEnum.UNIQUE_GROUP_CONCAT) {
-			return math.getRSyntax() + "(unique((na.omit(" + processSelector(innerSelector) + "))), collapse = \", \")";
+			return math.getRSyntax() + "(unique((na.omit(" + processSelector(innerSelector, includeTableName) + "))), collapse = \", \")";
 		} else if(math == QueryAggregationEnum.COUNT || math == QueryAggregationEnum.UNIQUE_COUNT ) {
-			return math.getRSyntax() + "(na.omit(" + processSelector(innerSelector) + "))";
+			return math.getRSyntax() + "(na.omit(" + processSelector(innerSelector, includeTableName) + "))";
 		} else {
-			return math.getRSyntax() + "(as.numeric(na.omit(" + processSelector(innerSelector) + ")))";
+			return math.getRSyntax() + "(as.numeric(na.omit(" + processSelector(innerSelector, includeTableName) + ")))";
 		}
 	}
 	
-	private String processMultiMathSelector(QueryMultiColMathSelector selector) {
+	private String processMultiMathSelector(QueryMultiColMathSelector selector, boolean includeTableName) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
 		StringBuilder expression = new StringBuilder();
@@ -215,20 +205,20 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		int size = innerSelectors.size();
 		for(int i = 0; i< size; i++) {
 			if(i == 0) {
-				expression.append(processSelector(innerSelectors.get(i)));
+				expression.append(processSelector(innerSelectors.get(i), includeTableName));
 			} else {
-				expression.append(",").append(processSelector(innerSelectors.get(i)));
+				expression.append(",").append(processSelector(innerSelectors.get(i), includeTableName));
 			}
 		}
 		expression.append(")");
 		return expression.toString();
 	}
 	
-	private String processArithmeticSelector(QueryArithmeticSelector selector) {
+	private String processArithmeticSelector(QueryArithmeticSelector selector, boolean includeTableName) {
 		IQuerySelector leftSelector = selector.getLeftSelector();
 		IQuerySelector rightSelector = selector.getRightSelector();
 		String mathExpr = selector.getMathExpr();
-		return "(" + processSelector(leftSelector) + " " + mathExpr + " " + processSelector(rightSelector) + ")";
+		return "(" + processSelector(leftSelector, includeTableName) + " " + mathExpr + " " + processSelector(rightSelector, includeTableName) + ")";
 	}
 	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
@@ -299,60 +289,61 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		
 		FILTER_TYPE fType = filter.getFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			return addColToColFilter(leftComp, rightComp, thisComparator);
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addColToValuesFilter(filter, leftComp, rightComp, thisComparator);
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addColToValuesFilter(filter, rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
 		return null;
 	}
+	
+	/**
+	 * Add filter for column to column
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 */
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
 
-	private StringBuilder addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
-		String leftColumnSelector = leftComp.getValue().toString();
-		String rightColumnSelector = rightComp.getValue().toString();
-
-		String leftColumnName = leftColumnSelector;
-		if(leftColumnSelector.split("__").length == 2) {
-			leftColumnName = leftColumnSelector.split("__")[1];
-		}
-		
-		String rightColumnName = rightColumnSelector;
-		if(rightColumnSelector.split("__").length == 2) {
-			rightColumnName = rightColumnSelector.split("__")[1];
-		}
+		/*
+		 * Add the filter syntax here once we have the correct physical names
+		 */
 		
 		StringBuilder filterBuilder = new StringBuilder();
-		if(thisComparator.equals("==")) {
-			filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
-			.append(" == ").append(this.dataTableName).append("$").append(rightColumnName);
-		} else if(thisComparator.equals("!=")) {
-			filterBuilder.append("!( ").append(this.dataTableName).append("$").append(leftColumnName).append(" ")
-			.append(" == ").append(this.dataTableName).append("$").append(rightColumnName).append(")");
+		if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+			filterBuilder.append("!( ").append(processSelector(leftSelector, true)).append(" ")
+			.append(" == ").append(this.dataTableName).append("$").append(processSelector(rightSelector, true)).append(")");
 		} else if(thisComparator.equals("?like")) {
-			filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
-			.append(" %like% ").append(this.dataTableName).append("$").append(rightColumnName);
+			// some operation
+			filterBuilder.append(processSelector(leftSelector, true)).append(" %like% ")
+			.append(processSelector(rightSelector, true));
 		} else {
-			// these are some math operations
-			filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ")
-			.append(thisComparator).append(" ").append(this.dataTableName).append("$").append(rightColumnName);
+			// some operation
+			filterBuilder.append(processSelector(leftSelector, true)).append(" ").append(thisComparator)
+			.append(" ").append(processSelector(rightSelector, true));
 		}
+		
 		return filterBuilder;
 	}
-	
-	private StringBuilder addColToValuesFilter(SimpleQueryFilter filter, NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
-		// grab the left column name
-		String leftColumnSelector = leftComp.getValue().toString();
-		String leftColumnName = leftColumnSelector;
-		if(leftColumnSelector.split("__").length == 2)	
-			leftColumnName = leftColumnSelector.split("__")[1];
+
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, true);
+		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
 		
-		// I need to introduce a check here to see if the left column Name is in the fakeHeaders
-		if(headersToRemove.contains(leftColumnName))
-			leftColumnName = "PRIM_KEY_PLACEHOLDER";
+		// if it is null, then we know we have a column
+		// need to grab from metadata
+		if(leftDataType == null) {
+			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
+		}
 		
 		// grab the objects we are setting up for the comparison
 		List<Object> objects = new Vector<Object>();
@@ -366,25 +357,24 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		boolean multi = false;
 		String myFilterFormatted = null;
 		// format the objects based on the type of the column
-		SemossDataType dataType = this.colDataTypes.get(this.dataTableName + "__" + leftColumnName);
 		if(objects.size() > 1) {
 			multi = true;
-			myFilterFormatted = RSyntaxHelper.createRColVec(objects, dataType);
-		} else if(SemossDataType.DATE != dataType) {
+			myFilterFormatted = RSyntaxHelper.createRColVec(objects, leftDataType);
+		} else if(SemossDataType.DATE != leftDataType) {
 			// dont bother doing this if we have a date
 			// since we cannot use "in" with dates
-			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), dataType);
+			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
 		}
-		
+				
 		StringBuilder filterBuilder = new StringBuilder();
 		if(multi) {
 			// special processing for date types
-			if(SemossDataType.DATE == dataType) {
+			if(SemossDataType.DATE == leftDataType) {
 				int size = objects.size();
 				if(thisComparator.equals("==")) {
 					filterBuilder.append("(");
 					for (int i = 0; i < size; i++) {
-						filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" == ")
+						filterBuilder.append(leftSelectorExpression).append(" == ")
 								.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 						if ((i+1) < size) {
 							filterBuilder.append(" | ");
@@ -394,7 +384,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
 					filterBuilder.append("(");
 					for (int i = 0; i < size; i++) {
-						filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" != ")
+						filterBuilder.append(leftSelectorExpression).append(" != ")
 								.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 						if ((i+1) < size) {
 							filterBuilder.append(" & ");
@@ -404,32 +394,32 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				} else {
 					// this will probably break...
 					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
-					filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			} 
 			// now all the other types
 			else {
 				if(thisComparator.equals("==")) {
-					filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted);
+					filterBuilder.append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted);
 				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					filterBuilder.append("!(").append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
+					filterBuilder.append("!(").append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
 				} else {
 					// this will probably break...
-					filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(myFilterFormatted);
+					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			}
 		} else {
 			if(thisComparator.equals("?like")) {
-				if(SemossDataType.STRING == dataType) {
-					filterBuilder.append("tolower(").append(this.dataTableName).append("$").append(leftColumnName).append(") %like% tolower(").append(myFilterFormatted).append(")");
+				if(SemossDataType.STRING == leftDataType) {
+					filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
 				} else {
 					if(myFilterFormatted.isEmpty()) {
 						myFilterFormatted = "\"\"";
 					}
-					filterBuilder.append("tolower(as.character(").append(this.dataTableName).append("$").append(leftColumnName).append(")) %like% tolower(").append(myFilterFormatted).append(")");
+					filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append(")");
 				}
 			} else {
-				filterBuilder.append(this.dataTableName).append("$").append(leftColumnName).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
 		}
 		return filterBuilder;

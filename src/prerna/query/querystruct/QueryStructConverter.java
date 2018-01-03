@@ -275,24 +275,14 @@ public class QueryStructConverter {
 		NounMetadata origL = queryFilter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
-			String name = origL.getValue().toString();
-			String newName = meta.getUniqueNameFromAlias(name);
-			if(newName == null) {
-				newName = name;
-			}
-			newL = new NounMetadata(newName, PixelDataType.COLUMN);
+			newL = new NounMetadata( convertSelector((IQuerySelector) origL.getValue(), meta) , PixelDataType.COLUMN);
 		} else {
 			newL = origL;
 		}
 		NounMetadata origR = queryFilter.getRComparison();
 		if(origR.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
-			String name = origR.getValue().toString();
-			String newName = meta.getUniqueNameFromAlias(name);
-			if(newName == null) {
-				newName = name;
-			}
-			newR = new NounMetadata(newName, PixelDataType.COLUMN);
+			newR = new NounMetadata( convertSelector((IQuerySelector) origR.getValue(), meta) , PixelDataType.COLUMN);
 		} else {
 			newR = origR;
 		}

@@ -63,9 +63,6 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	// some things around optimizing the filters
 	private boolean bindingsAdded = false;
 	
-	// map to store the concept to its properties
-	// need this so we know what things to add into the engine
-	private Map<String, List<String>> conceptToProps;
 	// map to store the selector name to the alisa
 	private Map<String, String> selectorAlias;
 	
@@ -92,19 +89,16 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 		
 		// get the return statement 
-		this.conceptToProps = new HashMap<String, List<String>>();
 		this.selectorAlias = new HashMap<String, String>();
-		addSelectors(this.qs.getSelectors());
-		
-		// add the concept and property where clause
+		this.selectorWhereClause = new StringBuilder();
 		this.addedSelectors = new HashMap<String, String>();
-		addSelectorWhereClause(this.conceptToProps);
-		
-		// add the join where clause
-		addJoins(this.qs.getRelations());
+		addSelectors(this.qs.getSelectors());
 		
 		// add the filters
 		addFilters(this.qs.getFilters(), baseUri);
+		
+		// add the join where clause
+		addJoins(this.qs.getRelations());
 		
 		// add the group bys
 		addGroupClause(this.qs.getGroupBy());
@@ -207,29 +201,17 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		 * THIS SECTION IS SO WE PROCESS THE COLUMNS THAT ARE NEEDED AND MAKE SURE
 		 * THEY ARE DEFINED WITHIN THE WHERE CLAUSE
 		 */
-		List<String> propList = null;
-		if(this.conceptToProps.containsKey(concept)) {
-			propList = this.conceptToProps.get(concept);
-		} else {
-			propList = new Vector<String>();
-			this.conceptToProps.put(concept, propList);
-		}
-		
 		String cleanVarName = Utility.cleanVariableString(concept);
+		
+		// add the node to the where statement
+		addNodeSelectorTriple(cleanVarName, concept);
+		// and the property if it is a prop
 		if(!property.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
-			// only store properties in the prop list
-			propList.add(property);
-			// also concat the property so we have unique selectors
-			// its okay, we will alias this guy
+			// make unique based on property
 			cleanVarName += "__" + Utility.cleanVariableString(property);
+			addNodePropertySelectorTriple(cleanVarName, property, concept);
 		}
 		this.selectorAlias.put(cleanVarName, alias);
-		/*
-		 * END
-		 * THIS SECTION IS SO WE PROCESS THE COLUMNS THAT ARE NEEDED AND MAKE SURE
-		 * THEY ARE DEFINED WITHIN THE WHERE CLAUSE
-		 */
-		
 		return "?" + cleanVarName;
 	}
 	
@@ -276,24 +258,6 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Add the where clause triples to define the concept and properties
-	 * @param conceptToProps
-	 */
-	private void addSelectorWhereClause(Map<String, List<String>> conceptToProps) {
-		this.selectorWhereClause = new StringBuilder();
-		for(String concept : conceptToProps.keySet()) {
-			String nodeVarName = Utility.cleanVariableString(concept);
-			addNodeSelectorTriple(nodeVarName, concept);
-			
-			List<String> properties = conceptToProps.get(concept);
-			for(String property : properties) {
-				String propVarName = nodeVarName + "__" + Utility.cleanVariableString(property);
-				addNodePropertySelectorTriple(propVarName, property, nodeVarName);
-			}
-		}
-	}
-	
-	/**
 	 * Adds the node triple
 	 * @param nodeVarName
 	 * @param concept
@@ -303,7 +267,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			String nodeUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_CONCEPT_PREFIX + "/" + concept);
 			// add the pattern around the concept
 			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(RDF.TYPE).append("> <").append(nodeUri).append(">}");
-			this.addedSelectors.put(concept, nodeUri);
+			this.addedSelectors.put(nodeVarName, nodeUri);
 		}
 		return this.addedSelectors.get(nodeVarName);
 	}
@@ -319,6 +283,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			String propUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_PROPERTY_PREFIX + "/" + property);
 			// add the pattern around the property
 			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+			this.addedSelectors.put(propVarName, propUri);
 		}
 		return this.addedSelectors.get(propVarName);
 	}
@@ -377,6 +342,13 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 	
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	//////////////////////// FILTERING //////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+
+	
 	private void addFilters(GenRowFilters grf, String baseUri) {
 		this.filtersWhereClause = new StringBuilder();
 		this.bindWhereClause = new StringBuilder();
@@ -389,7 +361,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			if(filterSyntax != null) {
 				// NOTE! we add the filter here and not within the individual methods
 				// so we can correctly do AND/OR filtering
-				this.filtersWhereClause.append("FILTER( ").append(filterSyntax.toString()).append(")");;
+				this.filtersWhereClause.append(" FILTER( ").append(filterSyntax.toString()).append(")");
 			}
 		}
 	}
@@ -441,12 +413,12 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 
 		FILTER_TYPE fType = filter.getFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			return addColToColFilter(leftComp, rightComp, thisComparator);
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addColToValuesFilter(leftComp, rightComp, thisComparator, baseUri, startSimple);
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, baseUri, startSimple);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addColToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), baseUri, startSimple);
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), baseUri, startSimple);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
@@ -454,39 +426,30 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		return null;
 	}
 
-	/**
-	 * Add a filter of one column based on another column
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
-	 */
-	private StringBuilder addColToColFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
-		String leftValue = leftComp.getValue().toString();
-		String rightValue = rightComp.getValue().toString();
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
 
-		String leftCleanVarName = defineConceptAndPropertyInFilter(leftValue);;
-		String rightCleanVarName = defineConceptAndPropertyInFilter(rightValue);
+		/*
+		 * Add the filter syntax here once we have the correct physical names
+		 */
 		
-		StringBuilder filterBuilder = new StringBuilder();
-		filterBuilder.append("?").append(leftCleanVarName).append(" ")
-				.append(thisComparator).append(" ?").append(rightCleanVarName);
+		StringBuilder filterBuilder = new StringBuilder(processSelector(leftSelector))
+			.append(" ").append(thisComparator).append(" ").append(processSelector(rightSelector));
+		
 		return filterBuilder;
 	}
-
+	
 	/**
 	 * Add a filter of one column to a set of values
 	 * @param leftComp
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addColToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String baseUri, boolean isSimple) {
-		String leftValue = leftComp.getValue().toString();
-		String leftCleanVarName = defineConceptAndPropertyInFilter(leftValue);
-		
-		boolean isProp = false;
-		if(leftCleanVarName.contains("__")) {
-			isProp = true;
-		}
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String baseUri, boolean isSimple) {
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String columnExpression = processSelector(leftSelector);
 		
 		List<Object> rightObjects = new Vector<Object>();
 		// ugh... this is gross
@@ -495,7 +458,45 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}
-		return addColToValuesFilter(leftCleanVarName, thisComparator, rightObjects, rightComp.getNounType(), isProp, baseUri, isSimple);
+		
+		// if we have a simple column, we can try to do optimizations with bind, bindings, etc.
+		// if it is complex, we must do Filter
+		if(leftSelector instanceof QueryColumnSelector) {
+			boolean isProp = false;
+			if(columnExpression.contains("__")) {
+				isProp = true;
+			}
+			return addColToValuesFilter(columnExpression, thisComparator, rightObjects, rightComp.getNounType(), isProp, baseUri, isSimple);
+		} else {
+			return addComplexExpressionToValuesFilter(columnExpression, thisComparator, rightObjects, rightComp.getNounType());
+		}
+	}
+	
+	private StringBuilder addComplexExpressionToValuesFilter(String leftExpression, String thisComparator, List<Object> rightObjects, PixelDataType nounType) {
+		int numObjects = rightObjects.size();
+		StringBuilder filterBuilder = new StringBuilder();
+		// modify the == comparator to work on sparql
+		if(thisComparator.equals("==")) {
+			thisComparator = "=";
+		}
+		if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+			for(int i = 0; i < numObjects; i++) {
+				if(i != 0) {
+					this.filtersWhereClause.append(" || ");
+				}
+				filterBuilder.append("(").append(leftExpression).append(") ").append(thisComparator).append(" ")
+					.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
+			}
+		} else {
+			for(int i = 0; i < numObjects; i++) {
+				if(i != 0) {
+					filterBuilder.append(" || ");
+				}
+				filterBuilder.append("(").append(leftExpression).append(") ").append(thisComparator).append(" ")
+					.append("\"").append(rightObjects.get(i)).append("\"");
+			}
+		}
+		return filterBuilder;
 	}
 
 	/**
@@ -554,7 +555,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		} else {
 			// add filter
 			// start the syntax
-			StringBuilder filterBuilder = new StringBuilder(); //"FILTER(");
+			StringBuilder filterBuilder = new StringBuilder();
 			// modify the == comparator to work on sparql
 			if(thisComparator.equals("==")) {
 				thisComparator = "=";
@@ -620,35 +621,15 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 				}
 			}
 			// close the filter object
-//			filterBuilder.append(")");
 			return filterBuilder;
 		}
 	}
 
-	/**
-	 * Define the concept and properties associated with a filter is not already defined to be returned
-	 * @param columnValue
-	 * @return
-	 */
-	private String defineConceptAndPropertyInFilter(String columnValue) {
-		String cleanVarName = null;
-		if(columnValue.contains("__")) {
-			String[] split = columnValue.split("__");
-			String nodeVarName = Utility.cleanVariableString(split[0]);
-			cleanVarName = Utility.cleanVariableString(split[0]) + "__" + Utility.cleanVariableString(split[1]);
-
-			// need to make sure the node is there
-			addNodeSelectorTriple(nodeVarName, split[0]);
-			// and the property is there
-			addNodePropertySelectorTriple(cleanVarName, split[1], nodeVarName);
-		} else {
-			cleanVarName = Utility.cleanVariableString(columnValue);
-			// need to make sure the node is there
-			addNodeSelectorTriple(cleanVarName, columnValue);
-		}
-		
-		return cleanVarName;
-	}
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	//////////////////////// OTHER PARAMS ///////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * Generate the group by clause
