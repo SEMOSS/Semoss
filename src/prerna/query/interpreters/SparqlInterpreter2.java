@@ -462,6 +462,9 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		// if we have a simple column, we can try to do optimizations with bind, bindings, etc.
 		// if it is complex, we must do Filter
 		if(leftSelector instanceof QueryColumnSelector) {
+			// column expression already starts with ?
+			// want to remove it for now
+			columnExpression = columnExpression.substring(1);
 			boolean isProp = false;
 			if(columnExpression.contains("__")) {
 				isProp = true;
