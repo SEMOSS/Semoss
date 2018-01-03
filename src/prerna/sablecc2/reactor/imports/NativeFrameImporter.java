@@ -8,6 +8,9 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.parsers.SqlParser;
+import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.QueryStructConverter;
@@ -26,6 +29,19 @@ public class NativeFrameImporter implements IImporter {
 	
 	@Override
 	public void insertData() {
+		// see if we can parse the query into a valid qs object
+		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && 
+				this.qs.getEngine() instanceof RDBMSNativeEngine) {
+			// lets see what happens
+			SqlParser parser = new SqlParser();
+			String query = ((HardQueryStruct) this.qs).getQuery();
+			try {
+				parser.processQuery(query);
+			} catch (Exception e) {
+				// we were not successful in :/
+				e.printStackTrace();
+			}
+		}
 		ImportUtility.parseQueryStructIntoMeta(this.dataframe, this.qs);
 		this.dataframe.mergeQueryStruct(this.qs);
 	}
