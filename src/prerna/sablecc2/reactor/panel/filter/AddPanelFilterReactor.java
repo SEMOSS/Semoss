@@ -5,9 +5,14 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 
 public class AddPanelFilterReactor extends AbstractFilterReactor {
+	
+	public AddPanelFilterReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.FILTERS.getKey()};
+	}
 
 	@Override
 	public NounMetadata execute() {
