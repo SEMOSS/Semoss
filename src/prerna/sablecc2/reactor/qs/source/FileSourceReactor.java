@@ -36,6 +36,10 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	 * to set newHeaders
 	 *     newHeaders = [{"oldColumn", "newColumn"}] 
 	 */
+	
+	public FileSourceReactor() {
+		this.keysToGet = new String[]{FILEPATH, FILENAME, SHEET_NAME, DATA_TYPES, DELIMITER, HEADER_NAMES};
+	}
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
@@ -165,5 +169,16 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 			fileName = (String) fileNoun.getValue();
 		}
 		return fileName;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SHEET_NAME)) {
+			return "The excel sheet name";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
