@@ -20,7 +20,7 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getAlias() {
-		if(this.alias.equals("")) {
+		if(this.alias == null || this.alias.equals("")) {
 			return "CONSTANT_" + Utility.cleanVariableString(constant.toString());
 		}
 		return this.alias;

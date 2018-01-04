@@ -128,7 +128,22 @@ public enum QueryAggregationEnum {
 		return this.dataType;
 	}
 	
-	public static final boolean isValid(String mathExpression) {
+	/**
+	 * Use this to get the enum from a name assuming the input is valid sql
+	 * @param name
+	 * @return
+	 */
+	public static QueryAggregationEnum getEnumFromSqlName(String name) {
+		name = name.toUpperCase();
+		for(QueryAggregationEnum e : QueryAggregationEnum.values()) {
+			if(e.getBaseSqlSyntax().toUpperCase().equals(name)) {
+				return e;
+			}
+		}
+		return null;
+	}
+	
+	public static boolean isValid(String mathExpression) {
 		if(INVALID_HEADER.equals(mathExpression)) {
 			return false;
 		} 
