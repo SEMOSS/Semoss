@@ -22,7 +22,7 @@ public class QueryMathSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getAlias() {
-		if(this.alias.equals("")) {
+		if(this.alias == null || this.alias.equals("")) {
 			return this.math.getExpressionName() + "_" + this.innerSelector.getAlias();
 		}
 		return this.alias;
