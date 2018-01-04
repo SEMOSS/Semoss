@@ -14,6 +14,7 @@ import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.SignedExpression;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
 import net.sf.jsqlparser.expression.operators.arithmetic.Division;
@@ -190,9 +191,20 @@ public class SqlParser {
 			constSelector = new QueryConstantSelector();
 			((QueryConstantSelector)constSelector).setConstant(longValue);
 		} else if (expr instanceof DoubleValue) {
-			double longValue = ((DoubleValue) expr).getValue();
+			double doubleValue = ((DoubleValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(longValue);
+			((QueryConstantSelector)constSelector).setConstant(doubleValue);
+		}  else if(expr instanceof SignedExpression) {
+			Expression innerExpression = ((SignedExpression) expr).getExpression();
+			if(innerExpression instanceof LongValue) {
+				long longValue = ((LongValue) innerExpression).getValue();
+				constSelector = new QueryConstantSelector();
+				((QueryConstantSelector)constSelector).setConstant(-1 * longValue);
+			} else if (innerExpression instanceof DoubleValue) {
+				double doubleValue = ((DoubleValue) innerExpression).getValue();
+				constSelector = new QueryConstantSelector();
+				((QueryConstantSelector)constSelector).setConstant(-1 * doubleValue);
+			}
 		} else if(expr instanceof StringValue) {
 			String strValue = ((StringValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
