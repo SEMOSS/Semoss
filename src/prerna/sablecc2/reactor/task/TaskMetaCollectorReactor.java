@@ -9,6 +9,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -18,6 +19,10 @@ public class TaskMetaCollectorReactor extends AbstractReactor {
 	private static final String TASK_OPTIONS = "TASKOPTIONS";
 	private static final String HEADER_INFO = "HEADERINFO";
 	private static final String SORT_INFO = "SORTINFO";
+	
+	public TaskMetaCollectorReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.VALUES.getKey()};
+	}
 
 	public NounMetadata execute() {
 		ITask job = getTask();
@@ -75,5 +80,17 @@ public class TaskMetaCollectorReactor extends AbstractReactor {
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_METADATA);
 		outputs.add(output);
 		return outputs;
+	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.VALUES.getKey())) {
+			return "The string values: TASKOPTIONS, HEADERINFO, or SORTINFO. Entering these strings as input will add the task options, "
+					+ "header info, or sort info to the metadata";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
