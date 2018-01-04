@@ -19,6 +19,11 @@ public class SendEmailReactor extends AbstractReactor {
 	private static final String EMAIL_SENDER = "from";
 	private static final String EMAIL_MESSAGE = "message";
 
+	public SendEmailReactor() {
+		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_RECEIVER, EMAIL_SENDER,
+				EMAIL_MESSAGE };
+	}
+
 	@Override
 	public NounMetadata execute() {
 		// get pixel inputs
@@ -44,7 +49,7 @@ public class SendEmailReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 
-		return  new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
 	private String getEmailMessage() {
@@ -69,7 +74,7 @@ public class SendEmailReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(EMAIL_RECEIVER);
 		if (grs != null) {
 			String[] input = new String[grs.size()];
-			for(int i = 0; i < input.length; i++) {
+			for (int i = 0; i < input.length; i++) {
 				input[i] = grs.getNoun(i).getValue().toString();
 			}
 			return input;
@@ -83,7 +88,8 @@ public class SendEmailReactor extends AbstractReactor {
 			String input = grs.getNoun(0).getValue().toString();
 			return input;
 		}
-		throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);	}
+		throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);
+	}
 
 	private String getSmtpPort() {
 		GenRowStruct grs = this.store.getNoun(SMTP_PORT);
@@ -91,13 +97,34 @@ public class SendEmailReactor extends AbstractReactor {
 			String input = grs.getNoun(0).getValue().toString();
 			return input;
 		}
-		throw new IllegalArgumentException("Need to define " + SMTP_PORT);	}
+		throw new IllegalArgumentException("Need to define " + SMTP_PORT);
+	}
+
 	private String getSmtpHost() {
 		GenRowStruct grs = this.store.getNoun(SMTP_HOST);
 		if (grs != null) {
 			String input = grs.getNoun(0).getValue().toString();
 			return input;
 		}
-		throw new IllegalArgumentException("Need to define " + SMTP_HOST);	}
+		throw new IllegalArgumentException("Need to define " + SMTP_HOST);
+	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(this.SMTP_HOST)) {
+			return "The smtp host.";
+		} else if (key.equals(this.SMTP_PORT)) {
+			return "The smtp port.";
+		} else if (key.equals(this.EMAIL_MESSAGE)) {
+			return "The message of the email to send.";
+		} else if (key.equals(this.EMAIL_RECEIVER)) {
+			return "The receipient(s) of the email.";
+		} else if (key.equals(this.EMAIL_SENDER)) {
+			return "The email sender.";
+		} else if (key.equals(this.EMAIL_SUBJECT)) {
+			return "The subject of the email.";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }
