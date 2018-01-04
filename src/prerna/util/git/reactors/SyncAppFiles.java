@@ -170,5 +170,15 @@ public class SyncAppFiles extends AbstractReactor {
 		}
 		return filesToSync;
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("files")) {
+			return "The files to sync";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

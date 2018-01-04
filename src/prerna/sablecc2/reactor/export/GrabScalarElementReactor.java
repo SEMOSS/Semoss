@@ -77,7 +77,7 @@ public class GrabScalarElementReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(CLEAN_UP_KEY)) {
-			return "Boolean indication to clear the task - defaults to true";
+			return "Boolean indication (true or false) to clear the task - defaults to true";
 		} else {
 			return super.getDescriptionForKey(key);
 		}

@@ -127,7 +127,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(USING_LOGICAL)) {
-			return "Boolean value to indicate if logical names should be used";
+			return "Boolean value (true or false) to indicate if logical names should be used";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
