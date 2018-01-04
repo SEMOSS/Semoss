@@ -428,14 +428,14 @@ public class SimpleQueryFilter implements IQueryFilter {
 	public boolean containsColumn(String column) {
 		// try and see if the left hand side contains the column we want
 		if(isCol(lComparison)) {
-			if(lComparison.getValue().toString().equals(column)) {
+			if( ((IQuerySelector) lComparison.getValue()).getAlias().equals(column)) {
 				return true;
 			}
 		}
 		
 		// guess the left hand didn't... now try the right hand side
 		if(isCol(rComparison)) {
-			if(rComparison.getValue().toString().equals(column)) {
+			if( ((IQuerySelector) rComparison.getValue()).getAlias().equals(column)) {
 				return true;
 			}
 		}
@@ -449,12 +449,12 @@ public class SimpleQueryFilter implements IQueryFilter {
 		Set<String> usedCols = new HashSet<String>();
 		//is the left hand side a column?
 		if(isCol(lComparison)) {
-			usedCols.add(lComparison.getValue().toString());
+			usedCols.add( ((IQuerySelector) lComparison.getValue()).getAlias());
 		}
 
 		// guess the left hand didn't... now try the right hand side
 		if(isCol(rComparison)) {
-			usedCols.add(rComparison.getValue().toString());
+			usedCols.add( ((IQuerySelector) rComparison.getValue()).getAlias());
 		}
 		return usedCols;
 	}
