@@ -25,7 +25,7 @@ import prerna.util.Utility;
 public class GraphPlanReactor extends AbstractReactor {
 	
 	public GraphPlanReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PLANNER.toString()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PLANNER.getKey()};
 	}
 
 	@Override
