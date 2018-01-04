@@ -50,5 +50,16 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 	private String getVarName() {
 		return this.curRow.get(0).toString();
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
+			return "Name of the r variable";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 
 }
