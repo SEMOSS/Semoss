@@ -31,12 +31,17 @@ public class NativeFrameImporter implements IImporter {
 	public void insertData() {
 		// see if we can parse the query into a valid qs object
 		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && 
-				this.qs.getEngine() instanceof RDBMSNativeEngine) {
+				this.qs.retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
 			// lets see what happens
 			SqlParser parser = new SqlParser();
 			String query = ((HardQueryStruct) this.qs).getQuery();
 			try {
-				this.qs = parser.processQuery(query);
+				QueryStruct2 newQs = this.qs.getNewBaseQueryStruct();
+				newQs.merge(parser.processQuery(query));
+				// we were able to parse successfully
+				// override the reference
+				this.qs = newQs;
+				this.qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 			} catch (Exception e) {
 				// we were not successful in parsing :/
 				e.printStackTrace();
