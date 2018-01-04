@@ -41,7 +41,7 @@ public enum ReactorKeysEnum {
 	INSTANCE_KEY("instance", 								"Column representing the objects being used to perform the operation"),
 	JOB_ID("jobId", 										"Id of the job"),
 	JOINS("joins", 											"Joins on the frame"),
-	LAYOUT_KEY("layout", 									"The layout"),
+	LAYOUT_KEY("layout", 									"The layout of the insight, used as a tag"),
 	LIMIT("limit", 											"Limit to add for the query results"),
 	LOGICAL_NAME("logicalNames", 							"Column alias to be added to the master database"),
 	NEW_COLUMN("newCol", 									"Name of the new column being created"),
@@ -79,7 +79,7 @@ public enum ReactorKeysEnum {
 	QUERY_STRUCT("qs", 										"QueryStruct object that contains selectors, filters, and joins"),
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
-	VARIABLE("variable", 									"The variable");
+	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores");
 
 	
 	private String key;
