@@ -583,7 +583,9 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 				if(leftDataType == null) {
 					leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
 				}
-				leftDataType = leftDataType.replace("TYPE:", "");
+				if(leftDataType != null) {
+					leftDataType = leftDataType.replace("TYPE:", "");
+				}
 			} else if(frame != null) {
 				leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
 			}
