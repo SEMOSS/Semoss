@@ -33,6 +33,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		super();
 		this.qs = new QueryStruct2();
 		this.qs.setFrame(this);
+		this.grf = this.qs.getFilters();
 	}
 
 	public void setConnection(String engineName) {
@@ -141,7 +142,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public String getDataMakerName() {
 		return DATA_MAKER_NAME;
 	}
-
+	
 	public void mergeQueryStruct(QueryStruct2 qs) {
 		this.qs.merge(qs);
 	}
