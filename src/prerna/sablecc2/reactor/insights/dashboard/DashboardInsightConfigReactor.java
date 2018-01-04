@@ -23,6 +23,10 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 	private static final String OLD_ID_KEY = "oldIds";
 	private static final String LAYOUT_KEY = "layout";
 	
+	public DashboardInsightConfigReactor() {
+		this.keysToGet = new String[]{INSIGHT_KEY, OLD_ID_KEY, LAYOUT_KEY};
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		List<String> insightStrings = getInsights();
@@ -152,5 +156,19 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Saved dashboard needs a layout config");
 		}
 		return layoutGrs.get(0).toString().trim();
+	}
+	
+	
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(INSIGHT_KEY)) {
+			return "The insights of the saved dashboard";
+		} else if (key.equals(OLD_ID_KEY)) {
+			return "The old insight ids of the saved dashboard";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
