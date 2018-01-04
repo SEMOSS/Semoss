@@ -24,5 +24,15 @@ public class RenameMosfitFileReactor extends AbstractReactor {
 		MosfetSyncHelper.renameMosfit(new File(this.keyValue.get(this.keysToGet[0])), this.keyValue.get(this.keysToGet[1]), logger);
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
 	}
+	
+	///////////////////////// KEYS /////////////////////////////////////
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("mosfet")) {
+			return "The name of the file containing the recipe used for syncing to git";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }
