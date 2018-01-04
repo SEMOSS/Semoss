@@ -20,7 +20,7 @@ public class QueryArithmeticSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getAlias() {
-		if(this.alias.equals("")) {
+		if(this.alias == null || this.alias.equals("")) {
 			return this.leftSelector.getAlias()+ "_" + getEnglishForMath() + "_" + this.rightSelector.getAlias();
 		}
 		return this.alias;

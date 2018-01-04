@@ -26,7 +26,7 @@ public class QueryMultiColMathSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getAlias() {
-		if(this.alias.equals("")) {
+		if(this.alias == null || this.alias.equals("")) {
 			StringBuilder qsConcat = new StringBuilder();
 			for(int i = 0; i < this.innerSelectors.size(); i++) {
 				qsConcat.append(this.innerSelectors.get(i).getAlias());
