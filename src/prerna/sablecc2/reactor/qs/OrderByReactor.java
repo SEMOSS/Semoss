@@ -12,6 +12,10 @@ public class OrderByReactor extends AbstractQueryStructReactor {
 	private static final String COLUMNS_KEY = ReactorKeysEnum.COLUMNS.getKey();
 	private static final String DIRECTION_KEY = ReactorKeysEnum.SORT.getKey();
 	
+	public OrderByReactor() {
+		this.keysToGet = new String[]{COLUMNS_KEY, DIRECTION_KEY};
+	}
+	
 	protected QueryStruct2 createQueryStruct() {
 		List<String> colInputs = getOrderByColumns();
 		List<String> sortDirs = getSortDirections();
