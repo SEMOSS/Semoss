@@ -36,9 +36,9 @@ public class NativeFrameImporter implements IImporter {
 			SqlParser parser = new SqlParser();
 			String query = ((HardQueryStruct) this.qs).getQuery();
 			try {
-				parser.processQuery(query);
+				this.qs = parser.processQuery(query);
 			} catch (Exception e) {
-				// we were not successful in :/
+				// we were not successful in parsing :/
 				e.printStackTrace();
 			}
 		}
