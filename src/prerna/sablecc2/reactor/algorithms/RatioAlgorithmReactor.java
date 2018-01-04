@@ -48,7 +48,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 	private String[] ratioFrameHeaders;
 	
 	public RatioAlgorithmReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), WEIGHTS_KEY};
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
 	}
 
 	@Override
@@ -479,16 +479,5 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			}
 		}
 		return weightMap;
-	}
-	
-	///////////////////////// KEYS /////////////////////////////////////
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(WEIGHTS_KEY)) {
-			return "The weights";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
 	}
 }
