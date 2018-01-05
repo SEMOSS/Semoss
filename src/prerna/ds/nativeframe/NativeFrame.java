@@ -49,7 +49,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			innerSelector.setTable(split[0]);
 			innerSelector.setColumn(split[1]);
 			selector.addInnerSelector(innerSelector);
-			selector.setMath(QueryAggregationEnum.MAX);
+			selector.setFunction(QueryAggregationEnum.MAX);
 
 			QueryStruct2 mQs = new QueryStruct2();
 			mQs.addSelector(selector);
@@ -75,7 +75,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			innerSelector.setTable(split[0]);
 			innerSelector.setColumn(split[1]);
 			selector.addInnerSelector(innerSelector);
-			selector.setMath(QueryAggregationEnum.MIN);
+			selector.setFunction(QueryAggregationEnum.MIN);
 
 			QueryStruct2 mQs = new QueryStruct2();
 			mQs.addSelector(selector);

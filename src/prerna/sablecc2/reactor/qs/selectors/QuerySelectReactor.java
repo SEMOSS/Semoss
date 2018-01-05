@@ -64,7 +64,7 @@ public class QuerySelectReactor extends AbstractQueryStructReactor {
 	protected IQuerySelector genFunctionSelector(QueryAggregationEnum functionName, IQuerySelector innerSelector) {
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.addInnerSelector(innerSelector);
-		newSelector.setMath(functionName);
+		newSelector.setFunction(functionName);
 		return newSelector;
 	}
 }

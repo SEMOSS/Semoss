@@ -87,7 +87,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 			if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				QueryFunctionSelector mSelector = (QueryFunctionSelector) selector;
 				this.mathIndex.add(i);
-				this.mathOperation.add(mSelector.getMath());
+				this.mathOperation.add(mSelector.getFunction());
 			}
 			//TODO: doing the base caseO
 			this.uniqueSelectorNames.add(selector.getQueryStructName());

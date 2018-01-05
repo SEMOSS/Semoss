@@ -178,7 +178,7 @@ public class QueryStructConverter {
 		for(IQuerySelector innerS : selector.getInnerSelector()) {
 			newS.addInnerSelector(convertSelector(innerS, meta));
 		}
-		newS.setMath(selector.getMath());
+		newS.setFunction(selector.getFunction());
 		newS.setDistinct(selector.isDistinct());
 		newS.setAlias(selector.getAlias());
 		return newS;
