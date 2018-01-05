@@ -17,7 +17,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.Utility;
 
 public class QueryStruct2 {
@@ -679,8 +679,8 @@ public class QueryStruct2 {
 				selectorMap.put("derived", true);
 			}
 			// if it is a math, then there must be a group by associated with it
-			if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-				QueryMultiColMathSelector mathSelector = (QueryMultiColMathSelector) selector;
+			if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				QueryFunctionSelector mathSelector = (QueryFunctionSelector) selector;
 				selectorMap.put("header", alias);
 				selectorMap.put("math", mathSelector.getMath().getExpressionName());
 

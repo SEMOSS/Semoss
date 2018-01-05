@@ -24,7 +24,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -138,7 +138,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// calculate the count of a column
 		QueryStruct2 qs1 = new QueryStruct2();
 		{
-			QueryMultiColMathSelector countSelector = new QueryMultiColMathSelector();
+			QueryFunctionSelector countSelector = new QueryFunctionSelector();
 			countSelector.setMath(QueryAggregationEnum.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
@@ -158,7 +158,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// calculate the unique count of a column
 		QueryStruct2 qs2 = new QueryStruct2();
 		{
-			QueryMultiColMathSelector uniqueCountSelector = new QueryMultiColMathSelector();
+			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
 			uniqueCountSelector.setMath(QueryAggregationEnum.UNIQUE_COUNT);
 			uniqueCountSelector.setDistinct(true);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
@@ -332,7 +332,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
 
-			QueryMultiColMathSelector mathSelector = new QueryMultiColMathSelector();
+			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setMath(QueryAggregationEnum.MAX);
 
@@ -391,7 +391,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setTable(uniqueColName);
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
-			QueryMultiColMathSelector mathSelector = new QueryMultiColMathSelector();
+			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setMath(QueryAggregationEnum.MIN);
 
@@ -575,7 +575,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public int getUniqueInstanceCount(String columnName) {
 		QueryStruct2 qs = new QueryStruct2();
-		QueryMultiColMathSelector count = new QueryMultiColMathSelector();
+		QueryFunctionSelector count = new QueryFunctionSelector();
 		count.setDistinct(true);
 		count.setMath(QueryAggregationEnum.UNIQUE_COUNT);
 		QueryColumnSelector inner = new QueryColumnSelector();
