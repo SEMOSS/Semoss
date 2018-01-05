@@ -15,7 +15,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
+import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.util.ConnectionUtils;
 
 public class RawImpalaSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
@@ -181,7 +181,7 @@ public class RawImpalaSelectWrapper extends AbstractWrapper implements IRawSelec
 				//Remove the front appended math function and re-add it to address case issue due to impala returning lowercase only
 				if(qs != null) {
 					if((qs.getSelectors().get(colIndex-1).getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH)){
-						QueryMathSelector currentSelect= (QueryMathSelector) qs.getSelectors().get(colIndex-1);
+						QueryMultiColMathSelector currentSelect= (QueryMultiColMathSelector) qs.getSelectors().get(colIndex-1);
 						String aggregate = currentSelect.getMath().getExpressionName();
 						var[colIndex-1]=var[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
 						displayVar[colIndex-1]=displayVar[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);

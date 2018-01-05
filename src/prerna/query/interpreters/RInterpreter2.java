@@ -20,7 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
+//import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -158,8 +158,6 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return processMathSelector((QueryMathSelector) selector, includeTableName);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) {
 			return processMultiMathSelector((QueryMultiColMathSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector, includeTableName);
@@ -183,25 +181,31 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		return selector.getColumn();
 	}
 	
-	private String processMathSelector(QueryMathSelector selector, boolean includeTableName) {
-		IQuerySelector innerSelector = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
-		if(math == QueryAggregationEnum.GROUP_CONCAT) {
-			return math.getRSyntax() + "(na.omit(" + processSelector(innerSelector, includeTableName) + "), collapse = \", \")";
-		} else if (math == QueryAggregationEnum.UNIQUE_GROUP_CONCAT) {
-			return math.getRSyntax() + "(unique((na.omit(" + processSelector(innerSelector, includeTableName) + "))), collapse = \", \")";
-		} else if(math == QueryAggregationEnum.COUNT || math == QueryAggregationEnum.UNIQUE_COUNT ) {
-			return math.getRSyntax() + "(na.omit(" + processSelector(innerSelector, includeTableName) + "))";
-		} else {
-			return math.getRSyntax() + "(as.numeric(na.omit(" + processSelector(innerSelector, includeTableName) + ")))";
-		}
-	}
-	
 	private String processMultiMathSelector(QueryMultiColMathSelector selector, boolean includeTableName) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
+
 		StringBuilder expression = new StringBuilder();
-		expression.append(math.getRSyntax()).append("(");
+		expression.append(math.getRSyntax());
+		// we auto add some cleaning up for specific functions
+		String endExpr = "";
+		if(math == QueryAggregationEnum.GROUP_CONCAT) {
+			expression.append("(na.omit(");
+			endExpr = "), collapse = \", \")";
+		} else if (math == QueryAggregationEnum.UNIQUE_GROUP_CONCAT) {
+			expression.append("(unique((na.omit(");
+			endExpr = "))), collapse = \", \")";
+		} else if(math == QueryAggregationEnum.COUNT || math == QueryAggregationEnum.UNIQUE_COUNT ) {
+			expression.append("(na.omit(");
+			endExpr = "))";
+		} else if(math.getDataType().equals("NUMBER")) {
+			expression.append("(as.numeric(na.omit(");
+			endExpr = ")))";
+		} else {
+			expression.append("(");
+			endExpr = ")";
+		}
+		
 		int size = innerSelectors.size();
 		for(int i = 0; i< size; i++) {
 			if(i == 0) {
@@ -210,7 +214,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				expression.append(",").append(processSelector(innerSelectors.get(i), includeTableName));
 			}
 		}
-		expression.append(")");
+		expression.append(endExpr);
 		return expression.toString();
 	}
 	

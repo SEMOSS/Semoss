@@ -17,7 +17,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
+import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.util.Utility;
 
 public class QueryStruct2 {
@@ -680,13 +680,14 @@ public class QueryStruct2 {
 			}
 			// if it is a math, then there must be a group by associated with it
 			if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-				QueryMathSelector mathSelector = (QueryMathSelector) selector;
+				QueryMultiColMathSelector mathSelector = (QueryMultiColMathSelector) selector;
 				selectorMap.put("header", alias);
 				selectorMap.put("math", mathSelector.getMath().getExpressionName());
 
 				// add inner selector QS
-				IQuerySelector innerSelector = mathSelector.getInnerSelector();
-				selectorMap.put("calculatedBy", innerSelector.getQueryStructName());
+				List<IQuerySelector> innerSelector = mathSelector.getInnerSelector();
+				// TODO: STOP ASSUMING THIS IS 1 SELECTOR
+				selectorMap.put("calculatedBy", innerSelector.get(0).getQueryStructName());
 
 				List<String> groupBy = new ArrayList<String>();
 				for(QueryColumnSelector groupBySelector : this.groupBy) {

@@ -9,7 +9,6 @@ public class QueryMultiColMathSelector extends AbstractQuerySelector {
 	private List<IQuerySelector> innerSelectors;
 	private QueryAggregationEnum math;
 	private boolean isDistinct;
-	//TODO: expand this to be an enum similar to queryaggregationmath
 	private String colCast;
 	
 	public QueryMultiColMathSelector() {
@@ -21,7 +20,7 @@ public class QueryMultiColMathSelector extends AbstractQuerySelector {
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.MULTI_MATH;
+		return SELECTOR_TYPE.MATH;
 	}
 
 	@Override
@@ -89,7 +88,7 @@ public class QueryMultiColMathSelector extends AbstractQuerySelector {
 	
 	@Override
 	public boolean equals(Object obj) {
-		if(obj instanceof QueryMathSelector) {
+		if(obj instanceof QueryMultiColMathSelector) {
 			QueryMultiColMathSelector selector = (QueryMultiColMathSelector)obj;
 			if(this.innerSelectors.equals(selector.innerSelectors) &&
 					this.alias.equals(selector.alias) &&

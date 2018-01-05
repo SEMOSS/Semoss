@@ -17,7 +17,6 @@ import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -138,9 +137,7 @@ public class QueryStructConverter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return convertColumnSelector((QueryColumnSelector) selector, meta);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return convertMathSelector((QueryMathSelector) selector, meta);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) {
-			return convertMultiMathSelector((QueryMultiColMathSelector) selector, meta);
+			return convertFunctionSelector((QueryMultiColMathSelector) selector, meta);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return convertArithmeticSelector((QueryArithmeticSelector) selector, meta);
 		}
@@ -176,7 +173,7 @@ public class QueryStructConverter {
 		return newS;
 	}
 
-	private static IQuerySelector convertMultiMathSelector(QueryMultiColMathSelector selector, OwlTemporalEngineMeta meta) {
+	private static IQuerySelector convertFunctionSelector(QueryMultiColMathSelector selector, OwlTemporalEngineMeta meta) {
 		QueryMultiColMathSelector newS = new QueryMultiColMathSelector();
 		for(IQuerySelector innerS : selector.getInnerSelector()) {
 			newS.addInnerSelector(convertSelector(innerS, meta));
@@ -186,15 +183,6 @@ public class QueryStructConverter {
 		newS.setAlias(selector.getAlias());
 		return newS;
 
-	}
-
-	private static IQuerySelector convertMathSelector(QueryMathSelector selector, OwlTemporalEngineMeta meta) {
-		QueryMathSelector newS = new QueryMathSelector();
-		newS.setInnerSelector(convertSelector(selector.getInnerSelector(), meta));
-		newS.setMath(selector.getMath());
-		newS.setDistinct(selector.isDistinct());
-		newS.setAlias(selector.getAlias());
-		return newS;
 	}
 
 	private static IQuerySelector convertConstantSelector(QueryConstantSelector selector, OwlTemporalEngineMeta meta) {
