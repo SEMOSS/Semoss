@@ -1176,7 +1176,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// and call it a day
 		{
 			QueryFunctionSelector countSelector = new QueryFunctionSelector();
-			countSelector.setMath(QueryAggregationEnum.COUNT);
+			countSelector.setFunction(QueryAggregationEnum.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
 				String[] split = columnName.split("__");

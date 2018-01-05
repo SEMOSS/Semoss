@@ -172,7 +172,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return processMultiMathSelector((QueryFunctionSelector) selector);
+			return processFunctionSelector((QueryFunctionSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
 		}
@@ -212,9 +212,9 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		return "?" + cleanVarName;
 	}
 	
-	private String processMultiMathSelector(QueryFunctionSelector selector) {
+	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
+		QueryAggregationEnum math = selector.getFunction();
 		String colCast = selector.getColCast();
 		
 		StringBuilder expression = new StringBuilder();

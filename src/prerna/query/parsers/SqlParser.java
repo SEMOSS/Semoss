@@ -325,7 +325,7 @@ public class SqlParser {
 
 		} else if(expr instanceof Function) {
 			Function aExpr = (Function)expr;
-			QueryAggregationEnum math = QueryAggregationEnum.getEnumFromSqlName(aExpr.getName());
+			QueryAggregationEnum function = QueryAggregationEnum.getEnumFromSqlName(aExpr.getName());
 			// most of them seem to have one argument, so should I try to get that first
 			List<Expression> paramExprs = aExpr.getParameters().getExpressions();
 			int numParamExprs = paramExprs.size();
@@ -335,12 +335,12 @@ public class SqlParser {
 			if(parentSelector == null) {
 				parentSelector = new QueryFunctionSelector();
 				parentSelector.setAlias(alias);
-				((QueryFunctionSelector) parentSelector).setMath(math);
+				((QueryFunctionSelector) parentSelector).setFunction(function);
 				thisSelector = parentSelector;
 			} else {
 				thisSelector = new QueryFunctionSelector();
 				thisSelector.setAlias(alias);
-				((QueryFunctionSelector) thisSelector).setMath(math);
+				((QueryFunctionSelector) thisSelector).setFunction(function);
 				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
 			}
 

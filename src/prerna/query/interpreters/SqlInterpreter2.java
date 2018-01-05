@@ -257,7 +257,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) { 
-			return processMultiMathSelector((QueryFunctionSelector) selector);
+			return processFunctionSelector((QueryFunctionSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
 		}
@@ -316,9 +316,9 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return tableAlias + "." + physicalColName;
 	}
 	
-	private String processMultiMathSelector(QueryFunctionSelector selector) {
+	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
+		QueryAggregationEnum math = selector.getFunction();
 		
 		StringBuilder expression = new StringBuilder();
 		expression.append(math.getBaseSqlSyntax()).append("(");
