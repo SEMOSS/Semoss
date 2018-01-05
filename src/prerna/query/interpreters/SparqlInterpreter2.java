@@ -28,7 +28,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Utility;
@@ -171,8 +171,8 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return processMultiMathSelector((QueryMultiColMathSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			return processMultiMathSelector((QueryFunctionSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
 		}
@@ -212,7 +212,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		return "?" + cleanVarName;
 	}
 	
-	private String processMultiMathSelector(QueryMultiColMathSelector selector) {
+	private String processMultiMathSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
 		String colCast = selector.getColCast();

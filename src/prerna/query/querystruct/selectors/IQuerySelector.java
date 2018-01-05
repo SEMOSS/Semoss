@@ -7,7 +7,7 @@ public interface IQuerySelector {
 	String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 
 	public enum QUERY_TYPE {BASE_SQL, SPARQL, R}
-	public enum SELECTOR_TYPE {COLUMN, MATH, ARITHMETIC, CONSTANT}
+	public enum SELECTOR_TYPE {COLUMN, FUNCTION, ARITHMETIC, CONSTANT}
 	
 	/**
 	 * Determine the type of the selector
