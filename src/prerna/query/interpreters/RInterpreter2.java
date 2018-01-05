@@ -14,12 +14,12 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -182,22 +182,22 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	
 	private String processFunctionSelector(QueryFunctionSelector selector, boolean includeTableName) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getFunction();
+		String function = selector.getFunction();
 
 		StringBuilder expression = new StringBuilder();
-		expression.append(math.getRSyntax());
+		expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 		// we auto add some cleaning up for specific functions
 		String endExpr = "";
-		if(math == QueryAggregationEnum.GROUP_CONCAT) {
+		if(function.equals(QueryFunctionHelper.GROUP_CONCAT)) {
 			expression.append("(na.omit(");
 			endExpr = "), collapse = \", \")";
-		} else if (math == QueryAggregationEnum.UNIQUE_GROUP_CONCAT) {
+		} else if (function.equals(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
 			expression.append("(unique((na.omit(");
 			endExpr = "))), collapse = \", \")";
-		} else if(math == QueryAggregationEnum.COUNT || math == QueryAggregationEnum.UNIQUE_COUNT ) {
+		} else if(function.equals(QueryFunctionHelper.COUNT) || function.equals(QueryFunctionHelper.UNIQUE_COUNT) ) {
 			expression.append("(na.omit(");
 			endExpr = "))";
-		} else if(math.getDataType().equals("NUMBER")) {
+		} else if(QueryFunctionHelper.determineTypeOfFunction(function).equals("NUMBER")) {
 			expression.append("(as.numeric(na.omit(");
 			endExpr = ")))";
 		} else {

@@ -37,8 +37,8 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -1176,7 +1176,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// and call it a day
 		{
 			QueryFunctionSelector countSelector = new QueryFunctionSelector();
-			countSelector.setFunction(QueryAggregationEnum.COUNT);
+			countSelector.setFunction(QueryFunctionHelper.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
 				String[] split = columnName.split("__");

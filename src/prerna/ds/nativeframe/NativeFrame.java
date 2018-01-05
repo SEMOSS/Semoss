@@ -15,8 +15,8 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
@@ -49,7 +49,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			innerSelector.setTable(split[0]);
 			innerSelector.setColumn(split[1]);
 			selector.addInnerSelector(innerSelector);
-			selector.setFunction(QueryAggregationEnum.MAX);
+			selector.setFunction(QueryFunctionHelper.MAX);
 
 			QueryStruct2 mQs = new QueryStruct2();
 			mQs.addSelector(selector);
@@ -75,7 +75,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			innerSelector.setTable(split[0]);
 			innerSelector.setColumn(split[1]);
 			selector.addInnerSelector(innerSelector);
-			selector.setFunction(QueryAggregationEnum.MIN);
+			selector.setFunction(QueryFunctionHelper.MIN);
 
 			QueryStruct2 mQs = new QueryStruct2();
 			mQs.addSelector(selector);

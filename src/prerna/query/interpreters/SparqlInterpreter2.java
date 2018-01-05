@@ -22,12 +22,12 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -214,11 +214,11 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getFunction();
+		String function = selector.getFunction();
 		String colCast = selector.getColCast();
 		
 		StringBuilder expression = new StringBuilder();
-		expression.append(math.getSparqlSyntax()).append("(");
+		expression.append(QueryFunctionHelper.convertFunctionToSparqlSyntax(function)).append("(");
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}

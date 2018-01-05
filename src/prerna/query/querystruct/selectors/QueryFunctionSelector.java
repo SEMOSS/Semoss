@@ -7,13 +7,13 @@ import java.util.Vector;
 public class QueryFunctionSelector extends AbstractQuerySelector {
 
 	private List<IQuerySelector> innerSelectors;
-	private QueryAggregationEnum math;
+	private String functionName;
 	private boolean isDistinct;
 	private String colCast;
 	
 	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<IQuerySelector>();
-		this.math = null;
+		this.functionName = null;
 		this.isDistinct = false;
 		this.colCast = "";
 	}
@@ -30,7 +30,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 			for(int i = 0; i < this.innerSelectors.size(); i++) {
 				qsConcat.append(this.innerSelectors.get(i).getAlias());
 			}
-			return this.math.getExpressionName() + "_" + qsConcat;
+			return QueryFunctionHelper.getPrettyName(this.functionName) + "_" + qsConcat;
 		}
 		return this.alias;
 	}
@@ -42,7 +42,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	
 	@Override
 	public String getDataType() {
-		return math.getDataType();
+		return QueryFunctionHelper.determineTypeOfFunction(functionName);
 	}
 
 	@Override
@@ -51,7 +51,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		for(int i = 0; i < this.innerSelectors.size(); i++) {
 			qsConcat.append(this.innerSelectors.get(i).getQueryStructName());
 		}
-		return this.math + "(" + qsConcat + ")";
+		return this.functionName + "(" + qsConcat + ")";
 	}
 
 	public List<IQuerySelector> getInnerSelector() {
@@ -62,12 +62,12 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		this.innerSelectors.add(innerSelector);
 	}
 
-	public QueryAggregationEnum getFunction() {
-		return math;
+	public String getFunction() {
+		return functionName;
 	}
 
-	public void setFunction(QueryAggregationEnum math) {
-		this.math = math;
+	public void setFunction(String math) {
+		this.functionName = math;
 	}
 
 	public boolean isDistinct() {
@@ -92,7 +92,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 			QueryFunctionSelector selector = (QueryFunctionSelector)obj;
 			if(this.innerSelectors.equals(selector.innerSelectors) &&
 					this.alias.equals(selector.alias) &&
-					this.math.equals(selector.math) &&
+					this.functionName.equals(selector.functionName) &&
 					this.isDistinct == selector.isDistinct) {
 					return true;
 			}
@@ -102,7 +102,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	
 	@Override
 	public int hashCode() {
-		String allString = innerSelectors+":::"+alias+":::"+math+":::"+isDistinct;
+		String allString = innerSelectors+":::"+alias+":::"+functionName+":::"+isDistinct;
 		return allString.hashCode();
 	}
 
