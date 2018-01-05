@@ -176,6 +176,11 @@ import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
+import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
+import prerna.sablecc2.reactor.utils.BackupDatabaseReactor;
+import prerna.sablecc2.reactor.utils.HelpReactor;
+import prerna.sablecc2.reactor.utils.SendEmailReactor;
+import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.reactors.AddAppCollaborator;
@@ -270,9 +275,6 @@ public class ReactorFactory {
 	
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
-		// used to print all of the reactors
-		reactorHash.put("Help", HelpReactor.class);
-		
 		// used to generate the base Job for the pksl commands being executed
 		reactorHash.put("Job", JobReactor.class); // defines the job
 
@@ -282,9 +284,12 @@ public class ReactorFactory {
 		// takes in a query struct and merges data to an existing frame
 		reactorHash.put("Merge", MergeDataReactor.class);
 
-		// Variables
+		// Utility Reactors
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
-
+		reactorHash.put("SendEmail", SendEmailReactor.class);
+		reactorHash.put("BackupDatabase", BackupDatabaseReactor.class);
+		reactorHash.put("Help", HelpReactor.class);
+		
 		// Query Struct Reactors
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
@@ -476,24 +481,6 @@ public class ReactorFactory {
 		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
 		
 		// Git it
-		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
-		reactorHash.put("ListRepo", prerna.util.git.reactors.ListUserApps.class);
-		reactorHash.put("ListRemote", prerna.util.git.reactors.ListAppRemotes.class);
-		reactorHash.put("Sync", prerna.util.git.reactors.SyncApp.class);
-		reactorHash.put("SyncSpecific", prerna.util.git.reactors.SyncAppFiles.class);
-		reactorHash.put("Drop", prerna.util.git.reactors.DropAppRepo.class);
-		reactorHash.put("Delete", prerna.util.git.reactors.DeleteAppRepo.class);
-		reactorHash.put("Copy", prerna.util.git.reactors.CopyAppRepo.class);
-		reactorHash.put("App", prerna.util.git.reactors.InitAppRepo.class);
-		reactorHash.put("SearchTeam", prerna.util.git.reactors.SearchAppCollaborator.class);
-		reactorHash.put("Add", prerna.util.git.reactors.AddAppCollaborator.class);
-		reactorHash.put("Remove", prerna.util.git.reactors.RemoveAppCollaborator.class);
-		reactorHash.put("ListTeam", prerna.util.git.reactors.ListAppCollaborators.class);
-		reactorHash.put("IsGit", prerna.util.git.reactors.IsGit.class);
-		reactorHash.put("Login", prerna.util.git.reactors.LoginGit.class);
-		reactorHash.put("GitStatus", prerna.util.git.reactors.GitStatusReactor.class);
-		reactorHash.put("RenameMosfitFile", prerna.util.git.reactors.RenameMosfitFileReactor.class);
-
 		reactorHash.put("InitAppRepo", InitAppRepo.class);
 		reactorHash.put("AddAppCollaborator", AddAppCollaborator.class);
 		reactorHash.put("RemoveAppCollaborator", RemoveAppCollaborator.class);
@@ -511,8 +498,6 @@ public class ReactorFactory {
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
-		
-		reactorHash.put("SendEmail", SendEmailReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
