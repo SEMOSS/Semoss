@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor;
+package prerna.sablecc2.reactor.utils;
 
 import java.util.Properties;
 
@@ -10,6 +10,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.reactor.AbstractReactor;
 
 public class SendEmailReactor extends AbstractReactor {
 	private static final String SMTP_HOST = "smtpHost";
