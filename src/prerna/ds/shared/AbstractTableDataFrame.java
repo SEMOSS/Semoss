@@ -139,7 +139,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs1 = new QueryStruct2();
 		{
 			QueryFunctionSelector countSelector = new QueryFunctionSelector();
-			countSelector.setMath(QueryAggregationEnum.COUNT);
+			countSelector.setFunction(QueryAggregationEnum.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
 				String[] split = columnName.split("__");
@@ -159,7 +159,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs2 = new QueryStruct2();
 		{
 			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
-			uniqueCountSelector.setMath(QueryAggregationEnum.UNIQUE_COUNT);
+			uniqueCountSelector.setFunction(QueryAggregationEnum.UNIQUE_COUNT);
 			uniqueCountSelector.setDistinct(true);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
@@ -334,7 +334,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setMath(QueryAggregationEnum.MAX);
+			mathSelector.setFunction(QueryAggregationEnum.MAX);
 
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
@@ -393,7 +393,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			}
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setMath(QueryAggregationEnum.MIN);
+			mathSelector.setFunction(QueryAggregationEnum.MIN);
 
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
@@ -577,7 +577,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs = new QueryStruct2();
 		QueryFunctionSelector count = new QueryFunctionSelector();
 		count.setDistinct(true);
-		count.setMath(QueryAggregationEnum.UNIQUE_COUNT);
+		count.setFunction(QueryAggregationEnum.UNIQUE_COUNT);
 		QueryColumnSelector inner = new QueryColumnSelector();
 		if(columnName.contains("__")) {
 			String[] split = columnName.split("__");

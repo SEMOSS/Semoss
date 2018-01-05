@@ -348,7 +348,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 		QueryStruct2 qs = new QueryStruct2();
 		QueryFunctionSelector math = new QueryFunctionSelector();
 		math.addInnerSelector(predictorCol);
-		math.setMath(QueryAggregationEnum.COUNT);
+		math.setFunction(QueryAggregationEnum.COUNT);
 		qs.addSelector(math);
 
 		Iterator<IHeadersDataRow> countIt = frame.query(qs);

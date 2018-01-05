@@ -207,7 +207,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setMath(QueryAggregationEnum.MIN);
+			mathSelector.setFunction(QueryAggregationEnum.MIN);
 			
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
@@ -217,7 +217,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			Iterator<IHeadersDataRow> it = dataframe.query(mathQS);
 			minMaxMap.put("absMin", it.next().getValues()[0]);
 			// get the abs max when no filters are present
-			mathSelector.setMath(QueryAggregationEnum.MAX);
+			mathSelector.setFunction(QueryAggregationEnum.MAX);
 			it = dataframe.query(mathQS);
 			minMaxMap.put("absMax", it.next().getValues()[0]);
 			
@@ -227,7 +227,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			it = dataframe.query(mathQS);
 			minMaxMap.put("max", it.next().getValues()[0]);
 			// run for actual min
-			mathSelector.setMath(QueryAggregationEnum.MIN);
+			mathSelector.setFunction(QueryAggregationEnum.MIN);
 			it = dataframe.query(mathQS);
 			minMaxMap.put("min", it.next().getValues()[0]);
 			
