@@ -1,9 +1,11 @@
-package prerna.sablecc2.reactor;
+package prerna.sablecc2.reactor.utils;
 
 import java.util.TreeSet;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.ReactorFactory;
 
 public class HelpReactor extends AbstractReactor {
 	
