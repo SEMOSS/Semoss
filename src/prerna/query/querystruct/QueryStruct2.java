@@ -17,6 +17,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.Utility;
 
@@ -682,7 +683,7 @@ public class QueryStruct2 {
 			if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				QueryFunctionSelector mathSelector = (QueryFunctionSelector) selector;
 				selectorMap.put("header", alias);
-				selectorMap.put("math", mathSelector.getFunction().getExpressionName());
+				selectorMap.put("math", QueryFunctionHelper.getPrettyName(mathSelector.getFunction()));
 
 				// add inner selector QS
 				List<IQuerySelector> innerSelector = mathSelector.getInnerSelector();

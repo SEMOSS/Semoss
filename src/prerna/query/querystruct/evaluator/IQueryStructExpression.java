@@ -1,6 +1,6 @@
 package prerna.query.querystruct.evaluator;
 
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 
 public interface IQueryStructExpression {
 
@@ -8,26 +8,27 @@ public interface IQueryStructExpression {
 	
 	Object getOutput();
 
-	static IQueryStructExpression getExpression(QueryAggregationEnum aggType) {
-		if(aggType == QueryAggregationEnum.COUNT) {
+	static IQueryStructExpression getExpression(String functionName) {
+		functionName = functionName.toLowerCase();
+		if(functionName.equals(QueryFunctionHelper.COUNT)) {
 			return new QueryCountExpression();
-		} else if(aggType == QueryAggregationEnum.GROUP_CONCAT) {
+		} else if(functionName.equals(QueryFunctionHelper.GROUP_CONCAT)) {
 			return new QueryGroupConcatExpression();
-		} else if(aggType == QueryAggregationEnum.MAX) {
+		} else if(functionName.equals(QueryFunctionHelper.MAX)) {
 			return new QueryMaxExpression();
-		} else if(aggType == QueryAggregationEnum.MEAN) {
+		} else if(functionName.equals(QueryFunctionHelper.MEAN)) {
 			return new QueryAverageExpression();
-		} else if(aggType == QueryAggregationEnum.MEDIAN) {
+		} else if(functionName.equals(QueryFunctionHelper.MEDIAN)) {
 			return new QueryMedianExpression();
-		} else if(aggType == QueryAggregationEnum.MIN) {
+		} else if(functionName.equals(QueryFunctionHelper.MIN)) {
 			return new QueryMinExpression();
-		} else if(aggType == QueryAggregationEnum.STANDARD_DEVIATION) {
+		} else if(functionName.equals(QueryFunctionHelper.STDEV)) {
 			return new QueryStandardDeviationExpression();
-		}else if(aggType == QueryAggregationEnum.SUM) {
+		} else if(functionName.equals(QueryFunctionHelper.SUM)) {
 			return new QuerySumExpression();
-		}else if(aggType == QueryAggregationEnum.UNIQUE_COUNT) {
+		} else if(functionName.equals(QueryFunctionHelper.UNIQUE_COUNT)) {
 			return new QueryUniqueCountExpression();
-		}else if(aggType == QueryAggregationEnum.UNIQUE_GROUP_CONCAT) {
+		} else if(functionName.equals(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
 			return new QueryUniqueGroupConcatExpression();
 		}
 		

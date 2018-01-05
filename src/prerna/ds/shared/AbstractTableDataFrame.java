@@ -22,8 +22,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -139,7 +139,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs1 = new QueryStruct2();
 		{
 			QueryFunctionSelector countSelector = new QueryFunctionSelector();
-			countSelector.setFunction(QueryAggregationEnum.COUNT);
+			countSelector.setFunction(QueryFunctionHelper.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
 				String[] split = columnName.split("__");
@@ -159,7 +159,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs2 = new QueryStruct2();
 		{
 			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
-			uniqueCountSelector.setFunction(QueryAggregationEnum.UNIQUE_COUNT);
+			uniqueCountSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 			uniqueCountSelector.setDistinct(true);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
@@ -334,7 +334,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setFunction(QueryAggregationEnum.MAX);
+			mathSelector.setFunction(QueryFunctionHelper.MAX);
 
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
@@ -393,7 +393,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			}
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setFunction(QueryAggregationEnum.MIN);
+			mathSelector.setFunction(QueryFunctionHelper.MIN);
 
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
@@ -577,7 +577,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs = new QueryStruct2();
 		QueryFunctionSelector count = new QueryFunctionSelector();
 		count.setDistinct(true);
-		count.setFunction(QueryAggregationEnum.UNIQUE_COUNT);
+		count.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 		QueryColumnSelector inner = new QueryColumnSelector();
 		if(columnName.contains("__")) {
 			String[] split = columnName.split("__");

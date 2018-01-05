@@ -49,7 +49,6 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -325,7 +324,7 @@ public class SqlParser {
 
 		} else if(expr instanceof Function) {
 			Function aExpr = (Function)expr;
-			QueryAggregationEnum function = QueryAggregationEnum.getEnumFromSqlName(aExpr.getName());
+			String functionName = aExpr.getName();
 			// most of them seem to have one argument, so should I try to get that first
 			List<Expression> paramExprs = aExpr.getParameters().getExpressions();
 			int numParamExprs = paramExprs.size();
@@ -335,12 +334,12 @@ public class SqlParser {
 			if(parentSelector == null) {
 				parentSelector = new QueryFunctionSelector();
 				parentSelector.setAlias(alias);
-				((QueryFunctionSelector) parentSelector).setFunction(function);
+				((QueryFunctionSelector) parentSelector).setFunction(functionName);
 				thisSelector = parentSelector;
 			} else {
 				thisSelector = new QueryFunctionSelector();
 				thisSelector.setAlias(alias);
-				((QueryFunctionSelector) thisSelector).setFunction(function);
+				((QueryFunctionSelector) thisSelector).setFunction(functionName);
 				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
 			}
 
