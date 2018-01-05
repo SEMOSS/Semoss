@@ -15,8 +15,8 @@ import com.ibm.icu.text.DecimalFormat;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -348,7 +348,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 		QueryStruct2 qs = new QueryStruct2();
 		QueryFunctionSelector math = new QueryFunctionSelector();
 		math.addInnerSelector(predictorCol);
-		math.setFunction(QueryAggregationEnum.COUNT);
+		math.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(math);
 
 		Iterator<IHeadersDataRow> countIt = frame.query(qs);
