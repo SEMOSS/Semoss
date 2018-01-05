@@ -25,12 +25,12 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
@@ -248,7 +248,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 			if ((selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.FUNCTION))
 			{
-				if(((QueryFunctionSelector) selector).getFunction().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryFunctionSelector) selector).getFunction().equalsIgnoreCase("uniquecount")){
 					unSelectors.add(selector);
 				}
 				else{
@@ -341,7 +341,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		for(IQuerySelector selector : selectorData) {
 			if (selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.FUNCTION){
 				//count the number of unique selectors. if over 2 a different query will have to be built
-				if(((QueryFunctionSelector) selector).getFunction().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryFunctionSelector) selector).getFunction().equalsIgnoreCase("uniquecount")){
 					uniqueSelectorCount++;
 				}
 			}
@@ -446,9 +446,9 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getFunction();
+		String function = selector.getFunction();
 		StringBuilder expression = new StringBuilder();
-		expression.append(math.getBaseSqlSyntax()).append("(");
+		expression.append(QueryFunctionHelper.convertFunctionToSqlSyntax(function)).append("(");
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}

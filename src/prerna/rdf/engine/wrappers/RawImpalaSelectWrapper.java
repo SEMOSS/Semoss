@@ -182,7 +182,7 @@ public class RawImpalaSelectWrapper extends AbstractWrapper implements IRawSelec
 				if(qs != null) {
 					if((qs.getSelectors().get(colIndex-1).getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION)){
 						QueryFunctionSelector currentSelect= (QueryFunctionSelector) qs.getSelectors().get(colIndex-1);
-						String aggregate = currentSelect.getFunction().getExpressionName();
+						String aggregate = currentSelect.getFunction();
 						var[colIndex-1]=var[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
 						displayVar[colIndex-1]=displayVar[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
 					}

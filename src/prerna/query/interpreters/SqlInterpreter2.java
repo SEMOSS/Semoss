@@ -23,12 +23,12 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
@@ -318,14 +318,14 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getFunction();
+		String function = selector.getFunction();
 		
 		StringBuilder expression = new StringBuilder();
-		expression.append(math.getBaseSqlSyntax()).append("(");
+		expression.append(QueryFunctionHelper.convertFunctionToSqlSyntax(function)).append("(");
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}
-		int size = innerSelectors.size();
+		int size = innerSelectors.size();	
 		for(int i = 0; i< size; i++) {
 			if(i == 0) {
 				expression.append(processSelector(innerSelectors.get(i), false));
