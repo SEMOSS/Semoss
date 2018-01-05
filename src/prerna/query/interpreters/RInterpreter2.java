@@ -20,8 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-//import prerna.query.querystruct.selectors.QueryMathSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Utility;
@@ -157,8 +156,8 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector, includeTableName);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return processMultiMathSelector((QueryMultiColMathSelector) selector, includeTableName);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			return processMultiMathSelector((QueryFunctionSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector, includeTableName);
 		}
@@ -181,7 +180,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		return selector.getColumn();
 	}
 	
-	private String processMultiMathSelector(QueryMultiColMathSelector selector, boolean includeTableName) {
+	private String processMultiMathSelector(QueryFunctionSelector selector, boolean includeTableName) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
 

@@ -14,7 +14,7 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
 
 public class QueryStructExpressionIterator extends AbstractWrapper implements IRawSelectWrapper {
@@ -84,8 +84,8 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 		
 		for(int i = 0; i < numSelectors; i++) {
 			IQuerySelector selector = selectors.get(i);
-			if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH) {
-				QueryMultiColMathSelector mSelector = (QueryMultiColMathSelector) selector;
+			if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				QueryFunctionSelector mSelector = (QueryFunctionSelector) selector;
 				this.mathIndex.add(i);
 				this.mathOperation.add(mSelector.getMath());
 			}

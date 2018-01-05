@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-public class QueryMultiColMathSelector extends AbstractQuerySelector {
+public class QueryFunctionSelector extends AbstractQuerySelector {
 
 	private List<IQuerySelector> innerSelectors;
 	private QueryAggregationEnum math;
 	private boolean isDistinct;
 	private String colCast;
 	
-	public QueryMultiColMathSelector() {
+	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<IQuerySelector>();
 		this.math = null;
 		this.isDistinct = false;
@@ -20,7 +20,7 @@ public class QueryMultiColMathSelector extends AbstractQuerySelector {
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.MATH;
+		return SELECTOR_TYPE.FUNCTION;
 	}
 
 	@Override
@@ -88,8 +88,8 @@ public class QueryMultiColMathSelector extends AbstractQuerySelector {
 	
 	@Override
 	public boolean equals(Object obj) {
-		if(obj instanceof QueryMultiColMathSelector) {
-			QueryMultiColMathSelector selector = (QueryMultiColMathSelector)obj;
+		if(obj instanceof QueryFunctionSelector) {
+			QueryFunctionSelector selector = (QueryFunctionSelector)obj;
 			if(this.innerSelectors.equals(selector.innerSelectors) &&
 					this.alias.equals(selector.alias) &&
 					this.math.equals(selector.math) &&
