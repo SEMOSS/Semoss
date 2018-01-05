@@ -31,7 +31,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
@@ -249,7 +248,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 			if ((selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.MATH))
 			{
-				if(((QueryMathSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryMultiColMathSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
 					unSelectors.add(selector);
 				}
 				else{
@@ -342,7 +341,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		for(IQuerySelector selector : selectorData) {
 			if (selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.MATH){
 				//count the number of unique selectors. if over 2 a different query will have to be built
-				if(((QueryMathSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryMultiColMathSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
 					uniqueSelectorCount++;
 				}
 			}
@@ -382,10 +381,6 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			System.out.println("Selector Type = Math");
-
-			return processMathSelector((QueryMathSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) {
 			System.out.println("Selector Type = MultiMath");
 
 			return processMultiMathSelector((QueryMultiColMathSelector) selector);
@@ -449,19 +444,6 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		return tableAlias + "." + physicalColName;
 	}
 
-	private String processMathSelector(QueryMathSelector selector) {
-		IQuerySelector innerSelector = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
-		boolean isDistinct = selector.isDistinct();
-
-		String innerExpression = processSelector(innerSelector, false);
-		if(isDistinct) {
-			return math.getBaseSqlSyntax() + "(DISTINCT " + innerExpression + ")";
-		} else {
-			return math.getBaseSqlSyntax() + "(" + innerExpression + ")";
-		}
-	}
-
 	private String processMultiMathSelector(QueryMultiColMathSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
@@ -471,7 +453,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			expression.append("DISTINCT ");
 		}
 		int size = innerSelectors.size();
-		for(int i = 0; i< size; i++) {
+		for(int i = 0; i < size; i++) {
 			if(i == 0) {
 				expression.append(processSelector(innerSelectors.get(i), false));
 			} else {

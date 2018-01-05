@@ -5,7 +5,9 @@ import java.util.Vector;
 
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,5 +59,12 @@ public class QuerySelectReactor extends AbstractQueryStructReactor {
 			cSelect.setConstant(input.getValue());
 			return cSelect;
 		}
+	}
+	
+	protected IQuerySelector genFunctionSelector(QueryAggregationEnum functionName, IQuerySelector innerSelector) {
+		QueryMultiColMathSelector newSelector = new QueryMultiColMathSelector();
+		newSelector.addInnerSelector(innerSelector);
+		newSelector.setMath(functionName);
+		return newSelector;
 	}
 }

@@ -24,7 +24,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
+import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -138,7 +138,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// calculate the count of a column
 		QueryStruct2 qs1 = new QueryStruct2();
 		{
-			QueryMathSelector countSelector = new QueryMathSelector();
+			QueryMultiColMathSelector countSelector = new QueryMultiColMathSelector();
 			countSelector.setMath(QueryAggregationEnum.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
@@ -149,7 +149,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setTable(columnName);
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
-			countSelector.setInnerSelector(innerSelector);
+			countSelector.addInnerSelector(innerSelector);
 			qs1.addSelector(countSelector);
 		}
 		Iterator<IHeadersDataRow> nRowIt = query(qs1);
@@ -158,7 +158,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// calculate the unique count of a column
 		QueryStruct2 qs2 = new QueryStruct2();
 		{
-			QueryMathSelector uniqueCountSelector = new QueryMathSelector();
+			QueryMultiColMathSelector uniqueCountSelector = new QueryMultiColMathSelector();
 			uniqueCountSelector.setMath(QueryAggregationEnum.UNIQUE_COUNT);
 			uniqueCountSelector.setDistinct(true);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
@@ -170,7 +170,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setTable(columnName);
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
-			uniqueCountSelector.setInnerSelector(innerSelector);
+			uniqueCountSelector.addInnerSelector(innerSelector);
 			qs2.addSelector(uniqueCountSelector);
 		}
 		Iterator<IHeadersDataRow> uniqueNRowIt = query(qs2);
@@ -332,8 +332,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
 
-			QueryMathSelector mathSelector = new QueryMathSelector();
-			mathSelector.setInnerSelector(innerSelector);
+			QueryMultiColMathSelector mathSelector = new QueryMultiColMathSelector();
+			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setMath(QueryAggregationEnum.MAX);
 
 			QueryStruct2 mathQS = new QueryStruct2();
@@ -391,8 +391,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setTable(uniqueColName);
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
-			QueryMathSelector mathSelector = new QueryMathSelector();
-			mathSelector.setInnerSelector(innerSelector);
+			QueryMultiColMathSelector mathSelector = new QueryMultiColMathSelector();
+			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setMath(QueryAggregationEnum.MIN);
 
 			QueryStruct2 mathQS = new QueryStruct2();
@@ -575,7 +575,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public int getUniqueInstanceCount(String columnName) {
 		QueryStruct2 qs = new QueryStruct2();
-		QueryMathSelector count = new QueryMathSelector();
+		QueryMultiColMathSelector count = new QueryMultiColMathSelector();
 		count.setDistinct(true);
 		count.setMath(QueryAggregationEnum.UNIQUE_COUNT);
 		QueryColumnSelector inner = new QueryColumnSelector();
@@ -587,7 +587,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			inner.setTable(columnName);
 			inner.setColumn(null);
 		}
-		count.setInnerSelector(inner);
+		count.addInnerSelector(inner);
 		qs.addSelector(count);
 		Iterator<IHeadersDataRow> it = query(qs);
 		while(it.hasNext()) {
