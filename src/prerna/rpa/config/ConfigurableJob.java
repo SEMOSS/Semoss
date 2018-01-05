@@ -15,6 +15,7 @@ import prerna.rpa.quartz.jobs.jdbc.maria.GenerateHashedPrimkeyJob;
 import prerna.rpa.quartz.jobs.insight.InsightsRerunCronJob;
 import prerna.rpa.quartz.jobs.insight.ConditionalJob;
 import prerna.rpa.quartz.jobs.insight.OneColConditionJob;
+import prerna.rpa.quartz.jobs.insight.RunPixelJob;
 import prerna.rpa.quartz.jobs.insight.CreateInsightJob;
 import prerna.rpa.quartz.jobs.insight.GetFrameFromInsightJob;
 import prerna.rpa.quartz.jobs.mail.GetSMTPSessionJob;
@@ -35,7 +36,8 @@ public enum ConfigurableJob {
 	GET_FRAME_FROM_INSIGHT_JOB("GetFrameFromInsightJob", GetFrameFromInsightJob.class),
 	INSIGHT_RERUN_JOB("InsightsRerunCronJob", InsightsRerunCronJob.class),
 	GET_SMTP_SESSION_JOB("GetSMTPSessionJob", GetSMTPSessionJob.class),
-	SEND_EMAIL_JOB("SendEmailJob", SendEmailJob.class);
+	SEND_EMAIL_JOB("SendEmailJob", SendEmailJob.class),
+	RUN_PIXEL_JOB("RunPixelJob", RunPixelJob.class);
 	
 	private final String jobClassName;
 	private final Class<? extends InterruptableJob> jobClass;

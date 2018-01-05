@@ -50,6 +50,8 @@ public abstract class JobConfig {
 			return new GetSMTPSessionJobConfig(jobDefinition);
 		case SEND_EMAIL_JOB:
 			return new SendEmailJobConfig(jobDefinition);
+		case RUN_PIXEL_JOB:
+			return new RunPixelJobConfig(jobDefinition);
 		default:
 			throw new IllegalArgumentException("Job configuration not found.");
 		}
