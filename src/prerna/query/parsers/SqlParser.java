@@ -53,7 +53,6 @@ import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -62,7 +61,7 @@ public class SqlParser {
 
 	// to determine type of the expression
 	private static enum EXPR_TYPE {LEFT, RIGHT, INNER};
-	
+
 	// keep table alias
 	private Map<String, String> tableAlias = null;
 	// keep column alias
@@ -169,7 +168,7 @@ public class SqlParser {
 				return parentQuerySelector;
 			}
 		}
-		
+
 		return processExpressionSelector(expr, parentQuerySelector, expressionType, alias);
 	}
 
@@ -185,7 +184,7 @@ public class SqlParser {
 
 		// init the basic selector
 		IQuerySelector constSelector = null;
-		
+
 		if(expr instanceof LongValue) {
 			long longValue = ((LongValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
@@ -231,7 +230,7 @@ public class SqlParser {
 			colValue = tableValue + "__" + colValue;
 			constSelector = new QueryColumnSelector(colValue);
 		}
-		
+
 		// if it is not basic
 		// we will end up returning null
 		return constSelector;
@@ -249,7 +248,7 @@ public class SqlParser {
 	private IQuerySelector processExpressionSelector(Expression expr, IQuerySelector parentSelector, EXPR_TYPE expressionType, String alias) {
 		// this will be the selector
 		IQuerySelector thisSelector = null;
-		
+
 		// keep these here so we know how to grab them
 		// this is the left hand side for the selector
 		Expression lexpr = null;
@@ -289,7 +288,7 @@ public class SqlParser {
 			Subtraction aExpr = (Subtraction)expr;
 			lexpr = aExpr.getLeftExpression();
 			rexpr = aExpr.getRightExpression();
-		
+
 		} else if(expr instanceof Multiplication) {
 			if(parentSelector == null) {
 				parentSelector = new QueryArithmeticSelector();
@@ -306,7 +305,7 @@ public class SqlParser {
 			Multiplication aExpr = (Multiplication)expr;
 			lexpr = aExpr.getLeftExpression();
 			rexpr = aExpr.getRightExpression();
-		
+
 		} else if(expr instanceof Division) {
 			if(parentSelector == null) {
 				parentSelector = new QueryArithmeticSelector();
@@ -323,61 +322,40 @@ public class SqlParser {
 			Division aExpr = (Division)expr;
 			lexpr = aExpr.getLeftExpression();
 			rexpr = aExpr.getRightExpression();
-		
+
 		} else if(expr instanceof Function) {
 			Function aExpr = (Function)expr;
 			QueryAggregationEnum math = QueryAggregationEnum.getEnumFromSqlName(aExpr.getName());
 			// most of them seem to have one argument, so should I try to get that first
 			List<Expression> paramExprs = aExpr.getParameters().getExpressions();
 			int numParamExprs = paramExprs.size();
-			if(numParamExprs == 1) {
-				// simple math type
-				// i.e. sum / avg / etc.
-				if(parentSelector == null) {
-					parentSelector = new QueryMathSelector();
-					parentSelector.setAlias(alias);
-					((QueryMathSelector) parentSelector).setMath(math);
-					thisSelector = parentSelector;
-				} else {
-					thisSelector = new QueryMathSelector();
-					thisSelector.setAlias(alias);
-					((QueryMathSelector) thisSelector).setMath(math);
-					setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-				}
-				
-				// need to process the single child
-				// and put into the selector
-				// set the parent to null since we are directly adding it here
-				((QueryMathSelector) thisSelector).setInnerSelector(determineSelector(paramExprs.get(0), null, EXPR_TYPE.INNER, alias));
+			// complex function
+			// using multiple cols
+			// i.e. concat, etc.
+			if(parentSelector == null) {
+				parentSelector = new QueryMultiColMathSelector();
+				parentSelector.setAlias(alias);
+				((QueryMultiColMathSelector) parentSelector).setMath(math);
+				thisSelector = parentSelector;
 			} else {
-				// complex function
-				// using multiple cols
-				// i.e. concat, etc.
-				if(parentSelector == null) {
-					parentSelector = new QueryMultiColMathSelector();
-					parentSelector.setAlias(alias);
-					((QueryMultiColMathSelector) parentSelector).setMath(math);
-					thisSelector = parentSelector;
-				} else {
-					thisSelector = new QueryMultiColMathSelector();
-					thisSelector.setAlias(alias);
-					((QueryMultiColMathSelector) thisSelector).setMath(math);
-					setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
-				}
-				
-				// need to process all the children
-				// and put into the selector
-				for(int paramIndex = 0; paramIndex < numParamExprs; paramIndex++) {
-					// set the parent to null since we are directly adding it here
-					((QueryMultiColMathSelector) parentSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
-				}
+				thisSelector = new QueryMultiColMathSelector();
+				thisSelector.setAlias(alias);
+				((QueryMultiColMathSelector) thisSelector).setMath(math);
+				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
+			}
+
+			// need to process all the children
+			// and put into the selector
+			for(int paramIndex = 0; paramIndex < numParamExprs; paramIndex++) {
+				// set the parent to null since we are directly adding it here
+				((QueryMultiColMathSelector) parentSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
 			}
 		} else if (expr instanceof Parenthesis) {
 			// move into the next piece
 			// but make sure we update thisSelector reference
 			thisSelector = processExpressionSelector(((Parenthesis)expr).getExpression(), parentSelector, expressionType, alias);
 		}
-		
+
 		// if we need to process sides of the expression
 		// these are null for parenthesis and function expressions
 		if(lexpr != null && rexpr != null) {
@@ -387,11 +365,11 @@ public class SqlParser {
 			determineSelector(lexpr, thisSelector, EXPR_TYPE.LEFT, alias);
 			determineSelector(rexpr, thisSelector, EXPR_TYPE.RIGHT, alias);
 		}
-		
+
 		// return the selector
 		return thisSelector;
 	}
-	
+
 	/**
 	 * Utility so we dont need to cast everywhere...
 	 * @param parentSelector
@@ -404,11 +382,7 @@ public class SqlParser {
 		} else if(EXPR_TYPE.RIGHT == expressionType){
 			((QueryArithmeticSelector) parentSelector).setRightSelector(childSelector);
 		} else {
-			if(parentSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH) {
-				((QueryMathSelector) parentSelector).setInnerSelector(childSelector);
-			} else {
-				((QueryMultiColMathSelector) parentSelector).addInnerSelector(childSelector);
-			}
+			((QueryMultiColMathSelector) parentSelector).addInnerSelector(childSelector);
 		}
 	}
 
@@ -534,7 +508,7 @@ public class SqlParser {
 					qs.addFilter(curFilter);
 				} else if(!(curFilter instanceof OrQueryFilter)) {
 					newFilter = new OrQueryFilter();
-					
+
 					// I need something which adds this to the curFilter
 					// at this point the cur filter has to be an or
 					// it could be a subfilter
@@ -687,7 +661,7 @@ public class SqlParser {
 		// NullValue
 
 		NounMetadata retData = null;
-		
+
 		if(expr instanceof LongValue) {
 			long longValue = ((LongValue) expr).getValue();
 			retData = new NounMetadata(longValue, PixelDataType.CONST_DECIMAL);
@@ -744,7 +718,7 @@ public class SqlParser {
 		if(orders == null || orders.isEmpty()) {
 			return;
 		}
-		
+
 		for(int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
 			OrderByElement thisElement = orders.get(orderIndex);
 			Expression expr = thisElement.getExpression();
@@ -775,7 +749,7 @@ public class SqlParser {
 		if(groups == null || groups.isEmpty()) {
 			return;
 		}
-		
+
 		for(int groupIndex = 0; groupIndex < groups.size(); groupIndex++) {
 			Expression expr = groups.get(groupIndex);
 			// this has to be a column
@@ -801,7 +775,7 @@ public class SqlParser {
 		query =  "select distinct c.logicalname ln, (ec.physicalName + 1) ep from "
 				+ "concept c, engineconcept ec, engine e inner join sometable s on c.logicalname=s.logical where (ec.localconceptid=c.localconceptid and "
 				+ "c.conceptualname in ('val1', 'val2')) or (ec.localconceptid + 5) =1 group by ln order by ln limit 200 offset 50 ";// order by c.logicalname";
-		
+
 		query = "select distinct f.studio, (f.movie_budget - 3) / 2 from f where f.movie_budget * 4 > 10";
 		test.processQuery(query);
 	}
