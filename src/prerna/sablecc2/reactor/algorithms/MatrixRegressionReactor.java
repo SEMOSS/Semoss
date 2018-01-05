@@ -16,7 +16,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -187,7 +187,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 	
 	private int getNumRows(ITableDataFrame frame, QueryColumnSelector predictorCol) {
 		QueryStruct2 qs = new QueryStruct2();
-		QueryMultiColMathSelector math = new QueryMultiColMathSelector();
+		QueryFunctionSelector math = new QueryFunctionSelector();
 		math.addInnerSelector(predictorCol);
 		math.setMath(QueryAggregationEnum.COUNT);
 		qs.addSelector(math);

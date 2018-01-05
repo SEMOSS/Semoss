@@ -17,7 +17,7 @@ import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 
@@ -136,8 +136,8 @@ public class QueryStructConverter {
 			return convertConstantSelector((QueryConstantSelector) selector, meta);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return convertColumnSelector((QueryColumnSelector) selector, meta);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return convertFunctionSelector((QueryMultiColMathSelector) selector, meta);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			return convertFunctionSelector((QueryFunctionSelector) selector, meta);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return convertArithmeticSelector((QueryArithmeticSelector) selector, meta);
 		}
@@ -173,8 +173,8 @@ public class QueryStructConverter {
 		return newS;
 	}
 
-	private static IQuerySelector convertFunctionSelector(QueryMultiColMathSelector selector, OwlTemporalEngineMeta meta) {
-		QueryMultiColMathSelector newS = new QueryMultiColMathSelector();
+	private static IQuerySelector convertFunctionSelector(QueryFunctionSelector selector, OwlTemporalEngineMeta meta) {
+		QueryFunctionSelector newS = new QueryFunctionSelector();
 		for(IQuerySelector innerS : selector.getInnerSelector()) {
 			newS.addInnerSelector(convertSelector(innerS, meta));
 		}

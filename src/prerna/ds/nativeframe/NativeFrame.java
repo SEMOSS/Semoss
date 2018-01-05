@@ -17,7 +17,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -43,7 +43,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMax(String columnHeader) {
 		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == SemossDataType.NUMBER) {
-			QueryMultiColMathSelector selector = new QueryMultiColMathSelector();
+			QueryFunctionSelector selector = new QueryFunctionSelector();
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			String[] split = columnHeader.split("__");
 			innerSelector.setTable(split[0]);
@@ -69,7 +69,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public Double getMin(String columnHeader) {
 		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == SemossDataType.NUMBER) {
-			QueryMultiColMathSelector selector = new QueryMultiColMathSelector();
+			QueryFunctionSelector selector = new QueryFunctionSelector();
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			String[] split = columnHeader.split("__");
 			innerSelector.setTable(split[0]);

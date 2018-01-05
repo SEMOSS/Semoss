@@ -53,7 +53,7 @@ import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 
@@ -333,14 +333,14 @@ public class SqlParser {
 			// using multiple cols
 			// i.e. concat, etc.
 			if(parentSelector == null) {
-				parentSelector = new QueryMultiColMathSelector();
+				parentSelector = new QueryFunctionSelector();
 				parentSelector.setAlias(alias);
-				((QueryMultiColMathSelector) parentSelector).setMath(math);
+				((QueryFunctionSelector) parentSelector).setMath(math);
 				thisSelector = parentSelector;
 			} else {
-				thisSelector = new QueryMultiColMathSelector();
+				thisSelector = new QueryFunctionSelector();
 				thisSelector.setAlias(alias);
-				((QueryMultiColMathSelector) thisSelector).setMath(math);
+				((QueryFunctionSelector) thisSelector).setMath(math);
 				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
 			}
 
@@ -348,7 +348,7 @@ public class SqlParser {
 			// and put into the selector
 			for(int paramIndex = 0; paramIndex < numParamExprs; paramIndex++) {
 				// set the parent to null since we are directly adding it here
-				((QueryMultiColMathSelector) parentSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
+				((QueryFunctionSelector) parentSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
 			}
 		} else if (expr instanceof Parenthesis) {
 			// move into the next piece
@@ -382,7 +382,7 @@ public class SqlParser {
 		} else if(EXPR_TYPE.RIGHT == expressionType){
 			((QueryArithmeticSelector) parentSelector).setRightSelector(childSelector);
 		} else {
-			((QueryMultiColMathSelector) parentSelector).addInnerSelector(childSelector);
+			((QueryFunctionSelector) parentSelector).addInnerSelector(childSelector);
 		}
 	}
 

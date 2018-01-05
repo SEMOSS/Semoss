@@ -31,7 +31,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.NounMetadata;
@@ -246,9 +246,9 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				columnSelectors.add(selector);
 				query1.append("t0."+selector.getAlias()+", ");
 			}
-			if ((selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.MATH))
+			if ((selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.FUNCTION))
 			{
-				if(((QueryMultiColMathSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryFunctionSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
 					unSelectors.add(selector);
 				}
 				else{
@@ -339,9 +339,9 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		uniqueSelectorCount = 0;
 		List<IQuerySelector> selectorData = qs.getSelectors();
 		for(IQuerySelector selector : selectorData) {
-			if (selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.MATH){
+			if (selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.FUNCTION){
 				//count the number of unique selectors. if over 2 a different query will have to be built
-				if(((QueryMultiColMathSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryFunctionSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
 					uniqueSelectorCount++;
 				}
 			}
@@ -380,10 +380,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			System.out.println("Selector Type = Column");
 
 			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 			System.out.println("Selector Type = MultiMath");
 
-			return processMultiMathSelector((QueryMultiColMathSelector) selector);
+			return processMultiMathSelector((QueryFunctionSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			System.out.println("Selector Type = Arithmetic");
 
@@ -444,7 +444,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		return tableAlias + "." + physicalColName;
 	}
 
-	private String processMultiMathSelector(QueryMultiColMathSelector selector) {
+	private String processMultiMathSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
 		StringBuilder expression = new StringBuilder();

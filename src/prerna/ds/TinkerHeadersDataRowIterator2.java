@@ -11,7 +11,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> {
 
@@ -95,8 +95,8 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 				this.headerOrdering[index] = qsName;
 				this.header[index] = alias;
 				this.headerAlias[index] = getNodeAlias(meta, alias);
-			} else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH) {
-				List<IQuerySelector> innerSelectorList = ((QueryMultiColMathSelector) header).getInnerSelector();
+			} else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+				List<IQuerySelector> innerSelectorList = ((QueryFunctionSelector) header).getInnerSelector();
 				for(IQuerySelector innerSelector : innerSelectorList) {
 					if(innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 						String alias = innerSelector.getAlias();
