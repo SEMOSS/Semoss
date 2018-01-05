@@ -29,7 +29,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
@@ -257,9 +256,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return processMathSelector((QueryMathSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) { 
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) { 
 			return processMultiMathSelector((QueryMultiColMathSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
@@ -319,22 +316,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return tableAlias + "." + physicalColName;
 	}
 	
-	private String processMathSelector(QueryMathSelector selector) {
-		IQuerySelector innerSelector = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
-		boolean isDistinct = selector.isDistinct();
-		
-		String innerExpression = processSelector(innerSelector, false);
-		if(isDistinct) {
-			return math.getBaseSqlSyntax() + "(DISTINCT " + innerExpression + ")";
-		} else {
-			return math.getBaseSqlSyntax() + "(" + innerExpression + ")";
-		}
-	}
-	
 	private String processMultiMathSelector(QueryMultiColMathSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
+		
 		StringBuilder expression = new StringBuilder();
 		expression.append(math.getBaseSqlSyntax()).append("(");
 		if(selector.isDistinct()) {

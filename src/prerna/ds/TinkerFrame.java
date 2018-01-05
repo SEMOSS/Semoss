@@ -39,7 +39,7 @@ import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
+import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.reactor.imports.IImporter;
@@ -1175,7 +1175,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// i can just query a count for any single column
 		// and call it a day
 		{
-			QueryMathSelector countSelector = new QueryMathSelector();
+			QueryMultiColMathSelector countSelector = new QueryMultiColMathSelector();
 			countSelector.setMath(QueryAggregationEnum.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {
@@ -1186,7 +1186,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				innerSelector.setTable(columnName);
 				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 			}
-			countSelector.setInnerSelector(innerSelector);
+			countSelector.addInnerSelector(innerSelector);
 			qs1.addSelector(countSelector);
 		}
 		Iterator<IHeadersDataRow> nRowIt = query(qs1);
