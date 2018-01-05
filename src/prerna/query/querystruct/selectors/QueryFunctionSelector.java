@@ -62,11 +62,11 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		this.innerSelectors.add(innerSelector);
 	}
 
-	public QueryAggregationEnum getMath() {
+	public QueryAggregationEnum getFunction() {
 		return math;
 	}
 
-	public void setMath(QueryAggregationEnum math) {
+	public void setFunction(QueryAggregationEnum math) {
 		this.math = math;
 	}
 
