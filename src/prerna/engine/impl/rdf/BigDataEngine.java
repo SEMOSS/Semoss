@@ -29,9 +29,6 @@ package prerna.engine.impl.rdf;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,18 +61,18 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 
+import com.bigdata.rdf.model.BigdataLiteralImpl;
+import com.bigdata.rdf.rules.InferenceEngine;
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSailRepository;
+import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
-
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-import com.bigdata.rdf.rules.InferenceEngine;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 
 /**
  * Big data engine serves to connect the .jnl files, which contain the RDF database, to the java engine.
