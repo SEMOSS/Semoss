@@ -682,7 +682,7 @@ public class QueryStruct2 {
 			if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				QueryFunctionSelector mathSelector = (QueryFunctionSelector) selector;
 				selectorMap.put("header", alias);
-				selectorMap.put("math", mathSelector.getMath().getExpressionName());
+				selectorMap.put("math", mathSelector.getFunction().getExpressionName());
 
 				// add inner selector QS
 				List<IQuerySelector> innerSelector = mathSelector.getInnerSelector();

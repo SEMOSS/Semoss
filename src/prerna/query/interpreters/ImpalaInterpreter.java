@@ -248,7 +248,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 			if ((selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.FUNCTION))
 			{
-				if(((QueryFunctionSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryFunctionSelector) selector).getFunction().getExpressionName().equalsIgnoreCase("uniquecount")){
 					unSelectors.add(selector);
 				}
 				else{
@@ -341,7 +341,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		for(IQuerySelector selector : selectorData) {
 			if (selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.FUNCTION){
 				//count the number of unique selectors. if over 2 a different query will have to be built
-				if(((QueryFunctionSelector) selector).getMath().getExpressionName().equalsIgnoreCase("uniquecount")){
+				if(((QueryFunctionSelector) selector).getFunction().getExpressionName().equalsIgnoreCase("uniquecount")){
 					uniqueSelectorCount++;
 				}
 			}
@@ -383,7 +383,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 			System.out.println("Selector Type = MultiMath");
 
-			return processMultiMathSelector((QueryFunctionSelector) selector);
+			return processFunctionSelector((QueryFunctionSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			System.out.println("Selector Type = Arithmetic");
 
@@ -444,9 +444,9 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		return tableAlias + "." + physicalColName;
 	}
 
-	private String processMultiMathSelector(QueryFunctionSelector selector) {
+	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
+		QueryAggregationEnum math = selector.getFunction();
 		StringBuilder expression = new StringBuilder();
 		expression.append(math.getBaseSqlSyntax()).append("(");
 		if(selector.isDistinct()) {

@@ -157,7 +157,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return processMultiMathSelector((QueryFunctionSelector) selector, includeTableName);
+			return processFunctionSelector((QueryFunctionSelector) selector, includeTableName);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector, includeTableName);
 		}
@@ -180,9 +180,9 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		return selector.getColumn();
 	}
 	
-	private String processMultiMathSelector(QueryFunctionSelector selector, boolean includeTableName) {
+	private String processFunctionSelector(QueryFunctionSelector selector, boolean includeTableName) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
+		QueryAggregationEnum math = selector.getFunction();
 
 		StringBuilder expression = new StringBuilder();
 		expression.append(math.getRSyntax());
