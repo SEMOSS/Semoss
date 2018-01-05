@@ -28,7 +28,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
 import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -173,8 +172,6 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MATH) {
-			return processMathSelector((QueryMathSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.MULTI_MATH) {
 			return processMultiMathSelector((QueryMultiColMathSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
@@ -215,25 +212,16 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		return "?" + cleanVarName;
 	}
 	
-	private String processMathSelector(QueryMathSelector selector) {
-		IQuerySelector innerSelector = selector.getInnerSelector();
-		QueryAggregationEnum math = selector.getMath();
-		boolean isDistinct = selector.isDistinct();
-		
-		String innerExpression = processSelector(innerSelector);
-		if(isDistinct) {
-			return math.getSparqlSyntax() + "(DISTINCT " + innerExpression + ")";
-		} else {
-			return math.getSparqlSyntax() + "(" + innerExpression + ")";
-		}
-	}
-	
 	private String processMultiMathSelector(QueryMultiColMathSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		QueryAggregationEnum math = selector.getMath();
 		String colCast = selector.getColCast();
+		
 		StringBuilder expression = new StringBuilder();
 		expression.append(math.getSparqlSyntax()).append("(");
+		if(selector.isDistinct()) {
+			expression.append("DISTINCT ");
+		}
 		int size = innerSelectors.size();
 		for(int i = 0; i< size; i++) {
 			if(i > 0) {
@@ -241,7 +229,6 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			}
 			if(!colCast.isEmpty()) {
 				expression.append(colCast).append("(").append(processSelector(innerSelectors.get(i))).append(")");
-
 			} else {
 				expression.append(processSelector(innerSelectors.get(i)));
 			}

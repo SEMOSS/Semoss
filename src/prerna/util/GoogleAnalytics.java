@@ -23,7 +23,7 @@ import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMathSelector;
+import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
 
 public class GoogleAnalytics extends Thread {
 
@@ -284,7 +284,8 @@ public class GoogleAnalytics extends Thread {
 			String alias = selector.getAlias();
 			String name = "";
 			if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.MATH ){
-				name = ((QueryMathSelector) selector).getInnerSelector().getQueryStructName() + "";
+				//TODO: this is assuming only 1 math inside due to FE limitation
+				name = ((QueryMultiColMathSelector) selector).getInnerSelector().get(0).getQueryStructName() + "";
 			}else{
 				name = selector.getQueryStructName();
 			}
