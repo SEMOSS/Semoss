@@ -39,7 +39,7 @@ import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.reactor.imports.IImporter;
@@ -1175,7 +1175,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// i can just query a count for any single column
 		// and call it a day
 		{
-			QueryMultiColMathSelector countSelector = new QueryMultiColMathSelector();
+			QueryFunctionSelector countSelector = new QueryFunctionSelector();
 			countSelector.setMath(QueryAggregationEnum.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
 			if(columnName.contains("__")) {

@@ -16,7 +16,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryMultiColMathSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -205,7 +205,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			innerSelector.setTable(tableName);
 			innerSelector.setColumn(column);
 			
-			QueryMultiColMathSelector mathSelector = new QueryMultiColMathSelector();
+			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setMath(QueryAggregationEnum.MIN);
 			
