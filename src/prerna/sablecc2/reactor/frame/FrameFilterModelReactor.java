@@ -14,8 +14,8 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -207,7 +207,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
-			mathSelector.setFunction(QueryAggregationEnum.MIN);
+			mathSelector.setFunction(QueryFunctionHelper.MIN);
 			
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
@@ -217,7 +217,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			Iterator<IHeadersDataRow> it = dataframe.query(mathQS);
 			minMaxMap.put("absMin", it.next().getValues()[0]);
 			// get the abs max when no filters are present
-			mathSelector.setFunction(QueryAggregationEnum.MAX);
+			mathSelector.setFunction(QueryFunctionHelper.MAX);
 			it = dataframe.query(mathQS);
 			minMaxMap.put("absMax", it.next().getValues()[0]);
 			
@@ -227,7 +227,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			it = dataframe.query(mathQS);
 			minMaxMap.put("max", it.next().getValues()[0]);
 			// run for actual min
-			mathSelector.setFunction(QueryAggregationEnum.MIN);
+			mathSelector.setFunction(QueryFunctionHelper.MIN);
 			it = dataframe.query(mathQS);
 			minMaxMap.put("min", it.next().getValues()[0]);
 			

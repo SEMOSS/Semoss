@@ -12,7 +12,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
@@ -36,7 +35,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	// keep track of the math that is needed
 	private List<String> uniqueSelectorNames;
 	private List<Integer> mathIndex;
-	private List<QueryAggregationEnum> mathOperation;
+	private List<String> mathOperation;
 	private List<Integer> groupByIndex;
 	private String[] headers;
 	/**
@@ -78,7 +77,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 				
 		this.uniqueSelectorNames = new ArrayList<String>(numSelectors);
 		this.mathIndex = new ArrayList<Integer>(numSelectors);
-		this.mathOperation = new ArrayList<QueryAggregationEnum>(numSelectors);
+		this.mathOperation = new ArrayList<String>(numSelectors);
 		this.groupByIndex = new ArrayList<Integer>(numSelectors);
 		this.headers = new String[numSelectors];
 		

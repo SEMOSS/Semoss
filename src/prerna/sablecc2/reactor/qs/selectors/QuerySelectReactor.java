@@ -5,7 +5,6 @@ import java.util.Vector;
 
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryAggregationEnum;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -61,7 +60,7 @@ public class QuerySelectReactor extends AbstractQueryStructReactor {
 		}
 	}
 	
-	protected IQuerySelector genFunctionSelector(QueryAggregationEnum functionName, IQuerySelector innerSelector) {
+	protected IQuerySelector genFunctionSelector(String functionName, IQuerySelector innerSelector) {
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.addInnerSelector(innerSelector);
 		newSelector.setFunction(functionName);
