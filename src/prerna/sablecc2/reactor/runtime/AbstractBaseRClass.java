@@ -870,6 +870,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
 			}
 		}
+		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 	}
 
 	public void key() {
@@ -927,6 +928,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
 			}
 		}
+		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 	}
 
 	/**
