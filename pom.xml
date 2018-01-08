@@ -1976,55 +1976,52 @@
 			<artifactId>neo4j-tinkerpop-api-impl</artifactId>
 			<version>0.3-2.3.2</version>
 		</dependency>
-		
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
-		    <groupId>commons-validator</groupId>
-		    <artifactId>commons-validator</artifactId>
-		    <version>1.4.0</version>
+			<groupId>commons-validator</groupId>
+			<artifactId>commons-validator</artifactId>
+			<version>1.4.0</version>
 		</dependency>
-		
 		<dependency>
-		    <groupId>org.wikidata.wdtk</groupId>
+			<groupId>org.wikidata.wdtk</groupId>
 			<artifactId>wdtk-dumpfiles</artifactId>
 			<version>0.7.0</version>
 		</dependency>
-		
 		<!-- git -->
 		<!-- https://mvnrepository.com/artifact/org.wikidata.wdtk/wdtk-wikibaseapi -->
 		<dependency>
-		    <groupId>org.wikidata.wdtk</groupId>
-		    <artifactId>wdtk-wikibaseapi</artifactId>
-		    <version>0.5.0</version>
+			<groupId>org.wikidata.wdtk</groupId>
+			<artifactId>wdtk-wikibaseapi</artifactId>
+			<version>0.5.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
 		<dependency>
-		    <groupId>org.eclipse.jgit</groupId>
-		    <artifactId>org.eclipse.jgit</artifactId>
-		    <version>4.8.0.201706111038-r</version>
+			<groupId>org.eclipse.jgit</groupId>
+			<artifactId>org.eclipse.jgit</artifactId>
+			<version>4.8.0.201706111038-r</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit.pgm -->
 		<dependency>
-		    <groupId>org.eclipse.jgit</groupId>
-		    <artifactId>org.eclipse.jgit.pgm</artifactId>
-		    <version>4.8.0.201705170830-rc1</version>
+			<groupId>org.eclipse.jgit</groupId>
+			<artifactId>org.eclipse.jgit.pgm</artifactId>
+			<version>4.8.0.201705170830-rc1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.egit/org.eclipse.egit.core -->
 		<dependency>
-		    <groupId>com.github.scribejava</groupId>
-		    <artifactId>scribejava-apis</artifactId>
-		    <version>4.2.0</version>
+			<groupId>com.github.scribejava</groupId>
+			<artifactId>scribejava-apis</artifactId>
+			<version>4.2.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>
-		    <groupId>org.kohsuke</groupId>
-		    <artifactId>github-api</artifactId>
-		    <version>1.86</version>
+			<groupId>org.kohsuke</groupId>
+			<artifactId>github-api</artifactId>
+			<version>1.86</version>
 		</dependency>
 		<dependency>
-		  <groupId>org.eclipse.mylyn.github</groupId>
-		  <artifactId>org.eclipse.egit.github.core</artifactId>
-		  <version>2.1.5</version>
+			<groupId>org.eclipse.mylyn.github</groupId>
+			<artifactId>org.eclipse.egit.github.core</artifactId>
+			<version>2.1.5</version>
 		</dependency>
 		<!-- impala -->
 		<dependency>
@@ -2104,22 +2101,50 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
 		<!-- redshift -->
 		<dependency>
-		    <groupId>com.amazonaws</groupId>
-		    <artifactId>aws-java-sdk</artifactId>
-		    <version>1.11.106</version>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
+			<version>1.11.106</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.fasterxml.jackson.core</groupId>
-		    <artifactId>jackson-databind</artifactId>
-		    <version>2.9.0</version>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.9.0</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.amazon.redshift</groupId>
-		    <artifactId>redshift-jdbc41</artifactId>
-		    <version>1.2.10.1009</version>
+			<groupId>com.amazon.redshift</groupId>
+			<artifactId>redshift-jdbc41</artifactId>
+			<version>1.2.10.1009</version>
+		</dependency>
+		<!--  NODE -->
+		<dependency>
+			<groupId>com.eclipsesource.j2v8</groupId>
+			<artifactId>j2v8_win32_x86_64</artifactId>
+			<version>4.4.0</version>
+		</dependency>
+		<!-- __https://mvnrepository.com/artifact/org.bouncycastle/bcpg-jdk15on -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpg-jdk15on</artifactId>
+			<version>1.58</version>
+		</dependency>
+		<!--  Netty Socket IO -->
+		<dependency>
+			<groupId>com.corundumstudio.socketio</groupId>
+			<artifactId>netty-socketio</artifactId>
+			<version>1.7.12</version>
+		</dependency>
+		<!--  SOCKET IO Java Client -->
+		<dependency>
+			<groupId>io.socket</groupId>
+			<artifactId>socket.io-client</artifactId>
+			<version>0.9.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.avro</groupId>
+			<artifactId>avro</artifactId>
+			<version>1.8.2</version>
 		</dependency>
 	</dependencies>
 </project>
