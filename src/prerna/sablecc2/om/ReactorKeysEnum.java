@@ -14,7 +14,7 @@ public enum ReactorKeysEnum {
 	COLLABORATOR("collaborator",							"Username for an individual to collaborate with on an app"),
 	COLUMN("column", 										"Name of the column header"),
 	COLUMNS("columns", 										"List of column headers"),
-	COMMENT_KEY("comment", 									"This key can represent a map containing the data for a given comment or it can represent the id for an existing comment"),
+	COMMENT_KEY("comment", 									"This key can represent a string comment, a map containing the data for a given comment, or the id for an existing comment"),
 	CONCEPT("concept", 										"Concept name within an engine"),
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
@@ -36,7 +36,7 @@ public enum ReactorKeysEnum {
 	IMAGE_URL("imageUrl", 									"Image URL"),
 	INCLUDE_META_KEY("meta", 								"Boolean indication (true or false) of whether to retrieve metadata"),
 	INDEX("index", 											"A specified index for an object (e.g., the frame filter)"),
-	INSIGHT_ID("id", 										"Unique id of the insight"),
+	INSIGHT_ID("id", 										"This key can represent the unique id of the insight instance or the unique id of the saved insight"),
 	INSIGHT_NAME("insightName", 							"Name of the insight"),
 	INSIGHT_ORNAMENT("insightOrnament", 					"Insight ornament map"),
 	INSTANCE_KEY("instance", 								"Column representing the objects being used to perform the operation"),
@@ -84,7 +84,6 @@ public enum ReactorKeysEnum {
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
 	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores");
-
 	
 	private String key;
 	private String description;
