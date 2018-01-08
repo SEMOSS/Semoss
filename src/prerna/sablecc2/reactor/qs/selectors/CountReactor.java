@@ -20,7 +20,7 @@ public class CountReactor extends QuerySelectReactor {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
 				NounMetadata input = qsInputs.getNoun(selectIndex);
 				IQuerySelector innerSelector = getSelector(input);
-				qs.addSelector(genFunctionSelector(QueryFunctionHelper.CONCAT, innerSelector));
+				qs.addSelector(genFunctionSelector(QueryFunctionHelper.COUNT, innerSelector));
 			}
 		}
 		return qs;
