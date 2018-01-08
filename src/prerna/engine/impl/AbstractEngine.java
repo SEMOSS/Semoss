@@ -57,7 +57,6 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -73,6 +72,9 @@ import prerna.om.SEMOSSVertex;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SparqlInterpreter2;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SPARQLInterpreter;
@@ -1378,8 +1380,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * get all the data within the engine.  Will currently assume all joins to be inner.join
 	 * @return
 	 */
-	public QueryStruct getDatabaseQueryStruct() {
-		QueryStruct qs = new QueryStruct();
+	public QueryStruct2 getDatabaseQueryStruct() {
+		QueryStruct2 qs = new QueryStruct2();
 
 		// query to get all the concepts and properties for selectors
 		String getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?conceptualProperty WHERE { "
@@ -1460,32 +1462,38 @@ public abstract class AbstractEngine implements IEngine {
 		retObj.put("edges", edges);
 
 		// create this from the query struct
-		QueryStruct qs = getDatabaseQueryStruct();
+		QueryStruct2 qs = getDatabaseQueryStruct();
 
 		// need to store the edges in a way that we can easily get them
 		Map<String, SEMOSSVertex> vertStore = new Hashtable<String, SEMOSSVertex>();
 
 		// first get all the nodes
-		Map<String, List<String>> vertices = qs.getSelectors();
-		for(String concept : vertices.keySet()) {
-			// grab each vert
-			SEMOSSVertex vert = new SEMOSSVertex("http://semoss.org/ontologies/Concept/" + concept);
-			vert.putProperty("PhysicalName", concept);
-			// grab the properties and add it to the vert
-			List<String> props = vertices.get(concept);
-			for(String prop : props) {
-				// ignore the placeholder as it is only used by interpreters for query construction
-				if(prop.equals(QueryStruct.PRIM_KEY_PLACEHOLDER)) {
-					continue;
-				}
+		List<IQuerySelector> vertices = qs.getSelectors();
+		for(IQuerySelector selector : vertices) {
+			// database query struct always returns columns
+			QueryColumnSelector cSelector = (QueryColumnSelector) selector;
+			String concept = cSelector.getTable();
+			String prop = cSelector.getColumn();
+			
+			SEMOSSVertex vert = null;
+			if(vertStore.containsKey(concept)) {
+				// we got the vertex before
+				vert = vertStore.get(concept);
+			} else {
+				// new vertex
+				vert = new SEMOSSVertex("http://semoss.org/ontologies/Concept/" + concept);
+				vert.putProperty("PhysicalName", concept);
 				
-				// add the prop
-				vert.setProperty("http://semoss.org/ontologies/Relation/Contains/" + prop, prop);
+				// add to nodes map
+				vertStore.put(concept, vert);
+				// add to nodes list
+				nodes.add(vert);
 			}
 			
-			vertStore.put(concept, vert);
-			// add it to the nodes list
-			nodes.add(vert);
+			// see if we need to add the property
+			if(!prop.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				vert.setProperty("http://semoss.org/ontologies/Relation/Contains/" + prop, prop);
+			}
 		}
 		
 		// now go through all the relations
