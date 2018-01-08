@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.comments.AddInsightCommentReactor;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
@@ -464,7 +465,8 @@ public class ReactorFactory {
 		reactorHash.put("RunSimilarity", SimilarityAlgorithmReactor.class);
 		reactorHash.put("RunOutlier", OutlierAlgorithmReactor.class);
 		reactorHash.put("Ratio", RatioAlgorithmReactor.class);
-		//xray reactors
+		
+		// X-Ray reactors
 		reactorHash.put("RunXray", XRayReactor.class);
 		reactorHash.put("GetXrayConfigList", GetXrayConfigListReactor.class);
 		reactorHash.put("GetXrayConfigFile", GetXrayConfigFileReactor.class);
@@ -513,6 +515,9 @@ public class ReactorFactory {
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
+		
+		// Insight Comments
+		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
