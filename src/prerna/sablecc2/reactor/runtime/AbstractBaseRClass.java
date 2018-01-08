@@ -899,7 +899,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	
 	public void synchronizeXY(String rVariable) {
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		double [][] memberships = this.rJavaTranslator.getDoubleMatrix("xy_layout"));
+		double [][] memberships = this.rJavaTranslator.getDoubleMatrix("xy_layout");
 		String [] axis = null;
 		if(memberships[0].length == 2) {
 			axis = new String[]{"X", "Y"};
