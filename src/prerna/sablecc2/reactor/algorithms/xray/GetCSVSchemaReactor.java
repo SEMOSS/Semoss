@@ -17,10 +17,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class GetCSVSchemaReactor extends AbstractReactor{
+public class GetCSVSchemaReactor extends AbstractReactor {
 	public GetCSVSchemaReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.toString(), ReactorKeysEnum.DELIMITER.toString()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.toString(), ReactorKeysEnum.DELIMITER.toString() };
 	}
+
 	@Override
 	public NounMetadata execute() {
 		String filePath = getFilePath();
@@ -32,24 +33,25 @@ public class GetCSVSchemaReactor extends AbstractReactor{
 		String[] types = cv.predictTypes();
 
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		//generate db name
+		// generate db name
 		String[] parts = filePath.split("\\\\");
-		String dbName = parts[parts.length-1].replace(".", "_");
+		String dbName = parts[parts.length - 1].replace(".", "_");
 		// C:\\..\\file.csv -> file_csv
 		ret.put("databaseName", dbName);
 
-		//construct empty relationship map (assuming flat table)
+		// construct empty relationship map (assuming flat table)
 		HashMap<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
-		for(String concept : headers) {
-			relationshipMap.put(concept, new ArrayList<String>()); //return empty list for FE
+		for (String concept : headers) {
+			relationshipMap.put(concept, new ArrayList<String>());
 		}
 
 		ret.put("relationships", relationshipMap);
 
-		//add column details
-		//since it's a flat table we don't need to worry about concept/property relationships
+		// add column details
+		// since it's a flat table we don't need to worry about concept/property
+		// relationships
 		HashMap<String, HashMap> tableDetails = new HashMap<String, HashMap>();
-		for(int i = 0; i < headers.length; i++) {
+		for (int i = 0; i < headers.length; i++) {
 			HashMap<String, String> colDetails = new HashMap<String, String>();
 			colDetails.put("name", headers[i]);
 			String dataType = SemossDataType.convertStringToDataType(types[i]).toString();
@@ -69,7 +71,7 @@ public class GetCSVSchemaReactor extends AbstractReactor{
 		}
 		return new NounMetadata(schema, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
-	
+
 	private String getDelimiter() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DELIMITER.toString());
 		if (grs != null && !grs.isEmpty()) {
