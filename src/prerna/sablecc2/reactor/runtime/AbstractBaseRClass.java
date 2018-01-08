@@ -35,7 +35,6 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
-import org.rosuda.JRI.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import com.google.gson.Gson;
@@ -900,7 +899,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	
 	public void synchronizeXY(String rVariable) {
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		double [][] memberships = ((REXP) this.rJavaTranslator.executeR("xy_layout")).asDoubleMatrix();
+		double [][] memberships = this.rJavaTranslator.getDoubleMatrix("xy_layout"));
 		String [] axis = null;
 		if(memberships[0].length == 2) {
 			axis = new String[]{"X", "Y"};

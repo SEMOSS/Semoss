@@ -72,6 +72,13 @@ public interface IRJavaTranslator {
 	double[] getDoubleArray(String rScript);
 	
 	/**
+	 * Retrieve a double matrix from an R script
+	 * @param rScript
+	 * @return
+	 */
+	double[][] getDoubleMatrix(String rScript);
+	
+	/**
 	 * Retrieve a factor from an R Script
 	 * @param rScript
 	 */

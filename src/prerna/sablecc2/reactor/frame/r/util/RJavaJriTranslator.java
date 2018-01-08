@@ -190,6 +190,15 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	@Override
+	public double[][] getDoubleMatrix(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asDoubleMatrix();
+		}
+		return null;
+	}
 
 	@Override
 	public Object getFactor(String script) {
