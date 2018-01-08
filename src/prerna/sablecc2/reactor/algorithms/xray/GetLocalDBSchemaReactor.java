@@ -23,10 +23,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 
-public class GetLocalDBSchemaReactor extends AbstractReactor{
+public class GetLocalDBSchemaReactor extends AbstractReactor {
 	public GetLocalDBSchemaReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.toString()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.toString() };
 	}
+
 	@Override
 	public NounMetadata execute() {
 		String engineName = getEngineName();
@@ -36,33 +37,31 @@ public class GetLocalDBSchemaReactor extends AbstractReactor{
 		Map<String, Map<String, List>> relations = qs.getRelations();
 		// get relations
 		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
-		//structure is Title = {inner.join={Genre, Studio, Nominated}}
+		// structure is Title = {inner.join={Genre, Studio, Nominated}}
 
-
-
-		for(String concept : concepts) {
+		for (String concept : concepts) {
 			concept = DomainValues.determineCleanConceptName(concept, engine);
-			if(concept.equals("Concept")) {
+			if (concept.equals("Concept")) {
 				continue;
 			}
-			//check if concept is in the relationship hashmap, if not just add an empty list 
+			// check if concept is in the relationship hashmap, if not just add an empty list
 			List<String> conceptRelations = new ArrayList<String>();
 			for (String key : relations.keySet()) {
 				if (concept.equalsIgnoreCase(key)) {
-					conceptRelations = relations.get(key).get("inner.join"); //TODO check if this changes 
-				} 
+					conceptRelations = relations.get(key).get("inner.join");
+					// TODO check if this changes
+				}
 			}
 			relationshipMap.put(concept, conceptRelations);
 
 		}
-
 
 		// tablename: [{name, type}]
 		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
 
 		for (String conceptURI : concepts) {
 			String cleanConcept = DomainValues.determineCleanConceptName(conceptURI, engine);
-			//ignore default concept value
+			// ignore default concept value
 			if (cleanConcept.equals("Concept")) {
 				continue;
 			}
@@ -70,10 +69,9 @@ public class GetLocalDBSchemaReactor extends AbstractReactor{
 			HashMap<String, String> colInfo = new HashMap<String, String>();
 			colInfo.put("name", cleanConcept);
 			String dataType = engine.getDataTypes(conceptURI);
-			if(dataType != null) {
+			if (dataType != null) {
 				dataType = SemossDataType.convertStringToDataType(dataType).toString();
-			}
-			else {
+			} else {
 				dataType = SemossDataType.STRING.toString();
 			}
 			colInfo.put("type", dataType);
@@ -84,10 +82,9 @@ public class GetLocalDBSchemaReactor extends AbstractReactor{
 				HashMap<String, String> propInfo = new HashMap<String, String>();
 				propInfo.put("name", cleanProp);
 				dataType = engine.getDataTypes(prop);
-				if(dataType != null) {
+				if (dataType != null) {
 					dataType = SemossDataType.convertStringToDataType(dataType).toString();
-				}
-				else {
+				} else {
 					dataType = SemossDataType.STRING.toString();
 				}
 				propInfo.put("type", dataType);
@@ -106,7 +103,6 @@ public class GetLocalDBSchemaReactor extends AbstractReactor{
 		try {
 			schema = ow.writeValueAsString(ret);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return new NounMetadata(schema, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
