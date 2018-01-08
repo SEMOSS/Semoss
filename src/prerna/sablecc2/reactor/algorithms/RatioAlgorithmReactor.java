@@ -380,7 +380,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			colSelector.setColumn(null);
 		}
 		qs.addSelector(colSelector);
-		SimpleQueryFilter instanceFilter = new SimpleQueryFilter(new NounMetadata(colSelector, PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
+		SimpleQueryFilter instanceFilter = new SimpleQueryFilter(new NounMetadata(new QueryColumnSelector(instanceColumn), PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
 		qs.addFilter(instanceFilter);
 		Iterator<IHeadersDataRow> it = frame.query(qs);
 		while (it.hasNext()) {
