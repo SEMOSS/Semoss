@@ -128,6 +128,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		e.apply(this);
         	} catch(Exception ex) {
+//        		ex.printStackTrace();
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
@@ -1017,7 +1018,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         } 
     	// if the parent is a filter
     	// we need to aggregate this side of the column expression
-    	else if(curReactor.getParentReactor() instanceof QueryFilterReactor) {
+    	else if(curReactor != null && curReactor.getParentReactor() instanceof QueryFilterReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
         	qAssm.setPixel("EXPR", nodeExpr);
