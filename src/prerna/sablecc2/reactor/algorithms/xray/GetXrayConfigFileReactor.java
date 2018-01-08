@@ -12,9 +12,11 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetXrayConfigFileReactor extends AbstractReactor {
 	public static final String CONFIG_FILE_ID = "configID";
-	public GetXrayConfigFileReactor () {
-		this.keysToGet = new String[]{};
+
+	public GetXrayConfigFileReactor() {
+		this.keysToGet = new String[] {};
 	}
+
 	@Override
 	public NounMetadata execute() {
 		String configFileID = getConfigFileID();
@@ -31,9 +33,9 @@ public class GetXrayConfigFileReactor extends AbstractReactor {
 				return configFile;
 			}
 		}
-		throw new IllegalArgumentException("Need to define "+ CONFIG_FILE_ID);
+		throw new IllegalArgumentException("Need to define " + CONFIG_FILE_ID);
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(CONFIG_FILE_ID)) {

@@ -27,6 +27,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 				ReactorKeysEnum.PORT.toString(), ReactorKeysEnum.USERNAME.toString(),
 				ReactorKeysEnum.PASSWORD.toString(), ReactorKeysEnum.SCHEMA.toString() };
 	}
+
 	@Override
 	public NounMetadata execute() {
 		String dbDriver = getDriver();
@@ -35,43 +36,33 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		String username = getUsername();
 		String password = getPassword();
 		String schema = getSchema();
-		
+
 		Connection con = null;
 		String schemaJSON = "";
 		NounMetadata noun = null;
 		try {
-			con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username, password, schema, null); 
+			con = RdbmsConnectionHelper.buildConnection(dbDriver, host, port, username, password, schema, null);
 			String url = "";
 			HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
 			// [colDetails]
 			HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
-			// [(obj_table,
-			// fromCol,
-			// toCol)]
+			// [(obj_table, fromCol, toCol)]
 
 			DatabaseMetaData meta = con.getMetaData();
 			ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
 			while (tables.next()) {
 				ArrayList<String> primaryKeys = new ArrayList<String>();
 				HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
-				// ,
-				// type:
-				// ,
-				// isPK:
+
 				ArrayList<HashMap> allCols = new ArrayList<HashMap>();
 				HashMap<String, String> fkDetails = new HashMap<String, String>();
 				ArrayList<HashMap> allRels = new ArrayList<HashMap>();
 
 				String table = tables.getString("table_name");
-				System.out.println("Table: " + table);
 				ResultSet keys = meta.getPrimaryKeys(null, null, table);
 				while (keys.next()) {
 					primaryKeys.add(keys.getString("column_name"));
-
-					System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
 				}
-
-				System.out.println("COLUMNS " + primaryKeys);
 				keys = meta.getColumns(null, null, table, null);
 				while (keys.next()) {
 					colDetails = new HashMap<String, Object>();
@@ -83,13 +74,8 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 						colDetails.put("isPK", false);
 					}
 					allCols.add(colDetails);
-
-					System.out.println(
-							"\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
 				}
 				tableDetails.put(table, allCols);
-
-				System.out.println("FOREIGN KEYS");
 				keys = meta.getExportedKeys(null, null, table);
 				while (keys.next()) {
 					fkDetails = new HashMap<String, String>();
@@ -97,9 +83,6 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 					fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
 					fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
 					allRels.add(fkDetails);
-
-					System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") + " -> "
-							+ keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
 				}
 				relations.put(table, allRels);
 			}
@@ -126,7 +109,6 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 				try {
 					con.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -134,6 +116,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 
 		return noun;
 	}
+
 	private String getSchema() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.SCHEMA.toString());
 		if (grs != null && !grs.isEmpty()) {
@@ -144,6 +127,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.toString());
 	}
+
 	private String getPassword() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PASSWORD.toString());
 		if (grs != null && !grs.isEmpty()) {
@@ -154,6 +138,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PASSWORD.toString());
 	}
+
 	private String getUsername() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USERNAME.toString());
 		if (grs != null && !grs.isEmpty()) {
@@ -164,6 +149,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.USERNAME.toString());
 	}
+
 	private String getPort() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PORT.toString());
 		if (grs != null && !grs.isEmpty()) {
@@ -174,6 +160,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PORT.toString());
 	}
+
 	private String getHost() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.HOST.toString());
 		if (grs != null && !grs.isEmpty()) {
@@ -184,6 +171,7 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.HOST.toString());
 	}
+
 	private String getDriver() {
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DB_DRIVER_KEY.toString());
 		if (grs != null && !grs.isEmpty()) {
