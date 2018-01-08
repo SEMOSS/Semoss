@@ -179,6 +179,18 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	@Override
+	public double[][] getDoubleMatrix(String script) {
+		try {
+			return retCon.eval(script).asDoubleMatrix();
+		} catch (RserveException e) {
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 	@Override
 	public Object getFactor(String script) {
