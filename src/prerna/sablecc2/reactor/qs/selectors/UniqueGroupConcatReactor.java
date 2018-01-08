@@ -20,7 +20,7 @@ public class UniqueGroupConcatReactor extends QuerySelectReactor {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
 				NounMetadata input = qsInputs.getNoun(selectIndex);
 				IQuerySelector innerSelector = getSelector(input);
-				qs.addSelector(genFunctionSelector(QueryFunctionHelper.UNIQUE_GROUP_CONCAT, innerSelector));
+				qs.addSelector(genFunctionSelector(QueryFunctionHelper.UNIQUE_GROUP_CONCAT, innerSelector, true));
 			}
 		}
 		return qs;
