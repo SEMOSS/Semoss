@@ -26,7 +26,13 @@ import prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.WekaAprioriReactor;
 import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
-import prerna.sablecc2.reactor.algorithms.XRayReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetCSVSchemaReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetExternalDBSchemaReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetLocalDBSchemaReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
+import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
@@ -458,8 +464,15 @@ public class ReactorFactory {
 		reactorHash.put("RunSimilarity", SimilarityAlgorithmReactor.class);
 		reactorHash.put("RunOutlier", OutlierAlgorithmReactor.class);
 		reactorHash.put("Ratio", RatioAlgorithmReactor.class);
+		//xray reactors
 		reactorHash.put("RunXray", XRayReactor.class);
-
+		reactorHash.put("GetXrayConfigList", GetXrayConfigListReactor.class);
+		reactorHash.put("GetXrayConfigFile", GetXrayConfigFileReactor.class);
+		reactorHash.put("GetLocalSchema", GetLocalDBSchemaReactor.class);
+		reactorHash.put("GetXLSchema", GetXLSchemaReactor.class);
+		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
+		reactorHash.put("GetExternalSchema", GetExternalDBSchemaReactor.class);
+		
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
 		reactorHash.put("RunMatrixRegression", MatrixRegressionReactor.class);
