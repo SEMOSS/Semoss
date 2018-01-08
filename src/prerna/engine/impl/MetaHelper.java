@@ -13,7 +13,6 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
-import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IExplorable;
 import prerna.engine.api.ISelectStatement;
@@ -23,6 +22,7 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
@@ -494,7 +494,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public QueryStruct getDatabaseQueryStruct() {
+	public QueryStruct2 getDatabaseQueryStruct() {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -46,7 +46,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.algorithm.learning.matching.DomainValues;
 import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
@@ -1631,7 +1630,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			throws JsonGenerationException, JsonMappingException, IOException {
 		IEngine engine = Utility.getEngine(engineName);
 		List<String> concepts = DomainValues.getConceptList(engine);
-		QueryStruct qs = engine.getDatabaseQueryStruct();
+		QueryStruct2 qs = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = qs.getRelations();
 		// get relations
 		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
