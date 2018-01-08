@@ -66,7 +66,7 @@ public enum ReactorKeysEnum {
 	RECIPE("recipe", 										"Recipe that shows the sequence of pixels resulting in the insight"),
 	REGEX("regex", 											"Regular expression (sequence of characters)"),
 	REPOSITORY("repository", 								"Name of the repository. Usually namespaced to be username\\appname"),
-	SCHEMA("schema",                                        ""),
+	SCHEMA("schema",                                        "The database schema."),
 	SESSION_ID("sessionId", 								"Id of the session"),
 	SHEET_NAME("sheetName",                                 "The name of the excel sheet"),
 	SORT("sort", 											"Sort direction: ascending (\"asc\") or decending (\"desc\")"),

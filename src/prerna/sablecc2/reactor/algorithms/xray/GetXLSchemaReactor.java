@@ -23,7 +23,7 @@ import prerna.util.Utility;
 
 public class GetXLSchemaReactor extends AbstractReactor {
 	public GetXLSchemaReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.toString(), ReactorKeysEnum.SHEET_NAME.toString()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.toString(), ReactorKeysEnum.SHEET_NAME.toString() };
 	}
 
 	@Override
