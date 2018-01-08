@@ -31,10 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.QueryStruct;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public interface IExplorable {
@@ -194,7 +194,7 @@ public interface IExplorable {
 	List<String> getParentOfProperty2(String property);
 	
 	// 
-	QueryStruct getDatabaseQueryStruct();
+	QueryStruct2 getDatabaseQueryStruct();
 	
 	
 	// REFAC: Change this to engine - this should be local master
