@@ -14,7 +14,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -22,6 +21,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetExternalDBSchemaReactor extends AbstractReactor {
+	
 	public GetExternalDBSchemaReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.toString(), ReactorKeysEnum.HOST.toString(),
 				ReactorKeysEnum.PORT.toString(), ReactorKeysEnum.USERNAME.toString(),
@@ -30,13 +30,32 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String dbDriver = getDriver();
-		String host = getHost();
-		String port = getPort();
-		String username = getUsername();
-		String password = getPassword();
-		String schema = getSchema();
-
+		organizeKeys();
+		String dbDriver = this.keyValue.get(this.keysToGet[0]);
+		if(dbDriver == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DB_DRIVER_KEY.toString());
+		}
+		String host = this.keyValue.get(this.keysToGet[1]);
+		if(host == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.HOST.toString());
+		}
+		String port = this.keyValue.get(this.keysToGet[2]);
+		if(port == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PORT.toString());
+		}
+		String username = this.keyValue.get(this.keysToGet[3]);
+		if(username == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.USERNAME.toString());
+		}
+		String password = this.keyValue.get(this.keysToGet[4]);
+		if(password == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PASSWORD.toString());
+		}
+		String schema = this.keyValue.get(this.keysToGet[5]);
+		if(schema == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.toString());
+		}
+		
 		Connection con = null;
 		String schemaJSON = "";
 		NounMetadata noun = null;
@@ -115,72 +134,6 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		}
 
 		return noun;
-	}
-
-	private String getSchema() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.SCHEMA.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String sheet = grs.getNoun(0).getValue() + "";
-			if (sheet.length() > 0) {
-				return sheet;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.toString());
-	}
-
-	private String getPassword() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PASSWORD.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String sheet = grs.getNoun(0).getValue() + "";
-			if (sheet.length() > 0) {
-				return sheet;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PASSWORD.toString());
-	}
-
-	private String getUsername() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USERNAME.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String sheet = grs.getNoun(0).getValue() + "";
-			if (sheet.length() > 0) {
-				return sheet;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.USERNAME.toString());
-	}
-
-	private String getPort() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.PORT.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String sheet = grs.getNoun(0).getValue() + "";
-			if (sheet.length() > 0) {
-				return sheet;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PORT.toString());
-	}
-
-	private String getHost() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.HOST.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String sheet = grs.getNoun(0).getValue() + "";
-			if (sheet.length() > 0) {
-				return sheet;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.HOST.toString());
-	}
-
-	private String getDriver() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DB_DRIVER_KEY.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String sheet = grs.getNoun(0).getValue() + "";
-			if (sheet.length() > 0) {
-				return sheet;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DB_DRIVER_KEY.toString());
 	}
 
 }
