@@ -24,7 +24,7 @@ public class AddInsightCommentReactor extends AbstractReactor {
 		if(rdbmsId == null) {
 			throw new IllegalArgumentException("Need to know which insight this comment belongs to");
 		}
-		String comment = this.keyValue.get(this.keysToGet[1]);
+		String comment = this.keyValue.get(this.keysToGet[2]);
 		if(comment == null || comment.trim().isEmpty()) {
 			throw new IllegalArgumentException("Need a comment to save");
 		}
