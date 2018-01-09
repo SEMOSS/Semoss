@@ -77,6 +77,7 @@ import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
+import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -301,6 +302,9 @@ public class ReactorFactory {
 		reactorHash.put("BackupDatabase", BackupDatabaseReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
 		
+		// Semantic blending
+		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
+		
 		// Query Struct Reactors
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
@@ -422,7 +426,7 @@ public class ReactorFactory {
 		reactorHash.put("SetPanelPosition", SetPanelPositionReactor.class);
 		reactorHash.put("RetrievePanelPosition", RetrievePanelPositionReactor.class);
 
-		// new panel
+		// new tab in browser
 		reactorHash.put("OpenTab", OpenTabReactor.class);
 
 		// Insight Reactors
