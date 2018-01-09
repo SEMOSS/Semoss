@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -101,6 +102,13 @@ public interface IRJavaTranslator {
 	 * @param script
 	 */
 	int[] getHistogramCounts(String script);
+	
+	/**
+	 * This method uses specific Rserve or JRI methods to get a table in the form Map<String, Object>
+	 * @param framename
+	 * @param colNames
+	 */
+	Map<String, Object> flushObjectAsTable(String framename, String[] colNames);
 	
 	/**
 	 * Set the insight
