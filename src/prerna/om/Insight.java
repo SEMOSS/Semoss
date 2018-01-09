@@ -29,6 +29,7 @@ package prerna.om;
 
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CacheFactory;
+import prerna.comments.InsightComment;
+import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
@@ -94,6 +97,9 @@ public class Insight {
 	*/
 	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();	
 	
+	// insight comments
+	private transient LinkedList<InsightComment> insightCommentList = null;
+	
 	// this is the store holding information around the panels associated with this insight
 	private transient Map<String, InsightPanel> insightPanels = new Hashtable<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
@@ -143,6 +149,340 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////// START EXECUTION OF PIXEL //////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+
+	// run a new pixel routine
+	public synchronized Map<String, Object> runPixel(String pixelString) {
+		PixelRunner runner = getPixelRunner();
+		LOGGER.info("Running >>> " + pixelString);
+		runner.runPixel(pixelString, this);
+		return collectPixelData(runner);
+	}
+
+	// run a new list of pixel routines
+	public synchronized Map<String, Object> runPixel(List<String> pixelList) {
+		PixelRunner runner = getPixelRunner();
+		int size = pixelList.size();
+		for(int i = 0; i < size; i++) {
+			String pixelString = pixelList.get(i);
+			LOGGER.info("Running >>> " + pixelString);
+			runner.runPixel(pixelString, this);
+		}
+		return collectPixelData(runner);
+	}
+
+	/**
+	 * 
+	 * @param runner
+	 * @return
+	 */
+	private Map<String, Object> collectPixelData(PixelRunner runner) {
+		// get the return values
+		List<NounMetadata> resultList = runner.getResults();
+		// get the expression which created the return
+		// this matches with the above by index
+		List<String> pixelStrings = runner.getPixelExpressions();
+		List<Boolean> isMeta = runner.isMeta();
+		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
+		boolean invalidSyntax = runner.isInvalidSyntax();
+		
+		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
+		String expression = null;
+		for (int i = 0; i < pixelStrings.size(); i++) {
+			NounMetadata noun = resultList.get(i);
+			Map<String, Object> ret = processNounMetadata(noun);
+			// get the expression which created this return
+			expression = pixelStrings.get(i);
+			expression = recreateOriginalPixelExpression(expression, encodedTextToOriginal);
+			ret.put("pixelExpression", expression);
+			// save the expression for future use
+			// only if it is not meta
+			// and if it is not invalid syntax
+			if (!isMeta.get(i) && !invalidSyntax) {
+				ret.put("isMeta", false);
+				this.pixelList.add(expression);
+			} else {
+				ret.put("isMeta", true);
+			}
+			// add it to the list
+			retValues.add(ret);
+		}
+		
+		Map<String, Object> retData = new Hashtable<String, Object>();
+		retData.put("pixelReturn", retValues);
+		retData.put("insightID", this.insightId);
+		return retData;
+	}
+
+	/**
+	 * 
+	 * @param curType
+	 * @param curExpression
+	 */
+	public void trackPixels(String curType, String curExpression) {
+		String thisType = curType;
+		String prevType = this.prevType;
+		String thisExpression = curExpression;
+		String thisPrevExpression = this.thisPrevExpression;
+		NounMetadata session = this.getVarStore().get("$SESSION_ID");
+		// session is null if opening a saved insight
+		// we don't need to track these pixels again
+		if (session != null) {
+			String userID = (String) session.getValue();
+			GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
+			// set this expression as insight level previous expression
+			this.thisPrevExpression = thisExpression;
+			this.prevType = curType;
+			// fire and release...
+			ga.start();
+		}
+	}
+
+	private Map<String, Object> processNounMetadata(NounMetadata noun) {
+		Map<String, Object> ret = new HashMap<String, Object>();
+		if(noun.getNounType() == PixelDataType.FRAME) {
+			// if we have a frame
+			// return the table name of the frame
+			// FE needs this to create proper QS
+			// this has no meaning for graphs
+			Map<String, String> frameData = new HashMap<String, String>();
+			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+			frameData.put("type", frame.getDataMakerName());
+			String name = frame.getTableName();
+			if(name != null) {
+				frameData.put("name", name);
+			}
+			ret.put("output", frameData);
+			ret.put("operationType", noun.getOpType());
+		} else if(noun.getNounType() == PixelDataType.CODE) {
+			// code is a tough one to process
+			// since many operations could have been performed
+			// we need to loop through a set of noun meta datas to output
+			ret.put("operationType", noun.getOpType());
+			List<Map<String, Object>> outputList = new Vector<Map<String, Object>>();
+			List<NounMetadata> codeOutputs = (List<NounMetadata>) noun.getValue();
+			int numOutputs = codeOutputs.size();
+			for(int i = 0; i < numOutputs; i++) {
+				outputList.add(processNounMetadata(codeOutputs.get(i)));
+			}
+			ret.put("output", outputList);
+		} else {
+			ret.put("output", noun.getValue());
+			ret.put("operationType", noun.getOpType());
+		}
+		return ret;
+	}
+	
+	private String recreateOriginalPixelExpression(String expression, Map<String, String> encodedTextToOriginal) {
+		if(encodedTextToOriginal == null || encodedTextToOriginal.isEmpty()) {
+			return expression;
+		}
+		// loop through and see if any encodedText portions have been modified
+		// if they have, try and replace them back so it looks pretty for the FE
+		for(String encodedText : encodedTextToOriginal.keySet()) {
+			if(expression.contains(encodedText)) {
+				expression = expression.replace(encodedText, encodedTextToOriginal.get(encodedText));
+			}
+		}
+		return expression;
+	}
+	
+	public PixelRunner getPixelRunner() {
+		PixelRunner runner = new PixelRunner();
+		return runner;
+	}
+	
+	public void addFileUsedInInsight(FileMeta fileMeta) {
+		this.filesUsedInInsight.add(fileMeta);
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////// END EXECUTION OF PIXEL ///////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	public Map<String, InsightPanel> getInsightPanels() {
+		return this.insightPanels;
+	}
+	
+	public InsightPanel getInsightPanel(String panelId) {
+		return this.insightPanels.get(panelId);
+	}
+	
+	public void addNewInsightPanel(InsightPanel insightPanel) {
+		this.insightPanels.put(insightPanel.getPanelId(), insightPanel);
+	}
+	
+	public LinkedList<InsightComment> getInsightComments() {
+		if(this.insightCommentList == null) {
+			this.insightCommentList = InsightCommentHelper.generateInsightCommentList(this.engineName, this.rdbmsId);
+		}
+		return this.insightCommentList;
+	}
+	
+	public void addInsightComment(InsightComment newComment) {
+		InsightCommentHelper.addInsightCommentToList(getInsightComments(), newComment);
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////// GETTERS AND SETTERS /////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	public List<String> getPixelRecipe() {
+		return this.pixelList;
+	}
+
+	public void setPixelRecipe(List<String> pixelList) {
+		this.pixelList = pixelList;
+	}
+	
+	public String getInsightId() {
+		return insightId;
+	}
+
+	public void setInsightId(String insightId) {
+		this.insightId = insightId;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getRdbmsId() {
+		return rdbmsId;
+	}
+
+	public void setRdbmsId(String rdbmsId) {
+		this.rdbmsId = rdbmsId;
+	}
+
+	public String getEngineName() {
+		return engineName;
+	}
+
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
+
+	public String getInsightName() {
+		return insightName;
+	}
+
+	public void setInsightName(String insightName) {
+		this.insightName = insightName;
+	}
+	
+	public VarStore getVarStore() {
+		return this.varStore;
+	}
+	
+	public void setVarStore(VarStore varStore) {
+		this.varStore = varStore;
+	}
+	
+	public void setInsightOrnament(Map<String, Object> insightOrnament) {
+		this.insightOrnament = insightOrnament;
+	}
+	
+	public Map<String, Object> getInsightOrnament() {
+		return this.insightOrnament;
+	}
+	
+	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
+		if(this.rJavaTranslator == null) {
+			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
+		} else {
+			this.rJavaTranslator.setLogger(logger);
+		}
+		return this.rJavaTranslator;
+	}
+	
+	public TaskStore getTaskStore() {
+		return this.taskStore;
+	}
+	
+	public void setFilesUsedInInsight(List<FileMeta> filesUsed) {
+		this.filesUsedInInsight = filesUsed;
+	}
+
+	// TODO: need a better way of doing this...
+	// need to keep track of files that made this insight
+	public List<FileMeta> getFilesUsedInInsight() {
+		return this.filesUsedInInsight;
+	}
+
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	// TODO: methods i have but dont want to keep
+	
+	public void setIsOldInsight(boolean isOldInsight) {
+		this.isOldInsight = isOldInsight;
+	}
+	
+	public boolean isOldInsight() {
+		return this.isOldInsight;
+	}
+	
+	public IDataMaker getDataMaker() {
+		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
+		if(curFrameNoun != null) {
+			return ((IDataMaker) curFrameNoun.getValue());
+		}
+		return null;
+	}
+	
+	public void setDataMaker(IDataMaker datamaker) {
+		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
+	}
+	
+	public String getDataMakerName() {
+		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
+		if(curFrameNoun != null) {
+			return ((IDataMaker) curFrameNoun.getValue()).getDataMakerName();
+		}
+		// TODO: how do i handle this???
+		// might not be a grid in reality
+		// causing issues since we want to load the data maker before we execute anything
+		// but if we have multiple frames, we need to be smarter about how we do this
+		return "H2Frame";
+	}
+
+	public Map<String, Object> getWebData() {
+		return null;
+	}
+
+	public String getOrder() {
+		return "0";
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -308,18 +648,6 @@ public class Insight {
 		return runner;
 	}
 	
-	public Map<String, InsightPanel> getInsightPanels() {
-		return this.insightPanels;
-	}
-	
-	public InsightPanel getInsightPanel(String panelId) {
-		return this.insightPanels.get(panelId);
-	}
-	
-	public void addNewInsightPanel(InsightPanel insightPanel) {
-		this.insightPanels.put(insightPanel.getPanelId(), insightPanel);
-	}
-	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////// END EXECUTION OF PKQL ////////////////////////////////////
@@ -329,6 +657,7 @@ public class Insight {
 	/**
 	 * Load any cached objects relating to this insight
 	 */
+	@Deprecated
 	public void loadInsightCache() {
 		IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
 		if(dm != null) {
@@ -337,322 +666,5 @@ public class Insight {
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
 	}
 
-	// TODO ::: below is when I shift from PKQL to Pixel
-	// TODO ::: below is when I shift from PKQL to Pixel
-	// TODO ::: below is when I shift from PKQL to Pixel
-	// TODO ::: below is when I shift from PKQL to Pixel
-	// TODO ::: below is when I shift from PKQL to Pixel
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////// START EXECUTION OF PIXEL //////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-
-
-	// run a new pixel routine
-	public synchronized Map<String, Object> runPixel(String pixelString) {
-		PixelRunner runner = getPixelRunner();
-		LOGGER.info("Running >>> " + pixelString);
-		runner.runPixel(pixelString, this);
-		return collectPixelData(runner);
-	}
-
-	// run a new list of pixel routines
-	public synchronized Map<String, Object> runPixel(List<String> pixelList) {
-		PixelRunner runner = getPixelRunner();
-		int size = pixelList.size();
-		for(int i = 0; i < size; i++) {
-			String pixelString = pixelList.get(i);
-			LOGGER.info("Running >>> " + pixelString);
-			runner.runPixel(pixelString, this);
-		}
-		return collectPixelData(runner);
-	}
-
-	/**
-	 * 
-	 * @param runner
-	 * @return
-	 */
-	private Map<String, Object> collectPixelData(PixelRunner runner) {
-		// get the return values
-		List<NounMetadata> resultList = runner.getResults();
-		// get the expression which created the return
-		// this matches with the above by index
-		List<String> pixelStrings = runner.getPixelExpressions();
-		List<Boolean> isMeta = runner.isMeta();
-		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
-		boolean invalidSyntax = runner.isInvalidSyntax();
-		
-		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
-		String expression = null;
-		for (int i = 0; i < pixelStrings.size(); i++) {
-			NounMetadata noun = resultList.get(i);
-			Map<String, Object> ret = processNounMetadata(noun);
-			// get the expression which created this return
-			expression = pixelStrings.get(i);
-			expression = recreateOriginalPixelExpression(expression, encodedTextToOriginal);
-			ret.put("pixelExpression", expression);
-			// save the expression for future use
-			// only if it is not meta
-			// and if it is not invalid syntax
-			if (!isMeta.get(i) && !invalidSyntax) {
-				ret.put("isMeta", false);
-				this.pixelList.add(expression);
-			} else {
-				ret.put("isMeta", true);
-			}
-			// add it to the list
-			retValues.add(ret);
-		}
-		
-		Map<String, Object> retData = new Hashtable<String, Object>();
-		retData.put("pixelReturn", retValues);
-		retData.put("insightID", this.insightId);
-		return retData;
-	}
-
-	/**
-	 * 
-	 * @param curType
-	 * @param curExpression
-	 */
-	public void trackPixels(String curType, String curExpression) {
-		String thisType = curType;
-		String prevType = this.prevType;
-		String thisExpression = curExpression;
-		String thisPrevExpression = this.thisPrevExpression;
-		NounMetadata session = this.getVarStore().get("$SESSION_ID");
-		// session is null if opening a saved insight
-		// we don't need to track these pixels again
-		if (session != null) {
-			String userID = (String) session.getValue();
-			GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
-			// set this expression as insight level previous expression
-			this.thisPrevExpression = thisExpression;
-			this.prevType = curType;
-			// fire and release...
-			ga.start();
-		}
-	}
-
-	private Map<String, Object> processNounMetadata(NounMetadata noun) {
-		Map<String, Object> ret = new HashMap<String, Object>();
-		if(noun.getNounType() == PixelDataType.FRAME) {
-			// if we have a frame
-			// return the table name of the frame
-			// FE needs this to create proper QS
-			// this has no meaning for graphs
-			Map<String, String> frameData = new HashMap<String, String>();
-			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			frameData.put("type", frame.getDataMakerName());
-			String name = frame.getTableName();
-			if(name != null) {
-				frameData.put("name", name);
-			}
-			ret.put("output", frameData);
-			ret.put("operationType", noun.getOpType());
-		} else if(noun.getNounType() == PixelDataType.CODE) {
-			// code is a tough one to process
-			// since many operations could have been performed
-			// we need to loop through a set of noun meta datas to output
-			ret.put("operationType", noun.getOpType());
-			List<Map<String, Object>> outputList = new Vector<Map<String, Object>>();
-			List<NounMetadata> codeOutputs = (List<NounMetadata>) noun.getValue();
-			int numOutputs = codeOutputs.size();
-			for(int i = 0; i < numOutputs; i++) {
-				outputList.add(processNounMetadata(codeOutputs.get(i)));
-			}
-			ret.put("output", outputList);
-		} else {
-			ret.put("output", noun.getValue());
-			ret.put("operationType", noun.getOpType());
-		}
-		return ret;
-	}
 	
-	private String recreateOriginalPixelExpression(String expression, Map<String, String> encodedTextToOriginal) {
-		if(encodedTextToOriginal == null || encodedTextToOriginal.isEmpty()) {
-			return expression;
-		}
-		// loop through and see if any encodedText portions have been modified
-		// if they have, try and replace them back so it looks pretty for the FE
-		for(String encodedText : encodedTextToOriginal.keySet()) {
-			if(expression.contains(encodedText)) {
-				expression = expression.replace(encodedText, encodedTextToOriginal.get(encodedText));
-			}
-		}
-		return expression;
-	}
-	
-	public PixelRunner getPixelRunner() {
-		PixelRunner runner = new PixelRunner();
-		return runner;
-	}
-	
-	public void addFileUsedInInsight(FileMeta fileMeta) {
-		this.filesUsedInInsight.add(fileMeta);
-	}
-	
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// END EXECUTION OF PIXEL ///////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	
-	// TODO: this is way too convoluted
-	// need a more simplistic way of doing this
-	public Map<String, Object> getInsightMetaModel() {
-		IDataMaker dataMaker = getDataMaker();
-		if(!(dataMaker instanceof ITableDataFrame)) {
-			throw new IllegalArgumentException("This Insight is not eligible to navigate through Explore. The data maker is not of type ITableDataFrame.");
-		}
-		return ((ITableDataFrame) dataMaker).getMetaData().getMetamodel();
-	}
-	
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////// GETTERS AND SETTERS /////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	public List<String> getPixelRecipe() {
-		return this.pixelList;
-	}
-
-	public void setPixelRecipe(List<String> pixelList) {
-		this.pixelList = pixelList;
-	}
-	
-	public String getInsightId() {
-		return insightId;
-	}
-
-	public void setInsightId(String insightId) {
-		this.insightId = insightId;
-	}
-
-	public String getUserId() {
-		return userId;
-	}
-
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
-
-	public String getRdbmsId() {
-		return rdbmsId;
-	}
-
-	public void setRdbmsId(String rdbmsId) {
-		this.rdbmsId = rdbmsId;
-	}
-
-	public String getEngineName() {
-		return engineName;
-	}
-
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-
-	public String getInsightName() {
-		return insightName;
-	}
-
-	public void setInsightName(String insightName) {
-		this.insightName = insightName;
-	}
-	
-	public VarStore getVarStore() {
-		return this.varStore;
-	}
-	
-	public void setVarStore(VarStore varStore) {
-		this.varStore = varStore;
-	}
-	
-	public void setInsightOrnament(Map<String, Object> insightOrnament) {
-		this.insightOrnament = insightOrnament;
-	}
-	
-	public Map<String, Object> getInsightOrnament() {
-		return this.insightOrnament;
-	}
-	
-	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
-		if(this.rJavaTranslator == null) {
-			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
-		} else {
-			this.rJavaTranslator.setLogger(logger);
-		}
-		return this.rJavaTranslator;
-	}
-
-	// TODO: need a better way of doing this...
-	// need to keep track of files that made this insight
-	public List<FileMeta> getFilesUsedInInsight() {
-		return this.filesUsedInInsight;
-	}
-
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	
-	public void setIsOldInsight(boolean isOldInsight) {
-		this.isOldInsight = isOldInsight;
-	}
-	
-	public boolean isOldInsight() {
-		return this.isOldInsight;
-	}
-	
-	public IDataMaker getDataMaker() {
-		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
-		if(curFrameNoun != null) {
-			return ((IDataMaker) curFrameNoun.getValue());
-		}
-		return null;
-	}
-	
-	public void setDataMaker(IDataMaker datamaker) {
-		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
-	}
-	
-	public String getDataMakerName() {
-		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
-		if(curFrameNoun != null) {
-			return ((IDataMaker) curFrameNoun.getValue()).getDataMakerName();
-		}
-		// TODO: how do i handle this???
-		// might not be a grid in reality
-		// causing issues since we want to load the data maker before we execute anything
-		// but if we have multiple frames, we need to be smarter about how we do this
-		return "H2Frame";
-	}
-
-	public Map<String, Object> getWebData() {
-		return null;
-	}
-
-	public String getOrder() {
-		return "0";
-	}
-	
-	public TaskStore getTaskStore() {
-		return this.taskStore;
-	}
-	
-	public void setFilesUsedInInsight(List<FileMeta> filesUsed) {
-		this.filesUsedInInsight = filesUsed;
-	}
-
 }

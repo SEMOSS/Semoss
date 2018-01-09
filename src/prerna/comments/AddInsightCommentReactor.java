@@ -8,33 +8,36 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class AddInsightCommentReactor extends AbstractReactor {
 
 	public AddInsightCommentReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.INSIGHT_ID.getKey(),
+		this.keysToGet = new String[]{
+//				ReactorKeysEnum.ENGINE.getKey(),
+//				ReactorKeysEnum.INSIGHT_ID.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engine = this.keyValue.get(this.keysToGet[0]);
-		if(engine == null) {
-			throw new IllegalArgumentException("Need to define which engine this insight belongs to");
-		}
-		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
-		if(rdbmsId == null) {
-			throw new IllegalArgumentException("Need to define which insight this comment belongs to");
-		}
-		String comment = this.keyValue.get(this.keysToGet[2]);
+		String engine = this.insight.getEngineName();
+		String rdbmsId = this.insight.getRdbmsId();
+//		if(engine == null) {
+//			throw new IllegalArgumentException("Need to define which engine this insight belongs to");
+//		}
+//		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
+//		if(rdbmsId == null) {
+//			throw new IllegalArgumentException("Need to define which insight this comment belongs to");
+//		}
+		String comment = this.keyValue.get(this.keysToGet[0]);
 		if(comment == null || comment.trim().isEmpty()) {
 			throw new IllegalArgumentException("Need a comment to save");
 		}
 		
 		// after grabbing the input, write it to a file		
-		InsightComment iComment = new InsightComment();
+		InsightComment iComment = new InsightComment(engine, rdbmsId);
 		iComment.setComment(comment);
-		iComment.setCreatedTimeStamp(InsightComment.getCurrentDate());
-		iComment.writeToFile(engine, rdbmsId, comment);
-		return new NounMetadata(iComment.getCommentId(), PixelDataType.CONST_STRING);
+		iComment.setAction(InsightComment.ADD_ACTION);
+		// add the comment to the chain
+		this.insight.addInsightComment(iComment);
+		return new NounMetadata(iComment.getId(), PixelDataType.CONST_STRING);
 	}
 	
 }
