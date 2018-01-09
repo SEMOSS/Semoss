@@ -1,13 +1,13 @@
 package prerna.sablecc2.reactor.expression;
 
+import java.util.Iterator;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
-import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
-import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
-import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
-import prerna.sablecc.expressions.sql.builder.SqlMathSelector;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,9 +19,9 @@ public abstract class OpBasicMath extends OpReactor {
 
 	protected String operation;
 	protected boolean returnInteger = true;
-	
+
 	protected abstract double evaluate(Object[] values);
-	
+
 	/*
 	 * This class is to be extended for basic math operations
 	 * To deal with string inputs that need to be evaluated
@@ -31,17 +31,17 @@ public abstract class OpBasicMath extends OpReactor {
 	 * 		make generic expression class that uses
 	 * 		existing classes
 	 */
-	
+
 	public OpBasicMath() {
 		this.keysToGet = new String[]{ReactorKeysEnum.NUMERIC_VALUES.getKey()};
 	}
-	
-	
+
+
 	@Override
 	public NounMetadata execute() {
 		NounMetadata[] nouns = getValues();
 		Object[] values = evaluateNouns(nouns);
-		
+
 		NounMetadata retNoun = null;
 		double result = evaluate(values);
 		if(returnInteger) {
@@ -61,7 +61,7 @@ public abstract class OpBasicMath extends OpReactor {
 		}
 		return retNoun;
 	}
-	
+
 	protected Object[] evaluateNouns(NounMetadata[] nouns) {
 		Object[] evaluatedNouns = new Object[nouns.length];
 		for(int i = 0; i < nouns.length; i++) {
@@ -91,13 +91,13 @@ public abstract class OpBasicMath extends OpReactor {
 		}
 		return evaluatedNouns;
 	}
-	
+
 	protected double evaluateString(String operation, NounMetadata frameColNoun) {
 		// to enter here
 		// it is assumed that the value is a string within the frame
 		IDataMaker dataMaker = this.insight.getDataMaker();
 		String frameColName = frameColNoun.getValue().toString();
-		
+
 		if(dataMaker instanceof ITableDataFrame) {
 			ITableDataFrame dataframe = (ITableDataFrame) dataMaker;
 			String[] headers = dataframe.getColumnHeaders();
@@ -113,7 +113,7 @@ public abstract class OpBasicMath extends OpReactor {
 			throw new IllegalArgumentException("Cannot execute " + operation + " of " + frameColName + " with the given frame");
 		}
 	}
-	
+
 	/**
 	 * Evaluate a string input - assumes the input is a column on the frame
 	 * @param operation			The operation to execute - i.e. sum/min/max
@@ -121,26 +121,20 @@ public abstract class OpBasicMath extends OpReactor {
 	 * @return
 	 */
 	private double evaluateString(ITableDataFrame frame, String operation, String frameColName) {
-		// TODO: make this generic
-		// at the moment, just going to assume this is sql
-		if(frame instanceof H2Frame) {
-			H2Frame h2Frame = (H2Frame) frame;
-			SqlColumnSelector colS = new SqlColumnSelector(h2Frame, frameColName);
-			SqlMathSelector sumS = new SqlMathSelector(colS, operation, operation);
-			
-			SqlExpressionBuilder builder = new SqlExpressionBuilder(h2Frame);
-			builder.addSelector(sumS);
-			H2SqlExpressionIterator it = new H2SqlExpressionIterator(builder);
-			if(it.hasNext()) {
-				return ((Number) it.next()[0]).doubleValue();
-			} else {
-				throw new IllegalArgumentException("Failure in execution of " + operation + " " + frameColName);
-			}
+		QueryColumnSelector columnSelector = new QueryColumnSelector(frameColName);
+		QueryFunctionSelector opFunction = new QueryFunctionSelector();
+		opFunction.setFunction(operation);
+		opFunction.addInnerSelector(columnSelector);
+		QueryStruct2 qs = new QueryStruct2();
+		qs.addSelector(opFunction);
+		Iterator<IHeadersDataRow> it = frame.query(qs);
+		if(it.hasNext()) {
+			return ((Number) it.next().getValues()[0]).doubleValue();
 		} else {
 			throw new IllegalArgumentException("Cannot execute " + operation + " of " + frameColName + " with the given frame");
 		}
 	}
-	
+
 	/**
 	 * Convert the object array to a double array
 	 * This should only be used when running a required sort
@@ -150,8 +144,8 @@ public abstract class OpBasicMath extends OpReactor {
 	protected static double[] convertToDoubleArray(Object[] values) {
 		return convertToDoubleArray(values, 0, values.length);
 	}
-	
-	
+
+
 	/**
 	 * Convert the object array to a double array
 	 * This is done based on the start/end index passed in
@@ -165,14 +159,14 @@ public abstract class OpBasicMath extends OpReactor {
 		for(int i = startIndex; i < lastIndex; i++) {
 			dblArray[i] = ((Number)values[i]).doubleValue();
 		}
-		
+
 		return dblArray;
 	}
-	
+
 	public String getReturnType() {
 		return "double";
 	}
-	
+
 	public String getJavaSignature() {
 		StringBuilder javaSignature = new StringBuilder(this.getClass().getName()+".eval(new double[]{");
 		List<NounMetadata> inputs = this.getJavaInputs();
@@ -180,7 +174,7 @@ public abstract class OpBasicMath extends OpReactor {
 			if(i > 0) {
 				javaSignature.append(", ");
 			}
-			
+
 			String nextArgument;
 			NounMetadata nextNoun = inputs.get(i);
 			Object nextInput = inputs.get(i).getValue();
@@ -196,7 +190,7 @@ public abstract class OpBasicMath extends OpReactor {
 			javaSignature.append(nextArgument);
 		}
 		javaSignature.append("})");
-		
+
 		return javaSignature.toString();
 	}
 }
