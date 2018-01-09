@@ -14,14 +14,17 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
 import prerna.rpa.security.Cryptographer;
-import prerna.util.DIHelper;
+import prerna.rpa.security.EncryptionException;
 
 public class RPAProps {
 
 	private static final Logger LOGGER = LogManager.getLogger(RPAProps.class.getName());
 
-	////////////////////////////////////////
+	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
+	
+	////////////////////////////////////////////////////////////
 	// Default property names
 	
 	// Automatically generated
@@ -32,19 +35,17 @@ public class RPAProps {
 	
 	// Only if given
 	public static final String TRIGGER_NOW = "trigger.now";
-	////////////////////////////////////////
+	////////////////////////////////////////////////////////////
 	
-	////////////////////////////////////////
+	////////////////////////////////////////////////////////////
 	// Default config files and directories
 	private static final String PROPERTY_FILE_NAME = "rpa.properties";
 	private static final String PASSWORD_FILE_NAME = "rpa.password";
 	private static final String TEXT_FOLDER = "text";
 	private static final String JSON_FOLDER = "json";
-	////////////////////////////////////////
+	////////////////////////////////////////////////////////////
 	
 	private static final String ENCRYPTED_REGEX = "<encrypted>(.*?)</encrypted>";
-
-	private static RPAProps propsSingleton;
 	
 	// Assumes alphabetical order when saving to file
 	private static Properties props = new Properties() {
@@ -56,20 +57,20 @@ public class RPAProps {
 	    }
 	};
 
-	private static String propertyFilePath;
+	private final String propertyFilePath;
 
-	private static char[] rpaPassword; // For decrypting encrypted properties
+	private final char[] rpaPassword; // For decrypting encrypted properties
 	
 	// Singleton properties class
 	// This needs the rpa.config system property defined
 	private RPAProps() {
-		String rpaConfigDirectory = DIHelper.getInstance().getProperty(RPA_CONFIG_DIRECTORY_KEY);
+		String rpaConfigDirectory = System.getProperty(RPA_CONFIG_DIRECTORY_KEY);
 		
 		// Just in case make sure that it ends with a file separator
 		if (rpaConfigDirectory.endsWith("/") || rpaConfigDirectory.endsWith("\\")) {
 			rpaConfigDirectory = rpaConfigDirectory.substring(0, rpaConfigDirectory.length() - 1);
 		}
-		rpaConfigDirectory += System.getProperty("file.separator");
+		rpaConfigDirectory += FILE_SEPARATOR;
 
 		// Read in the properties
 		propertyFilePath = rpaConfigDirectory + PROPERTY_FILE_NAME;
@@ -102,19 +103,29 @@ public class RPAProps {
 		// Set default properties
 		setProperty(RPA_CONFIG_DIRECTORY_KEY, rpaConfigDirectory);
 		setProperty(PROPERTY_FILE_PATH_KEY, propertyFilePath);
-		setProperty(TEXT_DIRECTORY_KEY, rpaConfigDirectory + TEXT_FOLDER + System.getProperty("file.separator"));
-		setProperty(JSON_DIRECTORY_KEY, rpaConfigDirectory + JSON_FOLDER + System.getProperty("file.separator"));		
+		setProperty(TEXT_DIRECTORY_KEY, rpaConfigDirectory + TEXT_FOLDER + FILE_SEPARATOR);
+		setProperty(JSON_DIRECTORY_KEY, rpaConfigDirectory + JSON_FOLDER + FILE_SEPARATOR);		
 	}
 
+    private static class LazyHolder {
+    	
+    	private LazyHolder() {
+    		throw new IllegalStateException("Static class");
+    	}
+    	
+        private static final RPAProps INSTANCE = new RPAProps();
+    }
+	
 	public static RPAProps getInstance() {
-		if (propsSingleton == null) {
-			propsSingleton = new RPAProps();
-		}
-		return propsSingleton;
+		return LazyHolder.INSTANCE;
 	}
 
-	public String getProperty(String propertyName) throws Exception {
-		String propertyValue = props.getProperty(propertyName, "");
+	public String getProperty(String propertyName) {
+		return getProperty(propertyName, "");
+	}
+	
+	public String getProperty(String propertyName, String defaultValue) {
+		String propertyValue = props.getProperty(propertyName, defaultValue);
 		Matcher encryptedMatcher = Pattern.compile(ENCRYPTED_REGEX).matcher(propertyValue);
 		if (encryptedMatcher.matches()) {
 			String encryptedString = encryptedMatcher.group(1);
@@ -122,7 +133,7 @@ public class RPAProps {
 			encryptedString = encryptedString.substring(10);
 			try {
 				propertyValue = Cryptographer.decrypt(encryptedString, salt, rpaPassword);
-			} catch(Exception e) {
+			} catch(EncryptionException e) {
 				LOGGER.error("Failed to decrypt the encrypted property " + propertyName + ". Please check to make sure the password in " + PASSWORD_FILE_NAME + " is correct.");
 				throw e;
 			}
@@ -134,15 +145,10 @@ public class RPAProps {
 		props.put(propertyName, propertyValue);
 	}
 	
-	public void setEncrpytedProperty(String propertyName, String propertyValue) throws Exception {
+	public void setEncrpytedProperty(String propertyName, String propertyValue) {
 		String salt = Cryptographer.getSalt();
-		try {
-			String encryptedPropertyValue = Cryptographer.encrypt(propertyValue, salt, rpaPassword);
-			props.put(propertyName, "<encrypted>" + salt + encryptedPropertyValue + "</encrypted>");
-		} catch (Exception e) {
-			LOGGER.error("Failed to encrpyt the " + propertyName + " property.");
-			throw e;
-		}
+		String encryptedPropertyValue = Cryptographer.encrypt(propertyValue, salt, rpaPassword);
+		props.put(propertyName, "<encrypted>" + salt + encryptedPropertyValue + "</encrypted>");		
 	}
 
 	public void removeProperty(String propertyName) {

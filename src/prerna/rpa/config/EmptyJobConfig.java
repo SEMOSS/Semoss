@@ -1,7 +1,5 @@
 package prerna.rpa.config;
 
-import org.quartz.JobDataMap;
-
 import com.google.gson.JsonObject;
 
 /**
@@ -11,12 +9,12 @@ import com.google.gson.JsonObject;
 public class EmptyJobConfig extends JobConfig {
 	
 	public EmptyJobConfig(JsonObject jobDefinition) {
-		// Do nothing
+		super(jobDefinition);
 	}
 
 	@Override
-	public JobDataMap getJobDataMap() throws Exception {
-		return new JobDataMap();
+	protected void populateJobDataMap() {
+		// Do nothing
 	}
 	
 }

@@ -1,6 +1,7 @@
 package prerna.rpa.quartz.jobs.example;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -8,6 +9,7 @@ import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.UnableToInterruptJobException;
+
 import prerna.rpa.quartz.BatchedJobOutput;
 import prerna.rpa.quartz.CommonDataKeys;
 
@@ -38,13 +40,15 @@ public class JudgePiesJob implements org.quartz.InterruptableJob {
 		////////////////////
 		// Judge the pies
 		String pieWinner = "tie";
-		for (String pie : batchData.keySet()) {
-			JobDataMap pieData = batchData.get(pie).getJobDataMap();
-			boolean qualified = batchData.get(pie).wasSuccessful();
+		for (Entry<String, BatchedJobOutput> entry : batchData.entrySet()) {
+			String pie = entry.getKey();
+			BatchedJobOutput output = entry.getValue();
+			JobDataMap pieData = output.getJobDataMap();
+			boolean qualified = output.wasSuccessful();
 			if (!qualified) {
 				LOGGER.info("The baker of pie " + pie + " was disqualified");
 			} else {
-				String pieCondition = pieData.getString(BakePiesJob.OUT_PIE_CONDITION);
+				String pieCondition = pieData.getString(BakePieJob.OUT_PIE_CONDITION_KEY);
 				LOGGER.info("The pie " + pie + " was judged to be " + pieCondition);
 				
 				// Winner happens to favor the last one in the list
