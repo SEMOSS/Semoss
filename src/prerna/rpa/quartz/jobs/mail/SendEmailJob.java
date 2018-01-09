@@ -56,7 +56,7 @@ public class SendEmailJob implements org.quartz.InterruptableJob {
 		// Do work
 		////////////////////
 		EmailMessage message = new EmailMessage(from, to, subject, body, bodyIsHTML, session);
-		System.out.println(message.toString());
+		LOGGER.info(message.toString());
 		try {
 			message.send();
 		} catch (MessagingException e) {

@@ -3,8 +3,9 @@ package prerna.rpa.quartz;
 import static org.quartz.JobBuilder.newJob;
 import static org.quartz.impl.matchers.GroupMatcher.jobGroupEquals;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -18,6 +19,8 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.UnableToInterruptJobException;
 
+import prerna.rpa.RPAUtil;
+
 public class JobBatch implements org.quartz.InterruptableJob {
 	
 	private static final Logger LOGGER = LogManager.getLogger(JobBatch.class.getName());
@@ -25,10 +28,10 @@ public class JobBatch implements org.quartz.InterruptableJob {
 	/** {@code long} in seconds */
 	public static final String IN_TIMEOUT_KEY = JobBatch.class + ".timeout";
 	
-	/** {@code Map<String, BatchedJobInput>} - (identifier, (JobDataMap, Class<? extends InterruptableJob>)) */
+	/** {@code Map<String, BatchedJobInput>} - (identifier, ({@code JobDataMap}, {@code Class<? extends InterruptableJob>})) */
 	public static final String IN_BATCH_INPUT_MAP_KEY = CommonDataKeys.BATCH_INPUT_MAP;
 	
-	/** {@code Map<String, BatchedJobOutput>} - (identifier, (JobDataMap, success)) */
+	/** {@code Map<String, BatchedJobOutput>} - (identifier, ({@code JobDataMap}, success)) */
 	public static final String OUT_BATCH_OUTPUT_MAP_KEY = CommonDataKeys.BATCH_OUTPUT_MAP;
 	
 	/** {@code boolean} */
@@ -44,17 +47,23 @@ public class JobBatch implements org.quartz.InterruptableJob {
 	private boolean interrupted = false;
 	private boolean completed = false;
 	
+	private JobBatchTimeoutAlarm alarm;
+	
 	// (Identifier, JobDataMap)
-	private Map<String, BatchedJobOutput> batchOutputMap = new HashMap<String, BatchedJobOutput>();
+	private final Map<String, BatchedJobOutput> batchOutputMap = new ConcurrentHashMap<>();
 	
 	// (Identifier, Success)
-	private Map<String, Boolean> batchStatus = new HashMap<String, Boolean>();
-	
-	// Don't make this static in case there is more than one JobBatche
-	private Object jobMonitor = new Object();
+	private final Map<String, Boolean> batchStatus = new ConcurrentHashMap<>();
+		
+	// Don't make this static in case there is more than one JobBatch
+	private final Object jobMonitor = new Object();
 	
 	@SuppressWarnings("unchecked")
 	public void execute(JobExecutionContext context) throws JobExecutionException {
+		
+		////////////////////
+		// Get inputs
+		////////////////////
 		jobName = context.getJobDetail().getKey().getName();
 		batchedJobGroup = jobName + "BatchGroup";
 		scheduler = context.getScheduler();
@@ -67,9 +76,18 @@ public class JobBatch implements org.quartz.InterruptableJob {
 		// How long before we stop job execution
 		long timeout = jobDataMap.getLong(IN_TIMEOUT_KEY);
 		
+		////////////////////
+		// Do work
+		////////////////////
+		
+		// Set an alarm for the timeout
+		alarm = new JobBatchTimeoutAlarm(jobMonitor, timeout, this);
+		Thread alarmThread = new Thread(alarm);
+		alarmThread.setName(jobName + "_TimeoutAlarm");
+		alarmThread.start();
+		
 		// Add a listener to the scheduler
 		JobListener batchedJobListener = new BatchedJobListener(batchedJobGroup + ".batchedJobListener", this);
-
 		try {
 			
 			// If there is nesting of chains/batches, then the sub chain/batch will override the group by prepending its info
@@ -80,36 +98,8 @@ public class JobBatch implements org.quartz.InterruptableJob {
 		}
 					
 		// Loop through each job and trigger it
-		for (String identifier : batchMap.keySet()) {
-			BatchedJobInput batchedJobTuple = batchMap.get(identifier);
-			
-			// For the data map, add the context first
-			// Then add the map for the batched job
-			// Thus values in the map for the batched job will take precedence over the context
-			JobDataMap batchedJobDataMap = jobDataMap;
-			batchedJobDataMap.putAll(batchedJobTuple.getJobDataMap());
-			JobDetail batchedJob = newJob(batchedJobTuple.getJobClass()).withIdentity(identifier, batchedJobGroup).usingJobData(batchedJobDataMap).build();
-			JobKey batchedJobKey = batchedJob.getKey();
-			try {
-				scheduler.addJob(batchedJob, true, true);
-			} catch (SchedulerException e) {
-				terminateBatch("Failed to add the job " + identifier + " to the scheduler.", e);
-			}
-			LOGGER.info("Added the job " + identifier + " to " + batchedJobGroup + ".");
-			try {
-				scheduler.triggerJob(batchedJobKey);
-				LOGGER.info("Triggered the job " + identifier + ".");
-			} catch (SchedulerException e) {
-				terminateBatch("Failed to trigger the job " + identifier + ".", e);
-			}
-		}
-		
-		// Set an alarm for the timeout
-		JobBatchTimeoutAlarm alarm = new JobBatchTimeoutAlarm(jobMonitor, timeout, this);
-		Thread alarmThread = new Thread(alarm);
-		alarmThread.setName(jobName + "_TimeoutAlarm");
-		alarmThread.start();
-		
+		triggerBatch(batchMap, jobDataMap);
+				
 		// Wait for all the jobs to finish and report the progress
 		long startTime = System.currentTimeMillis();
 		while (!completed) {
@@ -120,34 +110,79 @@ public class JobBatch implements org.quartz.InterruptableJob {
 					jobMonitor.wait();
 				} catch (InterruptedException e) {
 					LOGGER.error("Thread for the " + jobName + " interrupted in an unexpected manner.", e);
+					
+					// Preserve interrupt status
+					Thread.currentThread().interrupt();
 				}
 			}
 			
 			// The timeout alarm will set timeOut to true if a timeout has occurred
 			// If so, terminate the batch
 			if (timedOut) {
-				terminateBatch("The job batch " + jobName + " has timed out after a period of " + QuartzUtility.minutesSinceStartTime(startTime) + " minutes.");
+				terminateBatch("The job batch " + jobName + " has timed out after a period of " + RPAUtil.minutesSinceStartTime(startTime) + " minutes.");
 			}
 			
 			// This job will set interrupted to true when interrupted
 			// If so, terminate the batch
 			if (interrupted) {
-				terminateBatch("The " + jobName + " job chain has been interrupted.");
+				try {
+					terminateBatch("The " + jobName + " job batch has been interrupted.");
+				} catch (JobExecutionException e) {
+					
+					// When interrupted, do not need to throw an exception
+					LOGGER.info("Gracefully terminated the " + jobName + " job batch.");
+					return;
+				}
 			}
 		}
 		
 		// If the jobs have been completed, notify the timeout alarm thread to stop waiting
 		alarm.interrupt();
 		
+		////////////////////
+		// Store outputs
+		////////////////////
+		
 		// Send the accumulated data from each job as the output
 		jobDataMap.put(OUT_BATCH_OUTPUT_MAP_KEY, batchOutputMap);
 		
 		// Send whether all jobs were successful
-		long successfulJobs = batchStatus.values().stream().filter(s -> s == true).count();
+		long successfulJobs = batchStatus.values().stream().filter(s -> s).count();
 		jobDataMap.put(OUT_ALL_JOBS_SUCCESSFUL_KEY, successfulJobs == totalJobs);
 		
-		long elapsedTime = QuartzUtility.minutesSinceStartTime(startTime);
+		long elapsedTime = RPAUtil.minutesSinceStartTime(startTime);
 		LOGGER.info("Job batch complete. Elapsed time " + elapsedTime + " minutes. " + successfulJobs + "/" +  totalJobs + " jobs completed successfully.");
+	}
+	
+	private void triggerBatch(Map<String, BatchedJobInput> batchMap, JobDataMap jobDataMap) throws JobExecutionException {
+		for (Entry<String, BatchedJobInput> entry : batchMap.entrySet()) {
+			String identifier = entry.getKey();
+			BatchedJobInput batchedJobTuple = entry.getValue();
+			
+			// For the data map, add the context first
+			// Then add the map for the batched job
+			// Thus values in the map for the batched job will take precedence over the context
+			// Don't want to override the original job data map, so we create a new one
+			JobDataMap batchedJobDataMap = new JobDataMap();
+			batchedJobDataMap.putAll(jobDataMap);
+			batchedJobDataMap.putAll(batchedJobTuple.getJobDataMap());
+			JobDetail batchedJob = newJob(batchedJobTuple.getJobClass()).withIdentity(identifier, batchedJobGroup).usingJobData(batchedJobDataMap).build();
+			JobKey batchedJobKey = batchedJob.getKey();
+			try {
+				scheduler.addJob(batchedJob, true, true);
+			} catch (SchedulerException e) {
+				terminateBatch("Failed to add the job " + identifier + " to the scheduler.", e);
+			}
+			LOGGER.info("Added the job " + identifier + " to " + batchedJobGroup + ".");
+			if (!interrupted) {
+				try {
+					scheduler.triggerJob(batchedJobKey);
+					LOGGER.info("Triggered the job " + identifier + ".");
+				} catch (SchedulerException e) {
+					terminateBatch("Failed to trigger the job " + identifier + ".", e);
+				}
+			}
+		}
 	}
 	
 	protected void completeJob(JobExecutionContext context, JobExecutionException jobException) {
@@ -160,11 +195,10 @@ public class JobBatch implements org.quartz.InterruptableJob {
 		// If the job completed in error or was terminated, mark the job as failed
 		boolean success = false;
 		if (timedOut) {
-			LOGGER.error("The job " + batchedJobName + " was terminated due to a timeout condition.");
+			LOGGER.warn("The job " + batchedJobName + " was terminated due to a timeout condition.");
 		} else if (interrupted) {
-			LOGGER.error("The job " + batchedJobName + " was interrupted.");
+			LOGGER.warn("The job " + batchedJobName + " was interrupted.");
 		} else if (jobException != null) {
-			jobException.printStackTrace();
 			LOGGER.error("The job " + batchedJobName + " failed.");
 		} else {
 			LOGGER.info("The job " + batchedJobName + " has successfully completed.");
@@ -185,7 +219,7 @@ public class JobBatch implements org.quartz.InterruptableJob {
 		
 		// Notify the execute method that a job has been completed
 		synchronized (jobMonitor) {
-			jobMonitor.notify();
+			jobMonitor.notifyAll();
 		}
 	}
 
@@ -194,16 +228,17 @@ public class JobBatch implements org.quartz.InterruptableJob {
 	}
 	
 	private void terminateBatch(String errorMessage, Exception e) throws JobExecutionException {
-		boolean withException = e != null;
-		LOGGER.error(errorMessage);
-		LOGGER.error("Terminating the " + jobName + " job batch.");
-		QuartzUtility.terminateAllJobsInGroup(scheduler, batchedJobGroup);
-		QuartzUtility.removeAllJobsInGroup(scheduler, batchedJobGroup);
+		LOGGER.warn(errorMessage);
+		LOGGER.warn("Terminating the " + jobName + " job batch.");
+		QuartzUtil.terminateAllJobsInGroup(scheduler, batchedJobGroup);
+		
+		// Before terminating, notify the timeout alarm thread to stop waiting
+		alarm.interrupt();
 		
 		// Throw an exception so that :
 		// 1) stop executing this job 
 		// 2) other jobs are aware this was terminated/failed
-		if (withException) {
+		if (e != null) {
 			throw new JobExecutionException(errorMessage, e);
 		} else {
 			throw new JobExecutionException(errorMessage);
@@ -216,11 +251,11 @@ public class JobBatch implements org.quartz.InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-
-		// Notify the waiting jobMonitor with the interrupted=true flag
 		interrupted = true;
+		
+		// Notify the waiting jobMonitor with the interrupted=true flag
 		synchronized (jobMonitor) {
-			jobMonitor.notify();
+			jobMonitor.notifyAll();
 		}	
 	}
 	

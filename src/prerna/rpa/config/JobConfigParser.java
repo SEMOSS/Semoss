@@ -9,19 +9,25 @@ import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
-import prerna.rpa.quartz.QuartzUtility;
-import prerna.rpa.quartz.SchedulerUtil;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import prerna.rpa.quartz.SchedulerUtil;
 
 public class JobConfigParser {
 
 	private static final Logger LOGGER = LogManager.getLogger(JobConfigParser.class.getName());
 	
-	public static JobKey parse(String jsonFileName, boolean unitTest) throws Exception {
+	private JobConfigParser() {
+		throw new IllegalStateException("All class members are static.");
+	}
+	
+	public static JobKey parse(String jsonFileName, boolean unitTest) throws ParseConfigException, IllegalConfigException, SchedulerException {
 
 		// Read in the json file
 		String jsonString = ConfigUtil.readStringFromJSONFile(jsonFileName);
@@ -29,22 +35,17 @@ public class JobConfigParser {
 		JsonObject jobDefinition = parser.parse(jsonString).getAsJsonObject();
 
 		// Get the job's properties
-		Class<? extends Job> jobClass = JobConfig.getJobClass(jobDefinition);
-		String jobName = JobConfig.getJobName(jobDefinition);
-		String jobGroup = JobConfig.getJobGroup(jobDefinition);
-		String jobCronExpression = JobConfig.getCronExpression(jobDefinition);
-
-		// For testing
-		if (unitTest) {
-			jobCronExpression = QuartzUtility.composeCronForNowPlus(5);
-		}
+		JobConfig jobConfig = JobConfig.initialize(jobDefinition);
+		Class<? extends Job> jobClass = jobConfig.getJobClass();
+		String jobName = jobConfig.getJobName();
+		String jobGroup = jobConfig.getJobGroup();
+		String jobCronExpression = jobConfig.getCronExpression();
 
 		// Get the job's data map
-		JobConfig jobConfig = JobConfig.initialize(jobDefinition);
 		JobDataMap jobDataMap;
 		try {
 			jobDataMap = jobConfig.getJobDataMap();
-		} catch (Exception e) {
+		} catch (ParseConfigException | IllegalConfigException e) {
 			LOGGER.error("Failed to parse job data map for " + jobName + ".");
 			throw e;
 		}
@@ -53,8 +54,14 @@ public class JobConfigParser {
 		JobDetail job = newJob(jobClass).withIdentity(jobName, jobGroup).usingJobData(jobDataMap).build();
 		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobName + "Trigger", jobName + "TriggerGroup")
 				.withSchedule(CronScheduleBuilder.cronSchedule(jobCronExpression)).build();
-		SchedulerUtil.getScheduler().scheduleJob(job, trigger);
-		LOGGER.info("Scheduled " + jobName + " to run on the following shedule: " + jobCronExpression + ".");
+		Scheduler scheduler = SchedulerUtil.getScheduler();
+		if (unitTest) {
+			scheduler.addJob(job, true, true);
+			scheduler.triggerJob(job.getKey());
+		} else {
+			scheduler.scheduleJob(job, trigger);
+		}
+		LOGGER.info("Scheduled " + jobName + " to run on the following schedule: " + jobCronExpression + ".");
 		
 		// Return the job key
 		return job.getKey();

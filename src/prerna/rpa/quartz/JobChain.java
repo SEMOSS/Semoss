@@ -21,7 +21,7 @@ import org.quartz.UnableToInterruptJobException;
 public class JobChain implements org.quartz.InterruptableJob {
 
 	private static final Logger LOGGER = LogManager.getLogger(JobChain.class.getName());
-		
+	
 	/** {@code List<Class<? extends InterruptableJob>>} - a sequence of job classes */
 	public static final String IN_CHAIN_SEQUENCE_KEY = CommonDataKeys.CHAIN_SEQUENCE;
 
@@ -34,17 +34,24 @@ public class JobChain implements org.quartz.InterruptableJob {
 	private int terminal;
 	private int offset = 0;
 	
-	private boolean failed = false;
 	private Exception failureException;
 
 	private String terminationMessage;
 	
+	private JobKey currentlyExecutingJobKey;
+	
+	private volatile boolean failed = false;
+	private volatile boolean interrupted = false;
+
 	// Don't make this static in case there is more than one JobChain
 	private Object jobMonitor = new Object();
 	
 	@SuppressWarnings("unchecked")
 	public void execute(JobExecutionContext context) throws JobExecutionException {
 		
+		////////////////////
+		// Get inputs
+		////////////////////
 		jobName = context.getJobDetail().getKey().getName();
 		chainedJobGroup = jobName + "ChainGroup";
 		scheduler = context.getScheduler();
@@ -52,6 +59,12 @@ public class JobChain implements org.quartz.InterruptableJob {
 		sequence = (List<Class<? extends InterruptableJob>>) jobDataMap.get(IN_CHAIN_SEQUENCE_KEY);
 		terminal = sequence.size();
 		terminationMessage = "Will terminate the " + this.jobName + " job chain.";
+		
+		////////////////////
+		// Do work
+		////////////////////
+		
+		// Proceed to the first job in the chain
 		JobListener chainedJobListener = new ChainedJobListener(chainedJobGroup + ".chainedJobListener", this);
 		try {
 			scheduler.getListenerManager().addJobListener(chainedJobListener, jobGroupEquals(chainedJobGroup));
@@ -62,13 +75,16 @@ public class JobChain implements org.quartz.InterruptableJob {
 			throw new JobExecutionException(getListenerExceptionMessage, e);
 		}
 		
-		// Keep the job alive until the chain is finished
+		// Keep the job alive until the chain is finished or interrupted
 		// Wait for proceedToNextJob to notify (either in error or in completion)
 		synchronized (jobMonitor) {
 			try {
 				jobMonitor.wait();
 			} catch (InterruptedException e) {
 				LOGGER.error("Thread for the " + jobName + " interrupted in an unexpected manner.", e);
+				
+				// Preserve interrupt status
+				Thread.currentThread().interrupt();
 			}
 		}
 		if (failed) {
@@ -76,6 +92,14 @@ public class JobChain implements org.quartz.InterruptableJob {
 			LOGGER.error(failureMessage);
 			throw new JobExecutionException(failureMessage, failureException);
 		}
+		if (interrupted) {
+			LOGGER.info("Gracefully terminated the " + jobName + " job chain.");			
+		}
+		
+		////////////////////
+		// Store outputs
+		////////////////////
+		// No outputs to store here
 	}
 
 	protected void proceedToNextJob(JobExecutionContext context, JobExecutionException jobException) {
@@ -85,17 +109,24 @@ public class JobChain implements org.quartz.InterruptableJob {
 		jobDataMap = context.getMergedJobDataMap();
 		String previousJobName = context.getJobDetail().getKey().getName();
 		
-		// Check to see whether the previous job failed
-		if (jobException != null) {
-			jobException.printStackTrace();
-			LOGGER.error("The previous job in the chain, " + previousJobName + " failed. " + terminationMessage);
+		// Check to see whether the previous job was interrupted
+		if (interrupted) {
+			LOGGER.warn("The previous job in the chain, " + previousJobName + " was interrupted. " + terminationMessage);
 			
-			// Terminate the chain
-			fail(jobException);
+			// Terminate the chain without throwing an exception
 			notifyJobMonitor();
 			return;
 		}
 		
+		// Check to see whether the previous job failed
+		if (jobException != null) {
+			LOGGER.error("The previous job in the chain, " + previousJobName + " failed. " + terminationMessage);
+			
+			// Terminate the chain
+			fail(jobException);
+			return;
+		}
+					
 		// Continue if there are more jobs in the sequence
 		if (offset < terminal) {
 			Class<? extends InterruptableJob> jobClass = sequence.get(offset);
@@ -110,7 +141,6 @@ public class JobChain implements org.quartz.InterruptableJob {
 								
 				// Terminate the chain
 				fail(e);
-				notifyJobMonitor();
 				return;
 			}
 			LOGGER.info("Added the job " + chainedJobName + " to " + chainedJobGroup + ".");
@@ -119,13 +149,17 @@ public class JobChain implements org.quartz.InterruptableJob {
 			// If the scheduler cannot trigger job, then try deleting the job before terminating the chain
 			try {
 				scheduler.triggerJob(chainedJobKey);
+				
+				// If successfully triggered, make a note of it as currently executing
+				// In case the chain is interrupted, we can terminate this job
+				currentlyExecutingJobKey = chainedJobKey;
+				LOGGER.info("Triggered the job " + chainedJobName + ".");
 			} catch (SchedulerException e) {
 				LOGGER.error("Failed to trigger job " + chainedJobName + ". " + terminationMessage, e);
-				QuartzUtility.removeJob(scheduler, chainedJobKey);
-								
+				QuartzUtil.removeJob(scheduler, chainedJobKey);
+				
 				// Terminate the chain
 				fail(e);
-				notifyJobMonitor();
 				return;
 			}
 			offset++;
@@ -139,20 +173,22 @@ public class JobChain implements org.quartz.InterruptableJob {
 	private void fail(Exception e) {
 		failed = true;
 		failureException = e;
+		notifyJobMonitor();
 	}
 	
 	private void notifyJobMonitor() {
 		synchronized (jobMonitor) {
-			jobMonitor.notify();
+			jobMonitor.notifyAll();
 		}
 	}
 	
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
+		interrupted = true;
 		LOGGER.warn("The " + jobName + " job chain has been interrupted.");
-		LOGGER.info("Terminating the " + jobName + " job chain.");
-		QuartzUtility.terminateAllJobsInGroup(scheduler, chainedJobGroup);
-		QuartzUtility.removeAllJobsInGroup(scheduler, chainedJobGroup);
+		
+		// Do this by terminating the currently executing job
+		QuartzUtil.terminateJob(scheduler, currentlyExecutingJobKey);
 	}
 
 }

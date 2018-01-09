@@ -2,6 +2,10 @@ package prerna.rpa.config;
 
 public class JobConfigKeys {
 	
+	private JobConfigKeys() {
+		throw new IllegalStateException("Constants class");
+	}
+	
 	// Job metadata
 	// All jobs may have these keys
 	// However, they are are not always required

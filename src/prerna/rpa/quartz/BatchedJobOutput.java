@@ -4,8 +4,8 @@ import org.quartz.JobDataMap;
 
 public class BatchedJobOutput {
 
-	private JobDataMap jobDataMap;
-	private boolean success;
+	private final JobDataMap jobDataMap;
+	private final boolean success;
 	
 	public BatchedJobOutput(JobDataMap jobDataMap, boolean success) {
 		this.jobDataMap = jobDataMap;

@@ -15,7 +15,6 @@ import com.google.gson.JsonObject;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.rpa.config.ContextualJobConfig;
-import prerna.rpa.config.JobConfig;
 import prerna.rpa.quartz.BatchedJobInput;
 import prerna.rpa.quartz.CommonDataKeys;
 
@@ -69,8 +68,8 @@ public class ConditionalJob implements org.quartz.InterruptableJob {
 			ContextualJobConfig contextualJobConfig = ContextualJobConfig.initialize(jobDefinition);
 			contextualJobConfig.accept(contextualData);
 			try {
-				BatchedJobInput batchJobInput = new BatchedJobInput(contextualJobConfig.getJobDataMap(), JobConfig.getJobClass(jobDefinition));
-				batchInputMap.put(JobConfig.getJobName(jobDefinition) + counter, batchJobInput);
+				BatchedJobInput batchJobInput = new BatchedJobInput(contextualJobConfig.getJobDataMap(), contextualJobConfig.getJobClass());
+				batchInputMap.put(contextualJobConfig.getJobName() + counter, batchJobInput);
 			} catch (Exception e) {
 				String getJobDataMapExceptionMessage = "An exception occured parsing a job data map in the " + jobName + " conditional job.";
 				LOGGER.error(getJobDataMapExceptionMessage);

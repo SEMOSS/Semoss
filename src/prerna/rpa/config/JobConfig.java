@@ -1,18 +1,47 @@
 package prerna.rpa.config;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.quartz.InterruptableJob;
 import org.quartz.JobDataMap;
-import prerna.rpa.RPAProps;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import prerna.rpa.RPAProps;
+import prerna.rpa.config.specific.anthem.ProcessWGSPReportsJobConfig;
+import prerna.rpa.config.specific.anthem.RunKickoutAlgorithmJobConfig;
+
 public abstract class JobConfig {
-	
+
+	private static final Logger LOGGER = LogManager.getLogger(JobConfig.class.getName());
+
 	private static final String PROP_REGEX = "<prop>(.*?)</prop>";
 	private static final String TEXT_REGEX = "<text>(.*?)</text>";
+	private static final String BYPASS_REGEX = "<bypass>(.*?)</bypass>";
+	
+	private static final String SPLIT_REGEX = ";";
+	
+	// For parsing the dates
+	private static final String DATE_FORMAT = "yyyy-MM-dd";
+	private final SimpleDateFormat dateFormatter = new SimpleDateFormat(DATE_FORMAT); // Non-thread safe, so not static
+	
+	protected final JsonObject jobDefinition;
+
+	protected JobDataMap jobDataMap = new JobDataMap();
+	
+	public JobConfig(JsonObject jobDefinition) {
+		this.jobDefinition = jobDefinition;
+	}
 	
 	public static JobConfig initialize(JsonObject jobDefinition) {
 		
@@ -26,60 +55,102 @@ public abstract class JobConfig {
 			return new JobChainConfig(jobDefinition);
 		case IF_JOB:
 			return new IfJobConfig(jobDefinition);
-		case CONDITIONAL_JOB:
-			return new ConditionalJobConfig(jobDefinition);
-		case ONE_COL_CONDITION_JOB:
-			return new OneColConditionJobConfig(jobDefinition);
+		case ISOLATED_JOB:
+			return new IsolatedJobConfig(jobDefinition);
 		case ETL_JOB:
 			return new ETLJobConfig(jobDefinition);
 		case EXECUTE_SQL_JOB:
 			return new ExecuteSQLJobConfig(jobDefinition);
 		case GENERATE_HASHED_PRIMKEY_JOB:
 			return new GenerateHashedPrimkeyJobConfig(jobDefinition);
-		case BAKE_PIES_JOB:
-			return new BakePiesJobConfig(jobDefinition);
+		case BAKE_PIE_JOB:
+			return new BakePieJobConfig(jobDefinition);
+		case EAT_PIE_JOB:
+			return new EmptyJobConfig(jobDefinition);
 		case JUDGE_PIES_JOB:
-			return new JudgePiesJobConfig(jobDefinition);
+			return new EmptyJobConfig(jobDefinition);
+		case CONDITIONAL_JOB:
+			return new ConditionalJobConfig(jobDefinition);
+		case ONE_COL_CONDITION_JOB:
+			return new OneColConditionJobConfig(jobDefinition);
 		case CREATE_INSIGHT_JOB:
 			return new CreateInsightJobConfig(jobDefinition);
 		case GET_FRAME_FROM_INSIGHT_JOB:
 			return new EmptyJobConfig(jobDefinition); // Don't need to provide any keys
 		case INSIGHT_RERUN_JOB:
 			return new InsightsRerunCronJobConfig(jobDefinition);
+		case RUN_PIXEL_JOB:
+			return new RunPixelJobConfig(jobDefinition);
 		case GET_SMTP_SESSION_JOB:
 			return new GetSMTPSessionJobConfig(jobDefinition);
 		case SEND_EMAIL_JOB:
 			return new SendEmailJobConfig(jobDefinition);
-		case RUN_PIXEL_JOB:
-			return new RunPixelJobConfig(jobDefinition);
+		case JEDIS_TO_JDBC_JOB:
+			return new JedisToJDBCJobConfig(jobDefinition);
+		case PROCESS_WGSP_REPORTS_JOB:
+			return new ProcessWGSPReportsJobConfig(jobDefinition);
+		case RUN_KICKOUT_ALGORITHM_JOB:
+			return new RunKickoutAlgorithmJobConfig(jobDefinition);
 		default:
 			throw new IllegalArgumentException("Job configuration not found.");
 		}
 	}
-
-	// Abstract method to get the job data map is specific to the particular to each kind of job
-	public abstract JobDataMap getJobDataMap() throws Exception;
 	
-	public static ConfigurableJob getConfigurableJob(JsonObject jobDefinition) {
+	public JobDataMap getJobDataMap() throws ParseConfigException, IllegalConfigException {
+		populateJobDataMap();
+		return jobDataMap;
+	}
+
+	// Abstract method to populate the job data map is specific to the particular to each kind of job
+	protected abstract void populateJobDataMap() throws ParseConfigException, IllegalConfigException;
+	
+	protected ConfigurableJob getConfigurableJob() {
 		return ConfigurableJob.getConfigurableJobFromJobClassName(jobDefinition.get(JobConfigKeys.JOB_CLASS_NAME).getAsString());
 	}
 	
-	public static Class<? extends InterruptableJob> getJobClass(JsonObject jobDefinition) {
-		return getConfigurableJob(jobDefinition).getJobClass();
+	public Class<? extends InterruptableJob> getJobClass() {
+		return getConfigurableJob().getJobClass();
 	}
 
 	// These are not always defined and that is okay
 	// Will return null if not found; not always needed
-	public static String getJobName(JsonObject jobDefinition) {
-		return jobDefinition.get(JobConfigKeys.JOB_NAME).getAsString();
+	public String getJobName() throws ParseConfigException {
+		return getString(JobConfigKeys.JOB_NAME);
 	}
 	
-	public static String getJobGroup(JsonObject jobDefinition) {
-		return jobDefinition.get(JobConfigKeys.JOB_GROUP).getAsString();
+	public String getJobGroup() throws ParseConfigException {
+		return getString(JobConfigKeys.JOB_GROUP);
 	}
 	
-	public static String getCronExpression(JsonObject jobDefinition) {
-		return jobDefinition.get(JobConfigKeys.JOB_CRON_EXPRESSION).getAsString();
+	public String getCronExpression() throws ParseConfigException {
+		return getString(JobConfigKeys.JOB_CRON_EXPRESSION);
+	}
+
+	/**
+	 * Puts a string value from the jobDefinition (JSON) into the job data map given
+	 * the job input key.
+	 * <p>
+	 * Three formats for a string value in the job definition:<br>
+	 * 1) {@code "<prop>property.name</prop>"} - Get the final String value from the
+	 * rpa.properties file<br>
+	 * 2) {@code "<text>filename.txt</text>"} - Get the final String value from the
+	 * contents of a text file, optionally
+	 * {@code "<text>filename.txt:a,b;c,d</text>"} where the string "a" will be
+	 * replaced with the string "b", and "c" with "d", and so on<br>
+	 * 3) {@code "value"} - The final String value is simply "value"<br>
+	 *
+	 * @param jobInputKey
+	 *            the key as it appears in a job's data map
+	 * @throws ParseConfigException if unable to read the string from a text file
+	 */
+	protected void putString(String jobInputKey) throws ParseConfigException {
+		
+		// The key as it appears in the json
+		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
+		if (bypass(jsonKey)) return;
+		
+		// Call the getString method then put
+		jobDataMap.put(jobInputKey, getString(jobInputKey));
 	}
 
 	/**
@@ -90,16 +161,17 @@ public abstract class JobConfig {
 	 * 1) {@code "<prop>property.name</prop>"} - Get the final String value from the
 	 * rpa.properties file<br>
 	 * 2) {@code "<text>filename.txt</text>"} - Get the final String value from the
-	 * contents of a text file, optionally {@code "<text>filename.txt:a,b;c,d</text>"}
-	 * where the string "a" will be replaced with the string "b", and "c" with "d", and so on<br>
+	 * contents of a text file, optionally
+	 * {@code "<text>filename.txt:a,b;c,d</text>"} where the string "a" will be
+	 * replaced with the string "b", and "c" with "d", and so on<br>
 	 * 3) {@code "value"} - The final String value is simply "value"<br>
 	 *
-	 * @param jobDefinition
 	 * @param jobInputKey
+	 *            the key as it appears in a job's data map
 	 * @return the string value associated with the job input key
-	 * @throws Exception
+	 * @throws ParseConfigException if unable to read the string from a text file
 	 */
-	protected static String getString(JsonObject jobDefinition, String jobInputKey) throws Exception {
+	protected String getString(String jobInputKey) throws ParseConfigException {
 		
 		// The key as it appears in the json
 		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
@@ -142,31 +214,96 @@ public abstract class JobConfig {
 		return value;
 	}
 	
-	protected static long getLong(JsonObject jobDefinition, String jobInputKey) {
+	// TODO docs: javadoc to explain semi-colon delimited
+	protected void putStringArray(String jobInputKey) throws ParseConfigException {
 		
 		// The key as it appears in the json
 		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
-		
-		// Return the long value from the job definition (JSON)
-		return jobDefinition.get(jsonKey).getAsLong();
+		if (bypass(jsonKey)) return;
+
+		// Put the split-string value from the job definition (JSON)
+		String[] stringArray = getString(jsonKey).split(SPLIT_REGEX);
+		jobDataMap.put(jobInputKey, stringArray);
+
 	}
 	
-	protected static int getInt(JsonObject jobDefinition, String jobInputKey) {
+	protected void putStringSet(String jobInputKey) throws ParseConfigException {
 		
 		// The key as it appears in the json
 		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
-		
-		// Return the int value from the job definition (JSON)
-		return jobDefinition.get(jsonKey).getAsInt();
+		if (bypass(jsonKey)) return;
+
+		// Put the split-string value from the job definition (JSON)
+		String[] stringArray = getString(jsonKey).split(SPLIT_REGEX);
+		Set<String> stringSet = new HashSet<>();
+		stringSet.addAll(Arrays.asList(stringArray));
+		jobDataMap.put(jobInputKey, stringSet);
 	}
 	
-	protected static boolean getBoolean(JsonObject jobDefinition, String jobInputKey) {
+	protected void putLong(String jobInputKey) {
 		
 		// The key as it appears in the json
 		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
-		
-		// Return the boolean value from the job definition (JSON)
-		return jobDefinition.get(jsonKey).getAsBoolean();
+		if (bypass(jsonKey)) return;
+
+		// Put the long value from the job definition (JSON)
+		jobDataMap.put(jobInputKey, jobDefinition.get(jsonKey).getAsLong());
 	}
+	
+	protected void putInt(String jobInputKey) {
 		
+		// The key as it appears in the json
+		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
+		if (bypass(jsonKey)) return;
+
+		// Put the int value from the job definition (JSON)
+		jobDataMap.put(jobInputKey, jobDefinition.get(jsonKey).getAsInt());
+	}
+	
+	protected void putBoolean(String jobInputKey) {
+		
+		// The key as it appears in the json
+		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
+		if (bypass(jsonKey)) return;
+
+		// Put the boolean value from the job definition (JSON)
+		jobDataMap.put(jobInputKey, jobDefinition.get(jsonKey).getAsBoolean());
+	}
+	
+	// TODO docs: note date format in javadoc
+	protected void putDate(String jobInputKey) throws ParseConfigException {
+		
+		// The key as it appears in the json
+		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
+		if (bypass(jsonKey)) return;
+		
+		// Call the getString method, parse, then put
+		String dateString = getString(jobInputKey);
+		try {
+			Date date = parseDate(dateString);
+			jobDataMap.put(jobInputKey, date);
+		} catch (ParseException e) {
+			throw new ParseConfigException("Failed to parse " + dateString + " into " + DATE_FORMAT + " format."); 
+		} 
+	}
+	
+	public Date parseDate(String dateString) throws ParseException {
+		return dateFormatter.parse(dateString);
+	}
+	
+	private boolean bypass(String jsonKey) {
+		boolean bypass = false;
+		JsonElement element = jobDefinition.get(jsonKey);
+		if (element.isJsonPrimitive()) {
+			String value = element.getAsString();
+			Matcher bypassMatcher = Pattern.compile(BYPASS_REGEX).matcher(value);
+			if (bypassMatcher.matches()) {
+				bypass = true;
+				String message = bypassMatcher.group(1);
+				LOGGER.info("Bypassing the key " + jsonKey + " - \"" + message + ".\"");
+			}
+		}
+		return bypass;
+	}
+	
 }
