@@ -27,15 +27,15 @@ public class DeleteInsightCommentReactor extends AbstractReactor {
 		organizeKeys();
 		String engine = this.keyValue.get(this.keysToGet[0]);
 		if(engine == null) {
-			throw new IllegalArgumentException("Need to know which engine this insight belongs to");
+			throw new IllegalArgumentException("Need to define which engine this insight belongs to");
 		}
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 		if(rdbmsId == null) {
-			throw new IllegalArgumentException("Need to know which insight this comment belongs to");
+			throw new IllegalArgumentException("Need to define which insight this comment belongs to");
 		}
 		String commentId = this.keyValue.get(this.keysToGet[2]);
 		if(commentId == null || commentId.trim().isEmpty()) {
-			throw new IllegalArgumentException("Need a comment to save");
+			throw new IllegalArgumentException("Need to define the comment id");
 		}
 		
 		// find the files relating to this id
