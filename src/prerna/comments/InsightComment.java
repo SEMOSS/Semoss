@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -114,7 +114,7 @@ public class InsightComment {
 	 * @return
 	 */
 	private Map<String, String> moveDataToMap() {
-		Map<String, String> map = new HashMap<String, String>();
+		Map<String, String> map = new TreeMap<String, String>();
 		map.put(ENGINE_KEY, this.engineName);
 		map.put(INSGIHT_ID_KEY, this.rdbmsId);
 
@@ -129,6 +129,11 @@ public class InsightComment {
 		map.put(PICTURE_KEY, this.picture);
 		map.put(CREATED_TIME_STAMP_KEY, this.createdTimeStamp);
 		return map;
+	}
+	
+	public void modifyExistingIdWithDate() {
+		String id = getIdMinusTimestamp(this.id);
+		this.id = id  + "_" + this.createdTimeStamp;
 	}
 
 	/**
@@ -173,6 +178,17 @@ public class InsightComment {
 		comment.createdTimeStamp = mapData.get(CREATED_TIME_STAMP_KEY);
 		
 		return comment;
+	}
+	
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public static String getIdMinusTimestamp(String id) {
+		// parse out the time and set the index in case we go to edit or delete
+		// because PK loves string parsing, here is magic number 19
+		return id.substring(0, id.length()-20);
 	}
 	
 	//////////////////////////////////////////////////
