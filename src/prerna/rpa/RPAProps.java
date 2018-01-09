@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 
 import prerna.rpa.security.Cryptographer;
 import prerna.rpa.security.EncryptionException;
+import prerna.util.DIHelper;
 
 public class RPAProps {
 
@@ -64,7 +65,7 @@ public class RPAProps {
 	// Singleton properties class
 	// This needs the rpa.config system property defined
 	private RPAProps() {
-		String rpaConfigDirectory = System.getProperty(RPA_CONFIG_DIRECTORY_KEY);
+		String rpaConfigDirectory = DIHelper.getInstance().getProperty(RPA_CONFIG_DIRECTORY_KEY); 
 		
 		// Just in case make sure that it ends with a file separator
 		if (rpaConfigDirectory.endsWith("/") || rpaConfigDirectory.endsWith("\\")) {
