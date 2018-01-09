@@ -8,8 +8,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+/**
+ * Get list of X-ray configurations
+ *
+ */
 public class GetXrayConfigListReactor extends AbstractReactor {
-
+	
 	@Override
 	public NounMetadata execute() {
 		HashMap<String, Object> configMap = MasterDatabaseUtility.getXrayConfigList();
