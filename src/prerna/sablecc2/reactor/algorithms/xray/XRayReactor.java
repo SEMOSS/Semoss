@@ -24,7 +24,6 @@ import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.helper.XLFileHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -58,6 +57,12 @@ public class XRayReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
+		// need to make sure that the textreuse package is installed
+		String hasPackage = this.rJavaTranslator
+				.getString("as.character(\"textreuse\" %in% rownames(installed.packages()))");
+		if (!hasPackage.equalsIgnoreCase("true")) {
+			throw new IllegalArgumentException("The textreuse package is NOT installed");
+		}
 		organizeKeys();
 		String configFileJson = this.keyValue.get(this.keysToGet[0]);
 		if (configFileJson == null) {
@@ -188,7 +193,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 					+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + outputXrayDataFolder + "\");");
 		}
-		this.rJavaTranslator.executeR(rsb.toString());
+		this.rJavaTranslator.runR(rsb.toString());
 
 		// run xray on semantic folder
 		if (semanticMode) {
@@ -674,7 +679,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 			if (dataMode) {
 				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
-			this.rJavaTranslator.executeR(rsb.toString());
+			this.rJavaTranslator.runR(rsb.toString());
 		}
 	}
 

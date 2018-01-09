@@ -7,13 +7,16 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+/**
+ * Get X-ray configuration stored in LocalMaster by specifying the filename 
+ */
 public class GetXrayConfigFileReactor extends AbstractReactor {
-	public static final String CONFIG_FILE_ID = "configID";
 
 	public GetXrayConfigFileReactor() {
-		this.keysToGet = new String[] {CONFIG_FILE_ID};
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey()};
 	}
 
 	@Override
@@ -21,22 +24,11 @@ public class GetXrayConfigFileReactor extends AbstractReactor {
 		organizeKeys();
 		String configFileID = this.keyValue.get(this.keysToGet[0]);
 		if(configFileID == null) {
-			throw new IllegalArgumentException("Need to define " + CONFIG_FILE_ID);
+			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.FILE_NAME.getKey());
 		}
 		String configFile = MasterDatabaseUtility.getXrayConfigFile(configFileID);
 		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 		return new NounMetadata(configFile, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
-	}
-
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(CONFIG_FILE_ID)) {
-			return "The id of the configuration file";
-
-		} else {
-			return super.getDescriptionForKey(key);
-		}
 	}
 
 }
