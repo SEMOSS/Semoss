@@ -172,6 +172,7 @@ import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
+import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
 import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
@@ -528,6 +529,9 @@ public class ReactorFactory {
 		reactorHash.put("DeleteInsightComment", DeleteInsightCommentReactor.class);
 		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
 		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
+		
+		// Scheduler
+		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
