@@ -202,9 +202,8 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 							cleanAttribute = split[1];
 						}
 						//multiply by weight
-						score = score * weights.get(cleanAttribute);
-						ratio += score;
 						cells[cellsIndex] = score;
+						ratio += score * weights.get(cleanAttribute);
 						cellsIndex++;
 					}
 
