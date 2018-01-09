@@ -1,7 +1,5 @@
 package prerna.rpa.quartz.jobs.insight;
 
-import java.util.Map;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.quartz.JobDataMap;
@@ -45,7 +43,7 @@ public class RunPixelJob implements org.quartz.InterruptableJob {
 		}
 		LOGGER.info("Running pixel: " + pixel);
 		long start = System.currentTimeMillis();
-		Map<String, Object> results = insight.runPixel(pixel);
+		insight.runPixel(pixel);
 		long end = System.currentTimeMillis();
 		LOGGER.info("Execution time: " + (end - start)/1000 + " seconds.");
 		

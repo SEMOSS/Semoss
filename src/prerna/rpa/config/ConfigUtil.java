@@ -1,19 +1,17 @@
 package prerna.rpa.config;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import prerna.rpa.RPAProps;
+import prerna.rpa.RPAUtil;
 
 public class ConfigUtil {
-
-	private static final Logger LOGGER = LogManager.getLogger(ConfigUtil.class.getName());
 		
+	private ConfigUtil() {
+		throw new IllegalStateException("Utility class");
+	}
+	
 	// Because keys specific to a particular job are in the format Job.class + ".key"
 	// This way if the packages change this won't cause too much of a fuss
 	public static String getJSONKey(String jobInputKey) {
@@ -25,37 +23,35 @@ public class ConfigUtil {
 	}
 	
 	// For convenience, uses the default text file directory in rpa-config
-	public static String readStringFromTextFile(String textFileName) throws Exception {
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.TEXT_DIRECTORY_KEY) + textFileName;
-		return readStringFromFile(filePath);
+	public static String readStringFromTextFile(String textFileName) throws ParseConfigException {
+		try {
+			String filePath = RPAProps.getInstance().getProperty(RPAProps.TEXT_DIRECTORY_KEY) + textFileName;
+			return RPAUtil.readStringFromFile(filePath);
+		} catch (IOException e) {
+			throw new ParseConfigException("Failed to read text from the file " + textFileName + ".", e);
+		}
 	}
 	
 	// For convenience, uses the default json file directory in rpa-config
-	public static String readStringFromJSONFile(String jsonFileName) throws Exception {
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
-		return readStringFromFile(filePath);
-	}
-	
-	private static String readStringFromFile(String filePath) throws Exception {
-		String string;
-		try (InputStream in = new FileInputStream(filePath)){
-			string = IOUtils.toString(in, "UTF-8");
+	public static String readStringFromJSONFile(String jsonFileName) throws ParseConfigException {
+		try {
+			String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
+			return RPAUtil.readStringFromFile(filePath);
 		} catch (IOException e) {
-			LOGGER.error("Failed to read the file " + filePath + ".");
-			throw e;
+			throw new ParseConfigException("Failed to read json from the file " + jsonFileName + ".", e);
 		}
-		return string;
 	}
 	
 	// Replace all references to map keys (surrounded by <>) in a string with the value from the map 
 	// If the map is null, then just returns the original string
-	public static String replaceWithContext(String s, Map<String, Object> contextualData) {
+	public static String replaceWithContext(String string, Map<String, Object> contextualData) {
+		String stringWithContext = string;
 		if (contextualData != null) {
-			for (String key : contextualData.keySet()) {
-				s = s.replaceAll("<" + key + ">", contextualData.get(key).toString());
+			for (Map.Entry<String, Object> entry : contextualData.entrySet()) {
+				stringWithContext = stringWithContext.replaceAll("<" + entry.getKey() + ">", entry.getValue().toString());
 			}
 		}
-		return s;
+		return stringWithContext;
 	}
 	
 }

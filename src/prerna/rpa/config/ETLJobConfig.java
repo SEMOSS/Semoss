@@ -1,53 +1,36 @@
 package prerna.rpa.config;
 
-import org.quartz.JobDataMap;
-import prerna.rpa.quartz.jobs.jdbc.maria.ETLJob;
-
 import com.google.gson.JsonObject;
+
+import prerna.rpa.quartz.jobs.db.jdbc.ETLJob;
 
 public class ETLJobConfig extends JobConfig {
 	
-	private JsonObject jobDefinition;
-	
 	public ETLJobConfig(JsonObject jobDefinition) {
-		this.jobDefinition = jobDefinition;
+		super(jobDefinition);
 	}
 
 	@Override
-	public JobDataMap getJobDataMap() throws Exception {
-		JobDataMap jobDataMap = new JobDataMap();
+	protected void populateJobDataMap() throws ParseConfigException {
 		
 		// "From" connection details
-		String fromDriver = getString(jobDefinition, ETLJob.IN_FROM_DRIVER_KEY);
-		jobDataMap.put(ETLJob.IN_FROM_DRIVER_KEY, fromDriver);
-		String fromConnectionUrl = getString(jobDefinition, ETLJob.IN_FROM_CONNECTION_URL_KEY);
-		jobDataMap.put(ETLJob.IN_FROM_CONNECTION_URL_KEY, fromConnectionUrl);
-		String fromUsername = getString(jobDefinition, ETLJob.IN_FROM_USERNAME_KEY);
-		jobDataMap.put(ETLJob.IN_FROM_USERNAME_KEY, fromUsername);
-		String fromPassword = getString(jobDefinition, ETLJob.IN_FROM_PASSWORD_KEY);
-		jobDataMap.put(ETLJob.IN_FROM_PASSWORD_KEY, fromPassword);
+		putString(ETLJob.IN_FROM_DRIVER_KEY);
+		putString(ETLJob.IN_FROM_CONNECTION_URL_KEY);
+		putString(ETLJob.IN_FROM_USERNAME_KEY);
+		putString(ETLJob.IN_FROM_PASSWORD_KEY);
 		
 		// "From" sqls
-		String fromSQLExecute = getString(jobDefinition, ETLJob.IN_FROM_SQL_EXECUTE_KEY);		
-		jobDataMap.put(ETLJob.IN_FROM_SQL_EXECUTE_KEY, fromSQLExecute);
-		String fromSQLQuery = getString(jobDefinition, ETLJob.IN_FROM_SQL_QUERY_KEY);
-		jobDataMap.put(ETLJob.IN_FROM_SQL_QUERY_KEY, fromSQLQuery);
-		
+		putString(ETLJob.IN_FROM_SQL_EXECUTE_KEY);		
+		putString(ETLJob.IN_FROM_SQL_QUERY_KEY);
+				
 		// "To" connection details
-		String toDriver = getString(jobDefinition, ETLJob.IN_TO_DRIVER_KEY);
-		jobDataMap.put(ETLJob.IN_TO_DRIVER_KEY, toDriver);
-		String toConnectionUrl = getString(jobDefinition, ETLJob.IN_TO_CONNECTION_URL_KEY);
-		jobDataMap.put(ETLJob.IN_TO_CONNECTION_URL_KEY, toConnectionUrl);
-		String toUsername = getString(jobDefinition, ETLJob.IN_TO_USERNAME_KEY);
-		jobDataMap.put(ETLJob.IN_TO_USERNAME_KEY, toUsername);
-		String toPassword = getString(jobDefinition, ETLJob.IN_TO_PASSWORD_KEY);
-		jobDataMap.put(ETLJob.IN_TO_PASSWORD_KEY, toPassword);
+		putString(ETLJob.IN_TO_DRIVER_KEY);
+		putString(ETLJob.IN_TO_CONNECTION_URL_KEY);
+		putString(ETLJob.IN_TO_USERNAME_KEY);
+		putString(ETLJob.IN_TO_PASSWORD_KEY);
 		
 		// "To" table name
-		String toTableName = getString(jobDefinition, ETLJob.IN_TO_TABLE_NAME_KEY);
-		jobDataMap.put(ETLJob.IN_TO_TABLE_NAME_KEY, toTableName);
-		
-		return jobDataMap;
+		putString(ETLJob.IN_TO_TABLE_NAME_KEY);
 	}
 	
 }

@@ -5,8 +5,8 @@ import org.quartz.JobExecutionException;
 
 public class BatchedJobListener extends org.quartz.listeners.JobListenerSupport {
 
-	String name;
-	JobBatch jobBatch;
+	final String name;
+	final JobBatch jobBatch;
 	
 	public BatchedJobListener(String name, JobBatch jobBatch) {
 		this.name = name;

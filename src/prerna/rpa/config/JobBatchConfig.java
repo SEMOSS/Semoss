@@ -3,30 +3,25 @@ package prerna.rpa.config;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.quartz.JobDataMap;
-import prerna.rpa.quartz.BatchedJobInput;
-import prerna.rpa.quartz.JobBatch;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import prerna.rpa.quartz.BatchedJobInput;
+import prerna.rpa.quartz.JobBatch;
+
 public class JobBatchConfig extends JobConfig{
 	
-	private JsonObject jobDefinition;
-	
 	public JobBatchConfig(JsonObject jobDefinition) {
-		this.jobDefinition = jobDefinition;
+		super(jobDefinition);
 	}
 
 	@Override
-	public JobDataMap getJobDataMap() throws Exception {
-		JobDataMap jobDataMap = new JobDataMap();
-		Map<String, BatchedJobInput> batchMap = new HashMap<String, BatchedJobInput>();
+	protected void populateJobDataMap() throws ParseConfigException, IllegalConfigException {
+		Map<String, BatchedJobInput> batchMap = new HashMap<>();
 		
 		// Add the timeout to the map
-		long timeout = getLong(jobDefinition, JobBatch.IN_TIMEOUT_KEY);
-		jobDataMap.put(JobBatch.IN_TIMEOUT_KEY, timeout);
+		putLong(JobBatch.IN_TIMEOUT_KEY);
 		
 		// For each job definition in the job batch,
 		// a) Add JobDataMap and job class into a BatchedJobInput
@@ -35,14 +30,12 @@ public class JobBatchConfig extends JobConfig{
 		for (JsonElement batchJobElement : batchArray) {
 			JsonObject batchJobDefinition = batchJobElement.getAsJsonObject();
 			JobConfig batchJobConfig = JobConfig.initialize(batchJobDefinition);
-			BatchedJobInput batchJobInput = new BatchedJobInput(batchJobConfig.getJobDataMap(), JobConfig.getJobClass(batchJobDefinition));
-			batchMap.put(JobConfig.getJobName(batchJobDefinition), batchJobInput);
+			BatchedJobInput batchJobInput = new BatchedJobInput(batchJobConfig.getJobDataMap(), batchJobConfig.getJobClass());
+			batchMap.put(batchJobConfig.getJobName(), batchJobInput);
 		}
 		
 		// Add batch map into the data map
 		jobDataMap.put(JobBatch.IN_BATCH_INPUT_MAP_KEY, batchMap);
-		
-		return jobDataMap;
 	}
 	
 }

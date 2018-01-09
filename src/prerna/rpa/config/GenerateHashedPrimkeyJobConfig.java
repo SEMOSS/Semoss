@@ -1,43 +1,29 @@
 package prerna.rpa.config;
 
-import org.quartz.JobDataMap;
-import prerna.rpa.quartz.jobs.jdbc.maria.GenerateHashedPrimkeyJob;
-
 import com.google.gson.JsonObject;
+
+import prerna.rpa.quartz.jobs.db.jdbc.maria.GenerateHashedPrimkeyJob;
 
 public class GenerateHashedPrimkeyJobConfig extends JobConfig {
 	
-	private JsonObject jobDefinition;
-	
 	public GenerateHashedPrimkeyJobConfig(JsonObject jobDefinition) {
-		this.jobDefinition = jobDefinition;
+		super(jobDefinition);
 	}
 
 	@Override
-	public JobDataMap getJobDataMap() throws Exception {
-		JobDataMap jobDataMap = new JobDataMap();
+	protected void populateJobDataMap() throws ParseConfigException {
 		
 		// Connection details
-		String driver = getString(jobDefinition, GenerateHashedPrimkeyJob.DRIVER_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.DRIVER_KEY, driver);
-		String connectionUrl = getString(jobDefinition, GenerateHashedPrimkeyJob.CONNECTION_URL_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.CONNECTION_URL_KEY, connectionUrl);
-		String username = getString(jobDefinition, GenerateHashedPrimkeyJob.USERNAME_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.USERNAME_KEY, username);
-		String password = getString(jobDefinition, GenerateHashedPrimkeyJob.PASSWORD_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.PASSWORD_KEY, password);
+		putString(GenerateHashedPrimkeyJob.IN_DRIVER_KEY);
+		putString(GenerateHashedPrimkeyJob.IN_CONNECTION_URL_KEY);
+		putString(GenerateHashedPrimkeyJob.IN_USERNAME_KEY);
+		putString(GenerateHashedPrimkeyJob.IN_PASSWORD_KEY);
 		
 		// Primkey details
-		String tableName = getString(jobDefinition, GenerateHashedPrimkeyJob.TABLE_NAME_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.TABLE_NAME_KEY, tableName);
-		String hashColumns = getString(jobDefinition, GenerateHashedPrimkeyJob.HASH_COLUMNS_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.HASH_COLUMNS_KEY, hashColumns);
-		String primkeyName = getString(jobDefinition, GenerateHashedPrimkeyJob.PRIMKEY_NAME_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.PRIMKEY_NAME_KEY, primkeyName);
-		String primkeyLength = getString(jobDefinition, GenerateHashedPrimkeyJob.PRIMKEY_LENGTH_KEY);
-		jobDataMap.put(GenerateHashedPrimkeyJob.PRIMKEY_LENGTH_KEY, primkeyLength);
-		
-		return jobDataMap;
+		putString(GenerateHashedPrimkeyJob.IN_TABLE_NAME_KEY);
+		putString(GenerateHashedPrimkeyJob.IN_HASH_COLUMNS_KEY);
+		putString(GenerateHashedPrimkeyJob.IN_PRIMKEY_NAME_KEY);
+		putString(GenerateHashedPrimkeyJob.IN_PRIMKEY_LENGTH_KEY);
 	}
 	
 }

@@ -5,8 +5,8 @@ import org.quartz.JobExecutionException;
 
 public class ChainedJobListener extends org.quartz.listeners.JobListenerSupport {
 
-	String name;
-	JobChain jobChain;
+	private final String name;
+	private final JobChain jobChain;
 
 	public ChainedJobListener(String name, JobChain chainJob) {
 		this.name = name;

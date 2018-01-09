@@ -9,6 +9,7 @@ import org.quartz.JobExecutionException;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.UnableToInterruptJobException;
+
 import prerna.rpa.quartz.CommonDataKeys;
 
 public class IfJob implements org.quartz.InterruptableJob {
@@ -19,7 +20,7 @@ public class IfJob implements org.quartz.InterruptableJob {
 	public static final String IN_BOOLEAN_KEY = CommonDataKeys.BOOLEAN;
 	
 	/** {@code JobDetail} */
-	public static final String IN_IF_TRUE_JOB_KEY = CommonDataKeys.IF_TRUE_JOB;
+	public static final String IN_IF_TRUE_JOB_KEY = IfJob.class + ".ifTrueJob";
 
 	private String jobName;
 	private boolean interrupted = false;
@@ -43,7 +44,9 @@ public class IfJob implements org.quartz.InterruptableJob {
 		// For the data map, add the context first
 		// Then add the map for the if true job
 		// Thus values in the map for the if true job will take precedence over the context
-		JobDataMap ifTrueJobDataMap = jobDataMap;
+		// Don't want to override the original job data map, so we create a new one
+		JobDataMap ifTrueJobDataMap = new JobDataMap();
+		ifTrueJobDataMap.putAll(jobDataMap);
 		ifTrueJobDataMap.putAll(ifTrueJob.getJobDataMap());
 		
 		// Update the data map to include the context

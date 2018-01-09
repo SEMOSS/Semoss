@@ -6,6 +6,10 @@ import com.google.gson.JsonObject;
 
 public abstract class ContextualJobConfig extends JobConfig {
 
+	public ContextualJobConfig(JsonObject jobDefinition) {
+		super(jobDefinition);
+	}
+
 	// Use JobConfig's initialization method
 	// But throw an illegal argument exception if the job is not contextual
 	public static ContextualJobConfig initialize(JsonObject jobDefinition) {

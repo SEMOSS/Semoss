@@ -7,13 +7,19 @@ import org.quartz.SchedulerException;
 
 public class SchedulerUtil {
 
-	// TODO may want to have our own (not default) scheduler - maybe a singleton
-	// But this gets the job done for now
+	private SchedulerUtil() {
+		throw new IllegalStateException("Utility class");
+	}
+	
 	public static Scheduler getScheduler() throws SchedulerException {
 		Scheduler scheduler = getDefaultScheduler();
-		if (!scheduler.isStarted())
-			scheduler.start();
+		if (!scheduler.isStarted())	scheduler.start();
 		return scheduler;
 	}
-
+	
+	public static void shutdownScheduler(boolean waitForJobsToComplete) throws SchedulerException {
+		Scheduler scheduler = getDefaultScheduler();
+		if (scheduler.isStarted()) scheduler.shutdown(waitForJobsToComplete);
+	}
+		
 }

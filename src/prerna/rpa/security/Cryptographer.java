@@ -17,15 +17,20 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.rpa.RPAProps;
 
 // https://stackoverflow.com/a/1133815
 public class Cryptographer {
 	
+	private static final Logger LOGGER = LogManager.getLogger(Cryptographer.class.getName());
+	
 	private static final int ITERATION_COUNT = 40000;
 	private static final int KEY_LENGTH = 128;
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws IOException {
 		
 		// Simulated user input for encrypted properties
 		Scanner reader = new Scanner(System.in);
@@ -33,22 +38,19 @@ public class Cryptographer {
 		while (!finished) {
 			
 			// Property name
-			System.out.println("Enter encrypted property name: ");
+			LOGGER.info("Enter encrypted property name: ");
 			String propertyName = reader.nextLine();
-			System.out.println();
 			
 			// Property value
-			System.out.println("Enter encrypted property value: ");
+			LOGGER.info("Enter encrypted property value: ");
 			String propertyValue = reader.nextLine();
-			System.out.println();
 			
 			// Set value
 			RPAProps.getInstance().setEncrpytedProperty(propertyName, propertyValue);
 			
 			// Whether finished
-			System.out.println("Finished? (enter y/n): ");
+			LOGGER.info("Finished? (enter y/n): ");
 			String finishedString = reader.nextLine();
-			System.out.println();
 			if (finishedString.equals("y")) {
 				finished = true;
 			}
@@ -59,12 +61,20 @@ public class Cryptographer {
 		RPAProps.getInstance().flushPropertiesToFile();
 	}
 	
-    public static String encrypt(String unprotectedString, String salt, char[] password) throws Exception {
-    	return encrypt(unprotectedString, createSecretKey(password, salt.getBytes()));
+    public static String encrypt(String unprotectedString, String salt, char[] password) {
+    	try {
+			return encrypt(unprotectedString, createSecretKey(password, salt.getBytes()));
+		} catch (Exception e) {
+			throw new EncryptionException(e);
+		}
     }
     
-    public static String decrypt(String encryptedString, String salt, char[] password) throws Exception {
-    	return decrypt(encryptedString, createSecretKey(password, salt.getBytes()));
+    public static String decrypt(String encryptedString, String salt, char[] password) {
+    	try {
+			return decrypt(encryptedString, createSecretKey(password, salt.getBytes()));
+		} catch (Exception e) {
+			throw new EncryptionException(e);
+		}
     }
     
     // Salt is used to prevent equivalent strings from being encrypted to the same string
@@ -108,7 +118,7 @@ public class Cryptographer {
         return Base64.getEncoder().encodeToString(bytes);
     }
 
-    private static byte[] base64Decode(String property) throws IOException {
+    private static byte[] base64Decode(String property) {
         return Base64.getDecoder().decode(property);
     }
 }

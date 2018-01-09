@@ -1,7 +1,5 @@
 package prerna.rpa.quartz.jobs.insight;
 
-import java.io.File;
-import java.util.Map;
 import java.util.Vector;
 
 import org.quartz.JobExecutionContext;
@@ -13,12 +11,8 @@ import com.ibm.icu.util.StringTokenizer;
 import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.om.Dashboard;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.solr.SolrDocumentExportWriter;
-import prerna.solr.SolrIndexEngine;
-//import prerna.ui.helpers.InsightCreateRunner;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -33,8 +27,6 @@ public class InsightsRerunCronJob implements org.quartz.InterruptableJob {
 	private String cronExpression;
 	private String engineNames;
 	protected String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-	private boolean wasInterrupted = false;
-	private static Object monitor = new Object(); 
 	@Override
 	public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
 		System.out.println("jobExecutionContext :: "+jobExecutionContext);
@@ -124,10 +116,6 @@ public class InsightsRerunCronJob implements org.quartz.InterruptableJob {
 
 	@Override
 	public void interrupt() throws UnableToInterruptJobException {
-		wasInterrupted = true;
-		synchronized (monitor) {
-			monitor.notify();
-		}
-		
+				
 	}
 }
