@@ -1,11 +1,19 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPString;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.util.Utility;
 
 public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
@@ -107,7 +115,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	}
 
 	/**
-	 * This method is used to set the insight
+	 * This method is used to set the logger
 	 * 
 	 * @param logger
 	 */
@@ -129,5 +137,75 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 		return null;
 	}
+	
+	/**
+	 * This method is used initialize an empty matrix with the appropriate
+	 * number of rows and columns
+	 * @param matrix
+	 * @param numRows
+	 * @param numColumns
+	 */
+	public void initEmptyMatrix(List<Object[]> matrix, int numRows, int numCols) {
+		for(int i = 0; i < numRows; i++) {
+			matrix.add(new Object[numCols]);
+		}
+	}
+	
+	/**
+	 * This method is used generate a r data.table from a given query
+	 * Returns the r variable name that references the created data.table
+	 * @param frame
+	 * @param qs
+	 * @return rFrame name
+	 */
+	public String generateRDataTableVariable(ITableDataFrame frame, QueryStruct2 qs) {
+		String dfName = "f_" + Utility.getRandomString(10);
 
+		// use an iterator to get the instance values from the qs
+		// we will use these instance values to construct a new r data frame
+		Iterator<IHeadersDataRow> it = (Iterator<IHeadersDataRow>) frame.query(qs);
+		
+		// these stringbuilders will build the new r table and populate the
+		// table with the instance values
+		StringBuilder instanceValuesBuilder = new StringBuilder(); // this puts values into the frame we are constructing
+
+		// build instance list
+		List<Object[]> instanceList = new ArrayList<Object[]>();
+		while (it.hasNext()) {
+			Object[] values = it.next().getRawValues();
+			instanceList.add(values);
+		}
+
+		// now that we have the instance values, we can use them to build a string to populate the table that we will make in r
+		// colNameString will keep track of the columns we are creating in our new r data frame
+		List<IQuerySelector> inputSelectors = qs.getSelectors();
+		int numSelectors = inputSelectors.size();
+		StringBuilder colNameSb = new StringBuilder();
+		for (int i = 0; i < numSelectors; i++) {
+			// use the column name without the frame name
+			colNameSb.append(inputSelectors.get(i).getAlias());
+			colNameSb.append("= character()").append(",");
+			for (int j = 0; j < instanceList.size(); j++) {
+				instanceValuesBuilder.append(dfName + "[" + (j + 1) + "," + (i + 1) + "]");
+				instanceValuesBuilder.append("<-");
+				if (instanceList.get(j) == null) {
+					instanceValuesBuilder.append("\"" + "" + "\"");
+				} else {
+					// replace underscores with spaces in the instance data
+					instanceValuesBuilder.append("\"" + instanceList.get(j)[i].toString().replaceAll("_", " ") + "\"");
+				}
+				instanceValuesBuilder.append(";");
+			}
+		}
+
+		// colNameString format: Title= character(),Genre= character()
+		String colNameString = colNameSb.substring(0, colNameSb.length()-1);
+		// scriptSb format: frame<-data.frame(Title= character(), stringsAsFactors = FALSE); + the instances
+		StringBuilder scriptSb = new StringBuilder(); // this builds the dataframe
+		scriptSb.append(dfName).append("<-data.frame(").append(colNameString).append(", stringsAsFactors = FALSE);")
+			.append(instanceValuesBuilder.toString());
+		// run the total script
+		this.runR(scriptSb.toString());
+		return dfName;
+	}
 }

@@ -2,7 +2,11 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.rosuda.JRI.REXP;
@@ -229,6 +233,68 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			return counts;
 		}
 		return null;
+	}
+	
+	@Override
+	public Map<String, Object> flushObjectAsTable(String framename, String[] colNames) {
+		List<Object[]> dataMatrix = new ArrayList<Object[]>();
+		
+		int numCols = colNames.length;
+		for (int i = 0; i < numCols; i++) {
+			String script = framename + "$" + colNames[i];
+			REXP val = (REXP) executeR(script);
+			int typeInt = val.getType();
+			
+			if(typeInt == REXP.XT_ARRAY_DOUBLE) {
+				double[] rows = val.asDoubleArray();
+				int numRows = rows.length;
+				if(dataMatrix.isEmpty()) {
+					initEmptyMatrix(dataMatrix, numRows, numCols);
+				}
+				for(int j = 0; j < numRows; j++) {
+					dataMatrix.get(j)[i] = rows[j];
+				}
+			} else if(typeInt == REXP.XT_ARRAY_INT) {
+				int[] rows = val.asIntArray();
+				int numRows = rows.length;
+				if(dataMatrix.isEmpty()) {
+					initEmptyMatrix(dataMatrix, numRows, numCols);
+				}
+				for(int j = 0; j < numRows; j++) {
+					dataMatrix.get(j)[i] = rows[j];
+				}
+			} else if (typeInt == REXP.XT_ARRAY_STR) {
+				String[] rows = val.asStringArray();
+				int numRows = rows.length;
+				if(dataMatrix.isEmpty()) {
+					initEmptyMatrix(dataMatrix, numRows, numCols);
+				}
+				for(int j = 0; j < numRows; j++) {
+					dataMatrix.get(j)[i] = rows[j];
+				}
+			} else if(typeInt == REXP.XT_INT) {
+				if(dataMatrix.isEmpty()) {
+					initEmptyMatrix(dataMatrix, 1, numCols);
+				}
+				dataMatrix.get(0)[i] = val.asInt();
+			} else if(typeInt == REXP.XT_DOUBLE) {
+				if(dataMatrix.isEmpty()) {
+					initEmptyMatrix(dataMatrix, 1, numCols);
+				}
+				dataMatrix.get(0)[i] = val.asDouble();
+			} else if(typeInt == REXP.XT_STR) {
+				if(dataMatrix.isEmpty()) {
+					initEmptyMatrix(dataMatrix, 1, numCols);
+				}
+				dataMatrix.get(0)[i] = val.asString();
+			}
+		}
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("headers", colNames);
+		retMap.put("data", dataMatrix);
+		
+		return retMap; 
 	}
 
 	@Override
