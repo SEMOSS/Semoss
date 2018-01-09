@@ -5,10 +5,12 @@ public class QueryFunctionHelper {
 	public static final String MIN = "min";
 	public static final String MAX = "max";
 	public static final String MEAN = "mean";
-	public static final String AVERAGE = "average";
+	public static final String AVERAGE_1 = "average";
+	public static final String AVERAGE_2 = "avg";
 	public static final String MEDIAN = "median";
 	public static final String SUM = "sum";
-	public static final String STDEV = "standarddeviation";
+	public static final String STDEV_1 = "standarddeviation";
+	public static final String STDEV_2 = "stdev";
 	public static final String COUNT = "count";
 	public static final String UNIQUE_COUNT = "uniquecount";
 	public static final String CONCAT = "concat";
@@ -30,13 +32,13 @@ public class QueryFunctionHelper {
 			inputFunction = "MIN";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "MAX";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
 			inputFunction = "AVG";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = "MEDIAN";
 		} else if(lowerfunction.equals(SUM)) {
 			inputFunction = "SUM";
-		} else if(lowerfunction.equals(STDEV)) {
+		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = "STDDEV_SAMP";
 		} else if(lowerfunction.equals(COUNT)) {
 			inputFunction = "COUNT";
@@ -64,13 +66,13 @@ public class QueryFunctionHelper {
 			inputFunction = "min";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "max";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
 			inputFunction = "mean";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = "median";
 		} else if(lowerfunction.equals(SUM)) {
 			inputFunction = "sum";
-		} else if(lowerfunction.equals(STDEV)) {
+		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = "sd";
 		} else if(lowerfunction.equals(COUNT)) {
 			inputFunction = "length";
@@ -98,13 +100,13 @@ public class QueryFunctionHelper {
 			inputFunction = "MIN";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "MAX";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
 			inputFunction = "AVG";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = null;
 		} else if(lowerfunction.equals(SUM)) {
 			inputFunction = "SUM";
-		} else if(lowerfunction.equals(STDEV)) {
+		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = null;
 		} else if(lowerfunction.equals(COUNT)) {
 			inputFunction = "COUNT";
@@ -145,13 +147,13 @@ public class QueryFunctionHelper {
 			inputFunction = "Min";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "Max";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
 			inputFunction = "Average";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = "Median";
 		} else if(lowerfunction.equals(SUM)) {
 			inputFunction = "Sum";
-		} else if(lowerfunction.equals(STDEV)) {
+		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = "Standard_Deviation";
 		} else if(lowerfunction.equals(COUNT)) {
 			inputFunction = "Count";

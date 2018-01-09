@@ -20,7 +20,7 @@ public class StandardDeviationReactor extends QuerySelectReactor {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
 				NounMetadata input = qsInputs.getNoun(selectIndex);
 				IQuerySelector innerSelector = getSelector(input);
-				qs.addSelector(genFunctionSelector(QueryFunctionHelper.STDEV, innerSelector));
+				qs.addSelector(genFunctionSelector(QueryFunctionHelper.STDEV_1, innerSelector));
 			}
 		}
 		return qs;

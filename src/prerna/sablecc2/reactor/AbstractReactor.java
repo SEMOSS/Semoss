@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -54,8 +55,8 @@ public abstract class AbstractReactor implements IReactor {
 	
 	protected String jobId;
 	
-	public String [] keysToGet = new String[]{"no keys defined"};
-	public Hashtable<String, String> keyValue = new Hashtable<String, String>();
+	public String[] keysToGet = new String[]{"no keys defined"};
+	public Map<String, String> keyValue = new Hashtable<String, String>();
 
 	// convenience method to allow order or named noun
 	public void organizeKeys()
