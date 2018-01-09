@@ -14,6 +14,7 @@ import java.util.Properties;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
+import prerna.comments.ModifyInsightCommentReactor;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
@@ -520,6 +521,7 @@ public class ReactorFactory {
 		// Insight Comments
 		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
 		reactorHash.put("DeleteInsightComment", DeleteInsightCommentReactor.class);
+		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
