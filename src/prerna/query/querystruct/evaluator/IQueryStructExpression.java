@@ -22,7 +22,7 @@ public interface IQueryStructExpression {
 			return new QueryMedianExpression();
 		} else if(functionName.equals(QueryFunctionHelper.MIN)) {
 			return new QueryMinExpression();
-		} else if(functionName.equals(QueryFunctionHelper.STDEV)) {
+		} else if(functionName.equals(QueryFunctionHelper.STDEV_1)) {
 			return new QueryStandardDeviationExpression();
 		} else if(functionName.equals(QueryFunctionHelper.SUM)) {
 			return new QuerySumExpression();
