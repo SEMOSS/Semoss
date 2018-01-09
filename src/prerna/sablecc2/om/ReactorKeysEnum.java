@@ -18,6 +18,7 @@ public enum ReactorKeysEnum {
 	COMMENT_ID_KEY("commentId", 							"Unique ID for the insight comment"),
 	CONCEPT("concept", 										"Concept name within an engine"),
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
+	CONFIG_FILE("configFile",                               "The configuration file."),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
 	CRITERIA("criteria", 									"Criteria to be evaluated"),
 	DB_DRIVER_KEY("dbDriver",								"Name of the JDBC driver.  Not all JDBC drivers are open source so make sure you include the driver within the classpath of SEMOSS"),

@@ -1,16 +1,11 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectWriter;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -19,13 +14,21 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetCSVSchemaReactor extends AbstractReactor {
 	public GetCSVSchemaReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.toString(), ReactorKeysEnum.DELIMITER.toString() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DELIMITER.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		String filePath = getFilePath();
-		String delimiter = getDelimiter();
+		//get inputs
+		String filePath = this.keyValue.get(this.keysToGet[0]);
+		if(filePath == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.FILE_PATH.toString());
+		}
+		String delimiter = this.keyValue.get(this.keysToGet[1]);
+		if(delimiter == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DELIMITER.toString());
+		}
+		
 		CSVFileHelper cv = new CSVFileHelper();
 		cv.setDelimiter(delimiter.charAt(0));
 		cv.parse(filePath);
@@ -60,38 +63,11 @@ public class GetCSVSchemaReactor extends AbstractReactor {
 		}
 
 		ret.put("tables", tableDetails);
-
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-		String schema = null;
-		try {
-			schema = ow.writeValueAsString(ret);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return new NounMetadata(schema, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
-	private String getDelimiter() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DELIMITER.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String file = grs.getNoun(0).getValue() + "";
-			if (file.length() > 0) {
-				return file;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DELIMITER.toString());
-	}
 
-	private String getFilePath() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.FILE_PATH.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String file = grs.getNoun(0).getValue() + "";
-			if (file.length() > 0) {
-				return file;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.FILE_PATH.toString());
-	}
+
+
 
 }

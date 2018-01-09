@@ -1,21 +1,14 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectWriter;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.algorithm.learning.matching.DomainValues;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -25,12 +18,16 @@ import prerna.util.Utility;
 
 public class GetLocalDBSchemaReactor extends AbstractReactor {
 	public GetLocalDBSchemaReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.toString() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngineName();
+		organizeKeys();
+		String engineName = this.keyValue.get(this.keysToGet[0]);
+		if (engineName == null) {
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.ENGINE.toString());
+		}
 		IEngine engine = Utility.getEngine(engineName);
 		List<String> concepts = DomainValues.getConceptList(engine);
 		QueryStruct2 qs = engine.getDatabaseQueryStruct();
@@ -44,7 +41,8 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 			if (concept.equals("Concept")) {
 				continue;
 			}
-			// check if concept is in the relationship hashmap, if not just add an empty list
+			// check if concept is in the relationship hashmap, if not just add
+			// an empty list
 			List<String> conceptRelations = new ArrayList<String>();
 			for (String key : relations.keySet()) {
 				if (concept.equalsIgnoreCase(key)) {
@@ -53,12 +51,10 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 				}
 			}
 			relationshipMap.put(concept, conceptRelations);
-
 		}
 
 		// tablename: [{name, type}]
 		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>();
-
 		for (String conceptURI : concepts) {
 			String cleanConcept = DomainValues.determineCleanConceptName(conceptURI, engine);
 			// ignore default concept value
@@ -98,25 +94,7 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 		ret.put("tables", tableDetails);
 		ret.put("relationships", relationshipMap);
 
-		ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-		String schema = null;
-		try {
-			schema = ow.writeValueAsString(ret);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return new NounMetadata(schema, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
-	}
-
-	private String getEngineName() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.ENGINE.toString());
-		if (grs != null && !grs.isEmpty()) {
-			String engine = grs.getNoun(0).getValue() + "";
-			if (engine.length() > 0) {
-				return engine;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.ENGINE.toString());
+		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
 }
