@@ -91,6 +91,20 @@ public class InsightComment {
 	}
 	
 	/**
+	 * Determine the path using the input and load the file
+	 * @param engine
+	 * @param rdbmsId
+	 * @param commentId
+	 */
+	public void loadFromFile(String engine, String rdbmsId, String commentId) {
+		// generate the file path
+		String commentInfoPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "\\" + Constants.DB + "\\" + engine + "\\version\\" + rdbmsId + "\\" + commentId + COMMENT_MAP_EXTENSION;
+		// load it
+		loadFromFile(commentInfoPath);
+	}
+	
+	/**
 	 * Load from comment info path
 	 * @param commentInfoPath
 	 */
@@ -116,11 +130,10 @@ public class InsightComment {
 		File commentFile = new File(commentFileLocation);
 		String comment = null;
 		try {
-			comment = new ObjectMapper().readValue(commentFile, String.class);
-		} catch(FileNotFoundException e) {
-			throw new IllegalArgumentException("Comment file could not be found at location: " + fileInfo.getPath());
+			comment = FileUtils.readFileToString(commentFile);
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Comment file is not in valid JSON format");
+			e.printStackTrace();
+			throw new IllegalArgumentException("Could not read comment file");
 		}
 		
 		try {
