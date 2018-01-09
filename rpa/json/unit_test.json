@@ -6,21 +6,21 @@
   "jobsInChain":[
     {
       "-jobClass":"JobBatch",
-      "timeout":120,
+      "timeout":9,
       "jobsInBatch":[
         {
           "-jobName":"pie0",
-          "-jobClass":"BakePiesJob",
+          "-jobClass":"BakePieJob",
           "bakeDuration":3
         },
         {
           "-jobName":"pie1",
-          "-jobClass":"BakePiesJob",
+          "-jobClass":"BakePieJob",
           "bakeDuration":1
         },
         {
           "-jobName":"pie2",
-          "-jobClass":"BakePiesJob",
+          "-jobClass":"BakePieJob",
           "bakeDuration":5
         }
       ]
