@@ -46,6 +46,9 @@ public class InsightComment {
 	private String createdTimeStamp;
 	private String lastModifedTimeStamp;
 	
+	/**
+	 * Constructor will generate the random comment id
+	 */
 	public InsightComment() {
 		this.commentId = UUID.randomUUID().toString();
 	}
