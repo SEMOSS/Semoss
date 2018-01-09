@@ -51,15 +51,19 @@ import prerna.util.Utility;
  * RunXray("xrayConfigFile");
  */
 public class XRayReactor extends AbstractRFrameReactor {
-	
 	public XRayReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.CONFIG_FILE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
-		String configFileJson = getConfigFile();
+		organizeKeys();
+		String configFileJson = this.keyValue.get(this.keysToGet[0]);
+		if (configFileJson == null) {
+			throw new IllegalArgumentException("Need to define the config file");
+		}
+
 		HashMap<String, Object> config = null;
 		try {
 			config = new ObjectMapper().readValue(configFileJson, HashMap.class);
@@ -764,20 +768,6 @@ public class XRayReactor extends AbstractRFrameReactor {
 			semanticMode = semanticParam.booleanValue();
 		}
 		return semanticMode;
-	}
-
-	////////////////////////////////////////
-	///////////// PKSL INPUT////////////////
-	////////////////////////////////////////
-	private String getConfigFile() {
-		GenRowStruct grs = this.getCurRow();
-		if (grs != null && !grs.isEmpty()) {
-			String configFile = grs.getNoun(0).getValue() + "";
-			if (configFile.length() > 0) {
-				return configFile;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the config file");
 	}
 
 }
