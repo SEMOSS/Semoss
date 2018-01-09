@@ -22,35 +22,57 @@ import prerna.util.DIHelper;
 public class InsightComment {
 
 	private static Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-	private static DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+	private static DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
 	
 	// extension
-	private static final String COMMENT_MAP_EXTENSION = "_info";
-	private static final String COMMENT_EXTENSION = "_message";
+	public static final String COMMENT_EXTENSION = ".c";
 
 	// keys
+	private static final String ENGINE_KEY = "engine";
+	private static final String INSGIHT_ID_KEY = "insightId";
+
+	private static final String ID_KEY = "id";
+	private static final String NEXT_ID_KEY = "nextId";
+	private static final String PREVIOUS_ID_KEY = "prevId";
+	private static final String COMMENT_KEY = "comment";
+	private static final String ACTION_KEY = "action";
+
 	private static final String RECIPE_KEY = "recipe";
-	private static final String COMMENT_ID_KEY = "commentId";
 	private static final String PICTURE_KEY = "picture";
 	private static final String USER_KEY = "user";
 	private static final String CREATED_TIME_STAMP_KEY = "createdTimeStamp";
-	private static final String LAST_MODIFIED_TIME_STAMP_KEY = "lastModifedTimeStamp";
 
-	// this will be encrypted
+	// class variables
+	private String id;
+	private String nextId;
+	private String prevId;
 	private String comment;
+	private String action;
+	// required to know where it belongs
+	private String engineName;
+	private String rdbmsId;
 	
 	private String recipe;
-	private String commentId;
 	private String picture;
 	private String user;
 	private String createdTimeStamp;
-	private String lastModifedTimeStamp;
+	
+	// comment types
+	public static final String ADD_ACTION = "add";
+	public static final String DELETE_ACTION = "edit";
+	public static final String EDIT_ACTION = "delete";
+	
+
 	
 	/**
 	 * Constructor will generate the random comment id
 	 */
-	public InsightComment() {
-		this.commentId = UUID.randomUUID().toString();
+	public InsightComment(String engineName, String rdbmsId) {
+		this.engineName = engineName;
+		this.rdbmsId = rdbmsId;
+		
+		this.createdTimeStamp = getCurrentDate();
+		this.id = UUID.randomUUID().toString() + "_" + this.createdTimeStamp;
 	}
 	
 	/**
@@ -58,17 +80,17 @@ public class InsightComment {
 	 * @param engineName
 	 * @param rdbmsId
 	 */
-	public void writeToFile(String engineName, String rdbmsId, String comment) {
+	public void writeToFile() {
 		Map<String, String> map = moveDataToMap();
 
 		String json = GSON.toJson(map);
 		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsId;		
+				+ "\\" + Constants.DB + "\\" + this.engineName + "\\version\\" + this.rdbmsId;
 		
 		File path = new File(baseDir);
 		// create insight directory if it doesn't exist
 		path.mkdirs();
-		String commentInfoPath = baseDir + "\\" + this.commentId + COMMENT_MAP_EXTENSION;
+		String commentInfoPath = baseDir + "\\" + this.id + "_" + this.createdTimeStamp +  COMMENT_EXTENSION;
 		// create file
 		File f = new File(commentInfoPath);
 		try {
@@ -76,71 +98,6 @@ public class InsightComment {
 			FileUtils.writeStringToFile(f, json);
 		} catch (IOException e1) {
 			e1.printStackTrace();
-		}
-		
-		String encryptedComment = encrypt(comment);
-		String commentPath = baseDir + "\\" + this.commentId + COMMENT_EXTENSION;
-		// create file
-		f = new File(commentPath);
-		try {
-			// write json to file
-			FileUtils.writeStringToFile(f, encryptedComment);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-	}
-	
-	/**
-	 * Determine the path using the input and load the file
-	 * @param engine
-	 * @param rdbmsId
-	 * @param commentId
-	 */
-	public void loadFromFile(String engine, String rdbmsId, String commentId) {
-		// generate the file path
-		String commentInfoPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "\\" + Constants.DB + "\\" + engine + "\\version\\" + rdbmsId + "\\" + commentId + COMMENT_MAP_EXTENSION;
-		// load it
-		loadFromFile(commentInfoPath);
-	}
-	
-	/**
-	 * Load from comment info path
-	 * @param commentInfoPath
-	 */
-	public void loadFromFile(String commentInfoPath) {
-		File fileInfo = new File(commentInfoPath);
-		Map<String, String> mapData = null;
-		try {
-			mapData = new ObjectMapper().readValue(fileInfo, Map.class);
-		} catch(FileNotFoundException e) {
-			throw new IllegalArgumentException("Comment info file could not be found at location: " + fileInfo.getPath());
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Comment info file is not in valid JSON format");
-		}
-		
-		this.commentId = mapData.get(COMMENT_ID_KEY);
-		this.user = mapData.get(USER_KEY);
-		this.recipe = mapData.get(RECIPE_KEY);
-		this.picture = mapData.get(PICTURE_KEY);
-		this.createdTimeStamp = mapData.get(CREATED_TIME_STAMP_KEY);
-		this.lastModifedTimeStamp = mapData.get(LAST_MODIFIED_TIME_STAMP_KEY);
-		
-		String commentFileLocation = fileInfo.getParentFile().getAbsolutePath() + "\\" + this.commentId + COMMENT_EXTENSION;
-		File commentFile = new File(commentFileLocation);
-		String comment = null;
-		try {
-			comment = FileUtils.readFileToString(commentFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Could not read comment file");
-		}
-		
-		try {
-			this.comment = decrypt(comment);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Cannot access comment");
 		}
 	}
 	
@@ -158,12 +115,19 @@ public class InsightComment {
 	 */
 	private Map<String, String> moveDataToMap() {
 		Map<String, String> map = new HashMap<String, String>();
-		map.put(COMMENT_ID_KEY, this.commentId);
+		map.put(ENGINE_KEY, this.engineName);
+		map.put(INSGIHT_ID_KEY, this.rdbmsId);
+
+		map.put(ID_KEY, this.id);
+		map.put(NEXT_ID_KEY, this.nextId);
+		map.put(PREVIOUS_ID_KEY, this.prevId);
+		map.put(COMMENT_KEY, this.comment);
+		map.put(ACTION_KEY, this.action);
+		
 		map.put(USER_KEY, this.user);
 		map.put(RECIPE_KEY, this.recipe);
 		map.put(PICTURE_KEY, this.picture);
 		map.put(CREATED_TIME_STAMP_KEY, this.createdTimeStamp);
-		map.put(LAST_MODIFIED_TIME_STAMP_KEY, this.lastModifedTimeStamp);
 		return map;
 	}
 
@@ -175,6 +139,42 @@ public class InsightComment {
 		return formatter.format(new Date());
 	}
 	
+	/**
+	 * Load from comment info path
+	 * @param commentInfoPath
+	 */
+	public static InsightComment loadFromFile(String commentInfoPath) {
+		File fileInfo = new File(commentInfoPath);
+		return loadFromFile(fileInfo);
+	}
+	
+	public static InsightComment loadFromFile(File fileInfo) {
+		Map<String, String> mapData = null;
+		try {
+			mapData = new ObjectMapper().readValue(fileInfo, Map.class);
+		} catch(FileNotFoundException e) {
+			throw new IllegalArgumentException("Comment info file could not be found at location: " + fileInfo.getPath());
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Comment info file is not in valid JSON format");
+		}
+
+		String engineName = mapData.get(ID_KEY);
+		String insightId = mapData.get(ID_KEY);
+
+		InsightComment comment = new InsightComment(engineName, insightId);
+		comment.id = mapData.get(ID_KEY);
+		comment.nextId = mapData.get(NEXT_ID_KEY);
+		comment.prevId = mapData.get(PREVIOUS_ID_KEY);
+		comment.comment = mapData.get(COMMENT_KEY);
+		comment.action = mapData.get(ACTION_KEY);
+		comment.user = mapData.get(USER_KEY);
+		comment.recipe = mapData.get(RECIPE_KEY);
+		comment.picture = mapData.get(PICTURE_KEY);
+		comment.createdTimeStamp = mapData.get(CREATED_TIME_STAMP_KEY);
+		
+		return comment;
+	}
+	
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
@@ -183,18 +183,47 @@ public class InsightComment {
 	 * Setters / Getters
 	 */
 
-	public String getCommentId() {
-		return commentId;
+
+	public String getId() {
+		return id;
 	}
-	
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getNextId() {
+		return nextId;
+	}
+
+	public void setNextId(String nextId) {
+		this.nextId = nextId;
+	}
+
+	public String getPrevId() {
+		return prevId;
+	}
+
+	public void setPrevId(String prevId) {
+		this.prevId = prevId;
+	}
+
 	public String getComment() {
 		return comment;
 	}
 
 	public void setComment(String comment) {
 		this.comment = comment;
-	}	
-	
+	}
+
+	public String getAction() {
+		return action;
+	}
+
+	public void setAction(String action) {
+		this.action = action;
+	}
+
 	public String getRecipe() {
 		return recipe;
 	}
@@ -226,13 +255,4 @@ public class InsightComment {
 	public void setCreatedTimeStamp(String createdTimeStamp) {
 		this.createdTimeStamp = createdTimeStamp;
 	}
-
-	public String getLastModifedTimeStamp() {
-		return lastModifedTimeStamp;
-	}
-
-	public void setLastModifedTimeStamp(String lastModifedTimeStamp) {
-		this.lastModifedTimeStamp = lastModifedTimeStamp;
-	}
-	
 }
