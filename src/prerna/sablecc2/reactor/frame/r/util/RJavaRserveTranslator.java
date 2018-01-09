@@ -1,7 +1,10 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.rosuda.REngine.REXP;
@@ -231,6 +234,93 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	@Override
+	public Map<String, Object> flushObjectAsTable(String framename, String[] colNames) {
+		List<Object[]> dataMatrix = new ArrayList<Object[]>();
+		
+		int numCols = colNames.length;
+		for (int i = 0; i < numCols; i++) {
+			String script = framename + "$" + colNames[i];
+			REXP val = (REXP) executeR(script);
+
+			if (val.isNumeric()) {
+				// for a double array
+				try {
+					double[] rows = val.asDoubles();
+					int numRows = rows.length;
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, numRows, numCols);
+					}
+					for (int j = 0; j < numRows; j++) {
+						dataMatrix.get(j)[i] = rows[j];
+					}
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+				//in case values cannot be doubles
+				try {
+					int[] rows = val.asIntegers();
+					int numRows = rows.length;
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, numRows, numCols);
+					}
+					for (int j = 0; j < numRows; j++) {
+						dataMatrix.get(j)[i] = rows[j];
+					}
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+				//in case values cannot be put into an array
+				//for an integer
+				try {
+					int row = val.asInteger();
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, 1, numCols);
+					}
+					dataMatrix.get(0)[i] = row;
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+
+			} else {
+				// for a string array
+				try {
+					String[] rows = val.asStrings();
+					int numRows = rows.length;
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, numRows, numCols);
+					}
+					for (int j = 0; j < numRows; j++) {
+						dataMatrix.get(j)[i] = rows[j];
+					}
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+				//for a string
+				try {
+					String row = val.asString();
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, 1, numCols);
+					}
+					dataMatrix.get(0)[i] = row;
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+			}
+		}
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("headers", colNames);
+		retMap.put("data", dataMatrix);
+		
+		return retMap;
 	}
 	
 	@Override
