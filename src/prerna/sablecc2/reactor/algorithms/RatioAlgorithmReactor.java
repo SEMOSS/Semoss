@@ -46,7 +46,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 	private static final String SCORE_LABEL = "Score_";
 
 	private String[] ratioFrameHeaders;
-	
+
 	public RatioAlgorithmReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
 	}
@@ -147,7 +147,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 
 		// grab all unique instance values for instance column
 		List<Object> instanceValuesList = getInstanceValues(frame, instanceColumn);
-		
+
 		//iterate through combinations
 		logger.setLevel(Level.OFF);
 		try {
@@ -163,7 +163,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 					List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn, sourceInstance, attribute);
 					sourceAttributesStore.add(sourceAttributes);
 				}
-				
+
 				for (int targetIndex = sourceIndex + 1; targetIndex < instanceValuesList.size(); targetIndex++) {
 					Object targetInstance = instanceValuesList.get(targetIndex);
 
@@ -184,12 +184,17 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 						Set<String> union = new HashSet<String>(sourceAttributes);
 						union.addAll(targetAttributes);
 						int unionSize = union.size();
-						// now determine the intersect
-						union.retainAll(sourceAttributes);
-						union.retainAll(targetAttributes);
-						int intersectSize = union.size();
+						double score = 0.0;
+						// if the union size is 0
+						// then there is no similarity
+						if(unionSize != 0) {
+							// now determine the intersect
+							union.retainAll(sourceAttributes);
+							union.retainAll(targetAttributes);
+							int intersectSize = union.size();
 
-						double score = (double) intersectSize / (double) unionSize;
+							score = (double) intersectSize / (double) unionSize;
+						}
 						//clean Attribute
 						String cleanAttribute = attribute;
 						if(attribute.contains("__")){
@@ -232,7 +237,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 					}
 					sb.append(LINE_SEPARATOR);
 					bufferedWriter.write(sb.toString());
-					
+
 					counter++;
 					if(counter % 5000 == 0) {
 						logger.setLevel(Level.INFO);
@@ -266,7 +271,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 					cellsIndex++;
 				}
 				cells[2] = ratio;
-				
+
 				// write data in CSV format
 				// A - A, ratio, attribute score
 				sb = new StringBuilder();
@@ -323,21 +328,21 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		RImporter importer = new RImporter(newFrame, csvQS);
 		importer.insertData();
 
-//		//testing
-//		it = newFrame.iterator();
-//		counter = 0;
-//		while(it.hasNext()) {
-//			it.next();
-//			counter++;
-//		}
-//		System.out.println(counter);
-//		System.out.println(counter);
-//		System.out.println(counter);
-//		System.out.println(counter);
-//		return null;
+		//		//testing
+		//		it = newFrame.iterator();
+		//		counter = 0;
+		//		while(it.hasNext()) {
+		//			it.next();
+		//			counter++;
+		//		}
+		//		System.out.println(counter);
+		//		System.out.println(counter);
+		//		System.out.println(counter);
+		//		System.out.println(counter);
+		//		return null;
 
 		GoogleAnalytics.trackAnalyticsPixel(this.insight, "Ratio");
-		
+
 		this.insight.setDataMaker(newFrame);
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
@@ -363,7 +368,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		}
 		List<Object> instanceValuesList = new Vector<Object>();
 		instanceValuesList.addAll(instancValues);		
-		
+
 		return instanceValuesList;
 	}
 
