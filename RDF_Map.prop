@@ -2,7 +2,7 @@ This section is for properties
 
 BROWSER_TYPE	Mozilla15
 ENGINE_WATCHER	SMSSWatcher
-ENGINE_WEB_WATCHER	SMSSWebWatcher
+ENGINE_WEB_WATCHER	SMSSWebWatcher;JobSchedulerWatcher
 
 URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
 SOLR_BASE_URL	https://localhost:443/solr
