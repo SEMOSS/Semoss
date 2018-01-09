@@ -23,9 +23,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetExternalDBSchemaReactor extends AbstractReactor {
 	
 	public GetExternalDBSchemaReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.toString(), ReactorKeysEnum.HOST.toString(),
-				ReactorKeysEnum.PORT.toString(), ReactorKeysEnum.USERNAME.toString(),
-				ReactorKeysEnum.PASSWORD.toString(), ReactorKeysEnum.SCHEMA.toString() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
+				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(),
+				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey() };
 	}
 
 	@Override
