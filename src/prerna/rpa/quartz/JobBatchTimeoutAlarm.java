@@ -7,14 +7,14 @@ public class JobBatchTimeoutAlarm implements Runnable {
 	
 	private static final Logger LOGGER = LogManager.getLogger(JobBatchTimeoutAlarm.class.getName());
 	
-	private long timeout; // in seconds
-	private JobBatch jobBatch;
+	private final long timeout; // in seconds
+	private final JobBatch jobBatch;
 	
-	private boolean interrupted = false;
+	private volatile boolean interrupted = false;
 	
-	// Don't make these static in case there is more than one JobBatche
-	private Object jobMonitor;
-	private Object timeoutMonitor = new Object();
+	// Don't make these static in case there is more than one JobBatch
+	private final Object jobMonitor;
+	private final Object timeoutMonitor = new Object();
 	
 	public JobBatchTimeoutAlarm(Object jobMonitor, long timeout, JobBatch jobBatch) {
 		this.jobMonitor = jobMonitor;
@@ -35,11 +35,14 @@ public class JobBatchTimeoutAlarm implements Runnable {
 				if (!interrupted) {
 					jobBatch.setTimedOut(true);
 					synchronized (jobMonitor) {
-						jobMonitor.notify();
+						jobMonitor.notifyAll();
 					}
 				}
 			} catch (InterruptedException e) {
 				LOGGER.error("Thread for the job batch timeout alarm interrupted in an unexpected manner.", e);
+				
+				// Preserve interrupt status
+				Thread.currentThread().interrupt();
 			}
 		}
 	}
@@ -49,7 +52,7 @@ public class JobBatchTimeoutAlarm implements Runnable {
 		// Notify the waiting timeoutMonitor with the interrupted=true flag
 		interrupted = true;
 		synchronized (timeoutMonitor) {
-			timeoutMonitor.notify();
+			timeoutMonitor.notifyAll();
 		}
 	}
 

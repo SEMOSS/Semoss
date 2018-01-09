@@ -11,12 +11,12 @@ public class EmailMessage {
 
 	private static final String NEW_LINE = System.getProperty("line.separator");
 	
-	private String from;
-	private String[] to;
-	private String subject;
-	private String body;
-	private boolean bodyIsHTML;
-	private Session session;
+	private final String from;
+	private final String[] to;
+	private final String subject;
+	private final String body;
+	private final boolean bodyIsHTML;
+	private final Session session;
 
 	/**
 	 * <p>
@@ -62,7 +62,7 @@ public class EmailMessage {
 
 	/**
 	 * Sends the email message.
-	 * @throws MessagingException  
+	 * @throws MessagingException if unable to send the message 
 	 */
 	public void send() throws MessagingException {
 
