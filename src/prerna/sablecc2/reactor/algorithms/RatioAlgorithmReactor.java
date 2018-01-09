@@ -389,7 +389,10 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		qs.addFilter(instanceFilter);
 		Iterator<IHeadersDataRow> it = frame.query(qs);
 		while (it.hasNext()) {
-			uniqueAttributes.add(it.next().getValues()[0].toString());
+			Object val = it.next().getValues()[0];
+			if(val != null) {
+				uniqueAttributes.add(val.toString());
+			}
 		}
 		return uniqueAttributes;
 	}
