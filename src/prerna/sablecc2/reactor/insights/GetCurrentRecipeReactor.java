@@ -13,8 +13,10 @@ public class GetCurrentRecipeReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<String> pixelRecipe = this.insight.getPixelRecipe();
 		StringBuilder recipe = new StringBuilder();
-		for (String pixel : pixelRecipe) {
-			recipe.append(pixel);
+		
+		// Don't add GetCurrentRecipe to the end
+		for (int i = 0; i < pixelRecipe.size() - 1; i++) {
+			recipe.append(pixelRecipe.get(i));
 		}
 		return new NounMetadata(recipe.toString(), PixelDataType.CONST_STRING, PixelOperationType.CURRENT_INSIGHT_RECIPE);
 	}
