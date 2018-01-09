@@ -264,10 +264,9 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 						String[] split = attribute.split("__");
 						cleanAttribute = split[1];
 					}
-					//multiply by weight
-					score = score * weights.get(cleanAttribute);
-					ratio += score;
 					cells[cellsIndex] = score;
+					//multiply by weight
+					ratio += score * weights.get(cleanAttribute);
 					cellsIndex++;
 				}
 				cells[2] = ratio;
