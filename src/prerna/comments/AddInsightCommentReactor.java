@@ -18,11 +18,11 @@ public class AddInsightCommentReactor extends AbstractReactor {
 		organizeKeys();
 		String engine = this.keyValue.get(this.keysToGet[0]);
 		if(engine == null) {
-			throw new IllegalArgumentException("Need to know which engine this insight belongs to");
+			throw new IllegalArgumentException("Need to define which engine this insight belongs to");
 		}
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 		if(rdbmsId == null) {
-			throw new IllegalArgumentException("Need to know which insight this comment belongs to");
+			throw new IllegalArgumentException("Need to define which insight this comment belongs to");
 		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if(comment == null || comment.trim().isEmpty()) {
