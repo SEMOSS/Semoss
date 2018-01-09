@@ -15,6 +15,7 @@ public enum ReactorKeysEnum {
 	COLUMN("column", 										"Name of the column header"),
 	COLUMNS("columns", 										"List of column headers"),
 	COMMENT_KEY("comment", 									"This key can represent a string comment, a map containing the data for a given comment, or the id for an existing comment"),
+	COMMENT_ID_KEY("commentId", 							"Unique ID for the insight comment"),
 	CONCEPT("concept", 										"Concept name within an engine"),
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
