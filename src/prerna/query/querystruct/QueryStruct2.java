@@ -172,6 +172,10 @@ public class QueryStruct2 {
 		this.orderBySelectors.add(selector);
 	}
 	
+	public void addOrderBy(QueryColumnOrderBySelector selector) {
+		this.orderBySelectors.add(selector);
+	}
+	
 	public List<QueryColumnOrderBySelector> getOrderBy() {
 		return this.orderBySelectors;
 	}
