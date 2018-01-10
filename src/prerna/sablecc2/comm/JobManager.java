@@ -102,26 +102,32 @@ public class JobManager {
 
 	public List<String> getStdOut(String jobId, int offset) {
 		List<String> outputList = jobStdOut.get(jobId);
-		if(outputList == null || outputList.isEmpty()) {
-			return new ArrayList<String>();
+		synchronized(outputList) {
+			if(outputList == null || outputList.isEmpty()) {
+				return new ArrayList<String>();
+			}
+			int size = outputList.size();
+			List<String> output = outputList.subList(offset, size-1);
+			int newOffset = offset+size;
+			// update the offset
+			stdOutOffset.put(jobId, newOffset);
+			return output;
 		}
-		List<String> output = outputList.subList(offset, outputList.size()-1);
-		int newOffset = offset+output.size();
-		// update the offset
-		stdOutOffset.put(jobId, newOffset);
-		return output;
 	}
 	
 	public List<String> getError(String jobId, int offset) {
 		List<String> outputList = jobError.get(jobId);
-		if(outputList == null || outputList.isEmpty()) {
-			return new ArrayList<String>();
+		synchronized(outputList) {
+			if(outputList == null || outputList.isEmpty()) {
+				return new ArrayList<String>();
+			}
+			int size = outputList.size();
+			List<String> output = outputList.subList(offset, size-1);
+			int newOffset = offset+size;
+			// update the offset
+			errorOffset.put(jobId, newOffset);
+			return output;
 		}
-		List<String> output = outputList.subList(offset, outputList.size()-1);
-		int newOffset = offset+output.size();
-		// update the offset
-		errorOffset.put(jobId, newOffset);
-		return output;
 	}
 	
 	public String getStatus(String jobId) {
