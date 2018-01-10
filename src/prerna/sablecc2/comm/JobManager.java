@@ -108,7 +108,7 @@ public class JobManager {
 			}
 			int size = outputList.size();
 			List<String> output = outputList.subList(offset, size-1);
-			int newOffset = offset+size;
+			int newOffset = offset+output.size();
 			// update the offset
 			stdOutOffset.put(jobId, newOffset);
 			return output;
@@ -123,7 +123,7 @@ public class JobManager {
 			}
 			int size = outputList.size();
 			List<String> output = outputList.subList(offset, size-1);
-			int newOffset = offset+size;
+			int newOffset = offset+output.size();
 			// update the offset
 			errorOffset.put(jobId, newOffset);
 			return output;
