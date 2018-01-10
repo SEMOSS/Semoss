@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -26,6 +27,8 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	 * 5) name for r data table, if one is to be created
 	 */
 	
+	private static final String CLASS_NAME = SemanticBlendingReactor.class.getName();
+	
 	// keys used to retrieve user input
 	// determine whether using semantic blending or widget
 	// default to false
@@ -38,6 +41,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
 		// initialize the rJavaTranslator
 		init();
 		
@@ -75,6 +79,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		
 		//create an r data frame (in r) using this querystruct and get the name of the variable
 		String dfName = rJavaTranslator.generateRDataTableVariable(frame, qs);
+		logger.info("Done generating random subset");
 		
 		// this will define the column numbers that we are selecting from our frame to run through the routine
 		// the r routine uses column numbers rather than names
@@ -103,6 +108,8 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// results should be in a data frame
 		String dataTableScript = df2 + " <- as.data.table(" + df2 + ");";
 		// run all of the above r scripts
+		logger.info("Running semantic blending script");
+	    logger.info("This process may take a few minutes depending on the type of data and internet speed");
 		this.rJavaTranslator.runR(sourceScript + rFunctionScript + dataTableScript);
 		
 		// if we are running semantic blending
