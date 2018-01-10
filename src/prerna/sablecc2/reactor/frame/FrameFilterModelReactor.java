@@ -14,6 +14,7 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -86,26 +87,13 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		retMap.put("offset", offset);
 		retMap.put("filterWord", filterWord);
 		
-		String tableName = null;
-		String column = null;
-		if(tableCol.contains("__")) {
-			String[] split = tableCol.split("__");
-			tableName = split[0];
-			column = split[1];
-		} else {
-			tableName = tableCol;
-			column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
-		}
-
 		// set the base info in the query struct
 		QueryStruct2 qs = new QueryStruct2();
-		QueryColumnSelector selector = new QueryColumnSelector();
-		selector.setTable(tableName);
-		selector.setColumn(column);
+		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
 		qs.addSelector(selector);
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
-		qs.addOrderBy(tableName, column, "ASC");
+		qs.addOrderBy(new QueryColumnOrderBySelector(tableCol));
 		
 		// get the base filters that are being applied that we are concerned about
 		GenRowFilters baseFilters = dataframe.getFrameFilters().copy();
@@ -114,7 +102,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		}
 		// add the filter word as a like filter
 		if(filterWord != null && !filterWord.trim().isEmpty()) {
-			NounMetadata lComparison = new NounMetadata(tableCol, PixelDataType.COLUMN);
+			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
 			String comparator = "?like";
 			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
 			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
@@ -192,18 +180,13 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		retMap.put("filterValues", filterValues);
 
 		// for numerical, also add the min/max
-		String alias = tableName;
-		if(!column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
-			alias += "__" + column;
-		}
+		String alias = selector.getAlias();
 		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
 		if(metaName == null) {
 			metaName = alias;
 		}
 		if(SemossDataType.NUMBER == dataframe.getMetaData().getHeaderTypeAsEnum(metaName)) {
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			innerSelector.setTable(tableName);
-			innerSelector.setColumn(column);
+			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 			
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
