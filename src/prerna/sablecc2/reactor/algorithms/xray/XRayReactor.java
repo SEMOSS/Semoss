@@ -31,8 +31,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.util.Constants;
-import prerna.util.GoogleAnalytics;
 import prerna.util.Utility;
+import prerna.util.ga.GATracker;
 
 /**
  * Writes instance data from CSV, EXCEL, LOCAL and EXTERNAL datasources to txt
@@ -230,7 +230,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
 		
 		// track GA data
-		GoogleAnalytics.trackAnalyticsPixel(this.insight, "XRay");
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "XRay");
 		
 		return noun;
 	}

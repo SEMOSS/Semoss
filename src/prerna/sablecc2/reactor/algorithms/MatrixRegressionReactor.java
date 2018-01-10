@@ -23,7 +23,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class MatrixRegressionReactor extends AbstractReactor {
 
@@ -130,7 +130,7 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		// now return this object
 
 		// track GA data
-		GoogleAnalytics.trackAnalyticsPixel(this.insight, "MatrixRegression");
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "MatrixRegression");
 		
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}

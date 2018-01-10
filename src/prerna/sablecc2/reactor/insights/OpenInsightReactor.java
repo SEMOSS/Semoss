@@ -21,8 +21,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.solr.SolrIndexEngine;
-import prerna.util.GoogleAnalytics;
 import prerna.util.Utility;
+import prerna.util.ga.GATracker;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
@@ -79,7 +79,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		insightMap.put("core_engine_id", newInsight.getRdbmsId());
 		
 		// track GA data
-		GoogleAnalytics.trackInsightExecution(this.insight, "openinsight", engineName, rdbmsId, newInsight.getInsightName());
+		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", engineName, rdbmsId, newInsight.getInsightName());
 
 		insightMap.put("insightData", newInsight.reRunPixelInsight());
 		insightMap.put("params", params);
