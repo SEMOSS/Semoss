@@ -138,6 +138,9 @@ import prerna.sablecc2.reactor.panel.ornaments.AddPanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.ornaments.RemovePanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.ornaments.ResetPanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.ornaments.RetrievePanelOrnamentsReactor;
+import prerna.sablecc2.reactor.panel.rules.AddPanelColorByValueReactor;
+import prerna.sablecc2.reactor.panel.rules.DeletePanelColorByValueReactor;
+import prerna.sablecc2.reactor.panel.rules.RetrievePanelColorByValueReactor;
 import prerna.sablecc2.reactor.panel.sort.AddPanelSortReactor;
 import prerna.sablecc2.reactor.panel.sort.RemovePanelSortReactor;
 import prerna.sablecc2.reactor.panel.sort.SetPanelSortReactor;
@@ -426,7 +429,11 @@ public class ReactorFactory {
 		// panel position
 		reactorHash.put("SetPanelPosition", SetPanelPositionReactor.class);
 		reactorHash.put("RetrievePanelPosition", RetrievePanelPositionReactor.class);
-
+		// panel color by value
+		reactorHash.put("AddPanelColorByValue", AddPanelColorByValueReactor.class);
+		reactorHash.put("RetrievePanelColorByValue", RetrievePanelColorByValueReactor.class);
+		reactorHash.put("RemovePanelColorByValue", DeletePanelColorByValueReactor.class);
+		
 		// new tab in browser
 		reactorHash.put("OpenTab", OpenTabReactor.class);
 
