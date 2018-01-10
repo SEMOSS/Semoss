@@ -27,16 +27,8 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// init rJavaTranslator
 		init();
-		// check if fuzzy join package is installed
-		String hasPackage = this.rJavaTranslator.getString("as.character(\"fuzzyjoin\" %in% rownames(installed.packages()))");
-		if (!hasPackage.equalsIgnoreCase("true")) {
-			throw new IllegalArgumentException("The fuzzyjoin package is NOT installed");
-		}
-		// check if RJSONIO package is installed
-		hasPackage = this.rJavaTranslator.getString("as.character(\"RJSONIO\" %in% rownames(installed.packages()))");
-		if (!hasPackage.equalsIgnoreCase("true")) {
-			throw new IllegalArgumentException("The RJSONIO package is NOT installed");
-		}
+		// check r package dependencies
+		this.rJavaTranslator.checkPackages(new String[]{"fuzzyjoin", "RJSONIO"});
 
 		// get frame and set up logger
 		RDataTable frame = (RDataTable) getFrame();

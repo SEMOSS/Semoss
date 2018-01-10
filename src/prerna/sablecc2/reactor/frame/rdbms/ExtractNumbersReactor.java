@@ -9,9 +9,9 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
-public class ExtractNumbersReactor extends AbstractRFrameReactor {
+public class ExtractNumbersReactor extends AbstractFrameReactor {
 	public static final String COLUMNS = "columns";
 	public static final String OVERRIDE = "override";
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";

@@ -208,4 +208,24 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		this.runR(scriptSb.toString());
 		return dfName;
 	}
+
+	/**
+	 * Check if r packages are install throw an error is an r package is missing
+	 * 
+	 * @param packages
+	 */
+    public void checkPackages(String[] packages) {
+		String packageError = "";
+		for (String rPackage : packages) {
+			String hasPackage = this.getString("as.character(\"" + rPackage + "\" %in% rownames(installed.packages()))");
+			if (!hasPackage.equalsIgnoreCase("true")) {
+				packageError += rPackage + "\n";
+			}
+		}
+		if (packageError.length() > 0) {
+			String errorMessage = "\nMake sure you have all the following libraries installed:\n" + packageError;
+			throw new IllegalArgumentException(errorMessage);
+		}
+
+    }
 }
