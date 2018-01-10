@@ -22,9 +22,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.solr.SolrIndexEngine;
-import prerna.util.GoogleAnalytics;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.ga.GATracker;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
@@ -108,15 +108,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 
 		// track GA data
-		GoogleAnalytics.trackInsightExecution(this.insight, "saveinsight", engineName, newRdbmsId, insightName);
+		GATracker.getInstance().trackInsightExecution(this.insight, "saveinsight", engineName, newRdbmsId, insightName);
 
 		return noun;
 	}
 
-
 	/**
 	 * Add an insight into solr
-	 * 
 	 * @param engineName
 	 * @param insightIdToSave
 	 * @param insightName

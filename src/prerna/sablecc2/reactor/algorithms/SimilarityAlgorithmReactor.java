@@ -20,7 +20,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class SimilarityAlgorithmReactor extends AbstractReactor {
 
@@ -103,7 +103,7 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
 		
 		// track GA data
-		GoogleAnalytics.trackAnalyticsPixel(this.insight, "Similarity");
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "Similarity");
 		
 		//return successful frame change to FE
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

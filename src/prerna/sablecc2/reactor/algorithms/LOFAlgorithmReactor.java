@@ -22,7 +22,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class LOFAlgorithmReactor extends AbstractReactor {
 	
@@ -170,7 +170,7 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
 		
 		// track GA data
-		GoogleAnalytics.trackAnalyticsPixel(this.insight, "LOF");
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "LOF");
 		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

@@ -54,7 +54,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class Insight {
 
@@ -234,13 +234,12 @@ public class Insight {
 		// session is null if opening a saved insight
 		// we don't need to track these pixels again
 		if (session != null) {
-			String userID = (String) session.getValue();
-			GoogleAnalytics ga = new GoogleAnalytics(thisExpression, thisType, thisPrevExpression, prevType, userID);
+			String userId = (String) session.getValue();
+			// fire and release...
+			GATracker.getInstance().track(thisExpression, thisType, thisPrevExpression, prevType, userId);
 			// set this expression as insight level previous expression
 			this.thisPrevExpression = thisExpression;
 			this.prevType = curType;
-			// fire and release...
-			ga.start();
 		}
 	}
 
