@@ -4,6 +4,7 @@ import java.util.TreeSet;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 
@@ -60,7 +61,7 @@ public class HelpReactor extends AbstractReactor {
 		
 		//return a string with all of the reactors
 		String reactors = allReactors.toString();
-		return new NounMetadata(reactors, PixelDataType.CONST_STRING);
+		return new NounMetadata(reactors, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 		
 	}
 	
