@@ -139,7 +139,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public void inAHelpExpr(AHelpExpr node) {
 		String reactorId = node.getId().getText();
 		IReactor reactor = getReactor(reactorId, node.toString());
-		NounMetadata noun = new NounMetadata(reactor.getHelp(), PixelDataType.CONST_STRING);
+		NounMetadata noun = new NounMetadata(reactor.getHelp(), PixelDataType.CONST_STRING, PixelOperationType.HELP);
 		if(curReactor == null) {
 			this.planner.addVariable("$RESULT", noun);
 		} else {
