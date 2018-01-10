@@ -58,11 +58,8 @@ public class XRayReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		// need to make sure that the textreuse package is installed
-		String hasPackage = this.rJavaTranslator
-				.getString("as.character(\"textreuse\" %in% rownames(installed.packages()))");
-		if (!hasPackage.equalsIgnoreCase("true")) {
-			throw new IllegalArgumentException("The textreuse package is NOT installed");
-		}
+		this.rJavaTranslator.checkPackages(new String[]{"textreuse"});
+
 		organizeKeys();
 		String configFileJson = this.keyValue.get(this.keysToGet[0]);
 		if (configFileJson == null) {
