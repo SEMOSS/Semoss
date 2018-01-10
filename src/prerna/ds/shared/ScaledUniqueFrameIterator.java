@@ -100,13 +100,13 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 			SimpleQueryFilter instanceFilter = null;
 			if(nextVal instanceof Number) {
 				instanceFilter = new SimpleQueryFilter(
-						new NounMetadata(uniqueColumnName, PixelDataType.COLUMN), 
+						new NounMetadata(new QueryColumnSelector(uniqueColumnName), PixelDataType.COLUMN), 
 						"==", 
 						new NounMetadata(nextVal, PixelDataType.CONST_DECIMAL)
 						);
 			} else {
 				instanceFilter = new SimpleQueryFilter(
-						new NounMetadata(uniqueColumnName, PixelDataType.COLUMN), 
+						new NounMetadata(new QueryColumnSelector(uniqueColumnName), PixelDataType.COLUMN), 
 						"==", 
 						new NounMetadata(nextVal, PixelDataType.CONST_STRING)
 						);
