@@ -8,6 +8,9 @@ public enum PixelOperationType {
 	TASK_DATA,
 	TASK_METADATA,
 	
+	// QUERY
+	QUERY,
+	
 	// FRAME INFORMATION
 	FRAME,
 	FRAME_DATA_CHANGE,
@@ -20,6 +23,7 @@ public enum PixelOperationType {
 	
 	// PANEL OPERATIONS
 	PANEL,
+	PANEL_COLOR_BY_VALUE,
 	PANEL_OPEN,
 	PANEL_CLOSE,
 	PANEL_ORNAMENT,

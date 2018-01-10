@@ -15,9 +15,14 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 	protected static final String TRAVERSAL_KEY = ReactorKeysEnum.TRAVERSAL.getKey();
 
 	protected InsightPanel getInsightPanel() {
+		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
+		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+			return (InsightPanel) genericReactorGrs.get(0);
+		}
+		
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericReactorGrs = this.store.getNoun(PixelDataType.PANEL.toString());
+		genericReactorGrs = this.store.getNoun(PixelDataType.PANEL.toString());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (InsightPanel) genericReactorGrs.get(0);
 		}

@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
+import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 
@@ -35,6 +36,10 @@ public class InsightPanel {
 	// map to store the panel position
 	private transient Map<String, Object> position;
 	
+	// store the color by value rules for the panel
+	private transient Map<String, QueryStruct2> colorByValue;
+	
+	
 	public InsightPanel(String panelId) {
 		this.panelId = panelId;
 		this.panelLabel = panelId;
@@ -44,6 +49,15 @@ public class InsightPanel {
 		this.events = new HashMap<String, Object>();
 		this.comments = new HashMap<String, Map<String, Object>>();
 		this.position = new HashMap<String, Object>();
+		this.colorByValue = new HashMap<String, QueryStruct2>();
+	}
+	
+	/**
+	 * Get the color by value rules
+	 * @return
+	 */
+	public Map<String, QueryStruct2> getColorByValue() {
+		return this.colorByValue;
 	}
 	
 	/**
