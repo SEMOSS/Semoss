@@ -2146,5 +2146,10 @@
 			<artifactId>avro</artifactId>
 			<version>1.8.2</version>
 		</dependency>
+		<dependency>
+		    <groupId>black.ninia</groupId>
+		    <artifactId>jep</artifactId>
+		    <version>3.7.0</version>
+		</dependency>
 	</dependencies>
 </project>
