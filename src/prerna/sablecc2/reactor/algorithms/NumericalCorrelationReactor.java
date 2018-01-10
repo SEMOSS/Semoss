@@ -20,7 +20,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class NumericalCorrelationReactor extends AbstractReactor {
 
@@ -90,7 +90,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		vizData.put("specificData", correlationMap);
 		
 		// track GA data
-		GoogleAnalytics.trackAnalyticsPixel(this.insight, "NumericalCorrelation");
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
 		
 		// now return this object
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);

@@ -24,7 +24,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class MergeDataReactor extends AbstractReactor {
 	
@@ -48,7 +48,7 @@ public class MergeDataReactor extends AbstractReactor {
 		joins = convertJoins(joins, frame.getMetaData());
 
 		// track GA data
-		GoogleAnalytics.trackDataImport(this.insight, qs);
+		GATracker.getInstance().trackDataImport(this.insight, qs);
 		
 		// if we have an inner join, add the current values as a filter on the query
 		// important for performance on large dbs when the user has already 
