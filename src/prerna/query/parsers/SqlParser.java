@@ -325,9 +325,6 @@ public class SqlParser {
 		} else if(expr instanceof Function) {
 			Function aExpr = (Function)expr;
 			String functionName = aExpr.getName();
-			// most of them seem to have one argument, so should I try to get that first
-			List<Expression> paramExprs = aExpr.getParameters().getExpressions();
-			int numParamExprs = paramExprs.size();
 			// complex function
 			// using multiple cols
 			// i.e. concat, etc.
@@ -342,12 +339,24 @@ public class SqlParser {
 				((QueryFunctionSelector) thisSelector).setFunction(functionName);
 				setChildSelectorInParentSelector(parentSelector, thisSelector, expressionType);
 			}
-
-			// need to process all the children
-			// and put into the selector
-			for(int paramIndex = 0; paramIndex < numParamExprs; paramIndex++) {
-				// set the parent to null since we are directly adding it here
-				((QueryFunctionSelector) parentSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
+			
+			if(aExpr.isDistinct()) {
+				((QueryFunctionSelector) thisSelector).setDistinct(true);
+			}
+			if(aExpr.isAllColumns()) {
+				// if it is all columns, we need to add a star
+				//TODO: come back to how to handle the *
+				((QueryFunctionSelector) thisSelector).addInnerSelector(new QueryColumnSelector("*"));
+			} else {
+				ExpressionList params = aExpr.getParameters();
+				List<Expression> paramExprs = params.getExpressions();
+				int numParamExprs = paramExprs.size();
+				// need to process all the children
+				// and put into the selector
+				for(int paramIndex = 0; paramIndex < numParamExprs; paramIndex++) {
+					// set the parent to null since we are directly adding it here
+					((QueryFunctionSelector) thisSelector).addInnerSelector(determineSelector(paramExprs.get(paramIndex), null, EXPR_TYPE.INNER, alias));
+				}
 			}
 		} else if (expr instanceof Parenthesis) {
 			// move into the next piece
