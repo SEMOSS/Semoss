@@ -11,7 +11,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class FileSourceReactor extends AbstractQueryStructReactor {
 
@@ -82,7 +82,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 		List<String> heads = new ArrayList<String>(dataTypes.keySet());
 
 		// track GA data
-		GoogleAnalytics.trackDragAndDrop(this.insight, heads, FileName);
+		GATracker.getInstance().trackDragAndDrop(this.insight, heads, FileName);
 
 		return qs;
 	}
