@@ -102,10 +102,10 @@ public class JobManager {
 
 	public List<String> getStdOut(String jobId, int offset) {
 		List<String> outputList = jobStdOut.get(jobId);
+		if(outputList == null || outputList.isEmpty()) {
+			return new ArrayList<String>();
+		}
 		synchronized(outputList) {
-			if(outputList == null || outputList.isEmpty()) {
-				return new ArrayList<String>();
-			}
 			int size = outputList.size();
 			List<String> output = outputList.subList(offset, size);
 			int newOffset = offset+output.size();
@@ -117,10 +117,10 @@ public class JobManager {
 	
 	public List<String> getError(String jobId, int offset) {
 		List<String> outputList = jobError.get(jobId);
+		if(outputList == null || outputList.isEmpty()) {
+			return new ArrayList<String>();
+		}
 		synchronized(outputList) {
-			if(outputList == null || outputList.isEmpty()) {
-				return new ArrayList<String>();
-			}
 			int size = outputList.size();
 			List<String> output = outputList.subList(offset, size);
 			int newOffset = offset+output.size();
