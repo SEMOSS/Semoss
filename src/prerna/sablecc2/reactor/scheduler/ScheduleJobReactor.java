@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.quartz.CronExpression;
+import org.quartz.JobKey;
 import org.quartz.SchedulerException;
 
 import com.google.gson.Gson;
@@ -21,6 +22,7 @@ import prerna.rpa.config.IllegalConfigException;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.config.JobConfigParser;
 import prerna.rpa.config.ParseConfigException;
+import prerna.rpa.quartz.SchedulerUtil;
 import prerna.rpa.quartz.jobs.insight.RunPixelJob;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
@@ -34,6 +36,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	private static final String JOB_NAME = "jobName";
 	private static final String JOB_GROUP = "jobGroup";
 	private static final String CRON_EXPRESSION = "cronExpression";
+	private static final String TRIGGER_NOW = "triggerNow";
 	private static final String RECIPE = "recipe";
 	
 	// Outputs
@@ -46,6 +49,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String jobName = getJobName();
 		String jobGroup = getJobGroup();
 		String cronExpression = getCronExpression();
+		boolean triggerNow = getTriggerNow();
 		String recipe = getRecipe();
 		
 		// Define the json; this is used to persist the job to disk
@@ -72,10 +76,15 @@ public class ScheduleJobReactor extends AbstractReactor {
 		
 		// Schedule the job
 		try {
-			JobConfigParser.parse(jsonFileName, false);
+			JobKey jobKey = JobConfigParser.parse(jsonFileName, false);
+			if (triggerNow) {
+				SchedulerUtil.getScheduler().triggerJob(jobKey);
+			}
 		} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
 			throw new RuntimeException(e.toString());
 		}
+		
+
 		
 		// Save metadata into a map and return
 		Map<String, String> quartzJobMetadata = new HashMap<>();
@@ -107,6 +116,13 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String input = grs.getNoun(0).getValue().toString();
 		boolean valid = CronExpression.isValidExpression(input);
 		if (!valid) throw new IllegalArgumentException(input + " is not a valid CRON expression");
+		return input;
+	}
+	
+	private boolean getTriggerNow() {
+		GenRowStruct grs = this.store.getNoun(TRIGGER_NOW);
+		if (grs == null) return false;
+		boolean input = Boolean.parseBoolean(grs.getNoun(0).getValue().toString());
 		return input;
 	}
 	
