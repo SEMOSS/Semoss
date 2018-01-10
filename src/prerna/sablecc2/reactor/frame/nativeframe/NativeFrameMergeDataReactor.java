@@ -21,7 +21,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class NativeFrameMergeDataReactor extends AbstractReactor {
 
@@ -43,7 +43,7 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		joins = convertJoins(joins, frame.getMetaData());
 
 		// track GA data
-		GoogleAnalytics.trackDataImport(this.insight, qs);
+		GATracker.getInstance().trackDataImport(this.insight, qs);
 
 		// Format and send Google Analytics data
 		String engine = qs.getEngineName() + "";

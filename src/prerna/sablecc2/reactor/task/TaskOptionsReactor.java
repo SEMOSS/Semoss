@@ -3,10 +3,11 @@ package prerna.sablecc2.reactor.task;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class TaskOptionsReactor extends TaskBuilderReactor {
 	
@@ -26,8 +27,7 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 		
 		// track GA data
 		if (this.task instanceof BasicIteratorTask) {
-			GoogleAnalytics.trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
+			GATracker.getInstance().trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
 		}
-		
 	}
 }

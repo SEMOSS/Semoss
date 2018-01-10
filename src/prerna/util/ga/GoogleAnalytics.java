@@ -1,18 +1,9 @@
-package prerna.util;
+package prerna.util.ga;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.HttpClientBuilder;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -25,96 +16,44 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
-public class GoogleAnalytics extends Thread {
+public class GoogleAnalytics implements IGoogleAnalytics {
 
-	private String thisExpression = null;
-	private String prevExpression = null;
-	private String thisType = null;
-	private String thisprevType = null;
-	private String userId = null;
-
-	public GoogleAnalytics(String thisExpression, String thisType) {
-		this(thisExpression, thisType, null, null, null);
+	/**
+	 * Constructor is protected so it can only be created by the builder
+	 */
+	protected GoogleAnalytics() {
+		
 	}
-
-	public GoogleAnalytics(String thisExpression, String thisType, String prevExpression, String prevType) {
-		this(thisExpression, thisType, prevExpression, prevType, null);
-	}
-
-	public GoogleAnalytics(String thisExpression, String thisType, String prevExpression, String prevType, String userId) {
-		this.thisExpression = thisExpression;
-		this.prevExpression = prevExpression;
-		this.thisType= thisType;
-		this.thisprevType= prevType;
-		this.userId = userId;
+	
+	@Override
+	public void track(String thisExpression, String thisType) {
+		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(thisExpression, thisType);
+		// fire and release
+		ga.start();
 	}
 
 	@Override
-	public void run() {
-		String curType = thisType;
-		String prevType = thisprevType;
-		String eventLabel = thisExpression;
-		String previousEvent = prevExpression;
-		String ID = System.getProperty("user.name");
-
-		if (previousEvent == null){
-			previousEvent = "";
-		}
-		if (prevType == null){
-			prevType = "";
-		}
-		HttpClient client = HttpClientBuilder.create().build();
-		//build uri to send to GA using their measurement protocol
-		URIBuilder builder = new URIBuilder();
-		builder
-		.setScheme("http")
-		.setHost("www.google-analytics.com")
-		.setPath("/collect")
-		.addParameter("v", "1")
-		.addParameter("t", "event")
-		.addParameter("tid", "UA-99971122-1")
-		.addParameter("cid", ID)
-		.addParameter("cd1", curType)
-		.addParameter("cd2", eventLabel)
-		.addParameter("cd3", prevType)
-		.addParameter("cd4", previousEvent)
-		.addParameter("cd5", ID)
-		.addParameter("ec", "Custom Category")
-		.addParameter("ea", "Custom Action")
-		.addParameter("el", "Custom Label");
-
-		java.net.URI uri = null;
-		try {
-			uri = builder.build();
-		} catch (URISyntaxException e) {
-			return;
-		}
-
-		HttpPost post = new HttpPost(uri);
-		try {
-			client.execute(post);
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-		}
+	public void track(String thisExpression, String thisType, String prevExpression, String prevType) {
+		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(thisExpression, thisType, prevExpression, prevType);
+		// fire and release
+		ga.start();
 	}
 
-	/**
-	 * Executes the tracking for an analytical routine
-	 * @param in
-	 * @param routine
-	 */
-	public static void trackAnalyticsPixel(Insight in, String routine) {
+	@Override
+	public void track(String thisExpression, String thisType, String prevExpression, String prevType, String userId) {
+		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(thisExpression, thisType, prevExpression, prevType, userId);
+		// fire and release
+		ga.start();
+	}
+
+	@Override
+	public void trackAnalyticsPixel(Insight in, String routine) {
 		String expression = "{\"analytics\":{\"analyticalRoutineName\":\"" + routine + "\"}}";
 		in.trackPixels("analytics", expression);
 	}
 
-	/**
-	 * Execute the tracking of a data import or data merge
-	 * @param in
-	 * @param selectors
-	 */
-	public static void trackDataImport(Insight in, QueryStruct2 qs) {
+	@Override
+	public void trackDataImport(Insight in, QueryStruct2 qs) {
 		final String exprStart = "{\"dataquery\":["; 
 		final String exprEnd = "]}";
 
@@ -152,26 +91,14 @@ public class GoogleAnalytics extends Thread {
 		}
 	}
 
-	/**
-	 * Track running and saving an existing insight
-	 * @param in
-	 * @param type
-	 * @param engineName
-	 * @param rdbmsId
-	 * @param insightName
-	 */
-	public static void trackInsightExecution(Insight in, String type, String engineName, String rdbmsId, String insightName) {
+	@Override
+	public void trackInsightExecution(Insight in, String type, String engineName, String rdbmsId, String insightName) {
 		String curExpression = "{\"" + type + "\":{\"dbName\":\"" + engineName + "\",\"insightID\":\"" + rdbmsId + "\",\"insightName\":\"" + insightName + "\"}}";
 		in.trackPixels(type, curExpression);
 	}
 
-	/**
-	 * Track an excel upload into a database
-	 * @param tableName
-	 * @param files
-	 * @param headerDataTypes
-	 */
-	public static void trackExcelUpload(String tableName, String fileName,
+	@Override
+	public void trackExcelUpload(String tableName, String fileName,
 			List<Map<String, Map<String, String[]>>> headerDataTypes) {
 
 		fileName = fileName.substring(0, fileName.length() - 24);
@@ -195,20 +122,15 @@ public class GoogleAnalytics extends Thread {
 				counter++;
 			}
 
-			GoogleAnalytics ga = new GoogleAnalytics(exprStart + exprBuilder.toString() + exprEnd, "upload");
+			GoogleAnalyticsThread ga = new GoogleAnalyticsThread(exprStart + exprBuilder.toString() + exprEnd, "upload");
 			// fire and release...
 			ga.start();
 		}
 
 	}
 
-	/**
-	 * Track a csv upload into a database
-	 * @param files
-	 * @param dbName
-	 * @param headerDataTypes
-	 */
-	public static void trackCsvUpload(String files, String dbName, List<Map<String, String[]>> headerDataTypes) {
+	@Override
+	public void trackCsvUpload(String files, String dbName, List<Map<String, String[]>> headerDataTypes) {
 		String fileName = files.substring(files.lastIndexOf("\\") + 1, files.lastIndexOf("."));
 		fileName = fileName.substring(0, fileName.length() - 24);
 		final String exprStart = "{\"upload\":{\"" + fileName + "\":["; 
@@ -226,18 +148,14 @@ public class GoogleAnalytics extends Thread {
 				exprBuilder.append("{\"dbName\":\"").append(dbName).append("\",\"columnName\":\"").append(gaHeaders[j]).append("\"}");
 				counter++;
 			}
-			GoogleAnalytics ga = new GoogleAnalytics(exprStart + exprBuilder.toString() + exprEnd, "upload");
+			GoogleAnalyticsThread ga = new GoogleAnalyticsThread(exprStart + exprBuilder.toString() + exprEnd, "upload");
 			// fire and release...
 			ga.start();
 		}
 	}
-	/**
-	 * Track drag and drop 
-	 * @param in
-	 * @param headers
-	 * @param FileName
-	 */
-	public static void trackDragAndDrop(Insight in, List<String> headers, String FileName){
+	
+	@Override
+	public void trackDragAndDrop(Insight in, List<String> headers, String FileName){
 		final String exprStart = "{\"draganddrop\":{\"" + FileName + "\":[{";
 		final String exprEnd = "}]}}";
 		StringBuilder exprBuilder = new StringBuilder();
@@ -253,14 +171,8 @@ public class GoogleAnalytics extends Thread {
 		in.trackPixels("draganddrop", exprStart + exprBuilder.toString() + exprEnd);
 	}
 
-	/**
-	 * Executes tracking of visualizations
-	 * @param mapOptions
-	 * @param in
-	 * @throws SQLException
-	 */
-
-	public static void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs) {
+	@Override
+	public void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs) {
 		if(taskOptions == null || taskOptions.isEmpty()) {
 			return;
 		}

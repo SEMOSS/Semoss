@@ -14,7 +14,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.GoogleAnalytics;
+import prerna.util.ga.GATracker;
 
 public class ImportDataReactor extends AbstractReactor {
 	
@@ -35,7 +35,7 @@ public class ImportDataReactor extends AbstractReactor {
 		frame.setLogger(logger);
 		
 		// track GA data
-		GoogleAnalytics.trackDataImport(this.insight, qs);
+		GATracker.getInstance().trackDataImport(this.insight, qs);
 		
 		// insert the data
 		IImporter importer = ImportFactory.getImporter(frame, qs);
