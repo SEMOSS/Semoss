@@ -9,6 +9,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.parsers.OpaqueSqlParser;
 import prerna.query.parsers.SqlParser;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
@@ -33,8 +34,8 @@ public class NativeFrameImporter implements IImporter {
 		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && 
 				this.qs.retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
 			// lets see what happens
-//			OpaqueSqlParser parser = new OpaqueSqlParser();
-			SqlParser parser = new SqlParser();
+			OpaqueSqlParser parser = new OpaqueSqlParser();
+//			SqlParser parser = new SqlParser();
 			String query = ((HardQueryStruct) this.qs).getQuery();
 			try {
 				QueryStruct2 newQs = this.qs.getNewBaseQueryStruct();

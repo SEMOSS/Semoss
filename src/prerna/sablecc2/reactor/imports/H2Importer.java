@@ -9,6 +9,7 @@ import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -273,7 +274,22 @@ public class H2Importer implements IImporter {
 						rightTableTypes, joins, leftTableAlias, rightTableAlias);
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			}
-		} catch(Exception e) {
+		} catch(EmptyIteratorException e) {
+			// TODO: need to add something here
+			// and stop throwing the error
+			
+			// if we have a non-inner join
+			// add the columns into the frame
+			if(!joins.get(0).getJoinType().equals("inner.join")) {
+				// add columns onto the frame
+				
+				
+			}
+			
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		catch(Exception e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
