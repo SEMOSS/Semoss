@@ -21,6 +21,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
@@ -38,6 +39,13 @@ public class OwlTemporalEngineMeta {
 	private static final String IS_DERIVED_PRED = "http://semoss.org/ontologies/Relation/Contains/IsDerived";
 	private static final String QUERY_STRUCT_PRED = "http://semoss.org/ontologies/Relation/Contains/QueryStructName";
 	private static final String ALIAS_PRED = "http://semoss.org/ontologies/Relation/Contains/Alias";
+
+	// if opaque selector, need to store it
+	private static final String QUERY_SELECTOR_COMPLEX_PRED = "http://semoss.org/ontologies/Relation/Contains/IsComplex";
+	private static final String QUERY_SELECTOR_TYPE_PRED = "http://semoss.org/ontologies/Relation/Contains/QuerySelectorType";
+	private static final String QUERY_SELECTOR_AS_STRING_PRED = "http://semoss.org/ontologies/Relation/Contains/QuerySelector";
+
+
 	// specific for tinker
 	private static final String PHYSICAL_PRED = "http://semoss.org/ontologies/Relation/Contains/Physical";
 
@@ -175,6 +183,47 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
+	/*
+	 * The following are used for native frame selectors which requires a bit more work
+	 * since we need to construct the selector type to get the syntax
+	 */
+	
+	public void setSelectorComplex(String vertexName, boolean isComplex) {
+		String sub = "";
+		String pred = "";
+		boolean obj = false;
+		
+		// store the unique name as a concept
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_COMPLEX_PRED;
+		obj = isComplex;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setSelectorTypeToVertex(String vertexName, SELECTOR_TYPE selectorType) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_TYPE_PRED;
+		obj = selectorType.toString();
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setSelectorObject(String vertexName, String jsonSelectorObject) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
+		pred = QUERY_SELECTOR_AS_STRING_PRED;
+		obj = jsonSelectorObject;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
@@ -200,9 +249,6 @@ public class OwlTemporalEngineMeta {
 		pred = SEMOSS_PROPERTY_PREFIX;
 		obj = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, true});
-		
-		// add alias
-//		setAliasToProperty(propertyName, propertyName);
 	}
 	
 	public void setDataTypeToProperty(String propertyName, String dataType) {
@@ -355,6 +401,27 @@ public class OwlTemporalEngineMeta {
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		if(it.hasNext()) {
 			return it.next().getValues()[0].toString();
+		}
+		
+		return null;
+	}
+	
+	public Object[] getComplexSelector(String uniqueName) {
+		String query = "select distinct "
+				+ "?header "
+				+ "?queryType "
+				+ "?queryJson "
+				+ "where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"}"
+				+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		if(it.hasNext()) {
+			return it.next().getValues();
 		}
 		
 		return null;
@@ -1484,13 +1551,10 @@ public class OwlTemporalEngineMeta {
 				isConcept = true;
 			}
 			
-			if(obj.toString().equals("\"STRING\"")) {
-				System.out.println("here");
-			}
-			
 			newMeta.myEng.addStatement(new Object[]{subUri, predUri, obj, isConcept});
 		}
 		
 		return newMeta;
 	}
+
 }
