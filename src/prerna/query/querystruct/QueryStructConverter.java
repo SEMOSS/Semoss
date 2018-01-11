@@ -145,25 +145,55 @@ public class QueryStructConverter {
 	}
 
 	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, OwlTemporalEngineMeta meta) {
-		String newQsName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
+		String qsName = selector.getQueryStructName();
+		String newQsName = meta.getUniqueNameFromAlias(qsName);
 		if(newQsName == null) {
+			// see if it is a jsonified selector
+			IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
+			if(jSelector != null) {
+				return jSelector;
+			}
+			
 			// nothing to do
 			// return the original
 			return selector;
 		}
-		QueryColumnSelector newS = new QueryColumnSelector();
-		if(newQsName.contains("__")) {
-			String[] split = newQsName.split("__");
-			newS.setTable(split[0]);
-			newS.setColumn(split[1]);
+		
+		// try to see if it is jsonified selector
+		IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
+		if(jSelector != null) {
+			return jSelector;
 		} else {
-			newS.setTable(newQsName);
-			newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			// not jsonified
+			// but we do need to modify it
+			QueryColumnSelector newS = new QueryColumnSelector();
+			if(newQsName.contains("__")) {
+				String[] split = newQsName.split("__");
+				newS.setTable(split[0]);
+				newS.setColumn(split[1]);
+			} else {
+				newS.setTable(newQsName);
+				newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			}
+			newS.setAlias(selector.getAlias());
+			newS.setTableAlias(selector.getTableAlias());
+			return newS;
 		}
-		newS.setAlias(selector.getAlias());
-		return newS;
 	}
 
+	private static IQuerySelector convertJsonifiedSelector(String uniqueName, OwlTemporalEngineMeta meta) {
+		Object[] selectorData = meta.getComplexSelector(uniqueName);
+		if(selectorData != null) {
+			// position 1 is the query type
+			// position 2 is the json
+			IQuerySelector.SELECTOR_TYPE type = IQuerySelector.convertStringToSelectorType(selectorData[1].toString());
+			IQuerySelector selector = (IQuerySelector) IQuerySelector.getGson().fromJson(selectorData[2].toString(), IQuerySelector.getQuerySelectorClassFromType(type));
+			return selector;
+		}
+		
+		return null;
+	}
+	
 	private static IQuerySelector convertArithmeticSelector(QueryArithmeticSelector selector, OwlTemporalEngineMeta meta) {
 		QueryArithmeticSelector newS = new QueryArithmeticSelector();
 		newS.setLeftSelector(convertSelector(selector.getLeftSelector(), meta));

@@ -61,13 +61,17 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	public void addInnerSelector(IQuerySelector innerSelector) {
 		this.innerSelectors.add(innerSelector);
 	}
+	
+	public void setInnerSelector(List<IQuerySelector> innerSelectors) {
+		this.innerSelectors = innerSelectors;
+	}
 
 	public String getFunction() {
 		return functionName;
 	}
 
-	public void setFunction(String math) {
-		this.functionName = math;
+	public void setFunction(String functionName) {
+		this.functionName = functionName;
 	}
 
 	public boolean isDistinct() {
