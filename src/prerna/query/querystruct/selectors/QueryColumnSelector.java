@@ -9,6 +9,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 
 	private String column;
 	private String table;
+	private String tableAlias;
 	
 	public QueryColumnSelector() {
 		this.column = "";
@@ -76,6 +77,14 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 	
 	public String getTable() {
 		return this.table;
+	}
+	
+	public void setTableAlias(String tableAlias) {
+		this.tableAlias = tableAlias;
+	}
+	
+	public String getTableAlias() {
+		return this.tableAlias;
 	}
 	
 	public boolean isPrimKeyColumn() {
