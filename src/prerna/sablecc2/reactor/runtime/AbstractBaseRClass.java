@@ -801,18 +801,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	protected void clusterInfo(String clusterRoutine) {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		if (graphName == null) {
-			System.out.println("ERROR ::: No graph has been synchronized to R");
-			return;
-		}
 		try {
-			// set the clusters
-			storeVariable("CLUSTER_NAME", new NounMetadata("clus", PixelDataType.CONST_STRING));
+			logger.info("Determining graph clusters...");
 			this.rJavaTranslator.executeR("clus <- " + clusterRoutine + "(" + graphName + ")");
-			System.out.println("\n No. Of Components :");
-			runR("clus$no");
-			System.out.println("\n Component Sizes :");
-			runR("clus$csize");
+			logger.info("Done calculating graph clusters...");
+			storeVariable("CLUSTER_NAME", new NounMetadata("clus", PixelDataType.CONST_STRING));
 			colorClusters();
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -824,13 +817,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	protected void walkInfo() {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		String clusters = "Component Information  \n";
 		try {
-			// set the clusters
-			storeVariable("CLUSTER_NAME",  new NounMetadata("clus", PixelDataType.CONST_STRING));
+			logger.info("Determining graph clusters...");
 			this.rJavaTranslator.executeR("clus <- cluster_walktrap(" + graphName + ", membership=TRUE)");
-			clusters = clusters + "Completed Walktrap";
-			System.out.println(clusters);
+			logger.info("Done calculating graph clusters...");
+			storeVariable("CLUSTER_NAME",  new NounMetadata("clus", PixelDataType.CONST_STRING));
 			colorClusters();
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -840,34 +831,32 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	/**
 	 * Color tinker nodes based on iGrpah values
 	 */
-	protected void colorClusters() {
+	private void colorClusters() {
 		String clusterName = (String) retrieveVariable("CLUSTER_NAME");
 		colorClusters(clusterName);
 	}
 
-	public void colorClusters(String clusterName) {
+	private void colorClusters(String clusterName) {
+		logger.info("Synchronizing graph clusters into frame...");
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		// the color is saved as color
 		double [] memberships = this.rJavaTranslator.getDoubleArray(clusterName + "$membership");
 		String [] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
-
-		for(int memIndex = 0;memIndex < memberships.length;memIndex++)
-		{
+		for(int memIndex = 0; memIndex < memberships.length;memIndex++) {
 			String thisID = IDs[memIndex];
-
-			java.lang.System.out.println("ID...  " + thisID);
 			Vertex retVertex = null;
-
-			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame) dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID); 
 			if(gt.hasNext()) {
 				retVertex = gt.next();
 			}
-			if(retVertex != null)
-			{
+			if(retVertex != null) {
 				retVertex.property("CLUSTER", memberships[memIndex]);
-				java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+			}
+			
+			if(memIndex % 100 == 0) {
+				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
 			}
 		}
+		logger.info("Done synchronizing graph vertices");
 		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 	}
 
@@ -898,6 +887,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	}
 	
 	public void synchronizeXY(String rVariable) {
+		logger.info("Synchronizing vertex positions into frame...");
+
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		double [][] memberships = this.rJavaTranslator.getDoubleMatrix("xy_layout");
 		String [] axis = null;
@@ -906,15 +897,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} else if(memberships[0].length == 3) {
 			axis = new String[]{"X", "Y", "Z"};
 		}
-
 		String [] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
-		for(int memIndex = 0; memIndex < memberships.length; memIndex++)
-		{
+		for(int memIndex = 0; memIndex < memberships.length; memIndex++) {
 			String thisID = IDs[memIndex];
-
-			java.lang.System.out.println("ID...  " + thisID);
 			Vertex retVertex = null;
-
 			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
 			if(gt.hasNext()) {
 				retVertex = gt.next();
@@ -923,9 +909,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				for(int i = 0; i < axis.length; i++) {
 					retVertex.property(axis[i], memberships[memIndex][i]);
 				}
-				java.lang.System.out.println("Set the cluster to " + memberships[memIndex]);
+			}
+			
+			if(memIndex % 100 == 0) {
+				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
 			}
 		}
+		logger.info("Done synchronizing vertex positions");
 		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 	}
 
@@ -970,9 +960,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	public void doLayout(String layout) {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		// the color is saved as color
 		try {
+			logger.info("Determining vertex positions...");
 			this.rJavaTranslator.executeR("xy_layout <- " + layout + "(" + graphName + ")");
+			logger.info("Done calculating positions...");
 			synchronizeXY("xy_layout");
 		} catch (Exception ex) {
 			ex.printStackTrace();
