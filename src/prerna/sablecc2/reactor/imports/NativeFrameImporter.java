@@ -33,6 +33,7 @@ public class NativeFrameImporter implements IImporter {
 		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && 
 				this.qs.retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
 			// lets see what happens
+//			OpaqueSqlParser parser = new OpaqueSqlParser();
 			SqlParser parser = new SqlParser();
 			String query = ((HardQueryStruct) this.qs).getQuery();
 			try {
@@ -47,7 +48,7 @@ public class NativeFrameImporter implements IImporter {
 				e.printStackTrace();
 			}
 		}
-		ImportUtility.parseQueryStructIntoMeta(this.dataframe, this.qs);
+		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs);
 		this.dataframe.mergeQueryStruct(this.qs);
 	}
 
@@ -62,7 +63,7 @@ public class NativeFrameImporter implements IImporter {
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE && this.dataframe.getEngineName().equals(this.qs.getEngineName())) {
 			// this is the case where we can do an easy merge
-			ImportUtility.parseQueryStructIntoMeta(this.dataframe, this.qs);
+			ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs);
 			this.dataframe.mergeQueryStruct(this.qs);
 			return this.dataframe;
 		} else {

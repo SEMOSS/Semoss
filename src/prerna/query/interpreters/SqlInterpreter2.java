@@ -30,6 +30,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.NounMetadata;
@@ -56,8 +57,8 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 
 	// we can create a statement without an engine... 
 	// but everything needs to be the physical schema
-	private IEngine engine; 
-	private ITableDataFrame frame;
+	private transient IEngine engine; 
+	private transient ITableDataFrame frame;
 	
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
@@ -179,25 +180,6 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			}
 			query.append(this.filterStatements.get(i).toString());
 		}
-//		boolean firstTime = true;
-//		for(String key : this.andWhereFilters.keySet()) {
-//			String whereStatement = this.andWhereFilters.get(key);
-//			if(firstTime) {
-//				firstTime = false;
-//				query.append(" WHERE ").append(whereStatement);
-//			} else {
-//				query.append(" AND ").append(whereStatement);
-//			}
-//		}
-//		for(String key : this.orWhereFilters.keySet()) {
-//			String whereStatement = this.orWhereFilters.get(key);
-//			if(firstTime) {
-//				firstTime = false;
-//				query.append(" WHERE ").append(whereStatement);
-//			} else {
-//				query.append(" OR ").append(whereStatement);
-//			}
-//		}
 		
 		//grab the order by and get the corresponding display name for that order by column
 		query = appendGroupBy(query);
@@ -260,6 +242,8 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			return processFunctionSelector((QueryFunctionSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
+			return processOpaqueSelector((QueryOpaqueSelector) selector);
 		}
 		return null;
 	}
@@ -282,8 +266,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	private String processColumnSelector(QueryColumnSelector selector, boolean notEmbeddedColumn) {
 		String table = selector.getTable();
 		String colName = selector.getColumn();
-		
-		String tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
+		String tableAlias = selector.getTableAlias();
+		if(tableAlias == null) {
+			tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
+		}
 		// will be getting the physical column name
 		String physicalColName = colName;
 		// if engine is not null, get the info from the engine
@@ -304,7 +290,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		// if there are no joins
 		// we need to have a from table
 		if(this.relationList.isEmpty()) {
-			addFrom(table);
+			addFrom(table, tableAlias);
 		}
 		
 		// keep track of all the processed columns
@@ -349,6 +335,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 	
+	private String processOpaqueSelector(QueryOpaqueSelector selector) {
+		return selector.getQuerySelectorSyntax();
+	}
+	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
 	
 	
@@ -359,9 +349,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * Adds the form statement for each table
 	 * @param conceptualTableName			The name of the table
 	 */
-	private void addFrom(String conceptualTableName)
-	{
-		String alias = getAlias(getPhysicalTableNameFromConceptualName(conceptualTableName));
+	private void addFrom(String conceptualTableName, String alias) {
 		// need to determine if we can have multiple froms or not
 		// we don't want to add the from table multiple times as this is invalid in sql
 		if(!tableProcessed.containsKey(conceptualTableName)) {
@@ -1241,6 +1229,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		
 		return new String[]{conceptPhysical, propertyPhysical};
 	}
+	
 	
 	////////////////////////////////////////// end other utility methods ///////////////////////////////////////////
 	
