@@ -28,7 +28,7 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 		Map<String, String> map = GSON.fromJson(mapStr, Map.class);
 
 		QueryOpaqueSelector value = new QueryOpaqueSelector();
-		value.setQuerySelectorSyntax(map.get("constant"));
+		value.setQuerySelectorSyntax(map.get("querySyntax"));
 		value.setAlias(map.get("alias"));
 		return value;
 	}
