@@ -205,18 +205,19 @@ public class OpaqueSqlParser {
 			String strValue = ((NullValue) expr).toString();
 			constSelector = new QueryConstantSelector();
 			((QueryConstantSelector)constSelector).setConstant(strValue);
-		} else if(expr instanceof Column) {
-			String colValue = ((Column) expr).getColumnName();
-			// need a way to get the alias
-			String tableValue = ((Column) expr).getTable().getName();
-			constSelector = new QueryColumnSelector();
-			if(tableAlias.containsKey(tableValue)) {
-				tableValue = tableAlias.get(tableValue);
-			}
-			colValue = tableValue + "__" + colValue;
-			constSelector = new QueryColumnSelector(colValue);
-			((QueryColumnSelector) constSelector).setTableAlias(tableValue);
-		}
+		} 
+//		else if(expr instanceof Column) {
+//			String colValue = ((Column) expr).getColumnName();
+//			// need a way to get the alias
+//			String tableValue = ((Column) expr).getTable().getName();
+//			constSelector = new QueryColumnSelector();
+//			if(tableAlias.containsKey(tableValue)) {
+//				tableValue = tableAlias.get(tableValue);
+//			}
+//			colValue = tableValue + "__" + colValue;
+//			constSelector = new QueryColumnSelector(colValue);
+//			((QueryColumnSelector) constSelector).setTableAlias(tableValue);
+//		}
 
 		// if it is not basic
 		// we will end up returning null
