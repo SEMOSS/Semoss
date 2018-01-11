@@ -31,6 +31,16 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		
+		// check if packages are installed
+		String[] packages = {"dplyr", "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "RJSONIO"};
+		for(int i = 0 ; i < packages.length ; i++){
+			String hasPackage = this.rJavaTranslator.getString("as.character(\"" + packages[i] + "\" %in% rownames(installed.packages()))");
+			if (!hasPackage.equalsIgnoreCase("true")) {
+				throw new IllegalArgumentException("The " + packages[i] + " package is NOT installed");
+			}	
+		}
+		
 		// get inputs 		
 		String inputTask = this.keyValue.get(this.keysToGet[0]);
 		
@@ -46,11 +56,12 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		// prep script components
 		StringBuilder builder = new StringBuilder();
 		String inputFrame = "inputFrame." + Utility.getRandomString(8);
-		String dfStart = "rm(list=ls()) ;library(RJSONIO); " + inputFrame + " <- data.frame(dbname = character(), tblname = character(), colname = character(), stringsAsFactors = FALSE);";
+		String dfStart = "library(RJSONIO); " + inputFrame + " <- data.frame(dbname = character(), tblname = character(), colname = character(), stringsAsFactors = FALSE);";
 		
 		// iterate selectors and update data table builder section of R script
 		List<IQuerySelector> selectors = qs.getSelectors();
 		Map<String, String> aliasHash = new HashMap<String, String>();
+		int rowCount = 1;
 		for (int i = 0; i < selectors.size(); i++) {
 			IQuerySelector selector = selectors.get(i);
 			String alias = selector.getAlias();
@@ -70,26 +81,34 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 					table = conceptPropSplit[0];
 					column = conceptPropSplit[1];
 				}
-				// TODO: change nrow to counter 
 				builder.append(inputFrame)
-				.append("[nrow(")
-				.append(inputFrame)
-				.append(") + 1, ] <- c( \"")
+				.append("[")
+				.append(rowCount)
+				.append(", ] <- c( \"")
 				.append(db).append("\", \"")
 				.append(table)
 				.append("\", \"")
 				.append(column)
 				.append("\");");
+				rowCount++;
 			}
 		}
        
 		// add the execute predict viz and convert to json piece to script
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String outputJson = "json_" + Utility.getRandomString(8);
+		String recommend = "rec_" + Utility.getRandomString(8);
+		String historicalDf = "df_" + Utility.getRandomString(8);
+		String maxRecommendations = DIHelper.getInstance().getProperty("GA_MaxVizRecommendations");
+		if (maxRecommendations == null){
+			maxRecommendations = "5";
+		}
+		
 		String runPredictScripts = "source(\"" + baseFolder 
 				+ "\\R\\Recommendations\\viz_tracking.r\") ; "
-				+ "df<-read.csv(\"" + baseFolder
-				+ "\\R\\Recommendations\\historicalData\\viz_history.csv\") ; r<-viz_recom(df," +inputFrame + ", \"Grid\"); " + outputJson + " <-toJSON(r, byrow = TRUE, colNames = TRUE);";
+				+ historicalDf +"<-read.csv(\"" + baseFolder
+				+ "\\R\\Recommendations\\historicalData\\viz_history.csv\") ;"
+				+ recommend + "<-viz_recom(" + historicalDf + "," + inputFrame + ", \"Grid\", " + maxRecommendations + "); " + outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);";
 		runPredictScripts = runPredictScripts.replace("\\", "/");
 		
 		
@@ -99,6 +118,10 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		
 		// receive json string from R
 		String json = this.rJavaTranslator.getString(outputJson + ";");
+
+		// garbage cleanup
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ")";
+		this.rJavaTranslator.runR(gc);
 
 		// R json string to map object
 		List<Object> jsonMap = new ArrayList<Object>();
