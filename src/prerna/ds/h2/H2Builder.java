@@ -35,6 +35,7 @@ import org.stringtemplate.v4.ST;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
@@ -253,7 +254,7 @@ public class H2Builder {
 			}
 
 			if(ps == null) {
-				throw new IllegalArgumentException("Iterator generated returned no values");
+				throw new EmptyIteratorException("Iterator generated returned no values");
 			}
 			
 			// well, we are done looping through now
