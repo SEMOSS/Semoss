@@ -129,6 +129,22 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
 
+	protected void recreateMetadata(String frameName) {
+		// recreate a new frame and set the frame name
+		String[] colNames = this.rJavaTranslator.getColumns(frameName);
+		String[] colTypes = this.rJavaTranslator.getColumns(frameName);
+
+		RDataTable newTable = null;
+		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
+			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
+		} else {
+			newTable = new RDataTable(frameName);
+		}
+		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
+		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
+		this.insight.setDataMaker(newTable);
+	}
+	
 	/**
 	 * Shift the dataframe into R with a default name
 	 */
@@ -970,173 +986,19 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 	}
 
-	protected void splitColumn(String[] columnNames, String separator) {
-        String frameName = (String) retrieveVariable("GRID_NAME");
-        splitColumn(frameName, columnNames, separator, "wide", false, true);
-    }
 
-    protected void splitColumn(String frameName, String[] columnNames, String separator) {
-        splitColumn(frameName, columnNames, separator, "wide", false, true);
-    }
-
-    protected void splitColumn(String frameName, String[] columnNames, String separator, String direction) {
-        splitColumn(frameName, columnNames, separator, direction, false, true);
-    }
-
-    protected void splitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace) {
-        performSplitColumn(frameName, columnNames, separator, direction, false, true);
-        if (checkRTableModified(frameName)) {
-            recreateMetadata(frameName);
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	protected void unpivot() {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		unpivot(frameName, new String[]{}, true);
-	}
-
-	protected void unpivot(String frameName, String[] columnsToUnPivot, boolean replace) {
-		// makes the columns and converts them into rows
-		// melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
-		String concatString = "";
-		String tempName = Utility.getRandomString(8);
-
-		int numColsToUnPivot = columnsToUnPivot.length;
-		if(numColsToUnPivot > 0) {
-			concatString = ", measure.vars = c(";
-			for (int colIndex = 0; colIndex < numColsToUnPivot; colIndex++) {
-				concatString = concatString + "\"" + columnsToUnPivot[colIndex] + "\"";
-				if (colIndex + 1 < numColsToUnPivot)
-					concatString = concatString + ", ";
-			}
-			concatString = concatString + ")";
-		}
-
-		String script = tempName + "<- melt(" + frameName + concatString + ");";
-		// run the first script to unpivot into the temp frame
-		this.rJavaTranslator.executeR(script);
-		// if we are to replace the existing frame
-		if (replace) {
-			script = frameName + " <- " + tempName;
-			this.rJavaTranslator.executeR(script);
-			if (checkRTableModified(frameName)) {
-				recreateMetadata(frameName);
-			}
-		}
-		System.out.println("Done unpivoting...");
-	}
-
-	protected void pivot(String columnToPivot, String valueToPivot, String[] columnsToKeep) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		pivot(frameName, true, columnToPivot, valueToPivot, columnsToKeep, null);
-	}
-
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String[] columnsToKeep) {
-		pivot(frameName, true, columnToPivot, valueToPivot, columnsToKeep, null);
-	}
-
-	protected void pivot(String frameName, boolean replace, String columnToPivot, String valueToPivot, String[] columnsToKeep, String aggregateFunction) {
-		// makes the columns and converts them into rows
-		// dcast(molten, formula = subject~ variable)
-		// I need columns to keep and columns to pivot
-		String newFrame = Utility.getRandomString(8);
-
-		String keepString = "";
-		int numColsToKeep = columnsToKeep.length;
-		if (numColsToKeep > 0) {
-			// with the portion of code to ignore if the user passes in the 
-			// col to pivot or value to pivot in the selected columns
-			// we need to account for this so we dont end the keepString with " + "
-			keepString = ", formula = ";
-			for (int colIndex = 0; colIndex < numColsToKeep; colIndex++) {
-				String newKeepString = columnsToKeep[colIndex];
-				if(newKeepString.equals(columnToPivot) || newKeepString.equals(valueToPivot)) {
-					continue;
-				}
-				keepString = keepString + newKeepString;
-				if (colIndex + 1 < numColsToKeep) {
-					keepString = keepString + " + ";
-				}
-			}
-
-			// with the portion of code to ignore if the user passes in the 
-			// col to pivot or value to pivot in the selected columns
-			// we need to account for this so we dont end the keepString with " + "
-			if(keepString.endsWith(" + ")) {
-				keepString = keepString.substring(0, keepString.length() - 3);
-			}
-			keepString = keepString + " ~ " + columnToPivot + ", value.var=\"" + valueToPivot + "\"";
-		}
-
-		String aggregateString = "";
-		if (aggregateFunction != null && aggregateFunction.length() > 0) {
-			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
-		}
-        //we need to make sure that the column we are pivoting on does not have values with dashes
-        //we should replace any dashes with underscores
-        String colScript = frameName + "$" + columnToPivot;
-        String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
-        this.rJavaTranslator.executeR(cleanScript);
-		
-		String script = newFrame + " <- dcast(" + frameName + keepString + aggregateString + ");";
-		this.rJavaTranslator.executeR(script);
-		script = newFrame + " <- as.data.table(" + newFrame + ");";
-		this.rJavaTranslator.executeR(script);
-		if (replace) {
-			script = frameName + " <- " + newFrame;
-			this.rJavaTranslator.executeR(script);
-			if (checkRTableModified(frameName)) {
-				recreateMetadata(frameName);
-			}
-		}
-		System.out.println("Done pivoting...");
-	}
-
-	protected void recreateMetadata(String frameName) {
-		// recreate a new frame and set the frame name
-		String[] colNames = this.rJavaTranslator.getColumns(frameName);
-		String[] colTypes = this.rJavaTranslator.getColumns(frameName);
-
-		RDataTable newTable = null;
-		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
-			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
-		} else {
-			newTable = new RDataTable(frameName);
-		}
-		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
-		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-		this.insight.setDataMaker(newTable);
-	}
-
-
-
-
-
-
-
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 
 	////////////////////////////////////////////////////////////////
