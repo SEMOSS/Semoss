@@ -29,7 +29,7 @@ viz_history<-function(df){
 	return(o)
 }
 
-viz_recom<-function(df,df1,grid=NULL){
+viz_recom<-function(df,df1,grid=NULL,top=3){
 	library(dplyr)
 	df2<-semi_join(df,df1)[,4:5]
 
@@ -40,7 +40,9 @@ viz_recom<-function(df,df1,grid=NULL){
 	if(!is.null(grid)){
 		o<-o[tolower(o$chart) != tolower(grid),]
 	}
-	return(o)
+	o$weight<-round(o$freq/max(o$freq),4)
+	o<-o[,-2]
+	return(head(o,top))
 }
 
 
