@@ -630,7 +630,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	public static void parseQueryStructIntoMeta(ITableDataFrame dataframe, QueryStruct2 qs) {
+	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, QueryStruct2 qs) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineName();
 		
@@ -664,36 +664,25 @@ public class ImportUtility {
 					metaData.setAliasToProperty(uniqueName, alias);
 				}
 			} else {
-				metaData.addVertex(qsName);
-				metaData.setQueryStructNameToVertex(qsName, engineName, selector.getQueryStructName());
-				metaData.setAliasToVertex(qsName, alias);
-				metaData.setDataTypeToVertex(qsName, selector.getDataType());
+				// define a vertex with the alias
+				// since this is used for native
+				// we do not know what the user has done
+				// this could be a function
+				// it could be math
+				// it could be opaque
+				// countless possibilities .. (jk, just the above)
+				metaData.addVertex(alias);
+				metaData.setQueryStructNameToVertex(alias, engineName, qsName);
+				metaData.setAliasToVertex(alias, alias);
+				metaData.setDataTypeToVertex(alias, selector.getDataType());
 
-				List<QueryColumnSelector> cList = selector.getAllQueryColumns();
-				for(QueryColumnSelector cSelect : cList) {
-					String table = cSelect.getTable();
-					String column = cSelect.getColumn();
-					String cQsName = cSelect.getQueryStructName();
-					String cAlias = cSelect.getAlias();
-					addedQsNames.add(cQsName);
-
-					if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
-						metaData.addVertex(table);
-						metaData.setQueryStructNameToVertex(table, engineName, cQsName);
-						String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
-						metaData.setDataTypeToVertex(table, type);
-						metaData.setAliasToVertex(table, cAlias);
-						metaData.setPrimKeyToVertex(table, true);
-					} else {
-						String uniqueName = cQsName;
-						metaData.addProperty(table, uniqueName);
-						metaData.setQueryStructNameToProperty(uniqueName, engineName, cQsName);
-						String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
-						metaData.setDataTypeToProperty(uniqueName, type);
-						metaData.setAliasToProperty(uniqueName, cAlias);
-						metaData.setPrimKeyToProperty(uniqueName, true);
-					}
-				}
+				// i will add the selector into the meta
+				// and get it back later
+				// FE will only use the alias to utilize this selector
+				// so i will go ahead and generate the original selector
+				metaData.setSelectorComplex(alias, true);
+				metaData.setSelectorTypeToVertex(alias, selector.getSelectorType());
+				metaData.setSelectorObject(alias, IQuerySelector.getGson().toJson(selector));
 			}
 		}
 		

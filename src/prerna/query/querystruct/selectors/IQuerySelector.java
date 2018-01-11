@@ -2,12 +2,20 @@ package prerna.query.querystruct.selectors;
 
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import prerna.query.querystruct.selectors.adapters.QueryArithmeticSelectorAdapter;
+import prerna.query.querystruct.selectors.adapters.QueryColumnSelectorAdapter;
+import prerna.query.querystruct.selectors.adapters.QueryConstantSelectorAdapter;
+import prerna.query.querystruct.selectors.adapters.QueryFunctionSelectorAdapter;
+import prerna.query.querystruct.selectors.adapters.QueryOpaqueSelectorAdapter;
+
 public interface IQuerySelector {
 
 	String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 
-	public enum QUERY_TYPE {BASE_SQL, SPARQL, R}
-	public enum SELECTOR_TYPE {COLUMN, FUNCTION, ARITHMETIC, CONSTANT}
+	enum SELECTOR_TYPE {OPAQUE, COLUMN, FUNCTION, ARITHMETIC, CONSTANT}
 	
 	/**
 	 * Determine the type of the selector
@@ -50,17 +58,62 @@ public interface IQuerySelector {
 	 * @return
 	 */
 	List<QueryColumnSelector> getAllQueryColumns();
-	
-	// THIS IS SUPER DIFFICULT TO DO
-	// REMEMBER, FE PASSES CONCEPTUAL NAMES WHICH NEED
-	// TO BE TRANSLATED TO PHYSICAL NAMES
-	// SO THIS WILL GET VERY COMPLICATED VERY QUICKLY
-	// PUSHING RESPONSIBILITY TO THE INTERPRETERS...
-//	/**
-//	 * This will override the existing toString method to get
-//	 * the appropriate expression string for the selector to execute
-//	 * @return
-//	 */
-//	String getQuerySyntax(QUERY_TYPE type);
 
+	static Gson getGson() {
+		GsonBuilder gson = new GsonBuilder();
+		gson.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter());
+		gson.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter());
+		gson.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter());
+		gson.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter());
+		gson.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter());
+		return gson.create();
+	}
+	
+	/**
+	 * Convert string to SELECTOR_TYPE
+	 * @param s
+	 * @return
+	 */
+	static SELECTOR_TYPE convertStringToSelectorType(String s) {
+		if(s.equals(SELECTOR_TYPE.OPAQUE.toString())) {
+			return SELECTOR_TYPE.OPAQUE;
+		} else if(s.equals(SELECTOR_TYPE.COLUMN.toString())) {
+			return SELECTOR_TYPE.COLUMN;
+		} else if(s.equals(SELECTOR_TYPE.FUNCTION.toString())) {
+			return SELECTOR_TYPE.FUNCTION;
+		} else if(s.equals(SELECTOR_TYPE.ARITHMETIC.toString())) {
+			return SELECTOR_TYPE.ARITHMETIC;
+		} else if(s.equals(SELECTOR_TYPE.CONSTANT.toString())) {
+			return SELECTOR_TYPE.CONSTANT;
+		}
+		return null;
+	}
+	
+	/**
+	 * Get the class for each selector type
+	 * @param type
+	 * @return
+	 */
+	static Class getQuerySelectorClassFromType(SELECTOR_TYPE type) {
+		if(type == SELECTOR_TYPE.OPAQUE) {
+			return QueryOpaqueSelector.class;
+		} else if(type == SELECTOR_TYPE.COLUMN) {
+			return QueryColumnSelector.class;
+		} else if(type == SELECTOR_TYPE.FUNCTION) {
+			return QueryFunctionSelector.class;
+		} else if(type == SELECTOR_TYPE.ARITHMETIC) {
+			return QueryArithmeticSelector.class;
+		} else if(type == SELECTOR_TYPE.CONSTANT) {
+			return QueryConstantSelector.class;
+		}
+		
+		return null;
+	}
+	
 }
+
+
+
+
+
+
