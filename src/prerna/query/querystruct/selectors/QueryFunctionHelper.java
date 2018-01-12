@@ -154,17 +154,17 @@ public class QueryFunctionHelper {
 		} else if(lowerfunction.equals(SUM)) {
 			inputFunction = "Sum";
 		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
-			inputFunction = "Standard_Deviation";
+			inputFunction = "StandardDeviation";
 		} else if(lowerfunction.equals(COUNT)) {
 			inputFunction = "Count";
 		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
-			inputFunction = "Unqiue_Count";
+			inputFunction = "UnqiueCount";
 		} else if(lowerfunction.equals(CONCAT)) {
 			inputFunction = "Concat";
 		} else if(lowerfunction.equals(GROUP_CONCAT)) {
-			inputFunction = "Group_Concat";
+			inputFunction = "GroupConcat";
 		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
-			inputFunction = "Unique_Group_Concat";
+			inputFunction = "UniqueGroupConcat";
 		}
 		
 		return inputFunction;
