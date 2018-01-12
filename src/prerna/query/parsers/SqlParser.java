@@ -442,6 +442,10 @@ public class SqlParser {
 
 				if(thisJoin.isInner()) {
 					joinType = "inner.join";
+				} else if(thisJoin.isLeft()) {
+					joinType = "left.outer.join";
+				} else if(thisJoin.isRight()) {
+					joinType = "right.outer.join";
 				} else if(thisJoin.isOuter()) {
 					joinType = "outer.join";
 				} else if(thisJoin.isFull()) {
