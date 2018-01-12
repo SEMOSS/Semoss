@@ -9,6 +9,7 @@ import prerna.poi.main.HeadersException;
 public class QueryOpaqueSelector extends AbstractQuerySelector {
 
 	private String querySelectorSyntax;
+	private String table;
 	
 	public QueryOpaqueSelector() {
 		
@@ -38,6 +39,14 @@ public class QueryOpaqueSelector extends AbstractQuerySelector {
 	
 	public void setQuerySelectorSyntax(String querySelectorSyntax) {
 		this.querySelectorSyntax = querySelectorSyntax;
+	}
+	
+	public void setTable(String table) {
+		this.table = table;
+	}
+	
+	public String getTable() {
+		return this.table;
 	}
 	
 	@Override
