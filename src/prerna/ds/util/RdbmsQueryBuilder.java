@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 
@@ -290,6 +291,61 @@ public class RdbmsQueryBuilder {
 	/******************************
 	 * UPDATE QUERIES
 	 ******************************/
+	
+	/**
+	 * Generate an alter statement to add new columns, taking into consideration joins
+	 * and new column alias's
+	 * @param tableName
+	 * @param existingColumns
+	 * @param newColumns
+	 * @param joins
+	 * @param newColumnAlias
+	 * @return
+	 */
+	public static String alterMissingColumns(String tableName, 
+			Map<String, SemossDataType> newColumnsToTypeMap, 
+			List<Join> joins,
+			Map<String, String> newColumnAlias) {
+		
+		List<String> newColumnsToAdd = new Vector<String>();
+		List<String> newColumnsToAddTypes = new Vector<String>();
+		
+		// get all the join columns
+		List<String> joinColumns = new Vector<String>();
+		for(Join j : joins) {
+			String columnName = j.getQualifier();
+			if(columnName.contains("__")) {
+				columnName = columnName.split("__")[1];
+			}
+			joinColumns.add(columnName);
+		}
+		
+		for(String newColumn : newColumnsToTypeMap.keySet()) {
+			SemossDataType newColumnType = newColumnsToTypeMap.get(newColumn);
+			// modify the header
+			if(newColumn.contains("__")) {
+				newColumn = newColumn.split("__")[1];
+			}
+			// if its a join column, ignore it
+			if(joinColumns.contains(newColumn)) {
+				continue;
+			}
+			// not a join column
+			// check if it has an alias
+			// and then add
+			if(newColumnAlias.containsKey(newColumn)) {
+				newColumnsToAdd.add(newColumnAlias.get(newColumn));
+			} else {
+				newColumnsToAdd.add(newColumn);
+			}
+			// and store the type at the same index 
+			// in its list
+			newColumnsToAddTypes.add(SemossDataType.convertDataTypeToString(newColumnType));
+		}
+		
+		return makeAlter(tableName, newColumnsToAdd.toArray(new String[]{}), newColumnsToAddTypes.toArray(new String[]{}));
+	}
+	
 	
 	//ALTER TABLE TABLE_NAME ADD(COLUMN1 TYPE1, COLUMN2 TYPE2, ...);
 	public static String makeAlter(String tableName, String[] newHeaders, String[] newTypes) {
