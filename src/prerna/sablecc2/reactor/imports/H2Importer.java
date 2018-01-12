@@ -201,19 +201,10 @@ public class H2Importer implements IImporter {
 		// need to know the starting headers
 		// we will lose this once we synchronize the frame with the new header info
 		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
-		
-		// define a new temporary table with a random name
-		// we will flush out the iterator into this table
-		String tempTableName = Utility.getRandomString(6);
-		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
-		this.dataframe.addRowsViaIterator(this.it, tempTableName, rightTableTypes);
 
-		// we will also create a random table name as the return of this operation
-		// dont worry, we will override this back to normal once we are done
-		String returnTableName = Utility.getRandomString(6);
-		String leftTableName = this.dataframe.getTableName();
-		String rightTableName = tempTableName;
-		
+		// get the columns and types of the new columns we are about to add
+		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
+
 		// these will only be used if we have an outer join!
 		String leftJoinReturnTableName = null;
 		String rightJoinReturnTableName = null;
@@ -240,9 +231,21 @@ public class H2Importer implements IImporter {
 				rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_1");
 			}
 		}
+
+		// we will also create a random table name as the return of this operation
+		// dont worry, we will override this back to normal once we are done
+		String returnTableName = Utility.getRandomString(6);
+		String leftTableName = this.dataframe.getTableName();
+		// we will make the right table from the iterator
+		// this will happen in the try catch
+		String rightTableName = Utility.getRandomString(6);
 		
+		boolean successfullyAddedData = true;
 		
 		try {
+			// now, flush the iterator into the right table 
+			this.dataframe.addRowsViaIterator(this.it, rightTableName, rightTableTypes);
+	
 			// improve performance
 			generateIndicesOnJoinColumns(leftTableName, rightTableName, joins);
 			
@@ -275,19 +278,26 @@ public class H2Importer implements IImporter {
 				this.dataframe.getBuilder().runQuery(joinQuery);
 			}
 		} catch(EmptyIteratorException e) {
-			// TODO: need to add something here
-			// and stop throwing the error
-			
+			// no data was returned from iterator
+			// so the right table wasn't created
+			successfullyAddedData = false;
 			// if we have a non-inner join
 			// add the columns into the frame
 			if(!joins.get(0).getJoinType().equals("inner.join")) {
 				// add columns onto the frame
-				
-				
+				String alterQuery = RdbmsQueryBuilder.alterMissingColumns(leftTableName, rightTableTypes, joins, rightTableAlias);
+				try {
+					this.dataframe.getBuilder().runQuery(alterQuery);
+				} catch (Exception ex) {
+					// if this messes up... not sure what to do now 
+					ex.printStackTrace();
+				}
+			} else {
+				// continue the message up
+				// if we have an inner join and no data
+				// result will be null and we dont want that
+				throw new IllegalArgumentException(e.getMessage());
 			}
-			
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -310,10 +320,12 @@ public class H2Importer implements IImporter {
 			}
 			
 			// also, drop the temporary right table we created
-			try {
-				this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(rightTableName));
-			} catch (Exception e) {
-				e.printStackTrace();
+			if(successfullyAddedData) {
+				try {
+					this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(rightTableName));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
@@ -321,15 +333,17 @@ public class H2Importer implements IImporter {
 		// then the sql join was sucessful
 		// drop the left table and the right table
 		// then rename the return table to be the left table name
-		try {
-			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(leftTableName));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		try {
-			this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeRenameTable(returnTableName, leftTableName));
-		} catch (Exception e) {
-			e.printStackTrace();
+		if(successfullyAddedData) {
+			try {
+				this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeDropTable(leftTableName));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			try {
+				this.dataframe.getBuilder().runQuery(RdbmsQueryBuilder.makeRenameTable(returnTableName, leftTableName));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		
 		// merge the QS so it is accurate
