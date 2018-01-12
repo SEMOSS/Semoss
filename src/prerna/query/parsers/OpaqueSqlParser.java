@@ -149,12 +149,15 @@ public class OpaqueSqlParser {
 		IQuerySelector basic = processBasicSelector(expr);
 		if(basic != null) {
 			return basic;
-		}
+		};
 
 		// not basic
 		// i dont care what it is
 		// just shove the expression into the selector location
-		IQuerySelector selector = new QueryOpaqueSelector(expr.toString());
+		QueryOpaqueSelector selector = new QueryOpaqueSelector(expr.toString());
+		if(tableAlias.size() == 1) {
+			selector.setTable(tableAlias.keySet().iterator().next());
+		}
 		selector.setAlias(alias);
 		return selector;
 	}
@@ -272,6 +275,10 @@ public class OpaqueSqlParser {
 
 				if(thisJoin.isInner()) {
 					joinType = "inner.join";
+				} else if(thisJoin.isLeft()) {
+					joinType = "left.outer.join";
+				} else if(thisJoin.isRight()) {
+					joinType = "right.outer.join";
 				} else if(thisJoin.isOuter()) {
 					joinType = "outer.join";
 				} else if(thisJoin.isFull()) {
