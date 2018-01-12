@@ -336,6 +336,9 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	}
 	
 	private String processOpaqueSelector(QueryOpaqueSelector selector) {
+		if(this.relationList.isEmpty() && selector.getTable() != null) {
+			addFrom(selector.getTable(), selector.getTable());
+		}
 		return selector.getQuerySelectorSyntax();
 	}
 	
@@ -1029,31 +1032,32 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 */
 	public String getAlias(String curTableName)
 	{
-		// try to find if the table name has schema in it
-		String [] tableTokens = curTableName.split("[.]");
-	
-		// now just take the latest one
-		String tableName = tableTokens[tableTokens.length - 1];
-		
-		// alias already exists
-		if(aliases.containsKey(tableName)) {
-			return aliases.get(tableName);
-		} else {
-			boolean aliasComplete = false;
-			int count = 0;
-			String tryAlias = "";
-			while(!aliasComplete)
-			{
-				if(tryAlias.length()>0){
-					tryAlias+="_"; //prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
-				}
-				tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
-				aliasComplete = !aliases.containsValue(tryAlias);
-				count++;
-			}
-			aliases.put(tableName, tryAlias);
-			return tryAlias;
-		}
+		return curTableName;
+//		// try to find if the table name has schema in it
+//		String [] tableTokens = curTableName.split("[.]");
+//	
+//		// now just take the latest one
+//		String tableName = tableTokens[tableTokens.length - 1];
+//		
+//		// alias already exists
+//		if(aliases.containsKey(tableName)) {
+//			return aliases.get(tableName);
+//		} else {
+//			boolean aliasComplete = false;
+//			int count = 0;
+//			String tryAlias = "";
+//			while(!aliasComplete)
+//			{
+//				if(tryAlias.length()>0){
+//					tryAlias+="_"; //prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
+//				}
+//				tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
+//				aliasComplete = !aliases.containsValue(tryAlias);
+//				count++;
+//			}
+//			aliases.put(tableName, tryAlias);
+//			return tryAlias;
+//		}
 	}
 	
 	////////////////////////////// end caching utility methods //////////////////////////////////////

@@ -30,6 +30,7 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 		QueryOpaqueSelector value = new QueryOpaqueSelector();
 		value.setQuerySelectorSyntax(map.get("querySyntax"));
 		value.setAlias(map.get("alias"));
+		value.setTable(map.get("table"));
 		return value;
 	}
 
@@ -43,6 +44,7 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("selectorType", IQuerySelector.SELECTOR_TYPE.OPAQUE.toString());
 		map.put("alias", value.getAlias());
+		map.put("table", value.getTable());
 		map.put("querySyntax", value.getQuerySelectorSyntax());
 
 		out.value(GSON.toJson(map));
