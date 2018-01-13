@@ -2151,5 +2151,11 @@
 		    <artifactId>jep</artifactId>
 		    <version>3.7.0</version>
 		</dependency>
+		<!--  Tinker DataStax -->
+		<dependency>
+ 			 <groupId>com.datastax.dse</groupId>
+  			<artifactId>dse-java-driver-graph</artifactId>
+  			<version>1.2.4</version>
+		</dependency>
 	</dependencies>
 </project>
