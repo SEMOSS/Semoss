@@ -36,7 +36,7 @@ import java.util.Vector;
  */
 public interface IEngine extends IExplorable {
 	
-	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, IMPALA, TINKER, SOLR, R};
+	public enum ENGINE_TYPE {JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, IMPALA, TINKER, SOLR, R, DATASTAXGRAPH};
 	
 	public enum ACTION_TYPE {
 		ADD_STATEMENT, // this is for rdf
