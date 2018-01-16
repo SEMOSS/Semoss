@@ -78,12 +78,12 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		for(String nodeSelector : this.selectors) {
 			allAliasSelectors.add(nodeSelector);
 		}
-//		for(String conceptKey : this.propHash.keySet()) {
-//			List<String> props = this.propHash.get(conceptKey);
-//			for(String propertySelector : props) {
-//				allAliasSelectors.add(propertySelector);
-//			}
-//		}
+		for(String conceptKey : this.propHash.keySet()) {
+			List<String> props = this.propHash.get(conceptKey);
+			for(String propertySelector : props) {
+				allAliasSelectors.add(conceptKey + "__" + propertySelector);
+			}
+		}
 
 		if(allAliasSelectors.size() == 1) {
 			this.gt = this.gt.select(allAliasSelectors.get(0));
@@ -128,7 +128,6 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 					this.selectors.add(table);
 				} else {
 					// add the property
-					this.selectors.add(table + "__" +column);
 					// also store the property in the prop hash
 					List<String> properties = null;
 					if(this.propHash.containsKey(table)) {

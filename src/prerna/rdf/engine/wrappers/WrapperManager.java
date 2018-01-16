@@ -31,6 +31,9 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerHeadersDataRowIterator2;
+import prerna.ds.datastax.DataStaxGraphEngine;
+import prerna.ds.datastax.DataStaxGraphIterator;
+import prerna.ds.datastax.DataStaxInterpreter;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -105,6 +108,13 @@ public class WrapperManager {
 			GremlinInterpreter2 interpreter = new GremlinInterpreter2( ((TinkerEngine) engine).getGraph());
 			interpreter.setQueryStruct(qs);
 			return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
+		}
+		case DATASTAXGRAPH : {
+			// since we dont do math on gremlin
+			// right now, we will just construct and return a QSExpressionIterator
+			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
+			interpreter.setQueryStruct(qs);
+			return new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs), qs);
 		}
 		case R : {
 			returnWrapper = new RawRSelectWrapper();
