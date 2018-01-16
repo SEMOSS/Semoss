@@ -32,7 +32,9 @@
           "label": "Select an Instance",
           "description": "Select an instance to explore",
           "attributes": {
-            "searchable": true
+            "searchable": true,
+            "multiple": true,
+			"quickselect": true
           }
         },
         "model": {
