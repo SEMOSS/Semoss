@@ -494,9 +494,9 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by("name", Order.incr); //.as(tableName);
+					gt = gt.select(tableName).order().by("name", Order.incr);
 				} else {
-					gt = gt.select(tableName).order().by("name", Order.decr).as(tableName);
+					gt = gt.select(tableName).order().by("name", Order.decr);
 				}
 			}
 			//order by for property
