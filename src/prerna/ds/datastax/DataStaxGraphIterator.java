@@ -67,14 +67,16 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 			// not sure what will happen once we add group bys -> is this a map like above or different???
 
 			// for right now, assuming it is just a single vertex to return
+			retObject = new Object[1];
 			if(data instanceof Vertex) {
 				Vertex vertex = (Vertex) data;
-				retObject = new Object[1];
 				if(vertex.property(this.headerAlias[0]).isPresent()) {
 					retObject[0] = vertex.value(this.headerAlias[0]);
 				} else {
 					retObject[0] = vertex.value("name");
 				}
+			} else {
+				retObject[0] = data;
 			}
 		}
 
