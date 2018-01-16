@@ -125,6 +125,10 @@ public abstract class JobConfig {
 	public String getCronExpression() throws ParseConfigException {
 		return getString(JobConfigKeys.JOB_CRON_EXPRESSION);
 	}
+	
+	public String getTriggerOnLoad() throws ParseConfigException {
+		return getString(JobConfigKeys.TRIGGER_ON_LOAD);
+	}
 
 	/**
 	 * Puts a string value from the jobDefinition (JSON) into the job data map given
@@ -177,7 +181,13 @@ public abstract class JobConfig {
 		String jsonKey = ConfigUtil.getJSONKey(jobInputKey);
 		
 		// Retrieve the string value from the job definition (JSON)
-		String value = jobDefinition.get(jsonKey).getAsString();
+		JsonElement element = jobDefinition.get(jsonKey);
+		String value;
+		if (element != null){
+			value = element.getAsString();
+		}else{
+			return null;
+		}
 		
 		// 1) "<prop>property.name</prop>"
 		Matcher propMatcher = Pattern.compile(PROP_REGEX).matcher(value);

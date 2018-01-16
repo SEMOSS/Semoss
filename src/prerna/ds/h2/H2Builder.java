@@ -228,7 +228,7 @@ public class H2Builder {
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.DATE);
 						}
-					} else if (type.contains("DOUBLE") || type.contains("DECIMAL") || type.contains("FLOAT")) {
+					} else if (type.contains("DOUBLE") || type.contains("NUMBER") || type.contains("DECIMAL") || type.contains("FLOAT")) {
 						Double value = Utility.getDouble(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDouble(colIndex + 1, value);

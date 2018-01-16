@@ -1,0 +1,8 @@
+{
+  "-jobName": "Refresh Google Analytics Historical Data",
+  "-jobGroup": "Google Analytics",
+  "-jobCronExpression": "0 0 */4 ? * *",
+  "-jobClass": "RunPixelJob",
+  "pixel": "UpdateGAHistoricalData()",
+  "-jobTriggerOnLoad": "true"
+}
