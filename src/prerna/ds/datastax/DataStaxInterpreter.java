@@ -30,9 +30,6 @@ import prerna.sablecc2.om.NounMetadata;
 
 public class DataStaxInterpreter extends AbstractQueryInterpreter {
 
-	// reference to the graph which can execute gremlin
-//	private Graph g;
-	// reference for getting actual names for loops within frames
 	private OwlTemporalEngineMeta meta;
 	
 	// the gremlin traversal being created
@@ -72,12 +69,12 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 		for(String nodeSelector : this.selectors) {
 			allAliasSelectors.add(nodeSelector);
 		}
-//		for(String conceptKey : this.propHash.keySet()) {
-//			List<String> props = this.propHash.get(conceptKey);
-//			for(String propertySelector : props) {
-//				allAliasSelectors.add(propertySelector);
-//			}
-//		}
+		for(String conceptKey : this.propHash.keySet()) {
+			List<String> props = this.propHash.get(conceptKey);
+			for(String propertySelector : props) {
+				allAliasSelectors.add(conceptKey + "__" + propertySelector);
+			}
+		}
 
 		if(allAliasSelectors.size() == 1) {
 			this.gt = this.gt.select(allAliasSelectors.get(0));
@@ -122,7 +119,6 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 					this.selectors.add(table);
 				} else {
 					// add the property
-					this.selectors.add(table + "__" +column);
 					// also store the property in the prop hash
 					List<String> properties = null;
 					if(this.propHash.containsKey(table)) {
@@ -162,17 +158,10 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				if (selector.contains("__")) {
-					String node = selector.split("__")[0];
-					String property = selector.split("__")[1];
-					this.gt.has("~label", getNodeType(node)).has(property).as(selector);
-				} else {
-
-					this.gt.has("~label", getNodeType(selector)).as(selector);
-					// logic to filter
-					List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
-					addFiltersToPath(this.gt, startNodeFilters);
-				}
+				this.gt.has("~label", getNodeType(selector)).as(selector);
+				// logic to filter
+				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
+				addFiltersToPath(this.gt, startNodeFilters);
 			}
 		} else {
 			// we need to go through the traversal
@@ -298,17 +287,17 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 			filterValues.add(filterObject);
 		}
 		if (comparison.equals("==")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.within(filterValues.toArray()));
+			traversalSegment = traversalSegment.has("name", P.within(filterValues.toArray()));
 		} else if (comparison.equals("<")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.lt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has("name", P.lt(filterValues.get(0)));
 		} else if (comparison.equals(">")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.gt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has("name", P.gt(filterValues.get(0)));
 		} else if (comparison.equals("<=")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.lte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has("name", P.lte(filterValues.get(0)));
 		} else if (comparison.equals(">=")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.gte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has("name", P.gte(filterValues.get(0)));
 		} else if (comparison.equals("!=")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.without(filterValues.toArray()));
+			traversalSegment = traversalSegment.has("name", P.without(filterValues.toArray()));
 		}
 	}
 
@@ -500,9 +489,9 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.incr); //.as(tableName);
+					gt = gt.select(tableName).order().by("name", Order.incr); //.as(tableName);
 				} else {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.decr).as(tableName);
+					gt = gt.select(tableName).order().by("name", Order.decr).as(tableName);
 				}
 			}
 			//order by for property
