@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
@@ -12,6 +13,7 @@ import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -121,16 +123,16 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 			//we are not running semantic blending; we are running the widget
 			// need to make a new r table to store this info so we can later query it
 			RDataTable resultsTable = null;
-			if (retrieveVariable(this.rJavaTranslator.R_CONN) != null && retrieveVariable(this.rJavaTranslator.R_PORT) != null) {
-				resultsTable = new RDataTable(df2, (RConnection) retrieveVariable(this.rJavaTranslator.R_CONN), (String) retrieveVariable(this.rJavaTranslator.R_PORT));
+			if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
+				resultsTable = new RDataTable(df2, (RConnection) retrieveVariable(IRJavaTranslator.R_CONN), (String) retrieveVariable(IRJavaTranslator.R_PORT));
 			} else {
 				// if we dont have a current r session
 				// but when we create the table it makes one
 				// store those variables so we end up using that
 				resultsTable = new RDataTable(df2);
 				if (resultsTable.getConnection() != null && resultsTable.getPort() != null) {
-					storeVariable(this.rJavaTranslator.R_CONN, new NounMetadata(resultsTable.getConnection(), PixelDataType.R_CONNECTION));
-					storeVariable(this.rJavaTranslator.R_PORT, new NounMetadata(resultsTable.getPort(), PixelDataType.CONST_STRING));
+					storeVariable(IRJavaTranslator.R_CONN, new NounMetadata(resultsTable.getConnection(), PixelDataType.R_CONNECTION));
+					storeVariable(IRJavaTranslator.R_PORT, new NounMetadata(resultsTable.getPort(), PixelDataType.CONST_STRING));
 				}
 			}
 			// create the new frame meta
