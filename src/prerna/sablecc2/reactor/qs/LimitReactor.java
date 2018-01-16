@@ -11,8 +11,10 @@ public class LimitReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
-		Long limit = ( (Number) curRow.get(0)).longValue();
-		qs.setLimit(limit);
+		if(curRow.get(0) instanceof Number) {
+			Long limit = ( (Number) curRow.get(0)).longValue();
+			qs.setLimit(limit);
+		}
 		return qs;
 	}
 }
