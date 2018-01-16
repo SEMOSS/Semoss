@@ -214,7 +214,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
 				// ignore instances already used
-				if(!results.containsKey(instance.get(0)[instanceIndex])) {
+				if(results.containsKey(instance.get(0)[instanceIndex])) {
 					continue;
 				}
 				double val = combinedInstances.getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
