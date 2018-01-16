@@ -11,8 +11,10 @@ public class OffsetReactor extends AbstractQueryStructReactor{
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
-		Long offset = ( (Number) curRow.get(0)).longValue();
-		qs.setOffSet(offset);
+		if(curRow.get(0) instanceof Number) {
+			Long offset = ( (Number) curRow.get(0)).longValue();
+			qs.setOffSet(offset);
+		}
 		return qs;
 	}
 
