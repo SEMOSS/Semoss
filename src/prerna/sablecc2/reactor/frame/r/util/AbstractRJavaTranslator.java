@@ -223,7 +223,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			}
 		}
 		if (packageError.length() > 0) {
-			String errorMessage = "\nMake sure you have all the following libraries installed:\n" + packageError;
+			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
 			throw new IllegalArgumentException(errorMessage);
 		}
 

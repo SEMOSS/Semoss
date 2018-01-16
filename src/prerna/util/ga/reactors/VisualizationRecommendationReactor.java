@@ -35,13 +35,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		
 		// check if packages are installed
 		String[] packages = {"dplyr", "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "RJSONIO"};
-		for(int i = 0 ; i < packages.length ; i++){
-			String hasPackage = this.rJavaTranslator.getString("as.character(\"" + packages[i] + "\" %in% rownames(installed.packages()))");
-			if (!hasPackage.equalsIgnoreCase("true")) {
-				throw new IllegalArgumentException("The " + packages[i] + " package is NOT installed");
-			}	
-		}
-		
+		this.rJavaTranslator.checkPackages(packages);
+
 		// get inputs 		
 		String inputTask = this.keyValue.get(this.keysToGet[0]);
 		if (inputTask == null){
