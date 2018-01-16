@@ -70,6 +70,9 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 			if(data instanceof Vertex) {
 				TinkerVertex vertex = (TinkerVertex) data;
 				retObject = new Object[]{vertex.property(TinkerFrame.TINKER_NAME).value()};
+			} else {
+				// some object to return
+				retObject = new Object[]{data};
 			}
 		}
 
