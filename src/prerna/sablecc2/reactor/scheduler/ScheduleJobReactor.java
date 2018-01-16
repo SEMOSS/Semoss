@@ -38,6 +38,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	private static final String CRON_EXPRESSION = "cronExpression";
 	private static final String TRIGGER_NOW = "triggerNow";
 	private static final String RECIPE = "recipe";
+	private static final String TRIGGER_ON_LOAD = "triggerOnLoad";
 	
 	// Outputs
 	private static final String JSON_CONFIG = "jsonConfig";
@@ -51,6 +52,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String cronExpression = getCronExpression();
 		boolean triggerNow = getTriggerNow();
 		String recipe = getRecipe();
+		String triggerOnLoad = getTriggerOnLoad();
 		
 		// Define the json; this is used to persist the job to disk
 		// (Quartz is entirely in-memory)
@@ -60,6 +62,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.JOB_CRON_EXPRESSION, cronExpression);
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
 		jsonObject.addProperty(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY), recipe);
+		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
 		
 		// Pretty-print version of the json
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -94,6 +97,17 @@ public class ScheduleJobReactor extends AbstractReactor {
 		quartzJobMetadata.put(RECIPE, recipe);
 		quartzJobMetadata.put(JSON_CONFIG, jsonConfig);
 		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
+	}
+
+	private String getTriggerOnLoad() {
+		GenRowStruct grs = this.store.getNoun(TRIGGER_ON_LOAD);
+		if (grs == null) return "false";
+		boolean input = Boolean.parseBoolean(grs.getNoun(0).getValue().toString());
+		if (input){
+			return "true";
+		}else{
+			return "false";
+		}
 	}
 
 	private String getJobName() {
