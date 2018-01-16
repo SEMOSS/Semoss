@@ -102,6 +102,7 @@ import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseInfoReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
@@ -373,6 +374,7 @@ public class ReactorFactory {
 		reactorHash.put("TransposeRows", TransposeRowTaskReactor.class);
 
 		// Local Master Reactors
+		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
 		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
