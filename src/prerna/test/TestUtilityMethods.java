@@ -14,6 +14,10 @@ public final class TestUtilityMethods {
 		DIHelper.getInstance().loadCoreProp(propFile);
 	}
 	
+	public static void loadDIHelper(String propFile) {
+		DIHelper.getInstance().loadCoreProp(propFile);
+	}
+	
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper();
 		System.out.println(DIHelper.getInstance().getProperty("BaseFolder"));
