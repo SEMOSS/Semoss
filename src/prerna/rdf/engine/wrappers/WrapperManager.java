@@ -109,7 +109,7 @@ public class WrapperManager {
 			interpreter.setQueryStruct(qs);
 			return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
 		}
-		case DATASTAXGRAPH : {
+		case DATASTAX_GRAPH : {
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
 			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
