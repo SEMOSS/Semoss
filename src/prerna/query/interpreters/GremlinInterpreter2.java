@@ -147,7 +147,12 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		if(edgeMap.isEmpty()) {
 			// we have only a single selector
 			// simple traversal
-			String selector = this.selectors.get(0);
+			String selector = null;
+			if(this.selectors.isEmpty()) {
+				selector = this.propHash.keySet().iterator().next();
+			} else {
+				selector = this.selectors.get(0);
+			}
 			List<String> props = this.propHash.get(selector);
 			// but is this traversal, to get a vertex
 			// or a property on the vertex
@@ -498,18 +503,17 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.incr); //.as(tableName);
+					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.incr);
 				} else {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.decr).as(tableName);
+					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.decr);
 				}
 			}
 			//order by for property
 			else {
-				String property = tableName + "__" + columnName;
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(property, Order.incr).as(property);
+					gt = gt.select(tableName).order().by(columnName, Order.incr);
 				} else {
-					gt = gt.select(tableName).order().by(property, Order.decr).as(property);
+					gt = gt.select(tableName).order().by(columnName, Order.decr);
 				}
 			}
 		}
