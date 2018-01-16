@@ -4,7 +4,6 @@ import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
-import com.datastax.driver.core.Metadata;
 import com.datastax.driver.dse.DseCluster;
 import com.datastax.driver.dse.DseSession;
 import com.datastax.driver.dse.graph.GraphOptions;
@@ -25,26 +24,34 @@ public class DataStaxGraphEngine extends AbstractEngine{
 		String host = this.prop.getProperty("HOST");
 		String port = this.prop.getProperty("PORT");
 		String graphName = this.prop.getProperty("GRAPH_NAME");
-		String label = this.prop.getProperty("LABEL");
-		
 		
 		DseCluster dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
 		DseSession dseSession = dseCluster.connect();
-		System.out.println("is closed ? " + dseCluster.isClosed());
-
-		GraphTraversalSource gtSource = DseGraph.traversal();
-		System.out.println("Connected");
-		Metadata metadata = dseCluster.getMetadata();
-		String schema = metadata.exportSchemaAsString();
-		//System.out.println("Schema: \n" + schema);
-//		this.g = (Graph) DseGraph.traversal(dseSession).getGraph();
 		this.graphTraversalSession = DseGraph.traversal(dseSession);
-
+	}
+	
+	public GraphTraversalSource getGraphTraversalSource() {
+		return this.graphTraversalSession;
 	}
 	
 	public IQueryInterpreter2 getQueryInterpreter2() {
 		return new DataStaxInterpreter(this.graphTraversalSession);
 	}
+	
+	@Override
+	public ENGINE_TYPE getEngineType() {
+		return ENGINE_TYPE.DATASTAXGRAPH;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 	@Override
 	public Object execQuery(String query) {
@@ -56,12 +63,6 @@ public class DataStaxGraphEngine extends AbstractEngine{
 	public void insertData(String query) {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public ENGINE_TYPE getEngineType() {
-		// TODO Auto-generated method stub
-		return ENGINE_TYPE.DATASTAXGRAPH;
 	}
 
 	@Override
