@@ -1037,7 +1037,7 @@ public class SolrIndexEngine {
 		}
 		// add group sort if present
 		if (groupSort != null && !groupSort.isEmpty()) {
-			queryBuilder.setSort(STORAGE_NAME, groupSort.toLowerCase());
+			queryBuilder.setSort(groupSort.toLowerCase(), "asc");
 		}
 		// always add sort by score desc
 		queryBuilder.setGroupSort(SCORE, DESC);
@@ -1064,17 +1064,15 @@ public class SolrIndexEngine {
 		// these are the necessarily fields to view and run a returned insight
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(ID);
+		retFields.add(VIEW_COUNT);
 		retFields.add(CORE_ENGINE);
-		retFields.add(CORE_ENGINE_ID);
 		retFields.add(LAYOUT);
 		retFields.add(STORAGE_NAME);
 		retFields.add(CREATED_ON);
 		retFields.add(MODIFIED_ON);
 		retFields.add(LAST_VIEWED_ON);
-		retFields.add(USER_ID);
 		retFields.add(TAGS);
 		retFields.add(SCORE);
-		retFields.add(VIEW_COUNT);
 		retFields.add(DESCRIPTION);
 		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
