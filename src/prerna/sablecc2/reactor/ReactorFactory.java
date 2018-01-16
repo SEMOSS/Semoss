@@ -199,6 +199,7 @@ import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.ga.reactors.UpdateGAHistoricalDataReactor;
 import prerna.util.ga.reactors.VisualizationRecommendationReactor;
 import prerna.util.git.reactors.AddAppCollaborator;
 import prerna.util.git.reactors.CopyAppRepo;
@@ -543,6 +544,7 @@ public class ReactorFactory {
 		
 		// GA
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
+		reactorHash.put("UpdateGAHistoricalData", UpdateGAHistoricalDataReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
