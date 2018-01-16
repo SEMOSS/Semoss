@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
@@ -27,7 +26,7 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 		this.qs = qs;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
-	
+
 	public DataStaxGraphIterator(Iterator composeIterator, QueryStruct2 qs, OwlTemporalEngineMeta meta) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
@@ -70,13 +69,12 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 			// for right now, assuming it is just a single vertex to return
 			if(data instanceof Vertex) {
 				Vertex vertex = (Vertex) data;
-				retObject = new Object[this.headerAlias.length];
-				int i = 0;
-				for(String alias:this.headerAlias) {
-					retObject[i] = vertex.value("name");
+				retObject = new Object[1];
+				if(vertex.property(this.headerAlias[0]).isPresent()) {
+					retObject[0] = vertex.value(this.headerAlias[0]);
+				} else {
+					retObject[0] = vertex.value("name");
 				}
-				
-				
 			}
 		}
 
@@ -98,7 +96,7 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 			if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				String alias = header.getAlias();
 				String qsName = header.getQueryStructName();
-				
+
 				this.headerOrdering[index] = qsName;
 				this.header[index] = alias;
 				this.headerAlias[index] = getNodeAlias(meta, alias);
@@ -108,7 +106,7 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 					if(innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 						String alias = innerSelector.getAlias();
 						String qsName = innerSelector.getQueryStructName();
-						
+
 						this.headerOrdering[index] = qsName;
 						this.header[index] = alias;
 						this.headerAlias[index] = getNodeAlias(meta, alias);
@@ -118,7 +116,7 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 			index++;
 		}
 	}
-	
+
 	/**
 	 * For some of the nodes that have not been given an alias
 	 * If there is an implicit alias on it (a physical name that matches an existing name)
