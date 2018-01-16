@@ -22,9 +22,10 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
-
+	public static final String MAX_RECOMMENDATIONS = "max";
+	
 	public VisualizationRecommendationReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), MAX_RECOMMENDATIONS};
 	}
 
 	@Override
@@ -43,8 +44,12 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		
 		// get inputs 		
 		String inputTask = this.keyValue.get(this.keysToGet[0]);
+		if (inputTask == null){
+			throw new IllegalArgumentException("Must define task"); 
+		}
 		
-		// get qs from input task 
+		// get qs from input task
+		System.out.println(insight.getInsightId());
 		BasicIteratorTask task = (BasicIteratorTask) ((insight.getTaskStore()).getTask(inputTask));
 		QueryStruct2 qs = task.getQueryStruct();
 		
@@ -99,7 +104,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		String outputJson = "json_" + Utility.getRandomString(8);
 		String recommend = "rec_" + Utility.getRandomString(8);
 		String historicalDf = "df_" + Utility.getRandomString(8);
-		String maxRecommendations = DIHelper.getInstance().getProperty("GA_MaxVizRecommendations");
+		String maxRecommendations = this.keyValue.get(this.keysToGet[1]);
 		if (maxRecommendations == null){
 			maxRecommendations = "5";
 		}
@@ -136,5 +141,13 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		}
 		
 		return new NounMetadata(jsonMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(MAX_RECOMMENDATIONS)) {
+			return "The maximum amount of visualization recommendations returned.";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

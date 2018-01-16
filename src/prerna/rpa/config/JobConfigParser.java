@@ -40,6 +40,7 @@ public class JobConfigParser {
 		String jobName = jobConfig.getJobName();
 		String jobGroup = jobConfig.getJobGroup();
 		String jobCronExpression = jobConfig.getCronExpression();
+		String triggerOnLoad = jobConfig.getTriggerOnLoad();
 
 		// Get the job's data map
 		JobDataMap jobDataMap;
@@ -62,6 +63,11 @@ public class JobConfigParser {
 			scheduler.scheduleJob(job, trigger);
 		}
 		LOGGER.info("Scheduled " + jobName + " to run on the following schedule: " + jobCronExpression + ".");
+		
+		// if triggerOnLoad is true run
+		if (triggerOnLoad != null && triggerOnLoad.equalsIgnoreCase("true")){
+			scheduler.triggerJob(job.getKey());
+		}
 		
 		// Return the job key
 		return job.getKey();
