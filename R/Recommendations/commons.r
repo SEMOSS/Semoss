@@ -1,4 +1,4 @@
-get_userdata<-function(startDate,endDate){
+get_userdata<-function(startDate,endDate,tokenPath){
 # Description
 # Retrieve the event data from GA project site then parse 
 # and assemble them with the requested level of details
@@ -8,7 +8,7 @@ get_userdata<-function(startDate,endDate){
 
 set_config(config(ssl_verifypeer = 0L))
 
-load("./token_file")
+load(tokenPath)
 # Validate the token
 ValidateToken(token)
 
