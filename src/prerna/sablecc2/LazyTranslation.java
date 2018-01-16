@@ -651,23 +651,14 @@ public class LazyTranslation extends DepthFirstAdapter {
     private void processAliasReference(String colName) {
     	ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
     	if(frame != null) {
-    		String tableName = frame.getTableName();
+			QueryColumnSelector colSelector = new QueryColumnSelector(colName);
     		if(curReactor != null) {
-    			String qsName = null;
-    			if(tableName != null) {
-    				qsName = tableName + "__" + colName;
-    			} else {
-    				qsName = colName;
-    			}
-    			curReactor.getCurRow().addColumn(qsName);
+    			curReactor.getCurRow().addColumn(colSelector);
     		} else {
     			// well, this means the person just typed f$Title (for example)
     			// i guess we should just return the first 500 records of the column...
     			QueryStruct2 qs = new QueryStruct2();
-    			QueryColumnSelector col = new QueryColumnSelector();
-    			col.setTable(tableName);
-    			col.setColumn(colName);
-    			qs.addSelector(col);
+    			qs.addSelector(colSelector);
     			Iterator<IHeadersDataRow> iterator = frame.query(qs);
     			ITask task = new BasicIteratorTask(qs, iterator);
     			this.insight.getTaskStore().addTask(task);
@@ -676,7 +667,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		}
     	}
     }
-
+    
     @Override
     public void inAProp(AProp node)
     {
