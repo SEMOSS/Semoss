@@ -40,7 +40,7 @@ public class DataStaxGraphEngine extends AbstractEngine{
 	
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		return ENGINE_TYPE.DATASTAXGRAPH;
+		return ENGINE_TYPE.DATASTAX_GRAPH;
 	}
 	
 	
