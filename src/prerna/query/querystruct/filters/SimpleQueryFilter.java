@@ -430,14 +430,18 @@ public class SimpleQueryFilter implements IQueryFilter {
 		if(isCol(lComparison)) {
 			if( ((IQuerySelector) lComparison.getValue()).getAlias().equals(column)) {
 				return true;
-			}
+			} else if( ((IQuerySelector) lComparison.getValue()).getQueryStructName().equals(column)) {
+				return true;
+			} 
 		}
 		
 		// guess the left hand didn't... now try the right hand side
 		if(isCol(rComparison)) {
 			if( ((IQuerySelector) rComparison.getValue()).getAlias().equals(column)) {
 				return true;
-			}
+			} else if( ((IQuerySelector) rComparison.getValue()).getQueryStructName().equals(column)) {
+				return true;
+			} 
 		}
 		
 		// guess it also didn't, we are done
