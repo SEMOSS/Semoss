@@ -217,6 +217,7 @@ public class MosfetSyncHelper {
 			queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
 			queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
+			queryResults.put(SolrIndexEngine.VIEW_COUNT, 0);
 
 			try {
 				solrDocsToAdd.add(solrE.createDocument(engineName + "_" + id, queryResults));
