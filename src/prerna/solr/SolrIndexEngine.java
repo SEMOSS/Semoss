@@ -1037,10 +1037,8 @@ public class SolrIndexEngine {
 		}
 		// add group sort if present
 		if (groupSort != null && !groupSort.isEmpty()) {
-			queryBuilder.setSort(groupSort.toLowerCase(), "asc");
+			queryBuilder.setGroupSort(groupSort, "desc");
 		}
-		// always add sort by score desc
-		queryBuilder.setGroupSort(SCORE, DESC);
 		
 		// set the limit for the number of groups to return
 		//TODO: need to expose number of groups to return to UI
@@ -1066,13 +1064,12 @@ public class SolrIndexEngine {
 		retFields.add(ID);
 		retFields.add(VIEW_COUNT);
 		retFields.add(CORE_ENGINE);
+		retFields.add(CORE_ENGINE_ID);
 		retFields.add(LAYOUT);
 		retFields.add(STORAGE_NAME);
 		retFields.add(CREATED_ON);
 		retFields.add(MODIFIED_ON);
 		retFields.add(LAST_VIEWED_ON);
-		retFields.add(TAGS);
-		retFields.add(SCORE);
 		retFields.add(DESCRIPTION);
 		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);

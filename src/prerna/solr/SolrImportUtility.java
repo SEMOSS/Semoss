@@ -280,9 +280,13 @@ public final class SolrImportUtility {
 			}
 			if(upVoteCount != null && !upVoteCount.isEmpty()) {
 				doc.addField(SolrIndexEngine.UP_VOTES, upVoteCount);
+			} else {
+				doc.addField(SolrIndexEngine.UP_VOTES, 0);
 			}
 			if(viewCount != null && !viewCount.isEmpty()) {
 				doc.addField(SolrIndexEngine.VIEW_COUNT, viewCount);
+			} else {
+				doc.addField(SolrIndexEngine.VIEW_COUNT, 0);
 			}
 			if(tagsList != null && !tagsList.isEmpty()) {
 				doc.addField(SolrIndexEngine.TAGS, tagsList);
