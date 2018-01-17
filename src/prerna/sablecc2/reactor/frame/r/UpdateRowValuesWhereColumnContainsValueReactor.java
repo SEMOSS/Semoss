@@ -8,6 +8,7 @@ import prerna.ds.r.RDataTable;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -80,7 +81,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 				// col to values
 				// the column name will be the left comparison value
 				NounMetadata leftComp = queryFilter.getLComparison();
-				String columnComp = leftComp.getValue() + "";
+				String columnComp = ((QueryColumnSelector) leftComp.getValue()).getQueryStructName();
 				// split if contains the table name in the column name
 				if (columnComp.contains("__")) {
 					columnComp = columnComp.split("__")[1];
