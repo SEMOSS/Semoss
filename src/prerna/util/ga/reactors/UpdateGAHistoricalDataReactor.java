@@ -22,16 +22,11 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		
 		// check if packages are installed
-		String[] packages = {"RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr"};
-		for(int i = 0 ; i < packages.length ; i++){
-			String hasPackage = this.rJavaTranslator.getString("as.character(\"" + packages[i] + "\" %in% rownames(installed.packages()))");
-			if (!hasPackage.equalsIgnoreCase("true")) {
-				throw new IllegalArgumentException("The " + packages[i] + " package is NOT installed");
-			}	
-		}
+		String[] packages = {"RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "lubridate"};
+		this.rJavaTranslator.checkPackages(packages);
 	
-		// get start day from inputs, date range default is 5 days
-		int dateRange = 5;
+		// get start day from inputs, date range default is 10 days
+		int dateRange = 10;
 		try {
 			dateRange = Integer.parseInt(this.keyValue.get(this.keysToGet[0]));
 		} catch (NumberFormatException e) {
