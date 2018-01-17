@@ -55,7 +55,7 @@ import prerna.solr.SolrUtility;
  */
 public class SMSSWebWatcher extends AbstractFileWatcher {
 
-	static final Logger logger = LogManager.getLogger(SMSSWebWatcher.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(SMSSWebWatcher.class.getName());
 
 	/**
 	 * Processes SMSS files.
@@ -87,7 +87,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			prop.load(fileIn);
 			engineName = prop.getProperty(Constants.ENGINE);
 			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
-				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				LOGGER.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
 				Utility.loadWebEngine(fileName, prop);
@@ -123,7 +123,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engineName = prop.getProperty(Constants.ENGINE);
 			
 			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
-				logger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				LOGGER.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} 
 			else 
 			{
@@ -171,7 +171,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// if the database is a hidden database
 					// do not add anything
 					// we return null and we will 
-					System.out.println("Engine " + engineName + " is a hidden database. Do not load into local master or solr.");
+					LOGGER.info("Engine " + engineName + " is a hidden database. Do not load into local master or solr.");
 					return null;
 				} else {
 					// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
@@ -186,7 +186,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					Utility.synchronizeEngineMetadata(engineName);
 					// get the solr too ? :)<-- this is the slow part.. so removing it for now
 					SolrUtility.addToSolrInsightCore(engineName);
-					System.out.println("Loaded Engine.. " + fileName);
+					LOGGER.info("Loaded Engine.. " + fileName);
 					//Utility.loadWebEngine(fileName, prop);
 				}
 			}
@@ -288,7 +288,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				engineNames[fileIdx] = loadedEngineName;
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
-				logger.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				LOGGER.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
 			}
 		}
 		
@@ -299,16 +299,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// I dont know why we check this again ?
 		if(localMasterIndex == 0) {
 			// remove unused databases
-			String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
+			//String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
 			//List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
 			List<String> engines = MasterDatabaseUtility.getAllEnginesRDBMS();
 			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			
 			// so delete the engines if the SMSS is not there anymore sure makes sense
-			
 			for(String engine : engines) {
 				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					System.out.println("Deleting the engine..... " + engine);
+					LOGGER.info("Deleting the engine..... " + engine);
 					remover.deleteEngineRDBMS(engine);
 				}
 			}
@@ -355,7 +354,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void run() {
-		logger.info("Starting SMSSWebWatcher thread");
+		LOGGER.info("Starting SMSSWebWatcher thread");
 		synchronized(monitor) {
 			loadFirst();
 			super.run();
