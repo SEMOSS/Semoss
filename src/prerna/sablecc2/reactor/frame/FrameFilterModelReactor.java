@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -130,7 +131,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		// there is no values that are unchecked to select
 		// i.e. nothing is done that is filtered that the user can undo for this column
 		List<Object> filterValues = new ArrayList<Object>();
-		if(baseFilters.getAllFilteredColumns().contains(tableCol)) {
+		if(columnFiltered(baseFilters, tableCol)) {
 			
 			boolean validExistingFilters = true;
 			// if we did add a word filter, we only want to execute if there is another filter present
@@ -218,5 +219,18 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		}
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
+	}
+	
+	private boolean columnFiltered(GenRowFilters filters, String columnName) {
+		Set<String> filteredCols = filters.getAllFilteredColumns();
+		if(filteredCols.contains(columnName)) {
+			return true;
+		}
+		if(columnName.contains("__")) {
+			if(filteredCols.contains(columnName.split("__")[1])) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
