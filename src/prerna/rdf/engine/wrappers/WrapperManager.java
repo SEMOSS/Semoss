@@ -113,8 +113,9 @@ public class WrapperManager {
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
 			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
+			interpreter.setTypeMap(((DataStaxGraphEngine) engine).getTypeMap());
 			interpreter.setQueryStruct(qs);
-			return new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs), qs);
+			return new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
 		}
 		case R : {
 			returnWrapper = new RawRSelectWrapper();
