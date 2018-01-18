@@ -57,7 +57,7 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 				+ "library(plyr);"
 				+ userDf + "<-get_userdata(\"" + startDate + "\",\"" + todayDate + "\", \"" + rDirectory + "\\token_file\");"
 				+ historyDf + "<-viz_history(" + userDf + ");"
-				+ "write.csv(" + historyDf + ",file=\"" + rDirectory + "\\historicalData\\viz_history.csv\",row.names=FALSE,na=\"\");";
+				+ "write.csv(" + historyDf + ",file=\"" + rDirectory + "\\historicalData\\viz_user_history.csv\",row.names=FALSE,na=\"\");";
 		script = script.replace("\\", "\\\\");
 	
 		// run script
