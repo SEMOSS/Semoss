@@ -130,11 +130,19 @@ public class OutlierAlgorithmReactor extends AbstractReactor {
 						}
 					}
 				}
+				// since similarity will be 1 when we have an exact match
+				// and 0 when they are completely different
+				// we want to assign the value to be 1 - the similarity
+				double dissimarityValue = 1 - maxSim;
 				if (results.get(instanceName) == null) {
-					results.put(instanceName, maxSim);
+					results.put(instanceName, dissimarityValue);
 				} else {
 					double oldVal = results.get(instanceName);
-					results.put(instanceName, oldVal + maxSim);
+					// we dont want the number of runs to increase our value
+					// so we will undo it
+					oldVal *= k;
+					double newVal = (oldVal + dissimarityValue) / (k+1);
+					results.put(instanceName, newVal);
 				}
 				
 				// logging
