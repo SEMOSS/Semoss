@@ -38,7 +38,8 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 	private List<String> selectors;
 	// the list of properties for a given vertex
 	private Map<String, List<String>> propHash;
-	// store the unique name to the 
+	// the unique type label to property value 
+	private Map<String, String> typeMap;
 
 	public DataStaxInterpreter(GraphTraversalSource graphTraversalSession) {
 		this.gt = graphTraversalSession.V();
@@ -163,7 +164,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				this.gt.has("~label", getNodeType(selector)).as(selector);
+				this.gt.hasLabel(getNodeType(selector)).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(this.gt, startNodeFilters);
@@ -236,7 +237,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 		
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
-		this.gt = this.gt.has("~label", getNodeType(startNode)).as(startNode);
+		this.gt = this.gt.hasLabel(getNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(startNode);
 		addFiltersToPath(this.gt, startNodeFilters);
 
@@ -282,6 +283,8 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 	 * @param comparison
 	 */
 	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison) {
+		String nodeType = ((QueryColumnSelector)colComp.getValue()).getTable(); 
+		String nodeName = this.typeMap.get(nodeType);
 		Object filterObject = valuesComp.getValue();
 		List<Object> filterValues = new Vector<Object>();
 		// ughhh... this could be a list or an object
@@ -292,17 +295,17 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 			filterValues.add(filterObject);
 		}
 		if (comparison.equals("==")) {
-			traversalSegment = traversalSegment.has("name", P.within(filterValues.toArray()));
+			traversalSegment = traversalSegment.has(nodeName, P.within(filterValues.toArray()));
 		} else if (comparison.equals("<")) {
-			traversalSegment = traversalSegment.has("name", P.lt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(nodeName, P.lt(filterValues.get(0)));
 		} else if (comparison.equals(">")) {
-			traversalSegment = traversalSegment.has("name", P.gt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(nodeName, P.gt(filterValues.get(0)));
 		} else if (comparison.equals("<=")) {
-			traversalSegment = traversalSegment.has("name", P.lte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(nodeName, P.lte(filterValues.get(0)));
 		} else if (comparison.equals(">=")) {
-			traversalSegment = traversalSegment.has("name", P.gte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(nodeName, P.gte(filterValues.get(0)));
 		} else if (comparison.equals("!=")) {
-			traversalSegment = traversalSegment.has("name", P.without(filterValues.toArray()));
+			traversalSegment = traversalSegment.has(nodeName, P.without(filterValues.toArray()));
 		}
 	}
 
@@ -350,7 +353,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 						}
 					}
 					//HERE????
-					twoStepT = twoStepT.out().has("~label", getNodeType(downstreamNodeType)).as(downstreamNodeType);
+					twoStepT = twoStepT.out().hasLabel(getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters);
@@ -405,7 +408,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in(edgeKey).has("~label", getNodeType(upstreamNodeType)).as(upstreamNodeType);
+					twoStepT = twoStepT.in(edgeKey).hasLabel( getNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
@@ -493,10 +496,11 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION sortDirection = orderSelector.getSortDir();
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
+				String nodeName = this.typeMap.get(tableName);
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by("name", Order.incr);
+					gt = gt.select(tableName).order().by(nodeName, Order.incr);
 				} else {
-					gt = gt.select(tableName).order().by("name", Order.decr);
+					gt = gt.select(tableName).order().by(nodeName, Order.decr);
 				}
 			}
 			//order by for property
@@ -527,5 +531,9 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 	@Override
 	public String composeQuery() {
 		return null;
+	}
+	
+	public void setTypeMap(Map<String, String> typeMap) {
+		this.typeMap = typeMap;
 	}
 }
