@@ -669,7 +669,7 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
-				+ "} ORDER BY ?displayName";
+				+ "} ORDER BY ?alias";
 		
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		
