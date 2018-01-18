@@ -20,10 +20,12 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 	private String[] headerAlias;
 	private String[] header;
 	private String[] headerOrdering;
+	private Map<String, String> typeMap;
 
-	public DataStaxGraphIterator(Iterator composeIterator, QueryStruct2 qs) {
+	public DataStaxGraphIterator(Iterator composeIterator, QueryStruct2 qs, Map<String, String> typeMap) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
+		this.typeMap = typeMap;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
 
@@ -54,7 +56,9 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 				Object vertOrProp = mapData.get(this.headerOrdering[colIndex]);
 				Object value = null;
 				if (vertOrProp instanceof Vertex) {
-					value = ((Vertex) vertOrProp).value("name");
+					String node = this.headerOrdering[colIndex];
+					String name = this.typeMap.get(node);
+					value = ((Vertex) vertOrProp).value(name);
 				} else {
 					value = vertOrProp;
 				}
@@ -73,7 +77,9 @@ public class DataStaxGraphIterator implements Iterator<IHeadersDataRow> {
 				if(vertex.property(this.headerAlias[0]).isPresent()) {
 					retObject[0] = vertex.value(this.headerAlias[0]);
 				} else {
-					retObject[0] = vertex.value("name");
+					String node = this.headerOrdering[0];
+					String name = this.typeMap.get(node);
+					retObject[0] = vertex.value(name);
 				}
 			} else {
 				retObject[0] = data;

@@ -1,8 +1,11 @@
 package prerna.ds.datastax;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.datastax.driver.dse.DseCluster;
 import com.datastax.driver.dse.DseSession;
@@ -16,6 +19,8 @@ import prerna.util.Utility;
 public class DataStaxGraphEngine extends AbstractEngine{
 	
 	private GraphTraversalSource graphTraversalSession;
+	private Map<String, String> typeMap;
+	
 
 	@Override
 	public void openDB(String propFile) {
@@ -24,14 +29,27 @@ public class DataStaxGraphEngine extends AbstractEngine{
 		String host = this.prop.getProperty("HOST");
 		String port = this.prop.getProperty("PORT");
 		String graphName = this.prop.getProperty("GRAPH_NAME");
+		//  node type to property value map
+		String typeMapStr = this.prop.getProperty("TYPE_MAP");
 		
 		DseCluster dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
 		DseSession dseSession = dseCluster.connect();
+		if (typeMapStr != null) {
+			try {
+				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
+			} catch (IOException e2) {
+			}
+
+		}
 		this.graphTraversalSession = DseGraph.traversal(dseSession);
 	}
 	
 	public GraphTraversalSource getGraphTraversalSource() {
 		return this.graphTraversalSession;
+	}
+	
+	public Map<String, String> getTypeMap() {
+		return this.typeMap;
 	}
 	
 	public IQueryInterpreter2 getQueryInterpreter2() {
