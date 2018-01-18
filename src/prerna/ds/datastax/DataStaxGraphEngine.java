@@ -34,12 +34,12 @@ public class DataStaxGraphEngine extends AbstractEngine{
 		
 		DseCluster dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
 		DseSession dseSession = dseCluster.connect();
-		if (typeMapStr != null) {
+		if(typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
-			} catch (IOException e2) {
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-
 		}
 		this.graphTraversalSession = DseGraph.traversal(dseSession);
 	}
