@@ -165,20 +165,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		}
 		
 		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ")";
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + "viz_history, viz_recom, get_userdata);";
 		this.rJavaTranslator.runR(gc);
-
-		// R json string to map object
-//		List<Object> jsonMap = new ArrayList<Object>();
-//		if (json != null) {
-//			try {
-//				// parse json here
-//				jsonMap = new ObjectMapper().readValue(json, List.class);
-//			} catch (IOException e) {
-//			}
-//		} else {
-//			return null;
-//		}
 		
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
