@@ -48,8 +48,7 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 		String userDf = "user_" + Utility.getRandomString(8);
 		String historyDf = "hist_" + Utility.getRandomString(8);
 		String rDirectory = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations";
-		String script = "source(\"" + rDirectory + "\\commons.r\");"
-				+ "source(\"" + rDirectory + "\\viz_tracking.r\");"
+		String script = "source(\"" + rDirectory + "\\viz_tracking.r\");"
 				+ "library(RGoogleAnalytics);"
 				+ "library(httr);"
 				+ "library(data.table);"
@@ -64,7 +63,7 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(script);
 		
 		// garbage cleanup
-		String gc = "rm(" + userDf + ", " + historyDf + ")";
+		String gc = "rm(" + userDf + ", " + historyDf + ", " + "viz_history, viz_recom, get_userdata);";
 		this.rJavaTranslator.runR(gc);
 		
 		return null;
