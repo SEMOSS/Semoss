@@ -45,8 +45,10 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		}
 		
 		// get qs from input task
-		System.out.println(insight.getInsightId());
 		BasicIteratorTask task = (BasicIteratorTask) ((insight.getTaskStore()).getTask(inputTask));
+		if(task == null) { 
+			throw new IllegalArgumentException("Invalid task : " + inputTask); 
+		}
 		QueryStruct2 qs = task.getQueryStruct();
 		
 		// convert qs to physical names
@@ -138,6 +140,9 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		String json = this.rJavaTranslator.getString(outputJson + ";");
 		Map recommendations = new HashMap<String, HashMap<String ,String>>();
 		Gson gson = new Gson();
+		if(json == null) {
+			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		}
 		ArrayList<Map<String,String>> myList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String,String>>>(){}.getType());
 		for (int i = 0 ; i < myList.size() ; i++){
 			// get all values from R json
