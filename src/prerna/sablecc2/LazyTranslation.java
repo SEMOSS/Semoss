@@ -310,7 +310,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor opReactor;
-    	// TODO: how do get this out of here...
     	if(this.curReactor != null && this.curReactor instanceof AbstractQueryStructReactor) {
     		opReactor = new prerna.sablecc2.reactor.qs.AsReactor();
     	} else {
@@ -742,7 +741,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getOrComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof QueryFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor) {
     		newReactor = new QueryFilterComponentOr();
     	} else {
     		newReactor = new OpOr();
@@ -754,7 +753,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getAndComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof QueryFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor) {
     		newReactor = new QueryFilterComponentAnd();
     	} else {
     		newReactor = new OpAnd();
