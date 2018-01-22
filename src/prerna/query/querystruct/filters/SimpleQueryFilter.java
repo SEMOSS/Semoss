@@ -16,7 +16,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	/**
 	 * Right now, tracking for these types of filters within querying
 	 */
-	public static enum FILTER_TYPE {COL_TO_COL, COL_TO_VALUES, VALUES_TO_COL, VALUE_TO_VALUE};
+	public static enum FILTER_TYPE {COL_TO_QUERY, QUERY_TO_COL, COL_TO_COL, COL_TO_VALUES, VALUES_TO_COL, VALUE_TO_VALUE};
 		
 	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '<>', '?like'
 	private NounMetadata lComparison = null; //the column we want to filter
@@ -594,7 +594,18 @@ public class SimpleQueryFilter implements IQueryFilter {
 		else if((lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING) && rCompType == PixelDataType.COLUMN)
 		{
 			return FILTER_TYPE.VALUES_TO_COL;
+		}
+		// col to query
+		else if(lCompType == PixelDataType.COLUMN && rCompType == PixelDataType.QUERY_STRUCT) 
+		{
+			return FILTER_TYPE.COL_TO_QUERY;
 		} 
+		// query to col
+		else if(lCompType == PixelDataType.QUERY_STRUCT && rCompType == PixelDataType.COLUMN) 
+		{
+			return FILTER_TYPE.QUERY_TO_COL;
+		}
+		
 		// values to values
 		else if((rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING) && (lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING)) 
 		{
