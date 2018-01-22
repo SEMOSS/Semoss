@@ -156,9 +156,9 @@ import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.OrderByReactor;
 import prerna.sablecc2.reactor.qs.QueryAllReactor;
-import prerna.sablecc2.reactor.qs.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
+import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.AverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.CountReactor;
 import prerna.sablecc2.reactor.qs.selectors.GroupConcatReactor;
@@ -659,6 +659,7 @@ public class ReactorFactory {
 	 */
 	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
+
 		try {
 			// is this an expression?
 			// we need to determine if we are treating this expression as a
