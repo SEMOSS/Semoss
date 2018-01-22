@@ -3,7 +3,6 @@ package prerna.algorithm.learning.util;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 public class Cluster {
@@ -276,20 +275,6 @@ public class Cluster {
 		numericalCluster.removeFromCluster(attributeName, value);
 	}
 	
-	public void setDistanceMode(String[] levelNames, IClusterDistanceMode[] distanceMeasures, boolean[] isNumeric) {
-		for(int i = 0; i < levelNames.length; i++) {
-			if(isNumeric[i]) {
-				setDistanceMode(levelNames[i], distanceMeasures[i]);
-			}
-		}
-	}
-	
-	public void setDistanceMode(String[] levelNames, IClusterDistanceMode[] distanceMeasures) {
-		for(int i = 0; i < levelNames.length; i++) {
-			setDistanceMode(levelNames[i], distanceMeasures[i]);
-		}
-	}
-	
 	public void setDistanceMode(Map<String, IClusterDistanceMode.DistanceMeasure> distanceMeasures) {
 		if(distanceMeasures != null) {
 			for(String attribute : distanceMeasures.keySet()) {
@@ -398,52 +383,27 @@ public class Cluster {
 		}
 		int totalAttributes = numCategorical + numNumeric;
 		
-		double numericalClusterSim = ((double) numNumeric / totalAttributes) * this.numericalCluster.getClusterSimilarity(c2.getNumericalCluster(), instanceType);
-		double categoricalClusterSim = ((double) numCategorical / totalAttributes) * this.categoricalCluster.getClusterSimilarity(c2.getCategoricalCluster(), instanceType);
+		double numericalClusterSim = ((double) numNumeric / totalAttributes) * this.numericalCluster.getClusterSimilarity(c2.numericalCluster, instanceType);
+		double categoricalClusterSim = ((double) numCategorical / totalAttributes) * this.categoricalCluster.getClusterSimilarity(c2.categoricalCluster, instanceType);
 		return numericalClusterSim + categoricalClusterSim;
-	}
-	
-	public Map<String, Double> getNumericClusterChangesForAllAttributes() {
-		Map<String, Double> retMap = new HashMap<String, Double>();
-
-		Set<String> attributeNames = numericalCluster.getAttributes();
-		for(String attributeName : attributeNames) {
-			retMap.put(attributeName, numericalCluster.getChangeToCenterForAttribute(attributeName));
-		}
-		
-		return retMap;
-	}
-	
-	public Map<String, Boolean> getIsPreviousNullForAllAttributes() {
-		Map<String, Boolean> retMap = new HashMap<String, Boolean>();
-
-		Set<String> attributeNames = numericalCluster.getAttributes();
-		for(String attributeName : attributeNames) {
-			retMap.put(attributeName, numericalCluster.getIsPreviousNull(attributeName));
-		}
-		
-		return retMap;
-	}
-	
-	public void reset() {
-		categoricalCluster.reset();
-		numericalCluster.reset();
 	}
 	
 	public int getNumInstances() {
 		return this.numInstances;
 	}
 	
-	public void setNumInstances(int numInstances) {
-		this.numInstances = numInstances;
+	public void setDistanceMode(String[] levelNames, IClusterDistanceMode[] distanceMeasures, boolean[] isNumeric) {
+		for(int i = 0; i < levelNames.length; i++) {
+			if(isNumeric[i]) {
+				setDistanceMode(levelNames[i], distanceMeasures[i]);
+			}
+		}
 	}
 	
-	public CategoricalCluster getCategoricalCluster() {
-		return categoricalCluster;
-	}
-
-	public NumericalCluster getNumericalCluster() {
-		return numericalCluster;
+	public void setDistanceMode(String[] levelNames, IClusterDistanceMode[] distanceMeasures) {
+		for(int i = 0; i < levelNames.length; i++) {
+			setDistanceMode(levelNames[i], distanceMeasures[i]);
+		}
 	}
 	
 }
