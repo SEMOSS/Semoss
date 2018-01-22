@@ -19,6 +19,7 @@ import prerna.comments.ModifyInsightCommentReactor;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
@@ -232,6 +233,7 @@ public class ReactorFactory {
 
 	// this holds that base package name for frame specific reactors
 	public static Map<String, Class> rFrameHash;
+	public static Map<String, Class> pandasFrameHash;
 	public static Map<String, Class> h2FrameHash;
 	public static Map<String, Class> tinkerFrameHash;
 	public static Map<String, Class> nativeFrameHash;
@@ -239,6 +241,7 @@ public class ReactorFactory {
 	public static final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
 	public static final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
 	public static final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
+	public static final String PANDAS_FRAME_PROP_PATH = baseFolder + "\\src\\pyFrameReactors.prop";
 	public static final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
 	public static final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
 	public static final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
@@ -268,6 +271,13 @@ public class ReactorFactory {
 		if (Files.exists(rFramePath)) {
 			buildReactorHashFromPropertyFile(rFrameHash, R_FRAME_PROP_PATH);
 		}
+		
+		pandasFrameHash = new HashMap<>();
+		populatePandasFrameHash(pandasFrameHash);
+		Path pyFramepath = Paths.get(PANDAS_FRAME_PROP_PATH);
+		if (Files.exists(pyFramepath)) {
+			buildReactorHashFromPropertyFile(pandasFrameHash, PANDAS_FRAME_PROP_PATH);
+		}
 
 		h2FrameHash = new HashMap<>();
 		populateH2FrameHash(h2FrameHash);
@@ -282,7 +292,6 @@ public class ReactorFactory {
 		if (Files.exists(tinkerFramePath)) {
 			buildReactorHashFromPropertyFile(tinkerFrameHash, TINKER_FRAME_PROP_PATH);
 		}
-	
 
 		nativeFrameHash = new HashMap<>();
 		populateNativeFrameHash(nativeFrameHash);
@@ -555,11 +564,6 @@ public class ReactorFactory {
 		nativeFrameHash.put("Merge", prerna.sablecc2.reactor.frame.nativeframe.NativeFrameMergeDataReactor.class);
 	}
 
-	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
-		// TODO Auto-generated method stub
-		
-	}
-
 	private static void populateH2FrameHash(Map<String, Class> h2FrameHash) {
 		h2FrameHash.put("AddColumn", prerna.sablecc2.reactor.frame.rdbms.AddColumnReactor.class);
 		h2FrameHash.put("ChangeColumnType", prerna.sablecc2.reactor.frame.rdbms.ChangeColumnTypeReactor.class);
@@ -605,6 +609,16 @@ public class ReactorFactory {
 		rFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.r.ColumnCountReactor.class);
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
 		rFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.r.HistogramReactor.class);
+	}
+	
+	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private static void populatePandasFrameHash(Map<String, Class> rFrameHash) {
+		// TODO Auto-generated method stub
+
 	}
 
 	private static void populateExpressionSet(Map<String, Class> expressionHash) {
@@ -694,8 +708,10 @@ public class ReactorFactory {
 					if (nativeFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
 					}
-				} else {
-					throw new IllegalArgumentException("Frame type not supported");
+				} else if(frame instanceof PandasFrame) {
+					if (nativeFrameHash.containsKey(reactorId)) {
+						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
+					}
 				}
 
 				// if we have retrieved a reactor from a frame hash

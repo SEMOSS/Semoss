@@ -6,6 +6,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
@@ -19,6 +20,8 @@ public class ImportFactory {
 			return new TinkerImporter((TinkerFrame) frame, qs);
 		} else if(frame instanceof RDataTable) {
 			return new RImporter((RDataTable) frame, qs);
+		} else if(frame instanceof PandasFrame) {
+			return new PandasImporter((PandasFrame) frame, qs);
 		} else if(frame instanceof NativeFrame) {
 			return new NativeFrameImporter((NativeFrame) frame, qs);
 		}
@@ -32,6 +35,8 @@ public class ImportFactory {
 			return new TinkerImporter((TinkerFrame) frame, qs, it);
 		} else if(frame instanceof RDataTable) {
 			return new RImporter((RDataTable) frame, qs, it);
+		} else if(frame instanceof PandasFrame) {
+			return new PandasImporter((PandasFrame) frame, qs, it);
 		} 
 		return null;
 	}
