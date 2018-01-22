@@ -17,6 +17,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -525,6 +526,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
 			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			return addSelectorToQueryFilter(leftComp, rightComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 			return addValueToValueFilter(rightComp, leftComp, thisComparator);
@@ -532,6 +537,38 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return null;
 	}
 	
+	private StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, false);
+		
+		QueryStruct2 subQs = (QueryStruct2) rightComp.getValue();
+		SqlInterpreter2 innerInterpreter;
+		try {
+			innerInterpreter = this.getClass().newInstance();
+			if(this.frame != null) {
+				subQs = QueryStructConverter.getPhysicalQs(subQs, this.frame.getMetaData());
+			}
+			innerInterpreter.setQueryStruct(subQs);
+			innerInterpreter.setLogger(this.logger);
+			String innerQuery = innerInterpreter.composeQuery();
+			
+			StringBuilder filterBuilder = new StringBuilder(leftSelectorExpression);
+			if(thisComparator.trim().equals("==")) {
+				filterBuilder .append(" IN ( ").append(innerQuery).append(" ) ");
+			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder.append(" NOT IN ( ").append(innerQuery).append(" ) ");
+			} else {
+				filterBuilder.append(" ").append(thisComparator).append(" (").append(innerQuery).append(")");
+			}
+			return filterBuilder;
+		} catch (InstantiationException | IllegalAccessException e) {
+			e.printStackTrace();
+		}
+	
+		return null;
+	}
+
 	/**
 	 * Add filter for a column to values
 	 * @param filter 

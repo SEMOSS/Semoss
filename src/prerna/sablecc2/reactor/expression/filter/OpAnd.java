@@ -1,14 +1,14 @@
 package prerna.sablecc2.reactor.expression.filter;
 
 import java.util.List;
-import prerna.query.querystruct.filters.AndQueryFilter;
-import prerna.query.querystruct.filters.IQueryFilter;
+
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.JavaExecutable;
+import prerna.sablecc2.reactor.expression.OpBasic;
 
-public class OpAnd extends AbstractOpFiltering {
+public class OpAnd extends OpBasic {
 	
 	public OpAnd() {
 		this.keysToGet = new String[]{ReactorKeysEnum.VALUES.getKey()};
@@ -16,18 +16,6 @@ public class OpAnd extends AbstractOpFiltering {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-		if(isQuery()) {
-			// we want to return a filter object
-			// so it can be integrated with the query struct
-			AndQueryFilter filter = new AndQueryFilter();
-			for(Object v : values) {
-				if(v instanceof IQueryFilter) {
-					filter.addFilter((IQueryFilter)v);
-				}
-			}
-			return new NounMetadata(filter, PixelDataType.FILTER);
-		}
-		
 		boolean result = eval(values);
 		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
