@@ -1,11 +1,13 @@
-package prerna.sablecc2.reactor.qs;
+package prerna.sablecc2.reactor.qs.filter;
 
 import java.util.List;
+
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class QueryFilterReactor extends AbstractQueryStructReactor {
 	

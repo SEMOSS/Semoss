@@ -84,7 +84,10 @@ import prerna.sablecc2.reactor.expression.filter.OpOr;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.sablecc2.reactor.qs.QueryFilterReactor;
+import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentAnd;
+import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentOr;
+import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentSimple;
+import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
@@ -427,7 +430,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	if(curReactor != null) {
     		if(curReactor instanceof QuerySelectReactor 
     				|| curReactor instanceof QuerySelectorExpressionAssimilator 
-    				|| (curReactor instanceof OpFilter && ((OpFilter) curReactor).isQuery()) ) {
+    				|| curReactor instanceof QueryFilterReactor) {
     			// this is part of a query 
     			// add it as a proper query selector object
     			QueryColumnSelector s = new QueryColumnSelector();
@@ -730,12 +733,41 @@ public class LazyTranslation extends DepthFirstAdapter {
     	curReactor.getCurRow().addRelation(leftCol, relType, rightCol);
     }
     
+    /////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    
+    /*
+     * Comparison logic
+     */
+    
+    private void getOrComparison() {
+    	IReactor newReactor = null;
+    	if(this.curReactor instanceof QueryFilterReactor) {
+    		newReactor = new QueryFilterComponentOr();
+    	} else {
+    		newReactor = new OpOr();
+    	}
+    	
+    	initReactor(newReactor);
+    	syncResult();
+    }
+    
+    private void getAndComparison() {
+    	IReactor newReactor = null;
+    	if(this.curReactor instanceof QueryFilterReactor) {
+    		newReactor = new QueryFilterComponentAnd();
+    	} else {
+    		newReactor = new OpAnd();
+    	}
+    	
+    	initReactor(newReactor);
+    	syncResult();
+    }
+    
     @Override
     public void inAComplexAndComparisonExpr(AComplexAndComparisonExpr node) {
     	defaultIn(node);
-    	IReactor opReactor = new OpAnd();
-    	initReactor(opReactor);
-    	syncResult();
+    	getAndComparison();
     }
     
     @Override
@@ -747,9 +779,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAComplexOrComparisonExpr(AComplexOrComparisonExpr node) {
     	defaultIn(node);
-    	IReactor opReactor = new OpOr();
-    	initReactor(opReactor);
-    	syncResult();
+    	getOrComparison();
     }
     
     @Override
@@ -761,9 +791,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABasicAndComparisonTerm(ABasicAndComparisonTerm node) {
     	defaultIn(node);
-    	IReactor opReactor = new OpAnd();
-    	initReactor(opReactor);
-    	syncResult();
+    	getAndComparison();
     }
     
     @Override
@@ -775,11 +803,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABasicOrComparisonTerm(ABasicOrComparisonTerm node) {
     	defaultIn(node);
-    	IReactor opReactor = new OpOr();
-    	initReactor(opReactor);
-    	syncResult();
+    	getOrComparison();
     }
-    
     
     @Override
     public void outABasicOrComparisonTerm(ABasicOrComparisonTerm node) {
@@ -789,11 +814,14 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     @Override
     public void inABaseSimpleComparison(ABaseSimpleComparison node) {
-    	defaultIn(node);
-    	// I feel like mostly it would be this and not frame op
-    	// I almost feel I should remove the frame op col def
-    	IReactor opReactor = new OpFilter();
-    	initReactor(opReactor);
+    	IReactor newReactor = null;
+    	if(this.curReactor instanceof QueryFilterReactor) {
+    		newReactor = new QueryFilterComponentSimple();
+    	} else {
+    		newReactor = new OpFilter();
+    	}
+    	
+    	initReactor(newReactor);
     	syncResult();
     }
 
