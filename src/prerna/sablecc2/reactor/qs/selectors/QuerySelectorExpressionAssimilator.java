@@ -20,11 +20,10 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		GenRowStruct qsInputs = this.getCurRow();
 		IQuerySelector leftSelector = getSelector(qsInputs.getNoun(0));
 		IQuerySelector rightSelector = getSelector(qsInputs.getNoun(1));
-		return composeNewSelector(combineSelectorsModingForOOO(this.mathExpr, leftSelector, rightSelector));
-	}
-	
-	private NounMetadata composeNewSelector(IQuerySelector selector) {
-		return new NounMetadata(selector, PixelDataType.COLUMN);
+		QueryArithmeticSelector newSelector = combineSelectorsModingForOOO(this.mathExpr, leftSelector, rightSelector);
+		QueryStruct2 qs = new QueryStruct2();
+		qs.addSelector(newSelector);
+		return new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 	}
 	
 	public void setMathExpr(String mathExpr) {
