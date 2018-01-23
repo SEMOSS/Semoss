@@ -119,6 +119,11 @@ public class PivotReactor extends AbstractRFrameReactor{
 		frame.executeRScript(script);
 		recreateMetadata(table);
 		
+		//clean up temp r variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + newFrame + ");");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 		
