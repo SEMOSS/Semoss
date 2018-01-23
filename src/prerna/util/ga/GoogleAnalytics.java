@@ -205,80 +205,81 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 				aliasHash.put(alias, name);
 			}
 	
-			for(String panelId : taskOptions.keySet()) {
+			for (String panelId : taskOptions.keySet()) {
 				// you could be using multiple panels
-				Map<String, Object> panelContent = (Map<String, Object>) taskOptions.get(panelId);
-	
-				final String exprStart = "{\"Viz\":{";
-				final String exprEnd = "]}}";
-				StringBuilder exprBuilder = new StringBuilder();
-				String vizType = "";
-	
-				for(String panelKey : panelContent.keySet()) {
-					// there are specific keys we are looking for
-					// layout is the layout of the viz
-					// alignment tells us what UI component this goes to
-					if(panelKey.equals("layout")) {
-						vizType = "\"" + panelContent.get(panelKey).toString() + "\"";
-					}
-					else if(panelKey.equalsIgnoreCase("alignment")) {
-						// alignment points to a map of string to vector
-						Map<String, List<String>> alignmentMap = (Map<String, List<String>>) panelContent.get(panelKey);
-						boolean first = true;
-						for(String uiCompName : alignmentMap.keySet()) {
-							// ui name can be label, value, x, y, etc.
-							List<String> columnsInUICompName = alignmentMap.get(uiCompName);
-							// now we want to generate a map for each input in this uiCompName
-							for(String columnAlias : columnsInUICompName) {
-								String uniqueMetaName = aliasHash.get(columnAlias);
-								List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
-	
-								if(!first) {
-									exprBuilder.append(",");
-								} else {
-									first = false;
-								}
-								exprBuilder.append("[");
-								int size = dbInfo.size();
-								boolean processedFirst = false;
-								for(int i = 0; i < size; i++) {
-									String[] engineQs = dbInfo.get(i);
-									if(engineQs.length != 2) {
-										continue;
-									}
-									String db = engineQs[0];
-									String conceptProp = engineQs[1];
-									String table = conceptProp;
-									String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
-									if(conceptProp.contains("__")) {
-										String[] conceptPropSplit = conceptProp.split("__");
-										table = conceptPropSplit[0];
-										column = conceptPropSplit[1];
-									}
-									if(processedFirst) {
+				if (taskOptions.get(panelId) instanceof Map) {
+					Map<String, Object> panelContent = (Map<String, Object>) taskOptions.get(panelId);
+
+					final String exprStart = "{\"Viz\":{";
+					final String exprEnd = "]}}";
+					StringBuilder exprBuilder = new StringBuilder();
+					String vizType = "";
+
+					for (String panelKey : panelContent.keySet()) {
+						// there are specific keys we are looking for
+						// layout is the layout of the viz
+						// alignment tells us what UI component this goes to
+						if (panelKey.equals("layout")) {
+							vizType = "\"" + panelContent.get(panelKey).toString() + "\"";
+						} else if (panelKey.equalsIgnoreCase("alignment")) {
+							// alignment points to a map of string to vector
+							Map<String, List<String>> alignmentMap = (Map<String, List<String>>) panelContent
+									.get(panelKey);
+							boolean first = true;
+							for (String uiCompName : alignmentMap.keySet()) {
+								// ui name can be label, value, x, y, etc.
+								List<String> columnsInUICompName = alignmentMap.get(uiCompName);
+								// now we want to generate a map for each input in this uiCompName
+								for (String columnAlias : columnsInUICompName) {
+									String uniqueMetaName = aliasHash.get(columnAlias);
+									List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
+
+									if (!first) {
 										exprBuilder.append(",");
 									} else {
-										processedFirst = true;
+										first = false;
 									}
-									exprBuilder.append("{\"dbName\":\"").append(db).append("\",\"tableName\": \"")
-									.append(table).append("\",\"columnName\": \"").append(column)
-									.append("\",\"columnType\":\"").append("categoricalTemp")
-									.append("\",\"component\": \"").append(uiCompName)
-									.append("\",\"numUniqueValues\":20,\"entropy\":20}");
+									exprBuilder.append("[");
+									int size = dbInfo.size();
+									boolean processedFirst = false;
+									for (int i = 0; i < size; i++) {
+										String[] engineQs = dbInfo.get(i);
+										if (engineQs.length != 2) {
+											continue;
+										}
+										String db = engineQs[0];
+										String conceptProp = engineQs[1];
+										String table = conceptProp;
+										String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+										if (conceptProp.contains("__")) {
+											String[] conceptPropSplit = conceptProp.split("__");
+											table = conceptPropSplit[0];
+											column = conceptPropSplit[1];
+										}
+										if (processedFirst) {
+											exprBuilder.append(",");
+										} else {
+											processedFirst = true;
+										}
+										exprBuilder.append("{\"dbName\":\"").append(db).append("\",\"tableName\": \"")
+												.append(table).append("\",\"columnName\": \"").append(column)
+												.append("\",\"columnType\":\"").append("categoricalTemp")
+												.append("\",\"component\": \"").append(uiCompName)
+												.append("\",\"numUniqueValues\":20,\"entropy\":20}");
+									}
+									exprBuilder.append("]");
 								}
-								exprBuilder.append("]");
 							}
 						}
 					}
+
+					// we are done for this panel track it
+					// and then go to the next one
+					String curExpression = exprStart + vizType + ":[" + exprBuilder.toString() + exprEnd;
+					in.trackPixels("viz", curExpression);
 				}
-	
-				// we are done for this panel
-				// track it
-				// and then go to the next one
-				String curExpression = exprStart + vizType + ":[" + exprBuilder.toString() + exprEnd;
-				in.trackPixels("viz", curExpression);
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
