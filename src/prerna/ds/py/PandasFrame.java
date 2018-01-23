@@ -9,8 +9,6 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 
-import jep.Jep;
-import jep.JepException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -29,6 +27,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private static final String PANDAS_IMPORT_VAR = "pandas_import_var";
 	private static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 	
+	private JepWrapper jep;
 	private String scripFolder;
 	private String tableName;
 	
@@ -37,6 +36,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public PandasFrame(String tableName) {
+		this.jep = new JepWrapper();
+		
 		this.scripFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
 				"\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		
@@ -66,27 +67,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
+		// generate the script
 		StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
 		script.append("\n");
 		String fileLocation = it.getFileLocation();
 		script.append(PandasSyntaxHelper.getFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
+		
+		// execute the script
 		runScript(script.toString());
 		
-		try (Jep jep = getJep()){
-			Object o = jep.eval(tableName);
-			System.out.println(o);
-		} catch (JepException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public Jep getJep() {
-		try {
-			Jep jep = new Jep(false);
-			return jep;
-		} catch (JepException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		//TODO: testing
+		jep.eval(tableName);
 	}
 	
 	@Override
@@ -107,6 +98,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	private void runScript(String script) {
+		// write the script to a file
 		File f = new File(this.scripFolder + "/" + Utility.getRandomString(6) + ".py");
 		try {
 			FileUtils.writeStringToFile(f, script);
@@ -115,15 +107,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 			e1.printStackTrace();
 		}
 		
-		try (Jep jep = getJep()){
-			jep.runScript(f.getAbsolutePath());
-			Object o = jep.eval(tableName);
-			System.out.println(o);
-		} catch (JepException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		} finally {
-			f.delete();
-		}
+		// execute the file
+		jep.runScript(f.getAbsolutePath());
+		
+		// delete the file
+		f.delete();
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////
