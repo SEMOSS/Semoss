@@ -421,13 +421,17 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAIdWordOrId(AIdWordOrId node)
     {
     	defaultIn(node);
-    	String column = (node.getId()+"").trim();
+    	String idInput = (node.getId()+"").trim();
     	
     	//how do we determine the difference between a column and a variable?
     	//something could be a column but not loaded into a frame yet...i.e. select pixel in import
     	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pixels one by one into the graph in any order
-    	if(this.planner.hasVariable(column)) {
-    		this.planner.addVariable("$RESULT", this.planner.getVariableValue(column));
+    	if(this.planner.hasVariable(idInput)) {
+    		if(curReactor != null) {
+    			curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
+    		} else {
+    			this.planner.addVariable("$RESULT", this.planner.getVariableValue(idInput));
+    		}
     	} else {
     		if(curReactor != null) {
     			if(curReactor instanceof QuerySelectReactor 
@@ -436,24 +440,24 @@ public class LazyTranslation extends DepthFirstAdapter {
     				// this is part of a query 
     				// add it as a proper query selector object
     				QueryColumnSelector s = new QueryColumnSelector();
-    				if(column.contains("__")) {
-    					String[] split = column.split("__");
+    				if(idInput.contains("__")) {
+    					String[] split = idInput.split("__");
     					s.setTable(split[0]);
     					s.setColumn(split[1]);
     				} else {
-    					s.setTable(column);
+    					s.setTable(idInput);
     					s.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
     				}
     				curReactor.getCurRow().addColumn(s);
     			} else {
-    				curReactor.getCurRow().addColumn(column);
-    				curReactor.setProp(node.toString().trim(), column);
+    				curReactor.getCurRow().addColumn(idInput);
+    				curReactor.setProp(node.toString().trim(), idInput);
     			}
     		} else {
     			// i guess we should return the actual column from the frame?
     			// TODO: build this out
     			// for now, will just return the column name again... 
-    			NounMetadata noun = new NounMetadata(column, PixelDataType.CONST_STRING);
+    			NounMetadata noun = new NounMetadata(idInput, PixelDataType.CONST_STRING);
     			this.planner.addVariable("$RESULT", noun);
     		}
     	}
