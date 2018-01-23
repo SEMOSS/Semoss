@@ -21,6 +21,7 @@ public class QueryReactor extends AbstractQueryStructReactor {
 			hardQs.setEngineName(qs.getEngineName());
 			hardQs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
+			hardQs.setFrame(qs.getFrame());
 			hardQs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
 		}
 		hardQs.setQuery(query);
