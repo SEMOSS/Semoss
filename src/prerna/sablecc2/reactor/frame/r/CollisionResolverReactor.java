@@ -28,7 +28,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// init rJavaTranslator
 		init();
 		// check r package dependencies
-		this.rJavaTranslator.checkPackages(new String[]{"fuzzyjoin", "RJSONIO"});
+		this.rJavaTranslator.checkPackages(new String[]{"fuzzyjoin", "RJSONIO", "R6", "Rcpp", "assertthat", "bindr", "tidyselect"});
 
 		// get frame and set up logger
 		RDataTable frame = (RDataTable) getFrame();
@@ -98,6 +98,12 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + randomDF + ");");
 		cleanUpScript.append("rm(" + outputJSON + ");");
+		cleanUpScript.append("rm(" + "collision_resolver" + ");");
+		cleanUpScript.append("rm(" + "fuzzy_join" + ");");
+		cleanUpScript.append("rm(" + "i" + ");");
+		cleanUpScript.append("rm(" + "value" + ");");
+		cleanUpScript.append("rm(" + "count" + ");");
+
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 
