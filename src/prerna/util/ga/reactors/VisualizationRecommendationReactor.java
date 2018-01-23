@@ -12,12 +12,9 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStructConverter;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -38,23 +35,10 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		String[] packages = {"dplyr", "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "RJSONIO"};
 		this.rJavaTranslator.checkPackages(packages);
 		
-		// get inputs 		
-		String inputTask = this.keyValue.get(this.keysToGet[0]);
-		if (inputTask == null){
-			throw new IllegalArgumentException("Must define task"); 
-		}
-		
-		// get qs from input task
-		BasicIteratorTask task = (BasicIteratorTask) ((insight.getTaskStore()).getTask(inputTask));
-		if(task == null) { 
-			throw new IllegalArgumentException("Invalid task : " + inputTask); 
-		}
-		QueryStruct2 qs = task.getQueryStruct();
-		
 		// convert qs to physical names
 		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		String[] qsHeaders = frame.getQsHeaders();
 		OwlTemporalEngineMeta meta = frame.getMetaData();
-		qs = QueryStructConverter.getPhysicalQs(qs, meta);	
 		
 		// prep script components
 		StringBuilder builder = new StringBuilder();
@@ -62,14 +46,11 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		String dfStart = "library(RJSONIO); " + inputFrame + " <- data.frame(dbname = character(), tblname = character(), colname = character(), stringsAsFactors = FALSE);";
 		
 		// iterate selectors and update data table builder section of R script
-		List<IQuerySelector> selectors = qs.getSelectors();
 		Map<String, String> aliasHash = new HashMap<String, String>();
 		int rowCount = 1;
-		for (int i = 0; i < selectors.size(); i++) {
-			IQuerySelector selector = selectors.get(i);
-			String alias = selector.getAlias();
-			String name = "";
-			name = selector.getQueryStructName();
+		for (int i = 0; i < qsHeaders.length; i++) {
+			String alias = (qsHeaders[i].split("__"))[1];			
+			String name = qsHeaders[i];
 			List<String[]> dbInfo = meta.getDatabaseInformation(name);
 			int size = dbInfo.size();
 			for (int j = 0; j < size; j++) {
