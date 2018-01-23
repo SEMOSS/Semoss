@@ -219,12 +219,25 @@ public class XRayReactor extends AbstractRFrameReactor {
 				rsb.append(rFrameName + " <-" + semanticComparisonFrame + ";");
 			}
 			this.rJavaTranslator.runR(rsb.toString());
+			
+			//clean up r variables for  semantic comparison
+			StringBuilder cleanUpScript = new StringBuilder();
+			cleanUpScript.append("rm(" + semanticComparisonFrame + ");");
+			this.rJavaTranslator.runR(cleanUpScript.toString());
 		}
 
 		// Synchronize from R
 		GenerateH2FrameFromRVariableReactor sync = new GenerateH2FrameFromRVariableReactor();
 		sync.syncFromR(this.rJavaTranslator, rFrameName, frame);
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
+		
+		//clean up r temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + rFrameName + ");");
+		cleanUpScript.append("rm(" + "xray_merge" + ");");
+
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
 		// track GA data
 		GATracker.getInstance().trackAnalyticsPixel(this.insight, "XRay");
@@ -593,8 +606,8 @@ public class XRayReactor extends AbstractRFrameReactor {
 			}
 			// generate semantic results and write to semantic folder
 			String writeSemanticResultsToFile = "";
+			String semanticResults = "semantic.results.df";
 			if (semanticMode) {
-				String semanticResults = "semantic.results.df";
 				String colSelectString = "1";
 				int numDisplay = 3;
 				int randomVals = 20;
@@ -613,6 +626,15 @@ public class XRayReactor extends AbstractRFrameReactor {
 			}
 			// run r script
 			this.rJavaTranslator.runR(rsb.toString());
+			
+			//clean up r temp variables
+			StringBuilder cleanUpScript = new StringBuilder();
+			cleanUpScript.append("rm(" + dfName + ");");
+			if (semanticMode) {
+				cleanUpScript.append("rm(" + semanticResults + ");");
+
+			}
+			this.rJavaTranslator.runR(cleanUpScript.toString());
 		}
 	}
 
@@ -677,6 +699,11 @@ public class XRayReactor extends AbstractRFrameReactor {
 				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
 			this.rJavaTranslator.runR(rsb.toString());
+			
+			//clean up r temp variables
+			StringBuilder cleanUpScript = new StringBuilder();
+			cleanUpScript.append("rm(" + dfName + ");");
+			this.rJavaTranslator.runR(cleanUpScript.toString());
 		}
 	}
 
