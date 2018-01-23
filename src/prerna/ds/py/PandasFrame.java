@@ -13,6 +13,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -59,25 +60,67 @@ public class PandasFrame extends AbstractTableDataFrame {
 		this.addRowsViaIterator(it, this.tableName, dataTypeMap);
 	}
 	
+	/**
+	 * Generate a table from an iterator
+	 * @param it
+	 * @param tableName
+	 * @param dataTypeMap
+	 */
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
 		if(it instanceof CsvFileIterator) {
 			addRowsViaCsvIterator((CsvFileIterator) it, tableName);
+		} else if(it instanceof ExcelFileIterator) {
+			addRowsViaExcelIterator((ExcelFileIterator) it, tableName);
+		} else {
+			// default behavior is to just write this to a csv file
+			// and read it back in
+			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+			File newFile = Utility.writeResultToFile(newFileLoc, it, dataTypeMap);
+			
+			// generate the script
+			StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
+			script.append("\n");
+			String fileLocation = newFile.getAbsolutePath();
+			script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
+			
+			// execute the script
+			runScript(script.toString());
 		}
+		
 		syncHeaders();
+		
+		//TODO: testing
+		jep.eval(tableName);
 	}
 	
+	/**
+	 * Generate a table from a CSV file iterator
+	 * @param it
+	 * @param tableName
+	 */
 	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
 		// generate the script
 		StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
 		script.append("\n");
 		String fileLocation = it.getFileLocation();
-		script.append(PandasSyntaxHelper.getFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
+		script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
 		
 		// execute the script
 		runScript(script.toString());
+	}
+	
+	/**
+	 * Generate a table from an Excel file iterator
+	 */
+	private void addRowsViaExcelIterator(ExcelFileIterator it, String tableName) {
+		// generate the script
+		StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
+		script.append("\n");
+		String fileLocation = it.getFileLocation();
+		script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
 		
-		//TODO: testing
-		jep.eval(tableName);
+		// execute the script
+		runScript(script.toString());
 	}
 	
 	@Override
