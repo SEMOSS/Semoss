@@ -36,6 +36,9 @@ public class CountIfReactor extends AbstractRFrameReactor {
 		}
 		String regexToCount = getRegex();
 		String newColName = getNewColumn();
+		// check if new colName is valid
+		newColName = getCleanNewColName(table, newColName);
+
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already
 		String colType = this.rJavaTranslator.getColumnType(table, column);
