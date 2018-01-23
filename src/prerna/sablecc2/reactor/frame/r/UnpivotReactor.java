@@ -77,6 +77,11 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		frame.executeRScript(script);
 		recreateMetadata(table);
 		
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + tempName + ");");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
