@@ -21,7 +21,7 @@ public class PandasSyntaxHelper {
 	 * @param tableName
 	 * @param tableName2 
 	 */
-	public static String getFileRead(String pandasImportVar, String fileLocation, String tableName) {
+	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName) {
 		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "')";
 		return readCsv;
 	}
