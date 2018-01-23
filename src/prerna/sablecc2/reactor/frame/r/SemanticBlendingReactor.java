@@ -48,10 +48,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		init();
 		
 		// need to make sure that the WikidataR package is installed before running this method
-		String hasPackage = this.rJavaTranslator.getString("as.character(\"WikidataR\" %in% rownames(installed.packages()))");
-		if (!hasPackage.equalsIgnoreCase("true")) {
-			throw new IllegalArgumentException("The WikidataR package is NOT installed");
-		}
+		this.rJavaTranslator.checkPackages(new String[]{"WikidataR"});
 				
 		// get frame
 		ITableDataFrame frame = getFrame();
@@ -113,6 +110,12 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		logger.info("Running semantic blending script");
 	    logger.info("This process may take a few minutes depending on the type of data and internet speed");
 		this.rJavaTranslator.runR(sourceScript + rFunctionScript + dataTableScript);
+		
+		//clean up r temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + dfName + ");");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
 		// if we are running semantic blending
 		if (!generateFrameIndicator) {
