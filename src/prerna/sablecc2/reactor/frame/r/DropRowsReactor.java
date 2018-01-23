@@ -8,6 +8,7 @@ import prerna.ds.r.RDataTable;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
@@ -53,7 +54,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 					for (SimpleQueryFilter queryFilter : filterList) {
 						// col to values the left comparison will be the column
 						NounMetadata leftComp = queryFilter.getLComparison();
-						String column = leftComp.getValue() + "";
+						String column = ((IQuerySelector) leftComp.getValue()).getQueryStructName();
 						// separate the column name from the frame name
 						if (column.contains("__")) {
 							String[] split = column.split("__");
