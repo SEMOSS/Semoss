@@ -28,6 +28,9 @@ public class QueryStructConverter {
 	}
 
 	public static QueryStruct2 getPhysicalQs(QueryStruct2 qs, OwlTemporalEngineMeta meta) {
+		if(qs instanceof HardQueryStruct) {
+			return qs;
+		}
 		// need to modify and re-add all the selectors
 		QueryStruct2 convertedQs = qs.getNewBaseQueryStruct();
 		convertedQs.setLimit(qs.getLimit());
