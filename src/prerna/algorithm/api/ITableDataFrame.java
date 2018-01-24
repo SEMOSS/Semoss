@@ -22,36 +22,6 @@ public interface ITableDataFrame extends IDataMaker {
 	void addRow(Object[] cleanCells, String[] headers);
 	
 	/**
-	 * Get the maximum value for the column in the data-frame
-	 * Will return null if the column is non-numeric
-	 * @param columnHeader			The column header to get the maximum value
-	 * @return						The maximum value in the column
-	 */
-	Double getMax(String columnHeader);
-
-	/**
-	 * Get the maximum value for all the columns in the data-frame
-	 * Will return null in the column positions that are non-numeric
-	 * @return						The maximum value for all columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getMax();
-	
-	/**
-	 * Get the minimum value for the column in the data-frame
-	 * Will return null if the column is non-numeric
-	 * @param columnHeader			The column header to get the minimum value
-	 * @return						The minimum value in the column
-	 */
-	Double getMin(String columnHeader);
-
-	/**
-	 * Get the minimum value for all the columns in the data-frame
-	 * Will return null in the column positions that are non-numeric
-	 * @return						The minimum value for all columns corresponding to the ordered values in the column headers
-	 */
-	Double[] getMin();
-	
-	/**
 	 * Determine if a column is numeric or categorical
 	 * @param columnHeader			The column header to determine if it is numeric or categorical
 	 * @return						Boolean true if the column is numerical, false if it is categorical
@@ -133,13 +103,6 @@ public interface ITableDataFrame extends IDataMaker {
 	boolean unfilter();
 	
 	/**
-	 * Rename an existing column in the data frame
-	 * @param oldColumnHeader
-	 * @param newColumnHeader
-	 */
-	void renameColumn(String oldColumnHeader, String newColumnHeader);
-	
-	/**
 	 * Removes a column from the data frame
 	 * @param columnHeader			The column header to remove from the data-frame
 	 */
@@ -166,13 +129,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	ITableDataFrame open(String fileName, String userId);
 
-	/**
-	 * 
-	 * @param cleanRow
-	 * @param rawRow
-	 */
-	void removeRelationship(String[] columns, Object[] values);
-	
 	Iterator<IHeadersDataRow> query(String query);
 	
 	Iterator<IHeadersDataRow> query(QueryStruct2 qs);

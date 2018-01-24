@@ -356,12 +356,6 @@ public class RiGraph extends AbstractTableDataFrame {
 	
 	@Override
 	@Deprecated
-	public void removeRelationship(String[] columns, Object[] values) {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	@Deprecated
 	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
 	}
