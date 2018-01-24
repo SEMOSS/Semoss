@@ -5,6 +5,8 @@ public enum PixelDataType {
 	CONST_DECIMAL ("CONST_DECIMAL"), 				// constant double
 	CONST_INT ("CONST_INT"), 						// constant int
 	CONST_STRING ("CONST_STRING"), 					// constant string
+	CONST_DATE ("CONST_DATE"), 						// constant date
+
 	COLUMN ("COLUMN"), 								// column name in table
 	SQLE ("SQLE"), 									// sql expression
 	E ("E"), 										// some other expression
