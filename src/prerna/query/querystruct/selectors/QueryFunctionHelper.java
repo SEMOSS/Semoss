@@ -158,7 +158,7 @@ public class QueryFunctionHelper {
 		} else if(lowerfunction.equals(COUNT)) {
 			inputFunction = "Count";
 		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
-			inputFunction = "UnqiueCount";
+			inputFunction = "UniqueCount";
 		} else if(lowerfunction.equals(CONCAT)) {
 			inputFunction = "Concat";
 		} else if(lowerfunction.equals(GROUP_CONCAT)) {
