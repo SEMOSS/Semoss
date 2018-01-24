@@ -1,9 +1,5 @@
 package prerna.date;
 
-import java.text.ParseException;
-import java.util.Date;
-
-import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.Calendar;
 
 import prerna.sablecc2.om.NounMetadata;
@@ -21,8 +17,8 @@ public class DateReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		Date date = null;
-		SimpleDateFormat formatter = null;
+		SemossDate date = null;
+		String pattern = DEFAULT_FORMAT;
 		
 		/*
 		 * If there is no date input, then we will grab todays date
@@ -36,20 +32,13 @@ public class DateReactor extends AbstractReactor {
 			// determine if we should use the default format
 			// or the user defined format
 			if(this.keyValue.containsKey(this.keysToGet[1])) {
-				formatter = new SimpleDateFormat(this.keyValue.get(this.keysToGet[1]));
-			} else {
-				formatter = new SimpleDateFormat(DEFAULT_FORMAT);
+				pattern = this.keyValue.get(this.keysToGet[1]);
 			}
-			
-			try {
-				date = formatter.parse(strDate);
-			} catch (ParseException e) {
-				throw new IllegalArgumentException("Could not parse the date " + strDate + " with the format " + formatter.toPattern());
-			}
-			
+			date = new SemossDate(strDate, pattern);
+			date.getDate();
 		} else {
 			// the user hasn't specified a date
-			date = Calendar.getInstance().getTime();
+			date = new SemossDate(Calendar.getInstance().getTime());
 		}
 		
 		return new NounMetadata(date, PixelDataType.CONST_DATE);
