@@ -178,7 +178,10 @@ import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
+import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
+import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
+import prerna.sablecc2.reactor.scheduler.UnscheduleJobReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
 import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
@@ -272,7 +275,7 @@ public class ReactorFactory {
 		if (Files.exists(rFramePath)) {
 			buildReactorHashFromPropertyFile(rFrameHash, R_FRAME_PROP_PATH);
 		}
-		
+
 		pandasFrameHash = new HashMap<>();
 		populatePandasFrameHash(pandasFrameHash);
 		Path pyFramepath = Paths.get(PANDAS_FRAME_PROP_PATH);
@@ -293,7 +296,7 @@ public class ReactorFactory {
 		if (Files.exists(tinkerFramePath)) {
 			buildReactorHashFromPropertyFile(tinkerFrameHash, TINKER_FRAME_PROP_PATH);
 		}
-
+	
 		nativeFrameHash = new HashMap<>();
 		populateNativeFrameHash(nativeFrameHash);
 		Path nativeFramePath = Paths.get(NATIVE_FRAME_PROP_PATH);
@@ -553,7 +556,10 @@ public class ReactorFactory {
 		
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
-		
+		reactorHash.put("UnscheduleJob", UnscheduleJobReactor.class);
+		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
+		reactorHash.put("RescheduleExistingJob", RescheduleExistingJobReactor.class);
+
 		// GA
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
 		reactorHash.put("UpdateGAHistoricalData", UpdateGAHistoricalDataReactor.class);
@@ -614,7 +620,7 @@ public class ReactorFactory {
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
 		rFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.r.HistogramReactor.class);
 	}
-	
+
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
 		// TODO Auto-generated method stub
 		
@@ -715,7 +721,7 @@ public class ReactorFactory {
 				} else if(frame instanceof PandasFrame) {
 					if (nativeFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
-					}
+				}
 				}
 
 				// if we have retrieved a reactor from a frame hash
