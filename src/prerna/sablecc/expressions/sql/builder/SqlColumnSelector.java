@@ -19,17 +19,13 @@ public class SqlColumnSelector implements IExpressionSelector{
 	@Override
 	public List<String> getTableColumns() {
 		List<String> tableColumns = new Vector<String>();
-		tableColumns.add(frame.getTableColumnName(columnName));
+		tableColumns.add(columnName);
 		return tableColumns;
 	}
 	
 	@Override
 	public String toString() {
-		String retName = frame.getTableColumnName(columnName);
-		if(retName == null) {
-			throw new IllegalArgumentException("COLUMN NAME NOT FOUND IN FRAME!!! Cannot identify column name = \"" + columnName + "\"");
-		}
-		return retName;
+		return columnName;
 	}
 
 	@Override

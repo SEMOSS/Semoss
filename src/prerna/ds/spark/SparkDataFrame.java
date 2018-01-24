@@ -227,11 +227,6 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 		// TODO Auto-generated method stub
 		
 	}
-	@Override
-	public void removeRelationship(String[] columns, Object[] values) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {

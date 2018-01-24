@@ -22,7 +22,7 @@ public class DateReactor extends AbstractReactor {
 		
 		/*
 		 * If there is no date input, then we will grab todays date
-		 * If there is a date input, we assume it is yyy-MM-dd format
+		 * If there is a date input, we assume it is yyyy-MM-dd format
 		 * If there is a date input and a format, we will use that format
 		 */
 		

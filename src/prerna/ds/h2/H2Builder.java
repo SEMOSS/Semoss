@@ -11,9 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -26,11 +24,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 
-import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.Server;
-import org.stringtemplate.v4.ST;
 
 import com.google.gson.Gson;
 
@@ -75,44 +71,41 @@ public class H2Builder {
 	protected Map<String, String> typeConversionMap = new HashMap<String, String>();
 	{
 		typeConversionMap.clear();
+		
+		typeConversionMap.put("INT", "INT");
+		typeConversionMap.put("LONG", "INT");
+		
 		typeConversionMap.put("NUMBER", "DOUBLE");
 		typeConversionMap.put("FLOAT", "DOUBLE");
-		typeConversionMap.put("LONG", "DOUBLE");
-		typeConversionMap.put("STRING", "VARCHAR(800)");
+		typeConversionMap.put("DOUBLE", "DOUBLE");
+
 		typeConversionMap.put("DATE", "DATE");
-		typeConversionMap.put("TIMESTAMP", "DATE");
+		typeConversionMap.put("TIMESTAMP", "TIMESTAMP");
+		
+		typeConversionMap.put("STRING", "VARCHAR(800)");
 	}
 
 	// name of the main table for H2
 	protected String tableName;
 
-	// specifies the join types for an H2 frame
-	public enum Join {
-		INNER("INNER JOIN"), 
-		LEFT_OUTER("LEFT OUTER JOIN"), 
-		RIGHT_OUTER("RIGHT OUTER JOIN"), 
-		FULL_OUTER("FULL OUTER JOIN"), 
-		CROSS("CROSS JOIN");
-		
-		String name;
-
-		Join(String n) {
-			name = n;
-		}
-
-		public String getName() {
-			return name;
-		}
-	}
-
-	// These were used for adding extra numerical columns to tables so that they
-	// could be used when adding a numerical column such as a group by
-	// this process is no longer used since control of adding columns is
-	// performed in the same place as meta data which sits outside of this class
-	private static final String extraColumnBase = "ExtraColumn92917289";
-	private static int columnCount = 0;
-	List<String> extraColumn = new ArrayList<String>();
-
+//	// specifies the join types for an H2 frame
+//	public enum Join {
+//		INNER("INNER JOIN"), 
+//		LEFT_OUTER("LEFT OUTER JOIN"), 
+//		RIGHT_OUTER("RIGHT OUTER JOIN"), 
+//		FULL_OUTER("FULL OUTER JOIN"), 
+//		CROSS("CROSS JOIN");
+//		
+//		String name;
+//
+//		Join(String n) {
+//			name = n;
+//		}
+//
+//		public String getName() {
+//			return name;
+//		}
+//	}
 
 	/*************************** CONSTRUCTORS **************************************/
 
@@ -126,14 +119,6 @@ public class H2Builder {
 		this.tableName = tableName;
 		this.LIMIT_SIZE = RdbmsFrameUtility.getLimitSize();
 		this.logger = LogManager.getLogger(CLASS_NAME);
-	}
-
-	/***************************
-	 * END CONSTRUCTORS
-	 **********************************/
-
-	private Object[] castToType(String input) {
-		return Utility.findTypes(input);
 	}
 
 	// get a new unique table name
@@ -371,46 +356,6 @@ public class H2Builder {
 		return new Vector<Object[]>(0);
 	}
 
-	public HashSet<String> getHashSetFromQuery(String query) {
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = getConnection().createStatement();
-			rs = stmt.executeQuery(query);
-			if (rs != null) {
-				ResultSetMetaData rsmd = rs.getMetaData();
-				HashSet<String> data = new HashSet<String>();
-				while (rs.next()) {
-					
-					String result = rs.getString(1);
-					if(rs.wasNull()){
-						data.add(null);
-					} else {
-						data.add(rs.getString(1));
-					}
-				}
-				return data;
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return new HashSet<String>();
-	}
 
 	/*************************** 
 	 * 	END READ 
@@ -488,114 +433,114 @@ public class H2Builder {
 	// update the table with new values
 	// the last values and the last columnHeaders are what is updated
 	// used only for updating one column
-	public void updateTable(String[] headers, Object[] values, String[] columnHeaders) {
-		headers = cleanHeaders(headers);
-		columnHeaders = cleanHeaders(columnHeaders);
-		
-		try {
-
-			Object[] joinColumn = new Object[columnHeaders.length - 1];
-			System.arraycopy(columnHeaders, 0, joinColumn, 0, columnHeaders.length - 1);
-			Object[] newColumn = new Object[1];
-			newColumn[0] = columnHeaders[columnHeaders.length - 1];
-
-			Object[] joinValue = new Object[values.length - 1];
-			System.arraycopy(values, 0, joinValue, 0, values.length - 1);
-			Object[] newValue = new Object[1];
-			newValue[0] = values[columnHeaders.length - 1];
-
-			String updateQuery = RdbmsQueryBuilder.makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
-			runQuery(updateQuery);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * This method is responsible for processing the data associated with an
-	 * iterator and adding it to the H2 table
-	 * 
-	 * @param iterator
-	 * @param oldHeaders
-	 * @param newHeaders
-	 * @param types
-	 * @param joinType
-	 */
-	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
-		newHeaders = cleanHeaders(newHeaders);
-		int numHeaders = newHeaders.length;
-		
-		types = cleanTypes(types);
-		String newTableName = getNewTableName();
-		generateTable(iterator, newHeaders, types, newTableName);
-
-		// add the data
-		if (joinType.equals(Join.FULL_OUTER)) {
-			processAlterData(newTableName, newHeaders, oldHeaders, Join.LEFT_OUTER);
-		} else {
-			processAlterData(newTableName, newHeaders, oldHeaders, joinType);
-		}
-
-		// if we are doing a full outer join (which h2 does not natively have)
-		// we have done the left outer join above
-		// now just add the rows we are missing via a merge query for each row
-		// not efficient but don't see another way to do it
-		// Ex: merge into table (column1, column2) key (column1, column2) values
-		// ('value1', 'value2')
-		// TODO: change this to be a union of right outer and left outer instead
-		// of inserting values
-		if (joinType.equals(Join.FULL_OUTER)) {
-			try {
-				Statement stmt = getConnection().createStatement();
-				String selectQuery = RdbmsQueryBuilder.makeSelect(newTableName, Arrays.asList(newHeaders), false) + makeFilterSubQuery();
-				ResultSet rs = stmt.executeQuery(selectQuery);
-				
-				String mergeQuery = "MERGE INTO " + tableName;
-				String columns = "(";
-				for (int i = 0; i < newHeaders.length; i++) {
-					if (i != 0) {
-						columns += ", ";
-					}
-					columns += newHeaders[i];
-
-				}
-				columns += ")";
-
-				mergeQuery += columns + " KEY " + columns;
-
-				while (rs.next()) {
-					String values = " VALUES(";
-					for (int i = 0; i < numHeaders; i++) {
-						if (i != 0) {
-							values += ", ";
-						}
-						values += " '" + rs.getString(i+1).toString() + "' ";
-					}
-					values += ")";
-					try {
-						runQuery(mergeQuery + values);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		try {
-			runQuery(RdbmsQueryBuilder.makeDropTable(newTableName));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		// shift to on disk if number of records is getting large
-		if (isInMem && getNumRecords() > LIMIT_SIZE) {
-			// let the method determine where the new schema will be
-			convertFromInMemToPhysical(null);
-		}
-	}
+//	public void updateTable(String[] headers, Object[] values, String[] columnHeaders) {
+//		headers = cleanHeaders(headers);
+//		columnHeaders = cleanHeaders(columnHeaders);
+//		
+//		try {
+//
+//			Object[] joinColumn = new Object[columnHeaders.length - 1];
+//			System.arraycopy(columnHeaders, 0, joinColumn, 0, columnHeaders.length - 1);
+//			Object[] newColumn = new Object[1];
+//			newColumn[0] = columnHeaders[columnHeaders.length - 1];
+//
+//			Object[] joinValue = new Object[values.length - 1];
+//			System.arraycopy(values, 0, joinValue, 0, values.length - 1);
+//			Object[] newValue = new Object[1];
+//			newValue[0] = values[columnHeaders.length - 1];
+//
+//			String updateQuery = RdbmsQueryBuilder.makeUpdate(tableName, joinColumn, newColumn, joinValue, newValue);
+//			runQuery(updateQuery);
+//
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+//
+//	/**
+//	 * This method is responsible for processing the data associated with an
+//	 * iterator and adding it to the H2 table
+//	 * 
+//	 * @param iterator
+//	 * @param oldHeaders
+//	 * @param newHeaders
+//	 * @param types
+//	 * @param joinType
+//	 */
+//	public void processIterator(Iterator<IHeadersDataRow> iterator, String[] oldHeaders, String[] newHeaders, String[] types, Join joinType) {
+//		newHeaders = cleanHeaders(newHeaders);
+//		int numHeaders = newHeaders.length;
+//		
+//		types = cleanTypes(types);
+//		String newTableName = getNewTableName();
+//		generateTable(iterator, newHeaders, types, newTableName);
+//
+//		// add the data
+//		if (joinType.equals(Join.FULL_OUTER)) {
+//			processAlterData(newTableName, newHeaders, oldHeaders, Join.LEFT_OUTER);
+//		} else {
+//			processAlterData(newTableName, newHeaders, oldHeaders, joinType);
+//		}
+//
+//		// if we are doing a full outer join (which h2 does not natively have)
+//		// we have done the left outer join above
+//		// now just add the rows we are missing via a merge query for each row
+//		// not efficient but don't see another way to do it
+//		// Ex: merge into table (column1, column2) key (column1, column2) values
+//		// ('value1', 'value2')
+//		// TODO: change this to be a union of right outer and left outer instead
+//		// of inserting values
+//		if (joinType.equals(Join.FULL_OUTER)) {
+//			try {
+//				Statement stmt = getConnection().createStatement();
+//				String selectQuery = RdbmsQueryBuilder.makeSelect(newTableName, Arrays.asList(newHeaders), false) + makeFilterSubQuery();
+//				ResultSet rs = stmt.executeQuery(selectQuery);
+//				
+//				String mergeQuery = "MERGE INTO " + tableName;
+//				String columns = "(";
+//				for (int i = 0; i < newHeaders.length; i++) {
+//					if (i != 0) {
+//						columns += ", ";
+//					}
+//					columns += newHeaders[i];
+//
+//				}
+//				columns += ")";
+//
+//				mergeQuery += columns + " KEY " + columns;
+//
+//				while (rs.next()) {
+//					String values = " VALUES(";
+//					for (int i = 0; i < numHeaders; i++) {
+//						if (i != 0) {
+//							values += ", ";
+//						}
+//						values += " '" + rs.getString(i+1).toString() + "' ";
+//					}
+//					values += ")";
+//					try {
+//						runQuery(mergeQuery + values);
+//					} catch (Exception e) {
+//						e.printStackTrace();
+//					}
+//				}
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}
+//
+//		try {
+//			runQuery(RdbmsQueryBuilder.makeDropTable(newTableName));
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//
+//		// shift to on disk if number of records is getting large
+//		if (isInMem && getNumRecords() > LIMIT_SIZE) {
+//			// let the method determine where the new schema will be
+//			convertFromInMemToPhysical(null);
+//		}
+//	}
 
 	/**
 	 * 
@@ -642,15 +587,7 @@ public class H2Builder {
 		}
 	}
 	
-	// rename a column
-	private void renameColumn(String fromColumn, String toColumn) {
-		String renameQuery = RdbmsQueryBuilder.makeRenameColumn(fromColumn, toColumn, tableName);
-		try {
-			runQuery(renameQuery);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	
 
 	
 	
@@ -674,25 +611,8 @@ public class H2Builder {
 	 */
 	public void dropColumn(String columnHeader) {
 		try {
-			columnHeader = cleanHeader(columnHeader);
 			String dropColumnQuery = RdbmsQueryBuilder.makeDropColumn(columnHeader, tableName);
 			runQuery(dropColumnQuery);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Deletes all rows which have the associated values for the columns
-	 * 
-	 * @param columns
-	 * @param values
-	 */
-	public void deleteRow(String[] columns, Object[] values) {
-		try {
-			columns = cleanHeaders(columns);
-			String deleteRowQuery = RdbmsQueryBuilder.makeDeleteData(tableName, columns, values);
-			runQuery(deleteRowQuery);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -757,303 +677,298 @@ public class H2Builder {
 		}
 	}
 
-	protected String makeFilterSubQuery() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	/**
-	 * 
-	 * @param iterator
-	 * @param typesMap
-	 * @param updateColumns
-	 * @throws Exception 
-	 */
-	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, SemossDataType[] types, String[] startingHeaders, String[] joinColumns) throws Exception {
-		//step 1
-		//generate a table from the iterator
-		String tempTable = getNewTableName();
-		int size = types.length;
-		String[] cleanTypes = new String[size];
-		for(int i = 0; i < size; i++) {
-			cleanTypes[i] = cleanType(types[i].name());
-		}
-		generateTable(iterator, newHeaders, cleanTypes, tempTable);
-
-		//Step 2
-		//inner join the curTable with the tempTable
-		String curTable = getTableName();
-		
-		// for the alter to work,
-		// i want to merge the existing columns in the table
-		// with the new columns we want to get
-		// so we need to remove it as if it doesn't currenlty exist in the frame
-		if(startingHeaders.length != newHeaders.length) {
-			// so we only need to pass in the join columns
-			Set<String> curColsToUse = new HashSet<String>();
-			// add all the join columns
-			for(int i = 0; i < joinColumns.length; i++) {
-				curColsToUse.add(joinColumns[i]);
-			}
-			// add any column not in newHeaders
-			for(int i = 0; i < startingHeaders.length; i++) {
-				if(!ArrayUtilityMethods.arrayContainsValue(newHeaders, startingHeaders[i])) {
-					curColsToUse.add(startingHeaders[i]);
-				}
-			}
-			processAlterData(tempTable, curTable, curColsToUse.toArray(new String[]{}), newHeaders, Join.INNER);
-		}
-		
-		// get all the curTable headers
-		// so the insert into does it in the right order
-		String[] curTableHeaders = getHeaders(curTable);
-		
-		//Step 3
-		//merge the rows of the table with main table
-		StringBuilder mergeQuery = new StringBuilder("MERGE INTO ");
-		mergeQuery.append(curTable).append(" KEY(").append(joinColumns[0]);
-		int keySize = joinColumns.length;
-		for(int i = 1; i < keySize; i++) {
-			mergeQuery.append(", ").append(joinColumns[i]);
-		}
-		mergeQuery.append(") (SELECT ").append(curTableHeaders[0]);
-		for(int i = 1; i < curTableHeaders.length; i++) {
-			mergeQuery.append(", ").append(curTableHeaders[i]);
-		}
-		mergeQuery.append(" FROM ").append(tempTable).append(")");
-		System.out.println(mergeQuery);
-		runQuery(mergeQuery.toString());
-		
-		//Step 4
-		//drop tempTable
-		runQuery(RdbmsQueryBuilder.makeDropTable(tempTable));
-	}
-
-	/**
-	 * 
-	 * @param newTableName				new table to join onto main table
-	 * @param newHeaders				headers in new table
-	 * @param headers					headers in current table
-	 * @param joinType					how to join
-	 */
-	private void processAlterData(String newTableName, String[] newHeaders, String[] headers, Join joinType) {
-		processAlterData(this.tableName, newTableName, newHeaders, headers, joinType);
-	}
-
-	private void processAlterData(String table1, String table2, String[] newHeaders, String[] headers, Join joinType) {
-		// this currently doesnt handle many to many joins and such
-		// try {
-		getConnection();
-
-		// I need to do an evaluation here to find if this one to many
-		String[] oldHeaders = headers;
-
-		// headers for the joining table
-
-		// int curHeadCount = headers.length;
-		Vector<String> newHeaderIndices = new Vector<String>();
-		Vector<String> oldHeaderIndices = new Vector<String>();
-		Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
-
-		// I need to find which ones are already there and which ones are new
-		for (int hIndex = 0; hIndex < newHeaders.length; hIndex++) {
-			String uheader = newHeaders[hIndex];
-			uheader = cleanHeader(uheader);
-
-			boolean old = false;
-			for (int oIndex = 0; oIndex < headers.length; oIndex++) {
-				if (headers[oIndex].equalsIgnoreCase(uheader)) {
-					old = true;
-					oldHeaderIndices.add(hIndex + "");
-					matchers.put(hIndex, oIndex);
-					break;
-				}
-			}
-
-			if (!old)
-				newHeaderIndices.add((hIndex) + "");
-		}
-
-		boolean one2Many = true;
-		if (matchers == null || matchers.isEmpty()) {
-			one2Many = false;
-		}
-		// I also need to accomodate when there are no common ones
-
-		// now I need to assimilate everything into one
-		if (one2Many) {
-			mergeTables(table1, table2, matchers, oldHeaders, newHeaders, joinType.getName());
-		}
-	}
-
-	// Obviously I need the table names
-	// I also need the matching properties
-	// I have found that out upfront- I need to also keep what it is called in
-	// the old table
-	// as well as the new table
-	protected void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldHeaders, String[] newHeaders, String join) {
-		getConnection();
-
-		String origTableName = tableName1;
-		// now create a third table
-		String tempTableName = RdbmsFrameUtility.getNewTableName();
-
-		String newCreate = "CREATE Table " + tempTableName + " AS (";
-
-		// now I need to create a join query
-		// first the froms
-
-		// want to create indices on the join columns to speed up the process
-		for (Integer table1JoinIndex : matchers.keySet()) {
-			Integer table2JoinIndex = matchers.get(table1JoinIndex);
-
-			String table1JoinCol = newHeaders[table1JoinIndex];
-			String table2JoinCol = oldHeaders[table2JoinIndex];
-
-			addColumnIndex(tableName1, table1JoinCol);
-			addColumnIndex(tableName2, table2JoinCol);
-			// note that this creates indices on table1 and table2
-			// but these tables are later dropped so no indices are kept
-			// through the flow
-		}
-
-		String froms = " FROM " + tableName1 + " AS  A ";
-		String joins = " " + join + " " + tableName2 + " AS B ON (";
-
-		Enumeration<Integer> keys = matchers.keys();
-		for (int jIndex = 0; jIndex < matchers.size(); jIndex++) {
-			Integer newIndex = keys.nextElement();
-			Integer oldIndex = matchers.get(newIndex);
-
-			String oldCol = oldHeaders[oldIndex];
-			String newCol = newHeaders[newIndex];
-
-			// need to make sure the data types are good to go
-			String oldColType = getDataType(tableName1, oldCol);
-			String newColType = getDataType(tableName2, newCol);
-
-			// syntax modification for each addition join column
-			if (jIndex != 0) {
-				joins = joins + " AND ";
-			}
-
-			if(oldColType.equals(newColType)) {
-				// data types are the same, no need to do anything
-				joins = joins + "A." + oldCol + " = " + "B." + newCol;
-			} else {
-				// data types are different... 
-				// if both are different numbers -> convert both to double
-				// else -> convert to strings
-
-				if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
-						&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
-					// both are numbers
-					if(!oldColType.equals("DOUBLE")) {
-						joins = joins + " A." + oldCol;
-					} else {
-						joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
-					}
-					joins = joins + " = ";
-					if(!newColType.equals("DOUBLE")) {
-						joins = joins + " B." + newCol;
-					} else {
-						joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
-					}
-				}
-				// case when old col type is double and new col type is string
-				else if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
-						&& newColType.equals("VARCHAR") ) 
-				{
-					// if it is not a double, convert it
-					if(!oldColType.equals("DOUBLE")) {
-						joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
-					} else {
-						joins = joins + " A." + oldCol;
-					}
-					joins = joins + " = ";
-
-					// new col is a string
-					// so cast to double
-					joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
-				}
-				// case when old col type is string and new col type is double
-				else if(  oldColType.equals("VARCHAR") && 
-						(newColType.equals("DOUBLE") || newColType.equals("INT") ) ) 
-				{
-					// old col is a string
-					// so cast to double
-					joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
-					joins = joins + " = ";
-					// if it is not a double, convert it
-					if(!newColType.equals("DOUBLE")) {
-						joins = joins + " B." + newCol;
-					} else {
-						joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
-					}
-				}
-				else {
-					// not sure... just make everything a string
-					if(oldColType.equals("VARCHAR")) {
-						joins = joins + " A." + oldCol;
-					} else {
-						joins = joins + " CAST( A." + oldCol + " AS VARCHAR(800))";
-					}
-					joins = joins + " = ";
-					if(newColType.equals("VARCHAR")) {
-						joins = joins + " B." + newCol;
-					} else {
-						joins = joins + " CAST(B." + newCol + " AS VARCHAR(800))";
-					}
-				}
-			}
-		}
-
-		joins = joins + " )";
-
-		// first table A
-		String selectors = "";
-		for (int oldIndex = 0; oldIndex < oldHeaders.length; oldIndex++) {
-			if (oldIndex == 0)
-				selectors = "A." + oldHeaders[oldIndex];
-			else
-				selectors = selectors + " , " + "A." + oldHeaders[oldIndex];
-		}
-
-		// next table 2
-		for (int newIndex = 0; newIndex < newHeaders.length; newIndex++) {
-			if (!matchers.containsKey(newIndex))
-				selectors = selectors + " , " + "B." + newHeaders[newIndex];
-		}
-
-		String finalQuery = newCreate + "SELECT " + selectors + " " + froms + "  " + joins + " )";
-
-		System.out.println(finalQuery);
-
-		try {
-			long start = System.currentTimeMillis();
-			runQuery(finalQuery);
-			long end = System.currentTimeMillis();
-			System.out.println("TIME FOR JOINING TABLES = " + (end - start) + " ms");
-
-			// Statement stmt = conn.createStatement();
-			// stmt.execute(finalQuery);
-
-			runQuery(RdbmsQueryBuilder.makeDropTable(tableName1));
-
-			// DONT DROP THIS due to need to preserve for outer joins, method
-			// outside will handle dropping new table
-			// runQuery(makeDropTable(tableName2));
-
-			// rename back to the original table
-			runQuery("ALTER TABLE " + tempTableName + " RENAME TO " + origTableName);
-
-			// this created a new table
-			// need to clear the index map
-			clearColumnIndexMap();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	/**
+//	 * 
+//	 * @param iterator
+//	 * @param typesMap
+//	 * @param updateColumns
+//	 * @throws Exception 
+//	 */
+//	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, SemossDataType[] types, String[] startingHeaders, String[] joinColumns) throws Exception {
+//		//step 1
+//		//generate a table from the iterator
+//		String tempTable = getNewTableName();
+//		int size = types.length;
+//		String[] cleanTypes = new String[size];
+//		for(int i = 0; i < size; i++) {
+//			cleanTypes[i] = cleanType(types[i].name());
+//		}
+//		generateTable(iterator, newHeaders, cleanTypes, tempTable);
+//
+//		//Step 2
+//		//inner join the curTable with the tempTable
+//		String curTable = getTableName();
+//		
+//		// for the alter to work,
+//		// i want to merge the existing columns in the table
+//		// with the new columns we want to get
+//		// so we need to remove it as if it doesn't currenlty exist in the frame
+//		if(startingHeaders.length != newHeaders.length) {
+//			// so we only need to pass in the join columns
+//			Set<String> curColsToUse = new HashSet<String>();
+//			// add all the join columns
+//			for(int i = 0; i < joinColumns.length; i++) {
+//				curColsToUse.add(joinColumns[i]);
+//			}
+//			// add any column not in newHeaders
+//			for(int i = 0; i < startingHeaders.length; i++) {
+//				if(!ArrayUtilityMethods.arrayContainsValue(newHeaders, startingHeaders[i])) {
+//					curColsToUse.add(startingHeaders[i]);
+//				}
+//			}
+//			processAlterData(tempTable, curTable, curColsToUse.toArray(new String[]{}), newHeaders, Join.INNER);
+//		}
+//		
+//		// get all the curTable headers
+//		// so the insert into does it in the right order
+//		String[] curTableHeaders = getHeaders(curTable);
+//		
+//		//Step 3
+//		//merge the rows of the table with main table
+//		StringBuilder mergeQuery = new StringBuilder("MERGE INTO ");
+//		mergeQuery.append(curTable).append(" KEY(").append(joinColumns[0]);
+//		int keySize = joinColumns.length;
+//		for(int i = 1; i < keySize; i++) {
+//			mergeQuery.append(", ").append(joinColumns[i]);
+//		}
+//		mergeQuery.append(") (SELECT ").append(curTableHeaders[0]);
+//		for(int i = 1; i < curTableHeaders.length; i++) {
+//			mergeQuery.append(", ").append(curTableHeaders[i]);
+//		}
+//		mergeQuery.append(" FROM ").append(tempTable).append(")");
+//		System.out.println(mergeQuery);
+//		runQuery(mergeQuery.toString());
+//		
+//		//Step 4
+//		//drop tempTable
+//		runQuery(RdbmsQueryBuilder.makeDropTable(tempTable));
+//	}
+//
+//	/**
+//	 * 
+//	 * @param newTableName				new table to join onto main table
+//	 * @param newHeaders				headers in new table
+//	 * @param headers					headers in current table
+//	 * @param joinType					how to join
+//	 */
+//	private void processAlterData(String newTableName, String[] newHeaders, String[] headers, Join joinType) {
+//		processAlterData(this.tableName, newTableName, newHeaders, headers, joinType);
+//	}
+//
+//	private void processAlterData(String table1, String table2, String[] newHeaders, String[] headers, Join joinType) {
+//		// this currently doesnt handle many to many joins and such
+//		// try {
+//		getConnection();
+//
+//		// I need to do an evaluation here to find if this one to many
+//		String[] oldHeaders = headers;
+//
+//		// headers for the joining table
+//
+//		// int curHeadCount = headers.length;
+//		Vector<String> newHeaderIndices = new Vector<String>();
+//		Vector<String> oldHeaderIndices = new Vector<String>();
+//		Hashtable<Integer, Integer> matchers = new Hashtable<Integer, Integer>();
+//
+//		// I need to find which ones are already there and which ones are new
+//		for (int hIndex = 0; hIndex < newHeaders.length; hIndex++) {
+//			String uheader = newHeaders[hIndex];
+//			uheader = cleanHeader(uheader);
+//
+//			boolean old = false;
+//			for (int oIndex = 0; oIndex < headers.length; oIndex++) {
+//				if (headers[oIndex].equalsIgnoreCase(uheader)) {
+//					old = true;
+//					oldHeaderIndices.add(hIndex + "");
+//					matchers.put(hIndex, oIndex);
+//					break;
+//				}
+//			}
+//
+//			if (!old)
+//				newHeaderIndices.add((hIndex) + "");
+//		}
+//
+//		boolean one2Many = true;
+//		if (matchers == null || matchers.isEmpty()) {
+//			one2Many = false;
+//		}
+//		// I also need to accomodate when there are no common ones
+//
+//		// now I need to assimilate everything into one
+//		if (one2Many) {
+//			mergeTables(table1, table2, matchers, oldHeaders, newHeaders, joinType.getName());
+//		}
+//	}
+//
+//	// Obviously I need the table names
+//	// I also need the matching properties
+//	// I have found that out upfront- I need to also keep what it is called in
+//	// the old table
+//	// as well as the new table
+//	protected void mergeTables(String tableName1, String tableName2, Hashtable<Integer, Integer> matchers, String[] oldHeaders, String[] newHeaders, String join) {
+//		getConnection();
+//
+//		String origTableName = tableName1;
+//		// now create a third table
+//		String tempTableName = RdbmsFrameUtility.getNewTableName();
+//
+//		String newCreate = "CREATE Table " + tempTableName + " AS (";
+//
+//		// now I need to create a join query
+//		// first the froms
+//
+//		// want to create indices on the join columns to speed up the process
+//		for (Integer table1JoinIndex : matchers.keySet()) {
+//			Integer table2JoinIndex = matchers.get(table1JoinIndex);
+//
+//			String table1JoinCol = newHeaders[table1JoinIndex];
+//			String table2JoinCol = oldHeaders[table2JoinIndex];
+//
+//			addColumnIndex(tableName1, table1JoinCol);
+//			addColumnIndex(tableName2, table2JoinCol);
+//			// note that this creates indices on table1 and table2
+//			// but these tables are later dropped so no indices are kept
+//			// through the flow
+//		}
+//
+//		String froms = " FROM " + tableName1 + " AS  A ";
+//		String joins = " " + join + " " + tableName2 + " AS B ON (";
+//
+//		Enumeration<Integer> keys = matchers.keys();
+//		for (int jIndex = 0; jIndex < matchers.size(); jIndex++) {
+//			Integer newIndex = keys.nextElement();
+//			Integer oldIndex = matchers.get(newIndex);
+//
+//			String oldCol = oldHeaders[oldIndex];
+//			String newCol = newHeaders[newIndex];
+//
+//			// need to make sure the data types are good to go
+//			String oldColType = getDataType(tableName1, oldCol);
+//			String newColType = getDataType(tableName2, newCol);
+//
+//			// syntax modification for each addition join column
+//			if (jIndex != 0) {
+//				joins = joins + " AND ";
+//			}
+//
+//			if(oldColType.equals(newColType)) {
+//				// data types are the same, no need to do anything
+//				joins = joins + "A." + oldCol + " = " + "B." + newCol;
+//			} else {
+//				// data types are different... 
+//				// if both are different numbers -> convert both to double
+//				// else -> convert to strings
+//
+//				if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
+//						&& (newColType.equals("DOUBLE") || newColType.equals("INT") ) ) {
+//					// both are numbers
+//					if(!oldColType.equals("DOUBLE")) {
+//						joins = joins + " A." + oldCol;
+//					} else {
+//						joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
+//					}
+//					joins = joins + " = ";
+//					if(!newColType.equals("DOUBLE")) {
+//						joins = joins + " B." + newCol;
+//					} else {
+//						joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
+//					}
+//				}
+//				// case when old col type is double and new col type is string
+//				else if( (oldColType.equals("DOUBLE") || oldColType.equals("INT") )
+//						&& newColType.equals("VARCHAR") ) 
+//				{
+//					// if it is not a double, convert it
+//					if(!oldColType.equals("DOUBLE")) {
+//						joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
+//					} else {
+//						joins = joins + " A." + oldCol;
+//					}
+//					joins = joins + " = ";
+//
+//					// new col is a string
+//					// so cast to double
+//					joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
+//				}
+//				// case when old col type is string and new col type is double
+//				else if(  oldColType.equals("VARCHAR") && 
+//						(newColType.equals("DOUBLE") || newColType.equals("INT") ) ) 
+//				{
+//					// old col is a string
+//					// so cast to double
+//					joins = joins + " CAST(A." + oldCol + " AS DOUBLE)";
+//					joins = joins + " = ";
+//					// if it is not a double, convert it
+//					if(!newColType.equals("DOUBLE")) {
+//						joins = joins + " B." + newCol;
+//					} else {
+//						joins = joins + " CAST(B." + newCol + " AS DOUBLE)";
+//					}
+//				}
+//				else {
+//					// not sure... just make everything a string
+//					if(oldColType.equals("VARCHAR")) {
+//						joins = joins + " A." + oldCol;
+//					} else {
+//						joins = joins + " CAST( A." + oldCol + " AS VARCHAR(800))";
+//					}
+//					joins = joins + " = ";
+//					if(newColType.equals("VARCHAR")) {
+//						joins = joins + " B." + newCol;
+//					} else {
+//						joins = joins + " CAST(B." + newCol + " AS VARCHAR(800))";
+//					}
+//				}
+//			}
+//		}
+//
+//		joins = joins + " )";
+//
+//		// first table A
+//		String selectors = "";
+//		for (int oldIndex = 0; oldIndex < oldHeaders.length; oldIndex++) {
+//			if (oldIndex == 0)
+//				selectors = "A." + oldHeaders[oldIndex];
+//			else
+//				selectors = selectors + " , " + "A." + oldHeaders[oldIndex];
+//		}
+//
+//		// next table 2
+//		for (int newIndex = 0; newIndex < newHeaders.length; newIndex++) {
+//			if (!matchers.containsKey(newIndex))
+//				selectors = selectors + " , " + "B." + newHeaders[newIndex];
+//		}
+//
+//		String finalQuery = newCreate + "SELECT " + selectors + " " + froms + "  " + joins + " )";
+//
+//		System.out.println(finalQuery);
+//
+//		try {
+//			long start = System.currentTimeMillis();
+//			runQuery(finalQuery);
+//			long end = System.currentTimeMillis();
+//			System.out.println("TIME FOR JOINING TABLES = " + (end - start) + " ms");
+//
+//			// Statement stmt = conn.createStatement();
+//			// stmt.execute(finalQuery);
+//
+//			runQuery(RdbmsQueryBuilder.makeDropTable(tableName1));
+//
+//			// DONT DROP THIS due to need to preserve for outer joins, method
+//			// outside will handle dropping new table
+//			// runQuery(makeDropTable(tableName2));
+//
+//			// rename back to the original table
+//			runQuery("ALTER TABLE " + tempTableName + " RENAME TO " + origTableName);
+//
+//			// this created a new table
+//			// need to clear the index map
+//			clearColumnIndexMap();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 
 	protected void addColumnIndex(String tableName, String colName) {
 		if (!columnIndexMap.containsKey(tableName + "+++" + colName)) {
@@ -1143,37 +1058,37 @@ public class H2Builder {
 		this.columnIndexMap.clear();
 	}
 	
-	protected String getDataType(String tableName, String colName) {
-		String query = "select type_name from information_schema.columns where table_name='" + 
-					tableName.toUpperCase() + "' and column_name='" + colName.toUpperCase() + "'";
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = getConnection().createStatement();
-			rs = stmt.executeQuery(query);
-			if(rs.next()) {
-				return rs.getString(1);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return null;
-	}
+//	protected String getDataType(String tableName, String colName) {
+//		String query = "select type_name from information_schema.columns where table_name='" + 
+//					tableName.toUpperCase() + "' and column_name='" + colName.toUpperCase() + "'";
+//		Statement stmt = null;
+//		ResultSet rs = null;
+//		try {
+//			stmt = getConnection().createStatement();
+//			rs = stmt.executeQuery(query);
+//			if(rs.next()) {
+//				return rs.getString(1);
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(rs != null) {
+//				try {
+//					rs.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//		return null;
+//	}
 
 	private String getNextNumber() {
 		String uuid = UUID.randomUUID().toString();
@@ -1421,43 +1336,37 @@ public class H2Builder {
 		return headers.toArray(new String[] {});
 	}
 
-	private String[] cleanHeaders(String[] headers) {
-		String[] cleanHeaders = new String[headers.length];
-		for (int i = 0; i < headers.length; i++) {
-			cleanHeaders[i] = cleanHeader(headers[i]);
-		}
-		return cleanHeaders;
-	}
-
-	protected List<String> cleanHeaders(List<String> headers) {
-		List<String> cleanedHeaders = new ArrayList<>(headers.size());
-		for (String header : headers) {
-			cleanedHeaders.add(cleanHeader(header));
-		}
-		return cleanedHeaders;
-	}
-
-	// TODO: this is done outside now, need to remove
-	protected static String cleanHeader(String header) {
-		/*
-		 * header = header.replaceAll(" ", "_"); header = header.replace("(",
-		 * "_"); header = header.replace(")", "_"); header = header.replace("-",
-		 * "_"); header = header.replace("'", "");
-		 */
-		header = header.replaceAll("[#%!&()@#$'./-]*\"*", ""); // replace all
-																// the useless
-																// shit in one
-																// go
-		header = header.replaceAll("\\s+", "_");
-		header = header.replaceAll(",", "_");
-		if (Character.isDigit(header.charAt(0)))
-			header = "c_" + header;
-		return header;
-	}
+//	private String[] cleanHeaders(String[] headers) {
+//		String[] cleanHeaders = new String[headers.length];
+//		for (int i = 0; i < headers.length; i++) {
+//			cleanHeaders[i] = cleanHeader(headers[i]);
+//		}
+//		return cleanHeaders;
+//	}
+//
+//
+//	// TODO: this is done outside now, need to remove
+//	protected static String cleanHeader(String header) {
+//		/*
+//		 * header = header.replaceAll(" ", "_"); header = header.replace("(",
+//		 * "_"); header = header.replace(")", "_"); header = header.replace("-",
+//		 * "_"); header = header.replace("'", "");
+//		 */
+//		header = header.replaceAll("[#%!&()@#$'./-]*\"*", ""); // replace all
+//																// the useless
+//																// shit in one
+//																// go
+//		header = header.replaceAll("\\s+", "_");
+//		header = header.replaceAll(",", "_");
+//		if (Character.isDigit(header.charAt(0)))
+//			header = "c_" + header;
+//		return header;
+//	}
 
 	protected String cleanType(String type) {
-		if (type == null)
+		if (type == null) {
 			type = "VARCHAR(800)";
+		}
 		type = type.toUpperCase();
 		if (typeConversionMap.containsKey(type)) {
 			type = typeConversionMap.get(type);
@@ -1716,42 +1625,6 @@ public class H2Builder {
 		return 0;
 	}
 	
-	public int getNumRows() {
-		String query = "SELECT COUNT(*) FROM " + getReadTable();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = getConnection().createStatement();
-			rs = stmt.executeQuery(query);
-			while (rs.next()) {
-				return rs.getInt(1);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return 0;
-	}
-	
-	public String getReadTable() {
-		return this.tableName;
-	}
-
 	public String[] createUser(String tableName) {
 		// really simple
 		// find an open port
@@ -1858,315 +1731,6 @@ public class H2Builder {
 	 * 			LEGACY CODE FOR OLD/NON PKQL DMC INSIGHTS
 	 ********************************************************************************************************/
 	
-	private void addEmptyDerivedColumns() {
-		// make query
-		if (extraColumn.size() == 0) {
-			populateExtraColumns();
-			for (String column : extraColumn) {
-				String addColumnQuery = "ALTER TABLE " + tableName + " ADD " + column + " double";
-				try {
-					runQuery(addColumnQuery);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-
-	private void populateExtraColumns() {
-		if (this.extraColumn == null) {
-			this.extraColumn = new ArrayList<String>();
-		}
-
-		for (int i = columnCount; i < 10; i++) {
-			String nextColumn = extraColumnBase + "_" + i;
-			extraColumn.add(nextColumn);
-		}
-	}
-
-	private String getExtraColumn() {
-		if (extraColumn.size() > 0)
-			return extraColumn.remove(0);
-		else
-			return null;
-	}
-	
-	/**
-	 * 
-	 * @param column
-	 *            - the column to join on
-	 * @param newColumnName
-	 *            - new column name with group by values
-	 * @param valueColumn
-	 *            - the column to do calculations on
-	 * @param mathType
-	 *            - the type of group by
-	 * @param headers
-	 */
-	public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType, String[] headers) {
-
-		// String[] tableHeaders = getHeaders(tableName);
-		// String inserter = makeGroupBy(column, valueColumn, mathType,
-		// newColumnName, this.tableName, headers);
-		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
-		// tableHeaders);
-
-		String reservedColumn = getExtraColumn();
-		if (reservedColumn == null) {
-			addEmptyDerivedColumns();
-			reservedColumn = getExtraColumn();
-		}
-		renameColumn(reservedColumn, newColumnName);
-
-		// String[] tableHeaders = getHeaders(tableName);
-		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName, headers);
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = getConnection().createStatement();
-			rs = stmt.executeQuery(inserter);
-			while (rs.next()) {
-				Object[] values = { rs.getObject(column), rs.getObject(newColumnName) };
-				String[] columnHeaders = { column, newColumnName };
-				updateTable(headers, values, columnHeaders);
-				// String updateQuery = makeUpdate(tableName, column,
-				// newColumnName, groupBySet.getObject(column),
-				// groupBySet.getObject(newColumnName));
-				// runQuery(updateQuery);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		// makeUpdate(mathType, joinColumn, newColumn, joinValue, newValue)
-		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
-		// tableHeaders);
-
-		// all group bys are doubles?
-		// addHeader(newColumnName, "double", tableHeaders);
-		// addType("double");
-	}
-
-	// process a group by - calculate then make a table then merge the table
-	public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType,
-			String[] headers) {
-		String tableName = getTableName();
-		if (column.length == 1) {
-			processGroupBy(column[0], newColumnName, valueColumn, mathType, headers);
-			return;
-		}
-		// String[] tableHeaders = getHeaders(tableName);
-		// String inserter = makeGroupBy(column, valueColumn, mathType,
-		// newColumnName, this.tableName, headers);
-		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
-		// tableHeaders);
-
-		// all group bys are doubles?
-		String reservedColumn = getExtraColumn();
-		if (reservedColumn == null) {
-			addEmptyDerivedColumns();
-			reservedColumn = getExtraColumn();
-		}
-		renameColumn(reservedColumn, newColumnName);
-
-		// String[] tableHeaders = getHeaders(tableName);
-		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, tableName, headers);
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = getConnection().createStatement();
-			rs = stmt.executeQuery(inserter);
-			while (rs.next()) {
-				List<Object> values = new ArrayList<>();
-				List<Object> columnHeaders = new ArrayList<>();
-				for (String c : column) {
-					values.add(rs.getObject(c));// {groupBySet.getObject(column),
-														// groupBySet.getObject(newColumnName)};
-					columnHeaders.add(c);
-				}
-				values.add(rs.getObject(newColumnName));
-				columnHeaders.add(newColumnName);
-				updateTable(headers, values.toArray(), columnHeaders.toArray(new String[] {}));
-
-				// String updateQuery = makeUpdate(tableName, column,
-				// newColumnName, groupBySet.getObject(column),
-				// groupBySet.getObject(newColumnName));
-				// runQuery(updateQuery);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-	
-	private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
-
-		column = cleanHeader(column);
-		valueColumn = cleanHeader(valueColumn);
-		alias = cleanHeader(alias);
-
-		String functionString = "";
-
-		String type = getType(tableName, column);
-
-		switch (mathType.toUpperCase()) {
-		case "COUNT": {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		case "AVERAGE": {
-			functionString = "AVG(" + valueColumn + ")";
-			break;
-		}
-		case "MIN": {
-			functionString = "MIN(" + valueColumn + ")";
-			break;
-		}
-		case "MAX": {
-			functionString = "MAX(" + valueColumn + ")";
-			break;
-		}
-		case "SUM": {
-			functionString = "SUM(" + valueColumn + ")";
-			break;
-		}
-		default: {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery();
-		String groupByStatement = "SELECT " + column + ", " + functionString + " AS " + alias + " FROM " + tableName
-				+ filterSubQuery + " GROUP BY " + column;
-
-		return groupByStatement;
-	}
-
-	// TODO : don't assume a double group by here
-	private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
-		if (column.length == 1)
-			return makeGroupBy(column[0], valueColumn, mathType, alias, tableName, headers);
-		String column1 = cleanHeader(column[0]);
-		String column2 = cleanHeader(column[1]);
-		valueColumn = cleanHeader(valueColumn);
-		alias = cleanHeader(alias);
-
-		String functionString = "";
-
-		String type = getType(tableName, valueColumn);
-
-		switch (mathType.toUpperCase()) {
-		case "COUNT": {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		case "AVERAGE": {
-			functionString = "AVG(" + valueColumn + ")";
-			break;
-		}
-		case "MIN": {
-			functionString = "MIN(" + valueColumn + ")";
-			break;
-		}
-		case "MAX": {
-			functionString = "MAX(" + valueColumn + ")";
-			break;
-		}
-		case "SUM": {
-			functionString = "SUM(" + valueColumn + ")";
-			break;
-		}
-		default: {
-			String func = "COUNT(";
-			if (type.toUpperCase().startsWith("VARCHAR"))
-				func = "COUNT( DISTINCT ";
-			functionString = func + valueColumn + ")";
-			break;
-		}
-		}
-
-		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
-		// this.filterComparator);
-		String filterSubQuery = makeFilterSubQuery();
-		String groupByStatement = "SELECT " + column1 + ", " + column2 + ", " + functionString + " AS " + alias
-				+ " FROM " + tableName + filterSubQuery + " GROUP BY " + column1 + ", " + column2;
-
-		return groupByStatement;
-	}
-	
-	private String getType(String tableName, String column) {
-		String type = null;
-		String typeQuery = "SELECT TABLE_NAME, COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
-				+ tableName.toUpperCase() + "' AND COLUMN_NAME = '" + column.toUpperCase() + "'";
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = getConnection().createStatement();
-			rs = stmt.executeQuery(typeQuery);
-			if (rs.next()) {
-				type = rs.getString("TYPE_NAME");
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return type;
-	}
-
 	protected void deleteAllRows(String tableName) {
 		String query = "DELETE FROM " + tableName + " WHERE 1 != 0";
 		try {
@@ -2227,29 +1791,301 @@ public class H2Builder {
 		return dataTypeMap;
 	}
 
-	public void changeDataType(String tableName, String columnName, String newType) {
-		String query = "ALTER TABLE " + tableName + " MODIFY COLUMN " + columnName + " " + this.typeConversionMap.get(newType);
-		Connection thisCon = getConnection();
-		Statement stat = null;
-		try {
-			stat = thisCon.createStatement();
-			stat.execute(query);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(stat != null) {
-				try {
-					stat.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
 	
 	
 	
 	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+//	/**
+//	 * 
+//	 * @param column
+//	 *            - the column to join on
+//	 * @param newColumnName
+//	 *            - new column name with group by values
+//	 * @param valueColumn
+//	 *            - the column to do calculations on
+//	 * @param mathType
+//	 *            - the type of group by
+//	 * @param headers
+//	 */
+//	public void processGroupBy(String column, String newColumnName, String valueColumn, String mathType, String[] headers) {
+//
+//		// String[] tableHeaders = getHeaders(tableName);
+//		// String inserter = makeGroupBy(column, valueColumn, mathType,
+//		// newColumnName, this.tableName, headers);
+//		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
+//		// tableHeaders);
+//
+//		String reservedColumn = getExtraColumn();
+//		if (reservedColumn == null) {
+//			addEmptyDerivedColumns();
+//			reservedColumn = getExtraColumn();
+//		}
+//		renameColumn(reservedColumn, newColumnName);
+//
+//		// String[] tableHeaders = getHeaders(tableName);
+//		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, this.tableName, headers);
+//		Statement stmt = null;
+//		ResultSet rs = null;
+//		try {
+//			stmt = getConnection().createStatement();
+//			rs = stmt.executeQuery(inserter);
+//			while (rs.next()) {
+//				Object[] values = { rs.getObject(column), rs.getObject(newColumnName) };
+//				String[] columnHeaders = { column, newColumnName };
+//				updateTable(headers, values, columnHeaders);
+//				// String updateQuery = makeUpdate(tableName, column,
+//				// newColumnName, groupBySet.getObject(column),
+//				// groupBySet.getObject(newColumnName));
+//				// runQuery(updateQuery);
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(rs != null) {
+//				try {
+//					rs.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//		// makeUpdate(mathType, joinColumn, newColumn, joinValue, newValue)
+//		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
+//		// tableHeaders);
+//
+//		// all group bys are doubles?
+//		// addHeader(newColumnName, "double", tableHeaders);
+//		// addType("double");
+//	}
+//	
+//	
+//	// process a group by - calculate then make a table then merge the table
+//	public void processGroupBy(String[] column, String newColumnName, String valueColumn, String mathType,
+//			String[] headers) {
+//		String tableName = getTableName();
+//		if (column.length == 1) {
+//			processGroupBy(column[0], newColumnName, valueColumn, mathType, headers);
+//			return;
+//		}
+//		// String[] tableHeaders = getHeaders(tableName);
+//		// String inserter = makeGroupBy(column, valueColumn, mathType,
+//		// newColumnName, this.tableName, headers);
+//		// processAlterAsNewTable(inserter, Join.LEFT_OUTER.getName(),
+//		// tableHeaders);
+//
+//		// all group bys are doubles?
+//		String reservedColumn = getExtraColumn();
+//		if (reservedColumn == null) {
+//			addEmptyDerivedColumns();
+//			reservedColumn = getExtraColumn();
+//		}
+//		renameColumn(reservedColumn, newColumnName);
+//
+//		// String[] tableHeaders = getHeaders(tableName);
+//		String inserter = makeGroupBy(column, valueColumn, mathType, newColumnName, tableName, headers);
+//		Statement stmt = null;
+//		ResultSet rs = null;
+//		try {
+//			stmt = getConnection().createStatement();
+//			rs = stmt.executeQuery(inserter);
+//			while (rs.next()) {
+//				List<Object> values = new ArrayList<>();
+//				List<Object> columnHeaders = new ArrayList<>();
+//				for (String c : column) {
+//					values.add(rs.getObject(c));// {groupBySet.getObject(column),
+//														// groupBySet.getObject(newColumnName)};
+//					columnHeaders.add(c);
+//				}
+//				values.add(rs.getObject(newColumnName));
+//				columnHeaders.add(newColumnName);
+//				updateTable(headers, values.toArray(), columnHeaders.toArray(new String[] {}));
+//
+//				// String updateQuery = makeUpdate(tableName, column,
+//				// newColumnName, groupBySet.getObject(column),
+//				// groupBySet.getObject(newColumnName));
+//				// runQuery(updateQuery);
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(rs != null) {
+//				try {
+//					rs.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//	}
+//	
+//	private String makeGroupBy(String column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
+//
+//		column = cleanHeader(column);
+//		valueColumn = cleanHeader(valueColumn);
+//		alias = cleanHeader(alias);
+//
+//		String functionString = "";
+//
+//		String type = getType(tableName, column);
+//
+//		switch (mathType.toUpperCase()) {
+//		case "COUNT": {
+//			String func = "COUNT(";
+//			if (type.toUpperCase().startsWith("VARCHAR"))
+//				func = "COUNT( DISTINCT ";
+//			functionString = func + valueColumn + ")";
+//			break;
+//		}
+//		case "AVERAGE": {
+//			functionString = "AVG(" + valueColumn + ")";
+//			break;
+//		}
+//		case "MIN": {
+//			functionString = "MIN(" + valueColumn + ")";
+//			break;
+//		}
+//		case "MAX": {
+//			functionString = "MAX(" + valueColumn + ")";
+//			break;
+//		}
+//		case "SUM": {
+//			functionString = "SUM(" + valueColumn + ")";
+//			break;
+//		}
+//		default: {
+//			String func = "COUNT(";
+//			if (type.toUpperCase().startsWith("VARCHAR"))
+//				func = "COUNT( DISTINCT ";
+//			functionString = func + valueColumn + ")";
+//			break;
+//		}
+//		}
+//
+//		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
+//		// this.filterComparator);
+//		String filterSubQuery = makeFilterSubQuery();
+//		String groupByStatement = "SELECT " + column + ", " + functionString + " AS " + alias + " FROM " + tableName
+//				+ filterSubQuery + " GROUP BY " + column;
+//
+//		return groupByStatement;
+//	}
+//
+//	// TODO : don't assume a double group by here
+//	private String makeGroupBy(String[] column, String valueColumn, String mathType, String alias, String tableName, String[] headers) {
+//		if (column.length == 1)
+//			return makeGroupBy(column[0], valueColumn, mathType, alias, tableName, headers);
+//		String column1 = cleanHeader(column[0]);
+//		String column2 = cleanHeader(column[1]);
+//		valueColumn = cleanHeader(valueColumn);
+//		alias = cleanHeader(alias);
+//
+//		String functionString = "";
+//
+//		String type = getType(tableName, valueColumn);
+//
+//		switch (mathType.toUpperCase()) {
+//		case "COUNT": {
+//			String func = "COUNT(";
+//			if (type.toUpperCase().startsWith("VARCHAR"))
+//				func = "COUNT( DISTINCT ";
+//			functionString = func + valueColumn + ")";
+//			break;
+//		}
+//		case "AVERAGE": {
+//			functionString = "AVG(" + valueColumn + ")";
+//			break;
+//		}
+//		case "MIN": {
+//			functionString = "MIN(" + valueColumn + ")";
+//			break;
+//		}
+//		case "MAX": {
+//			functionString = "MAX(" + valueColumn + ")";
+//			break;
+//		}
+//		case "SUM": {
+//			functionString = "SUM(" + valueColumn + ")";
+//			break;
+//		}
+//		default: {
+//			String func = "COUNT(";
+//			if (type.toUpperCase().startsWith("VARCHAR"))
+//				func = "COUNT( DISTINCT ";
+//			functionString = func + valueColumn + ")";
+//			break;
+//		}
+//		}
+//
+//		// String filterSubQuery = makeFilterSubQuery(this.filterHash,
+//		// this.filterComparator);
+//		String filterSubQuery = makeFilterSubQuery();
+//		String groupByStatement = "SELECT " + column1 + ", " + column2 + ", " + functionString + " AS " + alias
+//				+ " FROM " + tableName + filterSubQuery + " GROUP BY " + column1 + ", " + column2;
+//
+//		return groupByStatement;
+//	}
+//	
+//	private String getType(String tableName, String column) {
+//		String type = null;
+//		String typeQuery = "SELECT TABLE_NAME, COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+//				+ tableName.toUpperCase() + "' AND COLUMN_NAME = '" + column.toUpperCase() + "'";
+//		Statement stmt = null;
+//		ResultSet rs = null;
+//		try {
+//			stmt = getConnection().createStatement();
+//			rs = stmt.executeQuery(typeQuery);
+//			if (rs.next()) {
+//				type = rs.getString("TYPE_NAME");
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(rs != null) {
+//				try {
+//					rs.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//		return type;
+//	}
 	
 	
 	
@@ -2320,182 +2156,185 @@ public class H2Builder {
 		// am doing good\", hola, 9/12/2012");
 	}
 
-	private static void concurrencyTest() throws SQLException {
-		Connection conn = DriverManager.getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0",
-				"sa", "");
-
-		int tableLength = 1000000;
-		// create a table
-		conn.createStatement()
-				.execute("CREATE TABLE TEST (COLUMN1 VARCHAR(800), COLUMN2 VARCHAR(800), COLUMN3 VARCHAR(800))");
-
-		// put in a LOT of data
-		for (int i = 1; i <= tableLength; i++) {
-			conn.createStatement().execute("INSERT INTO TEST (COLUMN1, COLUMN2, COLUMN3) VALUES ('" + tableLength
-					+ "', '" + tableLength + "col2" + "', '" + tableLength + "col3')");
-		}
-
-		// alter the table (should take some time)
-		conn.createStatement().execute("ALTER TABLE TEST ADD COLUMN4 VARCHAR(800)");
-
-		// see if we try and update before alter finishes
-		conn.createStatement()
-				.execute("UPDATE TEST SET COLUMN4 = 'THIS IS COLUMN 4' WHERE COLUMN1 = '" + tableLength + "'");
-
-		System.out.println("Finished");
-	}
-
-	// Test method
-	public void testDB() throws Exception {
-		Class.forName("org.h2.Driver");
-		Connection conn = DriverManager.getConnection("jdbc:h2:C:/Users/pkapaleeswaran/workspacej3/Exp/database", "sa",
-				"");
-		Statement stmt = conn.createStatement();
-		String query = "select t.title, s.studio from title t, studio s where t.title = s.title_fk";
-		query = "select t.title, concat(t.title,':', s.studio), s.studio from title t, studio s where t.title = s.title_fk";
-		// ResultSet rs = stmt.executeQuery("SELECT * FROM TITLE");
-		ResultSet rs = stmt.executeQuery(query);
-		// stmt.execute("CREATE TABLE MOVIES AS SELECT * From
-		// CSVREAD('../Movie.csv')");
-
-		ResultSetMetaData rsmd = rs.getMetaData();
-		int columnCount = rsmd.getColumnCount();
-
-		ArrayList records = new ArrayList();
-		System.err.println("Number of columns " + columnCount);
-
-		while (rs.next()) {
-			Object[] data = new Object[columnCount];
-			for (int colIndex = 0; colIndex < columnCount; colIndex++) {
-				data[colIndex] = rs.getObject(colIndex + 1);
-				System.out.print(rsmd.getColumnType(colIndex + 1));
-				System.out.print(rsmd.getColumnName(colIndex + 1) + ":");
-				System.out.print(rs.getString(colIndex + 1));
-				System.out.print(">>>>" + rsmd.getTableName(colIndex + 1) + "<<<<");
-			}
-			System.out.println();
-		}
-
-		// add application code here
-		conn.close();
-	}
-
-	// Test method
-	public void predictTypes(String csv) {
-		ST values = new ST("(Hello world " + "'<Hello_x_(Y)>' <y;null = \"'0'\">" + ")");
-		values.add("(Hello_x(Y)", "Try");
-		System.out.println(values.getAttributes());
-		System.out.println(">> " + values.render());
-
-		System.out.println("Return is ..  " + castToType("$12.3344"));
-
-		String templateString = "Yo baby ${x}";
-		Map valuesMap = new HashMap();
-
-		valuesMap.put("x", "yo");
-
-		StrSubstitutor ss = new StrSubstitutor(valuesMap);
-		System.out.println(ss.replace(templateString));
-
-	}
-
-	public void loadCSV(String fileName) {
-		try {
-			// String fileName =
-			// "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
-
-			// fileName =
-			// "C:/Users/pkapaleeswaran/workspacej3/datasets/pregnancyS.csv";
-
-			Class.forName("org.h2.Driver");
-			Connection conn = DriverManager.getConnection("jdbc:h2:mem:test", "sa", "");
-			Statement stmt = conn.createStatement();
-
-			long now = System.nanoTime();
-			/*
-			 * stmt.execute("Create table test(" + "Complaint_ID varchar(255), "
-			 * + "product varchar(255)," + "sub_product varchar(255)," +
-			 * "issue varchar(255)," + "sub_issue varchar(255)," +
-			 * "state varchar(10)," + "zipcode int," +
-			 * "submitted_via varchar(20)," + "date_received date," +
-			 * "date_sent date," + "company varchar(255)," +
-			 * "company_response varchar(255)," +
-			 * "timely_response varchar(255)," +
-			 * "consumer_disputed varchar(5))  as select * from csvread('" +
-			 * fileName + "')");
-			 */
-
-			System.out.println("File Name ...  " + fileName);
-			stmt.execute("Create table test as select * from csvread('" + fileName + "')");
-			long graphTime = System.nanoTime();
-			System.out.println("Time taken.. " + ((graphTime - now) / 1000000) + " milli secs");
-
-			String query = "Select  bencat, count(*) from test where sex='F' Group By Bencat";
-
-			ResultSet rs = stmt.executeQuery(query);
-
-			while (rs.next()) {
-				System.out.print("Bencat.. " + rs.getObject(1));
-				System.out.println("Count.. " + rs.getObject(2));
-			}
-
-			graphTime = System.nanoTime();
-
-			stmt.execute("Alter table test add dummy varchar2(200)");
-
-			long rightNow = System.nanoTime();
-			System.out.println("Update Time taken.. " + ((rightNow - graphTime) / 1000000) + "milli secs");
-
-			graphTime = System.nanoTime();
-
-			// stmt.execute("Update test set dummy='try' where bencat = 'ADFMLY'
-			// ");
-			stmt.execute("Update test set dummy='try' where bencat = 'ADN' ");
-			rightNow = System.nanoTime();
-
-			// stmt.execute("Delete from Test where State = 'TX'");
-			System.out.println("Update Time taken.. " + ((rightNow - graphTime) / 1000000) + "milli secs");
-			graphTime = rightNow;
-
-			rightNow = System.nanoTime();
-
-			// rs = stmt.executeQuery("Select count(State) from test where
-			// zipcode > 22000");
-			/*
-			 * rs = stmt.executeQuery(
-			 * "Select  sum(zipcode) from test where zipcode > 22000");
-			 * 
-			 * while(rs.next()) { System.out.println("Count.. " +
-			 * rs.getObject(1)); } System.out.println("Query Time taken.. " +
-			 * ((rightNow - graphTime) / 1000000000) + " secs");
-			 */
-
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	private void testData() throws SQLException {
-
-		ResultSet rs = conn.createStatement().executeQuery("Select count(*) from " + tableName);
-		while (rs.next())
-			System.out.println("Inserted..  " + rs.getInt(1));
-
-		/*
-		 * String query =
-		 * "Select  bencat, count(*) from H2FRAME where sex='F' Group By Bencat"
-		 * ;
-		 * 
-		 * rs = conn.createStatement().executeQuery(query);
-		 * 
-		 * 
-		 * while(rs.next()) { System.out.print("Bencat.. " + rs.getObject(1));
-		 * System.out.println("Count.. " + rs.getObject(2)); }
-		 */
-	}
+//	private static void concurrencyTest() throws SQLException {
+//		Connection conn = DriverManager.getConnection("jdbc:h2:mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0",
+//				"sa", "");
+//
+//		int tableLength = 1000000;
+//		// create a table
+//		conn.createStatement()
+//				.execute("CREATE TABLE TEST (COLUMN1 VARCHAR(800), COLUMN2 VARCHAR(800), COLUMN3 VARCHAR(800))");
+//
+//		// put in a LOT of data
+//		for (int i = 1; i <= tableLength; i++) {
+//			conn.createStatement().execute("INSERT INTO TEST (COLUMN1, COLUMN2, COLUMN3) VALUES ('" + tableLength
+//					+ "', '" + tableLength + "col2" + "', '" + tableLength + "col3')");
+//		}
+//
+//		// alter the table (should take some time)
+//		conn.createStatement().execute("ALTER TABLE TEST ADD COLUMN4 VARCHAR(800)");
+//
+//		// see if we try and update before alter finishes
+//		conn.createStatement()
+//				.execute("UPDATE TEST SET COLUMN4 = 'THIS IS COLUMN 4' WHERE COLUMN1 = '" + tableLength + "'");
+//
+//		System.out.println("Finished");
+//	}
+//
+//	// Test method
+//	public void testDB() throws Exception {
+//		Class.forName("org.h2.Driver");
+//		Connection conn = DriverManager.getConnection("jdbc:h2:C:/Users/pkapaleeswaran/workspacej3/Exp/database", "sa",
+//				"");
+//		Statement stmt = conn.createStatement();
+//		String query = "select t.title, s.studio from title t, studio s where t.title = s.title_fk";
+//		query = "select t.title, concat(t.title,':', s.studio), s.studio from title t, studio s where t.title = s.title_fk";
+//		// ResultSet rs = stmt.executeQuery("SELECT * FROM TITLE");
+//		ResultSet rs = stmt.executeQuery(query);
+//		// stmt.execute("CREATE TABLE MOVIES AS SELECT * From
+//		// CSVREAD('../Movie.csv')");
+//
+//		ResultSetMetaData rsmd = rs.getMetaData();
+//		int columnCount = rsmd.getColumnCount();
+//
+//		ArrayList records = new ArrayList();
+//		System.err.println("Number of columns " + columnCount);
+//
+//		while (rs.next()) {
+//			Object[] data = new Object[columnCount];
+//			for (int colIndex = 0; colIndex < columnCount; colIndex++) {
+//				data[colIndex] = rs.getObject(colIndex + 1);
+//				System.out.print(rsmd.getColumnType(colIndex + 1));
+//				System.out.print(rsmd.getColumnName(colIndex + 1) + ":");
+//				System.out.print(rs.getString(colIndex + 1));
+//				System.out.print(">>>>" + rsmd.getTableName(colIndex + 1) + "<<<<");
+//			}
+//			System.out.println();
+//		}
+//
+//		// add application code here
+//		conn.close();
+//	}
+//
+//	// Test method
+//	public void predictTypes(String csv) {
+//		ST values = new ST("(Hello world " + "'<Hello_x_(Y)>' <y;null = \"'0'\">" + ")");
+//		values.add("(Hello_x(Y)", "Try");
+//		System.out.println(values.getAttributes());
+//		System.out.println(">> " + values.render());
+//
+//		System.out.println("Return is ..  " + castToType("$12.3344"));
+//
+//		String templateString = "Yo baby ${x}";
+//		Map valuesMap = new HashMap();
+//
+//		valuesMap.put("x", "yo");
+//
+//		StrSubstitutor ss = new StrSubstitutor(valuesMap);
+//		System.out.println(ss.replace(templateString));
+//
+//	}
+//
+//	public void loadCSV(String fileName) {
+//		try {
+//			// String fileName =
+//			// "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
+//
+//			// fileName =
+//			// "C:/Users/pkapaleeswaran/workspacej3/datasets/pregnancyS.csv";
+//
+//			Class.forName("org.h2.Driver");
+//			Connection conn = DriverManager.getConnection("jdbc:h2:mem:test", "sa", "");
+//			Statement stmt = conn.createStatement();
+//
+//			long now = System.nanoTime();
+//			/*
+//			 * stmt.execute("Create table test(" + "Complaint_ID varchar(255), "
+//			 * + "product varchar(255)," + "sub_product varchar(255)," +
+//			 * "issue varchar(255)," + "sub_issue varchar(255)," +
+//			 * "state varchar(10)," + "zipcode int," +
+//			 * "submitted_via varchar(20)," + "date_received date," +
+//			 * "date_sent date," + "company varchar(255)," +
+//			 * "company_response varchar(255)," +
+//			 * "timely_response varchar(255)," +
+//			 * "consumer_disputed varchar(5))  as select * from csvread('" +
+//			 * fileName + "')");
+//			 */
+//
+//			System.out.println("File Name ...  " + fileName);
+//			stmt.execute("Create table test as select * from csvread('" + fileName + "')");
+//			long graphTime = System.nanoTime();
+//			System.out.println("Time taken.. " + ((graphTime - now) / 1000000) + " milli secs");
+//
+//			String query = "Select  bencat, count(*) from test where sex='F' Group By Bencat";
+//
+//			ResultSet rs = stmt.executeQuery(query);
+//
+//			while (rs.next()) {
+//				System.out.print("Bencat.. " + rs.getObject(1));
+//				System.out.println("Count.. " + rs.getObject(2));
+//			}
+//
+//			graphTime = System.nanoTime();
+//
+//			stmt.execute("Alter table test add dummy varchar2(200)");
+//
+//			long rightNow = System.nanoTime();
+//			System.out.println("Update Time taken.. " + ((rightNow - graphTime) / 1000000) + "milli secs");
+//
+//			graphTime = System.nanoTime();
+//
+//			// stmt.execute("Update test set dummy='try' where bencat = 'ADFMLY'
+//			// ");
+//			stmt.execute("Update test set dummy='try' where bencat = 'ADN' ");
+//			rightNow = System.nanoTime();
+//
+//			// stmt.execute("Delete from Test where State = 'TX'");
+//			System.out.println("Update Time taken.. " + ((rightNow - graphTime) / 1000000) + "milli secs");
+//			graphTime = rightNow;
+//
+//			rightNow = System.nanoTime();
+//
+//			// rs = stmt.executeQuery("Select count(State) from test where
+//			// zipcode > 22000");
+//			/*
+//			 * rs = stmt.executeQuery(
+//			 * "Select  sum(zipcode) from test where zipcode > 22000");
+//			 * 
+//			 * while(rs.next()) { System.out.println("Count.. " +
+//			 * rs.getObject(1)); } System.out.println("Query Time taken.. " +
+//			 * ((rightNow - graphTime) / 1000000000) + " secs");
+//			 */
+//
+//		} catch (ClassNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (SQLException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
+//
+//	private void testData() throws SQLException {
+//
+//		ResultSet rs = conn.createStatement().executeQuery("Select count(*) from " + tableName);
+//		while (rs.next())
+//			System.out.println("Inserted..  " + rs.getInt(1));
+//
+//		/*
+//		 * String query =
+//		 * "Select  bencat, count(*) from H2FRAME where sex='F' Group By Bencat"
+//		 * ;
+//		 * 
+//		 * rs = conn.createStatement().executeQuery(query);
+//		 * 
+//		 * 
+//		 * while(rs.next()) { System.out.print("Bencat.. " + rs.getObject(1));
+//		 * System.out.println("Count.. " + rs.getObject(2)); }
+//		 */
+//	}
+	
+	
+	
 }
