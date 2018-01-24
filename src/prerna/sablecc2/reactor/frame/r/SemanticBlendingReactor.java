@@ -48,7 +48,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		init();
 		
 		// need to make sure that the WikidataR package is installed before running this method
-		this.rJavaTranslator.checkPackages(new String[]{"WikidataR"});
+		this.rJavaTranslator.checkPackages(new String[]{"WikidataR", "plyr", "curl", "openssl", "httr", "jsonlite", "WikipediR"});
 				
 		// get frame
 		ITableDataFrame frame = getFrame();

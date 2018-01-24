@@ -28,7 +28,9 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// init rJavaTranslator
 		init();
 		// check r package dependencies
-		this.rJavaTranslator.checkPackages(new String[]{"fuzzyjoin", "RJSONIO", "R6", "Rcpp", "assertthat", "bindr", "tidyselect"});
+		this.rJavaTranslator.checkPackages(new String[] { "fuzzyjoin", "RJSONIO", "rlang", "tibble", "R6", 
+				"bindrcpp", "crayon","pkgconfig", "glue", "plogr", "dplyr", "tidyr", "Rcpp", "assertthat", 
+				"bindr", "tidyselect", "purrr" });
 
 		// get frame and set up logger
 		RDataTable frame = (RDataTable) getFrame();
