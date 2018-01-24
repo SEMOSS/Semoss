@@ -4,10 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
-import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.SchedulerException;
 
@@ -18,41 +18,43 @@ import com.google.gson.JsonObject;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.ConfigUtil;
 import prerna.rpa.config.ConfigurableJob;
-import prerna.rpa.config.IllegalConfigException;
 import prerna.rpa.config.JobConfigKeys;
-import prerna.rpa.config.JobConfigParser;
-import prerna.rpa.config.ParseConfigException;
 import prerna.rpa.quartz.SchedulerUtil;
 import prerna.rpa.quartz.jobs.insight.RunPixelJob;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
 	// Inputs
-	private static final String JOB_NAME = "jobName";
-	private static final String JOB_GROUP = "jobGroup";
-	private static final String CRON_EXPRESSION = "cronExpression";
 	private static final String TRIGGER_NOW = "triggerNow";
-	private static final String RECIPE = "recipe";
 	private static final String TRIGGER_ON_LOAD = "triggerOnLoad";
 	
 	// Outputs
 	private static final String JSON_CONFIG = "jsonConfig";
 	
+	public ScheduleJobReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
+				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), TRIGGER_ON_LOAD,
+				TRIGGER_NOW };
+	}
+	
 	@Override
 	public NounMetadata execute() {
 		
+		organizeKeys();
 		// Get inputs
-		String jobName = getJobName();
-		String jobGroup = getJobGroup();
-		String cronExpression = getCronExpression();
+		String jobName = this.keyValue.get(this.keysToGet[0]);
+		String jobGroup = this.keyValue.get(this.keysToGet[1]);
+		String cronExpression = this.keyValue.get(this.keysToGet[2]);
+		String recipe = this.keyValue.get(this.keysToGet[3]);
+		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
-		String recipe = getRecipe();
-		String triggerOnLoad = getTriggerOnLoad();
+		String status = "active";
 		
 		// Define the json; this is used to persist the job to disk
 		// (Quartz is entirely in-memory)
@@ -63,6 +65,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
 		jsonObject.addProperty(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY), recipe);
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
+		jsonObject.addProperty(JobConfigKeys.JOB_STATUS, status);
 		
 		// Pretty-print version of the json
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -70,7 +73,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 		
 		// Save the json as a file
 		String jsonFileName = jobName + "_" + jobGroup + ".json";
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobName + "_" + jobGroup + ".json";
+		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
+		
 		try {
 			FileUtils.writeStringToFile(new File(filePath), jsonConfig, Charset.forName("UTF-8"));
 		} catch (IOException e) {
@@ -78,73 +82,59 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 		
 		// Schedule the job
-		try {
-			JobKey jobKey = JobConfigParser.parse(jsonFileName, false);
-			if (triggerNow) {
-				SchedulerUtil.getScheduler().triggerJob(jobKey);
-			}
-		} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
-			throw new RuntimeException(e.toString());
-		}
 		
-
+		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
+		
+		if (triggerNow) {
+			try {
+				boolean exists = false;
+				while(!exists) {
+					exists = SchedulerUtil.getScheduler().checkExists(jobKey);
+				}
+				SchedulerUtil.getScheduler().triggerJob(jobKey);
+			} catch (SchedulerException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		// Save metadata into a map and return
 		Map<String, String> quartzJobMetadata = new HashMap<>();
-		quartzJobMetadata.put(JOB_NAME, jobName);
-		quartzJobMetadata.put(JOB_GROUP, jobGroup);
-		quartzJobMetadata.put(CRON_EXPRESSION, cronExpression);
-		quartzJobMetadata.put(RECIPE, recipe);
 		quartzJobMetadata.put(JSON_CONFIG, jsonConfig);
 		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 	}
 
-	private String getTriggerOnLoad() {
-		GenRowStruct grs = this.store.getNoun(TRIGGER_ON_LOAD);
-		if (grs == null) return "false";
-		boolean input = Boolean.parseBoolean(grs.getNoun(0).getValue().toString());
-		if (input){
-			return "true";
-		}else{
-			return "false";
+	private boolean getTriggerOnLoad() {
+		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_ON_LOAD);
+		if(boolGrs != null) {
+			if(boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
 		}
+		return false;
 	}
 
-	private String getJobName() {
-		GenRowStruct grs = this.store.getNoun(JOB_NAME);
-		if (grs == null) throw new IllegalArgumentException("Need to define " + JOB_NAME);
-		String input = grs.getNoun(0).getValue().toString();
-		return input;
-	}
-	
-	private String getJobGroup() {
-		GenRowStruct grs = this.store.getNoun(JOB_GROUP);
-		if (grs == null) return getJobName() + "Group"; 
-		String input = grs.getNoun(0).getValue().toString();
-		return input;
-	}
-	
-	private String getCronExpression() {
-		GenRowStruct grs = this.store.getNoun(CRON_EXPRESSION);
-		if (grs == null) throw new IllegalArgumentException("Need to define " + CRON_EXPRESSION);
-		String input = grs.getNoun(0).getValue().toString();
-		boolean valid = CronExpression.isValidExpression(input);
-		if (!valid) throw new IllegalArgumentException(input + " is not a valid CRON expression");
-		return input;
-	}
 	
 	private boolean getTriggerNow() {
-		GenRowStruct grs = this.store.getNoun(TRIGGER_NOW);
-		if (grs == null) return false;
-		boolean input = Boolean.parseBoolean(grs.getNoun(0).getValue().toString());
-		return input;
+		GenRowStruct boolGrs = this.store.getNoun(TRIGGER_NOW);
+		if(boolGrs != null) {
+			if(boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
+		}
+		return false;
 	}
 	
-	private String getRecipe() {
-		GenRowStruct grs = this.store.getNoun(RECIPE);
-		if (grs == null) throw new IllegalArgumentException("Need to define " + RECIPE);
-		String input = grs.getNoun(0).getValue().toString();
-		return input;
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(TRIGGER_NOW)) {
+			return "Schedule the job immediately and then use cronExpression";
+		} else if (key.equals(TRIGGER_ON_LOAD)) {
+			return "Schedule the job when server starts";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 	
 }
