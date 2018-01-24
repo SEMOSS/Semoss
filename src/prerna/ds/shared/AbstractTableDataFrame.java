@@ -194,14 +194,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	////////////////////////////////////////////////////////////////////////////
 
 	@Override
-	public void renameColumn(String oldColumnHeader, String newColumnHeader) {
-		//		metaData.setVertexAlias(oldColumnHeader, newColumnHeader);
-		//		
-		//		List<String> fullNames = this.metaData.getColumnNames();
-		//    	this.headerNames = fullNames.toArray(new String[fullNames.size()]);
-	}
-
-	@Override
 	public boolean[] isNumeric() {
 		String[] headers = getQsHeaders();
 		int size = headers.length;
@@ -289,7 +281,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return values.toArray(new Double[]{});
 	}
 
-	@Override
 	public Double[] getMax() {
 		int size = qsNames.length;
 		Double[] max = new Double[size];
@@ -302,7 +293,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return max;
 	}
 
-	@Override
 	public Double getMax(String columnHeader) {
 		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
 		if(uniqueColName == null) {
@@ -349,7 +339,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return null;
 	}
 	
-	@Override
 	public Double[] getMin() {
 		int size = qsNames.length;
 		Double[] min = new Double[size];
@@ -362,7 +351,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return min;
 	}
 	
-	@Override
 	public Double getMin(String columnHeader) {
 		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
 		if(uniqueColName == null) {
