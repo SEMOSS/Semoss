@@ -43,7 +43,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		// prep script components
 		StringBuilder builder = new StringBuilder();
 		String inputFrame = "inputFrame." + Utility.getRandomString(8);
-		String dfStart = "library(RJSONIO); " + inputFrame + " <- data.frame(dbname = character(), tblname = character(), colname = character(), stringsAsFactors = FALSE);";
+		String dfStart = "library(RJSONIO); library(plyr); " + inputFrame + " <- data.frame(dbname = character(), tblname = character(), colname = character(), stringsAsFactors = FALSE);";
 		
 		// iterate selectors and update data table builder section of R script
 		Map<String, String> aliasHash = new HashMap<String, String>();
