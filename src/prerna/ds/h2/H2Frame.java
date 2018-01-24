@@ -1,7 +1,6 @@
 package prerna.ds.h2;
 
 import java.io.File;
-import java.math.BigInteger;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,8 +21,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
-import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Builder.Join;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.SqlInterpreter2;
@@ -81,28 +78,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		builder.alterTableNewColumns(builder.tableName, headers, types);
 	}
 
-	public H2Frame(OwlTemporalEngineMeta metaData) {
-		this.metaData = metaData;
-		setSchema();
-		
-		// TODO: come back to this
-		// TODO: come back to this
-		// TODO: come back to this
-		// TODO: come back to this
-		// need to loop through and generate all tables and columns
-		// based on the metadata
-		if (builder.tableName == null) {
-			builder.tableName = builder.getNewTableName();
-		}
-		String[] headers = this.getColumnHeaders();
-		String[] qsHeaders = this.getQsHeaders();
-		String[] types = new String[headers.length];
-		for(int i = 0; i < headers.length; i++) {
-			types[i] = this.metaData.getHeaderTypeAsString(qsHeaders[i], this.builder.getTableName());
-		}
-		builder.alterTableNewColumns(builder.tableName, headers, types);
-	}
-
 	public H2Builder getBuilder(){
 		return this.builder;
 	}
@@ -134,18 +109,14 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	/*************************** AGGREGATION METHODS *************************/
 
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
-		addRowsViaIterator(it, this.builder.getTableName(), this.metaData.getHeaderToTypeMap());
-	}
-	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		addRowsViaIterator(it, this.builder.getTableName(), typesMap);
 	}
 	
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tempTableName, Map<String, SemossDataType> types) {
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> types) {
 		long start = System.currentTimeMillis();
 		logger.info("Begin adding new rows into table = " + getTableName());
-		this.builder.addRowsViaIterator(it, tempTableName, types);
+		this.builder.addRowsViaIterator(it, tableName, types);
 		long end = System.currentTimeMillis();
 		logger.info("Done adding new rows in " + (end-start) +  "ms");
 	}
@@ -249,10 +220,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		String iteratorQuery = interp.composeQuery();
 		return query(iteratorQuery);
-	}
-	
-	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
-		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getColumnHeaders());
 	}
 
 	@Override
@@ -363,44 +330,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		return null;
 	}
 
-	// relationships in the form tableA.columnA.tableB.columnB
-	public void setRelations(List<String> relations) {
-//		// use this to set the relationships gathered from the xl file helper
-//		Map<String, Set<String>> edgeHash = new HashMap<>();
-//		for (String relation : relations) {
-//			String[] relationComps = relation.split(".");
-//			String tableA = relationComps[0];
-//			String columnA = relationComps[1];
-//			String tableB = relationComps[2];
-//			String columnB = relationComps[3];
-//
-//			String key = tableA + "__" + columnA;
-//			Set<String> valueSet = new HashSet<String>();
-//			String value = tableB + "__" + columnB;
-//			valueSet.add(value);
-//
-//			if (edgeHash.containsKey(key) && edgeHash.get(key) != null) {
-//				edgeHash.get(key).addAll(valueSet);
-//			} else {
-//				edgeHash.put(key, valueSet);
-//			}
-//		}
-//
-//		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, getNode2ValueHash(edgeHash));
-	}
-
-	protected String getCleanHeader(String metaNodeName) {
-		String metaNodeValue;
-		if (metaNodeName.equals(TinkerFrame.PRIM_KEY)) {
-			metaNodeValue = builder.getNewTableName();
-		} else {
-			metaNodeValue = H2Builder.cleanHeader(metaNodeName);
-		}
-
-		return metaNodeValue;
-	}
-
-
 	/**
 	 * Provides a HashMap containing metadata of the db connection: username, tableName, and schema.
 	 * @return HashMap of database metadata.
@@ -415,64 +344,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		return dbmdMap;
 	}
 
-	@Override
-	public void removeRelationship(String[] columns, Object[] values) {
-		builder.deleteRow(columns, values);
-	}
-
-	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, String[] joinCols) {
-		int size = newHeaders.length;
-		SemossDataType[] types = new SemossDataType[size];
-		for (int i = 0; i < newHeaders.length; i++) {
-			types[i] = this.metaData.getHeaderTypeAsEnum(newHeaders[i], this.builder.getTableName());
-		}
-
-		try {
-			this.builder.mergeRowsViaIterator(iterator, newHeaders, types, startingHeaders, joinCols);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] origHeaders, String[] newHeaders, String joinType) {
-		String tableName = this.builder.getTableName();
-		String[] types = new String[newHeaders.length];
-		for (int i = 0; i < newHeaders.length; i++) {
-			if(newHeaders[i].contains("__")) {
-				types[i] = this.metaData.getHeaderTypeAsString(newHeaders[i], tableName);
-			} else {
-				types[i] = this.metaData.getHeaderTypeAsString(tableName + "__" + newHeaders[i], tableName);
-			}
-		}
-		
-		// get the join type
-		Join jType = Join.INNER;
-		if (joinType != null) {
-			if (joinType.toUpperCase().startsWith("INNER")) {
-				jType = Join.INNER;
-			} else if (joinType.toUpperCase().startsWith("OUTER")) {
-				jType = Join.FULL_OUTER;
-			} else if (joinType.toUpperCase().startsWith("LEFT")) {
-				jType = Join.LEFT_OUTER;
-			} else if (joinType.toUpperCase().startsWith("RIGHT")) {
-				jType = Join.RIGHT_OUTER;
-				// due to stupid legacy code using partial
-			} else if (joinType.toUpperCase().startsWith("PARTIAL")) {
-				jType = Join.LEFT_OUTER;
-			}
-		}
-
-		// parameters are
-		// 1) iterator
-		// 2) original columns
-		// 3) new columns for iterator to create -> this can be different from the original iterators headers
-		// 			it will create the table with the correct ones that i want so merging the tables is easier
-		// 4) the types for the new table -> we get this from the meta... hopefully names match up :O
-		// 5) the join type to use
-		this.builder.processIterator(iterator, origHeaders, newHeaders, types, jType);
-		syncHeaders();
-	}
-	
 	@Override
 	public boolean isEmpty() {
 		return this.builder.isEmpty(builder.tableName);
@@ -493,18 +364,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		return H2Frame.DATA_MAKER_NAME;
 	}
 
-	@Override
-	/**
-	 * Used to update the data id when data has changed within the frame
-	 */
-	public void updateDataId() {
-		updateDataId(1);
-	}
-
-	protected void updateDataId(int val) {
-		this.dataId = this.dataId.add(BigInteger.valueOf(val));
-	}
-	
 	/**
 	 * Get the table name for the current frame
 	 * @return
@@ -516,14 +375,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		return this.builder.getTableName();
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
-	public String getViewTableName() {
-		return getTableName();
-	}
-
 	/**
 	 * Execute a query and returns the results in a matrix
 	 * @param query			The query to execute on the frame
@@ -610,19 +461,6 @@ public class H2Frame extends AbstractTableDataFrame {
 //		return this.builder.getSqlFitler();
 	}
 
-	public String getTableColumnName(String colName) {
-		String colTableName = colName;
-		if(colTableName != null) {
-			return colTableName;
-		} else {
-			String[] curHeaders = getColumnHeaders();
-			if(ArrayUtilityMethods.arrayContainsValue(curHeaders, colName)) {
-				return colName;
-			}
-		}
-		return null;
-	}
-	
 	public void deleteAllRows() {
 		String tableName = getTableName();
 		this.builder.deleteAllRows(tableName);
@@ -945,54 +783,130 @@ public class H2Frame extends AbstractTableDataFrame {
 //		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 	}
 
-	/**
-	 * Determine if all the headers are taken into consideration within the
-	 * iterator This helps to determine if we need to perform an insert vs. an
-	 * update query to fill the frame
-	 * 
-	 * @param headers1
-	 *            The original set of headers in the frame
-	 * @param headers2
-	 *            The new set of headers from the iterator
-	 * @param joins
-	 *            Needs to take into consideration the joins since we can join
-	 *            on columns that do not have the same names
-	 * @return
-	 */
-	@Deprecated
-	private boolean allHeadersAccounted(String[] headers1, String[] headers2, List<Map<String, String>> joins) {
-		if (headers1.length != headers2.length) {
-			return false;
-		}
-
-		// add values to a set and compare
-		Set<String> header1Set = new HashSet<>();
-		Set<String> header2Set = new HashSet<>();
-
-		// make a set with headers1
-		for (String header : headers1) {
-			header1Set.add(header);
-		}
-
-		// make a set with headers2
-		for (String header : headers2) {
-			header2Set.add(header);
-		}
-
-		// add headers1 headers to headers2set if there is a matching join and
-		// remove the other header
-		for (Map<String, String> join : joins) {
-			for (String key : join.keySet()) {
-				header2Set.add(key);
-				header2Set.remove(join.get(key));
-			}
-		}
-
-		// take the difference
-		header2Set.removeAll(header1Set);
-
-		// return true if header sets matched, false otherwise
-		return header2Set.size() == 0;
-	}
+//	/**
+//	 * Determine if all the headers are taken into consideration within the
+//	 * iterator This helps to determine if we need to perform an insert vs. an
+//	 * update query to fill the frame
+//	 * 
+//	 * @param headers1
+//	 *            The original set of headers in the frame
+//	 * @param headers2
+//	 *            The new set of headers from the iterator
+//	 * @param joins
+//	 *            Needs to take into consideration the joins since we can join
+//	 *            on columns that do not have the same names
+//	 * @return
+//	 */
+//	@Deprecated
+//	private boolean allHeadersAccounted(String[] headers1, String[] headers2, List<Map<String, String>> joins) {
+//		if (headers1.length != headers2.length) {
+//			return false;
+//		}
+//
+//		// add values to a set and compare
+//		Set<String> header1Set = new HashSet<>();
+//		Set<String> header2Set = new HashSet<>();
+//
+//		// make a set with headers1
+//		for (String header : headers1) {
+//			header1Set.add(header);
+//		}
+//
+//		// make a set with headers2
+//		for (String header : headers2) {
+//			header2Set.add(header);
+//		}
+//
+//		// add headers1 headers to headers2set if there is a matching join and
+//		// remove the other header
+//		for (Map<String, String> join : joins) {
+//			for (String key : join.keySet()) {
+//				header2Set.add(key);
+//				header2Set.remove(join.get(key));
+//			}
+//		}
+//
+//		// take the difference
+//		header2Set.removeAll(header1Set);
+//
+//		// return true if header sets matched, false otherwise
+//		return header2Set.size() == 0;
+//	}
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	
+//	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
+//		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getColumnHeaders());
+//	}
+//	
+//	public void mergeRowsViaIterator(Iterator<IHeadersDataRow> iterator, String[] newHeaders, String[] startingHeaders, String[] joinCols) {
+//		int size = newHeaders.length;
+//		SemossDataType[] types = new SemossDataType[size];
+//		for (int i = 0; i < newHeaders.length; i++) {
+//			types[i] = this.metaData.getHeaderTypeAsEnum(newHeaders[i], this.builder.getTableName());
+//		}
+//
+//		try {
+//			this.builder.mergeRowsViaIterator(iterator, newHeaders, types, startingHeaders, joinCols);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+//	
+//	public void processIterator(Iterator<IHeadersDataRow> iterator,	String[] origHeaders, String[] newHeaders, String joinType) {
+//		String tableName = this.builder.getTableName();
+//		String[] types = new String[newHeaders.length];
+//		for (int i = 0; i < newHeaders.length; i++) {
+//			if(newHeaders[i].contains("__")) {
+//				types[i] = this.metaData.getHeaderTypeAsString(newHeaders[i], tableName);
+//			} else {
+//				types[i] = this.metaData.getHeaderTypeAsString(tableName + "__" + newHeaders[i], tableName);
+//			}
+//		}
+//		
+//		// get the join type
+//		Join jType = Join.INNER;
+//		if (joinType != null) {
+//			if (joinType.toUpperCase().startsWith("INNER")) {
+//				jType = Join.INNER;
+//			} else if (joinType.toUpperCase().startsWith("OUTER")) {
+//				jType = Join.FULL_OUTER;
+//			} else if (joinType.toUpperCase().startsWith("LEFT")) {
+//				jType = Join.LEFT_OUTER;
+//			} else if (joinType.toUpperCase().startsWith("RIGHT")) {
+//				jType = Join.RIGHT_OUTER;
+//				// due to stupid legacy code using partial
+//			} else if (joinType.toUpperCase().startsWith("PARTIAL")) {
+//				jType = Join.LEFT_OUTER;
+//			}
+//		}
+//
+//		// parameters are
+//		// 1) iterator
+//		// 2) original columns
+//		// 3) new columns for iterator to create -> this can be different from the original iterators headers
+//		// 			it will create the table with the correct ones that i want so merging the tables is easier
+//		// 4) the types for the new table -> we get this from the meta... hopefully names match up :O
+//		// 5) the join type to use
+//		this.builder.processIterator(iterator, origHeaders, newHeaders, types, jType);
+//		syncHeaders();
+//	}
+//	
+//	
+//	
+//	
+//	
+	
 	
 }

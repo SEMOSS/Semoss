@@ -250,9 +250,4 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Deprecated
 	public void save(String fileName) {
 	}
-
-	@Override
-	@Deprecated
-	public void removeRelationship(String[] columns, Object[] values) {
-	}
 }

@@ -994,12 +994,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void removeRelationship(String[] columns, Object[] values) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
 	public Map<String, String> getScriptReactors() {
 		Map<String, String> reactorNames = super.getScriptReactors();
 		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");

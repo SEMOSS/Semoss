@@ -35,7 +35,7 @@ public class ColRenameReactor extends AbstractReactor {
 		
 		String newColName = colList.get(1);
 		// add an alias on the header
-		frame.renameColumn(oldColName, newColName);
+//		frame.renameColumn(oldColName, newColName);
 
 		// update the data id so FE knows data has been changed
 		frame.updateDataId();
