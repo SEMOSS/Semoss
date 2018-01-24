@@ -21,12 +21,33 @@ install.packages("rJava")
 # Semantic matching package
 install.packages("textreuse")
 
-# Fuzzy Join
-install.packages("fuzzyjoin")
-
+# Fuzzy Join 
+# Collision Resolver
 # Fuzzy matching
+install.packages("fuzzyjoin")
+install.packages('RJSONIO')
+install.packages("rlang")
+install.packages("tibble")
+install.packages("R6")
+install.packages("bindrcpp")
+install.packages("crayon")
+install.packages("pkgconfig")
+install.packages("glue")
+install.packages("plogr")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("purrr")
 install.packages("stringdist")
 
 # Semantic matching
 install.packages("plyr")
 install.packages("WikidataR")
+install.packages("curl")
+install.packages("openssl")
+install.packages("httr")
+install.packages("jsonlite")
+install.packages("WikipediR")
+
+# Google Analytics
+install.packages("RGoogleAnalytics")
+install.packages("lubridate")
