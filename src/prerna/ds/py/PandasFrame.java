@@ -178,13 +178,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return false;
 	}
 
-
-	@Override
-	public void removeRelationship(String[] columns, Object[] values) {
-		// TODO Auto-generated method stub
-		
-	}
-	
 	@Override
 	public void save(String fileName) {
 		// TODO Auto-generated method stub
