@@ -16,7 +16,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.util.Utility;
 
-public class DataStaxGraphEngine extends AbstractEngine{
+public class DataStaxGraphEngine extends AbstractEngine {
 	
 	private GraphTraversalSource graphTraversalSession;
 	private Map<String, String> typeMap;
