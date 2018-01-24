@@ -16,6 +16,7 @@ import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
 import prerna.comments.GetInsightCommentsReactor;
 import prerna.comments.ModifyInsightCommentReactor;
+import prerna.date.DateReactor;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
@@ -556,6 +557,9 @@ public class ReactorFactory {
 		// GA
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
 		reactorHash.put("UpdateGAHistoricalData", UpdateGAHistoricalDataReactor.class);
+		
+		// Dates
+		reactorHash.put("Date", DateReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
