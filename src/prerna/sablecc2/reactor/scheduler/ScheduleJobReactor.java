@@ -54,7 +54,6 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String recipe = this.keyValue.get(this.keysToGet[3]);
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
-		String status = "active";
 		
 		// Define the json; this is used to persist the job to disk
 		// (Quartz is entirely in-memory)
@@ -65,7 +64,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
 		jsonObject.addProperty(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY), recipe);
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
-		jsonObject.addProperty(JobConfigKeys.JOB_STATUS, status);
+		jsonObject.addProperty(JobConfigKeys.ACTIVE, true);
 		
 		// Pretty-print version of the json
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();

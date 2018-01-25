@@ -126,10 +126,15 @@ public abstract class JobConfig {
 		return getString(JobConfigKeys.JOB_CRON_EXPRESSION);
 	}
 	
-	public String getTriggerOnLoad() throws ParseConfigException {
-		return getString(JobConfigKeys.TRIGGER_ON_LOAD);
+	public boolean getTriggerOnLoad() throws ParseConfigException {
+		return 	jobDefinition.get(JobConfigKeys.TRIGGER_ON_LOAD).getAsBoolean();
+
 	}
 
+	public boolean getStatus() throws ParseConfigException {
+		return jobDefinition.get(JobConfigKeys.ACTIVE).getAsBoolean();
+	}
+	
 	/**
 	 * Puts a string value from the jobDefinition (JSON) into the job data map given
 	 * the job input key.
