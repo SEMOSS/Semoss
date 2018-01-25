@@ -122,6 +122,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		if (rowIndex <= this.numRows) {
 			return true;
 		} else {
+			this.builder.executeR("rm(" + this.tempVarName + ")");
 			return false;
 		}
 	}

@@ -99,7 +99,10 @@ public class RImporter implements IImporter {
 		
 		System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
 		System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
-
+		
+		// clean r temp table name
+		this.dataframe.executeRScript("rm("+tempTableName+")");
+		
 		return this.dataframe;
 	}
 }
