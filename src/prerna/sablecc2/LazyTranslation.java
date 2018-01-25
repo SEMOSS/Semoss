@@ -81,6 +81,7 @@ import prerna.sablecc2.reactor.VectorReactor;
 import prerna.sablecc2.reactor.expression.filter.OpAnd;
 import prerna.sablecc2.reactor.expression.filter.OpFilter;
 import prerna.sablecc2.reactor.expression.filter.OpOr;
+import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -745,7 +746,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getOrComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentOr();
     	} else {
     		newReactor = new OpOr();
@@ -757,7 +758,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getAndComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentAnd();
     	} else {
     		newReactor = new OpAnd();
@@ -818,7 +819,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABaseSimpleComparison(ABaseSimpleComparison node) {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof QueryFilterReactor) {
+    	if(this.curReactor instanceof QueryFilterReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentSimple();
     	} else {
     		newReactor = new OpFilter();
