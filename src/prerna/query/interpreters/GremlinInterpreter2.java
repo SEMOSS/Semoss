@@ -26,6 +26,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
 
 public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
@@ -162,7 +163,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(twoStepT, startNodeFilters);
+				addFiltersToPath(twoStepT, startNodeFilters, TinkerFrame.TINKER_NAME);
 
 				List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selector);
 				if (propTraversals.size() > 0) {
@@ -175,7 +176,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 				this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(selector)).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(this.gt, startNodeFilters);
+				addFiltersToPath(this.gt, startNodeFilters, TinkerFrame.TINKER_NAME);
 			}
 		} else {
 			// we need to go through the traversal
@@ -247,7 +248,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		// can do this by picking a "better" startNode
 		this.gt = this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(startNode);
-		addFiltersToPath(this.gt, startNodeFilters);
+		addFiltersToPath(this.gt, startNodeFilters, TinkerFrame.TINKER_NAME);
 
 		List<String> travelledEdges = new Vector<String>();
 		List<String> travelledNodeProperties = new Vector<String>();
@@ -265,7 +266,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	 * Add the filter object to the current graph traversal
 	 * @param filterVec
 	 */
-	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec) {
+	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec, String filterPropertyName) {
 		for(SimpleQueryFilter filter : filterVec) {
 			SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 			NounMetadata lComp = filter.getLComparison();
@@ -274,11 +275,11 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 			if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 				// here, lcomp is the column and rComp is a set of values
-				processFilterColToValues(traversalSegment, lComp, rComp, comp);
+				processFilterColToValues(traversalSegment, lComp, rComp, comp, filterPropertyName);
 			} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 				// here, lcomp is the values and rComp is a the column
 				// so same as above, but switch the order
-				processFilterColToValues(traversalSegment, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp));
+				processFilterColToValues(traversalSegment, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp), filterPropertyName);
 			}
 		}
 	}
@@ -290,7 +291,8 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	 * @param valuesComp
 	 * @param comparison
 	 */
-	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison) {
+	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison, String filterPropertyName) {
+		PixelDataType dataType = valuesComp.getNounType();
 		Object filterObject = valuesComp.getValue();
 		List<Object> filterValues = new Vector<Object>();
 		// ughhh... this could be a list or an object
@@ -301,24 +303,42 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 			filterValues.add(filterObject);
 		}
 		if (comparison.equals("==")) {
-			if(filterValues.size() == 1) {
-				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.eq(filterValues.get(0)));
+			int size = filterValues.size();
+			if(size == 1) {
+				traversalSegment = traversalSegment.has(filterPropertyName, P.eq(filterValues.get(0)));
 			} else {
-				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.within(filterValues.toArray()));
+				if(dataType == PixelDataType.CONST_STRING) {
+					traversalSegment = traversalSegment.has(filterPropertyName, P.within(filterValues));
+				} else {
+					GraphTraversal[] ors = new GraphTraversal[size];
+					for(int i = 0; i < size; i++) {
+						ors[i] = __.has(filterPropertyName, P.eq(filterValues.get(i)));
+					}
+					traversalSegment = traversalSegment.or(ors);
+				}
 			}
 		} else if (comparison.equals("<")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.lt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.lt(filterValues.get(0)));
 		} else if (comparison.equals(">")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.gt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.gt(filterValues.get(0)));
 		} else if (comparison.equals("<=")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.lte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.lte(filterValues.get(0)));
 		} else if (comparison.equals(">=")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.gte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.gte(filterValues.get(0)));
 		} else if (comparison.equals("!=")) {
-			if(filterValues.size() == 1) {
-				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.neq(filterValues.get(0)));
+			int size = filterValues.size();
+			if(size == 1) {
+				traversalSegment = traversalSegment.has(filterPropertyName, P.neq(filterValues.get(0)));
 			} else {
-				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.without(filterValues.toArray()));
+				if(dataType == PixelDataType.CONST_STRING) {
+					traversalSegment = traversalSegment.has(filterPropertyName, P.without(filterValues));
+				} else {
+					GraphTraversal[] ors = new GraphTraversal[size];
+					for(int i = 0; i < size; i++) {
+						ors[i] = __.has(filterPropertyName, P.neq(filterValues.get(i)));
+					}
+					traversalSegment = traversalSegment.or(ors);
+				}
 			}
 		}
 	}
@@ -370,7 +390,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters);
+					addFiltersToPath(twoStepT, nodeFilters, TinkerFrame.TINKER_NAME);
 
 					// add properties if present
 					if (!travelledNodeProps.contains(downstreamNodeType)) {
@@ -426,7 +446,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters);
+					addFiltersToPath(twoStepT, nodeFilters, TinkerFrame.TINKER_NAME);
 
 					// add properties if present
 					if (!travelledNodeProps.contains(upstreamNodeType)) {
@@ -467,13 +487,17 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 				// define the match traversal
 				GraphTraversal matchTraversal = __.as(startName);
 
-				// logic to filter
+				// filter the property that we have just retrieved
+				// it will be stored in the filter list based on the alias being the property
+				List<SimpleQueryFilter> propFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(property);
+				addFiltersToPath(matchTraversal, propFilters, property);
+				
+				// grab the value from the startNode
 				String qsProperty = startName + "__" + property;
-				List<SimpleQueryFilter> propFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(qsProperty);
-				addFiltersToPath(twoStepT, propFilters);
-
 				// after we add the filter, grab the actual values to return from the traversal
 				matchTraversal = matchTraversal.values(property).as(qsProperty);
+				
+				// add it to the list
 				propTraversals.add(matchTraversal);
 				propTraversalSelect.add(property);
 			}
