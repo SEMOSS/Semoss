@@ -2,6 +2,8 @@
   "-jobName":"sendEmail",
   "-jobGroup":"sendEmailGroup",
   "-jobClass":"JobChain",
+  "-active":false,
+  "-jobTriggerOnLoad": false,
   "-jobCronExpression":"00 30 00 1/1 * ? *",
   "jobsInChain":[
     {
