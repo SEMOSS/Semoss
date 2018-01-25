@@ -2,13 +2,18 @@ package prerna.rdf.engine.wrappers;
 
 import java.sql.Array;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
+import com.ibm.icu.util.Calendar;
+
+import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -100,27 +105,33 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	private IHeadersDataRow getNextRow() throws SQLException {
+		Calendar cal = Calendar.getInstance();
 		if(rs.next()) {
 			Object[] row = new Object[numColumns];
 			// iterate through all the columns to get the appropriate data types
 			for(int colNum = 1; colNum <= numColumns; colNum++) {
 				Object val = null;
-
-				// get the column as the specific type
-				// TODO: will need to expand this list... 
 				int type = colTypes[colNum-1];
 				if(type == Types.INTEGER) {
 					val = rs.getInt(colNum);
 				} else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.BIGINT) {
 					val = rs.getDouble(colNum);
-					//nulls are set to 0 unless there is a null check
-					// if (rs.wasNull()) {
-					// val = null;
-					// }
-				} else if(type == Types.DATE || type == Types.TIMESTAMP || type == Types.TIME) {
-					val = rs.getDate(colNum);
-				} 
-				// TODO: we may want to not differentiate and just grab the String value of the CLOB
+				} else if(type == Types.DATE) {
+					Date dVal = rs.getDate(colNum);
+					if(dVal == null) {
+						val = null;
+					} else {
+						val = new SemossDate(dVal, "yyyy-MM-dd");
+					}
+				} else if(type == Types.TIMESTAMP) {
+					Timestamp dVal = rs.getTimestamp(colNum);
+					if(dVal == null) {
+						val = null;
+					} else {
+						cal.setTimeInMillis(dVal.getTime());
+						val = new SemossDate(cal.getTime(), "yyyy-MM-dd HH:mm:ss");
+					}
+				}
 				else if(type == Types.CLOB) {
 					val = rs.getClob(colNum);
 				} else if(type == Types.ARRAY) {

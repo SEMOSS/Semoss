@@ -3,9 +3,12 @@ package prerna.rdf.engine.wrappers;
 import java.util.List;
 import java.util.Set;
 
+import javax.xml.datatype.XMLGregorianCalendar;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.Literal;
+import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
@@ -14,6 +17,7 @@ import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
@@ -122,37 +126,32 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		{
 			if(val != null && val instanceof Literal) {
 				// use datatype if present to determine the type
-				if( ((Literal) val).getDatatype() != null) {
+				Literal lVal = (Literal) val;
+				URI lValDataType = lVal.getDatatype();
+				if(lValDataType != null) {
 					// if string, return string
 					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
 						return ((Literal)val).getLabel();
 					}
-					// if date as string
-					else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
-						return (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
-					}
+					// if datetime
+					else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
+						XMLGregorianCalendar gCalendar = lVal.calendarValue();
+						SemossDate date = new SemossDate(gCalendar.toGregorianCalendar().getTime(), "yyyy-MM-dd hh:mm:ss");
+						return date;
+					} 
+					// if date
+					else if(lValDataType.getLocalName().equalsIgnoreCase("date")) {
+						XMLGregorianCalendar gCalendar = lVal.calendarValue();
+						SemossDate date = new SemossDate(gCalendar.toGregorianCalendar().getTime(), "yyyy-MM-dd");
+						return date;
+					} 
+					// else double
 					else{
 						LOGGER.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
 						return new Double(((Literal)val).doubleValue());
 					}
 				} else {
-					// update, if no data type present, just send back the label
-					
-					// no datatype present need to try and see based on casting
-//					try {
-//						XMLGregorianCalendar calendar = ((Literal)val).calendarValue();
-//						return calendar.toGregorianCalendar().getTime(); // return date object
-//					} catch(IllegalArgumentException ex) {
-//						// do nothing
-//					}
-//
-//					try {
-//						double dVal = ((Literal)val).doubleValue();
-//						return dVal;
-//					} catch(NumberFormatException ex) {
-//						// do nothing
-//					}
-					
+					// just return the label
 					return ((Literal)val).getLabel();
 				}
 			} else if(val != null && val instanceof com.hp.hpl.jena.rdf.model.Literal) {

@@ -1642,18 +1642,16 @@ public class Utility {
 	public static String getTimeStamp(String input)
 	{
 		String[] date_formats = {
-				//"dd/MM/yyyy",
-				"MM/dd/yyyy",
-				//"dd-MM-yyyy",
-				"yyyy-MM-dd",
-				"yyyy/MM/dd", 
-				"yyyy MMM dd",
-				"yyyy dd MMM",
-				"dd MMM yyyy",
-				"dd MMM",
-				"MMM dd",
-				"dd MMM yyyy",
-		"MMM yyyy"};
+				// year, month, day
+				"yyyy-MM-dd hh:mm:ss",
+				"yyyy-MM-d hh:mm:ss",
+				"yyyy-M-dd hh:mm:ss",
+				"yyyy-M-d hh:mm:ss",
+				"yyyy-MM-dd'T'hh:mm:ss'Z'",
+				"yyyy-MM-d'T'hh:mm:ss'Z'",
+				"yyyy-M-dd'T'hh:mm:ss'Z'",
+				"yyyy-M-d'T'hh:mm:ss'Z'",
+				};
 
 		String output_date = null;
 		boolean itsDate = false;
@@ -1678,6 +1676,23 @@ public class Utility {
 	public static Date getDateAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
 		String output_date = getDate(input);
+		if(output_date == null) {
+			return null;
+		}
+
+		Date outDate = null;
+		try {
+			outDate = outdate_formatter.parse(output_date);
+		} catch (ParseException e) {
+//			e.printStackTrace();
+		}
+
+		return outDate;
+	}
+	
+	public static Date getTimeStampAsDateObj(String input) {
+		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.ssss");
+		String output_date = getTimeStamp(input);
 		if(output_date == null) {
 			return null;
 		}
@@ -1888,11 +1903,11 @@ public class Utility {
 		}
 		origDataType = origDataType.toUpperCase();
 
-		if(isNumericType(origDataType)) {
+		if(isIntegerType(origDataType) || isDoubleType(origDataType)) {
 			return "NUMBER";
 		}
 
-		if(isDateType(origDataType)) {
+		if(isDateType(origDataType) || isTimeStamp(origDataType)) {
 			return "DATE";
 		}
 
@@ -2147,11 +2162,21 @@ public class Utility {
 
 	public static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("DATE")
-				|| dataType.startsWith("TIMESTAMP")){
+		if(dataType.startsWith("DATE")) {
 			return true;
 		}
 
+		return false;
+	}
+	
+	public static boolean isTimeStamp(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.startsWith("TIMESTAMP")
+				|| dataType.startsWith("DATETIME")
+				) {
+			return true;
+		}
+		
 		return false;
 	}
 	
