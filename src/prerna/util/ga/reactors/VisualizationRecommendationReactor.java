@@ -14,6 +14,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
@@ -154,7 +155,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + "viz_history, viz_recom, get_userdata);";
 		this.rJavaTranslator.runR(gc);
 		
-		return new NounMetadata(recommendations, PixelDataType.VIZ_RECOMMENDATION);
+		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
 	}
 	@Override
 	protected String getDescriptionForKey(String key) {
