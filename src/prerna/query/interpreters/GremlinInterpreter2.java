@@ -301,7 +301,11 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 			filterValues.add(filterObject);
 		}
 		if (comparison.equals("==")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.within(filterValues.toArray()));
+			if(filterValues.size() == 1) {
+				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.eq(filterValues.get(0)));
+			} else {
+				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.within(filterValues.toArray()));
+			}
 		} else if (comparison.equals("<")) {
 			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.lt(filterValues.get(0)));
 		} else if (comparison.equals(">")) {
@@ -311,7 +315,11 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		} else if (comparison.equals(">=")) {
 			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.gte(filterValues.get(0)));
 		} else if (comparison.equals("!=")) {
-			traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.without(filterValues.toArray()));
+			if(filterValues.size() == 1) {
+				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.neq(filterValues.get(0)));
+			} else {
+				traversalSegment = traversalSegment.has(TinkerFrame.TINKER_NAME, P.without(filterValues.toArray()));
+			}
 		}
 	}
 

@@ -287,7 +287,7 @@ public class RSyntaxHelper {
 		for(; i < size; i++) {
 			if(SemossDataType.STRING == dataType) {
 				str.append("\"").append(row.get(i)).append("\"");
-			} else if(SemossDataType.NUMBER == dataType) {
+			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 				str.append(row.get(i).toString());
 			} else if(SemossDataType.DATE == dataType) {
 				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d');");
@@ -316,7 +316,7 @@ public class RSyntaxHelper {
 	public static String formatFilterValue(Object value, SemossDataType dataType) {
 		if(SemossDataType.STRING == dataType) {
 			return "\"" + value + "\"";
-		} else if(SemossDataType.NUMBER == dataType) {
+		} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 			return value.toString();
 		} else if(SemossDataType.DATE == dataType) {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";

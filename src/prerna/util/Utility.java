@@ -1715,10 +1715,19 @@ public class Utility {
 	}
 
 	public static Double getDouble(String input) {
-		
 		// try to do some basic clean up if it fails and try again
 		try {
 			Double num = Double.parseDouble(input);
+			return num;
+		} catch(NumberFormatException e) {
+			return null;
+		}
+	}
+	
+	public static Integer getInteger(String input) {
+		// try to do some basic clean up if it fails and try again
+		try {
+			Integer num = new BigDecimal(input).intValue();
 			return num;
 		} catch(NumberFormatException e) {
 			return null;
@@ -2042,33 +2051,48 @@ public class Utility {
 	}
 
 	public static boolean isNumericType(String dataType) {
-		// we use startsWith because the type may have ()
+		if(isIntegerType(dataType)) {
+			return true;
+		} else if(isDoubleType(dataType)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static boolean isIntegerType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
-		if(dataType.startsWith("NUMBER")
-				|| dataType.startsWith("BIT")
-
-				|| dataType.startsWith("MONEY")
-				|| dataType.startsWith("SMALLMONEY")
-				|| dataType.startsWith("FLOAT")
+		if(dataType.startsWith("BIT")
 				|| dataType.startsWith("LONG")
-
 				|| dataType.startsWith("INT")
 				|| dataType.startsWith("INTEGER")
 				|| dataType.startsWith("MEDIUMINT")
 				|| dataType.startsWith("INT4")
 				|| dataType.startsWith("SIGNED")
-
+				
 				//TINYINT TYPE
 				|| dataType.startsWith("TINYINT")
-
+				
 				//SMALLINT TYPE
 				|| dataType.startsWith("SMALLINT")
 				|| dataType.startsWith("INT2")
 				|| dataType.startsWith("YEAR")
-
+				
 				//BIGINT TYPE
 				|| dataType.startsWith("BIGINT")
 				|| dataType.startsWith("INT8")
+				) {
+			return true;
+		}
+
+		return false;
+	}
+	
+	public static boolean isDoubleType(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.startsWith("NUMBER")
+				|| dataType.startsWith("MONEY")
+				|| dataType.startsWith("SMALLMONEY")
+				|| dataType.startsWith("FLOAT")
 
 				//DECIMAL TYPE
 				|| dataType.startsWith("DECIMAL")

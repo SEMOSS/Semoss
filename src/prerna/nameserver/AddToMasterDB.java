@@ -156,10 +156,6 @@ public class AddToMasterDB {
 		Object [] engineData = {engineUniqueId, engineName, new java.sql.Timestamp(modDate.getTime()), engineTypeString, "true"};
 		insertQuery("Engine", colNames, types, engineData);
 		
-		if(engineName.contains("Tinker")) {
-			System.out.println("debug");
-		}
-		
 		// get the list of all the physical names
 		// false denotes getting the physical names
 		Vector<String> concepts = helper.getConcepts(false);
@@ -357,12 +353,15 @@ public class AddToMasterDB {
 			}
 		}
 
-		if(dataType.equalsIgnoreCase("STRING") || dataType.toUpperCase().contains("VARCHAR"))
+		if(Utility.isStringType(dataType)) {
 			dataType = "STRING";
-		else if(dataType.equalsIgnoreCase("DOUBLE") || dataType.toUpperCase().contains("FLOAT"))
+		} else if(Utility.isIntegerType(dataType)) {
+			dataType = "INT";
+		} else if(Utility.isDoubleType(dataType)) {
 			dataType = "DOUBLE";
-		else if(dataType.equalsIgnoreCase("DATE") || dataType.toUpperCase().contains("TIMESTAMP"))
+		} else {
 			dataType = "DATE";
+		}
 		
 		return new String[]{originalType, dataType};
 	}

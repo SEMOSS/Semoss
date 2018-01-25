@@ -41,7 +41,7 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				// check data type this is only valid on non numeric values
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.NUMBER) {
+				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
 					String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
 					try {
 						frame.executeRScript(update);
@@ -56,7 +56,7 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.NUMBER) {
+				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
 					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					update += table + "$" + newColumn + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ");";
