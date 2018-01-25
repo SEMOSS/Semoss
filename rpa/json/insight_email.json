@@ -2,6 +2,8 @@
   "-jobName":"lambda",
   "-jobGroup":"lambdaGroup",
   "-jobClass":"JobChain",
+  "-active": false,
+  "-jobTriggerOnLoad": false,
   "-jobCronExpression":"00 30 00 1/1 * ? *",
   "jobsInChain":[
     {
