@@ -31,6 +31,7 @@ import org.h2.tools.Server;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.ds.EmptyIteratorException;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -178,14 +179,7 @@ public class H2Builder {
 				// we need to loop through every value and cast appropriately
 				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					SemossDataType type = types[colIndex];
-					if (type == SemossDataType.DATE) {
-						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
-						if (value != null) {
-							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
-						} else {
-							ps.setNull(colIndex + 1, java.sql.Types.DATE);
-						}
-					} else if (type == SemossDataType.INT) {
+					if (type == SemossDataType.INT) {
 						Integer value = Utility.getInteger(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setInt(colIndex + 1, value);
@@ -198,6 +192,28 @@ public class H2Builder {
 							ps.setDouble(colIndex + 1, value);
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+						}
+					} else if (type == SemossDataType.DATE) {
+						if(nextRow[colIndex] instanceof SemossDate) {
+							ps.setDate(colIndex + 1, new java.sql.Date( ((SemossDate) nextRow[colIndex]).getDate().getTime() ) );
+						} else {
+							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
+							if (value != null) {
+								ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
+							} else {
+								ps.setNull(colIndex + 1, java.sql.Types.DATE);
+							}
+						}
+					} else if (type == SemossDataType.TIMESTAMP) {
+						if(nextRow[colIndex] instanceof SemossDate) {
+							ps.setTimestamp(colIndex + 1, new java.sql.Timestamp( ((SemossDate) nextRow[colIndex]).getDate().getTime() ) );
+						} else {
+							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex] + "");
+							if (value != null) {
+								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(value.getTime()));
+							} else {
+								ps.setNull(colIndex + 1, java.sql.Types.DATE);
+							}
 						}
 					} else {
 						String value = nextRow[colIndex] + "";

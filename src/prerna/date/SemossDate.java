@@ -64,4 +64,9 @@ public class SemossDate {
 		return this.date;
 	}
 	
+	@Override
+	public String toString() {
+		return getFormattedDate();
+	}
+	
 }

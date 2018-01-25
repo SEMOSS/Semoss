@@ -240,7 +240,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			} else {
 //				LOGGER.debug(" adding vertex ::: " + TINKER_ID + " = " + type + ":" + data+ " & " + TINKER_VALUE+ " = " + value+ " & " + TINKER_TYPE+ " = " + type+ " & " + TINKER_NAME+ " = " + data);
 //				LOGGER.debug(" adding vertex ::: " + TINKER_ID + " = " + type + ":" + data+ " & " + " & " + TINKER_TYPE+ " = " + type+ " & " + TINKER_NAME+ " = " + data);
-				retVertex = g.addVertex(TINKER_ID, type + ":" + data, TINKER_TYPE, type, TINKER_NAME, data);// push the actual value as well who knows when you would need it
+				retVertex = g.addVertex(TINKER_ID, type + ":" + data, TINKER_TYPE, type, TINKER_NAME, data.toString());// push the actual value as well who knows when you would need it
 			}
 
 		}
