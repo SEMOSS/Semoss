@@ -123,7 +123,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		Map recommendations = new HashMap<String, HashMap<String ,String>>();
 		Gson gson = new Gson();
 		if(json == null) {
-			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE);
+			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
 		}
 		ArrayList<Map<String,String>> myList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String,String>>>(){}.getType());
 		for (int i = 0 ; i < myList.size() ; i++){
