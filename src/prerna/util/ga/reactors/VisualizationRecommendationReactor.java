@@ -154,7 +154,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + "viz_history, viz_recom, get_userdata);";
 		this.rJavaTranslator.runR(gc);
 		
-		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(recommendations, PixelDataType.VIZ_RECOMMENDATION);
 	}
 	@Override
 	protected String getDescriptionForKey(String key) {
