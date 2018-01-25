@@ -154,7 +154,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(twoStepT, startNodeFilters);
+				addFiltersToPath(twoStepT, startNodeFilters, this.typeMap.get(selector));
 
 				List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selector);
 				if (propTraversals.size() > 0) {
@@ -167,7 +167,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				this.gt.hasLabel(getNodeType(selector)).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(this.gt, startNodeFilters);
+				addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(selector));
 			}
 		} else {
 			// we need to go through the traversal
@@ -239,7 +239,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 		// can do this by picking a "better" startNode
 		this.gt = this.gt.hasLabel(getNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(startNode);
-		addFiltersToPath(this.gt, startNodeFilters);
+		addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(startNode));
 
 		List<String> travelledEdges = new Vector<String>();
 		List<String> travelledNodeProperties = new Vector<String>();
@@ -257,7 +257,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 	 * Add the filter object to the current graph traversal
 	 * @param filterVec
 	 */
-	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec) {
+	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec, String filterPropertyName) {
 		for(SimpleQueryFilter filter : filterVec) {
 			SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 			NounMetadata lComp = filter.getLComparison();
@@ -266,11 +266,11 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 
 			if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 				// here, lcomp is the column and rComp is a set of values
-				processFilterColToValues(traversalSegment, lComp, rComp, comp);
+				processFilterColToValues(traversalSegment, lComp, rComp, comp, filterPropertyName);
 			} else if(filterType == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 				// here, lcomp is the values and rComp is a the column
 				// so same as above, but switch the order
-				processFilterColToValues(traversalSegment, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp));
+				processFilterColToValues(traversalSegment, rComp, lComp, IQueryFilter.getReverseNumericalComparator(comp), filterPropertyName);
 			}
 		}
 	}
@@ -282,9 +282,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 	 * @param valuesComp
 	 * @param comparison
 	 */
-	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison) {
-		String nodeType = ((QueryColumnSelector)colComp.getValue()).getTable(); 
-		String nodeName = this.typeMap.get(nodeType);
+	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison, String filterPropertyName) {
 		Object filterObject = valuesComp.getValue();
 		List<Object> filterValues = new Vector<Object>();
 		// ughhh... this could be a list or an object
@@ -295,17 +293,17 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 			filterValues.add(filterObject);
 		}
 		if (comparison.equals("==")) {
-			traversalSegment = traversalSegment.has(nodeName, P.within(filterValues.toArray()));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.within(filterValues));
 		} else if (comparison.equals("<")) {
-			traversalSegment = traversalSegment.has(nodeName, P.lt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.lt(filterValues.get(0)));
 		} else if (comparison.equals(">")) {
-			traversalSegment = traversalSegment.has(nodeName, P.gt(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.gt(filterValues.get(0)));
 		} else if (comparison.equals("<=")) {
-			traversalSegment = traversalSegment.has(nodeName, P.lte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.lte(filterValues.get(0)));
 		} else if (comparison.equals(">=")) {
-			traversalSegment = traversalSegment.has(nodeName, P.gte(filterValues.get(0)));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.gte(filterValues.get(0)));
 		} else if (comparison.equals("!=")) {
-			traversalSegment = traversalSegment.has(nodeName, P.without(filterValues.toArray()));
+			traversalSegment = traversalSegment.has(filterPropertyName, P.without(filterValues));
 		}
 	}
 
@@ -356,7 +354,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 					twoStepT = twoStepT.out().hasLabel(getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters);
+					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(downstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(downstreamNodeType)) {
@@ -412,7 +410,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters);
+					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(upstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(upstreamNodeType)) {
@@ -454,11 +452,11 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				GraphTraversal matchTraversal = __.as(startName);
 
 				// logic to filter
-				String qsProperty = startName + "__" + property;
-				List<SimpleQueryFilter> propFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(qsProperty);
-				addFiltersToPath(twoStepT, propFilters);
+				List<SimpleQueryFilter> propFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(property);
+				addFiltersToPath(matchTraversal, propFilters, property);
 
 				// after we add the filter, grab the actual values to return from the traversal
+				String qsProperty = startName + "__" + property;
 				matchTraversal = matchTraversal.values(property).as(qsProperty);
 				propTraversals.add(matchTraversal);
 				propTraversalSelect.add(property);
