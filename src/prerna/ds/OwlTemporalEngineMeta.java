@@ -106,14 +106,18 @@ public class OwlTemporalEngineMeta {
 		if(obj == null) {
 			obj = "STRING";
 		} else {
-			if(Utility.isNumericType(dataType)) {
-				obj = "NUMBER";
+			if(Utility.isIntegerType(dataType)) {
+				obj = "INT";
+			} else if(Utility.isDoubleType(dataType)) {
+				obj = "DOUBLE";
 			} else if(Utility.isDateType(dataType)) {
 				obj = "DATE";
+			} else if(Utility.isTimeStamp(dataType)) {
+				obj = "TIMESTAMP";
 			} else {
 				obj = "STRING";
 			}
-		}	
+		}
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
@@ -269,6 +273,8 @@ public class OwlTemporalEngineMeta {
 				obj = "DOUBLE";
 			} else if(Utility.isDateType(dataType)) {
 				obj = "DATE";
+			} else if(Utility.isTimeStamp(dataType)) {
+				obj = "TIMESTAMP";
 			} else {
 				obj = "STRING";
 			}
@@ -719,6 +725,8 @@ public class OwlTemporalEngineMeta {
 						SemossDataType dt = SemossDataType.convertStringToDataType(values[i].toString());
 						if(dt == SemossDataType.INT || dt == SemossDataType.DOUBLE) {
 							rowMap.put("dataType", "NUMBER");
+						} else if(dt == SemossDataType.DATE || dt == SemossDataType.TIMESTAMP) {
+							rowMap.put("dataType", "DATE");
 						} else {
 							rowMap.put("dataType", values[i]);
 						}

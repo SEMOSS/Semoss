@@ -35,6 +35,8 @@ public enum SemossDataType {
 			return SemossDataType.DOUBLE;
 		} else if(Utility.isDateType(dataType)) {
 			return SemossDataType.DATE;
+		} else if(Utility.isTimeStamp(dataType)) {
+			return SemossDataType.TIMESTAMP;
 		} else {
 			return SemossDataType.STRING;
 		}

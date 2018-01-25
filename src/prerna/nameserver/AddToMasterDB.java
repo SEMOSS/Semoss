@@ -353,14 +353,16 @@ public class AddToMasterDB {
 			}
 		}
 
-		if(Utility.isStringType(dataType)) {
-			dataType = "STRING";
-		} else if(Utility.isIntegerType(dataType)) {
+		if(Utility.isIntegerType(dataType)) {
 			dataType = "INT";
 		} else if(Utility.isDoubleType(dataType)) {
 			dataType = "DOUBLE";
-		} else {
+		} else if(Utility.isDateType(dataType)){
 			dataType = "DATE";
+		} else if(Utility.isTimeStamp(dataType)){
+			dataType = "TIMESTAMP";
+		} else {
+			dataType = "STRING";
 		}
 		
 		return new String[]{originalType, dataType};
