@@ -154,7 +154,7 @@ public class SampleReactor extends AbstractReactor {
 				SemossDataType thisType = frame.getMetaData().getHeaderTypeAsEnum(thisCol, null);
 				if(thisType == SemossDataType.STRING)
 					method.append("String " + thisCol + " = (String)row.getField(" + thisCol + "); \n");
-				else if(thisType == SemossDataType.NUMBER)
+				else if(thisType == SemossDataType.INT || thisType == SemossDataType.DOUBLE)
 					method.append("Double " + thisCol + " = (Double)row.getField(" + thisCol + "); \n");
 				else if(thisType == SemossDataType.DATE)
 					method.append("Date " + thisCol + " = (Date)row.getField(" + thisCol + "); \n");					

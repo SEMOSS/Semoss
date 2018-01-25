@@ -266,7 +266,7 @@ public class RInterpreter implements IQueryInterpreter {
 		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
 		colDataTypes.put("Title", SemossDataType.STRING);
 		colDataTypes.put("Nominated", SemossDataType.STRING);
-		colDataTypes.put("Movie_Budget", SemossDataType.NUMBER);
+		colDataTypes.put("Movie_Budget", SemossDataType.DOUBLE);
 		rI.setColDataTypes(colDataTypes);
 		
 		String query = rI.composeQuery();

@@ -83,7 +83,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 
 		dataTypes[0] = SemossDataType.STRING.toString();
 		dataTypes[1] = SemossDataType.STRING.toString();
-		dataTypes[2] = SemossDataType.NUMBER.toString();
+		dataTypes[2] = SemossDataType.DOUBLE.toString();
 
 		int headersIndex = 3;
 		for (int i = 0; i < attributeColumns.size(); i++) {
@@ -94,7 +94,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			} else {
 				this.ratioFrameHeaders[headersIndex] = SCORE_LABEL + attribute;
 			}
-			dataTypes[headersIndex] = SemossDataType.NUMBER.toString();
+			dataTypes[headersIndex] = SemossDataType.DOUBLE.toString();
 			headersIndex++;
 		}
 		Map<String, Double> weights = getWeights();
