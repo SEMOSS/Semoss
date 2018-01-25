@@ -207,7 +207,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			}
 		} else if (comparator.equals(">")) {
 			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.NUMBER)) {
+			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
 				// parse strings (row value and filter value) into doubles for comparison
 				if (Utility.getDouble(row[rowIndex]) > Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
@@ -231,7 +231,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 
 		} else if (comparator.equals("<")) {
 			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.NUMBER)) {
+			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
 				// parse strings (row value and filter value) into doubles for comparison
 				if (Utility.getDouble(row[rowIndex]) < Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
@@ -254,7 +254,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			}
 		} else if (comparator.equals(">=")) {
 			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.NUMBER)) {
+			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
 				if (Utility.getDouble(row[rowIndex]) >= Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
 				} else {
@@ -274,7 +274,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			}
 		} else if (comparator.equals("<=")) {
 			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.NUMBER)) {
+			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
 				if (Utility.getDouble(row[rowIndex]) <= Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
 				} else {

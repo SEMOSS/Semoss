@@ -303,7 +303,7 @@ public abstract class AbstractRBuilder {
 	private void alterColumnsToNumeric(String dataTableName, Map<String, SemossDataType> typesMap) {
 		for(String header : typesMap.keySet()) {
 			SemossDataType type = typesMap.get(header);
-			if(type == SemossDataType.NUMBER) {
+			if(type == SemossDataType.INT || type == SemossDataType.DOUBLE) {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(dataTableName, header) ) );
 			}
 		}

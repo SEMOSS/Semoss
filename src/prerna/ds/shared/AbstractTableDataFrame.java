@@ -216,7 +216,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		} else {
 			dataType = this.metaData.getHeaderTypeAsEnum(uniqueName, null);
 		}
-		return dataType.equals(SemossDataType.NUMBER);
+		return (dataType.equals(SemossDataType.INT) || dataType.equals(SemossDataType.DOUBLE));
 	}
 
 	@Override
@@ -231,16 +231,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		QueryColumnSelector colSelector = new QueryColumnSelector();
-		if(columnHeader.contains("__")) {
-			String[] split = columnHeader.split("__");
-			colSelector.setTable(split[0]);
-			colSelector.setColumn(split[1]);
-		} else {
-			colSelector.setTable(columnHeader);
-			colSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
-		}
-		
+		QueryColumnSelector colSelector = new QueryColumnSelector(columnHeader);
 		QueryStruct2 qs = new QueryStruct2();
 		qs.addSelector(colSelector);
 		// dont forget about filters
@@ -257,19 +248,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
-		QueryColumnSelector colSelector = new QueryColumnSelector();
-		if(columnHeader.contains("__")) {
-			String[] split = columnHeader.split("__");
-			colSelector.setTable(split[0]);
-			colSelector.setColumn(split[1]);
-		} else {
-			colSelector.setTable(columnHeader);
-			colSelector.setTable(null);
-		}
-		
+		QueryColumnSelector colSelector = new QueryColumnSelector(columnHeader);
 		QueryStruct2 qs = new QueryStruct2();
 		qs.addSelector(colSelector);
-		// dont forget about filters
 		qs.setFilters(this.grf);
 		Iterator<IHeadersDataRow> it = query(qs);
 		
@@ -307,21 +288,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	protected Double calculateMax(String columnHeader) {
-		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
-		if(uniqueColName == null) {
-			uniqueColName = columnHeader;
-		}
-		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == SemossDataType.NUMBER) {
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			if(uniqueColName.contains("__")) {
-				String[] split = uniqueColName.split("__");
-				innerSelector.setTable(split[0]);
-				innerSelector.setColumn(split[1]);
-			} else {
-				innerSelector.setTable(uniqueColName);
-				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
-			}
-
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
+		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
+			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MAX);
@@ -365,20 +334,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	protected Double calculateMin(String columnHeader) {
-		String uniqueColName = this.metaData.getUniqueNameFromAlias(columnHeader);
-		if(uniqueColName == null) {
-			uniqueColName = columnHeader;
-		}
-		if (this.metaData.getHeaderTypeAsEnum(uniqueColName) == SemossDataType.NUMBER) {
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			if(uniqueColName.contains("__")) {
-				String[] split = uniqueColName.split("__");
-				innerSelector.setTable(split[0]);
-				innerSelector.setColumn(split[1]);
-			} else {
-				innerSelector.setTable(uniqueColName);
-				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
-			}
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
+		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
+			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
@@ -550,7 +508,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			}
 			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
 			dataTypes.add(dataType);
-			if(dataType == SemossDataType.NUMBER) {
+			if(dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
 				max[i] = getMax(uniqueHeader);
 				min[i] = getMin(uniqueHeader);
 			}

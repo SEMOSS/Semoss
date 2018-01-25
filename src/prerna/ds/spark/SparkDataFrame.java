@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
@@ -205,17 +204,6 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	public void mergeTable(String key, String joinType, String newCol) {
 		this.builder.mergeFrame(key, newCol);
 	}
-	
-	public String convertDataTypeToString(SemossDataType type) {
-		if(type.equals(SemossDataType.NUMBER)) { 
-			return "double";
-		} else if(type.equals(SemossDataType.STRING)) {
-			return "varchar(800)";
-		} else {
-			return "date";
-		}
-	}
-
 	
 	@Override
 	public String getDataMakerName() {

@@ -852,7 +852,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
 			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
-			if(SemossDataType.NUMBER.equals(type)) {
+			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;

@@ -39,11 +39,11 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.NUMBER) {
+				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
 					String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
 					try {
 						frame.executeRScript(script);
-						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.NUMBER.toString());
+						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -55,7 +55,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.NUMBER) {
+				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
 					String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					frame.executeRScript(update);
@@ -63,7 +63,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 					frame.executeRScript(update);
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.NUMBER.toString());
+					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.DOUBLE.toString());
 				}
 			}
 		}

@@ -155,7 +155,7 @@ public class RdbmsQueryBuilder {
 						.append(" = ")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
 			} else {
-				if(leftColType == SemossDataType.NUMBER && rightColType == SemossDataType.STRING) {
+				if( (leftColType == SemossDataType.INT || leftColType == SemossDataType.DOUBLE)  && rightColType == SemossDataType.STRING) {
 					// one is a number
 					// other is a string
 					// convert the string to a number
@@ -164,7 +164,7 @@ public class RdbmsQueryBuilder {
 						.append(" = CAST(")
 						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
 						.append(" AS DOUBLE)");
-				} else if(rightColType == SemossDataType.NUMBER && leftColType == SemossDataType.STRING) {
+				} else if( (rightColType == SemossDataType.INT || rightColType == SemossDataType.DOUBLE ) && leftColType == SemossDataType.STRING) {
 					// one is a number
 					// other is a string
 					// convert the string to a number
