@@ -292,32 +292,20 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
-		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-		// write the local master back ?
-		// highly temporary right now
-
-		// I dont know why we check this again ?
-		if(localMasterIndex == 0) {
-			// remove unused databases
-			//String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
-			//List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
-			List<String> engines = MasterDatabaseUtility.getAllEnginesRDBMS();
-			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			
-			// so delete the engines if the SMSS is not there anymore sure makes sense
-			for(String engine : engines) {
-				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					LOGGER.info("Deleting the engine..... " + engine);
-					remover.deleteEngineRDBMS(engine);
-				}
+		// remove unused databases
+		List<String> engines = MasterDatabaseUtility.getAllEnginesRDBMS();
+		DeleteFromMasterDB remover = new DeleteFromMasterDB();
+		
+		// so delete the engines if the SMSS is not there anymore sure makes sense
+		for(String engine : engines) {
+			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+				LOGGER.info("Deleting the engine..... " + engine);
+				remover.deleteEngineRDBMS(engine);
 			}
 		}
-		// let us write back with all the changes now :)
-		//((RDFFileSesameEngine)localMaster).writeBack();
-		
+	
 		try {
 			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
-			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
 			if(solrIndexEngine.serverActive()) {
 				List<String> facetList = new ArrayList<String>();
 				facetList.add(SolrIndexEngine.CORE_ENGINE);

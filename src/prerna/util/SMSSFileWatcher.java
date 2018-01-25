@@ -39,8 +39,8 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JList;
 
-import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -235,16 +235,15 @@ public class SMSSFileWatcher extends AbstractFileWatcher {
 			}
 		}
 
-		if(localMasterIndex == 0) {
-			// remove unused databases
-			IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-			String allEnginesQuery = "SELECT DISTINCT ?Engine WHERE { {?Engine <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/meta/engine>} }";
-			List<String> engines = Utility.getVectorOfReturn(allEnginesQuery, localMaster, false);
-			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-			for(String engine : engines) {
-				if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-					remover.deleteEngineRDBMS(engine);
-				}
+		// remove unused databases
+		List<String> engines = MasterDatabaseUtility.getAllEnginesRDBMS();
+		DeleteFromMasterDB remover = new DeleteFromMasterDB();
+		
+		// so delete the engines if the SMSS is not there anymore sure makes sense
+		for(String engine : engines) {
+			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+				logger.info("Deleting the engine..... " + engine);
+				remover.deleteEngineRDBMS(engine);
 			}
 		}
 	}
