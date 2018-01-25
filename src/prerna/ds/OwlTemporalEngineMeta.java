@@ -263,8 +263,10 @@ public class OwlTemporalEngineMeta {
 		if(obj == null) {
 			obj = "STRING";
 		} else {
-			if(Utility.isNumericType(dataType)) {
-				obj = "NUMBER";
+			if(Utility.isIntegerType(dataType)) {
+				obj = "INT";
+			} else if(Utility.isDoubleType(dataType)) {
+				obj = "DOUBLE";
 			} else if(Utility.isDateType(dataType)) {
 				obj = "DATE";
 			} else {
@@ -712,6 +714,12 @@ public class OwlTemporalEngineMeta {
 					} else if(headers[i].equals("alias")) {
 						rowMap.put(headers[i], values[i].toString());
 						rowMap.put("displayName", values[i].toString());
+					} else if(headers[i].equals("dataType")) {
+						//TODO: need FE to respond to DOUBLE and INT
+						SemossDataType dt = SemossDataType.convertStringToDataType(values[i].toString());
+						if(dt == SemossDataType.INT || dt == SemossDataType.DOUBLE) {
+							rowMap.put("dataType", "NUMBER");
+						}
 					} else {
 						rowMap.put(headers[i], values[i]);
 					}

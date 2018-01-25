@@ -188,7 +188,7 @@ public class RDataTable extends AbstractTableDataFrame {
 			}
 			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
 			dataTypes.add(dataType);
-			if(dataType == SemossDataType.NUMBER) {
+			if(dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
 				max[i] = getMax(uniqueHeader);
 				min[i] = getMin(uniqueHeader);
 			}

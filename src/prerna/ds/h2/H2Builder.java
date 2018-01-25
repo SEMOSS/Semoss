@@ -140,37 +140,6 @@ public class H2Builder {
 	 * 	CREATE 
 	 * *************************/
 
-	/**
-	 * Generates a new H2 table from the paramater data
-	 * 
-	 * Assumptions headers and types are of same length types are H2 readable
-	 * 
-	 * 
-	 * @param iterator
-	 *            - iterates over the data
-	 * @param headers
-	 *            - headers for the table data
-	 * @param types
-	 *            - data type for each column
-	 * @param tableName
-	 * @throws Exception 
-	 */
-	private void generateTable(Iterator<IHeadersDataRow> iterator, String[] headers, String[] types, String tableName) {
-		String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
-		logger.info(" >>> CREATING TABLE : " + createTable);
-		try {
-			runQuery(createTable);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
-		for(int i = 0; i < headers.length; i++) {
-			typesMap.put(headers[i], SemossDataType.convertStringToDataType(types[i]));
-		}
-		addRowsViaIterator(iterator, tableName, typesMap);
-	}
-	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator, String tableName, Map<String, SemossDataType> typesMap) {
 		try {
 			// keep a batch size so we dont get heapspace
@@ -178,7 +147,8 @@ public class H2Builder {
 			int count = 0;
 
 			PreparedStatement ps = null;
-			String[] types = null;
+			SemossDataType[] types = null;
+			String[] strTypes = null;
 
 			// we loop through every row of the csv
 			while (iterator.hasNext()) {
@@ -189,15 +159,17 @@ public class H2Builder {
 				if (ps == null) {
 					String[] headers = headerRow.getHeaders();
 					// get the data types
-					types = new String[headers.length];
+					types = new SemossDataType[headers.length];
+					strTypes = new String[headers.length];
 					for (int i = 0; i < types.length; i++) {
-						types[i] = SemossDataType.convertDataTypeToString(typesMap.get(headers[i]));
+						types[i] = typesMap.get(headers[i]);
+						strTypes[i] = SemossDataType.convertDataTypeToString(types[i] );
 					}
 					// alter the table to have the column information if not
 					// already present
 					// this will also create a new table if the table currently
 					// doesn't exist
-					alterTableNewColumns(tableName, headers, types);
+					alterTableNewColumns(tableName, headers, strTypes);
 
 					// set the PS based on the headers
 					ps = createInsertPreparedStatement(tableName, headers);
@@ -205,15 +177,22 @@ public class H2Builder {
 
 				// we need to loop through every value and cast appropriately
 				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
-					String type = types[colIndex].toUpperCase();
-					if (type.contains("DATE")) {
+					SemossDataType type = types[colIndex];
+					if (type == SemossDataType.DATE) {
 						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
 						} else {
 							ps.setNull(colIndex + 1, java.sql.Types.DATE);
 						}
-					} else if (type.contains("DOUBLE") || type.contains("NUMBER") || type.contains("DECIMAL") || type.contains("FLOAT")) {
+					} else if (type == SemossDataType.INT) {
+						Integer value = Utility.getInteger(nextRow[colIndex] + "");
+						if (value != null) {
+							ps.setInt(colIndex + 1, value);
+						} else {
+							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+						}
+					} else if(type == SemossDataType.DOUBLE) {
 						Double value = Utility.getDouble(nextRow[colIndex] + "");
 						if (value != null) {
 							ps.setDouble(colIndex + 1, value);
@@ -1800,16 +1779,37 @@ public class H2Builder {
 	
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+//	/**
+//	 * Generates a new H2 table from the paramater data
+//	 * 
+//	 * Assumptions headers and types are of same length types are H2 readable
+//	 * 
+//	 * 
+//	 * @param iterator
+//	 *            - iterates over the data
+//	 * @param headers
+//	 *            - headers for the table data
+//	 * @param types
+//	 *            - data type for each column
+//	 * @param tableName
+//	 * @throws Exception 
+//	 */
+//	private void generateTable(Iterator<IHeadersDataRow> iterator, String[] headers, String[] types, String tableName) {
+//		String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
+//		logger.info(" >>> CREATING TABLE : " + createTable);
+//		try {
+//			runQuery(createTable);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		
+//		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
+//		for(int i = 0; i < headers.length; i++) {
+//			typesMap.put(headers[i], SemossDataType.convertStringToDataType(types[i]));
+//		}
+//		addRowsViaIterator(iterator, tableName, typesMap);
+//	}
+//
 //	/**
 //	 * 
 //	 * @param column

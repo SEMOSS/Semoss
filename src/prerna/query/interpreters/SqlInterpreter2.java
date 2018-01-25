@@ -755,7 +755,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
 			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
-			if(SemossDataType.NUMBER.equals(type)) {
+			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;
@@ -763,7 +763,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 				for(; i < size; i++) {
 					myObj.append(" , ").append(objects.get(i));
 				}
-			} else if(SemossDataType.DATE.equals(type)) {
+			} else if(SemossDataType.DATE == type) {
 				String leftWrapper = null;
 				String rightWrapper = null;
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
