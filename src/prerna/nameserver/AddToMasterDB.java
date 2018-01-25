@@ -173,70 +173,6 @@ public class AddToMasterDB {
 		return true;
 	}
 	
-	/**
-	 * Executes a query
-	 * @param tableName
-	 * @param colNames
-	 * @param types
-	 * @param data
-	 */
-	private void makeQuery(String tableName, String [] colNames, String [] types, Object [] data) {
-		String insertString = makeInsert(tableName, colNames, types, data);
-		Statement stmt = null;
-		try {
-			stmt = conn.createStatement();
-			stmt.execute(insertString);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	/**
-	 * Generate an insert query
-	 * @param tableName
-	 * @param colNames
-	 * @param types
-	 * @param data
-	 * @return
-	 */
-	private String makeInsert(String tableName, String [] colNames, String [] types, Object [] data) {
-		StringBuilder retString = new StringBuilder("INSERT INTO "+ tableName + " (" + colNames[0]);
-		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			retString.append(" , " + colNames[colIndex]);
-		}
-		String prefix = "'";
-		retString.append(") VALUES (" + prefix + data[0] + prefix);
-		for(int colIndex = 1;colIndex < colNames.length;colIndex++)
-		{
-			if(types[colIndex].contains("varchar") || types[colIndex].toLowerCase().contains("timestamp") || types[colIndex].toLowerCase().contains("date")) {
-				prefix = "'";
-			} else {
-				prefix = "";
-			}
-			retString.append(" , " + prefix + data[colIndex] + prefix);
-		}
-		retString.append(")");
-		return retString.toString();
-	}
-	
-	private Connection getConnection(IEngine localMaster) {
-		if(conn == null) {
-	    	try {
-	    		conn = ((RDBMSNativeEngine)localMaster).makeConnection();
-	    		conceptIdHash = ((RDBMSNativeEngine)localMaster).getConceptIdHash();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return conn;
-	}
-	
 	private void masterConcept(String physicalConceptUri, 
 			String engineName, 
 			Hashtable <String, String> previousConcepts, 
@@ -290,7 +226,6 @@ public class AddToMasterDB {
 		// the composite relation will contain all the composite relationship in a single string
 		// Where the compositions will be separated by a :	
 		// /Relation/Composite/Title.Title.Studio.Title_FK:Title.Title.Nominated.Title_FK
-
 	}
 	
 	private void addConcept(String engineInstance, String physicalInstance, String mainInstance, MetaHelper helper, String Uri)
@@ -521,6 +456,46 @@ public class AddToMasterDB {
 		makeQuery("EngineConcept", colNames, types, conceptInstanceData);
 	}
 	
+	
+	/**
+	 * Executes a query
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param data
+	 */
+	private void makeQuery(String tableName, String [] colNames, String [] types, Object [] data) {
+		String insertString = makeInsert(tableName, colNames, types, data);
+		executeSql(conn, insertString);
+	}
+	
+	/**
+	 * Generate an insert query
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param data
+	 * @return
+	 */
+	private String makeInsert(String tableName, String [] colNames, String [] types, Object [] data) {
+		StringBuilder retString = new StringBuilder("INSERT INTO "+ tableName + " (" + colNames[0]);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			retString.append(" , " + colNames[colIndex]);
+		}
+		String prefix = "'";
+		retString.append(") VALUES (" + prefix + data[0] + prefix);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			if(types[colIndex].contains("varchar") || types[colIndex].toLowerCase().contains("timestamp") || types[colIndex].toLowerCase().contains("date")) {
+				prefix = "'";
+			} else {
+				prefix = "";
+			}
+			retString.append(" , " + prefix + data[colIndex] + prefix);
+		}
+		retString.append(")");
+		return retString.toString();
+	}
+	
 	public void commit(IEngine localMaster) {
 		try {
     		((RDBMSNativeEngine)localMaster).commitRDBMS();
@@ -528,6 +503,30 @@ public class AddToMasterDB {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Get the local master RDBMS connection
+	 * @param localMaster
+	 * @return
+	 */
+	private Connection getConnection(IEngine localMaster) {
+		if(conn == null) {
+	    	try {
+	    		conn = ((RDBMSNativeEngine) localMaster).makeConnection();
+	    		conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return conn;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	
 	
 	/**
 	 * Get the date for a given engine
@@ -670,126 +669,41 @@ public class AddToMasterDB {
 	private static void generateTables(Connection conn) {
 		String [] colNames = null;
 		String [] types = null;
-		Statement stmt = null;
 		
 		// engine table
-		try {
-			colNames = new String[]{"ID", "EngineName", "ModifiedDate", "Type"};
-			types = new String[]{"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
-			String createString = makeCreate("engine", colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String[]{"ID", "EngineName", "ModifiedDate", "Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
+		executeSql(conn, makeCreate("engine", colNames, types));
 		
 		// engine concept table
-		try {
-			colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
-			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
-			String createString = makeCreate("engineconcept", colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
+		executeSql(conn, makeCreate("engineconcept", colNames, types));
 		
 		// concept table
-		try {
-			colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-			String createString = makeCreate("concept", colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		executeSql(conn, makeCreate("concept", colNames, types));
 		
 		// relation table
-		try {
-			colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
-			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-			String createString = makeCreate("relation", colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		executeSql(conn, makeCreate("relation", colNames, types));
 		
 		// engine relation table
-		try {
-			colNames = new String []{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID", "SourceProperty", "TargetProperty", "RelationName"}; //"DomainName"};
-			types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-			String createString = makeCreate("enginerelation", colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String []{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID", "SourceProperty", "TargetProperty", "RelationName"}; //"DomainName"};
+		types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		executeSql(conn, makeCreate("enginerelation", colNames, types));
 		
 		// concept metadata
-		try {
-			colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
-			types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
-			String createString = makeCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+		executeSql(conn, makeCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 		
 		// x-ray config
-		try {
-			colNames = new String[] { "filename", "config" };
-			types = new String[] { "varchar(800)", "varchar(20000)" };
-			String createString = makeCreate("xrayconfigs", colNames, types);
-			stmt = conn.createStatement();
-			stmt.execute(createString);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		colNames = new String[] { "filename", "config" };
+		types = new String[] { "varchar(800)", "varchar(20000)" };
+		executeSql(conn, makeCreate("xrayconfigs", colNames, types));
 	}
 
 	/**
@@ -807,7 +721,26 @@ public class AddToMasterDB {
 		retString = retString.append(")");
 		return retString.toString();
 	}
+	
+	private static void executeSql(Connection conn, String sql) {
+		Statement stmt = null;
+		try {
+			stmt = conn.createStatement();
+			stmt.execute(sql);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
+	
+	
+	
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
