@@ -223,8 +223,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 							vizType = "\"" + panelContent.get(panelKey).toString() + "\"";
 						} else if (panelKey.equalsIgnoreCase("alignment")) {
 							// alignment points to a map of string to vector
-							Map<String, List<String>> alignmentMap = (Map<String, List<String>>) panelContent
-									.get(panelKey);
+							Map<String, List<String>> alignmentMap = (Map<String, List<String>>) panelContent.get(panelKey);
 							boolean first = true;
 							for (String uiCompName : alignmentMap.keySet()) {
 								// ui name can be label, value, x, y, etc.
@@ -233,7 +232,6 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 								for (String columnAlias : columnsInUICompName) {
 									String uniqueMetaName = aliasHash.get(columnAlias);
 									List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
-
 									if (!first) {
 										exprBuilder.append(",");
 									} else {
