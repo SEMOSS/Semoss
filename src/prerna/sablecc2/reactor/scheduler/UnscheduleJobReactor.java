@@ -94,7 +94,7 @@ public class UnscheduleJobReactor extends AbstractReactor {
 			// update current json to inactive or add it
 			JsonParser parser = new JsonParser();
 			JsonObject jobDefinition = parser.parse(jsonString).getAsJsonObject();
-			jobDefinition.addProperty(JobConfigKeys.JOB_STATUS, "inactive");
+			jobDefinition.addProperty(JobConfigKeys.ACTIVE, false);
 
 			// Pretty-print version of the json
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();

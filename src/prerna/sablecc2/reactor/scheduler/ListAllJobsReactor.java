@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -57,7 +56,7 @@ public class ListAllJobsReactor extends AbstractReactor {
 			// log it as active or inactive
 			JsonParser parser = new JsonParser();
 			JsonObject jobDefinition = parser.parse(jsonString).getAsJsonObject();
-			JsonElement status = jobDefinition.get(JobConfigKeys.JOB_STATUS);
+			boolean active = jobDefinition.get(JobConfigKeys.ACTIVE).getAsBoolean();
 			String jobName = jobDefinition.get(JobConfigKeys.JOB_NAME).toString().replaceAll("\"", "");
 			String group = jobDefinition.get(JobConfigKeys.JOB_GROUP).toString().replaceAll("\"", "");
 
@@ -83,11 +82,7 @@ public class ListAllJobsReactor extends AbstractReactor {
 			if(master.containsKey(group)) {
 				jobMap = (HashMap<String, Object>) master.get(group);
 			}
-			if (status != null && status.toString().equals("\"inactive\"")) {
-				jobMap.put(jobName, false);
-			} else {
-				jobMap.put(jobName, true);
-			}
+			jobMap.put(jobName, active);
 			master.put(group, jobMap);
 		}
 

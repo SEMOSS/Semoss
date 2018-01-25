@@ -14,6 +14,6 @@ public class JobConfigKeys {
 	public static final String JOB_CLASS_NAME = "-jobClass";
 	public static final String JOB_CRON_EXPRESSION = "-jobCronExpression";
 	public static final String TRIGGER_ON_LOAD = "-jobTriggerOnLoad";
-	public static final String JOB_STATUS = "~jobStatus";
+	public static final String ACTIVE = "-active";
 
 }

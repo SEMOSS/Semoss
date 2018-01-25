@@ -3,6 +3,8 @@
   "-jobGroup":"pieContestGroup",
   "-jobClass":"JobChain",
   "-jobCronExpression":"00 30 00 1/1 * ? *",
+  "-active":false,
+  "-jobTriggerOnLoad": false,
   "jobsInChain":[
     {
       "-jobClass":"JobBatch",
