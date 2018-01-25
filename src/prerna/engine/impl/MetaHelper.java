@@ -313,6 +313,18 @@ public class MetaHelper implements IExplorable {
 		
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
+	
+	public Vector<String[]> getRelationships() {
+		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
+				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
+				+ "{?start ?rel ?end}"
+				+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
+				+ "}";
+		
+		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
+	}
 
 	/**
 	 * Returns the list of key URIs for the concept

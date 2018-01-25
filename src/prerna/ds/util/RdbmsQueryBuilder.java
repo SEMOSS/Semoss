@@ -24,21 +24,56 @@ public class RdbmsQueryBuilder {
 	 ******************************/
 	
 	// CREATE TABLE TABLE_NAME (COLUMN1 TYPE1, COLUMN2, TYPE2, ...)
-	public static String makeCreate(String tableName, String[] headers, String[] types) {
-		StringBuilder createString = new StringBuilder("CREATE TABLE " + tableName + " (");
-
-		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-			String header = headers[headerIndex];
-
-			if (headerIndex > 0) {
-				createString.append(", ");
-			}
-			createString.append(header + "  " + types[headerIndex]);
+	public static String makeCreate(String tableName, String[] colNames, String[] types) {
+		StringBuilder retString = new StringBuilder("CREATE TABLE "+ tableName + " (" + colNames[0] + " " + types[0]);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			retString = retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
 		}
-
-		createString.append(");");
-
-		return createString.toString();
+		retString = retString.append(")");
+		return retString.toString();
+	}
+	
+	/**
+	 * Create table if not exists
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @return
+	 */
+	public static String makeOptionalCreate(String tableName, String [] colNames, String [] types) {
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS "+ tableName + " (" + colNames[0] + " " + types[0]);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			retString = retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+		}
+		retString = retString.append(")");
+		return retString.toString();
+	}
+	
+	/**
+	 * Generate an insert query
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param data
+	 * @return
+	 */
+	public static String makeInsert(String tableName, String [] colNames, String [] types, Object [] data) {
+		StringBuilder retString = new StringBuilder("INSERT INTO "+ tableName + " (" + colNames[0]);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			retString.append(" , " + colNames[colIndex]);
+		}
+		String prefix = "'";
+		retString.append(") VALUES (" + prefix + data[0] + prefix);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			if(types[colIndex].contains("varchar") || types[colIndex].toLowerCase().contains("timestamp") || types[colIndex].toLowerCase().contains("date")) {
+				prefix = "'";
+			} else {
+				prefix = "";
+			}
+			retString.append(" , " + prefix + data[colIndex] + prefix);
+		}
+		retString.append(")");
+		return retString.toString();
 	}
 	
 	/**
