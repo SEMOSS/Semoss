@@ -169,7 +169,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		newHeaders[0] = mainColName;
 		newHeaders[1] = "Total";
 		dataTypes[0] = SemossDataType.STRING.toString();
-		dataTypes[1] = SemossDataType.NUMBER.toString();
+		dataTypes[1] = SemossDataType.DOUBLE.toString();
 
 		// we will merge the new headers into our existing frame
 		frame.addNewColumn(newHeaders, dataTypes, frame.getTableName());
@@ -494,7 +494,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		headers[0] = "System";
 		headers[1] = "Num_Sites";
 		dataTypes[0] = SemossDataType.STRING.toString();
-		dataTypes[1] = SemossDataType.NUMBER.toString();
+		dataTypes[1] = SemossDataType.DOUBLE.toString();
 
 		// we will merge the new headers into our existing frame
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
@@ -544,7 +544,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		Map<String, SemossDataType> tempDataType = new Hashtable<String, SemossDataType>();
 		tempDataType.put("System", SemossDataType.STRING);
 		tempDataType.put("FY", SemossDataType.STRING);
-		tempDataType.put("Cost", SemossDataType.NUMBER);
+		tempDataType.put("Cost", SemossDataType.DOUBLE);
 		H2Frame tempFrame = new H2Frame();
 		tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getTableName());
 		tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
@@ -779,10 +779,10 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				tempDataType.put("System", SemossDataType.STRING);
 				tempDataType.put("Site", SemossDataType.STRING);
 				tempDataType.put("FYTag", SemossDataType.STRING);
-				tempDataType.put("Cost", SemossDataType.NUMBER);
+				tempDataType.put("Cost", SemossDataType.DOUBLE);
 				H2Frame tempFrame = new H2Frame(tempHeaders);
 				tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
-
+	
 				// get the list of all the systems we have cost data for
 				String tempFrameName = tempFrame.getTableName();
 				ResultSet rs = tempFrame.execQuery("SELECT DISTINCT System, Site FROM " + tempFrameName);

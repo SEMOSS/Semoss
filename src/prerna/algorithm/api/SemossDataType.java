@@ -4,15 +4,21 @@ import prerna.util.Utility;
 
 public enum SemossDataType {
 
-	NUMBER, 
+	INT,
+	DOUBLE,
 	STRING, 
-	DATE;
+	DATE,
+	TIMESTAMP;
 	
 	public static String convertDataTypeToString(SemossDataType type) {
-		if(SemossDataType.NUMBER == type) { 
+		if(SemossDataType.INT == type) { 
+			return "int";
+		} else if(SemossDataType.DOUBLE == type) { 
 			return "double";
 		} else if(SemossDataType.DATE == type) {
 			return "date";
+		} else if(SemossDataType.TIMESTAMP == type) {
+			return "timestamp";
 		} else {
 			return "varchar(800)";
 		}
@@ -22,12 +28,13 @@ public enum SemossDataType {
 		if(dataType == null) {
 			return null;
 		}
-		if(Utility.isNumericType(dataType)) {
-			return SemossDataType.NUMBER;
+		
+		if(Utility.isIntegerType(dataType)) {
+			return SemossDataType.INT;
+		} else if(Utility.isDoubleType(dataType)) {
+			return SemossDataType.DOUBLE;
 		} else if(Utility.isDateType(dataType)) {
 			return SemossDataType.DATE;
-		} else if(Utility.isStringType(dataType)) {
-			return SemossDataType.STRING;
 		} else {
 			return SemossDataType.STRING;
 		}

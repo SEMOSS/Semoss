@@ -90,7 +90,10 @@ public class MergeDataReactor extends AbstractReactor {
 					qSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 					NounMetadata lNoun = new NounMetadata(qSelector, PixelDataType.COLUMN);
 					NounMetadata rNoun = null;
-					if(frame.getMetaData().getHeaderTypeAsEnum(s) == SemossDataType.NUMBER) {
+					SemossDataType dataType = frame.getMetaData().getHeaderTypeAsEnum(s);
+					if(dataType == SemossDataType.INT) {
+						rNoun = new NounMetadata(values, PixelDataType.CONST_INT);
+					} else if(dataType == SemossDataType.DOUBLE) {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
 					} else {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);

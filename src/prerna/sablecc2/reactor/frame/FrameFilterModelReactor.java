@@ -186,7 +186,8 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		if(metaName == null) {
 			metaName = alias;
 		}
-		if(SemossDataType.NUMBER == dataframe.getMetaData().getHeaderTypeAsEnum(metaName)) {
+		SemossDataType columnType = dataframe.getMetaData().getHeaderTypeAsEnum(metaName);
+		if(SemossDataType.INT == columnType || SemossDataType.DOUBLE == columnType) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(tableCol);
 			
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();

@@ -556,7 +556,7 @@ public class SQLInterpreter implements IQueryInterpreter{
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
 			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
-			if(SemossDataType.NUMBER.equals(type)) {
+			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;
@@ -682,9 +682,9 @@ public class SQLInterpreter implements IQueryInterpreter{
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
 			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
-			if(SemossDataType.NUMBER.equals(type)) {
+			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type) {
 				myObj = object.toString();
-			} else if(SemossDataType.DATE.equals(type)) {
+			} else if(SemossDataType.DATE == type) {
 				myObj = object.toString();
 				myObj = Utility.getDate(myObj);
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {

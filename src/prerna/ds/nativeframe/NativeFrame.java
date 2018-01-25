@@ -42,12 +42,10 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double getMax(String columnHeader) {
-		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == SemossDataType.NUMBER) {
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
+		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
 			QueryFunctionSelector selector = new QueryFunctionSelector();
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			String[] split = columnHeader.split("__");
-			innerSelector.setTable(split[0]);
-			innerSelector.setColumn(split[1]);
+			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
 			selector.addInnerSelector(innerSelector);
 			selector.setFunction(QueryFunctionHelper.MAX);
 
@@ -68,12 +66,10 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double getMin(String columnHeader) {
-		if (this.metaData.getHeaderTypeAsEnum(columnHeader, null) == SemossDataType.NUMBER) {
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
+		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
 			QueryFunctionSelector selector = new QueryFunctionSelector();
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			String[] split = columnHeader.split("__");
-			innerSelector.setTable(split[0]);
-			innerSelector.setColumn(split[1]);
+			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
 			selector.addInnerSelector(innerSelector);
 			selector.setFunction(QueryFunctionHelper.MIN);
 
