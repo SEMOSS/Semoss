@@ -26,19 +26,20 @@ public class DateReactor extends AbstractReactor {
 		 * If there is a date input and a format, we will use that format
 		 */
 		
+		// determine if we should use the default format
+		// or the user defined format
+		if(this.keyValue.containsKey(this.keysToGet[1])) {
+			pattern = this.keyValue.get(this.keysToGet[1]);
+		}
+					
 		if(this.keyValue.containsKey(this.keysToGet[0])) {
 			String strDate = this.keyValue.get(this.keysToGet[0]);
 			
-			// determine if we should use the default format
-			// or the user defined format
-			if(this.keyValue.containsKey(this.keysToGet[1])) {
-				pattern = this.keyValue.get(this.keysToGet[1]);
-			}
 			date = new SemossDate(strDate, pattern);
 			date.getDate();
 		} else {
 			// the user hasn't specified a date
-			date = new SemossDate(Calendar.getInstance().getTime());
+			date = new SemossDate(Calendar.getInstance().getTime(), pattern);
 		}
 		
 		return new NounMetadata(date, PixelDataType.CONST_DATE);

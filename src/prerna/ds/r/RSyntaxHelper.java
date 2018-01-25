@@ -108,6 +108,14 @@ public class RSyntaxHelper {
 		return builder.toString();
 	}
 
+	public static String alterColumnTypeToDateTime(String tableName, String colName) {
+		// will generate a string similar to
+		// "datatable$Birthday <- as.Date(as.character(datatable$Birthday), format = '%m/%d/%Y')"
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.Date(as.character(")
+		.append(tableName).append("$").append(colName).append("), format = '%Y-%m-%d %h:%m:%s')");
+		return builder.toString();
+	}
 
 	/**
 	 * Generate the syntax to perform a fRead to ingest a file
