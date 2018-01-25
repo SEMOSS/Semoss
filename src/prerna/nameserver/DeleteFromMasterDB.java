@@ -34,16 +34,8 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class DeleteFromMasterDB extends ModifyMasterDB {
+public class DeleteFromMasterDB {
 
-	public DeleteFromMasterDB(String localMasterDbName) {
-		super(localMasterDbName);
-	}
-
-	public DeleteFromMasterDB() {
-		super();
-	}
-	
 	// delete from engineconcept where engine in (select id from engine where enginename='Mv1')
 	// delete from enginerelation where engine in (select id from engine where enginename='Mv1')
 	// delete from engine where enginename='Mv1'

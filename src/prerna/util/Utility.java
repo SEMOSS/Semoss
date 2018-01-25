@@ -2328,7 +2328,7 @@ public class Utility {
 				//addToLocalMaster(engine);
 				synchronizeEngineMetadata(engineName);
 			} else if(!isLocal){ // never add local master to itself...
-				DeleteFromMasterDB deleter = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+				DeleteFromMasterDB deleter = new DeleteFromMasterDB();
 				//>>deleter.deleteEngine(engineName);
 				deleter.deleteEngineRDBMS(engineName);
 				SolrUtility.deleteFromSolr(engineName);
@@ -2645,7 +2645,7 @@ public class Utility {
 		}
 			}
 		}
-		AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+		AddToMasterDB adder = new AddToMasterDB();
 
 		Date rdbmsDate = adder.getEngineDate(engineName);
 		String owlFileName = baseFolder + "/" + prop.getProperty(Constants.OWL);
@@ -2707,7 +2707,7 @@ public class Utility {
 			// logic to register the engine into the local master
 			adder.registerEngineLocal(prop);
 			//>>localMaster.commit(); 
-			adder.close(localMaster);
+			adder.commit(localMaster);
 		} else if(!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) { // BIGData has idiosyncracy where it keeps date in a weird format 2016-05-12T12:23:07.000Z instead of 2016-05-12T12:23:07
 			// remove the existing time stamp in the local master
 			//>>localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
@@ -2716,13 +2716,13 @@ public class Utility {
 
 			// if it has a time stamp, it means it was previously in local master
 			// logic to delete an engine from the local master
-			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
+			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 			//>>remover.deleteEngine(engineName);
 			remover.deleteEngineRDBMS(engineName);
 			// logic to add the engine into the local master
 			adder.registerEngineLocal(prop);
 			//>>localMaster.commit();
-			adder.close(localMaster);
+			adder.commit(localMaster);
 		}
 	}
 	
