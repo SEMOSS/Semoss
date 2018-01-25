@@ -40,7 +40,8 @@ public class JobConfigParser {
 		String jobName = jobConfig.getJobName();
 		String jobGroup = jobConfig.getJobGroup();
 		String jobCronExpression = jobConfig.getCronExpression();
-		String triggerOnLoad = jobConfig.getTriggerOnLoad();
+		boolean triggerOnLoad = jobConfig.getTriggerOnLoad();
+		boolean status = jobConfig.getStatus();
 
 		// Get the job's data map
 		JobDataMap jobDataMap;
@@ -51,25 +52,29 @@ public class JobConfigParser {
 			throw e;
 		}
 
-		// Schedule the job
-		JobDetail job = newJob(jobClass).withIdentity(jobName, jobGroup).usingJobData(jobDataMap).build();
-		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobName + "Trigger", jobName + "TriggerGroup")
-				.withSchedule(CronScheduleBuilder.cronSchedule(jobCronExpression)).build();
-		Scheduler scheduler = SchedulerUtil.getScheduler();
-		if (unitTest) {
-			scheduler.addJob(job, true, true);
-			scheduler.triggerJob(job.getKey());
+		// schedule job if its in active status
+		if (status) {
+			// Schedule the job
+			JobDetail job = newJob(jobClass).withIdentity(jobName, jobGroup).usingJobData(jobDataMap).build();
+			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobName + "Trigger", jobName + "TriggerGroup")
+					.withSchedule(CronScheduleBuilder.cronSchedule(jobCronExpression)).build();
+			Scheduler scheduler = SchedulerUtil.getScheduler();
+			if (unitTest) {
+				scheduler.addJob(job, true, true);
+				scheduler.triggerJob(job.getKey());
+			} else {
+				scheduler.scheduleJob(job, trigger);
+			}
+			LOGGER.info("Scheduled " + jobName + " to run on the following schedule: " + jobCronExpression + ".");
+
+			// if triggerOnLoad is true run
+			if (triggerOnLoad) {
+				scheduler.triggerJob(job.getKey());
+			}
+			// Return the job key
+			return job.getKey();
 		} else {
-			scheduler.scheduleJob(job, trigger);
+			return null;
 		}
-		LOGGER.info("Scheduled " + jobName + " to run on the following schedule: " + jobCronExpression + ".");
-		
-		// if triggerOnLoad is true run
-		if (triggerOnLoad != null && triggerOnLoad.equalsIgnoreCase("true")){
-			scheduler.triggerJob(job.getKey());
-		}
-		
-		// Return the job key
-		return job.getKey();
 	}
 }
