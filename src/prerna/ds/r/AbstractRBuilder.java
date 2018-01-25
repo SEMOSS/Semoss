@@ -318,6 +318,8 @@ public abstract class AbstractRBuilder {
 			SemossDataType type = typesMap.get(header);
 			if(type == SemossDataType.DATE) {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(this.dataTableName, header) ) );
+			} else if(type == SemossDataType.TIMESTAMP) {
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDateTime(this.dataTableName, header) ) );
 			}
 		}
 	}
