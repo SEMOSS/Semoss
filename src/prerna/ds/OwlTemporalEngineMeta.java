@@ -719,6 +719,8 @@ public class OwlTemporalEngineMeta {
 						SemossDataType dt = SemossDataType.convertStringToDataType(values[i].toString());
 						if(dt == SemossDataType.INT || dt == SemossDataType.DOUBLE) {
 							rowMap.put("dataType", "NUMBER");
+						} else {
+							rowMap.put("dataType", values[i]);
 						}
 					} else {
 						rowMap.put(headers[i], values[i]);
