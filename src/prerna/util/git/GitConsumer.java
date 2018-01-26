@@ -3,7 +3,6 @@ package prerna.util.git;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -88,9 +87,9 @@ public class GitConsumer {
 		moveDataFilesToApp(baseFolder, yourName4App);
 	}
 
-	public static void moveDataFilesToApp(String baseFolder, String appName) {
+	public static void moveDataFilesToApp(String baseFolder, String yourName4App) {
 		// need to account for version here
-		String appFolder = baseFolder + "/db/" + appName ;
+		String appFolder = baseFolder + "/db/" + yourName4App ;
 		String versionFolder = appFolder + "/version";
 		File dir = new File(versionFolder);
 
@@ -140,62 +139,100 @@ public class GitConsumer {
 		for (int i = 0; i < files.length; i++) {
 			try {
 				// need to make modification on the engine
-				File file = changeEngine(files[i], appName);
-				FileUtils.copyFileToDirectory(file, targetFile );
+				File fileToMove = null;
+				if(files[i].getName().equalsIgnoreCase(yourName4App)) {
+					fileToMove = files[i];
+				} else {
+					// we have to change the smss file
+					File origFile = files[i];
+					fileToMove = changeSmssEngineName(origFile, yourName4App);
+					// we have to modify the recipe steps
+//					updateInsightRdbms(origFile, appFolder, yourName4App);
+				}
+				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	private static File changeEngine(File file, String appName)
-	{
+//	private static void updateInsightRdbms(File oldSmssFile, String appFolder, String yourName4App) {
+//		String mainDirectory = oldSmssFile.getParentFile().getParent();
+//		
+//		FileInputStream fis = null;
+//		try {
+//			fis = new FileInputStream(oldSmssFile);
+//			Properties prop = new Properties();
+//			prop.load(fis);
+//			
+//			String origEngineName = prop.getProperty("ENGINE");
+//			// this will contian something like db/engine_name/insights_database
+//			String extension = prop.getProperty("RDBMS_INSIGHTS");
+//			extension = extension.substring(extension.lastIndexOf("/"), extension.length());
+//			String location = mainDirectory + extension;
+//			
+//			AppNameRecipeModifier.renameDatabaseForInsights(location, yourName4App, origEngineName);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} finally {
+//			if(fis != null) {
+//				try {
+//					fis.close();
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//	}
+
+	private static File changeSmssEngineName(File file, String yourName4App) {
 		String mainDirectory = file.getParent();
 		String fileName = file.getName();
-		File newFile = null;
+		
+		String oldName = "db/" + fileName.replace(".smss", "");
+		String newName = "db/" + yourName4App;
+		String newFileName = mainDirectory + "/" + yourName4App + ".smss";
+		File newFile = new File(newFileName);
 
+		FileInputStream fis = null;
+		OutputStream fos = null;
 		try {
-			OutputStream fos = null;
+			fos = new FileOutputStream(newFile);
+			fis = new FileInputStream(file);
+			Properties prop = new Properties();
+			prop.load(fis);
+			prop.put("ENGINE", yourName4App);
 
-			if((fileName).equalsIgnoreCase(appName + ".smss")) {
-				newFile = file; // nothing to do here
-			}
-			else {
-				String oldName = "db/" + fileName.replace(".smss", "");
-				String newName = "db/" + appName;
-				String newFileName = mainDirectory + "/" + appName + ".smss";
-				newFile = new File(newFileName);
-				fos = new FileOutputStream(newFile);
+			Enumeration <Object> propKeys = prop.keys();
+			while(propKeys.hasMoreElements()) {
+				String propKey = propKeys.nextElement() + "";
+				String propValue = prop.getProperty(propKey);
 
-				Properties prop = new Properties();
-				prop.load(new FileInputStream(file));
-
-				prop.put("ENGINE", appName);
-
-				// accomodate for old stuff
-				Enumeration <Object> propKeys = prop.keys();
-				while(propKeys.hasMoreElements())
-				{
-					String propKey = propKeys.nextElement() + "";
-					String propValue = prop.getProperty(propKey);
-
-					if(propValue.contains(oldName))
-					{
-						propValue = propValue.replaceAll(oldName, newName);
-						prop.put(propKey, propValue);
-					}
-					else
-					{
-						prop.put(propKey, propValue);
-					}
+				if(propValue.contains(oldName)) {
+					propValue = propValue.replaceAll(oldName, newName);
+					prop.put(propKey, propValue);
+				} else {
+					prop.put(propKey, propValue);
 				}
-				prop.store(fos, "Changing File Content for engine");
-				fos.close();
 			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			prop.store(fos, "Changing File Content for engine");
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(fos != null) {
+				try {
+					fos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(fis != null) {
+				try {
+					fis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		return newFile;
