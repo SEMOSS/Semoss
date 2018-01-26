@@ -87,7 +87,8 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		// to output as dates
 		boolean addedColToDateChange = false;
 		for(String column : this.colDataTypes.keySet()) {
-			if(SemossDataType.DATE == this.colDataTypes.get(column)) {
+			SemossDataType thisColType = this.colDataTypes.get(column);
+			if(SemossDataType.DATE == thisColType || SemossDataType.TIMESTAMP == thisColType) {
 				if(column.contains("__")) {
 					column = column.split("__")[1];
 				}
