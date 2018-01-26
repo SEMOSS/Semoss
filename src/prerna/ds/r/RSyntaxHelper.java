@@ -113,7 +113,7 @@ public class RSyntaxHelper {
 		// "datatable$Birthday <- as.Date(as.character(datatable$Birthday), format = '%m/%d/%Y')"
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.Date(as.character(")
-		.append(tableName).append("$").append(colName).append("), format = '%Y-%m-%d %h:%m:%s')");
+		.append(tableName).append("$").append(colName).append("), format = '%Y-%m-%d %H:%M:%S')");
 		return builder.toString();
 	}
 
