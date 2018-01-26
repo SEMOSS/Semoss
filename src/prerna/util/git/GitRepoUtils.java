@@ -196,6 +196,7 @@ public class GitRepoUtils {
 			thisGit.close();
 		} catch (IOException | GitAPIException e) {
 			e.printStackTrace();
+			throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 		}
 	}
 
