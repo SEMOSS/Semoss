@@ -1,6 +1,7 @@
 package prerna.engine.impl;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -43,17 +44,11 @@ public class InsightAdministrator {
 				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
 				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES ('")
 				.append(newId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', (");
+				.append("'").append(layout).append("', ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
-		int numPixels = pixelRecipeToSave.length;
-		for(int i = 0; i < numPixels; i++) {
-			insertQuery.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
-			if(i+1 != numPixels) {
-				insertQuery.append(",");
-			}
-		}
-		insertQuery.append("));");
+		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		insertQuery.append(");");
 		
 		// now run the query and commit
 		this.insightEngine.insertData(insertQuery.toString());
@@ -83,17 +78,11 @@ public class InsightAdministrator {
 				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
 				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES ('")
 				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', (");
+				.append("'").append(layout).append("', ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
-		int numPixels = pixelRecipeToSave.length;
-		for(int i = 0; i < numPixels; i++) {
-			insertQuery.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
-			if(i+1 != numPixels) {
-				insertQuery.append(",");
-			}
-		}
-		insertQuery.append("));");
+		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		insertQuery.append(");");
 		
 		// now run the query and commit
 		this.insightEngine.insertData(insertQuery.toString());
@@ -119,17 +108,9 @@ public class InsightAdministrator {
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(COL_QUESTION_NAME).append(" = '").append(insightName).append("', ")
 				.append(COL_QUESTION_LAYOUT).append(" = '").append(layout).append("', ")
-				.append(COL_QUESTION_PKQL).append("=(");
-		// loop through and add the recipe
-		// don't forget to escape each entry in the array
-		int numPixels = pixelRecipeToSave.length;
-		for(int i = 0; i < numPixels; i++) {
-			updateQuery.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
-			if(i+1 != numPixels) {
-				updateQuery.append(",");
-			}
-		}
-		updateQuery.append(") WHERE ").append(COL_QUESTION_ID).append(" = '").append(existingRdbmsId).append("'");
+				.append(COL_QUESTION_PKQL).append("=");
+		updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		updateQuery.append(" WHERE ").append(COL_QUESTION_ID).append(" = '").append(existingRdbmsId).append("'");
 		
 		// now run the query and commit
 		this.insightEngine.insertData(updateQuery.toString());
@@ -167,7 +148,33 @@ public class InsightAdministrator {
 	 * @param s
 	 * @return
 	 */
-	private String escapeForSQLStatement(String s) {
+	private static String escapeForSQLStatement(String s) {
 		return s.replaceAll("'", "''");
+	}
+	
+	public static String getArraySqlSyntax(String[] pixelRecipeToSave) {
+		StringBuilder sql = new StringBuilder("(");
+		int numPixels = pixelRecipeToSave.length;
+		for(int i = 0; i < numPixels; i++) {
+			sql.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
+			if(i+1 != numPixels) {
+				sql.append(",");
+			}
+		}
+		sql.append(")");
+		return sql.toString();
+	}
+	
+	public static String getArraySqlSyntax(List<String> pixelRecipeToSave) {
+		StringBuilder sql = new StringBuilder("(");
+		int numPixels = pixelRecipeToSave.size();
+		for(int i = 0; i < numPixels; i++) {
+			sql.append("'").append(escapeForSQLStatement(pixelRecipeToSave.get(i))).append("'");
+			if(i+1 != numPixels) {
+				sql.append(",");
+			}
+		}
+		sql.append(")");
+		return sql.toString();
 	}
 }
