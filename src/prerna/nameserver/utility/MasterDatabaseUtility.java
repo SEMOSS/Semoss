@@ -396,7 +396,7 @@ public class MasterDatabaseUtility {
 		} catch(SQLException e) {
 			e.printStackTrace();
 		} finally {
-			closeStreams(stmt, rs);
+			closeStreams(null, rs);
 		}
 
 		// now time to run the upstream and downstream queries

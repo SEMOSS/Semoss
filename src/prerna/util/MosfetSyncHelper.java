@@ -28,6 +28,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.Insight;
 import prerna.solr.SolrIndexEngine;
+import prerna.solr.SolrUtility;
 
 public class MosfetSyncHelper {
 
@@ -220,7 +221,7 @@ public class MosfetSyncHelper {
 			queryResults.put(SolrIndexEngine.VIEW_COUNT, 0);
 
 			try {
-				solrDocsToAdd.add(solrE.createDocument(engineName + "_" + id, queryResults));
+				solrDocsToAdd.add(SolrUtility.createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

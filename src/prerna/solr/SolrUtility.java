@@ -12,6 +12,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.common.SolrInputDocument;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,63 @@ public final class SolrUtility {
 	private SolrUtility() {
 
 	}
+	
+	/**
+	 * Used to create a generic SolrInputDocument
+	 * This is usually called when you want to store a list of solr documents you want to index
+	 * 		It is significantly more efficient to add the full list of documents to index at the same time
+	 * 		instead of indexing each document separately 
+	 * This can be used when creating a document for the insight and instance core
+	 * @param uniqueID				The unique id for the solr document
+	 * @param fieldData				The field data for the document.. must match the existing schema values
+	 * 									all the fields are defined above as constants
+	 * @return
+	 */
+	public static SolrInputDocument createDocument(String idFieldName, String uniqueID, Map<String, Object> fieldData) {
+		SolrInputDocument doc = new SolrInputDocument();
+		// set document ID to uniqueID
+		doc.setField(idFieldName, uniqueID);
+		// add field names and data to new Document
+		for (String fieldname : fieldData.keySet()) {
+			doc.setField(fieldname, fieldData.get(fieldname));
+		}
+		
+		return doc;
+	}
+	
+	/**
+	 * Add a series of documents into the given core
+	 * @param server
+	 * @param docs
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public static void addSolrInputDocuments(HttpSolrServer server, Collection<SolrInputDocument> docs) throws SolrServerException, IOException{
+		if(docs != null && !docs.isEmpty()) {
+			LOGGER.info("Adding " + docs.size() + " documents into insight server...");
+			server.add(docs);
+			server.commit();
+			LOGGER.info("Done adding documents in insight server.");
+		}
+	}
+	
+	/**
+	 * Uses the passed in params to add a new document into a given solr core
+	 * @param uniqueID					new id to be added
+	 * @param fieldData					fields to be added to the new Doc
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public static void addSolrInputDocument(HttpSolrServer server, String idFieldName, String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
+		// create new Document
+		SolrInputDocument doc = createDocument(idFieldName, uniqueID, fieldData);
+		LOGGER.info("Adding INSIGHTS with unique ID:  " + uniqueID);
+		server.add(doc);
+		server.commit();
+		LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
+	}
+	
+	
 
 	/**
 	 * Add the engine instances into the solr index engine
@@ -116,7 +175,7 @@ public final class SolrUtility {
 				}
 				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
 				// add to the docs list
-				docs.add(solrE.createDocument(newId, fieldData));
+				docs.add(createDocument(SolrIndexEngine.ID, newId, fieldData));
 
 				// 3) now see if the concept has properties
 				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
@@ -153,7 +212,7 @@ public final class SolrUtility {
 							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
 							// add the property document to the docs
-							docs.add(solrE.createDocument(propId, propFieldData));
+							docs.add(createDocument(SolrIndexEngine.ID, propId, propFieldData));
 						}
 					}
 				} else {
@@ -182,7 +241,7 @@ public final class SolrUtility {
 							propertiesList.add(Utility.getInstanceName(prop));
 							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
 							// add the property document to the docs
-							docs.add(solrE.createDocument(propId, propFieldData));
+							docs.add(createDocument(SolrIndexEngine.ID, propId, propFieldData));
 						}
 					}
 				}
@@ -364,7 +423,7 @@ public final class SolrUtility {
 						queryResults.put(SolrIndexEngine.LAYOUT, layout);
 						queryResults.put(SolrIndexEngine.TAGS, perspective);
 						try {
-							docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
+							docs.add(createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -500,7 +559,7 @@ public final class SolrUtility {
 				queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 				try {
-					docs.add(solrE.createDocument(engineName + "_" + id, queryResults));
+					docs.add(createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
