@@ -105,6 +105,29 @@ public final class SolrUtility {
 		LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
 	}
 	
+	/**
+	 * Right now, this is just adding the app name
+	 * @param appName
+	 * @throws KeyStoreException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws KeyManagementException 
+	 */
+	public static void addAppToSolr(String appName) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+		if(!solrE.containsApp(appName)) {
+			LOGGER.info("Need to add app into app core");
+			Map<String, Object> fieldData = new HashMap<String, Object>();
+			fieldData.put("app_name", appName);
+			fieldData.put("app_creation_date", SolrIndexEngine.getDateFormat().format(new Date()));
+			try {
+				solrE.addApp(appName, fieldData);
+			} catch (SolrServerException | IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			LOGGER.info("App Exists in App Core!!");
+		}
+	}
 	
 
 	/**
