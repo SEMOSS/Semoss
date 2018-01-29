@@ -356,6 +356,112 @@ public class SolrIndexEngine {
 		return fieldsToModify;
 	}
 	
+	
+	/**
+	 * Modifies the specified document based on its Unique ID
+	 * @param uniqueID              ID to be modified
+	 * @param fieldsToModify        specific fields to modify
+	 */
+	public Map<String, Object> modifyApp(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
+		if (serverActive()) {
+			/*
+			 * solr doens't allow you to modify specific fields in a document that is already indexed
+			 * therefore, to modify an existing insight we need to
+			 * 1) query the solr insight core using the specific unique id for the document
+			 * 2) once you have the solr document, get the map containing the field attributes
+			 * 3) override any of the existing fields contained in the map that were received from the solr document
+			 * 		with the new values in the fieldsToModify map that was passed into the method
+			 * 4) add this new solr document back into insight core
+			 * 
+			 * note: if you add a solr document which has the same id as an existing document that was indexed
+			 * 			solr automatically overrides that index with the new one
+			 */
+			
+			
+			// 1) query to get the existing insight
+			
+			// create a solr query builder and add a filter on the specific ID to get the correct insight
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setSearchString(QUERY_ALL);
+			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+			List<String> idList = new ArrayList<String>();
+			idList.add(uniqueID);
+			filterForId.put(ID, idList);
+			queryBuilder.setFilterOptions(filterForId);
+			// execute the query
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_APP_PATH_NAME);
+			// the results object is defaulted to a list.. but with the ID bind (which is unique) there should
+			// be exactly one solr document returned
+			SolrDocumentList docList = res.getResults();
+			if(docList.size() == 0) {
+				LOGGER.error("COULD NOT FIND APP WITH ID = " + uniqueID + " INSIDE SOLR TO MODIFY");
+				return null;
+			}
+			SolrDocument origDoc = docList.get(0);
+			
+			// 2) create an iterator to go through the existing fields
+			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
+			
+			// 3) we need to create a new solr document to combine the existing values and override any of those values
+			//		with those in the fieldsToModify set
+			SolrInputDocument doc = new SolrInputDocument();
+			
+			// we also need to keep a list of fields that have been added
+			// this is because the existing values in the iterator only returns those which are set
+			// but there may be values which are not set that are defined in the fieldsToModify map
+			// based on the looping, need to iterate through and make sure all are added
+			Set<String> currFieldNames = new HashSet<String>();
+			
+			// loop through existing values
+			while (iterator.hasNext()) {
+				//get the next field value in the existing map
+				Entry<String, Object> field = iterator.next();
+				// fieldName will correspond to a defined field name in the schema
+				String fieldName = field.getKey();
+				// add to the list of field names that have been added
+				currFieldNames.add(fieldName);
+				// if modified field, grab new value
+				if (fieldsToModify.containsKey(fieldName)) {
+					doc.setField(fieldName, fieldsToModify.get(fieldName));
+				} else {
+					// if not modified field, use existing value
+					doc.setField(fieldName, field.getValue());
+					// also update the map to return what all the values are
+					if(fieldName.equals("app_creation_date")) {
+						// special case for dates since they must be in a specific format
+						try {
+							Date d = getSolrDateFormat().parse(field.getValue() + "");
+							fieldsToModify.put(fieldName, getDateFormat().format(d));
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+					} else {
+						// if not a date, just add the value as is
+						fieldsToModify.put(fieldName, field.getValue());
+					}
+				}
+			}
+			
+			// again.. since the iterator only contains the values that are set
+			// the above loop will not get any new fields defined in fieldsToModify map
+			// so loop through the map and see if any fields are defined there that need to be set
+			for (String newField : fieldsToModify.keySet()) {
+				if (!currFieldNames.contains(newField)) {
+					doc.setField(newField, fieldsToModify.get(newField));
+				}
+			}
+			
+			// when committing, automatically overrides existing field values with the new ones
+			LOGGER.info("Modifying document:  " + uniqueID);
+			appServer.add(doc);
+			appServer.commit();
+			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
+		}
+		
+		return fieldsToModify;
+	}
+	
+	
 	/**
 	 * Modifies the view count and last viewed time of a document based on its Unique ID
 	 * @param uniqueID              ID to be modified
@@ -460,12 +566,40 @@ public class SolrIndexEngine {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	public void addApps(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
+	public void addApp(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
 			LOGGER.info("Adding app with unique ID:  " + uniqueID);
 			SolrUtility.addSolrInputDocument(appServer, ID, uniqueID, fieldData);
 			LOGGER.info("UniqueID " + uniqueID + "'s app has been added");
 		}
+	}
+
+	/**
+	 * Used to verify if an app exists and has been added into solr
+	 * @param appName
+	 * @return
+	 */
+	public boolean containsApp(String appName) {
+		// check if db currently exists
+		LOGGER.info("checking if app " + appName + " needs to be added to solr");
+		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+		builder.setSearchString(appName);
+		builder.setDefaultSearchField("app_name");
+		builder.setLimit(1);
+		
+		SolrDocumentList queryRet = null;
+		try {
+			QueryResponse res = getQueryResponse(builder.getSolrQuery(), SOLR_PATHS.SOLR_APP_PATH_NAME);
+			queryRet = res.getResults();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		}
+		if (queryRet != null && queryRet.size() != 0) {
+			LOGGER.info("Engine " + appName + " already exists inside solr");
+		} else {
+			LOGGER.info("queryRet.size() = 0 ... so add engine");
+		}
+		return (queryRet.size() != 0);
 	}
 	
 	
@@ -1670,6 +1804,42 @@ public class SolrIndexEngine {
 			return res.getResults();
 		}
 		return null;
+	}
+	
+	/**
+	 * Deletes all insights related to a specified engine
+	 * @param engineName      engine name to delete
+	 * @throws SolrServerException 
+	 */
+	public long getNumEngineInsights(String engineName) throws SolrServerException {
+		if (serverActive()) {
+			LOGGER.info("Getting insights for core_engine = " + engineName);
+			/*
+			 * General steps:
+			 * 1) Create a query builder object
+			 * 2) Add all the various inputs from the user 
+			 * 3) Execute the query on the insight core
+			 */
+			
+			// 1) create the query builder
+			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+			queryBuilder.setLimit(1);
+			// set the solr field values to return
+			// these are the necessarily fields to view and run a returned insight
+			List<String> retFields = new ArrayList<String>();
+			retFields.add(ID);
+			queryBuilder.setReturnFields(retFields);
+
+			Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+			List<String> engineList = new Vector<String>();
+			engineList.add(engineName);
+			filterData.put(CORE_ENGINE, engineList);
+			queryBuilder.setFilterOptions(filterData);
+			
+			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			return res.getResults().getNumFound();
+		}
+		return 0;
 	}
 	
 

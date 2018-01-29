@@ -84,7 +84,7 @@
 		<field name="app_image" type="string" indexed="true" stored="true" required="false" multiValued="false" />
 
 		<!-- app release date -->
-		<field name="app_release_date" type="date" indexed="true" stored="true" required="false" multiValued="false" />
+		<field name="app_creation_date" type="date" indexed="true" stored="true" required="false" multiValued="false" />
 
 		<!-- app requirements date -->
 		<field name="app_requirements" type="string" indexed="true" stored="true" required="false" multiValued="true" />
