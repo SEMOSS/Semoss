@@ -38,6 +38,9 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor{
 		
 		// convert qs to physical names
 		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		if(frame == null) {
+			return new NounMetadata(new HashMap(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
+		}
 		String[] qsHeaders = frame.getQsHeaders();
 		OwlTemporalEngineMeta meta = frame.getMetaData();
 		
