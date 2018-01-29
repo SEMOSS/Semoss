@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
@@ -18,22 +19,30 @@ import prerna.util.ga.GATracker;
 
 public class ImportDataReactor extends AbstractReactor {
 	
+	private static final String CLASS_NAME = ImportDataReactor.class.getName();
+	
 	public ImportDataReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey(), ReactorKeysEnum.FRAME.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
+		// set the logger into the frame
+		Logger logger = getLogger(CLASS_NAME);
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pixel planner
 		QueryStruct2 qs = getQueryStruct();
 		ITableDataFrame frame = getFrame();
+		// setting a default frame of native
+		if(frame == null) {
+			logger.info("No frame is defined. Generating a defualt of native frame");
+			frame = new NativeFrame();
+		}
 
 		// set the logger into the frame
-		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);
-		
+				
 		// track GA data
 		GATracker.getInstance().trackDataImport(this.insight, qs);
 		

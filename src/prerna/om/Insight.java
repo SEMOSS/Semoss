@@ -43,6 +43,7 @@ import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.NounMetadata;
@@ -126,9 +127,7 @@ public class Insight {
 	 * Create an empty insight
 	 */
 	public Insight() {
-		this.pixelList = new Vector<String>();
-		this.taskStore = new TaskStore();
-		this.insightId = "TEMP_ID";
+		loadDefaultSettings();
 	}
 
 	/**
@@ -137,10 +136,22 @@ public class Insight {
 	 * @param rdbmsId
 	 */
 	public Insight(String engineName, String rdbmsId) {
-		super();
+		this();
 		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
+	}
+	
+	private void loadDefaultSettings() {
+		this.pixelList = new Vector<String>();
 		this.taskStore = new TaskStore();
+		this.insightId = "TEMP_ID";
+		
+		// since we require the use of ids on the databases
+		// we will add the local alias to the global unique id
+//		Map<String, String> aliasToId = MasterDatabaseUtility.getEngineAliasToId();
+//		for(String alias : aliasToId.keySet()) {
+//			this.varStore.put(alias, new NounMetadata(aliasToId.get(alias), PixelDataType.CONST_STRING));
+//		}
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
