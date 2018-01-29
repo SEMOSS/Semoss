@@ -12,7 +12,7 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 		if (engineName != null && rdbmsId != null && imageURL != null) {
 			imageURL = imageURL.replace("<engine>", engineName);
 			imageURL = imageURL.replace("<id>", rdbmsId+"");
-			updateSolrImage(rdbmsId + "", rdbmsId + "", imageURL, engineName);
+			updateSolrImageByRecreatingInsight(rdbmsId + "", rdbmsId + "", imageURL, engineName);
 		}
 		return null;
 	}
