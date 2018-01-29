@@ -2330,6 +2330,17 @@ public class Utility {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 			}
 			
+			
+			//TODO: NEED TO REMOVE THIS CODE
+			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
+				engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
+				changePropMapFileValue(fileName, Constants.ENGINE_TYPE, engineClass);
+			}
+			else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
+				engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
+				changePropMapFileValue(fileName, Constants.ENGINE_TYPE, engineClass);
+			}
+			
 			// create and open the class
 			engine = (IEngine)Class.forName(engineClass).newInstance();
 			engine.setEngineName(engineName);
