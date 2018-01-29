@@ -77,7 +77,7 @@
 
 		<!-- app description -->
 		<field name="app_description" type="string" indexed="true" stored="true" required="false" multiValued="false" />
-		<field name="index_app_description" type="text_en_splitting" indexed="true" stored="false" required="true" multiValued="false" /> 
+		<field name="index_app_description" type="text_en_splitting" indexed="true" stored="false" required="false" multiValued="false" /> 
 		<copyField source="app_description" dest="index_app_description"/>
 
 		<!-- app image -->
