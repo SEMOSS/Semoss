@@ -39,6 +39,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
+import prerna.sablecc2.reactor.database.DeleteEngineReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
@@ -359,6 +360,7 @@ public class ReactorFactory {
 		reactorHash.put("FileRead", FileSourceReactor.class);
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
+		reactorHash.put("DeleteEngine", DeleteEngineReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
