@@ -5,6 +5,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Vector;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -26,58 +28,42 @@ import prerna.util.Utility;
 public class DeleteEngineReactor extends AbstractReactor {
 
 	public DeleteEngineReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
 		// ArrayList<String> ownedEngines = permissions
 		// .getUserOwnedEngines(((User)
 		// request.getSession().getAttribute(Constants.SESSION_USER)).getId());
-		
-		// get inputs with key
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		if (grs != null) {
-			for (NounMetadata noun : grs.vector) {
-				String engineName = noun.getValue().toString();
-				IEngine engine = Utility.getEngine(engineName);
-				if (engine != null) {
-					 deleteEngine(engine);
-				}
-
+		List<String> engines = getEngines();
+		for (String engineName : engines) {
+			IEngine engine = Utility.getEngine(engineName);
+			if (engine != null) {
+				deleteEngine(engine);
 			}
-		} 
-		// get all inputs
-		else {
-			for (int i = 0; i < this.curRow.size(); i++) {
-				String engineName = (String) this.curRow.get(i);
-				IEngine engine = Utility.getEngine(engineName);
-				if (engine != null) {
-					 deleteEngine(engine);
-				}
 
-				// TODO session code
-				// IEngine engine = getEngine(engineString, request);
-				// if (this.securityEnabled) {
-				// if (ownedEngines.contains(engineString)) {
-				// deleteEngine(engine, request);
-				// permissions.deleteEngine(
-				// ((User)
-				// request.getSession().getAttribute(Constants.SESSION_USER)).getId(),
-				// engineString);
-				// } else {
-				//// return Response.status(400).entity("You do not have access
-				// to
-				// delete this database.").build();
-				// return WebUtility.getResponse("You do not have access to
-				// delete
-				// this database.", 400);
-				// }
-				// } else {
-				// deleteEngine(engine, request)
-				// }
-			}
+			// TODO session code
+			// IEngine engine = getEngine(engineString, request);
+			// if (this.securityEnabled) {
+			// if (ownedEngines.contains(engineString)) {
+			// deleteEngine(engine, request);
+			// permissions.deleteEngine(
+			// ((User)
+			// request.getSession().getAttribute(Constants.SESSION_USER)).getId(),
+			// engineString);
+			// } else {
+			//// return Response.status(400).entity("You do not have access
+			// to
+			// delete this database.").build();
+			// return WebUtility.getResponse("You do not have access to
+			// delete
+			// this database.", 400);
+			// }
+			// } else {
+			// deleteEngine(engine, request)
+			// }
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_ENGINE);
@@ -111,7 +97,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 
 		return true;
 	}
-	
+
 	// session code
 	private boolean deleteEngine(IEngine coreEngine, HttpServletRequest request) {
 		String engineName = coreEngine.getEngineName();
@@ -155,8 +141,8 @@ public class DeleteEngineReactor extends AbstractReactor {
 
 		return true;
 	}
-	
-	//session code
+
+	// session code
 	private AbstractEngine getEngine(String engineName, HttpServletRequest request) {
 		HttpSession session = request.getSession();
 		AbstractEngine engine = null;
@@ -165,6 +151,31 @@ public class DeleteEngineReactor extends AbstractReactor {
 		else
 			engine = (AbstractEngine) Utility.getEngine(engineName);
 		return engine;
+	}
+
+	/**
+	 * Get inputs
+	 * @return list of engines to delete
+	 */
+	public List<String> getEngines() {
+		List<String> engines = new Vector<String>();
+
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				engines.add(grs.get(i).toString());
+			}
+			return engines;
+		}
+
+		// no key is added, grab all inputs
+		int size = this.curRow.size();
+		for (int i = 0; i < size; i++) {
+			engines.add(this.curRow.get(i).toString());
+		}
+		return engines;
 	}
 
 }

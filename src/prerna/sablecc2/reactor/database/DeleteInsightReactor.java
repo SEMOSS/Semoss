@@ -6,8 +6,8 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -35,7 +35,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineName = this.keyValue.get(this.keysToGet[0]);
-		List<String> insightIDList = new ArrayList<String>(Arrays.asList(getInsightIDs()));
+		List<String> insightIDList = getInsightIDs();
 		List<String> solrIDList = new ArrayList<String>();
 		IEngine engine = Utility.getEngine(engineName);
 		
@@ -86,17 +86,24 @@ public class DeleteInsightReactor extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
 	}
 	
-	private String[] getInsightIDs() {
-		GenRowStruct insightIDsGrs = this.store.getNoun(ReactorKeysEnum.INSIGHT_ID.getKey());
-		if (insightIDsGrs.size() > 0) {
-			String[] ids = new String[insightIDsGrs.size()];
-			for (int i = 0; i < insightIDsGrs.size(); i++) {
-				String id = insightIDsGrs.get(i).toString();
-				ids[i] = id;
+	private List<String> getInsightIDs() {
+		List<String> ids = new Vector<String>();
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				ids.add(grs.get(i).toString());
 			}
 			return ids;
 		}
-		throw new IllegalArgumentException("Need to define insight IDs to delete.");
+
+		// no key is added, grab all inputs ignore first
+		int size = this.curRow.size();
+		for (int i = 1; i < size; i++) {
+			ids.add(this.curRow.get(i).toString());
+		}
+		return ids;
 	}
 
 }
