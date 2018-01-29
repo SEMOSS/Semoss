@@ -116,7 +116,12 @@ public class SolrIndexEngineQueryBuilder {
 			// i.e. the filter will return things that are bar OR pie
 			int size = filterValuesList.size();
 			if(size == 1) {
-				this.Q.addFilterQuery(fieldName + ":" + "\"" + filterValuesList.get(0) + "\"");
+				String filterValue = filterValuesList.get(0);
+				if(filterValue.equals("*")) {
+					this.Q.addFilterQuery(fieldName + ":*");
+				} else {
+					this.Q.addFilterQuery(fieldName + ":" + "\"" + filterValuesList.get(0) + "\"");
+				}
 			} else {
 				for (int i = 0; i < filterValuesList.size(); i++) {
 					if (i == filterValuesList.size() - 1) {
