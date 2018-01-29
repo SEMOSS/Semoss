@@ -1748,6 +1748,10 @@ public class SolrIndexEngine {
 				LOGGER.info("deleted query is " + query);
 				insightServer.deleteByQuery(query);
 				insightServer.commit();
+				query = "app_name:" + engineName;
+				LOGGER.info("deleted query is " + query);
+				appServer.deleteByQuery(query);
+				appServer.commit();
 				LOGGER.info("successfully removed " + engineName + " from solr" + engineName);
 			} catch (SolrServerException e1) {
 				e1.printStackTrace();
