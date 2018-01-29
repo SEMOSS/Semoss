@@ -2280,6 +2280,8 @@ public class Utility {
 //					addToSolrInstanceCore(engineToAdd);
 					// add the insights into solr
 					SolrUtility.addToSolrInsightCore(engineName);
+					// add app
+					SolrUtility.addAppToSolr(engineName);
 //				} catch (ParseException e) {
 //					e.printStackTrace();
 //				}
