@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
 import prerna.sablecc2.om.NounMetadata;
@@ -19,6 +21,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrIndexEngineQueryBuilder;
+import prerna.util.DIHelper;
+import prerna.util.insight.InsightScreenshot;
 
 public class AppInsightsReactor extends AbstractReactor {
 	
@@ -32,8 +36,9 @@ public class AppInsightsReactor extends AbstractReactor {
 		String appName = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
-		String modImage = this.keyValue.get(this.keysToGet[3]);
-
+		String modImageStr = this.keyValue.get(this.keysToGet[3]);
+		boolean modImage = (modImageStr != null && Boolean.parseBoolean(modImageStr));
+		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(SolrIndexEngine.ID);
@@ -48,7 +53,8 @@ public class AppInsightsReactor extends AbstractReactor {
 		retFields.add(SolrIndexEngine.TAGS);
 		retFields.add(SolrIndexEngine.VIEW_COUNT);
 		retFields.add(SolrIndexEngine.DESCRIPTION);
-		if(modImage != null && Boolean.parseBoolean(modImage)) {
+		
+		if(modImage) {
 			retFields.add(SolrIndexEngine.IMAGE);
 		}
 		builder.setReturnFields(retFields);
@@ -75,6 +81,24 @@ public class AppInsightsReactor extends AbstractReactor {
 		SolrDocumentList results;
 		try {
 			results = SolrIndexEngine.getInstance().queryDocument(builder);
+			// if the FE wants the images
+			if(modImage) {
+				String basePath = DIHelper.getInstance().getProperty("BaseFolder");
+				if (results != null) {
+					for (int i = 0; i < results.size(); i++) {
+						SolrDocument doc = results.get(i);
+						String imagePath = (String) doc.get("image");
+						if (imagePath != null && imagePath.length() > 0 && !imagePath.contains("data:image/:base64")) {
+							File file = new File(basePath + imagePath);
+							if (file.exists()) {
+								String image = InsightScreenshot.imageToString(basePath + imagePath);
+								doc.put("image", "data:image/png;base64," + image);
+							}
+						}
+					}
+				}
+			}
+			
 			return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INSIGHTS);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) { 
 			e.printStackTrace();
