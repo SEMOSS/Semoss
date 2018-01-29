@@ -12,6 +12,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
 
+/**
+ * Run a layout in iGraph and store back into tinker objects Possible values:
+ * Fruchterman - layout_with_fr KK - layout_with_kk sugiyama -
+ * layout_with_sugiyama layout_as_tree layout_as_star layout.auto
+ * http://igraph.org/r/doc/layout_with_fr.html
+ *
+ */
 public class GraphLayoutReactor extends AbstractRFrameReactor {
 
 	private static final String CLASS_NAME = GraphLayoutReactor.class.getName();
