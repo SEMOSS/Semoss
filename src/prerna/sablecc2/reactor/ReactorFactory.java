@@ -81,6 +81,8 @@ import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
+import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
+import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -624,7 +626,8 @@ public class ReactorFactory {
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
-		// TODO Auto-generated method stub
+		tinkerFrameHash.put("ChangeGraphLayout", GraphLayoutReactor.class);
+		tinkerFrameHash.put("ClusterGraph", ClusterGraphReactor.class);
 		
 	}
 	
