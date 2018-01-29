@@ -39,6 +39,10 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
+import prerna.sablecc2.reactor.app.AppInfoReactor;
+import prerna.sablecc2.reactor.app.SetAppDescriptionReactor;
+import prerna.sablecc2.reactor.app.SetAppImageReactor;
+import prerna.sablecc2.reactor.app.SetAppTagsReactor;
 import prerna.sablecc2.reactor.database.DeleteEngineReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
@@ -390,7 +394,7 @@ public class ReactorFactory {
 		reactorHash.put("ToUrlType", ToUrlTypeTaskReactor.class);
 		reactorHash.put("TransposeRows", TransposeRowTaskReactor.class);
 
-		// Local Master Reactors
+		// Solr / Local Master Reactors
 		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
 		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
@@ -551,6 +555,13 @@ public class ReactorFactory {
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
+		
+		// App Metadata
+		reactorHash.put("AppInfo", AppInfoReactor.class);
+		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
+		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
+		reactorHash.put("SetAppImage", SetAppImageReactor.class);
+
 		
 		// Insight Comments
 		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
