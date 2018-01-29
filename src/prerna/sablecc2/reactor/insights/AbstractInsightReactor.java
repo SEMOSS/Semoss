@@ -196,7 +196,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @param baseURL
 	 * @param engineName
 	 */
-	protected void updateSolrImage(String solrInsightIDToUpdate, String imageInsightIDToView, String baseURL,
+	protected void updateSolrImageByRecreatingInsight(String solrInsightIDToUpdate, String imageInsightIDToView, String baseURL,
 			String engineName) {
 		String baseImagePath = DIHelper.getInstance().getProperty("BaseFolder");
 
@@ -209,12 +209,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		// not supported by the embedded browser
 		Runnable r = new Runnable() {
 			public void run() {
-				// generate image URL from saved insight
-				String url = baseURL;
-
 				// Set up the embedded browser
 				InsightScreenshot screenshot = new InsightScreenshot();
-				screenshot.showUrl(url, imagePath);
+				screenshot.showUrl(baseURL, imagePath);
 
 				// wait for screenshot
 				long startTime = System.currentTimeMillis();
@@ -226,7 +223,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 					// Update solr
 					Map<String, Object> solrInsights = new HashMap<>();
 					solrInsights.put(SolrIndexEngine.IMAGE, "\\images\\" + engineName + "_" + finalID + ".png");
-					solrInsights.put(SolrIndexEngine.IMAGE_URL, url);
+					solrInsights.put(SolrIndexEngine.IMAGE_URL, baseURL);
 					try {
 						SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + finalID, solrInsights);
 						LOGGER.info("Updated solr id: " + finalID + " image");
@@ -248,7 +245,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 					}
 					// Catch browser image exception
 				} catch (Exception e1) {
-					LOGGER.error("Unable to capture image from " + url);
+					LOGGER.error("Unable to capture image from " + baseURL);
 				}
 			}
 		};
@@ -267,7 +264,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	protected void updateSolrImage(String base64Image, String insightId, String engineName) {
+	protected void updateSolrImageFromPng(String base64Image, String insightId, String engineName) {
 		// set up path to save image to file
 		String baseImagePath = DIHelper.getInstance().getProperty("BaseFolder");
 		String imagePath = baseImagePath + "\\images\\" + engineName + "_" + insightId + ".png";
