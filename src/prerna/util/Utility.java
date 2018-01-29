@@ -2311,55 +2311,31 @@ public class Utility {
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
-			//			boolean closeDB = false;
 			String engineName = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 
 			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
-				LOGGER.debug("DB " + engineName + "<> is already loaded...");
-
+				LOGGER.debug("DB " + engineName + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of engine/all call
-				// so eventhough it is added here there is a good possibility it is not loaded so check to see this
-				if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine) 
+				// so even though it is added here there is a good possibility it is not loaded so check to see this
+				if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine) {
 					return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+				}
 			}
 
-			// we need to store the smss location in DIHelper 
+			// we store the smss location in DIHelper 
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, fileName);
-
-			
-			//TEMPORARY
-			// TODO: remove this
-			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
-				engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
-			}
-			else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
-				engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
-			}
-			//			if(engineClass.contains("RDBMSNativeEngine")){
-			//				closeDB = true; //close db
-			//			}
-			engine = (IEngine)Class.forName(engineClass).newInstance();
-			engine.setEngineName(engineName);
-			if(prop.getProperty("MAP") != null) {
-				engine.addProperty("MAP", prop.getProperty("MAP"));
-			}
-			engine.openDB(fileName);
-			//no point in doing this... it is set in the openDB call
-			//			engine.setDreamer(prop.getProperty(Constants.DREAMER));
-			//			engine.setOntology(prop.getProperty(Constants.ONTOLOGY));
-
-			// set the core prop
-//			if(prop.containsKey(Constants.DREAMER))
-//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.DREAMER, prop.getProperty(Constants.DREAMER));
-//			if(prop.containsKey(Constants.ONTOLOGY))
-//				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.ONTOLOGY, prop.getProperty(Constants.ONTOLOGY));
+			// we also store the OWL location
 			if(prop.containsKey(Constants.OWL)) {
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
-				//engine.setOWL(prop.getProperty(Constants.OWL));
 			}
+			
+			// create and open the class
+			engine = (IEngine)Class.forName(engineClass).newInstance();
+			engine.setEngineName(engineName);
+			engine.openDB(fileName);
 
-			// set the engine finally
+			// set the engine in DIHelper
 			DIHelper.getInstance().setLocalProperty(engineName, engine);
 
 			// Append the engine name to engines if not already present
@@ -2373,21 +2349,13 @@ public class Utility {
 			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 			boolean isLocal = engineName.equals(Constants.LOCAL_MASTER_DB_NAME);
 			if(!hidden && !isLocal) {
-				// I wonder if this should be done without loading the engine and all the paraphrenelia
-				//addToLocalMaster(engine);
+				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineName);
 			} else if(!isLocal){ // never add local master to itself...
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB();
-				//>>deleter.deleteEngine(engineName);
 				deleter.deleteEngineRDBMS(engineName);
 				SolrUtility.deleteFromSolr(engineName);
 			}
-			// still need to find a way to move this forward.. 
-			// but for now I am ignoring
-//			Utility.loadDataTypesIfNotPresent(engine, fileName);
-
-			//			if(closeDB)
-			//				engine.closeDB();
 		} catch (InstantiationException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
