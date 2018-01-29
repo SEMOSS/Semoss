@@ -44,6 +44,7 @@ import prerna.sablecc2.reactor.app.SetAppDescriptionReactor;
 import prerna.sablecc2.reactor.app.SetAppImageReactor;
 import prerna.sablecc2.reactor.app.SetAppTagsReactor;
 import prerna.sablecc2.reactor.database.DeleteEngineReactor;
+import prerna.sablecc2.reactor.database.DeleteInsightReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
@@ -464,6 +465,7 @@ public class ReactorFactory {
 
 		// Insight Reactors
 		// OpenSavedInsight (InsightRecipe to be deleted) returns the insight recipe
+		reactorHash.put("DeleteInsight", DeleteInsightReactor.class);
 		reactorHash.put("OpenSavedInsight", GetSavedInsightRecipeReactor.class);
 		reactorHash.put("InsightRecipe", GetSavedInsightRecipeReactor.class);
 		reactorHash.put("OpenInsight", OpenInsightReactor.class);
