@@ -40,6 +40,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.app.AppInfoReactor;
+import prerna.sablecc2.reactor.app.AppInsightsReactor;
 import prerna.sablecc2.reactor.app.SetAppDescriptionReactor;
 import prerna.sablecc2.reactor.app.SetAppImageReactor;
 import prerna.sablecc2.reactor.app.SetAppTagsReactor;
@@ -560,6 +561,7 @@ public class ReactorFactory {
 		
 		// App Metadata
 		reactorHash.put("AppInfo", AppInfoReactor.class);
+		reactorHash.put("GetAppInsights", AppInsightsReactor.class);
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
 		reactorHash.put("SetAppImage", SetAppImageReactor.class);
