@@ -59,8 +59,8 @@ public class SetAppTagsReactor extends AbstractReactor {
 		
 		// start at index 1 and see if in cur row
 		int size = this.curRow.size();
-		for(int i = 2; i < size; i++) {
-			tags.add(grs.get(i).toString());
+		for(int i = 1; i < size; i++) {
+			tags.add(this.curRow.get(i).toString());
 		}
 		return tags;
 	}
