@@ -116,26 +116,6 @@ public class SolrEngine extends AbstractEngine {
 		}
 	}
 
-	@Override
-	public SolrDocumentList execQuery(String query) {
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		//TODO:
-		// this does not work....
-		SolrQuery solrQuery = new SolrQuery(query);
-		SolrDocumentList docList = null;
-		try {
-			System.out.println("solrQuery exectuted on server!! " + solrQuery.toString());
-			QueryResponse response = solrServer.query(solrQuery);
-			docList = response.getResults();
-		} catch (SolrServerException e) {
-			e.printStackTrace();
-		}
-		return docList;
-	}
-	
 	/**
 	 * Query the solr core
 	 * @param query
@@ -156,7 +136,6 @@ public class SolrEngine extends AbstractEngine {
 
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
-		// TODO Auto-generated method stub
 		Vector<Object> values = new Vector<Object>();
 		SolrQuery query = new SolrQuery();
 		query.setQuery(type+":*");
@@ -176,6 +155,11 @@ public class SolrEngine extends AbstractEngine {
 		return null;
 	}
 	
+	@Override
+	public SolrDocumentList execQuery(String query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public Vector<Object> getCleanSelect(String query) {
