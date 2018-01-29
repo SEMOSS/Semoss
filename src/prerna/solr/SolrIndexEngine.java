@@ -55,13 +55,16 @@ public class SolrIndexEngine {
 	private static final Logger LOGGER = LogManager.getLogger(SolrIndexEngine.class.getName());
 
 	// two cores for the solr index engine 
-	public enum SOLR_PATHS {
-		SOLR_INSIGHTS_PATH, SOLR_INSTANCES_PATH
+	public static enum SOLR_PATHS {
+		SOLR_INSIGHTS_PATH, SOLR_INSTANCES_PATH, SOLR_APP_PATH_NAME
 	}
 	// the name of insight core
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	// the name of instances core
 	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
+	// the name of the app core
+	private static final String SOLR_APP_PATH_NAME = "/appCore";
+
 	
 	// the solr index engine singleton
 	private static SolrIndexEngine singleton;
@@ -71,6 +74,8 @@ public class SolrIndexEngine {
 	private HttpSolrServer insightServer;
 	// the instance solr server
 	private HttpSolrServer instanceServer;
+	// the app solr server
+	private HttpSolrServer appServer;
 
 	// search return response
 	private static final String QUERY_RESPONSE = "queryResponse";
@@ -161,6 +166,7 @@ public class SolrIndexEngine {
 		// create your insight and instance servers
 		insightServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSIGHTS_PATH_NAME, httpclient);
 		instanceServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSTANCES_PATH_NAME, httpclient);
+		appServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_APP_PATH_NAME, httpclient);
 	}
 
 	/**
@@ -173,34 +179,13 @@ public class SolrIndexEngine {
 		try {
 			insightServer.ping();
 			instanceServer.ping();
+			appServer.ping();
 		} catch (Exception e) {
 			isActive = false;
 		}
 		return isActive;
 	}
 	
-	/**
-	 * Used to create a generic SolrInputDocument
-	 * This is usually called when you want to store a list of solr documents you want to index
-	 * 		It is significantly more efficient to add the full list of documents to index at the same time
-	 * 		instead of indexing each document separately 
-	 * This can be used when creating a document for the insight and instance core
-	 * @param uniqueID				The unique id for the solr document
-	 * @param fieldData				The field data for the document.. must match the existing schema values
-	 * 									all the fields are defined above as constants
-	 * @return
-	 */
-	public SolrInputDocument createDocument(String uniqueID, Map<String, Object> fieldData) {
-		SolrInputDocument doc = new SolrInputDocument();
-		// set document ID to uniqueID
-		doc.setField(ID, uniqueID);
-		// add field names and data to new Document
-		for (String fieldname : fieldData.keySet()) {
-			doc.setField(fieldname, fieldData.get(fieldname));
-		}
-		
-		return doc;
-	}
 	
 	/////////////////// START ADDING INSIGHTS INTO SOLR ///////////////////
 	
@@ -214,6 +199,8 @@ public class SolrIndexEngine {
 	 * 		-> this is significantly faster than indexing each insight one at a time 
 	 */
 	
+
+	
 	/**
 	 * Used to add a list of insights into the insight solr core
 	 * @param docs						The list of solr documents to index
@@ -222,12 +209,10 @@ public class SolrIndexEngine {
 	 */
 	public void addInsights(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
 		if (serverActive()) {
-			if(docs != null && !docs.isEmpty()) {
-				LOGGER.info("Adding " + docs.size() + " documents into insight server...");
-				insightServer.add(docs);
-				insightServer.commit();
-				LOGGER.info("Done adding documents in insight server.");
-			}
+			LOGGER.info("Adding " + docs.size() + " documents into insight server...");
+			SolrUtility.addSolrInputDocuments(insightServer, docs);
+			LOGGER.info("Done adding documents in insight server.");
+			buildSuggester();
 		}
 	}
 	
@@ -240,11 +225,8 @@ public class SolrIndexEngine {
 	 */
 	public void addInsight(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
-			// create new Document
-			SolrInputDocument doc = createDocument(uniqueID, fieldData);
-			LOGGER.info("Adding INSIGHTS with unique ID:  " + uniqueID);
-			insightServer.add(doc);
-			insightServer.commit();
+			LOGGER.info("Adding insight with unique ID:  " + uniqueID);
+			SolrUtility.addSolrInputDocument(insightServer, ID, uniqueID, fieldData);
 			LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
 			buildSuggester();
 		}
@@ -455,6 +437,40 @@ public class SolrIndexEngine {
 	
 	/////////////////// END MODIFICATION TO INSIGHTS SOLR CORE ///////////////////
 
+	/////////////////// START ADDING APPS INTO SOLR ///////////////////
+
+	/**
+	 * Used to add a list of insights into the insight solr core
+	 * @param docs						The list of solr documents to index
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public void addApps(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+		if (serverActive()) {
+			LOGGER.info("Adding " + docs.size() + " documents into app server...");
+			SolrUtility.addSolrInputDocuments(appServer, docs);
+			LOGGER.info("Done adding documents in insight server.");
+		}
+	}
+	
+	/**
+	 * Uses the passed in params to add a new document into insight solr core
+	 * @param uniqueID					new id to be added
+	 * @param fieldData					fields to be added to the new Doc
+	 * @throws SolrServerException
+	 * @throws IOException
+	 */
+	public void addApps(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
+		if (serverActive()) {
+			LOGGER.info("Adding app with unique ID:  " + uniqueID);
+			SolrUtility.addSolrInputDocument(appServer, ID, uniqueID, fieldData);
+			LOGGER.info("UniqueID " + uniqueID + "'s app has been added");
+		}
+	}
+	
+	
+	/////////////////// END ADDING APPS INTO SOLR ///////////////////
+
 	
 	/////////////////// START ADDING INSTANCES INTO SOLR ///////////////////
 
@@ -476,12 +492,9 @@ public class SolrIndexEngine {
 	 */
 	public void addInstances(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
 		if (serverActive()) {
-			if(!docs.isEmpty()) {
-				LOGGER.info("Adding " + docs.size() + " documents into instance server...");
-				instanceServer.add(docs);
-				instanceServer.commit();
-				LOGGER.info("Done adding documents in instance server.");
-			}
+			LOGGER.info("Adding " + docs.size() + " documents into instance server...");
+			SolrUtility.addSolrInputDocuments(instanceServer, docs);
+			LOGGER.info("Done adding documents in instance server.");
 		}
 	}
 	
@@ -494,12 +507,9 @@ public class SolrIndexEngine {
 	 */
 	public void addInstance(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
-			// create new Document
-			SolrInputDocument doc = createDocument(uniqueID, fieldData);
-			LOGGER.info("Adding instances with unique ID:  " + uniqueID);
-			instanceServer.add(doc);
-			instanceServer.commit();
-			LOGGER.info("UniqueID " + uniqueID + "'s instances has been added");
+			LOGGER.info("Adding instance with unique ID:  " + uniqueID);
+			SolrUtility.addSolrInputDocument(instanceServer, ID, uniqueID, fieldData);
+			LOGGER.info("UniqueID " + uniqueID + "'s instance has been added");
 		}
 	}
 	
@@ -516,7 +526,7 @@ public class SolrIndexEngine {
 	 * @return							The QueryResponse for the query on the core
 	 * @throws SolrServerException
 	 */
-	private QueryResponse getQueryResponse(SolrQuery q, SOLR_PATHS path) throws SolrServerException {
+	public QueryResponse getQueryResponse(SolrQuery q, SOLR_PATHS path) throws SolrServerException {
 		/*
 		 * This is the main method used to execute queries on the solr cores
 		 * The SolrQuery is generated using a SolrIndexEngineQueryBuilder instance
@@ -526,10 +536,13 @@ public class SolrIndexEngine {
 		QueryResponse res = null;
 		if (serverActive()) {
 			// determine based on the path which core to run the query on
-			if (path.equals(SOLR_PATHS.SOLR_INSIGHTS_PATH)) {
+			if (path == SOLR_PATHS.SOLR_INSIGHTS_PATH) {
 				res = insightServer.query(q);
 				LOGGER.info("Querying within the insighCore");
-			} else if (path.equals(SOLR_PATHS.SOLR_INSTANCES_PATH)) {
+			} else if (path == SOLR_PATHS.SOLR_APP_PATH_NAME) {
+				res = appServer.query(q);
+				LOGGER.info("Querying within the appCore");
+			} else if (path == SOLR_PATHS.SOLR_INSTANCES_PATH) {
 				res = instanceServer.query(q);
 				LOGGER.info("Querying within the instanceCore");
 			}
@@ -1669,9 +1682,11 @@ public class SolrIndexEngine {
 				LOGGER.info("PREPARING TO DELETE ALL SOLR DATA");
 				insightServer.deleteByQuery(QUERY_ALL);
 				instanceServer.deleteByQuery(QUERY_ALL);
+				appServer.deleteByQuery(QUERY_ALL);
 				LOGGER.info("ALL SOLR DATA DELETED");
 				insightServer.commit();
 				instanceServer.commit();
+				appServer.commit();
 			} catch (SolrServerException ex) {
 				throw new IOException("Failed to delete data in Solr. " + ex.getMessage(), ex);
 			} catch (IOException ex) {
