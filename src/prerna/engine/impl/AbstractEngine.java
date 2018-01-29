@@ -415,11 +415,6 @@ public abstract class AbstractEngine implements IEngine {
 					solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
 					solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
 		
-					// the image will be updated in a later thread
-					// for now, just send in an empty string
-					// save image url to recreate image later
-					solrInsights.put(SolrIndexEngine.IMAGE, "");
-					solrInsights.put(SolrIndexEngine.IMAGE_URL, "");
 					try {
 						SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
 					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
