@@ -1,0 +1,81 @@
+package prerna.sablecc2.reactor.frame.r.graph;
+
+import org.apache.log4j.Logger;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
+import prerna.ds.TinkerFrame;
+import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.util.Utility;
+
+public class GraphLayoutReactor extends AbstractRFrameReactor {
+
+	private static final String CLASS_NAME = GraphLayoutReactor.class.getName();
+
+	public GraphLayoutReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.GRAPH_LAYOUT.getKey() };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		init();
+		organizeKeys();
+		Logger logger = getLogger(CLASS_NAME);
+		TinkerFrame frame = (TinkerFrame) getFrame();
+		String graphName = (String) retrieveVariable("GRAPH_NAME");
+		String inputLayout = this.keyValue.get(this.keysToGet[0]);
+		try {
+			logger.info("Determining vertex positions...");
+			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);
+			this.rJavaTranslator.executeR("" + tempOutputLayout + " <- " + inputLayout + "(" + graphName + ")");
+			logger.info("Done calculating positions...");
+			synchronizeXY(tempOutputLayout);
+			// clean up temp variable
+			this.rJavaTranslator.executeR("rm(" + tempOutputLayout + ")");
+			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		throw new IllegalArgumentException("Unable to change layout");
+
+	}
+
+	private void synchronizeXY(String layout) {
+		Logger logger = getLogger(CLASS_NAME);
+		TinkerFrame frame = (TinkerFrame) getFrame();
+		logger.info("Synchronizing vertex positions into frame...");
+		String graphName = (String) retrieveVariable("GRAPH_NAME");
+		double[][] memberships = this.rJavaTranslator.getDoubleMatrix(layout);
+		String[] axis = null;
+		if (memberships[0].length == 2) {
+			axis = new String[] { "X", "Y" };
+		} else if (memberships[0].length == 3) {
+			axis = new String[] { "X", "Y", "Z" };
+		}
+		String[] IDs = this.rJavaTranslator
+				.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
+		for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
+			String thisID = IDs[memIndex];
+			Vertex retVertex = null;
+			GraphTraversal<Vertex, Vertex> gt = frame.g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
+			if (gt.hasNext()) {
+				retVertex = gt.next();
+			}
+			if (retVertex != null) {
+				for (int i = 0; i < axis.length; i++) {
+					retVertex.property(axis[i], memberships[memIndex][i]);
+				}
+			}
+
+			if (memIndex % 100 == 0) {
+				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
+			}
+		}
+		logger.info("Done synchronizing vertex positions");
+	}
+
+}
