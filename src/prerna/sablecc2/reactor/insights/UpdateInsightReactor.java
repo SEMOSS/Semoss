@@ -90,14 +90,14 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
 				LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
 			} else {
-				updateSolrImage(rdbmsId, rdbmsId, imageURL, engineName);
+				updateSolrImageByRecreatingInsight(rdbmsId, rdbmsId, imageURL, engineName);
 			}
 		} else {
 			String base64Image = getImage();
 			if(base64Image != null && !base64Image.trim().isEmpty()) {
-				updateSolrImage(base64Image, rdbmsId, engineName);
+				updateSolrImageFromPng(base64Image, rdbmsId, engineName);
 			}
-			updateSolrImage(base64Image, rdbmsId, engineName);
+			updateSolrImageFromPng(base64Image, rdbmsId, engineName);
 		}
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();

@@ -91,14 +91,14 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				logger.info("4) Invalid... insight contains a layout that we cannot save an image for!!!");
 			} else {
 				logger.info("4) Generate new thread to save image...");
-				updateSolrImage(newRdbmsId, newRdbmsId, imageURL, engineName);
+				updateSolrImageByRecreatingInsight(newRdbmsId, newRdbmsId, imageURL, engineName);
 			}
 		} 
 		// get base 64 image string and write to file
 		else {
 			String base64Image = getImage();
 			if(base64Image != null && !base64Image.trim().isEmpty()) {
-				updateSolrImage(base64Image, newRdbmsId, engineName);
+				updateSolrImageFromPng(base64Image, newRdbmsId, engineName);
 			}
 		}
 		Map<String, Object> returnMap = new HashMap<String, Object>();
