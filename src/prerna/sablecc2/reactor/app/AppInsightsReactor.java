@@ -9,11 +9,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -27,19 +29,28 @@ import prerna.util.insight.InsightScreenshot;
 public class AppInsightsReactor extends AbstractReactor {
 	
 	public AppInsightsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), "includeImage"};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), "includeImage", "tags"};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
-		String limit = this.keyValue.get(this.keysToGet[1]);
-		String offset = this.keyValue.get(this.keysToGet[2]);
-		String modImageStr = this.keyValue.get(this.keysToGet[3]);
+		String search = this.keyValue.get(this.keysToGet[1]);
+		String limit = this.keyValue.get(this.keysToGet[2]);
+		String offset = this.keyValue.get(this.keysToGet[3]);
+		String modImageStr = this.keyValue.get(this.keysToGet[4]);
 		boolean modImage = (modImageStr != null && Boolean.parseBoolean(modImageStr));
+		List<String> tags = getTags();
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+		if(search != null && search.trim().isEmpty()) {
+			builder.setSearchString(search);
+		} else {
+			builder.setSearchString("*:*");
+		}
+		
+		
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(SolrIndexEngine.ID);
 		retFields.add(SolrIndexEngine.CORE_ENGINE);
@@ -53,7 +64,6 @@ public class AppInsightsReactor extends AbstractReactor {
 		retFields.add(SolrIndexEngine.TAGS);
 		retFields.add(SolrIndexEngine.VIEW_COUNT);
 		retFields.add(SolrIndexEngine.DESCRIPTION);
-		
 		if(modImage) {
 			retFields.add(SolrIndexEngine.IMAGE);
 		}
@@ -81,6 +91,10 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<String> engineList = new ArrayList<String>();
 		engineList.add(appName);
 		filterForEngine.put(SolrIndexEngine.CORE_ENGINE, engineList);
+		if(tags != null && !tags.isEmpty()) {
+			filterForEngine.put(SolrIndexEngine.TAGS, tags);
+		}
+		
 		builder.setFilterOptions(filterForEngine);
 		
 		SolrDocumentList results;
@@ -111,4 +125,25 @@ public class AppInsightsReactor extends AbstractReactor {
 		}
 	}
 
+	private List<String> getTags() {
+		List<String> tags = new Vector<String>();
+		
+		// see if added as key
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		if(grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for(int i = 0; i < size; i++) {
+				tags.add(grs.get(i).toString());
+			}
+			return tags;
+		}
+		
+		// start at index 1 and see if in cur row
+		int size = this.curRow.size();
+		for(int i = 5; i < size; i++) {
+			tags.add(grs.get(i).toString());
+		}
+		return tags;
+	}
+	
 }
