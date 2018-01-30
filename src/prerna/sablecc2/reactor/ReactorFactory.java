@@ -51,6 +51,7 @@ import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
 import prerna.sablecc2.reactor.export.IterateReactor;
+import prerna.sablecc2.reactor.export.ToCsvReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
 import prerna.sablecc2.reactor.expression.OpAsString;
@@ -390,6 +391,7 @@ public class ReactorFactory {
 		reactorHash.put("CollectMeta", TaskMetaCollectorReactor.class); // collect meta from task
 		reactorHash.put("Format", TaskFormatReactor.class); // set formats
 		reactorHash.put("TaskOptions", TaskOptionsReactor.class); // set options
+		reactorHash.put("ToCsv", ToCsvReactor.class); // set options
 		// Task Operations
 		reactorHash.put("Lambda", MapLambdaTaskReactor.class);
 		reactorHash.put("FilterLambda", FilterLambdaTaskReactor.class);
