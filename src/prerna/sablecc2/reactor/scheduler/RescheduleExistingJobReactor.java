@@ -49,7 +49,7 @@ public class RescheduleExistingJobReactor extends AbstractReactor {
 		// optional
 		String cronExpression = this.keyValue.get(this.keysToGet[2]);
 
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobName + "_" + jobGroup
+		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobGroup + "__" + jobName
 				+ ".json";
 		File file = new File(filePath);
 
