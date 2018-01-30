@@ -31,6 +31,8 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		String[] packages = new String[]{"igraph"};
+		this.rJavaTranslator.checkPackages(packages);
 		Logger logger = getLogger(CLASS_NAME);
 		TinkerFrame frame = (TinkerFrame) getFrame();
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
