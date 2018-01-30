@@ -67,17 +67,22 @@ public class AppInsightsReactor extends AbstractReactor {
 		if (offset != null && !offset.isEmpty()) {
 			offsetInt = Integer.parseInt(offset);
 			builder.setOffset(offsetInt);
+		} else {
+			builder.setOffset(0);
 		}
 		if (limit != null && !limit.isEmpty()) {
 			limitInt = Integer.parseInt(limit);
 			builder.setLimit(limitInt);
+		} else {
+			builder.setLimit(200);
 		}
 		
-		Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+		Map<String, List<String>> filterForEngine = new HashMap<String, List<String>>();
 		List<String> engineList = new ArrayList<String>();
 		engineList.add(appName);
-		filterForId.put(SolrIndexEngine.CORE_ENGINE, engineList);
-
+		filterForEngine.put(SolrIndexEngine.CORE_ENGINE, engineList);
+		builder.setFilterOptions(filterForEngine);
+		
 		SolrDocumentList results;
 		try {
 			results = SolrIndexEngine.getInstance().queryDocument(builder);
