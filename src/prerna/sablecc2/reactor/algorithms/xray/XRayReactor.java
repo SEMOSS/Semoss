@@ -58,7 +58,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		// need to make sure that the textreuse package is installed
-		this.rJavaTranslator.checkPackages(new String[]{"textreuse"});
+		this.rJavaTranslator.checkPackages(new String[]{"textreuse", "digest", "memoise", "withr"});
 
 		organizeKeys();
 		String configFileJson = this.keyValue.get(this.keysToGet[0]);
@@ -625,6 +625,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
 			// run r script
+			System.out.println(rsb.toString());
 			this.rJavaTranslator.runR(rsb.toString());
 			
 			//clean up r temp variables
