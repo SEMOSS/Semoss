@@ -93,7 +93,13 @@ public class DeleteInsightReactor extends AbstractReactor {
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				ids.add(grs.get(i).toString());
+				// id is passed in from solr id where it is defined as engine_id
+				// so I need to split it
+				String id = grs.get(i).toString();
+				if (id.contains("_")) {
+					String[] split = id.split("_");
+					ids.add(split[1]);
+				}
 			}
 			return ids;
 		}
@@ -101,7 +107,13 @@ public class DeleteInsightReactor extends AbstractReactor {
 		// no key is added, grab all inputs ignore first
 		int size = this.curRow.size();
 		for (int i = 1; i < size; i++) {
-			ids.add(this.curRow.get(i).toString());
+			String id = this.curRow.get(i).toString();
+			// id is passed in from solr id where it is defined as engine_id
+			// so I need to split it
+			if (id.contains("_")) {
+				String[] split = id.split("_");
+				ids.add(split[1]);
+			}
 		}
 		return ids;
 	}
