@@ -256,7 +256,7 @@ public class SolrIndexEngine {
 	 * @param uniqueID              ID to be modified
 	 * @param fieldsToModify        specific fields to modify
 	 */
-	public Map<String, Object> modifyInsight(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
+	public synchronized Map<String, Object> modifyInsight(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
 		if (serverActive()) {
 			/*
 			 * solr doens't allow you to modify specific fields in a document that is already indexed
@@ -362,7 +362,7 @@ public class SolrIndexEngine {
 	 * @param uniqueID              ID to be modified
 	 * @param fieldsToModify        specific fields to modify
 	 */
-	public Map<String, Object> modifyApp(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
+	public synchronized Map<String, Object> modifyApp(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
 		if (serverActive()) {
 			/*
 			 * solr doens't allow you to modify specific fields in a document that is already indexed
