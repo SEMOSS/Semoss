@@ -44,7 +44,9 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<String> tags = getTags();
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
-		if(search != null && search.trim().isEmpty()) {
+		builder.setDefaultDisMaxWeighting();
+
+		if(search != null && !search.trim().isEmpty()) {
 			builder.setSearchString(search);
 		} else {
 			builder.setSearchString("*:*");
@@ -129,7 +131,7 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<String> tags = new Vector<String>();
 		
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
 		if(grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for(int i = 0; i < size; i++) {
