@@ -163,6 +163,7 @@ public class ImportDataProcessor {
 				Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
 				//Utility.addToLocalMaster(engine);
 				SolrUtility.addToSolrInsightCore(engineName);
+				SolrUtility.addAppToSolr(engineName);
 				// Do we need this?
 				// Commenting it out for now to speed up upload until we find a better way to utilize this
 //				Utility.addToSolrInstanceCore(engine);
