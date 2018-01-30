@@ -71,7 +71,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String jsonConfig = gson.toJson(jsonObject);
 		
 		// Save the json as a file
-		String jsonFileName = jobName + "_" + jobGroup + ".json";
+		String jsonFileName = jobGroup + "__" + jobName + ".json";
 		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
 		
 		try {

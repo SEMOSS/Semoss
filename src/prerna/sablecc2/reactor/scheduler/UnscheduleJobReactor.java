@@ -57,7 +57,7 @@ public class UnscheduleJobReactor extends AbstractReactor {
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 		boolean deleteFlag = getDeleteFlag();
 
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobName + "_" + jobGroup
+		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobGroup + "__" + jobName
 				+ ".json";
 		File file = new File(filePath);
 
