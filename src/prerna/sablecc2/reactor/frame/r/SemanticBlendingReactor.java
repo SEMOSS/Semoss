@@ -1,5 +1,9 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -16,6 +20,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.ga.GATracker;
 
 public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
@@ -36,9 +41,9 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	// default to false
 	private static final String GENERATE_FRAME = "genFrame";
 	private static final String FRAME_NAME = "frameName";
-	
+
 	public SemanticBlendingReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NUM_DISPLAY.getKey(), ReactorKeysEnum.RANDOM_VALS.getKey(), GENERATE_FRAME, FRAME_NAME};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NUM_DISPLAY.getKey(), ReactorKeysEnum.RANDOM_VALS.getKey(), GENERATE_FRAME, FRAME_NAME };
 	}
 
 	@Override
@@ -48,23 +53,39 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		init();
 		
 		// need to make sure that the WikidataR package is installed before running this method
-		this.rJavaTranslator.checkPackages(new String[]{"WikidataR", "plyr", "curl", "openssl", "httr", "jsonlite", "WikipediR"});
+		this.rJavaTranslator.checkPackages(new String[] { "WikidataR", "plyr", "curl", "openssl", "httr", "jsonlite", "WikipediR" });
 				
 		// get frame
 		ITableDataFrame frame = getFrame();
 		
-		// we have an input to indicate whether semantic blending or widget is being used
+		// we have an input to indicate whether semantic blending
+		// or widget is being used
 		// we generate an r data frame for the widget
 		// for widget, rDataTableIndicator is true
 		boolean generateFrameIndicator = getGenerateFrameIndicator();
-		
+
 		// get other inputs
 		// the first input is the columns
-		String[] columns = getColumns();
-		
+		String[] rawColumns = getColumns();
+
+		// check to make sure they are strings
+		List<String> stringColumns = new Vector<String>();
+		OwlTemporalEngineMeta meta = frame.getMetaData();
+		for (int i = 0; i < rawColumns.length; i++) {
+			String column = rawColumns[i];
+			String dataType = meta.getHeaderTypeAsString(meta.getUniqueNameFromAlias(column));
+			if (dataType.equals("STRING")) {
+				stringColumns.add(column);
+			}
+		}
+		if (stringColumns.size() == 0) {
+			throw new IllegalArgumentException("Predict Column headers only supports String values!");
+		}
+		String[] columns = stringColumns.toArray(new String[0]);
+
 		// get the number of results to display
 		String numDisplayString = getNumResults();
-				
+
 		// get the number of random values to use in the routine
 		String randomValsString = getNumRandomVals();
 		
@@ -76,7 +97,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 			qs.addSelector(new QueryColumnSelector(columns[i]));
 		}
 		
-		//create an r data frame (in r) using this querystruct and get the name of the variable
+		// create an r data frame (in r) using this querystruct and get the name of the variable
 		String dfName = rJavaTranslator.generateRDataTableVariable(frame, qs);
 		logger.info("Done generating random subset");
 		
@@ -89,15 +110,15 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 			colSelectSb.append((i + 1) + ",");
 		}
 		
-		//remove the last comma and add an end parentheses
+		// remove the last comma and add an end parentheses
 		int remove = colSelectSb.length() - 1;
-		String colSelectString = colSelectSb.substring(0, remove) + ")";	
+		String colSelectString = colSelectSb.substring(0, remove) + ")";
 
 		// construct a new dataframe to hold the results of the r script
 		String df2 = "PredictionTable" + Utility.getRandomString(10);
-		
+
 		// determine the path and source the script
-		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\"+ "AnalyticsRoutineScripts";
+		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "AnalyticsRoutineScripts";
 		String rScriptPath = (baseRScriptPath + "\\" + "master_concept.r").replace("\\", "/");
 		String sourceScript = "source(\"" + rScriptPath + "\");";
 		
@@ -108,22 +129,28 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		String dataTableScript = df2 + " <- as.data.table(" + df2 + ");";
 		// run all of the above r scripts
 		logger.info("Running semantic blending script");
-	    logger.info("This process may take a few minutes depending on the type of data and internet speed");
+		logger.info("This process may take a few minutes depending on the type of data and internet speed");
 		this.rJavaTranslator.runR(sourceScript + rFunctionScript + dataTableScript);
 		
-		//clean up r temp variables
+		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + dfName + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
+
+		// send to GA to store semantic names for predictions
+		String[] colNamesGA = { "Original_Column", "Predicted_Concept", "Prob", "URL" };
+		Map<String, Object> tableGA = this.rJavaTranslator.flushObjectAsTable(df2, colNamesGA);
+		GATracker.getInstance().addNewLogicalNames(tableGA, columns, frame);
 		
 		// if we are running semantic blending
 		if (!generateFrameIndicator) {
 			// these are the column names for the results
-			String[] colNames = {"Predicted_Concept", "Prob", "URL"};
-			return new NounMetadata(this.rJavaTranslator.flushObjectAsTable(df2, colNames), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.WIKI_LOGICAL_NAMES);
+			String[] colNames = { "Predicted_Concept", "Prob", "URL" };
+			Map<String, Object> table = this.rJavaTranslator.flushObjectAsTable(df2, colNames);
+			return new NounMetadata(table, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.WIKI_LOGICAL_NAMES);
 		} else {
-			//we are not running semantic blending; we are running the widget
+			// we are not running semantic blending; we are running the widget
 			// need to make a new r table to store this info so we can later query it
 			RDataTable resultsTable = null;
 			if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {

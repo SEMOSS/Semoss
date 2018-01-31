@@ -1,56 +1,87 @@
 viz_history<-function(df){
+	library(data.table)
+	library(jsonlite)
 	viz<-df[df$dimension1 == "viz",]
 	n<-nrow(viz)
-	z<-data.table(unit=integer(),element=integer(),dbname=character(),tblname=character(),colname=character(),component=character(),chart=character(),user=character());
+	z<-data.table(unit=integer(),element=integer(),dbname=character(),tblname=character(),colname=character(),reference=character(),component=character(),chart=character(),user=character());
 	if(n > 0){
 		for(i in 1:n){
-			data<-fromJSON(viz[i,2])
-			user<-viz[i,5]
-			names(data[1])
-			chart<-names(data[[1]][1])
-			if(chart != "false" & chart != "collision-resolver"){
-				m<-length(data[[1]][[1]])
-				if(m > 0){
-					for(j in 1:m){
-						row<-data[[1]][[1]][[j]]
-						if(length(row) > 0){
-							db<-row[1,1]
-							tbl<-row[1,2]
-							col<-row[1,3]
-							comp<-row[1,5]
-							# store in the table chart plus db, etc.
-							z<-rbindlist(list(z,list(i,j,db,tbl,col,comp,chart,user)))
+			tryCatch({
+				data<-fromJSON(viz[i,2])
+				user<-viz[i,5]
+				names(data[1])
+				chart<-names(data[[1]][1])
+				if(chart != "false" & chart != "collision-resolver"){
+					m<-length(data[[1]][[1]])
+					if(m > 0){
+						for(j in 1:m){
+							row<-data[[1]][[1]][[j]]
+							k<-length(row)
+							if(k > 0){
+								if(k == 11){
+									# new format
+									db<-row[1,1]
+									tbl<-row[1,2]
+									col<-row[1,3]
+									comp<-row[1,5]
+									for(l in 6:k){
+										# need a check that alias is not null!!!
+										semantic<-row[1,l]
+										if(semantic != ""){
+											z<-rbindlist(list(z,list(i,j,db,tbl,col,semantic,comp,chart,user)))
+										}
+									}
+								} else{
+									# old format
+									db<-row[1,1]
+									tbl<-row[1,2]
+									col<-row[1,3]
+									comp<-row[1,5]
+									semantic<-paste0(db,"$",tbl,"$",col)
+									# store in the table chart plus db, etc.
+									z<-rbindlist(list(z,list(i,j,db,tbl,col,semantic,comp,chart,user)))
+								}
+							}
 						}
 					}
 				}
-			}
+			}, warning = function(w) {
+				#warning-handler-code
+			}, error = function(e) {
+				#error-handler-code
+			}, finally = {
+				#cleanup-code
+			})
 		}
 	}
-	rm(n,user)
+	rm(n,user,viz)
+	gc()
 	return(z)
 }
 
 viz_recom<-function(df,df1,chartToExclude=NULL,top=3){
+	library(RJSONIO)
 	# df - is the history frame
 	# df1 - is the current frame
 	df$dbname<-as.character(df$dbname)
 	df$tblname<-as.character(df$tblname)
 	df$colname<-as.character(df$colname)
-	df1$dbname<-as.character(df1$dbname)
-	df1$tblname<-as.character(df1$tblname)
-	df1$colname<-as.character(df1$colname)
+	df1<-get_reference(df1)
 
 	# filter the history based on the current frame
-	library(dplyr)
-	dft<-semi_join(df,df1)
-	detach("package:dplyr", unload=TRUE)
+	dft<-merge(df,df1,by="reference")
+	dft<-unique(dft[,-1])
 	# count number of records in each viz both in original history and filtered
-	a<-count(df,"unit")
-	b<-count(dft,"unit")
+	library(plyr)
+	a<-count(df,c("unit","element"))
+	
+	a<-a[,1:2]
+	a<-count(a,"unit")
+	b<-count(dft,c("unit","element"))
+	b<-b[,1:2]
+	b<-count(b,"unit")
 	# remove those viz where at least one record does not belong the current frame
-	library(dplyr)
-	c<-semi_join(a,b)
-	detach("package:dplyr", unload=TRUE)
+	c<-merge(a,b,by=c("unit","freq"))
 	dff<-df[df$unit %in% c$unit,]
 	
 	# dff is this is the data frame we will be working with
@@ -59,8 +90,12 @@ viz_recom<-function(df,df1,chartToExclude=NULL,top=3){
 	dff0<-count(dff,names(dff)[c(3,4,5,7)])
 	dff1<-dff0[,4:5]
 	
+	dff0<-count(dff,names(dff)[c(3,4,5,6,8)])
+	dff1<-dff0[,5:6]
+	
 	o<-count(dff1,names(dff1)[1])
 	o<-o[order(-o$freq),]
+
 	if(!is.null(chartToExclude)){
 		o<-o[tolower(o$chart) != tolower(chartToExclude),]
 	}
@@ -80,15 +115,44 @@ viz_recom<-function(df,df1,chartToExclude=NULL,top=3){
 	p<-dff[dff$id %in% q1$id,]
 	units<-aggregate(p$unit,by=list(chart=p$id),FUN=min)[,2]
 	# get the details
-	p1<-dff[dff$unit %in% units,][,1:7]
+	p1<-dft[dft$unit %in% units,][,c(1,2,3,4,5,6,7,9)]
+	m<-nrow(p1)
+	for(i in 1:m){
+		x<-unlist(strsplit(p1[i,"item"], "\\$"))
+		p1[i,"dbname"]<-x[1]
+		p1[i,"tblname"]<-x[2]
+		p1[i,"colname"]<-x[3]
+	}
+	p1<-p1[,-8]
 	# merge with the respected chart weights
 	r<-merge(p1,o,by="chart")[,c(2,3,4,5,6,7,1,8)]
 	
 	# clean up and return
-	rm(dff,dff0,dff1,a,b,c,p,p1,q,q1,o,units)
-	return(r[order(-r$weight,r$chart,r$unit,r$element),])
+	rm(dff,dff0,dff1,dft,a,b,c,p,p1,q,q1,o,units)
+	return(unique(r[order(-r$weight,r$chart,r$unit,r$element),]))
 }
 
+get_reference<-function(df){
+	library(data.table)
+	n<-nrow(df)
+	z<-data.table(item=character(),reference=character());
+	for(i in 1:n){	
+		row<-df[i,]
+		m<-length(row)
+		if(m > 0){
+			for(j in 1:m){
+				if(row[1,j] != ""){
+					z<-rbindlist(list(z,list(row[1,1],row[1,j])))
+				} else if(j == 1){
+					z<-rbindlist(list(z,list(row[1,1],row[1,1])))
+				}
+			}
+		}	
+	}
+	z<-as.data.frame(unique(z))
+	rm(n,m,row)
+	return(z)
+}
 
 get_userdata<-function(startDate,endDate,tokenPath){
 # Description
@@ -98,6 +162,8 @@ get_userdata<-function(startDate,endDate,tokenPath){
 # startDate - starting date for analysis
 # endDate - en date for analysis
 
+library(RGoogleAnalytics);
+library(httr);
 set_config(config(ssl_verifypeer = 0L))
 
 load(tokenPath)
