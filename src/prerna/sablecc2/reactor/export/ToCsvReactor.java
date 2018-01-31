@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -17,7 +18,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
 
 public class ToCsvReactor extends TaskBuilderReactor {
 
@@ -29,9 +29,16 @@ public class ToCsvReactor extends TaskBuilderReactor {
 	public NounMetadata execute() {
 		logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+		
+		// get a random file name
+		String randomKey = UUID.randomUUID().toString();
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".csv";
 		buildTask();
-		return new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		
+		// store it in the insight so the FE can download it
+		// only from the given insight
+		this.insight.addExportFile(randomKey, this.fileLocation);
+		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
 	@Override

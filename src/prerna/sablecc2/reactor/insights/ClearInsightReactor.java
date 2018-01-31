@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.insights;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -71,6 +72,15 @@ public class ClearInsightReactor extends AbstractReactor {
 				File f = new File(file.getFileLoc());
 				f.delete();
 				logger.info("Successfully deleted File used in insight " + file.getFileLoc());
+			}
+		}
+		
+		Map<String, String> fileExports = insight.getExportFiles();
+		if (fileExports != null && !fileExports.isEmpty()) {
+			for (String fileKey : fileExports.keySet()){
+				File f = new File(fileExports.get(fileKey));
+				f.delete();
+				logger.info("Successfully deleted File used in insight " + f.getName());
 			}
 		}
 
