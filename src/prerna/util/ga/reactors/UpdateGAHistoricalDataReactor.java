@@ -49,11 +49,6 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 		String historyDf = "hist_" + Utility.getRandomString(8);
 		String rDirectory = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations";
 		String script = "source(\"" + rDirectory + "\\viz_tracking.r\");"
-				+ "library(RGoogleAnalytics);"
-				+ "library(httr);"
-				+ "library(data.table);"
-				+ "library(jsonlite);"
-				+ "library(plyr);"
 				+ userDf + "<-get_userdata(\"" + startDate + "\",\"" + todayDate + "\", \"" + rDirectory + "\\token_file\");"
 				+ historyDf + "<-viz_history(" + userDf + ");"
 				+ "write.csv(" + historyDf + ",file=\"" + rDirectory + "\\historicalData\\viz_user_history.csv\",row.names=FALSE,na=\"\");";
