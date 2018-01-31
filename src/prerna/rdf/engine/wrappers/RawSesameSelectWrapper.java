@@ -1,5 +1,8 @@
 package prerna.rdf.engine.wrappers;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +29,8 @@ import prerna.util.Utility;
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger LOGGER = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
+	
+	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.ssss'Z'");
 	
 	private TupleQueryResult tqr = null;
 	private int numColumns = 0;
@@ -135,9 +140,14 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					}
 					// if datetime
 					else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
-						XMLGregorianCalendar gCalendar = lVal.calendarValue();
-						SemossDate date = new SemossDate(gCalendar.toGregorianCalendar().getTime(), "yyyy-MM-dd hh:mm:ss");
-						return date;
+						try {
+							Date d = formatter.parse(lVal.calendarValue().toString());
+							SemossDate date = new SemossDate(d, "yyyy-MM-dd hh:mm:ss");
+							return date;
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+						return null;
 					} 
 					// if date
 					else if(lValDataType.getLocalName().equalsIgnoreCase("date")) {
