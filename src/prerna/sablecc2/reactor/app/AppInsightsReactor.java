@@ -44,10 +44,9 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<String> tags = getTags();
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
-		builder.setDefaultDisMaxWeighting();
-
 		if(search != null && !search.trim().isEmpty()) {
 			builder.setSearchString(search);
+			builder.setDefaultDisMaxWeighting();
 		} else {
 			builder.setSearchString("*:*");
 		}
