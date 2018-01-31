@@ -1,9 +1,12 @@
 package prerna.util.ga;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
 
@@ -91,5 +94,22 @@ public interface IGoogleAnalytics {
 	 */
 
 	void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs);
+	
+	/**
+	 * Adds logical names from Semantic blending to lookup csv file for recommendations
+	 * 
+	 * @param newLogicals
+	 */
+
+	void addNewLogicalNames(Map<String, Object> newLogicals, String[] columns, ITableDataFrame frame);
+
+	/**
+	 * Gets GA logical names for a specific column.
+	 * 
+	 * @param uniqueName
+	 */
+
+	ArrayList<String> getLogicalNames(String uniqueName);
+
 	
 }

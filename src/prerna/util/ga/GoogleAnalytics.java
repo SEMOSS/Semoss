@@ -1,5 +1,10 @@
 package prerna.util.ga;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +20,7 @@ import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.util.DIHelper;
 
 public class GoogleAnalytics implements IGoogleAnalytics {
 
@@ -22,9 +28,11 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 	 * Constructor is protected so it can only be created by the builder
 	 */
 	protected GoogleAnalytics() {
-		
+
 	}
-	
+
+	public static HashMap<String, ArrayList<String>> logicalLookup = new HashMap<>();
+
 	@Override
 	public void track(String thisExpression, String thisType) {
 		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(thisExpression, thisType);
@@ -41,7 +49,8 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 
 	@Override
 	public void track(String thisExpression, String thisType, String prevExpression, String prevType, String userId) {
-		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(thisExpression, thisType, prevExpression, prevType, userId);
+		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(thisExpression, thisType, prevExpression, prevType,
+				userId);
 		// fire and release
 		ga.start();
 	}
@@ -54,16 +63,14 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 
 	@Override
 	public void trackDataImport(Insight in, QueryStruct2 qs) {
-		final String exprStart = "{\"dataquery\":["; 
+		final String exprStart = "{\"dataquery\":[";
 		final String exprEnd = "]}";
 
 		String engineName = qs.getEngineName();
-		if(qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			// person has entered their own query
 			String query = ((HardQueryStruct) qs).getQuery();
-			String expression = exprStart + 
-					"{\"dbName\":\"" + engineName + "\",\"tableName\":\"null\",\"columnName\":\"null\",\"query\":\"" + query + "\"}"
-					+ exprEnd;
+			String expression = exprStart + "{\"dbName\":\"" + engineName + "\",\"tableName\":\"null\",\"columnName\":\"null\",\"query\":\"" + query + "\"}" + exprEnd;
 			in.trackPixels("dataquery:", expression);
 		} else {
 			// person is using pixel so there is a query struct w/ selectors
@@ -71,18 +78,19 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			int size = selectors.size();
 			int counter = 0;
 			StringBuilder exprBuilder = new StringBuilder();
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				// loop through the selectors
 				IQuerySelector s = selectors.get(i);
-				if(s.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-					if(counter > 0) {
+				if (s.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					if (counter > 0) {
 						exprBuilder.append(",");
 					}
 					QueryColumnSelector selector = (QueryColumnSelector) s;
 					String tableName = selector.getTable();
 					String columnName = selector.getColumn();
-					exprBuilder.append("{\"dbName\":\"").append(engineName).append("\",\"tableName\":\"").append(tableName)
-					.append("\",\"columnName\":\"").append(columnName).append("\",\"query\":\"null\"}");
+					exprBuilder.append("{\"dbName\":\"").append(engineName).append("\",\"tableName\":\"")
+							.append(tableName).append("\",\"columnName\":\"").append(columnName)
+							.append("\",\"query\":\"null\"}");
 					// increase counter
 					counter++;
 				}
@@ -102,7 +110,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			List<Map<String, Map<String, String[]>>> headerDataTypes) {
 
 		fileName = fileName.substring(0, fileName.length() - 24);
-		final String exprStart = "{\"upload\":{\"" + fileName + "\":["; 
+		final String exprStart = "{\"upload\":{\"" + fileName + "\":[";
 		final String exprEnd = "]}}";
 		// String userID = request.getSession().getId();
 
@@ -115,14 +123,15 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			String[] gaHeaders = map.get(entry.getKey()).get("headers");
 			int counter = 0;
 			for (int j = 0; j < gaHeaders.length; j++) {
-				if(counter > 0) {
+				if (counter > 0) {
 					exprBuilder.append(",");
 				}
 				exprBuilder.append("{\"dbName\":\"").append(tableName).append("\",\"columnName\":\"").append(gaHeaders[j]).append("\"}");
 				counter++;
 			}
 
-			GoogleAnalyticsThread ga = new GoogleAnalyticsThread(exprStart + exprBuilder.toString() + exprEnd, "upload");
+			GoogleAnalyticsThread ga = new GoogleAnalyticsThread(exprStart + exprBuilder.toString() + exprEnd,
+					"upload");
 			// fire and release...
 			ga.start();
 		}
@@ -133,7 +142,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 	public void trackCsvUpload(String files, String dbName, List<Map<String, String[]>> headerDataTypes) {
 		String fileName = files.substring(files.lastIndexOf("\\") + 1, files.lastIndexOf("."));
 		fileName = fileName.substring(0, fileName.length() - 24);
-		final String exprStart = "{\"upload\":{\"" + fileName + "\":["; 
+		final String exprStart = "{\"upload\":{\"" + fileName + "\":[";
 		final String exprEnd = "]}}";
 
 		StringBuilder exprBuilder = new StringBuilder();
@@ -142,7 +151,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			String[] gaHeaders = headerDataTypes.get(i).get("headers");
 			int counter = 0;
 			for (int j = 0; j < gaHeaders.length; j++) {
-				if(counter > 0) {
+				if (counter > 0) {
 					exprBuilder.append(",");
 				}
 				exprBuilder.append("{\"dbName\":\"").append(dbName).append("\",\"columnName\":\"").append(gaHeaders[j]).append("\"}");
@@ -153,9 +162,9 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			ga.start();
 		}
 	}
-	
+
 	@Override
-	public void trackDragAndDrop(Insight in, List<String> headers, String FileName){
+	public void trackDragAndDrop(Insight in, List<String> headers, String FileName) {
 		final String exprStart = "{\"draganddrop\":{\"" + FileName + "\":[{";
 		final String exprEnd = "}]}}";
 		StringBuilder exprBuilder = new StringBuilder();
@@ -173,33 +182,34 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 
 	@Override
 	public void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs) {
+		List kickOffColumns = new ArrayList<>();
 		try {
-			if(taskOptions == null || taskOptions.isEmpty()) {
+			if (taskOptions == null || taskOptions.isEmpty()) {
 				return;
 			}
 			ITableDataFrame frame = (ITableDataFrame) in.getDataMaker();
-			if(frame == null) {
+			if (frame == null) {
 				return;
 			}
 			OwlTemporalEngineMeta meta = frame.getMetaData();
 			qs = QueryStructConverter.getPhysicalQs(qs, meta);
-	
+
 			// keep the alias to bind to the correct meta
 			Map<String, String> aliasHash = new HashMap<String, String>();
-	
+
 			// has to be defined after qs is converted to physical
 			List<IQuerySelector> selectors = qs.getSelectors();
-	
+
 			// loop through QS
-			// figure out which selector column is part of the 
-			for(int i = 0; i < selectors.size(); i++) {
+			// figure out which selector column is part of the
+			for (int i = 0; i < selectors.size(); i++) {
 				IQuerySelector selector = selectors.get(i);
 				String alias = selector.getAlias();
 				String name = "";
-				if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION ){
-					//TODO: this is assuming only 1 math inside due to FE limitation
+				if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+					// TODO: this is assuming only 1 math inside due to FE limitation
 					name = ((QueryFunctionSelector) selector).getInnerSelector().get(0).getQueryStructName() + "";
-				}else{
+				} else {
 					name = selector.getQueryStructName();
 				}
 				aliasHash.put(alias, name);
@@ -254,6 +264,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 											table = conceptPropSplit[0];
 											column = conceptPropSplit[1];
 										}
+										String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
 										if (processedFirst) {
 											exprBuilder.append(",");
 										} else {
@@ -261,9 +272,41 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 										}
 										exprBuilder.append("{\"dbName\":\"").append(db).append("\",\"tableName\": \"")
 												.append(table).append("\",\"columnName\": \"").append(column)
-												.append("\",\"columnType\":\"").append("categoricalTemp")
-												.append("\",\"component\": \"").append(uiCompName)
-												.append("\",\"numUniqueValues\":20,\"entropy\":20}");
+												.append("\",\"columnType\":\"").append(dataType)
+												.append("\",\"component\": \"").append(uiCompName);
+
+										// if lookup map is empty, initialize it
+										String uniqueName = db + "_" + table + "_" + column;
+										if (logicalLookup.isEmpty()) {
+											// go get the csv and populate it
+											initializeLogicalLookup();
+										}
+										ArrayList<String> logicalNamesList = logicalLookup.get(uniqueName);
+										// TODO: if the list is empty then we will run semantic blending
+										// in the GA thread to store those values for next time
+										
+										// send empty value to keep the json structure consistent
+										if (logicalNamesList == null) {
+											logicalNamesList = new ArrayList<String>();
+											// kickOffColumns.add(columnAlias);
+											logicalNamesList.add("");
+											logicalNamesList.add("");
+											logicalNamesList.add("");
+											logicalNamesList.add("");
+											logicalNamesList.add("");
+										}
+										// always send exactly 5 elements
+										exprBuilder.append("\",\"reference1\": \"").append(db).append("$").append(table).append("$").append(column);
+										for (int j = 0; j < 5; j++) {
+											if (j < logicalNamesList.size()) {
+												exprBuilder.append("\",\"reference").append(j + 2).append("\": \"")
+														.append(logicalNamesList.get(j));
+											} else {
+												exprBuilder.append("\",\"reference").append(j + 2).append("\": \"")
+														.append("");
+											}
+										}
+										exprBuilder.append("\"}");
 									}
 									exprBuilder.append("]");
 								}
@@ -281,4 +324,126 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			e.printStackTrace();
 		}
 	}
+
+	public void initializeLogicalLookup() throws IOException {
+		String csvDir = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\historicalData\\logicalNames.csv";
+		BufferedReader in = new BufferedReader(new FileReader(csvDir));
+		String line;
+		// read each line in the csv and load into lookup map,
+		// only done on startup. map is updated directly moving forward
+		while ((line = in.readLine()) != null) {
+			String columns[] = line.split(",");
+			String key = columns[0];
+			ArrayList<String> list = logicalLookup.get(key);
+
+			// split and add each to list
+			List listArray;
+			if (list == null) {
+				list = new ArrayList<>();
+				String value = columns[1];
+				// elements is logical names film;test;other;
+				String[] elements = null;
+				if (value != null) {
+					elements = value.split(";");
+				}
+				for (int i = 0; i < elements.length; i++) {
+					list.add(elements[i]);
+				}
+				logicalLookup.put(key, list);
+			}
+		}
+		in.close();
+	}
+
+	@Override
+	public void addNewLogicalNames(Map<String, Object> newLogicals, String[] columns, ITableDataFrame frame){
+		OwlTemporalEngineMeta meta = frame.getMetaData();
+		String csvDir = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\historicalData\\logicalNames.csv";
+		String currentColumn = "";
+		int recommendationCount = 0;
+		// iterate columns map and extract logical names
+		// to put into csv and logicalLookup
+		for (int i = 0; i < columns.length; i++) {
+			String colName = columns[i];
+			String uniqueCol = meta.getUniqueNameFromAlias(colName);
+			List<String[]> dbInfo = meta.getDatabaseInformation(uniqueCol);
+			// generate a uniqueName used as key to lookup logicals in the hashmap
+			String uniqueName = "";
+			for (int j = 0; j < dbInfo.size(); j++) {
+				String[] engineQs = dbInfo.get(j);
+				if (engineQs.length != 2) {
+					continue;
+				}
+				String db = engineQs[0];
+				String conceptProp = engineQs[1];
+				String tableName = conceptProp;
+				String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+				if (conceptProp.contains("__")) {
+					String[] conceptPropSplit = conceptProp.split("__");
+					tableName = conceptPropSplit[0];
+					column = conceptPropSplit[1];
+				}
+				uniqueName = db + "_" + tableName + "_" + column;
+			}
+			String dataType = meta.getHeaderTypeAsString(uniqueCol);
+			// add the new semantic names to the csv and logicalLookup map
+			if (newLogicals != null && !(newLogicals.isEmpty())) {
+				ArrayList data = (ArrayList<Object>) newLogicals.get("data");
+				// string builder for csv file
+				StringBuilder csvLogicals = new StringBuilder();
+				// list for the hash map
+				ArrayList<String> list = new ArrayList<String>();
+				// Iterate newlogicals data list and combine all logical names with a semi.
+				
+				// For each column add logicals to list, if its a new column dont 
+				// update count, come back to that element to add to next column list.
+				while (recommendationCount < data.size()) {
+					Object[] objects = (Object[]) data.get(recommendationCount);
+					if ((objects[0] + "").equals(currentColumn) || currentColumn.equals("")) {
+						String name = objects[1] + "";
+						// TODO: we only track 5 max, what about ties?
+						if (list.size() < 6) {
+							csvLogicals.append(name.replace(",", " ")).append(";");
+							list.add(name);
+						}
+						currentColumn = objects[0] + "";
+						recommendationCount++;
+					} else {
+						currentColumn = objects[0] + "";
+						// end of elements for that column so break loop
+						break;
+					}
+				}
+				// make sure the lookup was initialized first
+				if (logicalLookup.isEmpty()) {
+					try {
+						initializeLogicalLookup();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				// TODO: if it already exists dont add it again for now. Update map to H2 which will be updated.
+				if (!(logicalLookup.containsKey(uniqueName)) && dataType.equals("STRING")) {
+					// add to the map
+					logicalLookup.put(uniqueName, list);
+					// also persist to csv - for each in list append
+					try {
+						FileWriter csv = new FileWriter(csvDir, true);
+						csv.append(uniqueName).append(",").append(csvLogicals.toString()).append("\n");
+						csv.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+	
+	@Override
+	public ArrayList<String> getLogicalNames(String uniqueName) {
+		return logicalLookup.get(uniqueName);
+	}
+
 }
+
