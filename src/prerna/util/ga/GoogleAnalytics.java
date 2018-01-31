@@ -1,6 +1,7 @@
 package prerna.util.ga;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -325,9 +326,12 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		}
 	}
 
-	public void initializeLogicalLookup() throws IOException {
+	public void initializeLogicalLookup() {
 		String csvDir = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\historicalData\\logicalNames.csv";
-		BufferedReader in = new BufferedReader(new FileReader(csvDir));
+		BufferedReader in;
+		try {
+			in = new BufferedReader(new FileReader(csvDir));
+		
 		String line;
 		// read each line in the csv and load into lookup map,
 		// only done on startup. map is updated directly moving forward
@@ -353,6 +357,11 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			}
 		}
 		in.close();
+		} catch (FileNotFoundException e) {
+			// e.printStackTrace();
+		} catch (IOException e) {
+			// e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -416,12 +425,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 				}
 				// make sure the lookup was initialized first
 				if (logicalLookup.isEmpty()) {
-					try {
-						initializeLogicalLookup();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					initializeLogicalLookup();
 				}
 				// TODO: if it already exists dont add it again for now. Update map to H2 which will be updated.
 				if (!(logicalLookup.containsKey(uniqueName)) && dataType.equals("STRING")) {
