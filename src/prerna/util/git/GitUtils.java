@@ -57,6 +57,7 @@ public class GitUtils {
 			gh.getMyself();
 			return gh;
 		} catch (IOException e) {
+			e.printStackTrace();
 			throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + username + "\"");
 		}
 	}
