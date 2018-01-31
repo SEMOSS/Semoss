@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.NounMetadata;
@@ -19,28 +21,26 @@ import prerna.util.Utility;
 
 public class ToCsvReactor extends TaskBuilderReactor {
 
+	private static final String CLASS_NAME = ToCsvReactor.class.getName();
 	private String fileLocation = null;
-
+	private Logger logger;
+	
 	@Override
 	public NounMetadata execute() {
+		logger = getLogger(CLASS_NAME);
 		this.task = getTask();
 		this.fileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
 		buildTask();
-		return new NounMetadata(fileLocation, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		return new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 
 	@Override
 	protected void buildTask() {
-		File f = new File(fileLocation);
+		File f = new File(this.fileLocation);
 
 		try {
 			long start = System.currentTimeMillis();
 	
-			// make sure file is empty so we are only inserting the new values
-			if(f.exists()) {
-				System.out.println("File currently exists.. deleting file");
-				f.delete();
-			}
 			try {
 				f.createNewFile();
 			} catch (IOException e) {
@@ -103,6 +103,7 @@ public class ToCsvReactor extends TaskBuilderReactor {
 					bufferedWriter.write(builder.append("\n").toString());
 				}
 	
+				int counter = 1;
 				// now loop through all the data
 				while(this.task.hasNext()) {
 					IHeadersDataRow row = this.task.next();
@@ -122,6 +123,11 @@ public class ToCsvReactor extends TaskBuilderReactor {
 					}
 					// write row to file
 					bufferedWriter.write(builder.append("\n").toString());
+					
+					if(counter % 10_000 == 0) {
+						logger.info("Finished writing line " + counter);
+					}
+					counter++;
 				}
 	
 			} catch (IOException e) {
@@ -140,7 +146,7 @@ public class ToCsvReactor extends TaskBuilderReactor {
 			}
 	
 			long end = System.currentTimeMillis();
-			System.out.println("Time to output file = " + (end-start) + " ms");
+			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
 			e.printStackTrace();
 			if(f.exists()) {
