@@ -1,8 +1,11 @@
 package prerna.util.ga;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
 
@@ -79,6 +82,19 @@ public class NullGoogleAnalytics implements IGoogleAnalytics {
 	public void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void addNewLogicalNames(Map<String, Object> newLogicals, String[] columns, ITableDataFrame frame) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public ArrayList<String> getLogicalNames(String uniqueName) {
+		return null;
+		// TODO Auto-generated method stub
+
 	}
 
 }
