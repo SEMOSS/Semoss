@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -43,7 +44,6 @@ import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.NounMetadata;
@@ -97,6 +97,7 @@ public class Insight {
 	 * if the insight is saved
 	*/
 	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();	
+	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
 	
 	// insight comments
 	private transient LinkedList<InsightComment> insightCommentList = null;
@@ -144,7 +145,7 @@ public class Insight {
 	private void loadDefaultSettings() {
 		this.pixelList = new Vector<String>();
 		this.taskStore = new TaskStore();
-		this.insightId = "TEMP_ID";
+		this.insightId = UUID.randomUUID().toString();
 		
 		// since we require the use of ids on the databases
 		// we will add the local alias to the global unique id
@@ -424,12 +425,32 @@ public class Insight {
 		return this.taskStore;
 	}
 	
+	/////////////////////////////////////////////////////////////////
+	
+	/*
+	 * For getting file exports from the insight
+	 */
+	
+	public void addExportFile(String uniqueKey, String fileLocation) {
+		this.exportFiles.put(uniqueKey, fileLocation);
+	}
+	
+	public String getExportFileLocation(String uniqueKey) {
+		return this.exportFiles.get(uniqueKey);
+	}
+	
+	public Map<String, String> getExportFiles() {
+		return this.exportFiles;
+	}
+	
+	/////////////////////////////////////////////////////////////////
+	
+	// TODO: need a better way of doing this...
+	// need to keep track of files that made this insight
 	public void setFilesUsedInInsight(List<FileMeta> filesUsed) {
 		this.filesUsedInInsight = filesUsed;
 	}
 
-	// TODO: need a better way of doing this...
-	// need to keep track of files that made this insight
 	public List<FileMeta> getFilesUsedInInsight() {
 		return this.filesUsedInInsight;
 	}
