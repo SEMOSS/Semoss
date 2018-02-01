@@ -27,7 +27,7 @@ import prerna.util.ga.GATracker;
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
 	public OpenInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.ADDITIONAL_PIXELS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.ADDITIONAL_PIXELS.getKey()};
 	}
 
 	@Override
