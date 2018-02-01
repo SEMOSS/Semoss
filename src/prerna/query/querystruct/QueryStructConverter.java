@@ -149,14 +149,13 @@ public class QueryStructConverter {
 
 	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, OwlTemporalEngineMeta meta) {
 		String qsName = selector.getQueryStructName();
-		// see if it is a jsonified selector
-		IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
-		if(jSelector != null) {
-			return jSelector;
-		}
-					
 		String newQsName = meta.getUniqueNameFromAlias(qsName);
 		if(newQsName == null) {
+			// see if it is a jsonified selector
+			IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
+			if(jSelector != null) {
+				return jSelector;
+			}
 			// this should be the physical name
 			// let us make sure and validate it
 			boolean isValid = meta.validateUniqueName(qsName);
@@ -166,6 +165,12 @@ public class QueryStructConverter {
 			return selector;
 		}
 		
+		// see if it is a jsonified selector
+		IQuerySelector jSelector = convertJsonifiedSelector(newQsName, meta);
+		if(jSelector != null) {
+			return jSelector;
+		}
+					
 		// try to see if it is jsonified selector
 		QueryColumnSelector newS = new QueryColumnSelector();
 		if(newQsName.contains("__")) {
