@@ -107,7 +107,7 @@ public class Cluster {
 						if(numVals[i] == null) {
 							numVals[i] = 0.0;
 						}
-						numVals[i] += (double) values[i];
+						numVals[i] += ((Number) values[i]).doubleValue();
 					}
 				} else {
 					if(values[i]==null || values[i].equals(EMPTY)){
@@ -137,7 +137,7 @@ public class Cluster {
 				if(values[i]==null || values[i].equals(EMPTY)) {
 					addToNumericalCluster(names[i], null);
 				} else {
-					addToNumericalCluster(names[i], (double) values[i]);
+					addToNumericalCluster(names[i], ((Number) values[i]).doubleValue());
 				}
 			} else {
 				if(values[i]==null || values[i].equals(EMPTY)){
@@ -169,7 +169,7 @@ public class Cluster {
 						if(numVals[i] == null) {
 							numVals[i] = 0.0;
 						}
-						numVals[i] += (double) values[i];
+						numVals[i] += ((Number) values[i]).doubleValue();
 					}
 				} else {
 					removeFromCategoricalCluster(names[i], values[i] + "", factor);
@@ -209,7 +209,7 @@ public class Cluster {
 						if(numVals[i] == null) {
 							numVals[i] = 0.0;
 						}
-						numVals[i] += (double) values[i];
+						numVals[i] += ((Number) values[i]).doubleValue();
 					}
 				} else {
 					removeFromCategoricalCluster(names[i], values[i] + "");
@@ -333,7 +333,7 @@ public class Cluster {
 		int indexToSkip = -1;
 		for(; i < size; i++) {
 			if(isNumeric[i]) {
-				numericalValues.add((Double) instanceValues[i]);
+				numericalValues.add( ((Number) instanceValues[i]).doubleValue());
 				numericalValueNames.add(attributeNames[i] + "");
 				if(i==instanceIndex) indexToSkip = numericalValueNames.size()-1;
 			} else {
