@@ -54,6 +54,7 @@ public class SyncApp extends AbstractReactor {
 		if(database) {
 			try {
 				logger.info("Synchronizing Database Now... ");
+				logger.info("Stopping the engine ... ");
 				// remove the app
 				Utility.getEngine(appName).closeDB();
 				DIHelper.getInstance().removeLocalProperty(appName);
@@ -61,6 +62,7 @@ public class SyncApp extends AbstractReactor {
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
+				logger.info("Opening the engine again ... ");
 				Utility.getEngine(appName);
 			}
 		}
