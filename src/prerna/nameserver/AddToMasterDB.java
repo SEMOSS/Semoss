@@ -390,11 +390,11 @@ public class AddToMasterDB {
 		// grab the conceptual names
 		// start node
 		String startNodePhysicalInstance = Utility.getInstanceName(startNodePhysicalUri); 
-		String conceptualStartNodeUri = helper.getConceptUri4PhysicalName(startNodePhysicalUri);
+		String conceptualStartNodeUri = helper.getConceptualUriFromPhysicalUri(startNodePhysicalUri);
 		String conceptualStartNodeName = Utility.getInstanceName(conceptualStartNodeUri);
 		// end node
 		String endNodePhysicalInstance = Utility.getInstanceName(endNodePhysicalUri); 
-		String conceptualEndNodeUri = helper.getConceptUri4PhysicalName(endNodePhysicalUri);
+		String conceptualEndNodeUri = helper.getConceptualUriFromPhysicalUri(endNodePhysicalUri);
 		String conceptualEndNodeName = Utility.getInstanceName(conceptualEndNodeUri);
 		
 		String relationGuid = null;
