@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -31,23 +31,58 @@ import prerna.util.insight.InsightScreenshot;
 public class MyAppsReactor extends AbstractReactor {
 	
 	public MyAppsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String limit = this.keyValue.get(this.keysToGet[0]);
-		String offset = this.keyValue.get(this.keysToGet[1]);
-
-		Map<String, List<String>> appInfo = new TreeMap<String, List<String>>();
+		List<Map<String, Object>> appInfo = getAppInfo();
+		Map<String, Map<String, Long>> facetInfo = getFacetInfo();
 		
-		// need to get all the app names
-		List<String> appNames = new Vector<String>();
+		Map<String, Object> myApps = new HashMap<String, Object>();
+		myApps.put("appInfo", appInfo);
+		myApps.put("appFacets", facetInfo);
+		return new NounMetadata(myApps, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
+	}
+
+	
+	/**
+	 * Get the info about the apps
+	 * This will return the following information
+	 * [{
+	 * 	"app_name" : "name" // stored within app core
+	 * 	"app_description" : "description" // stored within app core
+	 * 	"app_tags" : ["tag1","tag2",...] // stored within app core
+	 * 	"insights : ["image1", .. "image5] // stored within insight core
+	 * },
+	 * {
+	 * ...
+	 * },
+	 * ...
+	 * }]
+	 * @return
+	 */
+	private List<Map<String, Object>> getAppInfo() {
+		String searchTerm = this.keyValue.get(this.keysToGet[0]);
+		String limit = this.keyValue.get(this.keysToGet[1]);
+		String offset = this.keyValue.get(this.keysToGet[2]);
+
+		List<Map<String, Object>> appInfo = new Vector<Map<String, Object>>();
+		
 		try {
 			SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+			if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+				builder.setSearchString(searchTerm);
+				builder.setDefaultDisMaxWeighting();
+			} else {
+				builder.setSearchString("*:*");
+			}
 			builder.addReturnFields("id");
 			builder.addReturnFields("app_name");
+			builder.addReturnFields("app_description");
+			builder.addReturnFields("app_tags");
+			builder.setSort("app_name", "desc");
 			if(limit == null) {
 				builder.setLimit(100);
 			} else {
@@ -65,13 +100,18 @@ public class MyAppsReactor extends AbstractReactor {
 			// get the apps
 			SolrDocumentList results = response.getResults();
 			for(SolrDocument doc : results) {
-				appNames.add(doc.get("app_name").toString());
+				Map<String, Object> appMap = new HashMap<String, Object>();
+				appMap.put("app_name", doc.get("app_name"));
+				appMap.put("app_description", doc.get("app_description"));
+				appMap.put("app_tags", doc.get("app_tags"));
+
+				appInfo.add(appMap);
 			}
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException e) {
 			e.printStackTrace();
 		}
 		
-		Map<String, SolrDocumentList> appMap = null;
+		Map<String, SolrDocumentList> imageMap = null;
 		try {
 			// get the top images for each app
 			String searchString = "*:*";
@@ -93,7 +133,7 @@ public class MyAppsReactor extends AbstractReactor {
 					groupSort, 
 					filters);
 			Map<String, Object> queryRet = (Map<String, Object>) groupFieldMap.get("queryResponse");
-			appMap = (Map<String, SolrDocumentList>) queryRet.get(groupByField);
+			imageMap = (Map<String, SolrDocumentList>) queryRet.get(groupByField);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) {
 			e.printStackTrace();
 		}
@@ -101,11 +141,14 @@ public class MyAppsReactor extends AbstractReactor {
 		// need to replace the images
 		String basePath = DIHelper.getInstance().getProperty("BaseFolder");
 		
-		for(String appName : appNames) {
-			if(appMap.containsKey(appName)) {
-				List<String> images = new ArrayList<String>();
+		for(Map<String, Object> appMap : appInfo) {
+			String appName = appMap.get("app_name") + "";
+			// do we have images that we can use to make 
+			// the information look pretty
+			if(imageMap.containsKey(appName)) {
+				List<String> images = new Vector<String>();
 				
-				SolrDocumentList list = (SolrDocumentList) appMap.get(appName);
+				SolrDocumentList list = (SolrDocumentList) imageMap.get(appName);
 				for (int i = 0; i < list.size(); i++) {
 					SolrDocument doc = list.get(i);
 					String imagePath = (String) doc.get("image");
@@ -122,15 +165,62 @@ public class MyAppsReactor extends AbstractReactor {
 					}
 				}
 				
-				appInfo.put(appName, images);
-			} else {
-				// no images
-				// just send the app
-				appInfo.put(appName, new ArrayList<String>());
+				appMap.put("images", images);
 			}
 		}
-
-		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
+		
+		return appInfo;
 	}
+	
+	/**
+	 * Get the facet information
+	 * This will return the following information
+	 * {
+	 * 	"facetField1" : {
+	 * 					"value1" : numberOfTimesItAppears,
+	 * 					"value2" : numberOfTimesItAppears,
+	 * 					}
+	 * 
+	 * 	"facetField2" : {
+	 * 					"value1" : numberOfTimesItAppears,
+	 * 					"value2" : numberOfTimesItAppears,
+	 * 					}
+	 * 	...
+	 * }
+	 * @return
+	 */
+	private Map<String, Map<String, Long>> getFacetInfo() {
+		String searchTerm = this.keyValue.get(this.keysToGet[0]);
+		
+		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			builder.setSearchString(searchTerm);
+			builder.setDefaultDisMaxWeighting();
+		} else {
+			builder.setSearchString("*:*");
+		}
+		
+		List<String> facetList = new ArrayList<>();
+		facetList.add("app_tags");
+		// set facet info
+		builder.setFacet(true);
+		builder.setFacetField(facetList);
+		builder.setFacetMinCount(1);
+		builder.setFacetSortCount(true);
+		
+		Map<String, Map<String, Long>> facetInfo = null;
+		
+		try {
+			SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+			QueryResponse response = solrE.getQueryResponse(builder.getSolrQuery(), SolrIndexEngine.SOLR_PATHS.SOLR_APP_PATH_NAME);
+			List<FacetField> facetFieldList = response.getFacetFields();
+			facetInfo = solrE.processFacetFieldMap(facetFieldList);
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException e) {
+			e.printStackTrace();
+		}
+		
+		return facetInfo;
+	}
+	
 
 }
