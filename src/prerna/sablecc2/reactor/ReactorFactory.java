@@ -399,7 +399,6 @@ public class ReactorFactory {
 		reactorHash.put("TransposeRows", TransposeRowTaskReactor.class);
 
 		// Solr / Local Master Reactors
-//		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
 		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
