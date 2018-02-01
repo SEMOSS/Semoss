@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.solr.client.solrj.SolrQuery;
@@ -39,7 +40,7 @@ public class MyAppsReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[0]);
 		String offset = this.keyValue.get(this.keysToGet[1]);
 
-		Map<String, List<String>> appInfo = new HashMap<String, List<String>>();
+		Map<String, List<String>> appInfo = new TreeMap<String, List<String>>();
 		
 		// need to get all the app names
 		List<String> appNames = new Vector<String>();
