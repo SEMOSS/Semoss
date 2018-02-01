@@ -161,7 +161,6 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
-		System.out.println("aga");
 		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter2 interp = new RInterpreter2();
 		interp.setQueryStruct(qs);
