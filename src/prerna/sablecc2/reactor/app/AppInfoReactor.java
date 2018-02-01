@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -52,14 +53,41 @@ public class AppInfoReactor extends AbstractReactor {
 		SolrQuery q = builder.getSolrQuery();
 		SolrDocument appInfo = null;
 		try {
-			QueryResponse response = SolrIndexEngine.getInstance().getQueryResponse(q, SolrIndexEngine.SOLR_PATHS.SOLR_APP_PATH_NAME);
+			SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+			QueryResponse response = solrE.getQueryResponse(q, SolrIndexEngine.SOLR_PATHS.SOLR_APP_PATH_NAME);
 			SolrDocumentList results = response.getResults();
 			// there should only be 1
 			appInfo = results.get(0);
 			
-			// agument the metadata with the number of insights in the app
-			long numInsights = SolrIndexEngine.getInstance().getNumEngineInsights(appName);
-			appInfo.put("app_insights", numInsights);
+			/*
+			 * Queries below are done on the insight core
+			 */
+			
+			// augment the metadata with the number of insights in the app
+			long numInsights = solrE.getNumEngineInsights(appName);
+			appInfo.put("num_insights", numInsights);
+			
+			// augment the metadata with the tags for the insights in the app
+			builder = new SolrIndexEngineQueryBuilder();
+			// need to re-add the filter but modify the key name
+			filterData = new HashMap<String, List<String>>();
+			filterList = new ArrayList<String>();
+			filterList.add(appName);
+			filterData.put("core_engine", filterList);
+			builder.setFilterOptions(filterData);
+			
+			List<String> facetList = new ArrayList<>();
+			facetList.add("tags");
+			// set facet info
+			builder.setFacet(true);
+			builder.setFacetField(facetList);
+			builder.setFacetMinCount(1);
+			builder.setFacetSortCount(true);
+			
+			response = solrE.getQueryResponse(builder.getSolrQuery(), SolrIndexEngine.SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			List<FacetField> facetFieldList = response.getFacetFields();
+			Map<String, Map<String, Long>> facetInfo = solrE.processFacetFieldMap(facetFieldList);
+			appInfo.put("insight_facets", facetInfo);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException e) {
 			e.printStackTrace();
 		}
