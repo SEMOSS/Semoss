@@ -28,7 +28,7 @@ public class RColumnSelector implements IExpressionSelector {
 	public String toString() {
 		String tableName = frame.getTableName();
 		String uniqueName = tableName + "__" + columnName;
-		if(frame.getMetaData().getHeaderTypeAsEnum(uniqueName, tableName) == SemossDataType.DATE) {
+		if(frame.getMetaData().getHeaderTypeAsEnum(uniqueName) == SemossDataType.DATE) {
 			StringBuilder builder = new StringBuilder();
 			builder.append("format(").append(columnName).append(", '%m/%d/%Y')");
 			return builder.toString();

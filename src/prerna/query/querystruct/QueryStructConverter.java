@@ -149,39 +149,36 @@ public class QueryStructConverter {
 
 	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, OwlTemporalEngineMeta meta) {
 		String qsName = selector.getQueryStructName();
+		// see if it is a jsonified selector
+		IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
+		if(jSelector != null) {
+			return jSelector;
+		}
+					
 		String newQsName = meta.getUniqueNameFromAlias(qsName);
 		if(newQsName == null) {
-			// see if it is a jsonified selector
-			IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
-			if(jSelector != null) {
-				return jSelector;
+			// this should be the physical name
+			// let us make sure and validate it
+			boolean isValid = meta.validateUniqueName(qsName);
+			if(!isValid) {
+				throw new IllegalArgumentException("Cannot find header for column input = " + qsName);
 			}
-			
-			// nothing to do
-			// return the original
 			return selector;
 		}
 		
 		// try to see if it is jsonified selector
-		IQuerySelector jSelector = convertJsonifiedSelector(qsName, meta);
-		if(jSelector != null) {
-			return jSelector;
+		QueryColumnSelector newS = new QueryColumnSelector();
+		if(newQsName.contains("__")) {
+			String[] split = newQsName.split("__");
+			newS.setTable(split[0]);
+			newS.setColumn(split[1]);
 		} else {
-			// not jsonified
-			// but we do need to modify it
-			QueryColumnSelector newS = new QueryColumnSelector();
-			if(newQsName.contains("__")) {
-				String[] split = newQsName.split("__");
-				newS.setTable(split[0]);
-				newS.setColumn(split[1]);
-			} else {
-				newS.setTable(newQsName);
-				newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
-			}
-			newS.setAlias(selector.getAlias());
-			newS.setTableAlias(selector.getTableAlias());
-			return newS;
+			newS.setTable(newQsName);
+			newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
 		}
+		newS.setAlias(selector.getAlias());
+		newS.setTableAlias(selector.getTableAlias());
+		return newS;
 	}
 
 	private static IQuerySelector convertJsonifiedSelector(String uniqueName, OwlTemporalEngineMeta meta) {
