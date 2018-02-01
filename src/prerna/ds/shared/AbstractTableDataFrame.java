@@ -288,8 +288,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	protected Double calculateMax(String columnHeader) {
-		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
-		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader);
+		if (dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
@@ -334,8 +334,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	protected Double calculateMin(String columnHeader) {
-		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
-		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader);
+		if (dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
 			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
