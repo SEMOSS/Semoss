@@ -154,6 +154,11 @@ public final class ZipDatabase {
 			File[] files = dir.listFiles();
 			if(files != null) {
 				for(File file : files) {
+					if(file.isDirectory()) {
+						// skip random directories for now
+						// TODO: make it recursive
+						continue;
+					}
 					System.out.println("Saving file " + file.getName());
 					addFolderToZipFile(file, zos);
 				}
