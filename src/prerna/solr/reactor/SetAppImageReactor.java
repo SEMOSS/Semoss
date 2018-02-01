@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app;
+package prerna.solr.reactor;
 
 import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
