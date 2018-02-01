@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app;
+package prerna.solr.reactor;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
