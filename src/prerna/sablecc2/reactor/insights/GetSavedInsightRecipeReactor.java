@@ -16,7 +16,7 @@ import prerna.util.Utility;
 public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
 	
 	public GetSavedInsightRecipeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
 
 	@Override
