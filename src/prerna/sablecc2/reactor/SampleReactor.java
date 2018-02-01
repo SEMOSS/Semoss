@@ -151,7 +151,7 @@ public class SampleReactor extends AbstractReactor {
 			for(int colIndex = 0;colIndex < inputs.size() && frame != null;colIndex++)
 			{
 				String thisCol = inputs.elementAt(colIndex);
-				SemossDataType thisType = frame.getMetaData().getHeaderTypeAsEnum(thisCol, null);
+				SemossDataType thisType = frame.getMetaData().getHeaderTypeAsEnum(thisCol);
 				if(thisType == SemossDataType.STRING)
 					method.append("String " + thisCol + " = (String)row.getField(" + thisCol + "); \n");
 				else if(thisType == SemossDataType.INT || thisType == SemossDataType.DOUBLE)
