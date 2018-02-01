@@ -130,7 +130,7 @@ public class MyAppsReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
 	}
 
 }
