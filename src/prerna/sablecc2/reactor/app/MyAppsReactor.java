@@ -30,11 +30,15 @@ import prerna.util.insight.InsightScreenshot;
 public class MyAppsReactor extends AbstractReactor {
 	
 	public MyAppsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
+		String limit = this.keyValue.get(this.keysToGet[0]);
+		String offset = this.keyValue.get(this.keysToGet[1]);
+
 		Map<String, List<String>> appInfo = new HashMap<String, List<String>>();
 		
 		// need to get all the app names
@@ -43,7 +47,17 @@ public class MyAppsReactor extends AbstractReactor {
 			SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
 			builder.addReturnFields("id");
 			builder.addReturnFields("app_name");
-
+			if(limit == null) {
+				builder.setLimit(100);
+			} else {
+				builder.setLimit(Integer.parseInt(limit));
+			}
+			if(offset == null) {
+				builder.setOffset(0);
+			} else {
+				builder.setLimit(Integer.parseInt(offset));
+			}
+			
 			SolrQuery q = builder.getSolrQuery();
 			
 			QueryResponse response = SolrIndexEngine.getInstance().getQueryResponse(q, SolrIndexEngine.SOLR_PATHS.SOLR_APP_PATH_NAME);
