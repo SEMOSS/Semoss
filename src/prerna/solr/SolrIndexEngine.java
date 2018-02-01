@@ -1061,49 +1061,61 @@ public class SolrIndexEngine {
 			}
 
 			// 6) now iterate through the facet results and get the relevant information to send
-			/*
-			 * example output that we want to produce
-			 * 	{
-			 * 		layout : 	{
-			 * 						bar chart: 125,
-			 * 						pie chart: 34
-			 * 					}
-			 * 
-			 * 		engines : 	{
-			 * 						movie_db : 130,
-			 * 						actor_db : 12
-			 * 					}
-			 * 	}
-			 */
-			if (facetFieldList != null && facetFieldList.size() > 0) {
-				// for each field -> corresponding to a schema entry in the facet list passed into the 
-				// query builder before entering this method
-				for (FacetField field : facetFieldList) {
-					// the inner map will contain the instance level information
-					LinkedHashMap<String, Long> innerMap = new LinkedHashMap<String, Long>();
-					// the field name here is the schema name entry
-					// in the above example, this corresponds to layout and engines
-					String fieldName = field.getName();
-					// here we get a list of unique instances associated with the field
-					List<Count> facetInfo = field.getValues();
-					if (facetInfo != null) {
-						for (FacetField.Count facetInstance : facetInfo) {
-							// facet name will correspond to the instance name
-							// facet count will correspond to the number of times it appears
-							// in the above example, this corresponds to each specific set
-							// {bar chart : 125} and {pie chart : 34} when the fieldName is layout, and 
-							// {movie_db : 130} and {actor_db : 12} when the fieldName is engines
-							innerMap.put(facetInstance.getName(), facetInstance.getCount());
-						}
-					}
-					// input into the return map
-					facetFieldMap.put(fieldName, innerMap);
-				}
-			}
+			facetFieldMap = processFacetFieldMap(facetFieldList);
 		}
 		LOGGER.info("Done executing facet query");
 		return facetFieldMap;
 	}
+	
+	/**
+	 * Process to extract the information from the facet field list
+	 * @param facetFieldList
+	 * @return
+	 */
+	public Map<String, Map<String, Long>> processFacetFieldMap(List<FacetField> facetFieldList) {
+		/*
+		 * example output that we want to produce
+		 * 	{
+		 * 		layout : 	{
+		 * 						bar chart: 125,
+		 * 						pie chart: 34
+		 * 					}
+		 * 
+		 * 		engines : 	{
+		 * 						movie_db : 130,
+		 * 						actor_db : 12
+		 * 					}
+		 * 	}
+		 */
+		Map<String, Map<String, Long>> facetFieldMap = new LinkedHashMap<String, Map<String, Long>>();
+		if (facetFieldList != null && facetFieldList.size() > 0) {
+			// for each field -> corresponding to a schema entry in the facet list passed into the 
+			// query builder before entering this method
+			for (FacetField field : facetFieldList) {
+				// the inner map will contain the instance level information
+				LinkedHashMap<String, Long> innerMap = new LinkedHashMap<String, Long>();
+				// the field name here is the schema name entry
+				// in the above example, this corresponds to layout and engines
+				String fieldName = field.getName();
+				// here we get a list of unique instances associated with the field
+				List<Count> facetInfo = field.getValues();
+				if (facetInfo != null) {
+					for (FacetField.Count facetInstance : facetInfo) {
+						// facet name will correspond to the instance name
+						// facet count will correspond to the number of times it appears
+						// in the above example, this corresponds to each specific set
+						// {bar chart : 125} and {pie chart : 34} when the fieldName is layout, and 
+						// {movie_db : 130} and {actor_db : 12} when the fieldName is engines
+						innerMap.put(facetInstance.getName(), facetInstance.getCount());
+					}
+				}
+				// input into the return map
+				facetFieldMap.put(fieldName, innerMap);
+			}
+		}
+		return facetFieldMap;
+	}
+
 	/////////////////////////////////// end operation 2 - facet query /////////////////////////////////////////
 
 	
