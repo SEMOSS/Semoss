@@ -140,13 +140,13 @@ public class MasterDatabaseUtility {
 			Hashtable <String, Hashtable> edgeHash = new Hashtable<String, Hashtable>();
 			while(rs.next())
 			{
-				String fromId = rs.getString(1);
-				String toId = rs.getString(2);
+				String startId = rs.getString(1);
+				String endId = rs.getString(2);
 				
 				Hashtable newEdge = new Hashtable();
 				// need to check to see if the idHash has it else put it in
-				String sourceName = idHash.get(toId);
-				String targetName = idHash.get(fromId);
+				String sourceName = idHash.get(startId);
+				String targetName = idHash.get(endId);
 				newEdge.put("source", sourceName);
 				newEdge.put("target", targetName);
 				
@@ -163,7 +163,7 @@ public class MasterDatabaseUtility {
 				}
 				
 				if(foundNode) {
-					edgeHash.put(fromId + "-" + toId, newEdge);
+					edgeHash.put(startId + "-" + endId, newEdge);
 				}
 			}
 			finalHash.put("nodes", nodeHash.values().toArray());
