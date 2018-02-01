@@ -53,8 +53,11 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		Map<String, String> aliasHash = new HashMap<String, String>();
 		int rowCount = 1;
 		for (int i = 0; i < qsHeaders.length; i++) {
-			String alias = (qsHeaders[i].split("__"))[1];
 			String name = qsHeaders[i];
+			String alias = name;
+			if(alias.contains("__")) {
+				alias = name.split("__")[1];
+			}
 			List<String[]> dbInfo = meta.getDatabaseInformation(name);
 			int size = dbInfo.size();
 			for (int j = 0; j < size; j++) {
