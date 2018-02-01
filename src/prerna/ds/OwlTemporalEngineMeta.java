@@ -393,6 +393,33 @@ public class OwlTemporalEngineMeta {
 		return ret;
 	}
 	
+	/**
+	 * Need to validate if a unique name for a table or property is valid
+	 * Return of true means it is valid
+	 * Return of false means it is not valid
+	 * @param uniqueName
+	 * @return
+	 */
+	public boolean validateUniqueName(String uniqueName) {
+		String query = "select distinct ?header "
+				+ "where {"
+				+ "{" 
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "}"
+				+ "} limit 1";
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		if(it.hasNext()) {
+			return true;
+		}
+		return false;
+	}
+	
 	public String getUniqueNameFromAlias(String alias) {
 		String query = "select distinct ?header where {"
 				+ "{"
@@ -578,7 +605,7 @@ public class OwlTemporalEngineMeta {
 		return getHeaderTypeAsEnum(uniqueName, parent);
 	}
 	
-	public SemossDataType getHeaderTypeAsEnum(String uniqueName, String parentUniqueName) {
+	private SemossDataType getHeaderTypeAsEnum(String uniqueName, String parentUniqueName) {
 		String query = null;
 		if(parentUniqueName == null || parentUniqueName.isEmpty()) {
 			// we have a concept
