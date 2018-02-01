@@ -204,6 +204,7 @@ import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupDatabaseReactor;
+import prerna.sablecc2.reactor.utils.ExportDatabaseReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
@@ -332,6 +333,7 @@ public class ReactorFactory {
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupDatabase", BackupDatabaseReactor.class);
+		reactorHash.put("ExportDatabase", ExportDatabaseReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
 		
 		// Semantic blending
@@ -400,7 +402,7 @@ public class ReactorFactory {
 		reactorHash.put("ToUrlType", ToUrlTypeTaskReactor.class);
 		reactorHash.put("TransposeRows", TransposeRowTaskReactor.class);
 
-		// Solr / Local Master Reactors
+		// Local Master Reactors
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
 		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
@@ -574,7 +576,6 @@ public class ReactorFactory {
 		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
 		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
 
-		
 		// Insight Comments
 		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
 		reactorHash.put("DeleteInsightComment", DeleteInsightCommentReactor.class);
