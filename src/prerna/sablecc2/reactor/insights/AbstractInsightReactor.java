@@ -86,7 +86,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	
 	protected String getRdbmsId() {
 		// see if it was passed directly in with the lower case key ornaments
-		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.INSIGHT_ID.getKey());
+		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.ID.getKey());
 		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
 			return genericIdGrs.get(0).toString();
 		}

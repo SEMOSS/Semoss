@@ -27,7 +27,7 @@ import prerna.util.Utility;
 public class DeleteInsightReactor extends AbstractReactor {
 
 	public DeleteInsightReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.INSIGHT_ID.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 	}
 
 	@Override
