@@ -213,6 +213,8 @@ import prerna.solr.reactor.MyAppsReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
 import prerna.solr.reactor.SetAppImageReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
+import prerna.solr.reactor.SetInsightDescriptionReactor;
+import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ga.reactors.UpdateGAHistoricalDataReactor;
@@ -560,6 +562,7 @@ public class ReactorFactory {
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
 		
+		// Solr Metadata
 		// App Metadata
 		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("AppInfo", AppInfoReactor.class);
@@ -567,6 +570,9 @@ public class ReactorFactory {
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
 		reactorHash.put("SetAppImage", SetAppImageReactor.class);
+		// Insight Metadata
+		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
+		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
 
 		
 		// Insight Comments
