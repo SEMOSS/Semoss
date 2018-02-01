@@ -98,7 +98,7 @@ public class BasicIteratorTask extends AbstractTask {
 	public void reset() {
 		cleanUp();
 		if(this.qs != null) {
-			this.qs.setLimit(startLimit);
+			this.qs.setLimit(this.startLimit);
 			this.qs.setOffSet(this.startOffset);
 			this.internalOffset = 0;
 			generateIterator(this.qs);
