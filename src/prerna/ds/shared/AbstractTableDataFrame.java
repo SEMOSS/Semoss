@@ -210,12 +210,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if(uniqueName == null) {
 			uniqueName = name;
 		}
-		SemossDataType dataType = null;
-		if(uniqueName.contains("__")) {
-			dataType = this.metaData.getHeaderTypeAsEnum(uniqueName, uniqueName.split("__")[0]);
-		} else {
-			dataType = this.metaData.getHeaderTypeAsEnum(uniqueName, null);
-		}
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueName);
 		return (dataType.equals(SemossDataType.INT) || dataType.equals(SemossDataType.DOUBLE));
 	}
 
