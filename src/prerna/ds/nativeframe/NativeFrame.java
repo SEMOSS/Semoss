@@ -42,7 +42,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double getMax(String columnHeader) {
-		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader);
 		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
 			QueryFunctionSelector selector = new QueryFunctionSelector();
 			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
@@ -66,7 +66,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double getMin(String columnHeader) {
-		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader, null);
+		SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(columnHeader);
 		if (dataType == SemossDataType.INT|| dataType == SemossDataType.DOUBLE) {
 			QueryFunctionSelector selector = new QueryFunctionSelector();
 			QueryColumnSelector innerSelector = new QueryColumnSelector(columnHeader);
