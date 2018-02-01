@@ -658,7 +658,7 @@ public class OwlTemporalEngineMeta {
 				+ "where {"
 				+ "{" 
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ (onlyNumeric ? "bind(\"NUMBER\" as ?dt){?header <" + OWL.DATATYPEPROPERTY + "> \"NUMBER\"}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
+				+ (onlyNumeric ? "filter(?dt = \"INT\" || ?dt = \"DOUBLE\") {?header <" + OWL.DATATYPEPROPERTY + "> ?dt}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
 				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
@@ -669,7 +669,7 @@ public class OwlTemporalEngineMeta {
 				+ "{"
 				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
-				+ (onlyNumeric ? "bind(\"NUMBER\" as ?dt){?header <" + OWL.DATATYPEPROPERTY + "> \"NUMBER\"}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
+				+ (onlyNumeric ? "filter(?dt = \"INT\" || ?dt = \"DOUBLE\") {?header <" + OWL.DATATYPEPROPERTY + "> ?dt}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
 				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
