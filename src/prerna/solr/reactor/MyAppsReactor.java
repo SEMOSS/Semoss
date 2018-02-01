@@ -82,7 +82,7 @@ public class MyAppsReactor extends AbstractReactor {
 			builder.addReturnFields("app_name");
 			builder.addReturnFields("app_description");
 			builder.addReturnFields("app_tags");
-			builder.setSort("app_name", "desc");
+			builder.setSort("app_name", "asc");
 			if(limit == null) {
 				builder.setLimit(100);
 			} else {
