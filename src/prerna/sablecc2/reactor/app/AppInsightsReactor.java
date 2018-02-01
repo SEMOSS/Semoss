@@ -36,7 +36,7 @@ public class AppInsightsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
-		String search = this.keyValue.get(this.keysToGet[1]);
+		String searchTerm = this.keyValue.get(this.keysToGet[1]);
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
 		String modImageStr = this.keyValue.get(this.keysToGet[4]);
@@ -44,8 +44,8 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<String> tags = getTags();
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
-		if(search != null && !search.trim().isEmpty()) {
-			builder.setSearchString(search);
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			builder.setSearchString(searchTerm);
 			builder.setDefaultDisMaxWeighting();
 		} else {
 			builder.setSearchString("*:*");
