@@ -115,7 +115,6 @@ import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseInfoReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
@@ -391,7 +390,7 @@ public class ReactorFactory {
 		reactorHash.put("CollectMeta", TaskMetaCollectorReactor.class); // collect meta from task
 		reactorHash.put("Format", TaskFormatReactor.class); // set formats
 		reactorHash.put("TaskOptions", TaskOptionsReactor.class); // set options
-		reactorHash.put("ToCsv", ToCsvReactor.class); // set options
+		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
 		// Task Operations
 		reactorHash.put("Lambda", MapLambdaTaskReactor.class);
 		reactorHash.put("FilterLambda", FilterLambdaTaskReactor.class);
@@ -400,7 +399,7 @@ public class ReactorFactory {
 		reactorHash.put("TransposeRows", TransposeRowTaskReactor.class);
 
 		// Solr / Local Master Reactors
-		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
+//		reactorHash.put("DatabaseInfo", DatabaseInfoReactor.class);
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
 		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
