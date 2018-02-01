@@ -11,7 +11,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class JobReactor extends AbstractReactor {
 	
 	public JobReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.INSIGHT_ID.getKey(), ReactorKeysEnum.SESSION_ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.SESSION_ID.getKey()};
 	}
 	
 	@Override
