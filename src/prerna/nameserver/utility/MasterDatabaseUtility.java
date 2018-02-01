@@ -433,7 +433,7 @@ public class MasterDatabaseUtility {
 				if(conceptSpecific.containsKey("physical"))
 					physicalNames = (Set<String>)conceptSpecific.get("physical");
 				physicalNames.add(streamPhysicalName);
-				conceptSpecific.put("upstream", upstreams);
+				conceptSpecific.put("downstream", upstreams);
 				conceptSpecific.put("physical", physicalNames);
 				engineSpecific.put(coreConceptName, conceptSpecific);
 				retMap.put(engineName, engineSpecific);
