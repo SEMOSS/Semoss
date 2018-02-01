@@ -353,7 +353,7 @@ public class MasterDatabaseUtility {
 		//and ec.physicalnameid=er.targetconceptid and c.localconceptid=ec.localconceptid and e.id=er.engine;
 
 		// now time to run the upstream and downstream queries
-		String downstreamQuery = "select distinct  e.enginename, er.sourceconceptid, 'downstream' as downstream,  "
+		String downstreamQuery = "select distinct  e.enginename, er.sourceconceptid, 'upstream' as upstream,  "
 				+ "er.relationname,  c.conceptualname , er.engine, er.targetconceptid, ec.physicalname from "
 				+ "enginerelation er, engineconcept ec, concept c, engine e "
 				+ "where er.sourceconceptid in (select physicalnameid from engineconcept where localconceptid in "
@@ -382,13 +382,13 @@ public class MasterDatabaseUtility {
 				Set<String> downstreams = new TreeSet<String>();
 				Set<String> physicalNames = new TreeSet<String>();
 
-				if(conceptSpecific.containsKey("downstream"))
-					downstreams = (Set<String>)conceptSpecific.get("downstream");
+				if(conceptSpecific.containsKey("upstream"))
+					downstreams = (Set<String>)conceptSpecific.get("upstream");
 				downstreams.add(streamConceptName);
 				if(conceptSpecific.containsKey("physical"))
 					physicalNames = (Set<String>)conceptSpecific.get("physical");
 				physicalNames.add(streamPhysicalName);
-				conceptSpecific.put("downstream", downstreams);
+				conceptSpecific.put("upstream", downstreams);
 				conceptSpecific.put("physical", physicalNames);
 				engineSpecific.put(coreConceptName, conceptSpecific);
 				retMap.put(engineName, engineSpecific);
@@ -400,7 +400,7 @@ public class MasterDatabaseUtility {
 		}
 
 		// now time to run the upstream and downstream queries
-		String upstreamQuery = "select distinct  e.enginename, er.targetconceptid, 'upstream' as upstream,  "
+		String upstreamQuery = "select distinct  e.enginename, er.targetconceptid, 'downstream' as downstream,  "
 				+ "er.relationname,  c.conceptualname , er.engine, er.sourceconceptid, ec.physicalname from "
 				+ "enginerelation er, engineconcept ec, concept c, engine e "
 				+ "where er.targetconceptid in (select physicalnameid from engineconcept where localconceptid in "
@@ -427,8 +427,8 @@ public class MasterDatabaseUtility {
 				Set<String> upstreams = new TreeSet<String>();
 				Set<String> physicalNames = new TreeSet<String>();
 
-				if(conceptSpecific.containsKey("upstream"))
-					upstreams = (Set<String>)conceptSpecific.get("upstream");
+				if(conceptSpecific.containsKey("downstream"))
+					upstreams = (Set<String>)conceptSpecific.get("downstream");
 				upstreams.add(streamConceptName);
 				if(conceptSpecific.containsKey("physical"))
 					physicalNames = (Set<String>)conceptSpecific.get("physical");
