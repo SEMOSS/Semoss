@@ -203,7 +203,7 @@ public class InsightFilesToDatabaseReader {
 			// update the engine metadata within the local master and solr
 			Utility.synchronizeEngineMetadata(engineName); 
 			SolrUtility.addToSolrInsightCore(engineName);
-			
+			SolrUtility.addAppToSolr(engineName);
 			// smss location is not null when we are making a new engine
 			// if it is null, there is no temp file or anything that we need to deal with
 			if(smssLocation != null) {
