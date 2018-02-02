@@ -9,7 +9,9 @@ import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPString;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
@@ -41,6 +43,40 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		String script = "sapply(" + frameName + ", class);";
 		String[] colTypes = this.getStringArray(script);
 		return colTypes;
+	}
+	/**
+	 * Alter a column to a new type
+	 * @param frameName
+	 * @param columnName
+	 * @param typeToConvert
+	 */
+	public void changeColumnType(String frameName, String columnName, SemossDataType typeToConvert) {
+		String rScript = null;
+		if(typeToConvert == SemossDataType.STRING) {
+			rScript = RSyntaxHelper.alterColumnTypeToCharacter(frameName, columnName);
+		} else if(typeToConvert == SemossDataType.INT) {
+			rScript = RSyntaxHelper.alterColumnTypeToNumeric(frameName, columnName);
+		} else if(typeToConvert == SemossDataType.DOUBLE) {
+			rScript = RSyntaxHelper.alterColumnTypeToNumeric(frameName, columnName);
+		} else if(typeToConvert == SemossDataType.DATE) {
+			rScript = RSyntaxHelper.alterColumnTypeToDate(frameName, columnName);
+		} else if(typeToConvert == SemossDataType.TIMESTAMP) {
+			rScript = RSyntaxHelper.alterColumnTypeToDateTime(frameName, columnName);
+		}
+		this.executeR(rScript);
+	}
+	
+	/**
+	 * Alter a column to a new type if it is different from the current type
+	 * @param frameName
+	 * @param columnName
+	 * @param typeToConvert
+	 * @param currentType
+	 */
+	public void changeColumnType(String frameName, String columnName, SemossDataType typeToConvert, SemossDataType currentType) {
+		if(typeToConvert != currentType) {
+			changeColumnType(frameName, columnName, typeToConvert);
+		}
 	}
 
 	/**
@@ -88,7 +124,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			this.executeR("rm(" + tempTable + ");");
 			this.executeR("gc();");
 		}
-		System.out.println("Successfully changed data type for column = " + colName);
+		logger.info("Successfully changed data type for column = " + colName);
 		frame.getMetaData().modifyDataTypeToProperty(frameName + "__" + colName, frameName, newType);
 	}
 

@@ -78,6 +78,15 @@ public class RSyntaxHelper {
 		return str.toString();
 	}
 
+	public static String alterColumnTypeToCharacter(String tableName, String colName) {
+		// will generate a string similar to
+		// "datatable$Revenue_International <- as.numeric(as.character(datatable$Revenue_International))"
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.character(")
+		.append(tableName).append("$").append(colName).append(")");
+		return builder.toString();
+	}
+	
 	/**
 	 * Converts a R column type to numeric
 	 * @param tableName				The name of the R table
