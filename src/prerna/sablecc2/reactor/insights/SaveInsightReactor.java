@@ -76,7 +76,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
+		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, IMAGE_NAME, recipeToSave);
 		logger.info("3) Done...");
 		
 		// capture image from image url
