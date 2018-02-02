@@ -131,6 +131,10 @@ public abstract class AbstractRBuilder {
 		
 		// ... and make sure you update the types after!
 		// the types map will have the finalized headers to their types (?) TODO check this, if not true, need to do this in csv/excel iterators
+		
+		// modify columns such that they are chars where needed
+		// this is because an int id may need to be convered to string
+		alterColumnsToChars(tableName, typesMap);
 		// modify columns such that they are numeric where needed
 		alterColumnsToNumeric(tableName, typesMap);
 		//modify columns such that they are date where needed
@@ -320,6 +324,20 @@ public abstract class AbstractRBuilder {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(this.dataTableName, header) ) );
 			} else if(type == SemossDataType.TIMESTAMP) {
 				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDateTime(this.dataTableName, header) ) );
+			}
+		}
+	}
+	
+	/**
+	 * Modify columns to make sure they are chars
+	 * @param tableName
+	 * @param typesMap
+	 */
+	private void alterColumnsToChars(String tableName, Map<String, SemossDataType> typesMap) {
+		for(String header : typesMap.keySet()) {
+			SemossDataType type = typesMap.get(header);
+			if(type == SemossDataType.STRING) {
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToCharacter(dataTableName, header) ) );
 			}
 		}
 	}
