@@ -267,7 +267,7 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  
  // map is a key : value
- // where the value is a scalar, varaible, vector of scalars/variables, or another nested map
+ // where the value is a scalar, variable, vector of scalars/variables, or another nested map
  map = l_curl map_entry? other_map_entry* r_curl;
  
  map_entry = [key]:word colon [val]:values;
@@ -283,8 +283,9 @@ Productions
  map_list_extend = comma map_extended_input;
  
  map_extended_input = {list} map_list | {scalar} map_base_input | {nested_map} map;  
- map_base_input = {map_var} map_var | {normal_scalar} scalar;
+ map_base_input = {map_var} map_var | {normal_scalar} scalar | {map_neg_num} map_neg_num;
  map_var = [start]:l_curl [var]:id [end]:r_curl;
+ map_neg_num = minus decimal;
  
  ///////////////////////////////////////////////////////////////////////
  /////////////////////////// END MAP ///////////////////////////////////

@@ -693,7 +693,19 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMapNegNumMapBaseInput(AMapNegNumMapBaseInput node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAMapVar(AMapVar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMapNegNum(AMapNegNum node)
     {
         defaultCase(node);
     }

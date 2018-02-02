@@ -44,6 +44,7 @@ import prerna.sablecc2.node.AMainCommentRoutine;
 import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapEntry;
 import prerna.sablecc2.node.AMapList;
+import prerna.sablecc2.node.AMapNegNum;
 import prerna.sablecc2.node.AMapVar;
 import prerna.sablecc2.node.AMetaScriptstart;
 import prerna.sablecc2.node.AMinusBaseExpr;
@@ -1199,6 +1200,31 @@ public class LazyTranslation extends DepthFirstAdapter {
     		value = new NounMetadata("{" + variable + "}", PixelDataType.CONST_STRING);
     	}
     	this.curReactor.getCurRow().add(value);
+    }
+    
+    @Override
+    public void outAMapNegNum(AMapNegNum node) {
+    	/*
+    	 * We are out a number
+    	 * Which adds to the curRow of the map reactor
+    	 * So take it and then multiple by -1 and add back
+    	 */
+    	GenRowStruct curRow = this.curReactor.getCurRow();
+    	NounMetadata numNoun = curRow.remove(curRow.size()-1);
+    	PixelDataType type = numNoun.getNounType();
+    	
+    	NounMetadata negNum = null;
+    	if(type == PixelDataType.CONST_INT) {
+    		negNum = new NounMetadata(-1 * ((Number) numNoun.getValue()).intValue(), PixelDataType.CONST_INT);
+    	} else if(type == PixelDataType.CONST_DECIMAL){
+    		negNum = new NounMetadata(-1.0 * ((Number) numNoun.getValue()).doubleValue(), PixelDataType.CONST_DECIMAL);
+    	} else {
+    		// ugh... how did you get here
+    		// i'm just gonna add you back...
+    		negNum = numNoun;
+    	}
+    	
+		curRow.add(negNum);
     }
         
 	//////////////////////////////////////////////////////////////////
