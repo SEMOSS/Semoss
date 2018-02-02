@@ -28,6 +28,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightScreenshot;
@@ -38,7 +39,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 
 	// used for saving a base insight
 	protected static final String IMAGE = "image";
-
+	protected static final String IMAGE_NAME = "image.png";
+	
 	protected String getEngine() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
@@ -196,16 +198,16 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @param baseURL
 	 * @param engineName
 	 */
-	protected void updateSolrImageByRecreatingInsight(String solrInsightIDToUpdate, String imageInsightIDToView, String baseURL,
-			String engineName) {
-		String baseImagePath = DIHelper.getInstance().getProperty("BaseFolder");
+	protected void updateSolrImageByRecreatingInsight(String solrInsightIDToUpdate, String imageInsightIDToView, String baseURL, String engineName) {
 
 		// solr id to update
 		final String finalID = solrInsightIDToUpdate;
 		// id used for embed link
 		final String idForURL = imageInsightIDToView;
-		final String imagePath = baseImagePath + "\\images\\" + engineName + "_" + finalID + ".png";
-
+		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "\\db\\" + engineName + "\\version\\" + finalID
+				+ "\\" + IMAGE_NAME;
+		
 		// not supported by the embedded browser
 		Runnable r = new Runnable() {
 			public void run() {
@@ -222,7 +224,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 
 					// Update solr
 					Map<String, Object> solrInsights = new HashMap<>();
-					solrInsights.put(SolrIndexEngine.IMAGE, "\\images\\" + engineName + "_" + finalID + ".png");
+					solrInsights.put(SolrIndexEngine.IMAGE, "\\db\\" + engineName + "\\version\\" + finalID + "\\" + IMAGE_NAME);
 					solrInsights.put(SolrIndexEngine.IMAGE_URL, baseURL);
 					try {
 						SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + finalID, solrInsights);
@@ -266,16 +268,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	protected void updateSolrImageFromPng(String base64Image, String insightId, String engineName) {
 		// set up path to save image to file
-		String baseImagePath = DIHelper.getInstance().getProperty("BaseFolder");
-		String imagePath = baseImagePath + "\\images\\" + engineName + "_" + insightId + ".png";
-		
+		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+				+ "\\db\\" + engineName + "\\version\\" + insightId
+				+ "\\" + IMAGE_NAME;
+				
 		// decode image and write to file
 		byte[] data = Base64.decodeBase64(base64Image);
 		try (OutputStream stream = new FileOutputStream(imagePath)) {
 			stream.write(data);
 			// update solr with image path to file
 			Map<String, Object> solrInsights = new HashMap<>();
-			solrInsights.put(SolrIndexEngine.IMAGE, "\\images\\" + engineName + "_" + insightId + ".png");
+			solrInsights.put(SolrIndexEngine.IMAGE, "\\db\\" + engineName + "\\version\\" + insightId + "\\" + IMAGE_NAME);
 			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrInsights);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

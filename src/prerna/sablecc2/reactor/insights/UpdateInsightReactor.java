@@ -79,7 +79,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		LOGGER.info("2) Done");
 		//update recipe text file
 		LOGGER.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
-		updateRecipeFile(engineName, rdbmsId, insightName, layout, recipeToSave);
+		updateRecipeFile(engineName, rdbmsId, insightName, layout, IMAGE_NAME, recipeToSave);
 		LOGGER.info("3) Done");
 		if (imageURL != null) {
 			// fill in image Url endpoint with engine name
@@ -150,10 +150,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
+	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID + "\\" + MosfetSyncHelper.RECIPE_FILE;
-		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, recipeToSave);
+		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, imageName, recipeToSave);
 	}
 
 	///////////////////////// KEYS /////////////////////////////////////
