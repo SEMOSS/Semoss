@@ -140,7 +140,7 @@ public class GitConsumer {
 			try {
 				// need to make modification on the engine
 				File fileToMove = null;
-				if(files[i].getName().equalsIgnoreCase(yourName4App)) {
+				if(files[i].getName().replace(".smss", "").equalsIgnoreCase(yourName4App)) {
 					fileToMove = files[i];
 				} else {
 					// we have to change the smss file
@@ -193,7 +193,13 @@ public class GitConsumer {
 		String newName = "db/" + yourName4App;
 		String newFileName = mainDirectory + "/" + yourName4App + ".smss";
 		File newFile = new File(newFileName);
-
+		if(!newFile.exists()) {
+			try {
+				newFile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		FileInputStream fis = null;
 		OutputStream fos = null;
 		try {
