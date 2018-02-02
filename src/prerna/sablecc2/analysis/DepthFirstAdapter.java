@@ -2625,6 +2625,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outANormalScalarMapBaseInput(node);
     }
 
+    public void inAMapNegNumMapBaseInput(AMapNegNumMapBaseInput node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapNegNumMapBaseInput(AMapNegNumMapBaseInput node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapNegNumMapBaseInput(AMapNegNumMapBaseInput node)
+    {
+        inAMapNegNumMapBaseInput(node);
+        if(node.getMapNegNum() != null)
+        {
+            node.getMapNegNum().apply(this);
+        }
+        outAMapNegNumMapBaseInput(node);
+    }
+
     public void inAMapVar(AMapVar node)
     {
         defaultIn(node);
@@ -2652,6 +2673,31 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getEnd().apply(this);
         }
         outAMapVar(node);
+    }
+
+    public void inAMapNegNum(AMapNegNum node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMapNegNum(AMapNegNum node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMapNegNum(AMapNegNum node)
+    {
+        inAMapNegNum(node);
+        if(node.getMinus() != null)
+        {
+            node.getMinus().apply(this);
+        }
+        if(node.getDecimal() != null)
+        {
+            node.getDecimal().apply(this);
+        }
+        outAMapNegNum(node);
     }
 
     public void inANumScalar(ANumScalar node)
