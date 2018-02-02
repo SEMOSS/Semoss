@@ -86,7 +86,7 @@ public class PixelRunner {
 	}
 
 	public void runPixel(String expression, Insight insight) {
-		expression = PixelPreProcessor.preProcessPixel(expression, this.encodedTextToOriginal);
+		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodedTextToOriginal);
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		DepthFirstAdapter translation = new GreedyTranslation(this, insight);
 
@@ -102,10 +102,20 @@ public class PixelRunner {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
 				Matcher matcher = pattern.matcher(eMessage);
 				if(matcher.find()) {
-				   String location = matcher.group(0);
-				   location = location.substring(1, location.length()-1);
-				   int findIndex = Integer.parseInt(location.split(",")[1]);
-				   System.out.println("error around " + expression.substring(Math.max(findIndex - 15, 0), Math.min(findIndex + 15, expression.length())));
+					String location = matcher.group(0);
+					location = location.substring(1, location.length()-1);
+					int findIndex = Integer.parseInt(location.split(",")[1]);
+					
+					// trying to figure out the correct location of the error
+					// so, we send a META | Job automatically
+					// and we want to account for that
+					if(expression.startsWith("META | Job(")) {
+						int firstSemicolon = expression.indexOf(";");
+						String subExpression = expression.substring(firstSemicolon+1);
+						eMessage += ". Error in syntax around " + subExpression.substring(Math.max(findIndex - firstSemicolon - 10, 0), Math.min(findIndex - firstSemicolon + 10, subExpression.length())).trim();
+					} else {
+						eMessage += ". Error in syntax around " + expression.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, expression.length())).trim();
+					}
 				}
 			}
 			this.invalidSyntax = true;
