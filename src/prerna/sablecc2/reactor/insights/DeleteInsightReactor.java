@@ -46,9 +46,9 @@ public class DeleteInsightReactor extends AbstractReactor {
 				// so I need to split it
 				String id = grs.get(i).toString();
 				if (id.contains("_")) {
-					String[] split = id.split("_");
-					engineName = split[0];
-					insightIDList.add(split[1]);
+					String insightId = id.substring(id.lastIndexOf("_") + 1, id.length());
+					engineName = id.substring(0, id.lastIndexOf("_"));
+					insightIDList.add(insightId);
 					solrIDList.add(id);
 				}
 			}
@@ -61,9 +61,9 @@ public class DeleteInsightReactor extends AbstractReactor {
 			// id is passed in from solr id where it is defined as engine_id
 			// so I need to split it
 			if (id.contains("_")) {
-				String[] split = id.split("_");
-				engineName = split[0];
-				insightIDList.add(split[1]);
+				String insightId = id.substring(id.lastIndexOf("_") + 1, id.length());
+				engineName = id.substring(0, id.lastIndexOf("_"));
+				insightIDList.add(insightId);
 				solrIDList.add(id);
 			}
 		}
