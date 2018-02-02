@@ -186,6 +186,10 @@ public class GenRowStruct {
 		return this.vector.get(i);
 	}
 	
+	public NounMetadata remove(int i) {
+		return this.vector.remove(i);
+	}
+	
 	public PixelDataType getMeta(int i) {
 		return this.vector.get(i).getNounType();
 	}
