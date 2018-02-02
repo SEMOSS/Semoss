@@ -115,7 +115,9 @@ public interface Analysis extends Switch
     void caseANestedMapMapExtendedInput(ANestedMapMapExtendedInput node);
     void caseAMapVarMapBaseInput(AMapVarMapBaseInput node);
     void caseANormalScalarMapBaseInput(ANormalScalarMapBaseInput node);
+    void caseAMapNegNumMapBaseInput(AMapNegNumMapBaseInput node);
     void caseAMapVar(AMapVar node);
+    void caseAMapNegNum(AMapNegNum node);
     void caseANumScalar(ANumScalar node);
     void caseAWordOrIdScalar(AWordOrIdScalar node);
     void caseABooleanScalar(ABooleanScalar node);
