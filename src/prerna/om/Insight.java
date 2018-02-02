@@ -271,6 +271,22 @@ public class Insight {
 			}
 			ret.put("output", frameData);
 			ret.put("operationType", noun.getOpType());
+			
+			// add additional outputs
+			List<Map<String, Object>> additionalOutputList = new Vector<Map<String, Object>>();
+			List<NounMetadata> addReturns = noun.getAdditionalReturn();
+			int numOutputs = addReturns.size();
+			for(int i = 0; i < numOutputs; i++) {
+				additionalOutputList.add(processNounMetadata(addReturns.get(i)));
+			}
+			if(!additionalOutputList.isEmpty()) {
+				ret.put("additionalOutput", additionalOutputList);
+			}
+			
+			// add message
+			if(noun.getExplanation() != null && !noun.getExplanation().isEmpty()) {
+				ret.put("message", noun.getExplanation());
+			}
 		} else if(noun.getNounType() == PixelDataType.CODE) {
 			// code is a tough one to process
 			// since many operations could have been performed
