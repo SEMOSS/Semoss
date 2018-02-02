@@ -7,13 +7,15 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class NounMetadata 
-{
-	private String explanation = "";
+public class NounMetadata {
+	
+	private final Object value;
 	private final PixelDataType noun;
 	private final List<PixelOperationType> opType = new Vector<PixelOperationType>();
-	private final Object value;
 
+	private String explanation = "";
+	private List<NounMetadata> additionalReturns = new Vector<NounMetadata>();
+	
 	public NounMetadata(Object value, PixelDataType noun) {
 		this(value, noun, PixelOperationType.OPERATION);
 	}
@@ -38,6 +40,10 @@ public class NounMetadata
 		this.opType.addAll(opType);
 	}
 	
+	public Object getValue() {
+		return this.value;
+	}
+	
 	public PixelDataType getNounType() {
 		return this.noun;
 	}
@@ -46,16 +52,20 @@ public class NounMetadata
 		return this.opType;
 	}
 	
+	public void addAdditionalReturn(NounMetadata noun) {
+		this.additionalReturns.add(noun);
+	}
+	
+	public List<NounMetadata> getAdditionalReturn() {
+		return this.additionalReturns;
+	}
+	
 	public void setExplanation(String explanation) {
 		this.explanation = explanation;
 	}
 	
-	public String explanation() {
+	public String getExplanation() {
 		return this.explanation;
-	}
-	
-	public Object getValue() {
-		return this.value;
 	}
 	
 	/**
