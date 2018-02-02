@@ -131,7 +131,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	protected void recreateMetadata(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(frameName);
-		String[] colTypes = this.rJavaTranslator.getColumns(frameName);
+		String[] colTypes = this.rJavaTranslator.getColumnTypes(frameName);
 
 		RDataTable newTable = null;
 		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
@@ -212,36 +212,18 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 * 
 	 * @param frameName
 	 */
-	protected void synchronizeGridToR(String rVarName) {
-		synchronizeGridToR(rVarName, null);
-	}
-
-	/**
-	 * Synchronize the grid to R
-	 * 
-	 * @param frameName
-	 * @param cols
-	 */
-	private void synchronizeGridToR(String frameName, String cols) {
+	private void synchronizeGridToR(String frameName) {
 		long start = java.lang.System.currentTimeMillis();
 		logger.info("Synchronizing H2Frame to R data.table...");
 		H2Frame gridFrame = (H2Frame) dataframe;
-
+		Map<String, SemossDataType> origDataTypes = gridFrame.getMetaData().getHeaderToTypeMap();
+		
 		// note : do not use * since R will not preserve the column order
 		StringBuilder selectors = new StringBuilder();
 		String[] colSelectors = gridFrame.getColumnHeaders();
 		for (int selectIndex = 0; selectIndex < colSelectors.length; selectIndex++) {
-			//TODO: lots of assumptions around a single table
-			//TODO: lots of assumptions around a single table
-			//TODO: lots of assumptions around a single table
 			String colSelector = colSelectors[selectIndex];
-			if(colSelector.contains("__")) {
-				colSelector = colSelector.split("__")[1];
-				selectors.append(colSelector);
-				colSelectors[selectIndex] = colSelector;
-			} else {
-				selectors.append(colSelector);
-			}
+			selectors.append(colSelector);
 			if (selectIndex + 1 < colSelectors.length) {
 				selectors.append(", ");
 			}
@@ -263,12 +245,41 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// all upper case which may not be accurate
 		String[] currHeaders = this.rJavaTranslator.getColumns(frameName);
 		renameColumn(frameName, currHeaders, colSelectors, false);
+		// and also redo the types
+		String[] types = this.rJavaTranslator.getColumnTypes(frameName);
+		recalculateTypes(frameName, origDataTypes, colSelectors, types);
+		
 		storeVariable("GRID_NAME", new NounMetadata(frameName, PixelDataType.CONST_STRING));
 		System.out.println("Completed synchronization as " + frameName);
-
 		long end = java.lang.System.currentTimeMillis();
 		logger.info("Done synchroizing to R data.table...");
 		logger.debug("Time to finish synchronizing to R data.table " + (end-start) + "ms");
+	}
+
+	/**
+	 * Determine the correct types when going from tsv to R
+	 * @param origDataTypes
+	 * @param colSelectors
+	 * @param types
+	 */
+	private void recalculateTypes(String tableName, Map<String, SemossDataType> origDataTypes, String[] colSelectors, String[] types) {
+		Map<String, SemossDataType> dataTypes = new HashMap<String, SemossDataType>();
+		for(String col : origDataTypes.keySet()) {
+			if(col.contains("__")) {
+				dataTypes.put(col.split("__")[1], origDataTypes.get(col));
+			} else {
+				dataTypes.put(col, origDataTypes.get(col));
+			}
+		}
+		
+		int numCols = colSelectors.length;
+		for(int i = 0; i < numCols; i++) {
+			String col = colSelectors[i];
+			String type = types[i];
+			SemossDataType origType = dataTypes.get(col);
+			SemossDataType rType = SemossDataType.convertStringToDataType(type);
+			this.rJavaTranslator.changeColumnType(tableName, col, origType, rType);
+		}
 	}
 
 	/**
@@ -306,7 +317,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (dataframe instanceof H2Frame) {
 			H2Frame gridFrame = (H2Frame) dataframe;
 			String tableName = gridFrame.getBuilder().getTableName();
-			synchronizeGridToR(rVarName, null);
+			synchronizeGridToR(rVarName);
 
 			// now that we have created the frame
 			// we need to set the metadata for the frame
