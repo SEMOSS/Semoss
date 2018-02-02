@@ -62,6 +62,11 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 			int size = dbInfo.size();
 			for (int j = 0; j < size; j++) {
 				String[] engineQs = dbInfo.get(0);
+				if(engineQs.length == 1) {
+					// we do not know the source of this
+					// column
+					continue;
+				}
 				String db = engineQs[0];
 				String conceptProp = engineQs[1];
 				String table = conceptProp;
