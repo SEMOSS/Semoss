@@ -48,6 +48,7 @@ public class MosfetSyncHelper {
 	private static final String INSIGHT_NAME_KEY = "insightName";
 	private static final String LAYOUT_KEY = "layout";
 	private static final String RECIPE_KEY = "recipe";
+	private static final String IMAGE_KEY = "image";
 
 	private static SolrIndexEngine solrE;
 	
@@ -120,11 +121,12 @@ public class MosfetSyncHelper {
 		String name = mapData.get(INSIGHT_NAME_KEY).toString();
 		String layout = mapData.get(LAYOUT_KEY).toString();
 		String recipe = mapData.get(RECIPE_KEY).toString();
+		String image = mapData.get(IMAGE_KEY).toString();
 
 		// solr is simple
 		// we just go through and add it
 		// if it is an add/modify, we have the same steps
-		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
+		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout, image);
 
 		// need to add the insight in the rdbms engine
 		IEngine engine = Utility.getEngine(engineName);
@@ -159,11 +161,12 @@ public class MosfetSyncHelper {
 		String name = mapData.get(INSIGHT_NAME_KEY).toString();
 		String layout = mapData.get(LAYOUT_KEY).toString();
 		String recipe = mapData.get(RECIPE_KEY).toString();
+		String image = mapData.get(IMAGE_KEY).toString();
 
 		// solr is simple
 		// we just go through and add it
 		// if it is an add/modify, we have the same steps
-		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
+		addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout, image);
 
 		// need to update the insight in the rdbms engine
 		modifyInsightInEngineRdbms(engineName, id, name, layout, recipe);
@@ -198,7 +201,7 @@ public class MosfetSyncHelper {
 		deleteInsightFromEngineRdbms(engineName, id);
 	}
 
-	private static void addSolrDocToProcess(List<SolrInputDocument> solrDocsToAdd, String lastModDate, String engineName, String id, String name, String layout) {
+	private static void addSolrDocToProcess(List<SolrInputDocument> solrDocsToAdd, String lastModDate, String engineName, String id, String name, String layout, String image) {
 		// if the solr is active...
 		if (solrE != null && solrE.serverActive()) {
 			// set all the users to be default...
@@ -219,6 +222,7 @@ public class MosfetSyncHelper {
 			queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 			queryResults.put(SolrIndexEngine.VIEW_COUNT, 0);
+			queryResults.put(SolrIndexEngine.IMAGE, "\\db\\" + engineName + "\\version\\" + id + "\\" + image);
 
 			try {
 				solrDocsToAdd.add(SolrUtility.createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
@@ -353,7 +357,7 @@ public class MosfetSyncHelper {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	public static File makeMosfitFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
+	public static File makeMosfitFile(String engineName, String rdbmsID, String insightName, String layout, String imageFileName, String[] recipeToSave) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -363,6 +367,7 @@ public class MosfetSyncHelper {
 		output.put("rdbmsId", rdbmsID);
 		output.put("insightName", insightName);
 		output.put("layout", layout);
+		output.put("image", imageFileName);
 		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
 			recipe.append(pixel);
@@ -385,7 +390,7 @@ public class MosfetSyncHelper {
 		return f;
 	}
 	
-	public static File updateMosfitFile(File mosfetFile, String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave) {
+	public static File updateMosfitFile(File mosfetFile, String engineName, String rdbmsID, String insightName, String layout, String imageFileName, String[] recipeToSave) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		// format recipe file
 		HashMap<String, Object> output = new HashMap<String, Object>();
@@ -393,6 +398,7 @@ public class MosfetSyncHelper {
 		output.put("rdbmsId", rdbmsID);
 		output.put("insightName", insightName);
 		output.put("layout", layout);
+		output.put("image", imageFileName);
 		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
 			recipe.append(pixel);
