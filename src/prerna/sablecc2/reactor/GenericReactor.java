@@ -3,9 +3,9 @@ package prerna.sablecc2.reactor;
 import java.util.List;
 
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GenericReactor extends AbstractReactor {
 

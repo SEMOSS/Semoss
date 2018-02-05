@@ -17,10 +17,10 @@ import prerna.rpa.RPAProps;
 import prerna.rpa.config.ConfigUtil;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.config.ParseConfigException;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class RescheduleExistingJobReactor extends AbstractReactor {

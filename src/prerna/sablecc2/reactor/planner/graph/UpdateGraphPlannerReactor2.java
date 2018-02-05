@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.storage.TaxUtility;

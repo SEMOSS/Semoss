@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.map;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 

@@ -4,10 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.om.InsightPanel;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 
 public class RetrievePanelEventsReactor extends AbstractInsightPanelReactor {

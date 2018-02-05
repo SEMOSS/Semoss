@@ -12,9 +12,9 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

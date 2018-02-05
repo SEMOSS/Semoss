@@ -16,8 +16,8 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc.MathReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLRunner.STATUS;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RandomSampleReactor extends MathReactor {
 	
