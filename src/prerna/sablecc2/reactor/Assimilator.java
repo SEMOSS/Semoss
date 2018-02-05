@@ -8,8 +8,8 @@ import java.util.Vector;
 
 import org.codehaus.plexus.util.StringUtils;
 
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class Assimilator extends AbstractReactor implements JavaExecutable {
 

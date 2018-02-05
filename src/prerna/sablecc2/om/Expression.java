@@ -9,6 +9,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
 import javassist.NotFoundException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.PixelPlanner;
 

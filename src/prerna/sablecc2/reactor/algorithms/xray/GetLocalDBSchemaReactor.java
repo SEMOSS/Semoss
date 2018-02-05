@@ -9,10 +9,10 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.algorithm.learning.matching.DomainValues;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
 

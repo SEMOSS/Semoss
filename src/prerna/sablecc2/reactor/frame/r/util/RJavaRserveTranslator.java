@@ -20,8 +20,8 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.engine.impl.r.RSingleton;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {

@@ -4,8 +4,8 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GroupConcatReactor extends QuerySelectReactor {
 	

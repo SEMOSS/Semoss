@@ -7,9 +7,10 @@ import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import prerna.sablecc2.om.NounMetadata;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpMatch extends OpBasic {
 	

@@ -9,9 +9,9 @@ import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
 import prerna.sablecc2.reactor.PixelPlanner;

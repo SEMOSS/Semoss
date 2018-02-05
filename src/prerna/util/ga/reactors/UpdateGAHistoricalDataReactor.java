@@ -3,7 +3,7 @@ package prerna.util.ga.reactors;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;

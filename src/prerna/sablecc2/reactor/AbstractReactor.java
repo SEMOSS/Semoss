@@ -17,10 +17,10 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public abstract class AbstractReactor implements IReactor {
 

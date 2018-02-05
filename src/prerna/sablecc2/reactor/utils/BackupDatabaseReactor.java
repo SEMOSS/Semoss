@@ -10,8 +10,8 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
