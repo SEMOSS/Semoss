@@ -11,7 +11,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;

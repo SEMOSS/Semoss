@@ -7,6 +7,7 @@ import java.util.Set;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
 

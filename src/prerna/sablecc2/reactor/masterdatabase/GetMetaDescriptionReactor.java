@@ -1,10 +1,10 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {

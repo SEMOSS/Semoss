@@ -5,10 +5,11 @@ import java.util.Arrays;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RenameColumnReactor extends AbstractRFrameReactor {
 
@@ -63,7 +64,10 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		metadata.modifyPropertyName(table + "__" + originalColName, table, table + "__" + validNewHeader);
 		metadata.setAliasToProperty(table + "__" + validNewHeader, validNewHeader);
 		this.getFrame().syncHeaders();
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		retNoun.addAdditionalReturn(new ModifyHeaderNounMetadata(originalColName, validNewHeader));
+		return retNoun;
 	}
 
 	private String getOriginalColumn() {

@@ -7,12 +7,13 @@ import javax.mail.Session;
 
 import prerna.rpa.quartz.jobs.mail.EmailMessage;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class SendEmailReactor extends AbstractReactor {
+	
 	private static final String SMTP_HOST = "smtpHost";
 	private static final String SMTP_PORT = "smtpPort";
 	private static final String EMAIL_SUBJECT = "subject";
@@ -21,8 +22,7 @@ public class SendEmailReactor extends AbstractReactor {
 	private static final String EMAIL_MESSAGE = "message";
 
 	public SendEmailReactor() {
-		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_RECEIVER, EMAIL_SENDER,
-				EMAIL_MESSAGE };
+		this.keysToGet = new String[]{SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_RECEIVER, EMAIL_SENDER, EMAIL_MESSAGE};
 	}
 
 	@Override
@@ -112,17 +112,17 @@ public class SendEmailReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(this.SMTP_HOST)) {
+		if (key.equals(SMTP_HOST)) {
 			return "The smtp host.";
-		} else if (key.equals(this.SMTP_PORT)) {
+		} else if (key.equals(SMTP_PORT)) {
 			return "The smtp port.";
-		} else if (key.equals(this.EMAIL_MESSAGE)) {
+		} else if (key.equals(EMAIL_MESSAGE)) {
 			return "The message of the email to send.";
-		} else if (key.equals(this.EMAIL_RECEIVER)) {
+		} else if (key.equals(EMAIL_RECEIVER)) {
 			return "The receipient(s) of the email.";
-		} else if (key.equals(this.EMAIL_SENDER)) {
+		} else if (key.equals(EMAIL_SENDER)) {
 			return "The email sender.";
-		} else if (key.equals(this.EMAIL_SUBJECT)) {
+		} else if (key.equals(EMAIL_SUBJECT)) {
 			return "The subject of the email.";
 		} else {
 			return super.getDescriptionForKey(key);

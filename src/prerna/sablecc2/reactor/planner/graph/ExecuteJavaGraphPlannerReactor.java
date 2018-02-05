@@ -13,8 +13,8 @@ import org.apache.storm.shade.com.google.common.collect.Lists;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.BaseJavaRuntime;
 import prerna.sablecc2.reactor.PixelPlanner;
 

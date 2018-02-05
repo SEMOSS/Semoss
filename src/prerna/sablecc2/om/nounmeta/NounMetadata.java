@@ -1,4 +1,4 @@
-package prerna.sablecc2.om;
+package prerna.sablecc2.om.nounmeta;
 
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -7,14 +7,24 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+
 public class NounMetadata {
 	
-	private final Object value;
-	private final PixelDataType noun;
-	private final List<PixelOperationType> opType = new Vector<PixelOperationType>();
+	Object value;
+	PixelDataType noun;
+	List<PixelOperationType> opType = new Vector<PixelOperationType>();
 
-	private String explanation = "";
-	private List<NounMetadata> additionalReturns = new Vector<NounMetadata>();
+	String explanation = "";
+	List<NounMetadata> additionalReturns = new Vector<NounMetadata>();
+	
+	/**
+	 * Default constructor for preset nouns
+	 */
+	NounMetadata() {
+		
+	}
 	
 	public NounMetadata(Object value, PixelDataType noun) {
 		this(value, noun, PixelOperationType.OPERATION);

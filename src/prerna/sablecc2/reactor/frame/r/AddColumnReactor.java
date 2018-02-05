@@ -3,10 +3,11 @@ package prerna.sablecc2.reactor.frame.r;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AddColumnReactor extends AbstractRFrameReactor {
@@ -81,7 +82,10 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			frame.executeRScript("gc();");
 			this.getFrame().syncHeaders();
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(colName));
+		return retNoun;
 	}
 
 	//////////////////////////////////////////////////////////////////////

@@ -10,7 +10,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public abstract class AbstractFileIterator implements IFileIterator {
