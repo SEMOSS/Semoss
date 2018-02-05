@@ -304,11 +304,11 @@ public abstract class AbstractRBuilder {
 	 * Modify columns to make sure they are numeric for math operations
 	 * @param typesMap
 	 */
-	private void alterColumnsToNumeric(String dataTableName, Map<String, SemossDataType> typesMap) {
+	private void alterColumnsToNumeric(String tableName, Map<String, SemossDataType> typesMap) {
 		for(String header : typesMap.keySet()) {
 			SemossDataType type = typesMap.get(header);
 			if(type == SemossDataType.INT || type == SemossDataType.DOUBLE) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(dataTableName, header) ) );
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(tableName, header) ) );
 			}
 		}
 	}
@@ -317,13 +317,13 @@ public abstract class AbstractRBuilder {
 	 * Modify columns to make sure they are in the date format
 	 * @param typesMap
 	 */
-	private void alterColumnsToDate(String dataTableName, Map<String, SemossDataType> typesMap) {
+	private void alterColumnsToDate(String tableName, Map<String, SemossDataType> typesMap) {
 		for(String header : typesMap.keySet()) {
 			SemossDataType type = typesMap.get(header);
 			if(type == SemossDataType.DATE) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(this.dataTableName, header) ) );
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(tableName, header) ) );
 			} else if(type == SemossDataType.TIMESTAMP) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDateTime(this.dataTableName, header) ) );
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDateTime(tableName, header) ) );
 			}
 		}
 	}
@@ -337,7 +337,7 @@ public abstract class AbstractRBuilder {
 		for(String header : typesMap.keySet()) {
 			SemossDataType type = typesMap.get(header);
 			if(type == SemossDataType.STRING) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToCharacter(dataTableName, header) ) );
+				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToCharacter(tableName, header) ) );
 			}
 		}
 	}
