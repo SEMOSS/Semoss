@@ -13,6 +13,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,6 +120,7 @@ public final class SolrUtility {
 			Map<String, Object> fieldData = new HashMap<String, Object>();
 			fieldData.put("app_name", appName);
 			fieldData.put("app_creation_date", SolrIndexEngine.getDateFormat().format(new Date()));
+			fieldData.put("app_tags", Collections.nCopies(1, appName));
 			try {
 				solrE.addApp(appName, fieldData);
 			} catch (SolrServerException | IOException e) {
