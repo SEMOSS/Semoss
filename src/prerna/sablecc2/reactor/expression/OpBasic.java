@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.expression;
 
 import java.util.List;
 
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public abstract class OpBasic extends OpReactor {
 

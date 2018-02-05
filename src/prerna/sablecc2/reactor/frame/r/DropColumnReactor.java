@@ -1,14 +1,17 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.nounmeta.RemoveHeaderNounMetadata;
 
 public class DropColumnReactor extends AbstractRFrameReactor {
 
@@ -29,6 +32,9 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		
+		// store the list of names being removed
+		List<String> remCols = new Vector<String>();
+		
 		//get table name 
 		String table = frame.getTableName();
 		
@@ -42,6 +48,7 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 				if (column.contains("__")) {
 					column = column.split("__")[1];
 				}
+				remCols.add(column);
 				
 				// define the r script to be executed
 				String script = table + " <- " + table + "[," + column + ":=NULL]";
@@ -62,7 +69,10 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 				this.getFrame().syncHeaders();
 			}
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		retNoun.addAdditionalReturn(new RemoveHeaderNounMetadata(remCols));
+		return retNoun;
 	}
 
 	//////////////////////////////////////////////////////////////////////

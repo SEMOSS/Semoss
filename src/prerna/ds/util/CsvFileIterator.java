@@ -14,7 +14,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 
 public class CsvFileIterator extends AbstractFileIterator {

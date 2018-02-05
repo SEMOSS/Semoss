@@ -7,8 +7,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 /**

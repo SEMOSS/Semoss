@@ -17,9 +17,9 @@ import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.engine.impl.r.RSingleton;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public abstract class AbstractBaseRserveRImpl extends AbstractBaseRClass {

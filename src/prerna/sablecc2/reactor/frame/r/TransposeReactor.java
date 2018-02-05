@@ -1,9 +1,9 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class TransposeReactor extends AbstractRFrameReactor {
 

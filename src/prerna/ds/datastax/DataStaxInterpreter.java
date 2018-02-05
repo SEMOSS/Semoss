@@ -25,8 +25,8 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.om.NounMetadata;
 
 public class DataStaxInterpreter extends AbstractQueryInterpreter {
 

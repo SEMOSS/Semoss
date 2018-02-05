@@ -23,7 +23,7 @@ import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 

@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor;
 
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class EmbeddedScriptReactor extends AbstractReactor {
 	

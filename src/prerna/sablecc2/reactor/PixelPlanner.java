@@ -15,8 +15,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.InMemStore;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PixelPlanner {
 	

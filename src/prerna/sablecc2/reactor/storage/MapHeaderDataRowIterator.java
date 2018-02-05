@@ -5,7 +5,7 @@ import java.util.Iterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.InMemStore;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MapHeaderDataRowIterator implements Iterator<IHeadersDataRow>{
 

@@ -3,9 +3,10 @@ package prerna.sablecc2.reactor.expression;
 import java.math.BigDecimal;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import prerna.sablecc2.om.NounMetadata;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpSumIf extends OpBasic {
 	
