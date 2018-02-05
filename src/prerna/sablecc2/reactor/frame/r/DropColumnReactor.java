@@ -44,7 +44,7 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 				}
 				
 				// define the r script to be executed
-				String script = table + "[," + column + ":=NULL]";
+				String script = table + " <- " + table + "[," + column + ":=NULL]";
 				
 				//make sure that the column to be dropped exists; if not, throw error
 				String[] allCol = getColumns(table);
@@ -62,7 +62,7 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 				this.getFrame().syncHeaders();
 			}
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
 	//////////////////////////////////////////////////////////////////////
