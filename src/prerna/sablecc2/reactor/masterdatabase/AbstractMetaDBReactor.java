@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 /**

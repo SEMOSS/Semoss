@@ -10,7 +10,7 @@ import java.util.Map;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;

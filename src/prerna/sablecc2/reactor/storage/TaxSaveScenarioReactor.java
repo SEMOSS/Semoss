@@ -4,7 +4,7 @@ import java.util.Map;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.sablecc2.om.NounMetadata;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class TaxSaveScenarioReactor extends AbstractReactor {

@@ -8,8 +8,8 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SimpleQueryFilter implements IQueryFilter {
 

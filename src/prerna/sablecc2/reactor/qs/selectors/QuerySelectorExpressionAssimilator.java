@@ -7,8 +7,8 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class QuerySelectorExpressionAssimilator extends AbstractReactor {

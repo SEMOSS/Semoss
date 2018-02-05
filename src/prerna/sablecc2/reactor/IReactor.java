@@ -8,8 +8,8 @@ import org.apache.log4j.Logger;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounMetadata;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public interface IReactor {
 	
