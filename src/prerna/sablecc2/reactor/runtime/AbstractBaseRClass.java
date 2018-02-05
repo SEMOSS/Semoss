@@ -318,7 +318,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			H2Frame gridFrame = (H2Frame) dataframe;
 			String tableName = gridFrame.getBuilder().getTableName();
 			synchronizeGridToR(rVarName);
-
+			if(replaceDefaultInsightFrame) {
+				gridFrame.dropOnDiskTemporalSchema();
+			}
+			
 			// now that we have created the frame
 			// we need to set the metadata for the frame
 			OwlTemporalEngineMeta newMeta = gridFrame.getMetaData().copy();
@@ -347,6 +350,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if(replaceDefaultInsightFrame) {
 			this.insight.setDataMaker(table);
 		}
+		
+		// move over the filters
+		table.setFilter(dataframe.getFrameFilters());
+		
 		return table;
 	}
 

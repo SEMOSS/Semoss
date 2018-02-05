@@ -66,10 +66,16 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 				// update the metadata because the columns are changing
 				OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 				metaData.dropProperty(table + "__" + column, table);
-				this.getFrame().syncHeaders();
+				
+				// drop filters with this column
+				frame.getFrameFilters().removeColumnFilter(column);
 			}
+			// reset the frame headers
+			frame.syncHeaders();
 		}
 		
+		
+				
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new RemoveHeaderNounMetadata(remCols));
 		return retNoun;
