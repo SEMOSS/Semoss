@@ -6,6 +6,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +19,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.codehaus.plexus.util.FileUtils;
 
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class GitConsumer {
 
@@ -149,13 +153,15 @@ public class GitConsumer {
 					// we have to modify the recipe steps
 //					updateInsightRdbms(origFile, appFolder, yourName4App);
 				}
+				// load the app
+				loadApp(fileToMove.getAbsolutePath());
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
-
+	
 //	private static void updateInsightRdbms(File oldSmssFile, String appFolder, String yourName4App) {
 //		String mainDirectory = oldSmssFile.getParentFile().getParent();
 //		
@@ -243,4 +249,30 @@ public class GitConsumer {
 
 		return newFile;
 	}
+
+	/**
+	 * Load the app
+	 * @param smssLocation
+	 */
+	private static void loadApp(String smssLocation) {
+		FileInputStream fileIn = null;
+		try{
+			Properties prop = new Properties();
+			fileIn = new FileInputStream(smssLocation);
+			prop.load(fileIn);
+			Utility.loadWebEngine(smssLocation, prop);
+		} catch(IOException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Error with loading app metadata");
+		} finally {
+			if(fileIn!=null) {
+				try{
+					fileIn.close();
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 }

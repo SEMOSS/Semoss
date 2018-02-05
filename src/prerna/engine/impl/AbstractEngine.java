@@ -81,6 +81,7 @@ import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
 import prerna.solr.SolrIndexEngine;
+import prerna.solr.SolrUtility;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
@@ -417,6 +418,7 @@ public abstract class AbstractEngine implements IEngine {
 		
 					try {
 						SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
+						SolrUtility.addAppToSolr(engineName);
 					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 							| IOException e1) {
 						e1.printStackTrace();
