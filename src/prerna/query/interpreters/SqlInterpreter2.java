@@ -17,7 +17,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -27,6 +26,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -547,7 +547,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		try {
 			innerInterpreter = this.getClass().newInstance();
 			if(this.frame != null) {
-				subQs = QueryStructConverter.getPhysicalQs(subQs, this.frame.getMetaData());
+				subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
 			}
 			innerInterpreter.setQueryStruct(subQs);
 			innerInterpreter.setLogger(this.logger);

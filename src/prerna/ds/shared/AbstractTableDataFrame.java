@@ -403,6 +403,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public GenRowFilters getFrameFilters() {
 		return this.grf;
 	}
+	
+	@Override
+	public void setFrameFilters(GenRowFilters filter) {
+		this.grf = filter;
+	}
+
 
 	@Override
 	public void addFilter(GenRowFilters filter) {
