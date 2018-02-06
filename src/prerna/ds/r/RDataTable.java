@@ -16,7 +16,7 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStructConverter;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -161,7 +161,7 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
-		qs = QueryStructConverter.getPhysicalQs(qs, this.metaData);
+		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter2 interp = new RInterpreter2();
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getTableName());

@@ -88,7 +88,16 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void setFilter(GenRowFilters filter);
 
+	/**
+	 * Get the filters on the frame
+	 * @return
+	 */
 	GenRowFilters getFrameFilters();
+	
+	/**
+	 * Set a brand new frame filters object
+	 */
+	void setFrameFilters(GenRowFilters filter);
 	
 	/**
 	 * Unfilter all values for the passed in column header
