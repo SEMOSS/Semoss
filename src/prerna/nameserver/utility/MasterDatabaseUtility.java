@@ -633,7 +633,7 @@ public class MasterDatabaseUtility {
 						+ "where localconceptid in (select localconceptid from engineconcept "
 						+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
 						+ "and conceptualname = \'" + concept + "\';";
-				if (stmt == null) {
+				if (stmt == null || stmt.isClosed()) {
 					stmt = masterConn.createStatement();
 				}
 				rs = stmt.executeQuery(sourceLogicalInfo);
