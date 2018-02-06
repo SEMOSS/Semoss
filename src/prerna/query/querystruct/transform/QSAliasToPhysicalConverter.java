@@ -1,4 +1,4 @@
-package prerna.query.querystruct;
+package prerna.query.querystruct.transform;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -21,9 +23,9 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class QueryStructConverter {
+public class QSAliasToPhysicalConverter {
 
-	private QueryStructConverter() {
+	private QSAliasToPhysicalConverter() {
 
 	}
 
@@ -136,7 +138,7 @@ public class QueryStructConverter {
 	public static IQuerySelector convertSelector(IQuerySelector selector, OwlTemporalEngineMeta meta) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
-			return convertConstantSelector((QueryConstantSelector) selector, meta);
+			return convertConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return convertColumnSelector((QueryColumnSelector) selector, meta);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
@@ -220,7 +222,7 @@ public class QueryStructConverter {
 
 	}
 
-	private static IQuerySelector convertConstantSelector(QueryConstantSelector selector, OwlTemporalEngineMeta meta) {
+	private static IQuerySelector convertConstantSelector(QueryConstantSelector selector) {
 		// do nothing
 		return selector;
 	}

@@ -17,10 +17,10 @@ import prerna.om.Insight;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.QueryStructConverter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.util.DIHelper;
 
 public class GoogleAnalytics implements IGoogleAnalytics {
@@ -193,7 +193,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 				return;
 			}
 			OwlTemporalEngineMeta meta = frame.getMetaData();
-			qs = QueryStructConverter.getPhysicalQs(qs, meta);
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
 
 			// keep the alias to bind to the correct meta
 			Map<String, String> aliasHash = new HashMap<String, String>();
