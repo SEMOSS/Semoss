@@ -1,6 +1,6 @@
 {
-  "-jobName":"lambda",
-  "-jobGroup":"lambdaGroup",
+  "-jobName":"insight_email",
+  "-jobGroup":"rpa",
   "-jobClass":"JobChain",
   "-active": false,
   "-jobTriggerOnLoad": false,

@@ -1,6 +1,6 @@
 {
-  "-jobName":"sendEmail",
-  "-jobGroup":"sendEmailGroup",
+  "-jobName":"send_email",
+  "-jobGroup":"rpa",
   "-jobClass":"JobChain",
   "-active":false,
   "-jobTriggerOnLoad": false,
