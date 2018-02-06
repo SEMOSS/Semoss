@@ -34,11 +34,11 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 
 		// get inputs
 		String originalColName = getOriginalColumn();
-		String updatedColName = getNewColumnName();
+		String newColName = getNewColumnName();
 		// check that the frame isn't null
 		String table = frame.getTableName();
 		// check if new colName is valid
-		updatedColName = getCleanNewColName(table, updatedColName);
+		newColName = getCleanNewColName(table, newColName);
 		if (originalColName.contains("__")) {
 			String[] split = originalColName.split("__");
 			table = split[0];
@@ -50,13 +50,12 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		if (Arrays.asList(existCols).contains(originalColName) != true) {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
-		String validNewHeader = getCleanNewHeader(table, updatedColName);
-		if (validNewHeader.equals("")){
+		newColName = getCleanNewHeader(table, newColName);
+		if (newColName.equals("")){
 			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
 		}
 		// define the r script to be executed
-		String script = "names(" + table + ")[names(" + table + ") == \"" + originalColName + "\"] = \""
-				+ validNewHeader + "\"";
+		String script = "names(" + table + ")[names(" + table + ") == \"" + originalColName + "\"] = \"" + newColName + "\"";
 		// execute the r script
 		// script is of the form: names(FRAME)[names(FRAME) == "Director"] = "directing_person"
 		frame.executeRScript(script);
@@ -64,17 +63,17 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// but meta will still be table __ column
 		// update the metadata because column names have changed
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
-		metadata.modifyPropertyName(table + "__" + originalColName, table, table + "__" + validNewHeader);
-		metadata.setAliasToProperty(table + "__" + validNewHeader, validNewHeader);
+		metadata.modifyPropertyName(table + "__" + originalColName, table, table + "__" + newColName);
+		metadata.setAliasToProperty(table + "__" + newColName, newColName);
 		this.getFrame().syncHeaders();
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(originalColName, validNewHeader);
+		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(originalColName, newColName);
 		retNoun.addAdditionalReturn(metaNoun);
 		
 		// also modify the frame filters
 		Map<String, String> modMap = new HashMap<String, String>();
-		modMap.put(originalColName, validNewHeader);
+		modMap.put(originalColName, newColName);
 		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
 		
 		// return the output
