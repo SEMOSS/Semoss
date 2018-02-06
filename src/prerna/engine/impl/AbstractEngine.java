@@ -323,6 +323,16 @@ public abstract class AbstractEngine implements IEngine {
 	
 	@Deprecated
 	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
+		try {
+			// if solr doesn't have this engine
+			// do not add anything yet
+			// let it get added later
+			if(!SolrIndexEngine.getInstance().containsEngine(this.engineName)) {
+				return;
+			}
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e3) {
+			e3.printStackTrace();
+		}
 		boolean tableExists = false;
 		ResultSet rs = null;
 		try {
