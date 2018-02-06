@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
@@ -75,7 +76,9 @@ public class CSVFileHelper {
 	private void makeSettings() {
 		settings = new CsvParserSettings();
 		settings.setNullValue("");
-		settings.getFormat().setDelimiter(delimiter);
+		CsvFormat parseFormat = settings.getFormat();
+		parseFormat.setDelimiter(delimiter);
+		parseFormat.setLineSeparator(NewLinePredictor.predict(this.fileLocation));
 		settings.setEmptyValue("");
 		settings.setSkipEmptyLines(true);
 		// override default values
