@@ -1,12 +1,16 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
+import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
@@ -43,7 +47,18 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(originalColName, newColName);
+		retNoun.addAdditionalReturn(metaNoun);
+		
+		// also modify the frame filters
+		Map<String, String> modMap = new HashMap<String, String>();
+		modMap.put(originalColName, newColName);
+		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
+		
+		// return the output
+		return retNoun;
 	}
 
 	private String getOriginalColumn() {
