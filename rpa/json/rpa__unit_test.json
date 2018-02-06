@@ -1,6 +1,6 @@
 {
-  "-jobName":"pieContest",
-  "-jobGroup":"pieContestGroup",
+  "-jobName":"unit_test",
+  "-jobGroup":"rpa",
   "-jobClass":"JobChain",
   "-jobCronExpression":"00 30 00 1/1 * ? *",
   "-active":false,

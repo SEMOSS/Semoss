@@ -1,6 +1,6 @@
 {
   "-jobName": "refresh_ga_data",
-  "-jobGroup": "Google Analytics",
+  "-jobGroup": "SEMOSS",
   "-jobCronExpression": "0 0 */4 ? * *",
   "-jobClass": "RunPixelJob",
   "pixel": "UpdateGAHistoricalData()",
