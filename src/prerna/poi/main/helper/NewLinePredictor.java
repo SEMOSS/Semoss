@@ -36,7 +36,7 @@ public class NewLinePredictor {
 				}
 			}
 		}
-		return new char[]{LF, CR};
+		return new char[]{CR, LF};
 	}
 
 	private static char[] predict(Reader reader) throws IOException {
@@ -45,13 +45,15 @@ public class NewLinePredictor {
 			switch(c) {        
 			case LF: return new char[]{LF};
 			case CR: {
-				if (reader.read() == LF) return new char[]{LF, CR};
-				return new char[]{LF};
+				if (reader.read() == LF) {
+					return new char[]{CR, LF};
+				}
+				return new char[]{CR};
 			}
 			default: continue;
 			}
 		}
-		return new char[]{LF, CR};
+		return new char[]{CR, LF};
 	}
 
 }
