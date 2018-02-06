@@ -54,9 +54,9 @@ public class InitAppRepo extends AbstractReactor {
 		// this is not actually used at the moment
 		// String type = this.keyValue.get(this.keysToGet[5]);
 
-		logger.info("Using app name = " + appName);
-		logger.info("Using remote = " + repository);
-		logger.info("Using username = " + username);
+//		logger.info("Using app name = " + appName);
+//		logger.info("Using remote = " + repository);
+//		logger.info("Using username = " + username);
 		logger.info("Beginning process to make your application global");
 		logger.info("This can take several minutes");
 
