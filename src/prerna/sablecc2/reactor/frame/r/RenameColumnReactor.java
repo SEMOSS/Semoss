@@ -1,9 +1,12 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -66,7 +69,15 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		this.getFrame().syncHeaders();
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(new ModifyHeaderNounMetadata(originalColName, validNewHeader));
+		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(originalColName, validNewHeader);
+		retNoun.addAdditionalReturn(metaNoun);
+		
+		// also modify the frame filters
+		Map<String, String> modMap = new HashMap<String, String>();
+		modMap.put(originalColName, validNewHeader);
+		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
+		
+		// return the output
 		return retNoun;
 	}
 
