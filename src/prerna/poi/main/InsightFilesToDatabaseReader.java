@@ -204,6 +204,7 @@ public class InsightFilesToDatabaseReader {
 			Utility.synchronizeEngineMetadata(engineName); 
 			SolrUtility.addToSolrInsightCore(engineName);
 			SolrUtility.addAppToSolr(engineName);
+			
 			// smss location is not null when we are making a new engine
 			// if it is null, there is no temp file or anything that we need to deal with
 			if(smssLocation != null) {
@@ -350,6 +351,7 @@ public class InsightFilesToDatabaseReader {
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
 			SolrUtility.addToSolrInsightCore(engineName);
+			SolrUtility.addAppToSolr(engineName);
 
 			// only after all of this is good, should we add it to DIHelper
 			DIHelper.getInstance().setLocalProperty(engineName, engine);
