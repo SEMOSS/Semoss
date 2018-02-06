@@ -182,6 +182,7 @@ import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
+import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
@@ -374,6 +375,7 @@ public class ReactorFactory {
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 		reactorHash.put("DeleteEngine", DeleteEngineReactor.class);
+		reactorHash.put("URLSource", URLSourceReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
