@@ -91,6 +91,16 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		
 		// handle some defaults
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		// first, do a basic check
+		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			// it is not a hard query
+			// we need to make sure there is at least a selector
+			if(qs.getSelectors().isEmpty()) {
+				throw new IllegalArgumentException("There are no selectors in the query to return.  "
+						+ "There must be at least one selector for the query to execute.");
+			}
+		}
+		
 		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
 			if(frame == null) {
