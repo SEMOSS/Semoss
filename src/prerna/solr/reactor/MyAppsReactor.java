@@ -1,6 +1,5 @@
 package prerna.solr.reactor;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -25,8 +24,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrIndexEngineQueryBuilder;
-import prerna.util.DIHelper;
-import prerna.util.insight.InsightScreenshot;
 
 public class MyAppsReactor extends AbstractReactor {
 	
@@ -116,14 +113,9 @@ public class MyAppsReactor extends AbstractReactor {
 			// get the top images for each app
 			String searchString = "*:*";
 			int groupOffsetInt = 0;
-			int groupLimitInt = 5;
+			int groupLimitInt = 25;
 			String groupByField = SolrIndexEngine.CORE_ENGINE;
 			String groupSort = SolrIndexEngine.VIEW_COUNT;
-			
-			Map<String, List<String>> filters = new HashMap<String, List<String>>();
-			List<String> filterList = new Vector<String>();
-			filterList.add("*");
-			filters.put(SolrIndexEngine.IMAGE, filterList);
 			
 			Map<String, Object> groupFieldMap = SolrIndexEngine.getInstance().executeQueryGroupBy(
 					searchString, 
@@ -131,41 +123,28 @@ public class MyAppsReactor extends AbstractReactor {
 					groupLimitInt, 
 					groupByField, 
 					groupSort, 
-					filters);
+					new HashMap<String, List<String>>());
 			Map<String, Object> queryRet = (Map<String, Object>) groupFieldMap.get("queryResponse");
 			imageMap = (Map<String, SolrDocumentList>) queryRet.get(groupByField);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) {
 			e.printStackTrace();
 		}
 		
-		// need to replace the images
-		String basePath = DIHelper.getInstance().getProperty("BaseFolder");
-		
 		for(Map<String, Object> appMap : appInfo) {
 			String appName = appMap.get("app_name") + "";
 			// do we have images that we can use to make 
 			// the information look pretty
 			if(imageMap.containsKey(appName)) {
-				List<String> images = new Vector<String>();
+				List<String> insights = new Vector<String>();
 				
 				SolrDocumentList list = (SolrDocumentList) imageMap.get(appName);
 				for (int i = 0; i < list.size(); i++) {
 					SolrDocument doc = list.get(i);
-					String imagePath = (String) doc.get("image");
-					if (imagePath != null && !imagePath.isEmpty() && !imagePath.contains("data:image/:base64")) {
-						File file = new File(basePath + imagePath);
-						if (file.exists()) {
-							try {
-								String image = InsightScreenshot.imageToString(basePath + imagePath);
-								images.add("data:image/png;base64," + image);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
+					String rdbmsId = (String) doc.get("core_engine_id");
+					insights.add(rdbmsId);
 				}
 				
-				appMap.put("images", images);
+				appMap.put("topInsights", insights);
 			}
 		}
 		
