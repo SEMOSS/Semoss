@@ -19,7 +19,7 @@ import prerna.util.Utility;
 public class BackupAppReactor extends AbstractReactor {
 
 	public BackupAppReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
 	}
 	
 	@Override
