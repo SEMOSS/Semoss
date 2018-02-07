@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.quartz.JobKey;
+import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 
 import com.google.gson.Gson;
@@ -33,6 +34,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	// Inputs
 	private static final String TRIGGER_NOW = "triggerNow";
 	private static final String TRIGGER_ON_LOAD = "triggerOnLoad";
+	private static final String PARAMETERS = "parameters";
 	
 	// Outputs
 	private static final String JSON_CONFIG = "jsonConfig";
@@ -40,7 +42,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
 				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.RECIPE.getKey(), TRIGGER_ON_LOAD,
-				TRIGGER_NOW };
+				TRIGGER_NOW, PARAMETERS};
 	}
 	
 	@Override
@@ -54,6 +56,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String recipe = this.keyValue.get(this.keysToGet[3]);
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
+		String parameters = this.keyValue.get(this.keysToGet[6]);
 		
 		// Define the json; this is used to persist the job to disk
 		// (Quartz is entirely in-memory)
@@ -64,18 +67,38 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.JOB_CLASS_NAME, ConfigurableJob.RUN_PIXEL_JOB.getJobClassName());
 		jsonObject.addProperty(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY), recipe);
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
+		jsonObject.addProperty(JobConfigKeys.PARAMETERS, parameters);
 		jsonObject.addProperty(JobConfigKeys.ACTIVE, true);
+
+		// Json file to persist job data
+		String jsonFileName = jobGroup + "__" + jobName + ".json";
+		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
+		File jsonFile = new File(filePath);
 		
+		// delete the job if it exists already, only happens when editing existing job
+		try {
+			Scheduler scheduler = SchedulerUtil.getScheduler();
+			JobKey job = JobKey.jobKey(jobName, jobGroup);
+			if (scheduler.checkExists(job)) {
+				scheduler.deleteJob(job);
+			}
+		} catch (SchedulerException e) {
+			e.printStackTrace();
+		}
+
+		// delete the json file if it exists
+		if (jsonFile.exists()) {
+			// cant reschedule an active job
+			jsonFile.delete();
+
+		}
+
 		// Pretty-print version of the json
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String jsonConfig = gson.toJson(jsonObject);
 		
-		// Save the json as a file
-		String jsonFileName = jobGroup + "__" + jobName + ".json";
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
-		
 		try {
-			FileUtils.writeStringToFile(new File(filePath), jsonConfig, Charset.forName("UTF-8"));
+			FileUtils.writeStringToFile(jsonFile, jsonConfig, Charset.forName("UTF-8"));
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to save job config to " + filePath, e);
 		}

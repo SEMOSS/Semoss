@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,8 +14,10 @@ import prerna.rpa.RPAProps;
 import prerna.rpa.config.ConfigUtil;
 import prerna.rpa.config.JobConfigKeys;
 import prerna.rpa.config.ParseConfigException;
+import prerna.rpa.quartz.jobs.insight.RunPixelJob;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -59,31 +62,30 @@ public class ListAllJobsReactor extends AbstractReactor {
 			boolean active = jobDefinition.get(JobConfigKeys.ACTIVE).getAsBoolean();
 			String jobName = jobDefinition.get(JobConfigKeys.JOB_NAME).toString().replaceAll("\"", "");
 			String group = jobDefinition.get(JobConfigKeys.JOB_GROUP).toString().replaceAll("\"", "");
-
-			// group by active/inactive
-			// if (status != null && status.toString().equals("\"inactive\"")) {
-			// ArrayList<String> jobList = new ArrayList<>();
-			// if(activeGroup.containsKey(group)) {
-			// jobList = (ArrayList<String>) activeGroup.get(group);
-			// }
-			// jobList.add(job_name);
-			// activeGroup.put(group, jobList);
-			// } else {
-			// ArrayList<String> jobList = new ArrayList<>();
-			// if(activeGroup.containsKey(group)) {
-			// jobList = (ArrayList<String>) activeGroup.get(group);
-			// }
-			// jobList.add(job_name);
-			// activeGroup.put(group, jobList);
-			// }
+			String parameters = null;
+			if (jobDefinition.get(JobConfigKeys.PARAMETERS) != null) {
+				parameters = jobDefinition.get(JobConfigKeys.PARAMETERS).toString().replaceAll("\"", "");
+			}
+			String cron = jobDefinition.get(JobConfigKeys.JOB_CRON_EXPRESSION).toString().replaceAll("\"", "");
+			String recipe = null; 
+			if(jobDefinition.get(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY)) != null) {
+			 recipe = jobDefinition.get(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY)).toString().replaceAll("\"", "");
+			}
 			
 			// display all
-			HashMap<String, Object> jobMap = new HashMap<String, Object>();
+			Vector<HashMap<String, Object>> jobList = new Vector<HashMap<String, Object>>();
 			if(master.containsKey(group)) {
-				jobMap = (HashMap<String, Object>) master.get(group);
+				jobList = (Vector<HashMap<String, Object>> ) master.get(group);
 			}
-			jobMap.put(jobName, active);
-			master.put(group, jobMap);
+			HashMap<String, Object> jobMap = new HashMap<String, Object>();
+			jobMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
+			jobMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cron);
+			jobMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
+			if (parameters != null) {
+				jobMap.put(JobConfigKeys.PARAMETERS, parameters);
+			}
+			jobList.add(jobMap);
+			master.put(group, jobList);
 		}
 
 
