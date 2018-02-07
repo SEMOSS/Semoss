@@ -19,7 +19,7 @@ public class ExportAppReactor extends AbstractReactor {
 	private static final String CLASS_NAME = ExportAppReactor.class.getName();
 	
 	public ExportAppReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 	}
 	
 	@Override
