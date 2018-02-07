@@ -26,7 +26,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 		PixelDataType filterNounType = filterNoun.getNounType();
 		if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
 			QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
-			GenRowFilters grf = qs.getFilters();
+			GenRowFilters grf = qs.getExplicitFilters();
 			Set<String> filteredColumns = grf.getAllFilteredColumns();
 			for (String filColumn : filteredColumns) {
 				List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);

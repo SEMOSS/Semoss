@@ -47,7 +47,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 				QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
 				// get the filters from the query struct 
 				// and iterate through each filtered column
-				GenRowFilters grf = qs.getFilters();
+				GenRowFilters grf = qs.getExplicitFilters();
 				Set<String> filteredColumns = grf.getAllFilteredColumns();
 				for (String filColumn : filteredColumns) {
 					List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);

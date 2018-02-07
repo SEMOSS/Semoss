@@ -99,7 +99,7 @@ public class MergeDataReactor extends AbstractReactor {
 						rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
 					}
 					SimpleQueryFilter filter = new SimpleQueryFilter(lNoun, "==", rNoun);
-					qs.addFilter(filter);
+					qs.addImplicitFilter(filter);
 				} catch(Exception e) {
 					throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
 				}

@@ -117,6 +117,7 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 		setHeaderInfo(qs.getHeaderInfo());
 		setSortInfo(qs.getSortInfo());
+		setFilterInfo(qs.getExplicitFilters());
 	}
 	
 	private void optimizeFrame(ITableDataFrame dataframe, List<QueryColumnOrderBySelector> orderBys) {

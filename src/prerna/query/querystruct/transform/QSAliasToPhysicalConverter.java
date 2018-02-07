@@ -50,15 +50,9 @@ public class QSAliasToPhysicalConverter {
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		List<IQueryFilter> origGrf = qs.getFilters().getFilters();
-		if(origGrf != null && !origGrf.isEmpty()) {
-			GenRowFilters convertedGrf = new GenRowFilters();
-			for(int i = 0; i < origGrf.size(); i++) {
-				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta));
-			}
-			convertedQs.setFilters(convertedGrf);
-		}
-		
+		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta));
+		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta));
+
 		// now go through the joins
 		Map<String, Map<String, List>> joins = qs.getRelations();
 		if(joins != null && !joins.isEmpty()) {
@@ -253,6 +247,19 @@ public class QSAliasToPhysicalConverter {
 		newS.setSortDir(selector.getSortDirString());
 		newS.setAlias(selector.getAlias());
 		return newS;
+	}
+	
+	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta) {
+		List<IQueryFilter> origGrf = grs.getFilters();
+		if(origGrf != null && !origGrf.isEmpty()) {
+			GenRowFilters convertedGrf = new GenRowFilters();
+			for(int i = 0; i < origGrf.size(); i++) {
+				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta));
+			}
+			return convertedGrf;
+		}
+		// return the empty grs
+		return grs;
 	}
 
 	/**

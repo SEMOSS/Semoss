@@ -48,8 +48,8 @@ public class GenRowFilters {
 		return this.filterVec.isEmpty();
 	}
 	
-	public Object getFormatedFilters() {
-		List<Object> ret = new Vector<Object>();
+	public List<Map<String, Object>> getFormatedFilters() {
+		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
 		for(IQueryFilter f : filterVec) {
 			Map<String, Object> format = new HashMap<String, Object>();
 			format.put("filterObj", f.getSimpleFormat());

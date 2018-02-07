@@ -93,7 +93,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		}
 		
 		// dont forget about filters
-		qs.mergeFilters(frame.getFrameFilters());
+		qs.mergeImplicitFilters(frame.getFrameFilters());
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter2 interp = new RInterpreter2();
