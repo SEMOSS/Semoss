@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.database;
+package prerna.sablecc2.reactor.utils;
 
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -25,9 +25,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class DeleteEngineReactor extends AbstractReactor {
+public class DeleteAppReactor extends AbstractReactor {
 
-	public DeleteEngineReactor() {
+	public DeleteAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 
