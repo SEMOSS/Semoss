@@ -19,7 +19,8 @@ public class TaskMetaCollectorReactor extends AbstractReactor {
 	private static final String TASK_OPTIONS = "TASKOPTIONS";
 	private static final String HEADER_INFO = "HEADERINFO";
 	private static final String SORT_INFO = "SORTINFO";
-	
+	private static final String FILTER_INFO = "FILTERINFO";
+
 	public TaskMetaCollectorReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.VALUES.getKey()};
 	}
@@ -40,6 +41,8 @@ public class TaskMetaCollectorReactor extends AbstractReactor {
 				metaData.put("headerInfo", job.getHeaderInfo());
 			} else if(SORT_INFO.equalsIgnoreCase(valToRetrieve)) {
 				metaData.put("sortInfo", job.getSortInfo());
+			} else if(FILTER_INFO.equalsIgnoreCase(valToRetrieve)) {
+				metaData.put("filterInfo", job.getFilterInfo());
 			}
 		}
 		metaData.put("taskId", job.getId());

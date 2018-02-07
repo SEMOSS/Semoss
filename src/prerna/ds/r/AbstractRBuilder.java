@@ -158,7 +158,7 @@ public abstract class AbstractRBuilder {
 			long end = System.currentTimeMillis();
 			logger.info("Loading R done in " + (end-start) + "ms");
 		}
-		if(!qs.getFilters().isEmpty()) {
+		if(!qs.getExplicitFilters().isEmpty()) {
 			long start = System.currentTimeMillis();
 			logger.info("Need to filter R table based on QS");
 			// we need to execute a script to modify the table to only contain the data based on the filters defined
@@ -167,13 +167,13 @@ public abstract class AbstractRBuilder {
 			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
 
 			//add filters to the new qs
-			List<IQueryFilter> gFilters = qs.getFilters().getFilters();
+			List<IQueryFilter> gFilters = qs.getExplicitFilters().getFilters();
 			for (int i = 0; i < gFilters.size(); i++) {
 				//TODO: example this update filter logic!
 				IQueryFilter sFilter = gFilters.get(i);
 				if(sFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 					SimpleQueryFilter updatedFilter = updateFilter(tableName, (SimpleQueryFilter) sFilter);
-					modifiedQs.addFilter(updatedFilter);
+					modifiedQs.addExplicitFilter(updatedFilter);
 				}
 			}
 			RInterpreter2 interp = new RInterpreter2();
@@ -208,7 +208,7 @@ public abstract class AbstractRBuilder {
 			long end = System.currentTimeMillis();
 			logger.info("Loading R done in " + (end-start) + "ms");
 		}
-		if(!qs.getFilters().isEmpty()) {
+		if(!qs.getExplicitFilters().isEmpty()) {
 			long start = System.currentTimeMillis();
 			logger.info("Need to filter R table based on QS");
 			// we need to execute a script to modify the table to only contain the data based on the filters defined
@@ -217,13 +217,13 @@ public abstract class AbstractRBuilder {
 			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
 
 			//add filters to the new qs
-			List<IQueryFilter> gFilters = qs.getFilters().getFilters();
+			List<IQueryFilter> gFilters = qs.getExplicitFilters().getFilters();
 			for (int i = 0; i < gFilters.size(); i++) {
 				//TODO: example this update filter logic!
 				IQueryFilter sFilter = gFilters.get(i);
 				if(sFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 					SimpleQueryFilter updatedFilter = updateFilter(tableName, (SimpleQueryFilter) sFilter);
-					modifiedQs.addFilter(updatedFilter);
+					modifiedQs.addExplicitFilter(updatedFilter);
 				}
 			}
 			RInterpreter2 interp = new RInterpreter2();

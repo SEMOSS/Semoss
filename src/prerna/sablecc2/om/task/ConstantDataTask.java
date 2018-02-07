@@ -23,6 +23,7 @@ public class ConstantDataTask extends AbstractTask {
 			collectedData.put("taskOptions", getTaskOptions());
 			collectedData.put("headerInfo", getHeaderInfo());
 			collectedData.put("sortInfo", getSortInfo());
+			collectedData.put("filterInfo", getFilterInfo());
 		}
 		collectedData.put("taskId", this.id);
 		collectedData.put("numCollected", num);

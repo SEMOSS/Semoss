@@ -119,7 +119,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		// figure out the visible values
 		List<Object> unFilterValues = new ArrayList<Object>();
 		// this is just the values of the column given the current filters
-		qs.setFilters(baseFilters);
+		qs.setExplicitFilters(baseFilters);
 		// now run and flush out the values
 		Iterator<IHeadersDataRow> unFilterValuesIt = dataframe.query(qs);
 		while(unFilterValuesIt.hasNext()) {
@@ -169,7 +169,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 				
 				// to get the filtered values
 				// run with the inverse filters of the current column
-				qs.setFilters(inverseFilters);
+				qs.setExplicitFilters(inverseFilters);
 		
 				// flush out the values 
 				Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
@@ -207,7 +207,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			minMaxMap.put("absMax", it.next().getValues()[0]);
 			
 			// add in the filters now and repeat
-			mathQS.setFilters(baseFilters);
+			mathQS.setExplicitFilters(baseFilters);
 			// run for actual max
 			it = dataframe.query(mathQS);
 			minMaxMap.put("max", it.next().getValues()[0]);

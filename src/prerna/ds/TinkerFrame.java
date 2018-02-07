@@ -565,7 +565,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			selector.setTable(columnHeader);
 			qs.addSelector(selector);
 			// add filters
-			qs.mergeFilters(this.grf);
+			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
 			TinkerHeadersDataRowIterator2 it = new TinkerHeadersDataRowIterator2(interp.composeIterator(), qs);
 			List<Object> columnList = new ArrayList<>();
@@ -1160,7 +1160,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 		QueryStruct2 qs1 = new QueryStruct2();
 		qs1.setDistinct(false);
-		qs1.mergeFilters(getFrameFilters());
+		qs1.mergeImplicitFilters(getFrameFilters());
 		for(String[] rel : tinkerRelationships) {
 			qs1.addRelation(rel[0], rel[1], rel[2]);
 
@@ -1191,7 +1191,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		for(String[] rel : tinkerRelationships) {
 			qs2.addRelation(rel[0], rel[1], rel[2]);
 		}
-		qs2.mergeFilters(getFrameFilters());
+		qs2.mergeImplicitFilters(getFrameFilters());
 		{
 			// TODO: WHY CAN'T I DO A UNIQUE COUNT!!! ???
 			QueryColumnSelector innerSelector = new QueryColumnSelector();

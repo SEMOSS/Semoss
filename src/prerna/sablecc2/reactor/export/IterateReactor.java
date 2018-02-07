@@ -3,7 +3,9 @@ package prerna.sablecc2.reactor.export;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
+
 import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
@@ -75,7 +77,7 @@ public class IterateReactor extends AbstractReactor {
 					frame = (ITableDataFrame) this.insight.getDataMaker();
 				}
 				if(useFrameFilters) {
-					queryStruct.mergeFilters(frame.getFrameFilters());
+					queryStruct.mergeImplicitFilters(frame.getFrameFilters());
 				}
 				Logger logger = getLogger(frame.getClass().getName());
 				frame.setLogger(logger);
@@ -85,6 +87,7 @@ public class IterateReactor extends AbstractReactor {
 			this.task = new BasicIteratorTask(queryStruct, iterator);
 			this.task.setHeaderInfo(queryStruct.getHeaderInfo());
 			this.task.setSortInfo(queryStruct.getSortInfo());
+			this.task.setFilterInfo(queryStruct.getExplicitFilters());
 			this.insight.getTaskStore().addTask(this.task);
 		}
 		

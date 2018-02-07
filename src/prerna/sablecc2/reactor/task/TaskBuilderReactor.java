@@ -107,7 +107,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 				frame = (ITableDataFrame) this.insight.getDataMaker();
 			}
 			qs.setFrame(frame);
-			qs.mergeFilters(frame.getFrameFilters());
+			qs.mergeImplicitFilters(frame.getFrameFilters());
 		}
 		
 		ITask task = new BasicIteratorTask(qs);

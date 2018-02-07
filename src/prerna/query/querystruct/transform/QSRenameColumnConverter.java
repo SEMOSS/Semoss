@@ -49,8 +49,9 @@ public class QSRenameColumnConverter {
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		convertedQs.setFilters(convertGenRowFilters(qs.getFilters(), transformationMap));
-		
+		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), transformationMap));
+		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), transformationMap));
+
 		// now go through the joins
 		Map<String, Map<String, List>> joins = qs.getRelations();
 		if(joins != null && !joins.isEmpty()) {

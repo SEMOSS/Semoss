@@ -36,6 +36,7 @@ public class CollectGraphReactor extends CollectReactor {
 		collectedData.put("headerInfo", getHeaderInfo(frame));
 		collectedData.put("taskOptions", this.task.getTaskOptions());
 		collectedData.put("sortInfo", this.task.getSortInfo());
+		collectedData.put("filterInfo", this.task.getFilterInfo());
 		collectedData.put("taskId", this.task.getId());
 
 		NounMetadata result = new NounMetadata(collectedData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);

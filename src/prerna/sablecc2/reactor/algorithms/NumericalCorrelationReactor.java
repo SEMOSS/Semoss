@@ -70,7 +70,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 			dataTableAlign.put("dim " + i, retHeaders[i]);
 			qs.addSelector(qsHead);
 		}
-		qs.mergeFilters(dataFrame.getFrameFilters());
+		qs.mergeImplicitFilters(dataFrame.getFrameFilters());
 		
 		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
 		logger.info("Start iterating through data to determine correlation");

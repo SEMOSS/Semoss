@@ -1,4 +1,4 @@
-package prerna.ds.datastax;
+package prerna.query.interpreters;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,19 +18,22 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
-import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DataStaxInterpreter extends AbstractQueryInterpreter {
 
+	// metadata around the frame
 	private OwlTemporalEngineMeta meta;
+	// all the filters being used
+	private GenRowFilters allFilters;
 	
 	// the gremlin traversal being created
 	private GraphTraversal gt;
@@ -46,6 +49,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 	}
 
 	public Iterator composeIterator() {
+		this.allFilters = this.qs.getCombinedFilters();
 		generateSelectors();
 		traverseRelations();
 		addOrderBy();
@@ -153,7 +157,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				GraphTraversal twoStepT = __.as(selector);
 
 				// logic to filter
-				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
+				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(twoStepT, startNodeFilters, this.typeMap.get(selector));
 
 				List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selector);
@@ -166,7 +170,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				// it is just the vertex
 				this.gt.hasLabel(getNodeType(selector)).as(selector);
 				// logic to filter
-				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
+				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(selector));
 			}
 		} else {
@@ -238,7 +242,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
 		this.gt = this.gt.hasLabel(getNodeType(startNode)).as(startNode);
-		List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(startNode);
+		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
 		addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(startNode));
 
 		List<String> travelledEdges = new Vector<String>();
@@ -353,7 +357,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 					//HERE????
 					twoStepT = twoStepT.out().hasLabel(getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
-					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
+					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(downstreamNodeType));
 
 					// add properties if present
@@ -409,7 +413,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 					twoStepT = twoStepT.in(edgeKey).hasLabel( getNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
-					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
+					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(upstreamNodeType));
 
 					// add properties if present
@@ -452,7 +456,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 				GraphTraversal matchTraversal = __.as(startName);
 
 				// logic to filter
-				List<SimpleQueryFilter> propFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(property);
+				List<SimpleQueryFilter> propFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(property);
 				addFiltersToPath(matchTraversal, propFilters, property);
 
 				// after we add the filter, grab the actual values to return from the traversal

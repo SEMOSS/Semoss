@@ -230,7 +230,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	//////////////////////////////////// start adding filters /////////////////////////////////////
 
 	public void addFilters() {
-		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter);
 			if(filterSyntax != null) {
@@ -530,7 +530,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		NounMetadata test3 = new NounMetadata("Nominated", PixelDataType.CONST_STRING);
 
 		SimpleQueryFilter filter1 = new SimpleQueryFilter(test1, "=", test3);
-		qsTest.addFilter(filter1);
+		qsTest.addExplicitFilter(filter1);
 
 		//Vector filterData2 = new Vector<>();
 		//filterData2.add(40000000);
