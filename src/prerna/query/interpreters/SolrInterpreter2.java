@@ -50,7 +50,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	private void addFilters() {
-		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for (IQueryFilter f : filters) {
 			if(f.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter filter = (SimpleQueryFilter) f;
@@ -178,7 +178,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 		NounMetadata test2 = new NounMetadata("core_engine", PixelDataType.COLUMN);
 		NounMetadata test3 = new NounMetadata("movie", PixelDataType.CONST_STRING);
 		SimpleQueryFilter filter1 = new SimpleQueryFilter(test2, "=", test3);
-		qs.addFilter(filter1);
+		qs.addExplicitFilter(filter1);
 		// qs.addFilter("view_count", ">=", Arrays.asList(new Object[]{10}));
 
 		SolrInterpreter2 solrInterp = new SolrInterpreter2();

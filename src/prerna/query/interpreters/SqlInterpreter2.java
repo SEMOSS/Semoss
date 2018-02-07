@@ -26,12 +26,12 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.PixelDataType;
@@ -460,7 +460,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
 	
 	public void addFilters() {
-		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter);
 			if(filterSyntax != null) {

@@ -41,7 +41,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		}
 		
 		setSelectors(qs.getSelectors());
-		setFilters(qs.getFilters());
+		setFilters(qs.getExplicitFilters());
 		
 		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
 			this.types = new String[this.headers.length];

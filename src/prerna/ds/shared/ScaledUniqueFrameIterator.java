@@ -82,7 +82,7 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		}
 		
 		// dont forget about filters
-		qs.mergeFilters(frame.getFrameFilters());
+		qs.mergeImplicitFilters(frame.getFrameFilters());
 	}
 	
 	@Override
@@ -113,9 +113,9 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 			}
 			
 			// remove all previous filters
-			this.qs.getFilters().removeColumnFilter(uniqueColumnName);
+			this.qs.getImplicitFilters().removeColumnFilter(uniqueColumnName);
 			// and add this one single value filter
-			this.qs.addFilter(instanceFilter);
+			this.qs.addImplicitFilter(instanceFilter);
 			
 			List<Object[]> retData = new ArrayList<Object[]>();
 			Iterator<IHeadersDataRow> it = frame.query(qs);

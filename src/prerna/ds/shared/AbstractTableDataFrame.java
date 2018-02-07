@@ -230,7 +230,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryStruct2 qs = new QueryStruct2();
 		qs.addSelector(colSelector);
 		// dont forget about filters
-		qs.setFilters(this.grf);
+		qs.setExplicitFilters(this.grf);
 		Iterator<IHeadersDataRow> it = query(qs);
 		
 		List<Object> values = new ArrayList<Object>();
@@ -246,7 +246,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		QueryColumnSelector colSelector = new QueryColumnSelector(columnHeader);
 		QueryStruct2 qs = new QueryStruct2();
 		qs.addSelector(colSelector);
-		qs.setFilters(this.grf);
+		qs.setExplicitFilters(this.grf);
 		Iterator<IHeadersDataRow> it = query(qs);
 		
 		List<Double> values = new ArrayList<Double>();
@@ -293,7 +293,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
 			// dont forget to add the current frame filters!
-			mathQS.setFilters(this.grf);
+			mathQS.setExplicitFilters(this.grf);
 
 			Iterator<IHeadersDataRow> it = query(mathQS);
 			while(it.hasNext()) {
@@ -339,7 +339,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			QueryStruct2 mathQS = new QueryStruct2();
 			mathQS.addSelector(mathSelector);
 			// dont forget to add the current frame filters!
-			mathQS.setFilters(this.grf);
+			mathQS.setExplicitFilters(this.grf);
 
 			Iterator<IHeadersDataRow> it = query(mathQS);
 			while(it.hasNext()) {
@@ -473,7 +473,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// and all the joins as inner 
 		QueryStruct2 qs = this.metaData.getFlatTableQs();
 		// add the frame filters
-		qs.mergeFilters(this.grf);
+		qs.mergeImplicitFilters(this.grf);
 		
 		Iterator<IHeadersDataRow> it = this.query(qs);
 		List<Object[]> data = new ArrayList<Object[]>();
@@ -490,7 +490,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// and all the joins as inner 
 		QueryStruct2 qs = this.metaData.getFlatTableQs();
 		// add the frame filters
-		qs.mergeFilters(this.grf);
+		qs.mergeImplicitFilters(this.grf);
 		
 		return this.query(qs);
 	}

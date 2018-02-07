@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.reactor.export.FormatFactory;
 import prerna.sablecc2.reactor.export.Formatter;
 import prerna.sablecc2.reactor.export.TableFormatter;
@@ -19,8 +20,11 @@ public abstract class AbstractTask implements ITask {
 	protected transient Map<String, Object> taskOptions; 
 	// this holds the header info for the FE
 	protected transient List<Map<String, Object>> headerInfo;
-	//this holds the sort info for the FE
+	// this holds the sort info for the FE
 	protected transient List<Map<String, Object>> sortInfo;
+	// this holds explicitly defined filters on the qs
+	protected transient List<Map<String, Object>> filterInfo;
+	
 	// this holds the formatter to perform any viz specific transformations
 	// of the data
 	protected transient Formatter formatter = null;
@@ -50,6 +54,7 @@ public abstract class AbstractTask implements ITask {
 			collectedData.put("taskOptions", getTaskOptions());
 			collectedData.put("headerInfo", this.headerInfo);
 			collectedData.put("sortInfo", this.sortInfo);
+			collectedData.put("filterInfo", this.filterInfo);
 		}
 		collectedData.put("taskId", this.id);
 		collectedData.put("numCollected", num);
@@ -151,6 +156,16 @@ public abstract class AbstractTask implements ITask {
 	@Override
 	public void setHeaderInfo(List<Map<String, Object>> headerInfo) {
 		this.headerInfo = headerInfo;
+	}
+	
+	@Override
+	public void setFilterInfo(GenRowFilters grf) {
+		this.filterInfo = grf.getFormatedFilters();
+	}
+	
+	@Override
+	public List<Map<String, Object>> getFilterInfo() {
+		return this.filterInfo;
 	}
 	
 	@Override

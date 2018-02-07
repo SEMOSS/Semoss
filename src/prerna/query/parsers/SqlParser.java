@@ -491,14 +491,14 @@ public class SqlParser {
 				}
 			} else {
 				curFilter = filter;
-				qs.addFilter(curFilter);				
+				qs.addImplicitFilter(curFilter);				
 			}
 		} else {	
 			if(expr instanceof AndExpression) {
 				AndQueryFilter newFilter = null;
 				if(curFilter == null) {
 					curFilter = new AndQueryFilter();
-					qs.addFilter(curFilter);
+					qs.addImplicitFilter(curFilter);
 				} else if(!(curFilter instanceof AndQueryFilter)) {
 					newFilter = new AndQueryFilter();
 					// I need something which adds this to the curFilter
@@ -517,7 +517,7 @@ public class SqlParser {
 				OrQueryFilter newFilter = null;
 				if(curFilter == null) {
 					curFilter = new OrQueryFilter();
-					qs.addFilter(curFilter);
+					qs.addImplicitFilter(curFilter);
 				} else if(!(curFilter instanceof OrQueryFilter)) {
 					newFilter = new OrQueryFilter();
 

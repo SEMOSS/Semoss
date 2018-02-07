@@ -70,7 +70,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		// the third noun will be a filter; we can get the qs from this
 		QueryStruct2 qs = getQueryStruct();
 		// get all of the filters from this querystruct
-		GenRowFilters grf = qs.getFilters();
+		GenRowFilters grf = qs.getExplicitFilters();
 		Set<String> filteredColumns = grf.getAllFilteredColumns();
 		// create a string builder to keep track of our r scripts so that we
 		// only have to execute them once
