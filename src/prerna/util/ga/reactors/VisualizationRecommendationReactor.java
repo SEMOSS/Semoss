@@ -23,6 +23,12 @@ import prerna.util.ga.GATracker;
 public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 	public static final String MAX_RECOMMENDATIONS = "max";
 
+	/**
+	 * This reactor generates visualization recommendations based on the data in the current frame. 
+	 * It runs 2 R functions, both using historical data tracked in google analytics. 
+	 * One script recommends based on exact matches and semantic matches of columns and the other uses data types, results are combined.
+	 */
+	
 	public VisualizationRecommendationReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), MAX_RECOMMENDATIONS };
 	}
@@ -46,8 +52,11 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 		// prep script components
 		StringBuilder builder = new StringBuilder();
+		StringBuilder builder2 = new StringBuilder();
 		String inputFrame = "inputFrame." + Utility.getRandomString(8);
+		String inputFrame2 = "inputFrame." + Utility.getRandomString(8);
 		String dfStart = inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = character(), reference4 = character(), reference5 = character(), reference6 = character(), stringsAsFactors = FALSE);";
+		String dfStart2 = inputFrame2 + " <- data.frame(reference1 = character(), reference2 = character(), stringsAsFactors = FALSE);";
 
 		// iterate selectors and update data table builder section of R script
 		Map<String, String> aliasHash = new HashMap<String, String>();
@@ -76,17 +85,19 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 					table = conceptPropSplit[0];
 					column = conceptPropSplit[1];
 				}
-				// add all columns and logical names
-				// to alias hash so we can look up alias later
-				aliasHash.put(column + "_" + table + "_" + db, alias);
 
+				// add row to data type R df used for offline recommendations
+				String dataType = meta.getHeaderTypeAsString(name);
+				builder2.append(inputFrame2).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"").append(", \"").append(dataType).append("\");");
+
+				// add column and logical names to alias hash so we can look up alias later
+				aliasHash.put(column + "_" + table + "_" + db, alias);
+				
 				// get List from GA of logical names
 				ArrayList<String> logicalNames = GATracker.getInstance()
 						.getLogicalNames(db + "_" + table + "_" + column);
 
-				// List<String> logicalNames =
-				// MasterDatabaseUtility.getLogicalNames(db, table);
-				// build dataframe of all columns in semoss frame plus logical names
+				// build R df of all columns in semoss frame plus logical names
 				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"");
 				for (int k = 0; k < 5; k++) {
 					if (logicalNames != null && k < logicalNames.size()) {
@@ -112,12 +123,12 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 		String runPredictScripts = "source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; "
 				+ historicalDf + "<-read.csv(\"" + baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv\") ;" 
-				+ recommend + "<-viz_recom(" + historicalDf + "," + inputFrame + ", \"Grid\", " + maxRecommendations + "); " 
+				+ recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + "," + inputFrame2 + "); " 
 				+ outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);";
 		runPredictScripts = runPredictScripts.replace("\\", "/");
 
 		// combine script pieces and execute in R
-		String script = dfStart + builder + runPredictScripts;
+		String script = dfStart + builder + dfStart2 + builder2 + runPredictScripts;
 		this.rJavaTranslator.runR(script);
 
 		// receive json string from R
@@ -138,14 +149,9 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 			String chart = myList.get(i).get("chart");
 			String weight = myList.get(i).get("weight");
 			String columnAlias = aliasHash.get(colName + "_" + tblName + "_" + dbName);
-			// cant recommend something thats not in the current frame
 
-			// go to logical map, get recommended logical names, loop
-			// through each column in current frame, check if logical name
-			// exists in current column logical list, if so thats a match
-
+			// make sure column is in current frame then add to recommendation map
 			if (columnAlias != null) {
-				// String chartWeight = myList.get(i).get("chartweight");
 				if (recommendations.containsKey(chart)) {
 					map = (HashMap) recommendations.get(chart);
 					map.put(columnAlias, component);
@@ -159,7 +165,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		}
 
 		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + "viz_history, viz_recom, get_userdata, get_reference);";
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + inputFrame2 + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
 		this.rJavaTranslator.runR(gc);
 
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
