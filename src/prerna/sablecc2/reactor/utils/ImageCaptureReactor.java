@@ -92,7 +92,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		String cmd = "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" "
 				+ "--headless "
 				+ "--disable-gpu "
-				+ "--window-size=2560,1440 "
+				+ "--window-size=1440,1440 "
 				+ "--virtual-time-budget=10000 "
 				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
 				+ "\"http://localhost:8080/SemossWeb_AppUi/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
