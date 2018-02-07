@@ -16,7 +16,7 @@ import prerna.util.Utility;
 public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
 	
 	public GetSavedInsightRecipeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
 
 	@Override
@@ -25,7 +25,7 @@ public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
 		
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String engineName = getEngine();
+		String engineName = getApp();
 		String rdbmsId = getRdbmsId();
 		
 		// get the engine so i can get the new insight

@@ -14,7 +14,7 @@ import prerna.util.Constants;
 public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
 	
 	public DeleteMetaTagsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
 	}
 
 	@Override

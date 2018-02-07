@@ -18,7 +18,7 @@ import prerna.util.Utility;
 
 public class GetLocalDBSchemaReactor extends AbstractReactor {
 	public GetLocalDBSchemaReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
 	}
 
 	@Override
@@ -26,7 +26,7 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 		organizeKeys();
 		String engineName = this.keyValue.get(this.keysToGet[0]);
 		if (engineName == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.ENGINE.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.toString());
 		}
 		IEngine engine = Utility.getEngine(engineName);
 		List<String> concepts = DomainValues.getConceptList(engine);
