@@ -13,7 +13,7 @@
           "description": "Select a concept that you will explore"
         },
         "model": {
-          "query": "GetDatabaseConcepts(engine=[\"<<ENGINE>>\"]);"
+          "query": "GetDatabaseConcepts(database=[\"<<ENGINE>>\"]);"
         }
       },
       {
