@@ -13,7 +13,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class GetLogicalNamesReactor extends AbstractReactor {
 	
 	public GetLogicalNamesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey()};
 	}
 
 	@Override

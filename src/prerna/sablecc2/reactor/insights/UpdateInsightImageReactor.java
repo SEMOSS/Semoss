@@ -6,7 +6,7 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngine();
+		String engineName = getApp();
 		String rdbmsId = getRdbmsId();
 		String imageURL = this.getImageURL();
 		if (engineName != null && rdbmsId != null && imageURL != null) {

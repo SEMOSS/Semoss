@@ -30,7 +30,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
 	
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
 	}
 	
 	@Override

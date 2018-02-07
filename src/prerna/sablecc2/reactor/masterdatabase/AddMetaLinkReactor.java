@@ -23,7 +23,7 @@ public class AddMetaLinkReactor extends  AbstractMetaDBReactor  {
 	 */
 	
 	public AddMetaLinkReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
 	}
 	
 	@Override

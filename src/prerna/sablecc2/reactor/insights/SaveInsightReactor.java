@@ -31,7 +31,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
 	
 	public SaveInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
 	}
 	
 	@Override
@@ -39,7 +39,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String engineName = getEngine();
+		String engineName = getApp();
 		String insightName = getInsightName();
 		String[] recipeToSave = getRecipe();
 		// used for embed url
