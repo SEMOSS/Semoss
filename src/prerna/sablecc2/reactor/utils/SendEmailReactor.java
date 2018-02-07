@@ -2,76 +2,88 @@ package prerna.sablecc2.reactor.utils;
 
 import java.util.Properties;
 
-import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 
-import prerna.rpa.quartz.jobs.mail.EmailMessage;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.EmailUtility;
 
 public class SendEmailReactor extends AbstractReactor {
-	
+
 	private static final String SMTP_HOST = "smtpHost";
 	private static final String SMTP_PORT = "smtpPort";
 	private static final String EMAIL_SUBJECT = "subject";
 	private static final String EMAIL_RECEIVER = "to";
 	private static final String EMAIL_SENDER = "from";
 	private static final String EMAIL_MESSAGE = "message";
+	private static final String ATTACHMENTS = "attachments";
 
 	public SendEmailReactor() {
-		this.keysToGet = new String[]{SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_RECEIVER, EMAIL_SENDER, EMAIL_MESSAGE};
+		this.keysToGet = new String[] { SMTP_HOST, SMTP_PORT, EMAIL_SUBJECT, EMAIL_SENDER, EMAIL_MESSAGE,
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), EMAIL_RECEIVER, ATTACHMENTS };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// get pixel inputs
-		String smtpHost = getSmtpHost();
-		String smtpPort = getSmtpPort();
-		String sender = getEmailSender();
-		String[] receivers = getEmailReceivers();
-		String subject = getEmailSubject();
-		String message = getEmailMessage();
+		organizeKeys();
+		String smtpHost = this.keyValue.get(this.keysToGet[0]);
+		if (smtpHost == null) {
+			throw new IllegalArgumentException("Need to define " + SMTP_HOST);
+		}
+		String smtpPort = this.keyValue.get(this.keysToGet[1]);
+		if (smtpPort == null) {
+			throw new IllegalArgumentException("Need to define " + SMTP_PORT);
+		}
+		String subject = this.keyValue.get(this.keysToGet[2]);
+		if (subject == null) {
+			throw new IllegalArgumentException("Need to define " + EMAIL_SUBJECT);
+		}
+		String sender = this.keyValue.get(this.keysToGet[3]);
+		if (sender == null) {
+			throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);
+		}
+		String message = this.keyValue.get(this.keysToGet[4]);
+		if (message == null) {
+			throw new IllegalArgumentException("Need to define " + EMAIL_MESSAGE);
+		}
+		String username = this.keyValue.get(this.keysToGet[5]);
+		String password = this.keyValue.get(this.keysToGet[6]);
+
+		// TODO enable html email message
 		boolean bodyIsHTML = false;
+		String[] recipients = getEmailRecipients();
+		// attachments are optional
+		String[] attachments = getAttachmentLocations();
 
-		// get email session
-		Properties emailSessionProps = new Properties();
-		emailSessionProps.put("mail.smtp.host", smtpHost);
-		emailSessionProps.put("mail.smtp.port", smtpPort);
-		Session emailSession = Session.getInstance(emailSessionProps);
-
+		// get session to send email may or may not need username and password
+		Session emailSession = null;
+		// set smtp properties
+		Properties props = new Properties();
+		props.put("mail.smtp.host", smtpHost);
+		props.put("mail.smtp.port", smtpPort);
+		if (username != null && password != null) {
+			props.put("mail.smtp.auth", true);
+			props.put("mail.smtp.starttls.enable", true);
+			emailSession = Session.getInstance(props, new javax.mail.Authenticator() {
+				protected PasswordAuthentication getPasswordAuthentication() {
+					return new PasswordAuthentication(username, password);
+				}
+			});
+		} else {
+			emailSession = Session.getInstance(props);
+		}
 		// send email
-		EmailMessage email = new EmailMessage(sender, receivers, subject, message, bodyIsHTML, emailSession);
-		try {
-			email.send();
-		} catch (MessagingException e) {
-			e.printStackTrace();
-		}
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, sender, subject, message, attachments);
+		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
-	private String getEmailMessage() {
-		GenRowStruct grs = this.store.getNoun(EMAIL_MESSAGE);
-		if (grs != null) {
-			String input = grs.getNoun(0).getValue().toString();
-			return input;
-		}
-		throw new IllegalArgumentException("Need to define " + EMAIL_MESSAGE);
-	}
-
-	private String getEmailSubject() {
-		GenRowStruct grs = this.store.getNoun(EMAIL_SUBJECT);
-		if (grs != null) {
-			String input = grs.getNoun(0).getValue().toString();
-			return input;
-		}
-		throw new IllegalArgumentException("Need to define " + EMAIL_SUBJECT);
-	}
-
-	private String[] getEmailReceivers() {
+	private String[] getEmailRecipients() {
 		GenRowStruct grs = this.store.getNoun(EMAIL_RECEIVER);
 		if (grs != null) {
 			String[] input = new String[grs.size()];
@@ -83,31 +95,16 @@ public class SendEmailReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Need to define " + EMAIL_RECEIVER);
 	}
 
-	private String getEmailSender() {
-		GenRowStruct grs = this.store.getNoun(EMAIL_SENDER);
+	private String[] getAttachmentLocations() {
+		GenRowStruct grs = this.store.getNoun(ATTACHMENTS);
 		if (grs != null) {
-			String input = grs.getNoun(0).getValue().toString();
+			String[] input = new String[grs.size()];
+			for (int i = 0; i < input.length; i++) {
+				input[i] = grs.getNoun(i).getValue().toString();
+			}
 			return input;
 		}
-		throw new IllegalArgumentException("Need to define " + EMAIL_SENDER);
-	}
-
-	private String getSmtpPort() {
-		GenRowStruct grs = this.store.getNoun(SMTP_PORT);
-		if (grs != null) {
-			String input = grs.getNoun(0).getValue().toString();
-			return input;
-		}
-		throw new IllegalArgumentException("Need to define " + SMTP_PORT);
-	}
-
-	private String getSmtpHost() {
-		GenRowStruct grs = this.store.getNoun(SMTP_HOST);
-		if (grs != null) {
-			String input = grs.getNoun(0).getValue().toString();
-			return input;
-		}
-		throw new IllegalArgumentException("Need to define " + SMTP_HOST);
+		return null;
 	}
 
 	@Override
@@ -124,6 +121,8 @@ public class SendEmailReactor extends AbstractReactor {
 			return "The email sender.";
 		} else if (key.equals(EMAIL_SUBJECT)) {
 			return "The subject of the email.";
+		} else if (key.equals(ATTACHMENTS)) {
+			return "The file path of email attachments";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
