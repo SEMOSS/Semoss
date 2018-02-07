@@ -849,8 +849,11 @@ public abstract class AbstractEngine implements IEngine {
 	public void deleteDB() {
 		logger.debug("closing " + this.engineName);
 		this.closeDB();
+		Map<String, String> engineParam = new HashMap<String, String>();
+		engineParam.put("engine", this.engineName);
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String insightLoc = baseFolder + "/" + this.getProperty(Constants.RDBMS_INSIGHTS);
+		insightLoc = Utility.fillParam2(insightLoc, engineParam);
 		File insightFile = new File(insightLoc);
 		File engineFolder = new File(insightFile.getParent());
 		String folderName = engineFolder.getName();
