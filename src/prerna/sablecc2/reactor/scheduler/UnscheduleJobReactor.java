@@ -3,9 +3,7 @@ package prerna.sablecc2.reactor.scheduler;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.quartz.JobKey;
@@ -49,16 +47,13 @@ public class UnscheduleJobReactor extends AbstractReactor {
 		 * not deleted then it can be re-scheduled in the future, otherwise a
 		 * new job will need to be created.
 		 */
-
 		organizeKeys();
-
 		// Get inputs
 		String jobName = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
 		boolean deleteFlag = getDeleteFlag();
 
-		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobGroup + "__" + jobName
-				+ ".json";
+		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jobGroup + "__" + jobName + ".json";
 		File file = new File(filePath);
 
 		// delete job from quartz
@@ -68,8 +63,6 @@ public class UnscheduleJobReactor extends AbstractReactor {
 			JobKey job = JobKey.jobKey(jobName, jobGroup);
 			if (scheduler.checkExists(job)) {
 				scheduler.deleteJob(job);
-			} else {
-				throw new IllegalArgumentException("Job doesnt exist");
 			}
 		} catch (SchedulerException e) {
 			e.printStackTrace();
@@ -87,7 +80,6 @@ public class UnscheduleJobReactor extends AbstractReactor {
 			try {
 				jsonString = ConfigUtil.readStringFromJSONFile(file.getName());
 			} catch (ParseConfigException e) {
-				// TODO Auto-generated catch block
 				throw new RuntimeException("Failed to update job config." + e);
 			}
 
@@ -108,15 +100,9 @@ public class UnscheduleJobReactor extends AbstractReactor {
 			}
 		}
 
-		// Save metadata into a map and return
-		Map<String, String> quartzJobMetadata = new HashMap<>();
-		quartzJobMetadata.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
-		quartzJobMetadata.put(ReactorKeysEnum.JOB_GROUP.getKey(), jobGroup);
-		quartzJobMetadata.put(DELETE_FLAG, deleteFlag + "");
-		quartzJobMetadata.put("status", "inactive");
-
-		return new NounMetadata(quartzJobMetadata, PixelDataType.MAP, PixelOperationType.UNSCHEDULE_JOB);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 	}
+	///////////////////////// KEYS /////////////////////////////////////
 
 	private boolean getDeleteFlag() {
 		GenRowStruct boolGrs = this.store.getNoun(keysToGet[2]);
@@ -129,7 +115,6 @@ public class UnscheduleJobReactor extends AbstractReactor {
 		return false;
 	}
 
-	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {
