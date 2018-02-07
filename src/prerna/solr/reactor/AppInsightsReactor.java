@@ -1,6 +1,5 @@
 package prerna.solr.reactor;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -12,7 +11,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
 import prerna.sablecc2.om.GenRowStruct;
@@ -23,13 +21,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrIndexEngineQueryBuilder;
-import prerna.util.DIHelper;
-import prerna.util.insight.InsightScreenshot;
 
 public class AppInsightsReactor extends AbstractReactor {
 	
 	public AppInsightsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), "includeImage", "tags"};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), "tags"};
 	}
 
 	@Override
@@ -40,7 +36,6 @@ public class AppInsightsReactor extends AbstractReactor {
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
 		String modImageStr = this.keyValue.get(this.keysToGet[4]);
-		boolean modImage = (modImageStr != null && Boolean.parseBoolean(modImageStr));
 		List<String> tags = getTags();
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
@@ -65,9 +60,6 @@ public class AppInsightsReactor extends AbstractReactor {
 		retFields.add(SolrIndexEngine.TAGS);
 		retFields.add(SolrIndexEngine.VIEW_COUNT);
 		retFields.add(SolrIndexEngine.DESCRIPTION);
-		if(modImage) {
-			retFields.add(SolrIndexEngine.IMAGE);
-		}
 		builder.setReturnFields(retFields);
 
 		// order the return
@@ -101,28 +93,10 @@ public class AppInsightsReactor extends AbstractReactor {
 		SolrDocumentList results;
 		try {
 			results = SolrIndexEngine.getInstance().queryDocument(builder);
-			// if the FE wants the images
-			if(modImage) {
-				String basePath = DIHelper.getInstance().getProperty("BaseFolder");
-				if (results != null) {
-					for (int i = 0; i < results.size(); i++) {
-						SolrDocument doc = results.get(i);
-						String imagePath = (String) doc.get("image");
-						if (imagePath != null && imagePath.length() > 0 && !imagePath.contains("data:image/:base64")) {
-							File file = new File(basePath + imagePath);
-							if (file.exists()) {
-								String image = InsightScreenshot.imageToString(basePath + imagePath);
-								doc.put("image", "data:image/png;base64," + image);
-							}
-						}
-					}
-				}
-			}
-			
 			return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INSIGHTS);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) { 
 			e.printStackTrace();
-			throw new IllegalArgumentException("Error retrieving results");
+			throw new IllegalArgumentException("Error retrieving insights for app = " + appName);
 		}
 	}
 
@@ -130,7 +104,7 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<String> tags = new Vector<String>();
 		
 		// see if added as key
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
 		if(grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for(int i = 0; i < size; i++) {
@@ -141,7 +115,7 @@ public class AppInsightsReactor extends AbstractReactor {
 		
 		// start at index 1 and see if in cur row
 		int size = this.curRow.size();
-		for(int i = 5; i < size; i++) {
+		for(int i = 4; i < size; i++) {
 			tags.add(grs.get(i).toString());
 		}
 		return tags;
