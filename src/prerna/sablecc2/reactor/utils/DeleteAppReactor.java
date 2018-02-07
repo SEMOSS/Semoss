@@ -28,7 +28,7 @@ import prerna.util.Utility;
 public class DeleteAppReactor extends AbstractReactor {
 
 	public DeleteAppReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 	}
 
 	@Override
