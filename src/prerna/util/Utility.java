@@ -37,10 +37,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.KeyManagementException;
@@ -3148,7 +3152,27 @@ public class Utility {
 		}
 		return retProp;
 	}
-	
+	public static void copyURLtoFile(String urlString, String filePath) {
+		try {
+			URL url = new URL(urlString);
+			URLConnection conn = url.openConnection();
+			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String inputLine;
+			// write file
+			PrintWriter out = new PrintWriter(filePath);
+			while ((inputLine = in.readLine()) != null) {
+				out.write(inputLine + System.getProperty("line.separator"));
+			}
+			out.close();
+			in.close();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 //	/**
 //	 * Update old insights... hope we get rid of this soon
