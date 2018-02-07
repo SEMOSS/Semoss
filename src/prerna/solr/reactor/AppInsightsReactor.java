@@ -35,7 +35,6 @@ public class AppInsightsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
-		String modImageStr = this.keyValue.get(this.keysToGet[4]);
 		List<String> tags = getTags();
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
