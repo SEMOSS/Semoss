@@ -16,9 +16,9 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class BackupDatabaseReactor extends AbstractReactor {
+public class BackupAppReactor extends AbstractReactor {
 
-	public BackupDatabaseReactor() {
+	public BackupAppReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
 	}
 	

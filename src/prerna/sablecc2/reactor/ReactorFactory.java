@@ -39,7 +39,6 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
-import prerna.sablecc2.reactor.database.DeleteEngineReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
@@ -204,8 +203,9 @@ import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
-import prerna.sablecc2.reactor.utils.BackupDatabaseReactor;
-import prerna.sablecc2.reactor.utils.ExportDatabaseReactor;
+import prerna.sablecc2.reactor.utils.BackupAppReactor;
+import prerna.sablecc2.reactor.utils.DeleteAppReactor;
+import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
@@ -334,8 +334,9 @@ public class ReactorFactory {
 		// Utility Reactors
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
-		reactorHash.put("BackupDatabase", BackupDatabaseReactor.class);
-		reactorHash.put("ExportDatabase", ExportDatabaseReactor.class);
+		reactorHash.put("BackupApp", BackupAppReactor.class);
+		reactorHash.put("ExportApp", ExportAppReactor.class);
+		reactorHash.put("DeleteApp", DeleteAppReactor.class);
 		reactorHash.put("ImageCapture", ImageCaptureReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
 		
@@ -376,7 +377,6 @@ public class ReactorFactory {
 		reactorHash.put("FileRead", FileSourceReactor.class);
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
-		reactorHash.put("DeleteEngine", DeleteEngineReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame

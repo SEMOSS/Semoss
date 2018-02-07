@@ -89,7 +89,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			imageDir.mkdirs();
 		}
 		
-		String cmd = "\"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" "
+		String cmd = "chrome "
 				+ "--headless "
 				+ "--disable-gpu "
 				+ "--window-size=1440,1440 "

@@ -14,11 +14,11 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipDatabase;
 
-public class ExportDatabaseReactor extends AbstractReactor {
+public class ExportAppReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = ExportDatabaseReactor.class.getName();
+	private static final String CLASS_NAME = ExportAppReactor.class.getName();
 	
-	public ExportDatabaseReactor() {
+	public ExportAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 	
@@ -42,7 +42,6 @@ public class ExportDatabaseReactor extends AbstractReactor {
 			logger.info("Opening the engine again ... ");
 			Utility.getEngine(engineName);
 		}
-		
 		
 		// store it in the insight so the FE can download it
 		// only from the given insight
