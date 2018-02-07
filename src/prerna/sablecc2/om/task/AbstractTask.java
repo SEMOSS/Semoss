@@ -49,9 +49,9 @@ public abstract class AbstractTask implements ITask {
 	public Map<String, Object> collect(int num, boolean meta) {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", getData(num));
-		if(meta) {
+		if(meta && this.taskOptions != null && !this.taskOptions.isEmpty()) {
 			collectedData.put("format", getFormatMap());
-			collectedData.put("taskOptions", getTaskOptions());
+			collectedData.put("taskOptions", this.taskOptions);
 			collectedData.put("headerInfo", this.headerInfo);
 			collectedData.put("sortInfo", this.sortInfo);
 			collectedData.put("filterInfo", this.filterInfo);
