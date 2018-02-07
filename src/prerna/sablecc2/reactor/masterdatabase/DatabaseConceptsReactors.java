@@ -19,10 +19,10 @@ public class DatabaseConceptsReactors extends AbstractReactor {
 	public NounMetadata execute() {
 		GenRowStruct eGrs = this.store.getNoun(keysToGet[0]);
 		if(eGrs == null) {
-			throw new IllegalArgumentException("Need to define the engine to get the concepts from");
+			throw new IllegalArgumentException("Need to define the database to get the concepts from");
 		}
 		if(eGrs.size() > 1) {
-			throw new IllegalArgumentException("Can only define one engine within this call");
+			throw new IllegalArgumentException("Can only define one database within this call");
 		}
 		String engineName = eGrs.get(0).toString();
 		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engineName);
