@@ -95,7 +95,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				+ "--window-size=1440,1440 "
 				+ "--virtual-time-budget=10000 "
 				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
-				+ "\"http://localhost:8080/SemossWeb_AppUi/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
+				+ "\"http://localhost:8080/SemossWeb_App/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
 		
 		return cmd;
 	}
