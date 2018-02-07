@@ -18,7 +18,7 @@ public class AddMetaDescriptionReactor extends AbstractMetaDBReactor {
 	 */
 	
 	public AddMetaDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), DESCRIPTION};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), DESCRIPTION};
 	}
 	
 	@Override

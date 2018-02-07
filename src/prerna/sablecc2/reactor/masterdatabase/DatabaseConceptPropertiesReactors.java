@@ -14,7 +14,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 	
 	public DatabaseConceptPropertiesReactors() {
-		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPTS.getKey(), ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPTS.getKey(), ReactorKeysEnum.DATABASE.getKey()};
 	}
 
 	@Override
@@ -44,7 +44,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
 			return "The optional engine filter";
 		} else {
 			return super.getDescriptionForKey(key);

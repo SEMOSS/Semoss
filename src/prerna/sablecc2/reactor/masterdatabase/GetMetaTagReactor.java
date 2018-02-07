@@ -18,7 +18,7 @@ public class GetMetaTagReactor extends AbstractMetaDBReactor {
 	 */
 	
 	public GetMetaTagReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey()};
 	}
 
 	@Override
