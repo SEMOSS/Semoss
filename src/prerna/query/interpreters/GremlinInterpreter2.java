@@ -19,6 +19,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -34,6 +35,8 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	private Graph g;
 	// reference for getting actual names for loops within frames
 	private OwlTemporalEngineMeta meta;
+	// all the filters being used
+	private GenRowFilters allFilters;
 	
 	// the gremlin traversal being created
 	private GraphTraversal gt;
@@ -55,6 +58,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	public Iterator composeIterator() {
+		this.allFilters = this.qs.getCombinedFilters();
 		generateSelectors();
 		traverseRelations();
 		addOrderBy();
@@ -162,7 +166,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 				GraphTraversal twoStepT = __.as(selector);
 
 				// logic to filter
-				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
+				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(twoStepT, startNodeFilters, TinkerFrame.TINKER_NAME);
 
 				List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selector);
@@ -175,7 +179,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 				// it is just the vertex
 				this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(selector)).as(selector);
 				// logic to filter
-				List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(selector);
+				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(this.gt, startNodeFilters, TinkerFrame.TINKER_NAME);
 			}
 		} else {
@@ -247,7 +251,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
 		this.gt = this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(startNode)).as(startNode);
-		List<SimpleQueryFilter> startNodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(startNode);
+		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
 		addFiltersToPath(this.gt, startNodeFilters, TinkerFrame.TINKER_NAME);
 
 		List<String> travelledEdges = new Vector<String>();
@@ -389,7 +393,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
-					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
+					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, TinkerFrame.TINKER_NAME);
 
 					// add properties if present
@@ -445,7 +449,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 					twoStepT = twoStepT.in(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
-					List<SimpleQueryFilter> nodeFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
+					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, TinkerFrame.TINKER_NAME);
 
 					// add properties if present
@@ -489,7 +493,7 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 
 				// filter the property that we have just retrieved
 				// it will be stored in the filter list based on the alias being the property
-				List<SimpleQueryFilter> propFilters = this.qs.getFilters().getAllSimpleQueryFiltersContainingColumn(property);
+				List<SimpleQueryFilter> propFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(property);
 				addFiltersToPath(matchTraversal, propFilters, property);
 				
 				// grab the value from the startNode

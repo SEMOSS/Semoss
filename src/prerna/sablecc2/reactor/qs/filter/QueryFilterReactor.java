@@ -25,10 +25,10 @@ public class QueryFilterReactor extends AbstractQueryStructReactor {
 			if(nextFilter != null) {
 				if(nextFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 					if(isValidFilter((SimpleQueryFilter) nextFilter)) {
-						qs.addFilter(nextFilter);
+						qs.addExplicitFilter(nextFilter);
 					}
 				} else {
-					qs.addFilter(nextFilter);
+					qs.addExplicitFilter(nextFilter);
 				}
 			}
 		}

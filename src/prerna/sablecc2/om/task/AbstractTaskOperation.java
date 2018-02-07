@@ -23,6 +23,7 @@ public abstract class AbstractTaskOperation extends AbstractTask {
 		this.taskOptions = innerTask.getTaskOptions();
 		this.headerInfo = innerTask.getHeaderInfo();
 		this.sortInfo = innerTask.getSortInfo();
+		this.filterInfo = innerTask.getFilterInfo();
 	}
 	
 	@Override

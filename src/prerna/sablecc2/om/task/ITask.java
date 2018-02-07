@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.reactor.export.Formatter;
 
 public interface ITask extends Iterator<IHeadersDataRow> {
@@ -49,6 +50,10 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	void setSortInfo(List<Map<String, Object>> sortInfo);
 
 	List<Map<String, Object>> getSortInfo();
+	
+	void setFilterInfo(GenRowFilters grf);
+
+	List<Map<String, Object>> getFilterInfo();
 
 	List<Object[]> flushOutIteratorAsGrid();
 	
@@ -59,4 +64,5 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	void optimizeQuery(int limit);
 	
 	void reset();
+
 }

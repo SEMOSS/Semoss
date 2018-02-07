@@ -54,8 +54,9 @@ public class QueryStruct2 {
 	 */
 	
 	protected List<IQuerySelector> selectors = new ArrayList<>();
-	protected GenRowFilters filters = new GenRowFilters();
-	
+	protected GenRowFilters explicitFilters = new GenRowFilters();
+	protected GenRowFilters implicitFilters = new GenRowFilters();
+
 	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
 	// relations are of the form
 	// item = <relation vector>
@@ -100,18 +101,39 @@ public class QueryStruct2 {
 	//////////////////// FILTERING /////////////////////
 	////////////////////////////////////////////////////
 
-	public void addFilter(IQueryFilter newFilter) {
+	public void addExplicitFilter(IQueryFilter newFilter) {
 		GenRowFilters newGrf = new GenRowFilters();
 		newGrf.addFilters(newFilter);
-		this.filters.merge(newGrf);
+		this.explicitFilters.merge(newGrf);
 	}
 	
-	public GenRowFilters getFilters() {
-		return this.filters;
+	public GenRowFilters getExplicitFilters() {
+		return this.explicitFilters;
 	}
 	
-	public void setFilters(GenRowFilters filters) {
-		this.filters = filters;
+	public void setExplicitFilters(GenRowFilters filters) {
+		this.explicitFilters = filters;
+	}
+	
+	public void addImplicitFilter(IQueryFilter newFilter) {
+		GenRowFilters newGrf = new GenRowFilters();
+		newGrf.addFilters(newFilter);
+		this.implicitFilters.merge(newGrf);
+	}
+	
+	public GenRowFilters getImplicitFilters() {
+		return this.implicitFilters;
+	}
+	
+	public void setImplicitFilters(GenRowFilters filters) {
+		this.implicitFilters = filters;
+	}
+	
+	public GenRowFilters getCombinedFilters() {
+		GenRowFilters combinedFilters = new GenRowFilters();
+		combinedFilters.merge(this.implicitFilters.copy());
+		combinedFilters.merge(this.explicitFilters.copy());
+		return combinedFilters;
 	}
 	
 	////////////////////////////////////////////////////
@@ -237,7 +259,7 @@ public class QueryStruct2 {
 	
 	public void print() {
 		System.out.println("SELECTORS " + selectors);
-		System.out.println("FILTERS.. " + filters);
+		System.out.println("FILTERS.. " + explicitFilters);
 		System.out.println("RELATIONS.. " + relations);
 	}
 	
@@ -456,7 +478,7 @@ public class QueryStruct2 {
 	 * @return
 	 */
 	public boolean hasFiltered(String column) {
-		return this.filters.hasFilter(column);
+		return this.explicitFilters.hasFilter(column);
 	}
 	
 	/**
@@ -490,7 +512,7 @@ public class QueryStruct2 {
 		// if any of the main 3 objects within the QS have info, return false
 		// even in the case that selectors are empty, if other info is set, the QS will still 
 		// return false for this method		
-		return (!this.selectors.isEmpty() || !this.relations.isEmpty() || !this.filters.isEmpty()) ;
+		return (!this.selectors.isEmpty() || !this.relations.isEmpty() || !this.explicitFilters.isEmpty()) ;
 	}
 	
 	/**
@@ -501,7 +523,8 @@ public class QueryStruct2 {
 	 */
 	public void merge(QueryStruct2 incomingQS) {
 		mergeSelectors(incomingQS.selectors);
-		mergeFilters(incomingQS.filters);
+		mergeExplicitFilters(incomingQS.explicitFilters);
+		mergeImplicitFilters(incomingQS.implicitFilters);
 		mergeRelations(incomingQS.relations);
 		mergeGroupBy(incomingQS.groupBy);
 		mergeOrderBy(incomingQS.orderBySelectors);
@@ -531,9 +554,22 @@ public class QueryStruct2 {
 		}
 	}
 	
-	public void mergeFilters(GenRowFilters incomingFilters) {
+	/**
+	 * This is meant for filters defined by the user on the QS being sent
+	 * @param incomingFilters
+	 */
+	public void mergeExplicitFilters(GenRowFilters incomingFilters) {
 		//merge the filters
-		this.filters.merge(incomingFilters);
+		this.explicitFilters.merge(incomingFilters);
+	}
+	
+	/**
+	 * This is meant for filters that are stored within the frame
+	 * @param incomingFilters
+	 */
+	public void mergeImplicitFilters(GenRowFilters incomingFilters) {
+		//merge the filters
+		this.implicitFilters.merge(incomingFilters);
 	}
 	
 	/**

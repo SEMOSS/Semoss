@@ -287,7 +287,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				if(paramValues != null && paramValues.get(Constants.TYPE).equals(thisSelector)) {
 					Vector<String> filterValues = new Vector<String>();
 					filterValues.add(paramValues.get(Constants.VALUE).toString());
-					this.qs.addFilter(new SimpleQueryFilter(new NounMetadata(thisSelector, PixelDataType.COLUMN),
+					this.qs.addImplicitFilter(new SimpleQueryFilter(new NounMetadata(thisSelector, PixelDataType.COLUMN),
 							"==", new NounMetadata(filterValues, PixelDataType.CONST_STRING)));
 				}
 			}
@@ -329,7 +329,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 						if(!filterExists) {
 							ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
 //							this.qs.addFilter(s, "=", rlsValues);
-							this.qs.addFilter(new SimpleQueryFilter(new NounMetadata(s, PixelDataType.COLUMN),
+							this.qs.addImplicitFilter(new SimpleQueryFilter(new NounMetadata(s, PixelDataType.COLUMN),
 									"==", new NounMetadata(rlsValues, PixelDataType.CONST_STRING)));
 						}
 					}
@@ -343,7 +343,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 					if(!selectors.contains(table + "__" + col)) {
 						ArrayList rlsValues = ((StringMap<ArrayList>)rowLevelFilters.get(table)).get(col);
 //						this.qs.addFilter(table + "__" + col, "=", rlsValues);
-						this.qs.addFilter(new SimpleQueryFilter(new NounMetadata(table + "__" + col, PixelDataType.COLUMN),
+						this.qs.addImplicitFilter(new SimpleQueryFilter(new NounMetadata(table + "__" + col, PixelDataType.COLUMN),
 								"==", new NounMetadata(rlsValues, PixelDataType.CONST_STRING)));
 					}
 				}
@@ -409,7 +409,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 				}
 				
 //				this.qs.addFilter(fromCol, comparator, filterData);
-				this.qs.addFilter(new SimpleQueryFilter(new NounMetadata(fromCol, PixelDataType.COLUMN),
+				this.qs.addImplicitFilter(new SimpleQueryFilter(new NounMetadata(fromCol, PixelDataType.COLUMN),
 						comparator, new NounMetadata(filterData, PixelDataType.CONST_STRING)));
 			}
 		}

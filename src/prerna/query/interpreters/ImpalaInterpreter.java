@@ -595,7 +595,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
 	
 	public void addFilters() {
-		List<IQueryFilter> filters = qs.getFilters().getFilters();
+		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter);
 			if(filterSyntax != null) {

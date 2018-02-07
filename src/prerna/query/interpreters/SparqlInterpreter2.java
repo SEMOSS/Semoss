@@ -94,7 +94,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		addSelectors(this.qs.getSelectors());
 		
 		// add the filters
-		addFilters(this.qs.getFilters(), baseUri);
+		addFilters(this.qs.getCombinedFilters(), baseUri);
 		
 		// add the join where clause
 		addJoins(this.qs.getRelations());

@@ -44,7 +44,6 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -324,14 +323,14 @@ public class OpaqueSqlParser {
 				}
 			} else {
 				curFilter = filter;
-				qs.addFilter(curFilter);				
+				qs.addImplicitFilter(curFilter);				
 			}
 		} else {	
 			if(expr instanceof AndExpression) {
 				AndQueryFilter newFilter = null;
 				if(curFilter == null) {
 					curFilter = new AndQueryFilter();
-					qs.addFilter(curFilter);
+					qs.addImplicitFilter(curFilter);
 				} else if(!(curFilter instanceof AndQueryFilter)) {
 					newFilter = new AndQueryFilter();
 					// I need something which adds this to the curFilter
@@ -350,7 +349,7 @@ public class OpaqueSqlParser {
 				OrQueryFilter newFilter = null;
 				if(curFilter == null) {
 					curFilter = new OrQueryFilter();
-					qs.addFilter(curFilter);
+					qs.addImplicitFilter(curFilter);
 				} else if(!(curFilter instanceof OrQueryFilter)) {
 					newFilter = new OrQueryFilter();
 
