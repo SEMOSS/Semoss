@@ -27,7 +27,7 @@ import prerna.util.Utility;
 
 public class ImageCaptureReactor  extends AbstractReactor {
 
-	private static final String CLASS_NAME = ExportDatabaseReactor.class.getName();
+	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
 	
 	public ImageCaptureReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
@@ -50,7 +50,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				continue;
 			}
 			String cmd = getCmd(insight);
-			logger.info("Running : " + cmd);
+			logger.info("Start image capture for insight id = " + id);
 			
 			try {
 				Process p = Runtime.getRuntime().exec(cmd);
@@ -72,6 +72,8 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			
+			logger.info("Done saving image for insight id = " + id);
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -93,7 +95,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				+ "--window-size=2560,1440 "
 				+ "--virtual-time-budget=10000 "
 				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
-				+ "\"http://localhost:8080/SemossWeb_App/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
+				+ "\"http://localhost:8080/SemossWeb_AppUi/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
 		
 		return cmd;
 	}
