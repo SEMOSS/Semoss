@@ -41,10 +41,10 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String IMAGE = "image";
 	protected static final String IMAGE_NAME = "image.png";
 	
-	protected String getEngine() {
+	protected String getApp() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
-		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.APP.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
 			return (String) genericEngineGrs.get(0);
 		}

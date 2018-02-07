@@ -23,14 +23,14 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * @return
 	 */
 	public String getEngine() {
-		GenRowStruct engineGRS = this.store.getNoun(ReactorKeysEnum.ENGINE.getKey());
+		GenRowStruct engineGRS = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
 		if (engineGRS != null) {
 			NounMetadata noun = engineGRS.getNoun(0);
 			if (noun != null) {
 				return noun.getValue() + "";
 			}
 		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.ENGINE.getKey() + " to be updated");
+		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.getKey() + " to be updated");
 	}
 
 	/**

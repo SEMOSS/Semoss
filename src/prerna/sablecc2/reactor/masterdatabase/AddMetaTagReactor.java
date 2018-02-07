@@ -23,7 +23,7 @@ import prerna.util.Constants;
 public class AddMetaTagReactor extends AbstractMetaDBReactor {
 	
 	public AddMetaTagReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), VALUES};
 	}
 
 	@Override
