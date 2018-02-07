@@ -43,7 +43,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 		}
 
 		setSelectors(qs.getSelectors());
-		setFilters(qs.getFilters());
+		setFilters(qs.getExplicitFilters());
 		this.headers = this.helper.getHeaders();
 		this.dataTypeMap = new HashMap<String, String>();
 

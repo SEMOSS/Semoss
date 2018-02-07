@@ -33,7 +33,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		super();
 		this.qs = new QueryStruct2();
 		this.qs.setFrame(this);
-		this.grf = this.qs.getFilters();
+		this.grf = this.qs.getExplicitFilters();
 	}
 
 	public void setConnection(String engineName) {
@@ -52,9 +52,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 			QueryStruct2 mQs = new QueryStruct2();
 			mQs.addSelector(selector);
 			// merge the base filters
-			mQs.mergeFilters(qs.getFilters());
+			mQs.mergeExplicitFilters(qs.getExplicitFilters());
 			// merge the additional filters added to frame
-			mQs.mergeFilters(this.grf);
+			mQs.mergeImplicitFilters(this.grf);
 			// merge the joins
 			mQs.mergeRelations(qs.getRelations());
 
@@ -76,9 +76,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 			QueryStruct2 mQs = new QueryStruct2();
 			mQs.addSelector(selector);
 			// merge the base filters
-			mQs.mergeFilters(qs.getFilters());
+			mQs.mergeExplicitFilters(qs.getExplicitFilters());
 			// merge the additional filters added to frame
-			mQs.mergeFilters(this.grf);
+			mQs.mergeImplicitFilters(this.grf);
 			// merge the joins
 			mQs.mergeRelations(qs.getRelations());
 
@@ -97,9 +97,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 		selector.setColumn(split[1]);
 		newQs.addSelector(selector);
 		// merge the base filters
-		newQs.mergeFilters(qs.getFilters());
+		newQs.mergeExplicitFilters(qs.getExplicitFilters());
 		// merge the additional filters added to frame
-		newQs.mergeFilters(this.grf);
+		newQs.mergeImplicitFilters(this.grf);
 		// merge the joins
 		newQs.mergeRelations(qs.getRelations());
 
@@ -120,9 +120,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 		selector.setColumn(split[1]);
 		newQs.addSelector(selector);
 		// merge the base filters
-		newQs.mergeFilters(qs.getFilters());
+		newQs.mergeExplicitFilters(qs.getExplicitFilters());
 		// merge the additional filters added to frame
-		newQs.mergeFilters(this.grf);
+		newQs.mergeImplicitFilters(this.grf);
 		// merge the joins
 		newQs.mergeRelations(qs.getRelations());
 
@@ -174,9 +174,9 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// if a user is filtering in more on a specific column
 		// we do not want to merge
 		// but want to override
-		GenRowFilters qsGrs = qs.getFilters();
+		GenRowFilters qsGrs = qs.getExplicitFilters();
 		Set<String> qsFilterCols = qsGrs.getAllFilteredColumns();
-		List<IQueryFilter> importFilters = this.qs.getFilters().getFilters();
+		List<IQueryFilter> importFilters = this.qs.getExplicitFilters().getFilters();
 		// if the qsFilterCols doesn't have the base import filter
 		// add the filter
 		// otherwise, do nothing
@@ -185,7 +185,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			if(!qsFilterCols.containsAll(importColsFilters)) {
 				// the import filter is not being overridden
 				// so add it into the qs to sue
-				qs.addFilter(filter);
+				qs.addExplicitFilter(filter);
 			}
 		}
 		

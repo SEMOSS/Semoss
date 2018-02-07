@@ -13,6 +13,7 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 
 import prerna.engine.impl.AbstractEngine;
+import prerna.query.interpreters.DataStaxInterpreter;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.util.Utility;
 
