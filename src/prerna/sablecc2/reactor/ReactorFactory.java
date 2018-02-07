@@ -207,6 +207,7 @@ import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupDatabaseReactor;
 import prerna.sablecc2.reactor.utils.ExportDatabaseReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
+import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.solr.reactor.AppInfoReactor;
@@ -335,6 +336,7 @@ public class ReactorFactory {
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupDatabase", BackupDatabaseReactor.class);
 		reactorHash.put("ExportDatabase", ExportDatabaseReactor.class);
+		reactorHash.put("ImageCapture", ImageCaptureReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
 		
 		// Semantic blending
