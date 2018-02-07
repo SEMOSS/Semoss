@@ -91,6 +91,7 @@ public enum ReactorKeysEnum {
 	USERNAME("username", 									"Unique identifier for the user to access a service"),
 	QUERY_KEY("query", 										"Query string to be executed on the database"),
 	QUERY_STRUCT("qs", 										"QueryStruct object that contains selectors, filters, and joins"),
+	URL("url",                                              "The url"),
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
 	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores");
