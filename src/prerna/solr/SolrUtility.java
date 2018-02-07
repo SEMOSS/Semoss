@@ -28,6 +28,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -448,7 +449,7 @@ public final class SolrUtility {
 						queryResults.put(SolrIndexEngine.LAYOUT, layout);
 						queryResults.put(SolrIndexEngine.TAGS, perspective);
 						try {
-							docs.add(createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
+							docs.add(createDocument(SolrIndexEngine.ID, SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, id), queryResults));
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -528,7 +529,7 @@ public final class SolrUtility {
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 			try {
-				solrE.addInsight(engineName + "__" + id, queryResults);
+				solrE.addInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, id), queryResults);
 			} catch (SolrServerException | IOException e) {
 				e.printStackTrace();
 			}
@@ -584,7 +585,7 @@ public final class SolrUtility {
 				queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 				try {
-					docs.add(createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
+					docs.add(createDocument(SolrIndexEngine.ID, SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, id), queryResults));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -616,6 +617,77 @@ public final class SolrUtility {
 		}
 	}
 
+
+	public static File getStockImage(String app, String insightId) {
+		String imageDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\images\\stock\\";
+		try {
+			SolrDocument solrDoc = SolrIndexEngine.getInstance().getInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(app, insightId));
+			String layout = solrDoc.get(SolrIndexEngine.LAYOUT).toString().toLowerCase();
+			if(layout.equals("area")) {
+				return new File(imageDir + "area.png");
+			} else if(layout.equals("column")) {
+				return new File(imageDir + "bar.png");
+			} else if(layout.equals("boxwhisker")) {
+				return new File(imageDir + "boxwhisker.png");
+			} else if(layout.equals("bubble")) {
+				return new File(imageDir + "bubble.png");
+			} else if(layout.equals("choropleth")) {
+				return new File(imageDir + "choropleth.png");
+			} else if(layout.equals("cloud")) {
+				return new File(imageDir + "cloud.png");
+			} else if(layout.equals("cluster")) {
+				return new File(imageDir + "cluster.png");
+			} else if(layout.equals("dendrogram")) {
+				return new File(imageDir + "dendrogram.png");
+			} else if(layout.equals("funnel")) {
+				return new File(imageDir + "funnel.png");
+			} else if(layout.equals("gauge")) {
+				return new File(imageDir + "gauge.png");
+			} else if(layout.equals("graph")) {
+				return new File(imageDir + "graph.png");
+			} else if(layout.equals("grid")) {
+				return new File(imageDir + "grid.png");
+			} else if(layout.equals("heatmap")) {
+				return new File(imageDir + "heatmap.png");
+			} else if(layout.equals("infographic")) {
+				return new File(imageDir + "infographic.png");
+			} else if(layout.equals("line")) {
+				return new File(imageDir + "line.png");
+			} else if(layout.equals("map")) {
+				return new File(imageDir + "map.png");
+			} else if(layout.equals("pack")) {
+				return new File(imageDir + "pack.png");
+			} else if(layout.equals("parallelcoordinates")) {
+				return new File(imageDir + "parallel-coordinates.png");
+			} else if(layout.equals("pie")) {
+				return new File(imageDir + "pie.png");
+			} else if(layout.equals("polar")) {
+				return new File(imageDir + "polar-bar.png");
+			} else if(layout.equals("radar")) {
+				return new File(imageDir + "radar.png");
+			} else if(layout.equals("sankey")) {
+				return new File(imageDir + "sankey.png");
+			} else if(layout.equals("scatter")) {
+				return new File(imageDir + "scatter.png");
+			} else if(layout.equals("scatterplotmatrix")) {
+				return new File(imageDir + "scatter-matrix.png");
+			} else if(layout.equals("singleaxiscluster")) {
+				return new File(imageDir + "single-axis.png");
+			} else if(layout.equals("sunburst")) {
+				return new File(imageDir + "sunburst.png");
+			} else if(layout.equals("text-widget")) {
+				return new File(imageDir + "text-widget.png");
+			} else if(layout.equals("treemap")) {
+				return new File(imageDir + "treemap.png");
+			} else {
+				return null;
+			}
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	public static void main(String[] args) {
 		TestUtilityMethods.loadDIHelper();
 		try {
