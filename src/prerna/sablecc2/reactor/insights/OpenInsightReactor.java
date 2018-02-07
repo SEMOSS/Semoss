@@ -27,7 +27,7 @@ import prerna.util.ga.GATracker;
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
 	public OpenInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.ADDITIONAL_PIXELS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.ADDITIONAL_PIXELS.getKey()};
 	}
 
 	@Override
@@ -36,7 +36,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String engineName = getEngine();
+		String engineName = getApp();
 		String rdbmsId = getRdbmsId();
 		Object params = getParams();
 		List<String> additionalPixels = getAdditionalPixels();

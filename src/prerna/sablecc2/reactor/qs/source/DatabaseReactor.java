@@ -7,7 +7,7 @@ import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 public class DatabaseReactor extends AbstractQueryStructReactor {
 
 	public DatabaseReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
 	
 	@Override

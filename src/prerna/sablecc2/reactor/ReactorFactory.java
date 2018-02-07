@@ -412,7 +412,7 @@ public class ReactorFactory {
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
 		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
-		reactorHash.put("GetEngineMetamodel", DatabaseMetamodelReactor.class);
+		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
 		// Logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
@@ -474,9 +474,6 @@ public class ReactorFactory {
 		reactorHash.put("OpenTab", OpenTabReactor.class);
 
 		// Insight Reactors
-		// OpenSavedInsight (InsightRecipe to be deleted) returns the insight recipe
-		reactorHash.put("DeleteInsight", DeleteInsightReactor.class);
-		reactorHash.put("OpenSavedInsight", GetSavedInsightRecipeReactor.class);
 		reactorHash.put("InsightRecipe", GetSavedInsightRecipeReactor.class);
 		reactorHash.put("OpenInsight", OpenInsightReactor.class);
 		reactorHash.put("OpenEmptyInsight", OpenEmptyInsightReactor.class);
@@ -492,6 +489,7 @@ public class ReactorFactory {
 		// Save Reactors
 		reactorHash.put("SaveInsight", SaveInsightReactor.class);
 		reactorHash.put("UpdateInsight", UpdateInsightReactor.class);
+		reactorHash.put("DeleteInsight", DeleteInsightReactor.class);
 
 		// Dashboard Reactors
 		reactorHash.put("DashboardInsightConfig", DashboardInsightConfigReactor.class);

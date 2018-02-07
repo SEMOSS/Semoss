@@ -12,7 +12,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class DatabaseConceptsReactors extends AbstractReactor {
 	
 	public DatabaseConceptsReactors() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
 
 	@Override
