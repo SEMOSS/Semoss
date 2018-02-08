@@ -33,27 +33,27 @@ public class GetExternalDBSchemaReactor extends AbstractReactor {
 		organizeKeys();
 		String dbDriver = this.keyValue.get(this.keysToGet[0]);
 		if(dbDriver == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DB_DRIVER_KEY.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DB_DRIVER_KEY.getKey());
 		}
 		String host = this.keyValue.get(this.keysToGet[1]);
 		if(host == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.HOST.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.HOST.getKey());
 		}
 		String port = this.keyValue.get(this.keysToGet[2]);
 		if(port == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PORT.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PORT.getKey());
 		}
 		String username = this.keyValue.get(this.keysToGet[3]);
 		if(username == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.USERNAME.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.USERNAME.getKey());
 		}
 		String password = this.keyValue.get(this.keysToGet[4]);
 		if(password == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PASSWORD.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.PASSWORD.getKey());
 		}
 		String schema = this.keyValue.get(this.keysToGet[5]);
 		if(schema == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SCHEMA.getKey());
 		}
 		
 		Connection con = null;

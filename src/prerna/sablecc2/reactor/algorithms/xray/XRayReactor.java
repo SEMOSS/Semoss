@@ -63,14 +63,14 @@ public class XRayReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		String configFileJson = this.keyValue.get(this.keysToGet[0]);
 		if (configFileJson == null) {
-			throw new IllegalArgumentException("Need to define the config file");
+			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.CONFIG_FILE.getKey());
 		}
 
 		HashMap<String, Object> config = null;
 		try {
 			config = new ObjectMapper().readValue(configFileJson, HashMap.class);
 		} catch (IOException e2) {
-			throw new IllegalArgumentException("Invalid xray config json file ");
+			throw new IllegalArgumentException("Invalid xray " + ReactorKeysEnum.CONFIG_FILE.getKey());
 		}
 		// output is written to this h2 frame
 		H2Frame frame = (H2Frame) getFrame();

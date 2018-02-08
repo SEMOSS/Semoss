@@ -26,7 +26,7 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 		organizeKeys();
 		String engineName = this.keyValue.get(this.keysToGet[0]);
 		if (engineName == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.getKey());
 		}
 		IEngine engine = Utility.getEngine(engineName);
 		List<String> concepts = DomainValues.getConceptList(engine);
