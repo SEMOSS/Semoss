@@ -10,15 +10,20 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 
+import prerna.engine.api.IEngine;
 import prerna.util.DIHelper;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 
 public class GitConsumer {
@@ -30,7 +35,7 @@ public class GitConsumer {
 
 	}
 
-	public static void makeAppFromRemote(String yourName4App, String fullRemoteAppName) {
+	public static void makeAppFromRemote(String yourName4App, String fullRemoteAppName, Logger logger) {
 		// need to get the database folder
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String dbFolder = baseFolder + "/db/" + yourName4App;
@@ -47,14 +52,20 @@ public class GitConsumer {
 		String repoName = appNameSplit[1];
 
 		// initialize the version folder
+		logger.info("Start creating local git folder");
 		GitRepoUtils.makeLocalAppGitVersionFolder(dbFolder);
+		logger.info("Done creating local git folder");
 
 		String versionFolder = dbFolder + "/version";
 		// write a random file so we can add/commit
+		logger.info("Init local git...");
 		GitUtils.semossInit(versionFolder);
 		// add/commit all the files
+		logger.info("Add local git...");
 		GitPushUtils.addAllFiles(versionFolder, false);
+		logger.info("Commit local git...");
 		GitPushUtils.commitAddedFiles(versionFolder);
+		logger.info("Done...");
 		// push the ignore file
 		String[] filesToIgnore = new String[]{".mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -81,17 +92,20 @@ public class GitConsumer {
 		}
 
 		// switch to correct remote
+		logger.info("Fetch remote git directory");
 		GitRepoUtils.fetchRemote(versionFolder, repoName, "", "");
 		// merge
+		logger.info("Merge remote git directory");
 		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
 		// commit
 		GitPushUtils.commitAddedFiles(versionFolder);
 
 		// move the smss to the db folder
-		moveDataFilesToApp(baseFolder, yourName4App);
+		logger.info("Initialize new app...");
+		moveDataFilesToApp(baseFolder, yourName4App, logger);
 	}
 
-	public static void moveDataFilesToApp(String baseFolder, String yourName4App) {
+	public static void moveDataFilesToApp(String baseFolder, String yourName4App, Logger logger) {
 		// need to account for version here
 		String appFolder = baseFolder + "/db/" + yourName4App ;
 		String versionFolder = appFolder + "/version";
@@ -107,6 +121,7 @@ public class GitConsumer {
 		for (int i = 0; i < files.length; i++) {
 			try {
 				// need to make modification on the engine
+				logger.info("Moving database file : " + FilenameUtils.getName(files[i].getAbsolutePath()));
 				FileUtils.copyFileToDirectory(files[i], dbFile);
 				files[i].delete();
 			} catch (IOException e) {
@@ -125,6 +140,7 @@ public class GitConsumer {
 			for (int i = 0; i < dataFiles.length; i++) {
 				try {
 					// move the data files into the app data folder
+					logger.info("Moving database file : " + FilenameUtils.getName(files[i].getAbsolutePath()));
 					FileUtils.copyFileToDirectory(dataFiles[i], appDataDir);
 					files[i].delete();
 				} catch (IOException e) {
@@ -154,7 +170,8 @@ public class GitConsumer {
 //					updateInsightRdbms(origFile, appFolder, yourName4App);
 				}
 				// load the app
-				loadApp(fileToMove.getAbsolutePath());
+				loadApp(fileToMove.getAbsolutePath(), logger);
+				loadMosfetFiles(versionFolder, logger);
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -254,13 +271,16 @@ public class GitConsumer {
 	 * Load the app
 	 * @param smssLocation
 	 */
-	private static void loadApp(String smssLocation) {
+	private static IEngine loadApp(String smssLocation, Logger logger) {
 		FileInputStream fileIn = null;
 		try{
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(smssLocation);
 			prop.load(fileIn);
-			Utility.loadWebEngine(smssLocation, prop);
+			logger.info("Start synchronizing app metadata...");
+			IEngine engine = Utility.loadWebEngine(smssLocation, prop);
+			logger.info("Done synchronizing app metadata");
+			return engine;
 		} catch(IOException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with loading app metadata");
@@ -272,6 +292,39 @@ public class GitConsumer {
 					e.printStackTrace();
 				}
 			}
+		}
+	}
+	
+	/**
+	 * Load any mosfet files since they might not have been added to the insights rdbms that was pushed
+	 * @param versionFolder
+	 */
+	private static void loadMosfetFiles(String versionFolder, Logger logger) {
+		List<String> addFilesPath = new Vector<String>();
+		
+		// mosfet filter
+		List<String> mosfet = new Vector<String>();
+		mosfet.add("*.mosfet");
+		FileFilter mosfetFilter = new WildcardFileFilter(mosfet);
+		
+		// grab all the directories
+		File vFolder = new File(versionFolder);
+		File[] inDir = vFolder.listFiles();
+		for(File in : inDir) {
+			if(in.isDirectory()) {
+				File[] mosfetFiles = in.listFiles(mosfetFilter);
+				for(File mosfetF : mosfetFiles) {
+					addFilesPath.add(mosfetF.getAbsolutePath());
+				}
+			}
+		}
+		
+		// that we have the files
+		if(!addFilesPath.isEmpty()) {
+			logger.info("Synchronizing mosfet files");
+			Map<String, List<String>> changedFiles = new HashMap<String, List<String>>();
+			changedFiles.put("ADD", addFilesPath);
+			MosfetSyncHelper.synchronizeInsightChanges(changedFiles, logger);
 		}
 	}
 

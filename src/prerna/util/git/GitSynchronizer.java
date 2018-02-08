@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
@@ -36,7 +37,7 @@ public class GitSynchronizer {
 
 	}
 	
-	public static void syncDatabases(String localAppName, String remoteAppName, String username, String password) {
+	public static void syncDatabases(String localAppName, String remoteAppName, String username, String password, Logger logger) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String appFolder = baseFolder + "/db/" + localAppName;
 		
@@ -71,7 +72,7 @@ public class GitSynchronizer {
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		
 		// we now need to move over these new files
-		GitConsumer.moveDataFilesToApp(baseFolder, localAppName);
+		GitConsumer.moveDataFilesToApp(baseFolder, localAppName, logger);
 	}
 	
 	private static void pushFilesToVersionFolder(String appFolder) {
