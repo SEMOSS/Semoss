@@ -37,7 +37,7 @@ public class CopyAppRepo extends AbstractReactor {
 		logger.info("Downloading app located at " + repository);
 		logger.info("App will be named locally as " + localAppName);
 
-		GitConsumer.makeAppFromRemote(localAppName, repository);
+		GitConsumer.makeAppFromRemote(localAppName, repository, logger);
 		logger.info("Congratulations! Downloading your new app has been completed");
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
