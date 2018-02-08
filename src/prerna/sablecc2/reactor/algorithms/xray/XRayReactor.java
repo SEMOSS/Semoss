@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -50,6 +51,8 @@ import prerna.util.ga.GATracker;
  * RunXray("xrayConfigFile");
  */
 public class XRayReactor extends AbstractRFrameReactor {
+	private static final String CLASS_NAME = XRayReactor.class.getName();
+
 	public XRayReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.CONFIG_FILE.getKey()};
 	}
@@ -57,7 +60,10 @@ public class XRayReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
+		Logger logger = getLogger(CLASS_NAME);
+
 		// need to make sure that the textreuse package is installed
+		logger.info("Checking if required R packages are installed to run X-ray...");
 		this.rJavaTranslator.checkPackages(new String[]{"textreuse", "digest", "memoise", "withr"});
 
 		organizeKeys();
@@ -70,7 +76,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 		try {
 			config = new ObjectMapper().readValue(configFileJson, HashMap.class);
 		} catch (IOException e2) {
-			throw new IllegalArgumentException("Invalid xray " + ReactorKeysEnum.CONFIG_FILE.getKey());
+			throw new IllegalArgumentException("Invalid X-ray " + ReactorKeysEnum.CONFIG_FILE.getKey());
 		}
 		// output is written to this h2 frame
 		H2Frame frame = (H2Frame) getFrame();
@@ -106,8 +112,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 			HashMap<String, Object> connectorData = (HashMap<String, Object>) connection.get("connectorData");
 			HashMap<String, Object> dataSelection = (HashMap<String, Object>) connection.get("dataSelection");
 			if (connectorType.toUpperCase().equals("LOCAL")) {
-				writeLocalEngineToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode,
-						semanticFolder);
+				writeLocalEngineToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
 			} else if (connectorType.toUpperCase().equals("EXTERNAL")) {
 				writeExternalToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
 			} else if (connectorType.toUpperCase().equals("FILE")) {
@@ -117,8 +122,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 				if (extension.equals("csv") || extension.equals("txt")) {
 					writeCsvToFile(sourceFile, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
 				} else if (extension.equals("xls") || extension.equals("xlsx")) {
-					writeExcelToFile(sourceFile, dataSelection, connectorData, dataMode, dataFolder, semanticMode,
-							semanticFolder);
+					writeExcelToFile(sourceFile, dataSelection, connectorData, dataMode, dataFolder, semanticMode, semanticFolder);
 				}
 			}
 		}
@@ -190,6 +194,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 					+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + outputXrayDataFolder + "\");");
 		}
+		logger.info("Comparing data from datasources for X-ray data mode...");
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// run xray on semantic folder
@@ -218,6 +223,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 			} else {
 				rsb.append(rFrameName + " <-" + semanticComparisonFrame + ";");
 			}
+			logger.info("Comparing data from datasources for X-ray semantic mode...");
 			this.rJavaTranslator.runR(rsb.toString());
 			
 			//clean up r variables for  semantic comparison
@@ -227,15 +233,15 @@ public class XRayReactor extends AbstractRFrameReactor {
 		}
 
 		// Synchronize from R
+		logger.info("Getting X-ray results into frame...");
 		GenerateH2FrameFromRVariableReactor sync = new GenerateH2FrameFromRVariableReactor();
 		sync.syncFromR(this.rJavaTranslator, rFrameName, frame);
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
-		
+
 		//clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + rFrameName + ");");
 		cleanUpScript.append("rm(" + "xray_merge" + ");");
-
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
@@ -266,6 +272,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 	private void writeExcelToFile(String excelFile, HashMap<String, Object> dataSelection,
 			HashMap<String, Object> connectorData, boolean dataComparison, String dataFolder, boolean semanticMode,
 			String semanticFolder) {
+		Logger logger = getLogger(CLASS_NAME);
 		// parse the excel file
 		XLFileHelper xl = new XLFileHelper();
 		xl.parse(excelFile);
@@ -304,6 +311,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 				}
 				String filePath = dataFolder + "\\" + sheetName + ";" + col + ".txt";
 				filePath = filePath.replace("\\", "/");
+				logger.info("Getting "+col+" from excel sheet: " + sheetName + " for X-ray comparison...");
 				// encode and write to file
 				encodeInstances(instances, dataComparison, filePath, semanticMode, semanticFolder);
 			}
@@ -330,6 +338,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 	 */
 	private void writeCsvToFile(String csvFile, HashMap<String, Object> dataSelection, boolean dataMode,
 			String dataFolder, boolean semanticMode, String semanticFolder) {
+		Logger logger = getLogger(CLASS_NAME);
 		String[] csvFileNameArray = csvFile.split("\\\\");
 		String csvName = csvFileNameArray[csvFileNameArray.length - 1].replace(".csv", "");
 		// read csv into string[]
@@ -392,6 +401,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 				String fileName = dataFolder + "\\" + csvName + ";" + col + ".txt";
 				fileName = fileName.replace("\\", "/");
 				// encode data to fileName
+				logger.info("Getting " + col + " from " + csvName + " csv to run xray comparison... ");
 				encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 			}
 		}
@@ -418,6 +428,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 	 */
 	private void writeExternalToFile(HashMap<String, Object> connectorData, HashMap<String, Object> dataSelection,
 			boolean dataMode, String dataFolder, boolean semanticMode, String semanticFolder) {
+		Logger logger = getLogger(CLASS_NAME);
 		// get external database connection information
 		String connectionUrl = (String) connectorData.get("connectionString");
 		String port = (String) connectorData.get("port");
@@ -433,6 +444,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 		} catch (SQLException e1) {
 			throw new IllegalArgumentException("Invalid connection");
 		}
+		logger.info("Querying data from external database " + newDBName + " for X-ray comparison...");
 		// loop through tables within a database
 		for (String table : dataSelection.keySet()) {
 			HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
@@ -471,6 +483,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 							e.printStackTrace();
 						}
 						// encode and write to file
+						logger.info("Querying " + column + " from " + table + " in " + newDBName + " for X-ray comparison...");
 						encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						stmt.close();
 					} catch (SQLException e) {
@@ -507,10 +520,12 @@ public class XRayReactor extends AbstractRFrameReactor {
 	 */
 	private void writeLocalEngineToFile(HashMap<String, Object> connectorData, HashMap<String, Object> dataSelection,
 			boolean dataMode, String dataFolder, boolean semanticMode, String semanticFolder) {
+		Logger logger = getLogger(CLASS_NAME);
 		String engineName = (String) connectorData.get("engineName");
 		IEngine engine = Utility.getEngine(engineName);
 		// check if engine is valid
 		if (engine != null) {
+			logger.info("Querying data from local database for X-ray comparison : " + engineName);
 			// loop through tables within a database
 			for (String table : dataSelection.keySet()) {
 				HashMap<String, Object> allColumns = (HashMap<String, Object>) dataSelection.get(table);
@@ -534,6 +549,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 							} else {
 								instances = DomainValues.retrieveCleanConceptValues(table, engine);
 							}
+							logger.info("Querying table " + table + " from " + engineName + " for X-ray comparison");
 							// encode and write to file
 							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						}
@@ -552,6 +568,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 							} else {
 								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
 							}
+							logger.info("Querying " + column + " from " + table + " in " + engineName + " for X-ray comparison");
 							// encode and write to file
 							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						}
@@ -625,7 +642,6 @@ public class XRayReactor extends AbstractRFrameReactor {
 				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
 			// run r script
-			System.out.println(rsb.toString());
 			this.rJavaTranslator.runR(rsb.toString());
 			
 			//clean up r temp variables
