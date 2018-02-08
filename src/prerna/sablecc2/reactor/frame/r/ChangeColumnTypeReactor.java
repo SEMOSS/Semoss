@@ -45,7 +45,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			// define the r script to execute
 			// script depends on the new data type
 			String script = null;
-			if (newType.equalsIgnoreCase("string") || newType.equalsIgnoreCase("character")) {
+			if (Utility.isStringType(newType)) {
 				// df$column <- as.character(df$column);
 				script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
 				frame.executeRScript(script);
@@ -53,12 +53,11 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// df$column <- as.factor(df$column);
 				script = table + "$" + column + " <- as.factor(" + table + "$" + column + ");";
 				frame.executeRScript(script);
-			} else if (newType.equalsIgnoreCase("number") || newType.equalsIgnoreCase("numeric")) {
+			} else if (Utility.isDoubleType(newType)) {
 				// r script syntax cleaning characters with regex
-				script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column
-						+ "));";
+				script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
 				frame.executeRScript(script);
-			} else if (newType.equalsIgnoreCase("date")) {
+			} else if (Utility.isDateType(newType)) {
 				// we have a different script to run if it is a str to date
 				// conversion
 				// define date format
