@@ -135,9 +135,15 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		String json = this.rJavaTranslator.getString(outputJson + ";");
 		Map recommendations = new HashMap<String, HashMap<String, String>>();
 		Gson gson = new Gson();
+		
+		// garbage cleanup -- R script might already do this
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + inputFrame2 + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
+		this.rJavaTranslator.runR(gc);
+		// if recommendations fail return empty map
 		if (json == null) {
 			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
 		}
+		// converting physical column names to frame aliases
 		ArrayList<Map<String, String>> myList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, String>>>(){}.getType());
 		for (int i = 0; i < myList.size(); i++) {
 			// get all values from R json
@@ -163,11 +169,6 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-
-		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + inputFrame2 + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
-		this.rJavaTranslator.runR(gc);
-
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
 	}
 
