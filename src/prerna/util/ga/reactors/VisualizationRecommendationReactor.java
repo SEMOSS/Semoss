@@ -124,7 +124,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		String runPredictScripts = "source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; "
 				+ historicalDf + "<-read.csv(\"" + baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv\") ;" 
 				+ recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + "," + inputFrame2 + "); " 
-				+ outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);";
+				+ "library(jsonlite);" + outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);"; 
 		runPredictScripts = runPredictScripts.replace("\\", "/");
 
 		// combine script pieces and execute in R
