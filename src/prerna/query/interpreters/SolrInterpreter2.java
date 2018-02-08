@@ -77,7 +77,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	private void filterColToValues(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
-		String fieldName = (String) leftComp.getValue();
+		String fieldName = ((IQuerySelector) leftComp.getValue()).getAlias();
 		Object filterValue = rightComp.getValue();
 		if (comparator.equals("=")) {
 			// case where comparator is equal
