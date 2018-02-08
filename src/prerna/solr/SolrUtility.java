@@ -680,12 +680,12 @@ public final class SolrUtility {
 			} else if(layout.equals("treemap")) {
 				return new File(imageDir + "treemap.png");
 			} else {
-				return new File(imageDir + "color-logo.svg");
+				return new File(imageDir + "color-logo.png");
 			}
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) {
 			e.printStackTrace();
 		}
-		return new File(imageDir + "color-logo.svg");
+		return new File(imageDir + "color-logo.png");
 	}
 	
 	public static void main(String[] args) {
