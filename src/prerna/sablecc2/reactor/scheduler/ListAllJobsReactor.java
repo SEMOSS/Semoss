@@ -1,11 +1,14 @@
 package prerna.sablecc2.reactor.scheduler;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -63,8 +66,15 @@ public class ListAllJobsReactor extends AbstractReactor {
 			String jobName = jobDefinition.get(JobConfigKeys.JOB_NAME).toString().replaceAll("\"", "");
 			String group = jobDefinition.get(JobConfigKeys.JOB_GROUP).toString().replaceAll("\"", "");
 			String parameters = null;
+			Object paramMap = null;
 			if (jobDefinition.get(JobConfigKeys.PARAMETERS) != null) {
-				parameters = jobDefinition.get(JobConfigKeys.PARAMETERS).toString().replaceAll("\"", "");
+				// get as string
+				parameters = jobDefinition.get(JobConfigKeys.PARAMETERS).toString();
+				try {
+					paramMap = new ObjectMapper().readValue(parameters, Object.class);
+				} catch (IOException e2) {
+					e2.printStackTrace();
+				}
 			}
 			String cron = jobDefinition.get(JobConfigKeys.JOB_CRON_EXPRESSION).toString().replaceAll("\"", "");
 			String recipe = null; 
@@ -81,8 +91,8 @@ public class ListAllJobsReactor extends AbstractReactor {
 			jobMap.put(ReactorKeysEnum.JOB_NAME.getKey(), jobName);
 			jobMap.put(ReactorKeysEnum.CRON_EXPRESSION.getKey(), cron);
 			jobMap.put(ReactorKeysEnum.RECIPE.getKey(), recipe);
-			if (parameters != null) {
-				jobMap.put(JobConfigKeys.PARAMETERS, parameters);
+			if (paramMap != null) {
+				jobMap.put(JobConfigKeys.PARAMETERS, paramMap);
 			}
 			jobList.add(jobMap);
 			master.put(group, jobList);
