@@ -96,6 +96,12 @@ viz_recom_offline<-function(df,df1,chartToExclude=NULL,top=3){
 	c<-merge(a,b,by=c("unit","freq"))
 	dff<-df[df$unit %in% c$unit,]
 	
+	#Remove viz with entries more than the size of the current dataset
+	z<-count(dff,"unit")
+	z<-z[z$freq <= nrow(df1),]
+	dff<-dff[dff$unit %in% z$unit,]
+	rm(z)
+	
 	# dff is this is the data frame we will be working with
 	# it contains only columns of the current frame
 	# count the chart/column frequency
