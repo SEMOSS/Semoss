@@ -136,15 +136,17 @@ public class MyAppsReactor extends AbstractReactor {
 			// the information look pretty
 			if(imageMap.containsKey(appName)) {
 				List<String> insights = new Vector<String>();
-				
+				List<String> names = new Vector<String>();
+
 				SolrDocumentList list = (SolrDocumentList) imageMap.get(appName);
 				for (int i = 0; i < list.size(); i++) {
 					SolrDocument doc = list.get(i);
-					String rdbmsId = (String) doc.get("core_engine_id");
-					insights.add(rdbmsId);
+					insights.add((String) doc.get(SolrIndexEngine.CORE_ENGINE_ID));
+					names.add((String) doc.get(SolrIndexEngine.STORAGE_NAME));
 				}
 				
-				appMap.put("topInsights", insights);
+				appMap.put("rdbmsId", insights);
+				appMap.put("insightName", names);
 			}
 		}
 		
