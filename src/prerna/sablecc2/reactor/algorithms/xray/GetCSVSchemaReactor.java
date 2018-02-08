@@ -22,11 +22,11 @@ public class GetCSVSchemaReactor extends AbstractReactor {
 		//get inputs
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		if(filePath == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.FILE_PATH.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.FILE_PATH.getKey());
 		}
 		String delimiter = this.keyValue.get(this.keysToGet[1]);
 		if(delimiter == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DELIMITER.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DELIMITER.getKey());
 		}
 		
 		CSVFileHelper cv = new CSVFileHelper();
