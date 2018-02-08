@@ -28,11 +28,11 @@ public class GetXLSchemaReactor extends AbstractReactor {
 		organizeKeys();
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		if(filePath == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.FILE_PATH.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.FILE_PATH.getKey());
 		}
 		String sheetName = this.keyValue.get(this.keysToGet[1]);;
 		if(sheetName == null) {
-			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SHEET_NAME.toString());
+			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.SHEET_NAME.getKey());
 		}
 		
 		HashMap<String, Object> ret = new HashMap<String, Object>();
