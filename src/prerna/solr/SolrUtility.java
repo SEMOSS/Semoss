@@ -638,7 +638,7 @@ public final class SolrUtility {
 			} else if(layout.equals("cluster")) {
 				return new File(imageDir + "cluster.png");
 			} else if(layout.equals("dendrogram")) {
-				return new File(imageDir + "dendrogram.png");
+				return new File(imageDir + "dendrogram-echarts.png");
 			} else if(layout.equals("funnel")) {
 				return new File(imageDir + "funnel.png");
 			} else if(layout.equals("gauge")) {
