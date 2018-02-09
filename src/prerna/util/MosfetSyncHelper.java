@@ -35,20 +35,20 @@ public class MosfetSyncHelper {
 	public static final String RECIPE_FILE = ".mosfet";
 
 	// ADDED
-	private static final String ADD = "ADD";
+	public static final String ADD = "ADD";
 	// MODIFIED
-	private static final String MOD = "MOD";
+	public static final String MOD = "MOD";
 	// DELETE
-	private static final String DEL = "DEL";
+	public static final String DEL = "DEL";
 	// RENAMED
-	private static final String REN = "REN";
+	public static final String REN = "REN";
 
-	private static final String ENGINE_KEY = "engine";
-	private static final String RDBMS_ID_KEY = "rdbmsId";
-	private static final String INSIGHT_NAME_KEY = "insightName";
-	private static final String LAYOUT_KEY = "layout";
-	private static final String RECIPE_KEY = "recipe";
-	private static final String IMAGE_KEY = "image";
+	public static final String ENGINE_KEY = "engine";
+	public static final String RDBMS_ID_KEY = "rdbmsId";
+	public static final String INSIGHT_NAME_KEY = "insightName";
+	public static final String LAYOUT_KEY = "layout";
+	public static final String RECIPE_KEY = "recipe";
+	public static final String IMAGE_KEY = "image";
 
 	private static SolrIndexEngine solrE;
 	

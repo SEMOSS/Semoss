@@ -22,6 +22,8 @@ import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
@@ -170,8 +172,8 @@ public class GitConsumer {
 //					updateInsightRdbms(origFile, appFolder, yourName4App);
 				}
 				// load the app
-				loadApp(fileToMove.getAbsolutePath(), logger);
-				loadMosfetFiles(versionFolder, logger);
+				IEngine app = loadApp(fileToMove.getAbsolutePath(), logger);
+				loadMosfetFiles(app, versionFolder, logger);
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -299,9 +301,12 @@ public class GitConsumer {
 	 * Load any mosfet files since they might not have been added to the insights rdbms that was pushed
 	 * @param versionFolder
 	 */
-	private static void loadMosfetFiles(String versionFolder, Logger logger) {
+	private static void loadMosfetFiles(IEngine app, String versionFolder, Logger logger) {
+		IEngine insightsDb = app.getInsightDatabase();
+
 		List<String> addFilesPath = new Vector<String>();
-		
+		List<String> modFilesPath = new Vector<String>();
+
 		// mosfet filter
 		List<String> mosfet = new Vector<String>();
 		mosfet.add("*.mosfet");
@@ -314,17 +319,34 @@ public class GitConsumer {
 			if(in.isDirectory()) {
 				File[] mosfetFiles = in.listFiles(mosfetFilter);
 				for(File mosfetF : mosfetFiles) {
-					addFilesPath.add(mosfetF.getAbsolutePath());
+					try {
+						Map<String, Object> dataMap = MosfetSyncHelper.getMosfitMap(mosfetF);
+						String id = dataMap.get(MosfetSyncHelper.RDBMS_ID_KEY) + "";
+						// see if it exists or not
+						IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsDb, "select id from question_id where id='" + id + "'");
+						if(wrapper.hasNext()) {
+							modFilesPath.add(mosfetF.getAbsolutePath());
+						} else {
+							addFilesPath.add(mosfetF.getAbsolutePath());
+						}
+					} catch(Exception e) {
+						logger.info("ERROR!!! " + e.getMessage());
+					}
 				}
 			}
 		}
 		
-		// that we have the files
+		Map<String, List<String>> changedFiles = new HashMap<String, List<String>>();
 		if(!addFilesPath.isEmpty()) {
-			logger.info("Synchronizing mosfet files");
-			Map<String, List<String>> changedFiles = new HashMap<String, List<String>>();
-			changedFiles.put("ADD", addFilesPath);
+			changedFiles.put(MosfetSyncHelper.ADD, addFilesPath);
+		}
+		if(!modFilesPath.isEmpty()) {
+			changedFiles.put(MosfetSyncHelper.MOD, modFilesPath);
+		}
+		if(!changedFiles.isEmpty()) {
+			logger.info("Start synchronizing mosfet files");
 			MosfetSyncHelper.synchronizeInsightChanges(changedFiles, logger);
+			logger.info("End synchronizing mosfet files");
 		}
 	}
 
