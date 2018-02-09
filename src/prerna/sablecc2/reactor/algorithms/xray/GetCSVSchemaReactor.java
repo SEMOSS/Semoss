@@ -19,6 +19,7 @@ public class GetCSVSchemaReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		//get inputs
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		if(filePath == null) {
