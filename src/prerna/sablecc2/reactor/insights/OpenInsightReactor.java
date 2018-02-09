@@ -36,15 +36,21 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String engineName = getApp();
+		String appName = getApp();
+		if(appName == null) {
+			throw new IllegalArgumentException("Need to input the app name");
+		}
 		String rdbmsId = getRdbmsId();
+		if(rdbmsId == null) {
+			throw new IllegalArgumentException("Need to input the id for the insight");
+		}
 		Object params = getParams();
 		List<String> additionalPixels = getAdditionalPixels();
 
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(appName);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find engine = " + engineName);
+			throw new IllegalArgumentException("Cannot find app = " + appName);
 		}
 		List<Insight> in = engine.getInsight(rdbmsId + "");
 		Insight newInsight = in.get(0);
@@ -79,14 +85,14 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		insightMap.put("core_engine_id", newInsight.getRdbmsId());
 		
 		// track GA data
-		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", engineName, rdbmsId, newInsight.getInsightName());
+		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appName, rdbmsId, newInsight.getInsightName());
 
 		insightMap.put("insightData", newInsight.reRunPixelInsight());
 		insightMap.put("params", params);
 
 		// update the solr tracker
 		try {
-			SolrIndexEngine.getInstance().updateViewedInsight(engineName + "_" + rdbmsId);
+			SolrIndexEngine.getInstance().updateViewedInsight(appName + "_" + rdbmsId);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e) {
 			e.printStackTrace();
