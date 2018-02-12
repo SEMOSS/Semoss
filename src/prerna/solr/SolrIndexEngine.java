@@ -1740,12 +1740,21 @@ public class SolrIndexEngine {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		if (queryRet != null && queryRet.size() != 0) {
-			LOGGER.info("Engine " + engineName + " already exists inside solr");
-		} else {
+		
+		if(queryRet == null) {
+			LOGGER.info("ERROR! Couldn't query solr and got queryReturn as null");
+			LOGGER.info("ERROR! Couldn't query solr and got queryReturn as null");
+			LOGGER.info("ERROR! Couldn't query solr and got queryReturn as null");
+			LOGGER.info("ERROR! Couldn't query solr and got queryReturn as null");
+			LOGGER.info("ERROR! Couldn't query solr and got queryReturn as null");
+			return false;
+		} else if(queryRet.size() == 0) {
 			LOGGER.info("queryRet.size() = 0 ... so add engine");
+			return false;
+		} else {
+			LOGGER.info("Engine " + engineName + " already exists inside solr");
+			return true;
 		}
-		return (queryRet.size() != 0);
 	}
 
 	/**
