@@ -94,7 +94,6 @@ import prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor;
 import prerna.sablecc2.reactor.insights.InsightHandleReactor;
 import prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
-import prerna.sablecc2.reactor.insights.RemoveVariableReactor;
 import prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.SaveInsightReactor;
 import prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor;
@@ -209,6 +208,7 @@ import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
+import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.solr.reactor.AppInfoReactor;
@@ -334,6 +334,7 @@ public class ReactorFactory {
 
 		// Utility Reactors
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
+		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupApp", BackupAppReactor.class);
 		reactorHash.put("ExportApp", ExportAppReactor.class);
@@ -482,7 +483,6 @@ public class ReactorFactory {
 		reactorHash.put("DropInsight", DropInsightReactor.class);
 		reactorHash.put("ClearInsight", ClearInsightReactor.class);
 		reactorHash.put("InsightHandle", InsightHandleReactor.class);
-		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
 		reactorHash.put("SetInsightOrnament", SetInsightOrnamentReactor.class);
 		reactorHash.put("RetrieveInsightOrnament", RetrieveInsightOrnamentReactor.class);
 		reactorHash.put("UpdateInsightImage", UpdateInsightImageReactor.class);
