@@ -1,10 +1,11 @@
-package prerna.sablecc2.reactor.insights;
+package prerna.sablecc2.reactor.utils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 
 public class RemoveVariableReactor extends AbstractInsightReactor{
 	
