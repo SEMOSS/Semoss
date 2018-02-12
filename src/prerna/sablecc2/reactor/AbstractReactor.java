@@ -65,8 +65,10 @@ public abstract class AbstractReactor implements IReactor {
 			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
 				String key = keysToGet[keyIndex];
 				if(this.store.getNoun(key) != null) {
-					String nounValue = this.store.getNoun(key).get(0) + "";
-					keyValue.put(keysToGet[keyIndex], nounValue);	
+					GenRowStruct grs = this.store.getNoun(key);
+					if(!grs.isEmpty()) {
+						keyValue.put(keysToGet[keyIndex], grs.get(0)+"");	
+					}
 				}
 			}
 		} else {
