@@ -326,8 +326,8 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			.append(" == ").append(this.dataTableName).append("$").append(processSelector(rightSelector, true)).append(")");
 		} else if(thisComparator.equals("?like")) {
 			// some operation
-			filterBuilder.append(processSelector(leftSelector, true)).append(" %like% ")
-			.append(processSelector(rightSelector, true));
+			filterBuilder.append("as.character(").append(processSelector(leftSelector, true)).append(") %like% as.character(")
+			.append(processSelector(rightSelector, true)).append(")");
 		} else {
 			// some operation
 			filterBuilder.append(processSelector(leftSelector, true)).append(" ").append(thisComparator)
@@ -420,7 +420,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 					if(myFilterFormatted.isEmpty()) {
 						myFilterFormatted = "\"\"";
 					}
-					filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append(")");
+					filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(\"").append(myFilterFormatted).append("\")");
 				}
 			} else {
 				filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
