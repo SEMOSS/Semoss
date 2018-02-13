@@ -7,21 +7,27 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class GoogleAnalytics implements IGoogleAnalytics {
 
@@ -181,150 +187,167 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		in.trackPixels("draganddrop", exprStart + exprBuilder.toString() + exprEnd);
 	}
 
-	@Override
-	public void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs) {
-		List kickOffColumns = new ArrayList<>();
-		try {
-			if (taskOptions == null || taskOptions.isEmpty()) {
-				return;
-			}
-			ITableDataFrame frame = (ITableDataFrame) in.getDataMaker();
-			if (frame == null) {
-				return;
-			}
-			OwlTemporalEngineMeta meta = frame.getMetaData();
-			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
+    @Override
+    public void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs) {
+          List kickOffColumns = new ArrayList<>();
+          try {
+                 if (taskOptions == null || taskOptions.isEmpty()) {
+                        return;
+                 }
+                 ITableDataFrame frame = (ITableDataFrame) in.getDataMaker();
+                 if (frame == null) {
+                        return;
+                 }
+                 OwlTemporalEngineMeta meta = frame.getMetaData();
+                 qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
 
-			// keep the alias to bind to the correct meta
-			Map<String, String> aliasHash = new HashMap<String, String>();
+                 // keep the alias to bind to the correct meta
+                 Map<String, String> aliasHash = new HashMap<String, String>();
 
-			// has to be defined after qs is converted to physical
-			List<IQuerySelector> selectors = qs.getSelectors();
+                 // has to be defined after qs is converted to physical
+                 List<IQuerySelector> selectors = qs.getSelectors();
 
-			// loop through QS
-			// figure out which selector column is part of the
-			for (int i = 0; i < selectors.size(); i++) {
-				IQuerySelector selector = selectors.get(i);
-				String alias = selector.getAlias();
-				String name = "";
-				if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-					// TODO: this is assuming only 1 math inside due to FE limitation
-					name = ((QueryFunctionSelector) selector).getInnerSelector().get(0).getQueryStructName() + "";
-				} else {
-					name = selector.getQueryStructName();
-				}
-				aliasHash.put(alias, name);
-			}
-	
-			for (String panelId : taskOptions.keySet()) {
-				// you could be using multiple panels
-				if (taskOptions.get(panelId) instanceof Map) {
-					Map<String, Object> panelContent = (Map<String, Object>) taskOptions.get(panelId);
+                 // loop through QS
+                 // figure out which selector column is part of the
+                 for (int i = 0; i < selectors.size(); i++) {
+                        IQuerySelector selector = selectors.get(i);
+                        String alias = selector.getAlias();
+                        String name = "";
+                        if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+                              // TODO: this is assuming only 1 math inside due to FE limitation
+                              name = ((QueryFunctionSelector) selector).getInnerSelector().get(0).getQueryStructName() + "";
+                        } else {
+                              name = selector.getQueryStructName();
+                        }
+                        aliasHash.put(alias, name);
+                 }
+    
+                 for (String panelId : taskOptions.keySet()) {
+                        // you could be using multiple panels
+                        if (taskOptions.get(panelId) instanceof Map) {
+                              Map<String, Object> panelContent = (Map<String, Object>) taskOptions.get(panelId);
 
-					final String exprStart = "{\"Viz\":{";
-					final String exprEnd = "]}}";
-					StringBuilder exprBuilder = new StringBuilder();
-					String vizType = "";
+                              final String exprStart = "{\"Viz\":{";
+                              final String exprEnd = "]}}";
+                              StringBuilder exprBuilder = new StringBuilder();
+                              String vizType = "";
 
-					for (String panelKey : panelContent.keySet()) {
-						// there are specific keys we are looking for
-						// layout is the layout of the viz
-						// alignment tells us what UI component this goes to
-						if (panelKey.equals("layout")) {
-							vizType = "\"" + panelContent.get(panelKey).toString() + "\"";
-						} else if (panelKey.equalsIgnoreCase("alignment")) {
-							// alignment points to a map of string to vector
-							Map<String, List<String>> alignmentMap = (Map<String, List<String>>) panelContent.get(panelKey);
-							boolean first = true;
-							for (String uiCompName : alignmentMap.keySet()) {
-								// ui name can be label, value, x, y, etc.
-								List<String> columnsInUICompName = alignmentMap.get(uiCompName);
-								// now we want to generate a map for each input in this uiCompName
-								for (String columnAlias : columnsInUICompName) {
-									String uniqueMetaName = aliasHash.get(columnAlias);
-									List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
-									if (!first) {
-										exprBuilder.append(",");
-									} else {
-										first = false;
-									}
-									exprBuilder.append("[");
-									int size = dbInfo.size();
-									boolean processedFirst = false;
-									for (int i = 0; i < size; i++) {
-										String[] engineQs = dbInfo.get(i);
-										if (engineQs.length != 2) {
-											continue;
-										}
-										String db = engineQs[0];
-										String conceptProp = engineQs[1];
-										String table = conceptProp;
-										String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
-										if (conceptProp.contains("__")) {
-											String[] conceptPropSplit = conceptProp.split("__");
-											table = conceptPropSplit[0];
-											column = conceptPropSplit[1];
-										}
-										String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
-										if (processedFirst) {
-											exprBuilder.append(",");
-										} else {
-											processedFirst = true;
-										}
-										exprBuilder.append("{\"dbName\":\"").append(db).append("\",\"tableName\": \"")
-												.append(table).append("\",\"columnName\": \"").append(column)
-												.append("\",\"columnType\":\"").append(dataType)
-												.append("\",\"component\": \"").append(uiCompName);
+                              for (String panelKey : panelContent.keySet()) {
+                                     // there are specific keys we are looking for
+                                     // layout is the layout of the viz
+                                     // alignment tells us what UI component this goes to
+                                     if (panelKey.equals("layout")) {
+                                            vizType = "\"" + panelContent.get(panelKey).toString() + "\"";
+                                     } else if (panelKey.equalsIgnoreCase("alignment")) {
+                                            // alignment points to a map of string to vector
+                                            Map<String, List<String>> alignmentMap = (Map<String, List<String>>) panelContent.get(panelKey);
+                                            boolean first = true;
+                                            for (String uiCompName : alignmentMap.keySet()) {
+                                                  // ui name can be label, value, x, y, etc.
+                                                  List<String> columnsInUICompName = alignmentMap.get(uiCompName);
+                                                  // now we want to generate a map for each input in this uiCompName
+                                                  for (String columnAlias : columnsInUICompName) {
+                                                         String uniqueMetaName = aliasHash.get(columnAlias);
+                                                         List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
+                                                         if (!first) {
+                                                                exprBuilder.append(",");
+                                                         } else {
+                                                                first = false;
+                                                         }
+                                                         exprBuilder.append("[");
+                                                         int size = dbInfo.size();
+                                                         boolean processedFirst = false;
+                                                         for (int i = 0; i < size; i++) {
+                                                                String[] engineQs = dbInfo.get(i);
+                                                                if (engineQs.length != 2) {
+                                                                       continue;
+                                                                }
+                                                                String db = engineQs[0];
+                                                                String conceptProp = engineQs[1];
+                                                                String table = conceptProp;
+                                                                String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+                                                                if (conceptProp.contains("__")) {
+                                                                       String[] conceptPropSplit = conceptProp.split("__");
+                                                                      table = conceptPropSplit[0];
+                                                                       column = conceptPropSplit[1];
+                                                                }
+                                                                
+                                                                // get unique column values
+                                                                QueryStruct2 qs2 = new QueryStruct2();
+                                                                QueryFunctionSelector newSelector = new QueryFunctionSelector();
+                                                                newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
+                                                                newSelector.setDistinct(true);
+                                                                QueryColumnSelector innerSelector = new QueryColumnSelector();
+                                                                innerSelector.setTable(table);
+                                                                innerSelector.setColumn(column);
+                                                                newSelector.addInnerSelector(innerSelector);
+                                                                qs2.addSelector(newSelector);
+                                                                IEngine engine = Utility.getEngine(db);
+                                                                Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+                                                                long uniqueRows = ((Number) it.next().getValues()[0]).longValue(); 
+                                                                
+                                                                // continue
+                                                                String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
+                                                                if (processedFirst) {
+                                                                       exprBuilder.append(",");
+                                                                } else {
+                                                                       processedFirst = true;
+                                                                }
+                                                             exprBuilder.append("{\"dbName\":\"").append(db).append("\",\"tableName\": \"")
+                                                                             .append(table).append("\",\"columnName\": \"").append(column)
+                                                                             .append("\",\"columnType\":\"").append(dataType)
+                                                                             .append("\",\"component\": \"").append(uiCompName)
+                                                                             .append("\",\"uniqueValues\": \"").append(uniqueRows);
 
-										// if lookup map is empty, initialize it
-										String uniqueName = db + "_" + table + "_" + column;
-										if (logicalLookup.isEmpty()) {
-											// go get the csv and populate it
-											initializeLogicalLookup();
-										}
-										ArrayList<String> logicalNamesList = logicalLookup.get(uniqueName);
-										// TODO: if the list is empty then we will run semantic blending
-										// in the GA thread to store those values for next time
-										
-										// send empty value to keep the json structure consistent
-										if (logicalNamesList == null) {
-											logicalNamesList = new ArrayList<String>();
-											// kickOffColumns.add(columnAlias);
-											logicalNamesList.add("");
-											logicalNamesList.add("");
-											logicalNamesList.add("");
-											logicalNamesList.add("");
-											logicalNamesList.add("");
-										}
-										// always send exactly 5 elements
-										exprBuilder.append("\",\"reference1\": \"").append(db).append("$").append(table).append("$").append(column);
-										for (int j = 0; j < 5; j++) {
-											if (j < logicalNamesList.size()) {
-												exprBuilder.append("\",\"reference").append(j + 2).append("\": \"")
-														.append(logicalNamesList.get(j));
-											} else {
-												exprBuilder.append("\",\"reference").append(j + 2).append("\": \"")
-														.append("");
-											}
-										}
-										exprBuilder.append("\"}");
-									}
-									exprBuilder.append("]");
-								}
-							}
-						}
-					}
+                                                                // if lookup map is empty, initialize it
+                                                                String uniqueName = db + "_" + table + "_" + column;
+                                                                if (logicalLookup.isEmpty()) {
+                                                                      // go get the csv and populate it
+                                                                       initializeLogicalLookup();
+                                                                }
+                                                                ArrayList<String> logicalNamesList = logicalLookup.get(uniqueName);
+                                                                // TODO: if the list is empty then we will run semantic blending
+                                                                // in the GA thread to store those values for next time
+                                                                
+                                                                // send empty value to keep the json structure consistent
+                                                                if (logicalNamesList == null) {
+                                                                       logicalNamesList = new ArrayList<String>();
+                                                                      // kickOffColumns.add(columnAlias);
+                                                                       logicalNamesList.add("");
+                                                                       logicalNamesList.add("");
+                                                                       logicalNamesList.add("");
+                                                                       logicalNamesList.add("");
+                                                                       logicalNamesList.add("");
+                                                                }
+                                                                // always send exactly 5 elements
+                                                                exprBuilder.append("\",\"reference1\": \"").append(db).append("$").append(table).append("$").append(column);
+                                                                for (int j = 0; j < 5; j++) {
+                                                                      if (j < logicalNamesList.size()) {
+                                                                             exprBuilder.append("\",\"reference").append(j + 2).append("\": \"")
+                                                                                          .append(logicalNamesList.get(j));
+                                                                      } else {
+                                                                             exprBuilder.append("\",\"reference").append(j + 2).append("\": \"")
+                                                                                          .append("");
+                                                                      }
+                                                                }
+                                                                exprBuilder.append("\"}");
+                                                         }
+                                                         exprBuilder.append("]");
+                                                  }
+                                            }
+                                     }
+                              }
 
-					// we are done for this panel track it
-					// and then go to the next one
-					String curExpression = exprStart + vizType + ":[" + exprBuilder.toString() + exprEnd;
-					in.trackPixels("viz", curExpression);
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+                              // we are done for this panel track it
+                              // and then go to the next one
+                              String curExpression = exprStart + vizType + ":[" + exprBuilder.toString() + exprEnd;
+                              in.trackPixels("viz", curExpression);
+                        }
+                 }
+          } catch (Exception e) {
+                 e.printStackTrace();
+          }
+    }
 
 	public void initializeLogicalLookup() {
 		String csvDir = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\historicalData\\logicalNames.csv";
