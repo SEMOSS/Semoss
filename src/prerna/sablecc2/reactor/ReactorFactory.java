@@ -204,6 +204,7 @@ import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupAppReactor;
+import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
@@ -341,6 +342,7 @@ public class ReactorFactory {
 		reactorHash.put("DeleteApp", DeleteAppReactor.class);
 		reactorHash.put("ImageCapture", ImageCaptureReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
+		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
 		
 		// Semantic blending
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
