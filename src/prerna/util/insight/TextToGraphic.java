@@ -73,7 +73,6 @@ public class TextToGraphic {
     public static Color getRandomColor() {
     	String[] colors = new String[]{"#48BFA8", "#E0BF39", "#E67E22", "#4FA4DE", "#52CF87", "#EB6456", "#bdc3c7", "#9b59b6", "#34495e", "#F28E8E"};
     	int index = rand.nextInt(colors.length);
-    	System.out.println(colors[index]);
     	Color c = Color.decode(colors[index]);
     	return c;
     }
