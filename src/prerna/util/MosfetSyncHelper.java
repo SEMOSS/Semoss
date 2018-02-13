@@ -161,7 +161,10 @@ public class MosfetSyncHelper {
 		String name = mapData.get(INSIGHT_NAME_KEY).toString();
 		String layout = mapData.get(LAYOUT_KEY).toString();
 		String recipe = mapData.get(RECIPE_KEY).toString();
-		String image = mapData.get(IMAGE_KEY).toString();
+		String image = "";
+		if(mapData.get(IMAGE_KEY) != null) {
+			image = mapData.get(IMAGE_KEY).toString();
+		}
 
 		// solr is simple
 		// we just go through and add it
