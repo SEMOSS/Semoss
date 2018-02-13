@@ -65,6 +65,13 @@ public class ListAllJobsReactor extends AbstractReactor {
 			boolean active = jobDefinition.get(JobConfigKeys.ACTIVE).getAsBoolean();
 			String jobName = jobDefinition.get(JobConfigKeys.JOB_NAME).toString().replaceAll("\"", "");
 			String group = jobDefinition.get(JobConfigKeys.JOB_GROUP).toString().replaceAll("\"", "");
+			// ignore the file if hidden
+			if (jobDefinition.get("hidden") != null) {
+				boolean hidden = jobDefinition.get("hidden").getAsBoolean();
+				if (hidden) {
+					continue;
+				}
+			}
 			String parameters = null;
 			Object paramMap = null;
 			if (jobDefinition.get(JobConfigKeys.PARAMETERS) != null) {
@@ -78,8 +85,8 @@ public class ListAllJobsReactor extends AbstractReactor {
 			}
 			String cron = jobDefinition.get(JobConfigKeys.JOB_CRON_EXPRESSION).toString().replaceAll("\"", "");
 			String recipe = null; 
-			if(jobDefinition.get(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY)) != null) {
-			 recipe = jobDefinition.get(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY)).toString().replaceAll("\"", "");
+			if (jobDefinition.get(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY)) != null) {
+				recipe = jobDefinition.get(ConfigUtil.getJSONKey(RunPixelJob.IN_PIXEL_KEY)).toString().replaceAll("\"","");
 			}
 			
 			// display all
