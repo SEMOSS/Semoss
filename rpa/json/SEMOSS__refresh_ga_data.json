@@ -4,6 +4,7 @@
   "-jobCronExpression": "0 0 0 * * ?",
   "-jobClass": "RunPixelJob",
   "pixel": "UpdateGAHistoricalData()",
-  "-jobTriggerOnLoad": true,
-  "-active": true
+  "-jobTriggerOnLoad": false,
+  "-active": true,
+  "hidden":true
 }

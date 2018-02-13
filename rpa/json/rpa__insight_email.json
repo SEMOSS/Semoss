@@ -5,6 +5,7 @@
   "-active": false,
   "-jobTriggerOnLoad": false,
   "-jobCronExpression":"00 30 00 1/1 * ? *",
+  "hidden": true,
   "jobsInChain":[
     {
       "-jobClass":"CreateInsightJob",
