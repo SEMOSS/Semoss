@@ -184,6 +184,85 @@ public class MasterDatabaseUtility {
 	 * @param engineName		optional filter for the properties
 	 * @return
 	 */
+	public static Map<String, HashMap> getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
+		// get the bindings based on the input list
+		String conceptString = makeListToString(conceptLogicalNames);
+		String engineString = " and e.enginename= '" + engineFilter +"' ";
+		if(engineFilter == null || engineFilter.isEmpty()) {
+			engineString = "";
+		}
+		
+		String propQuery = "select distinct e.enginename, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
+				+ "from engineconcept ec, concept c, engine e where ec.parentphysicalid in "
+				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in" +  conceptString.toString() + ") )" 
+				+ engineString
+				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
+	
+		Map<String, HashMap> returnHash = new HashMap<String, HashMap>();;
+		Map<String, Map<String, ArrayList<String>>> queryData = new HashMap<String, Map<String, ArrayList<String>>>();
+
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(propQuery);
+			// keeps the id to the concept name
+			Hashtable <String, String> parentHash = new Hashtable<String, String>();
+
+			while(rs.next()) {
+				String engineName = rs.getString(1);
+				String propName = rs.getString(2);
+				String parentId = rs.getString(4);
+				String propId = rs.getString(5);
+
+				if(parentId.equalsIgnoreCase(propId)) {
+					parentHash.put(parentId, propName);
+				}
+				
+				String parentName = parentHash.get(parentId);
+				if(!propName.equalsIgnoreCase(parentName)) {
+					Map<String, ArrayList<String>> engineMap = null;
+					if(queryData.containsKey(engineName)) {
+						engineMap = queryData.get(engineName);
+					} else {
+						engineMap = new HashMap<String, ArrayList<String>>();
+						// add to query data map
+						queryData.put(engineName, engineMap);
+					}
+					ArrayList<String> propList = null;
+					if(engineMap.containsKey(parentName)) {
+						propList = engineMap.get(parentName);
+					} else {
+						propList = new ArrayList<>();
+					}
+					propList.add(propName);
+					// add to the engine map
+					engineMap.put(parentName, propList);
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		
+		for(String engineName : queryData.keySet()) {
+			returnHash.put(engineName, (HashMap) queryData.get(engineName));
+		}
+
+		return returnHash;
+	}
+	
+	/**
+	 * Get the properties for a given concept across all the databases
+	 * @param conceptName
+	 * @param engineName		optional filter for the properties
+	 * @return
+	 */
 	public static Map<String, Object[]> getConceptPropertiesRDBMS(List<String> conceptLogicalNames, String engineFilter) {
 		// get the bindings based on the input list
 		String conceptString = makeListToString(conceptLogicalNames);
