@@ -5,6 +5,7 @@
   "-jobCronExpression":"00 30 00 1/1 * ? *",
   "-active":false,
   "-jobTriggerOnLoad": false,
+  "hidden": true,
   "jobsInChain":[
     {
       "-jobClass":"JobBatch",
