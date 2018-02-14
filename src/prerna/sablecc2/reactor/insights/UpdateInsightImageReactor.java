@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.insights;
 
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 
 public class UpdateInsightImageReactor extends AbstractInsightReactor {
 
@@ -8,13 +10,8 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 	public NounMetadata execute() {
 		String engineName = getApp();
 		String rdbmsId = getRdbmsId();
-		String imageURL = this.getImageURL();
-		if (engineName != null && rdbmsId != null && imageURL != null) {
-			imageURL = imageURL.replace("<engine>", engineName);
-			imageURL = imageURL.replace("<id>", rdbmsId+"");
-			updateSolrImageByRecreatingInsight(rdbmsId + "", rdbmsId + "", imageURL, engineName);
-		}
-		return null;
+		ImageCaptureReactor.runImageCapture(engineName, rdbmsId);
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 }
