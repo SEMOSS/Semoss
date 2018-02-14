@@ -31,7 +31,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = SaveInsightReactor.class.getName();
 	
 	public SaveInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(),
+				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 	
 	@Override
@@ -133,17 +134,4 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			e1.printStackTrace();
 		}
 	}
-	
-	
-	///////////////////////// KEYS /////////////////////////////////////
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(IMAGE)) {
-			return "The base64 image string - used if there is no image URL";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
-
 }
