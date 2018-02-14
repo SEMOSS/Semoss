@@ -85,6 +85,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return null;
 	}
 	
+	protected String getUrl() {
+		// see if it was passed directly in with the lower case key ornaments
+		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
+		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
+			return genericIdGrs.get(0).toString();
+		}
+		
+		// well, you are out of luck
+		return null;
+	}
+	
 	protected String[] getRecipe() {
 		// it must be passed directly into its own grs
 		GenRowStruct genericRecipeGrs = this.store.getNoun(ReactorKeysEnum.RECIPE.getKey());

@@ -23,7 +23,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
 
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
 	@Override
@@ -31,6 +31,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String engineName = this.keyValue.get(this.keysToGet[0]);
+		String feUrl = this.keyValue.get(this.keysToGet[1]);
 
 		IEngine coreEngine = Utility.getEngine(engineName);
 		// loop through the insights
@@ -39,19 +40,19 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		while(wrapper.hasNext()) {
 			String id = wrapper.next().getValues()[0] + "";
 			logger.info("Start image capture for insight id = " + id);
-			runImageCapture(engineName, id);
+			runImageCapture(feUrl, engineName, id);
 			logger.info("Done saving image for insight id = " + id);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String engineName, String id) {
+	public static void runImageCapture(String feUrl, String engineName, String id) {
 		IEngine coreEngine = Utility.getEngine(engineName);
-		runImageCapture(coreEngine, engineName, id);
+		runImageCapture(feUrl, coreEngine, engineName, id);
 	}
 
-	public static void runImageCapture(IEngine coreEngine, String engineName, String id) {
+	public static void runImageCapture(String feUrl, IEngine coreEngine, String engineName, String id) {
 		Insight insight = null;
 		try {
 			insight = coreEngine.getInsight(id).get(0);
@@ -61,7 +62,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		if(insight instanceof OldInsight) {
 			return;
 		}
-		String cmd = getCmd(insight);
+		String cmd = getCmd(feUrl, insight);
 		Process p = null;
 		try {
 			p = Runtime.getRuntime().exec(cmd);
@@ -80,7 +81,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		}
 	}
 
-	private static String getCmd(Insight in) {
+	private static String getCmd(String feUrl, Insight in) {
 		String id = in.getRdbmsId();
 		String engine = in.getEngineName();
 
@@ -96,7 +97,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				+ "--window-size=1440,1440 "
 				+ "--virtual-time-budget=10000 "
 				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
-				+ "\"http://localhost:8080/SemossWeb_AppUi/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
+				+ "\"" + feUrl + "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
 
 		return cmd;
 	}
