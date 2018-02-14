@@ -38,7 +38,7 @@ public enum ReactorKeysEnum {
 	GRAPH_LAYOUT("graphLayout",                             "The layout of the igraph"),
 	HOST("host",                                            "The host."),
 	ID("id", 												"This key can represent the unique id of the insight instance, the unique id of the saved insight relative to the app, or the unique id of the insight within solr"),
-	IMAGE_URL("imageUrl", 									"Image URL"),
+	IMAGE("image",		 									"The encoding of the image as a png"),
 	INCLUDE_META_KEY("meta", 								"Boolean indication (true or false) of whether to retrieve metadata"),
 	INDEX("index", 											"A specified index for an object (e.g., the frame filter)"),
 	INSIGHT_NAME("insightName", 							"Name of the insight"),
