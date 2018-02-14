@@ -53,10 +53,10 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		// prep script components
 		StringBuilder builder = new StringBuilder();
 		StringBuilder builder2 = new StringBuilder();
-		String semanticInputFrame = "inputFrame." + Utility.getRandomString(8);
-		String offlineInputFrame = "inputFrame." + Utility.getRandomString(8);
-		String dfStart = semanticInputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = character(), reference4 = character(), reference5 = character(), reference6 = character(), stringsAsFactors = FALSE);";
-		String dfStart2 = offlineInputFrame + " <- data.frame(reference1 = character(), reference2 = character(), stringsAsFactors = FALSE);";
+		String inputFrame = "inputFrame." + Utility.getRandomString(8);
+		String inputFrame2 = "inputFrame." + Utility.getRandomString(8);
+		String dfStart = inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = character(), reference4 = character(), reference5 = character(), reference6 = character(), stringsAsFactors = FALSE);";
+		String dfStart2 = inputFrame2 + " <- data.frame(reference1 = character(), reference2 = character(), stringsAsFactors = FALSE);";
 
 		// iterate selectors and update data table builder section of R script
 		Map<String, String> aliasHash = new HashMap<String, String>();
@@ -88,7 +88,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 				// add row to data type R df used for offline recommendations
 				String dataType = meta.getHeaderTypeAsString(name);
-				builder2.append(offlineInputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"").append(", \"").append(dataType).append("\");");
+				builder2.append(inputFrame2).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"").append(", \"").append(dataType).append("\");");
 
 				// add column and logical names to alias hash so we can look up alias later
 				aliasHash.put(column + "_" + table + "_" + db, alias);
@@ -98,7 +98,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 						.getLogicalNames(db + "_" + table + "_" + column);
 
 				// build R df of all columns in semoss frame plus logical names
-				builder.append(semanticInputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"");
+				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"");
 				for (int k = 0; k < 5; k++) {
 					if (logicalNames != null && k < logicalNames.size()) {
 						builder.append(", \"").append(logicalNames.get(k)).append("\"");
@@ -123,12 +123,12 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 		String runPredictScripts = "source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; "
 				+ historicalDf + "<-read.csv(\"" + baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv\") ;" 
-				+ recommend + "<-viz_recom_offline(" + historicalDf + "," + offlineInputFrame + ", \"Grid\", 5 ); " 
+				+ recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + "," + inputFrame2 + "); " 
 				+ "library(jsonlite);" + outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);"; 
 		runPredictScripts = runPredictScripts.replace("\\", "/");
 
 		// combine script pieces and execute in R
-		String script = dfStart2 + builder2 + runPredictScripts;
+		String script = dfStart + builder + dfStart2 + builder2 + runPredictScripts;
 		this.rJavaTranslator.runR(script);
 
 		// receive json string from R
@@ -137,7 +137,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		Gson gson = new Gson();
 		
 		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + semanticInputFrame + ", " + offlineInputFrame + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + inputFrame2 + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
 		this.rJavaTranslator.runR(gc);
 		// if recommendations fail return empty map
 		if (json == null) {

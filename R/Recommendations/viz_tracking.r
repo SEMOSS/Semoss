@@ -122,22 +122,6 @@ viz_recom_offline<-function(df,df1,chartToExclude=NULL,top=3){
 
 #######################################################
 	q<-dff[tolower(dff$chart) %in% tolower(o[,1]),]
-	q$chart<-as.character(q$chart)
-	
-	# identify the most popular number of components in the respected charts
-	m<-nrow(o)
-	r<-q[0,]
-	for(i in 1:m){
-		q1<-q[q$chart==as.character(o[i,"chart"]),]
-		x<-count(q1,"unit")
-		y<-count(x,"freq")
-		y<-y[order(-y$freq.1),]
-		z<-x[x$freq==y[1,"freq"],]
-		r<-rbind(r,q1[q1$unit %in% z$unit,])
-	}
-	q<-r
-	rm(q1,x,y,z,r)
-	
 	
 	s<-count(q,c("unit","reference"))
 	s$reference<-as.character(s$reference)
@@ -198,6 +182,91 @@ viz_recom_offline<-function(df,df1,chartToExclude=NULL,top=3){
 	
 }	
 	
+viz_recom<-function(df,df1,chartToExclude=NULL,top=3){
+	# df - is the history frame
+	# df1 - is the current frame
+	
+	df$dbname<-as.character(df$dbname)
+	df$tblname<-as.character(df$tblname)
+	df$colname<-as.character(df$colname)
+	df1<-get_reference(df1)
+
+	# filter the history based on the current frame
+	dft<-merge(df,df1,by="reference")
+	if(nrow(dft) > 0){
+		dft<-unique(dft[,-1])
+		# count number of records in each viz both in original history and filtered
+		library(plyr)
+		a<-count(df,c("unit","element"))
+		
+		a<-a[,1:2]
+		a<-count(a,"unit")
+		b<-count(dft,c("unit","element"))
+		b<-b[,1:2]
+		b<-count(b,"unit")
+		# remove those viz where at least one record does not belong the current frame
+		c<-merge(a,b,by=c("unit","freq"))
+		dff<-df[df$unit %in% c$unit,]
+		
+		# dff is this is the data frame we will be working with
+		# it contains only columns of the current frame
+		# count the chart/column frequency
+		
+		dff0<-count(dff,names(dff)[c(3,4,5,7,9)])
+		dff1<-dff0[,5:6]
+		
+		o<-count(dff1,names(dff1)[1])
+		o<-o[order(-o$freq),]
+
+		if(!is.null(chartToExclude)){
+			o<-o[tolower(o$chart) != tolower(chartToExclude),]
+		}
+		o$weight<-round(o$freq/max(o$freq),4)
+		o<-o[,-2]
+		# the is the list most frequent charts
+		o<-head(o,top)
+		
+		# Filter out history alteready filtered by our frame columns
+		# by the column frequency charts
+		q<-dff0[tolower(dff0$chart) %in% tolower(o[,1]),]
+		q1<-do.call(rbind, lapply(split(q,q$chart), function(x) {return(x[which.max(x$freq),])}))
+
+		# determine the visualization number to get the details
+		dff$id<-paste0(dff$dbname,"$",dff$tblname,"$",dff$colname,"$",dff$chart)
+		q1$id<-paste0(q1$dbname,"$",q1$tblname,"$",q1$colname,"$",q1$chart)
+		p<-dff[dff$id %in% q1$id,]
+
+		units<-unique(p$unit)
+		p1<-dft[dft$unit %in% units,]
+
+		s<-count(p1,c("chart","unit"))
+		r<-merge(p1,s,by="unit")
+		colnames(r)[8]<-"chart"
+		r<-r[,-11]
+		r<-r[order(-r$freq,r$unit,r$element),]
+		r1<-r[!duplicated(r$chart),]
+		units<-unique(r1$unit)
+		p1<-dft[dft$unit %in% units,][,c(1,2,3,4,5,7,8,10)]
+
+		m<-nrow(p1)
+		for(i in 1:m){
+			x<-unlist(strsplit(p1[i,"item"], "\\$"))
+			p1[i,"dbname"]<-x[1]
+			p1[i,"tblname"]<-x[2]
+			p1[i,"colname"]<-x[3]
+		}
+		p1<-p1[,-8]
+		# merge with the respected chart weights
+		r<-merge(p1,o,by="chart")[,c(2,3,4,5,6,7,1,8)]
+		
+		# clean up and return
+		rm(dff,dff0,dff1,dft,a,b,c,p,p1,q,q1,o,units)
+		return(unique(r[order(-r$weight,r$chart,r$unit,r$element),]))
+	}else{
+		return(NULL)
+	}
+}
+
 get_reference<-function(df){
 	library(data.table)
 	n<-nrow(df)
@@ -256,4 +325,20 @@ ga.df <- tryCatch({
   })
 gc()
 return(ga.df)
+}
+
+viz_recom_mgr<-function(df,df1,df2,chartToExclude1="Grid",top1=3,chartToExclude2="Grid",top2=3){
+	r<-viz_recom(df,df1,chartToExclude1,top1)
+	if(!is.null(r)){
+		chartToExclude2<-c(chartToExclude2,as.character(unique(r[,"chart"])))
+		r2<-viz_recom_offline(df,df2,chartToExclude2,top2)
+		if(!is.null(r2)){
+			r<-rbind(r,r2)
+		}else{
+			return(r)
+		}
+	}else{
+		r<-viz_recom_offline(df,df2,chartToExclude2,5)
+	}
+	return(r)
 }
