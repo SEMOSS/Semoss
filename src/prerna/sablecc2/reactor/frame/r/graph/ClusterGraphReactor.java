@@ -24,6 +24,8 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		String[] packages = new String[] {"igraph"};
+		this.rJavaTranslator.checkPackages(packages);
 		Logger logger = getLogger(CLASS_NAME);
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		String routine = this.keyValue.get(this.keysToGet[0]);
