@@ -104,14 +104,14 @@ public class OwlTemporalEngineMeta {
 		pred = OWL.DATATYPEPROPERTY.toString();
 		obj = dataType;
 		if (obj == null) {
-			obj = SemossDataType.convertDataTypeToString(SemossDataType.STRING);
+			obj = (SemossDataType.STRING).toString();
 		} else {
 			// ensure standardization
-			obj = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(obj));
+			obj = (SemossDataType.convertStringToDataType(obj)).toString();
 		}
 		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
-	
+
 	public void setPrimKeyToVertex(String vertexName, boolean isPrimKey) {
 		String sub = "";
 		String pred = "";
@@ -256,14 +256,14 @@ public class OwlTemporalEngineMeta {
 		pred = OWL.DATATYPEPROPERTY.toString();
 		obj = dataType;
 		if (obj == null) {
-			obj = SemossDataType.convertDataTypeToString(SemossDataType.STRING);
+			obj = (SemossDataType.STRING).toString();
 		} else {
 			// ensure standardization
-			obj = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(obj));
+			obj = (SemossDataType.convertStringToDataType(obj)).toString();
 		}
 		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
-	
+
 	public void setPrimKeyToProperty(String propertyName, boolean isPrimKey) {
 		String sub = "";
 		String pred = "";
@@ -672,7 +672,9 @@ public class OwlTemporalEngineMeta {
 				}
 				// clean data types to keep consistent
 				String cleanType = SemossDataType.convertStringToDataType(dataTypes[i]).toString();
-				filter.append("?dt = \"").append(cleanType).append("\"");
+				filter.append("?dt = \"")
+				.append(cleanType)
+				.append("\"");
 			}
 			filter.append(") {?header <").append(OWL.DATATYPEPROPERTY).append("> ?dt}");
 		}
