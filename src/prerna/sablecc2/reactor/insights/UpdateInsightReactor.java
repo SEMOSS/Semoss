@@ -33,7 +33,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	private static final Logger LOGGER = Logger.getLogger(UpdateInsightReactor.class.getName());
 
 	public UpdateInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE_URL.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(), IMAGE};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey(), 
+				 ReactorKeysEnum.LAYOUT_KEY.getKey(), ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 
 	@Override
@@ -141,14 +142,4 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, imageName, recipeToSave);
 	}
 
-	///////////////////////// KEYS /////////////////////////////////////
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(IMAGE)) {
-			return "The base64 image string - used if the the image URL is null";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
 }
