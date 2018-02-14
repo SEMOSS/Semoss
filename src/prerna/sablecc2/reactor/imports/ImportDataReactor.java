@@ -59,7 +59,7 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		retNoun.addAdditionalReturn(new NounMetadata(frame.getMetaData().getTableHeaderObjects(false), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
+		retNoun.addAdditionalReturn(new NounMetadata(frame.getMetaData().getTableHeaderObjects(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
 		return retNoun;
 	}
 
