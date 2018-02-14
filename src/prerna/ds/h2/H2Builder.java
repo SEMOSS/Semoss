@@ -1110,7 +1110,7 @@ public class H2Builder {
 				stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.h2.H2MedianAggregation\";");
 				stmt.close();
 				
-				System.out.println("The connection is.. " + url);
+				logger.debug("The connection is.. " + url);
 				// getConnection("jdbc:h2:C:/Users/pkapaleeswaran/h2/test.db;LOG=0;CACHE_SIZE=65536;LOCK_MODE=0;UNDO_LOG=0",
 				// "sa", "");
 
@@ -1396,12 +1396,12 @@ public class H2Builder {
 	public void setSchema(String schema) {
 		if (schema != null) {
 			if (!this.schema.equals(schema)) {
-				logger.info(
-						"Schema being modified from: '" + this.schema + "' to new schema for user: '" + schema + "'");
-				System.err.println("SCHEMA NOW... >>> " + schema);
+				logger.debug("Schema being modified from: '" + this.schema + "' to new schema for user: '" + schema + "'");
+				logger.debug("SCHEMA NOW... >>> " + schema);
 				this.schema = schema;
-				if (schema.equalsIgnoreCase("-1"))
+				if (schema.equalsIgnoreCase("-1")) {
 					this.schema = "test";
+				}
 				this.conn = null;
 				getConnection();
 			}

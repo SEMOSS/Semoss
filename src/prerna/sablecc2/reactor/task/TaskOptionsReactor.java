@@ -27,7 +27,11 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 		
 		// track GA data
 		if (this.task instanceof BasicIteratorTask) {
-			GATracker.getInstance().trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
+			try {
+				GATracker.getInstance().trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }
