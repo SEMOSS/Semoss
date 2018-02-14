@@ -47,7 +47,7 @@ public class CollectGraphReactor extends CollectReactor {
 		// TODO: this is dumb
 		// why did I not make everything consistent...
 		// why am i dumb
-		List<Map<String, Object>> x = (List<Map<String, Object>>) frame.getMetaData().getTableHeaderObjects(false).get("headers");
+		List<Map<String, Object>> x = (List<Map<String, Object>>) frame.getMetaData().getTableHeaderObjects().get("headers");
 		for(Map<String, Object> val : x) {
 			val.put("alias", val.remove("displayName"));
 		}

@@ -103,22 +103,13 @@ public class OwlTemporalEngineMeta {
 		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = OWL.DATATYPEPROPERTY.toString();
 		obj = dataType;
-		if(obj == null) {
-			obj = "STRING";
+		if (obj == null) {
+			obj = SemossDataType.convertDataTypeToString(SemossDataType.STRING);
 		} else {
-			if(Utility.isIntegerType(dataType)) {
-				obj = "INT";
-			} else if(Utility.isDoubleType(dataType)) {
-				obj = "DOUBLE";
-			} else if(Utility.isDateType(dataType)) {
-				obj = "DATE";
-			} else if(Utility.isTimeStamp(dataType)) {
-				obj = "TIMESTAMP";
-			} else {
-				obj = "STRING";
-			}
+			// ensure standardization
+			obj = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(obj));
 		}
-		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
 	
 	public void setPrimKeyToVertex(String vertexName, boolean isPrimKey) {
@@ -259,27 +250,18 @@ public class OwlTemporalEngineMeta {
 		String sub = "";
 		String pred = "";
 		String obj = "";
-		
+
 		// store the unique name as a concept
 		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		pred = OWL.DATATYPEPROPERTY.toString();
 		obj = dataType;
-		if(obj == null) {
-			obj = "STRING";
+		if (obj == null) {
+			obj = SemossDataType.convertDataTypeToString(SemossDataType.STRING);
 		} else {
-			if(Utility.isIntegerType(dataType)) {
-				obj = "INT";
-			} else if(Utility.isDoubleType(dataType)) {
-				obj = "DOUBLE";
-			} else if(Utility.isDateType(dataType)) {
-				obj = "DATE";
-			} else if(Utility.isTimeStamp(dataType)) {
-				obj = "TIMESTAMP";
-			} else {
-				obj = "STRING";
-			}
+			// ensure standardization
+			obj = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(obj));
 		}
-		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
 	
 	public void setPrimKeyToProperty(String propertyName, boolean isPrimKey) {
@@ -672,8 +654,29 @@ public class OwlTemporalEngineMeta {
 		
 		return null;
 	}
-	
-	public Map<String, Object> getTableHeaderObjects(boolean onlyNumeric) {
+
+	public Map<String, Object> getTableHeaderObjects() {
+		return getTableHeaderObjects(new String[0]);
+	}
+
+	public Map<String, Object> getTableHeaderObjects(String[] dataTypes) {
+		// build filter for specific data types
+		StringBuilder filter = new StringBuilder();
+		if (dataTypes == null || dataTypes.length == 0) {
+			filter.append("optional{?header <").append(OWL.DATATYPEPROPERTY).append("> ?dt}");
+		} else {
+			filter.append("filter(");
+			for (int i = 0; i < dataTypes.length; i++) {
+				if (i != 0) {
+					filter.append(" || ");
+				}
+				// clean data types to keep consistent
+				String cleanType = SemossDataType.convertStringToDataType(dataTypes[i]).toString();
+				filter.append("?dt = \"").append(cleanType).append("\"");
+			}
+			filter.append(") {?header <").append(OWL.DATATYPEPROPERTY).append("> ?dt}");
+		}
+
 		String query = "select distinct "
 				+ "?header "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
@@ -685,7 +688,7 @@ public class OwlTemporalEngineMeta {
 				+ "where {"
 				+ "{" 
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ (onlyNumeric ? "filter(?dt = \"INT\" || ?dt = \"DOUBLE\") {?header <" + OWL.DATATYPEPROPERTY + "> ?dt}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
+				+ filter.toString()
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
 				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
@@ -696,7 +699,7 @@ public class OwlTemporalEngineMeta {
 				+ "{"
 				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
-				+ (onlyNumeric ? "filter(?dt = \"INT\" || ?dt = \"DOUBLE\") {?header <" + OWL.DATATYPEPROPERTY + "> ?dt}" : "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}")
+				+ filter.toString()
 				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
 				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
 				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
