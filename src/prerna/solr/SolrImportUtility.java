@@ -39,7 +39,6 @@ public final class SolrImportUtility {
 	private static final String TAGS_FINDER = SolrIndexEngine.TAGS + " : "; 
 	private static final String DESCRIPTION_FINDER = SolrIndexEngine.DESCRIPTION + " : "; 
 	private static final String LAYOUT_FINDER = SolrIndexEngine.LAYOUT + " : ";
-	private static final String IMAGE_FINDER = SolrIndexEngine.IMAGE + " : ";
 	private static final String USERID_FINDER = SolrIndexEngine.USER_ID + " : ";
 
 	// this is a utility class
@@ -202,10 +201,7 @@ public final class SolrImportUtility {
 					tagsList.add(tag);
 				} else if (currentLine.startsWith(DESCRIPTION_FINDER)) {
 					description = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(IMAGE_FINDER)) {
-					image = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				}  
-
+				}
 			}
 
 			// once we have stored all the values
@@ -290,9 +286,6 @@ public final class SolrImportUtility {
 			}
 			if(tagsList != null && !tagsList.isEmpty()) {
 				doc.addField(SolrIndexEngine.TAGS, tagsList);
-			}
-			if(image != null && !image.isEmpty()) {
-				doc.addField(SolrIndexEngine.IMAGE, image);
 			}
 			// now we are done with adding all the fields
 			// lets go ahead and add it to the list of documents

@@ -42,8 +42,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String engineName = getApp();
 		String insightName = getInsightName();
 		String[] recipeToSave = getRecipe();
-		// used for embed url
-		String imageURL = getImageURL();
 		
 		// for testing... should always be passed in
 		if (recipeToSave == null || recipeToSave.length == 0) {
@@ -76,31 +74,15 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, IMAGE_NAME, recipeToSave);
+		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
 		logger.info("3) Done...");
 		
-		// capture image from image url
-		if (imageURL != null) {
-			// fill in image url
-			// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
-			imageURL = imageURL.replace("<engine>", engineName);
-			imageURL = imageURL.replace("<id>", newRdbmsId);
-			logger.info("4) Generate insight image...");
-			// we can't save these layouts so ignore image
-			if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
-				logger.info("4) Invalid... insight contains a layout that we cannot save an image for!!!");
-			} else {
-				logger.info("4) Generate new thread to save image...");
-				updateSolrImageByRecreatingInsight(newRdbmsId, newRdbmsId, imageURL, engineName);
-			}
-		} 
 		// get base 64 image string and write to file
-		else {
-			String base64Image = getImage();
-			if(base64Image != null && !base64Image.trim().isEmpty()) {
-				updateSolrImageFromPng(base64Image, newRdbmsId, engineName);
-			}
+		String base64Image = getImage();
+		if(base64Image != null && !base64Image.trim().isEmpty()) {
+			updateSolrImageFromPng(base64Image, newRdbmsId, engineName);
 		}
+		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("core_engine_id", newRdbmsId);
@@ -144,12 +126,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// TODO: figure out which engines are used within this insight
 		solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
 		solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
-
-		// the image will be updated in a later thread
-		// for now, just send in an empty string
-		// save image url to recreate image later
-		solrInsights.put(SolrIndexEngine.IMAGE, "");
-
 		try {
 			SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
