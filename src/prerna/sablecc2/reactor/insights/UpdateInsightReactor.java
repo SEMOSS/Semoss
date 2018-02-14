@@ -84,7 +84,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
 			updateSolrImageFromPng(base64Image, rdbmsId, engineName);
 		}
-		updateSolrImageFromPng(base64Image, rdbmsId, engineName);
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
