@@ -58,6 +58,7 @@ public class SolrIndexEngine {
 	public static enum SOLR_PATHS {
 		SOLR_INSIGHTS_PATH, SOLR_INSTANCES_PATH, SOLR_APP_PATH_NAME
 	}
+	
 	// the name of insight core
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	// the name of instances core
@@ -112,8 +113,6 @@ public class SolrIndexEngine {
 	
 	public static final String USER_ID = "user_id";
 	public static final String LAYOUT = "layout";
-	public static final String IMAGE = "image";
-	public static final String IMAGE_URL = "image_url";
 
 	// Schema Field Names For Instance Core
 	public static final String VALUE = "value";
@@ -831,7 +830,6 @@ public class SolrIndexEngine {
 		retFields.add(SCORE);
 		retFields.add(VIEW_COUNT);
 		retFields.add(DESCRIPTION);
-		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
 
 		// set the filter data
@@ -1230,7 +1228,6 @@ public class SolrIndexEngine {
 		retFields.add(MODIFIED_ON);
 		retFields.add(LAST_VIEWED_ON);
 		retFields.add(DESCRIPTION);
-		retFields.add(IMAGE);
 		queryBuilder.setReturnFields(retFields);
 
 		// set the filter data
@@ -1816,7 +1813,6 @@ public class SolrIndexEngine {
 			retFields.add(TAGS);
 			retFields.add(VIEW_COUNT);
 			retFields.add(DESCRIPTION);
-			retFields.add(IMAGE);
 			queryBuilder.setReturnFields(retFields);
 
 			Map<String, List<String>> filterData = new HashMap<String, List<String>>();

@@ -2,14 +2,8 @@ package prerna.sablecc2.reactor.utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -20,7 +14,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -28,11 +21,11 @@ import prerna.util.Utility;
 public class ImageCaptureReactor  extends AbstractReactor {
 
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
-	
+
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
@@ -45,58 +38,66 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
 		while(wrapper.hasNext()) {
 			String id = wrapper.next().getValues()[0] + "";
-			Insight insight = coreEngine.getInsight(id).get(0);
-			if(insight instanceof OldInsight) {
-				continue;
-			}
-			String cmd = getCmd(insight);
 			logger.info("Start image capture for insight id = " + id);
-			
-			try {
-				Process p = Runtime.getRuntime().exec(cmd);
-				while(p.isAlive()) {
-					try {
-						p.waitFor();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-				
-				Map<String, Object> solrInsights = new HashMap<>();
-				solrInsights.put(SolrIndexEngine.IMAGE, "\\db\\" + engineName + "\\version\\" + id + "\\image.png");
-				try {
-					SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + id, solrInsights);
-				} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException e) {
-					e.printStackTrace();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
+			runImageCapture(engineName, id);
 			logger.info("Done saving image for insight id = " + id);
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
-	
+
+	public static void runImageCapture(String engineName, String id) {
+		IEngine coreEngine = Utility.getEngine(engineName);
+		runImageCapture(coreEngine, engineName, id);
+	}
+
+	public static void runImageCapture(IEngine coreEngine, String engineName, String id) {
+		Insight insight = null;
+		try {
+			insight = coreEngine.getInsight(id).get(0);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		if(insight instanceof OldInsight) {
+			return;
+		}
+		String cmd = getCmd(insight);
+		Process p = null;
+		try {
+			p = Runtime.getRuntime().exec(cmd);
+			while(p.isAlive()) {
+				try {
+					p.waitFor();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			// destroy it
+			p.destroy();
+		}
+	}
+
 	private static String getCmd(Insight in) {
 		String id = in.getRdbmsId();
 		String engine = in.getEngineName();
-		
+
 		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\db\\" + engine + "\\version\\" + id;
 		File imageDir = new File(imageDirStr);
 		if(!imageDir.exists()) {
 			imageDir.mkdirs();
 		}
-		
+
 		String cmd = "chrome "
 				+ "--headless "
 				+ "--disable-gpu "
 				+ "--window-size=1440,1440 "
 				+ "--virtual-time-budget=10000 "
 				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
-				+ "\"http://localhost:8080/SemossWeb_App/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
-		
+				+ "\"http://localhost:8080/SemossWeb_AppUi/#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0\"";
+
 		return cmd;
 	}
 }
