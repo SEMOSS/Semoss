@@ -42,7 +42,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String insightName = getInsightName();
 		String[] recipeToSave = getRecipe();
 		// used for embed url
-		String imageURL = getImageURL();
 		String rdbmsId = getRdbmsId();
 		if(rdbmsId == null) {
 			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
@@ -81,24 +80,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		LOGGER.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
 		updateRecipeFile(engineName, rdbmsId, insightName, layout, IMAGE_NAME, recipeToSave);
 		LOGGER.info("3) Done");
-		if (imageURL != null) {
-			// fill in image Url endpoint with engine name
-			// http://SemossWebBaseURL/#!/insight?type=single&engine=<engine>&id=<id>&panel=0
-			imageURL = imageURL.replace("<engine>", engineName);
-			imageURL = imageURL.replace("<id>", rdbmsId);
-			// we can't save these layouts so ignore image
-			if (layout.toUpperCase().contains("GRID") || layout.toUpperCase().contains("VIVAGRAPH") || layout.toUpperCase().equals("MAP")) {
-				LOGGER.error("Insight contains a layout that we cannot save an image for!!!");
-			} else {
-				updateSolrImageByRecreatingInsight(rdbmsId, rdbmsId, imageURL, engineName);
-			}
-		} else {
-			String base64Image = getImage();
-			if(base64Image != null && !base64Image.trim().isEmpty()) {
-				updateSolrImageFromPng(base64Image, rdbmsId, engineName);
-			}
+		String base64Image = getImage();
+		if(base64Image != null && !base64Image.trim().isEmpty()) {
 			updateSolrImageFromPng(base64Image, rdbmsId, engineName);
 		}
+		updateSolrImageFromPng(base64Image, rdbmsId, engineName);
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
