@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -23,10 +21,7 @@ import prerna.util.DIHelper;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(AbstractInsightReactor.class.getName());
-
 	// used for saving a base insight
-	protected static final String IMAGE = "image";
 	protected static final String IMAGE_NAME = "image.png";
 	
 	protected String getApp() {
@@ -128,7 +123,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return base64 image string
 	 */
 	protected String getImage() {
-		GenRowStruct genericBaseURLGrs = this.store.getNoun(IMAGE);
+		GenRowStruct genericBaseURLGrs = this.store.getNoun(ReactorKeysEnum.IMAGE.getKey());
 		if (genericBaseURLGrs != null && !genericBaseURLGrs.isEmpty()) {
 			String image = genericBaseURLGrs.get(0).toString();
 			return image;
