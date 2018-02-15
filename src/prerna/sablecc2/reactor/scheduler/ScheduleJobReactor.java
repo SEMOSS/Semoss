@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -47,13 +48,25 @@ public class ScheduleJobReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		
 		organizeKeys();
 		// Get inputs
 		String jobName = this.keyValue.get(this.keysToGet[0]);
+		if(jobName == null || jobName.length() <= 0) {
+			throw new IllegalArgumentException("Must provide job name");
+		}
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
+		if (jobGroup == null || jobGroup.length() <= 0){
+			throw new IllegalArgumentException("Must provide job group");
+		}
 		String cronExpression = this.keyValue.get(this.keysToGet[2]);
+		// validate cron expression	
+		if (!CronExpression.isValidExpression(cronExpression)){
+			throw new IllegalArgumentException("Must provide a valid cron expression!");
+		}
 		String recipe = this.keyValue.get(this.keysToGet[3]);
+		if(recipe == null || recipe.length() <= 0) {
+			throw new IllegalArgumentException("Must provide a recipe");
+		}
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 		String parameters = this.keyValue.get(this.keysToGet[6]);
@@ -75,28 +88,20 @@ public class ScheduleJobReactor extends AbstractReactor {
 		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
 		File jsonFile = new File(filePath);
 		
-		// delete the job if it exists already, only happens when editing existing job
+		// throw error if job exists
 		try {
 			Scheduler scheduler = SchedulerUtil.getScheduler();
 			JobKey job = JobKey.jobKey(jobName, jobGroup);
 			if (scheduler.checkExists(job)) {
-				scheduler.deleteJob(job);
+				throw new IllegalArgumentException ("Job already exists!");
 			}
 		} catch (SchedulerException e) {
 			e.printStackTrace();
 		}
-
-		// delete the json file if it exists
-		if (jsonFile.exists()) {
-			// cant reschedule an active job
-			jsonFile.delete();
-
-		}
-
+		
 		// Pretty-print version of the json
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String jsonConfig = gson.toJson(jsonObject);
-		
 		try {
 			FileUtils.writeStringToFile(jsonFile, jsonConfig, Charset.forName("UTF-8"));
 		} catch (IOException e) {
@@ -104,9 +109,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 		
 		// Schedule the job
-		
 		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
-		
 		if (triggerNow) {
 			try {
 				boolean exists = false;
