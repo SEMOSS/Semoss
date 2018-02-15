@@ -14,6 +14,7 @@ import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -65,10 +66,11 @@ public class DatabaseProfileReactor extends AbstractReactor {
 				String concept = conceptList.get(i);
 				String primKey = null;
 				String conceptDataType = null;
-				if(engine.getEngineType().equals(ENGINE_TYPE.SESAME)) {
-					conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, concept, primKey);
+				ENGINE_TYPE engineType = engine.getEngineType();
+				if (engineType.equals(ENGINE_TYPE.SESAME)) {
+					conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, concept, null);
 					primKey = concept;
-				} else {
+				} else if (engineType.equals(ENGINE_TYPE.RDBMS)) {
 					// get primary key for concept
 					String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
 					String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
@@ -104,14 +106,33 @@ public class DatabaseProfileReactor extends AbstractReactor {
 						// column name
 						cells[1] = primKey;
 						// num of blanks
-						cells[2] = null;
+						QueryStruct2 qs2 = new QueryStruct2();
+						{
+							QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
+							uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
+							QueryColumnSelector innerSelector = new QueryColumnSelector();
+							innerSelector.setTable(concept);
+							innerSelector.setColumn(primKey);
+							uniqueCountSelector.addInnerSelector(innerSelector);
+							qs2.addSelector(uniqueCountSelector);
+							QueryColumnSelector col = new QueryColumnSelector();
+							col.setTable(concept);
+							col.setColumn(primKey);
+							SimpleQueryFilter filter = new SimpleQueryFilter(
+									new NounMetadata(col, PixelDataType.COLUMN), "==",
+									new NounMetadata("", PixelDataType.CONST_STRING));
+							qs2.addExplicitFilter(filter);
+						}
+						Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+						long blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
+						cells[2] = blankCount + "";
 						// num of unique vals
 						cells[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT) + "";
 						// add data to frame
 						frame.addRow(tableName, cells, headers, dataTypes);
 					}
 				}
-				
+
 				// now get prop profile data
 				if (conceptMap != null && conceptMap.containsKey(concept)) {
 					ArrayList<String> properties = conceptMap.get(concept);
@@ -124,27 +145,8 @@ public class DatabaseProfileReactor extends AbstractReactor {
 							cells[0] = concept;
 							// column name
 							cells[1] = prop;
-							// TODO # of blanks
-							QueryStruct2 qs2 = new QueryStruct2();
-//							{
-//								QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
-//								uniqueCountSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
-//								QueryColumnSelector innerSelector = new QueryColumnSelector();
-//
-//								innerSelector.setTable(concept);
-//								innerSelector.setColumn(prop);
-//								uniqueCountSelector.addInnerSelector(innerSelector);
-//								qs2.addSelector(uniqueCountSelector);
-//								
-//								QueryColumnSelector col = new QueryColumnSelector();
-//								col.setTable(concept);
-//								col.setColumn(prop);
-//								SimpleQueryFilter filter = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN), "==", new NounMetadata("\'\'", PixelDataType.CONST_STRING));
-//								qs2.addExplicitFilter(filter);
-//							}
-//							Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
-//							long blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
-							cells[2] = null;
+							// # of blanks
+							cells[2] = 0 + "";
 							// # of unique values
 							cells[3] = getValue(engine, concept, prop, QueryFunctionHelper.UNIQUE_COUNT) + "";
 							// min
@@ -165,8 +167,27 @@ public class DatabaseProfileReactor extends AbstractReactor {
 								cells[0] = concept;
 								// column name
 								cells[1] = prop;
-								// # TODO of blanks
-								cells[2] = null;
+								// # of blanks
+								QueryStruct2 qs2 = new QueryStruct2();
+								{
+									QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
+									uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
+									QueryColumnSelector innerSelector = new QueryColumnSelector();
+									innerSelector.setTable(concept);
+									innerSelector.setColumn(prop);
+									uniqueCountSelector.addInnerSelector(innerSelector);
+									qs2.addSelector(uniqueCountSelector);
+									QueryColumnSelector col = new QueryColumnSelector();
+									col.setTable(concept);
+									col.setColumn(prop);
+									SimpleQueryFilter filter = new SimpleQueryFilter(
+											new NounMetadata(col, PixelDataType.COLUMN), "==",
+											new NounMetadata("", PixelDataType.CONST_STRING));
+									qs2.addExplicitFilter(filter);
+								}
+								Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+								long blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
+								cells[2] = blankCount + "";
 								// # of unique values
 								cells[3] = getValue(engine, concept, prop, QueryFunctionHelper.UNIQUE_COUNT) + "";
 								frame.addRow(tableName, cells, headers, dataTypes);
@@ -184,9 +205,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		{
 			QueryFunctionSelector funSelector = new QueryFunctionSelector();
 			funSelector.setFunction(functionName);
-//			funSelector.setDistinct(true);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
-
 			innerSelector.setTable(concept);
 			innerSelector.setColumn(prop);
 			funSelector.addInnerSelector(innerSelector);
