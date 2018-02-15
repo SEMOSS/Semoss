@@ -11,6 +11,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class ExtractNumbersReactor extends AbstractRFrameReactor {
 	public static final String OVERRIDE = "override";
@@ -39,14 +40,17 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
+				if (Utility.isStringType(dataType.toString())) {
 					String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
 					try {
 						frame.executeRScript(script);
-						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.DOUBLE.toString());
+						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table,
+								SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+				} else {
+					throw new IllegalArgumentException("Column type must be string");
 				}
 			}
 		}
@@ -55,7 +59,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
+				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					frame.executeRScript(update);
@@ -64,6 +68,8 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.DOUBLE.toString());
+				} else {
+					throw new IllegalArgumentException("Column type must be string");
 				}
 			}
 		}
