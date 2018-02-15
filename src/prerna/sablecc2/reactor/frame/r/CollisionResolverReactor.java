@@ -25,24 +25,25 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		// init rJavaTranslator
 		init();
 		// check r package dependencies
-		this.rJavaTranslator.checkPackages(new String[] { "fuzzyjoin", "RJSONIO", "rlang", "tibble", "R6", 
-				"bindrcpp", "crayon","pkgconfig", "glue", "plogr", "dplyr", "tidyr", "Rcpp", "assertthat", 
-				"bindr", "tidyselect", "purrr" });
+		String[] packages = new String[] { "fuzzyjoin", "RJSONIO", "rlang", "tibble", "R6", "bindrcpp", "crayon",
+				"pkgconfig", "glue", "plogr", "dplyr", "tidyr", "Rcpp", "assertthat", "bindr", "tidyselect", "purrr" };
+		this.rJavaTranslator.checkPackages(packages);
 
 		// get frame and set up logger
 		RDataTable frame = (RDataTable) getFrame();
 		Logger logger = this.getLogger(CLASS_NAME);
 		frame.setLogger(logger);
 		String df = frame.getTableName();
-		String column = getColumn();
+		String column = this.keyValue.get(this.keysToGet[0]);
 
 		// create collision script inputs
 		StringBuilder rsb = new StringBuilder();
 		// create temp R frame with unique column values
-		String randomDF = Utility.getRandomString(8);
+		String randomDF = "collsionResolverTempFrame"+Utility.getRandomString(8);
 		rsb.append(randomDF + " <- data.frame(" + column + "=unique(" + df + "$" + column + "));");
 
 		// add column instance count to temp frame
@@ -65,7 +66,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		String join = "inner";
 
 		// build the collision command write to json variable
-		String outputJSON = Utility.getRandomString(8);
+		String outputJSON = "outputJSONcolResolver"+Utility.getRandomString(8);
 		rsb.append(outputJSON);
 		rsb.append("<-  collision_resolver(");
 		rsb.append(randomDF + ",");
@@ -85,6 +86,17 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// get json string this string contains \n characters
 		// so parse into json object here
 		String json = this.rJavaTranslator.getString(outputJSON);
+		// clean up R temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + randomDF + ");");
+		cleanUpScript.append("rm(" + outputJSON + ");");
+		cleanUpScript.append("rm(" + "collision_resolver" + ");");
+		cleanUpScript.append("rm(" + "fuzzy_join" + ");");
+		cleanUpScript.append("rm(" + "i" + ");");
+		cleanUpScript.append("rm(" + "value" + ");");
+		cleanUpScript.append("rm(" + "count" + ");");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
 		List<Object> jsonMap = new ArrayList<Object>();
 		if (json != null) {
 			try {
@@ -95,32 +107,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		} else {
 			throw new IllegalArgumentException("No collisions found");
 		}
-
-		// clean up R temp variables
-		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + randomDF + ");");
-		cleanUpScript.append("rm(" + outputJSON + ");");
-		cleanUpScript.append("rm(" + "collision_resolver" + ");");
-		cleanUpScript.append("rm(" + "fuzzy_join" + ");");
-		cleanUpScript.append("rm(" + "i" + ");");
-		cleanUpScript.append("rm(" + "value" + ");");
-		cleanUpScript.append("rm(" + "count" + ");");
-
-		cleanUpScript.append("gc();");
-		this.rJavaTranslator.runR(cleanUpScript.toString());
-
 		return new NounMetadata(jsonMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
-	}
-
-	private String getColumn() {
-		String column = "";
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		NounMetadata noun;
-		if (grs != null) {
-			noun = grs.getNoun(0);
-			column = (String) noun.getValue();
-		}
-		return column;
 	}
 
 	/**
