@@ -19,6 +19,7 @@ public enum PixelDataType {
 	RAW_DATA_SET ("DATA"),							// raw data - usually from job
 	FORMATTED_DATA_SET ("FDATA"),					// formatted data - for FE
 	TASK ("TASK"),									// task
+	TASK_LIST ("TASK_LIST"),						// task
 	ITERATOR ("ITERATOR"),							// iterator
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),

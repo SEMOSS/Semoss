@@ -417,9 +417,6 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				if(SemossDataType.STRING == leftDataType) {
 					filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
 				} else {
-					if(myFilterFormatted.isEmpty()) {
-						myFilterFormatted = "\"\"";
-					}
 					filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(\"").append(myFilterFormatted).append("\")");
 				}
 			} else {
