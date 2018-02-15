@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.filter;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -28,7 +29,8 @@ public class UnfilterFrameReactor extends AbstractReactor {
 			foundFilter = frame.unfilter();
 		} else {
 			for(Object col : colsToUnfilter) {
-				boolean isValidFilter = frame.unfilter(col + "");
+				QueryColumnSelector cSelector = new QueryColumnSelector(col + "");
+				boolean isValidFilter = frame.unfilter(cSelector.getAlias());
 				if(isValidFilter) {
 					foundFilter = true;
 				}
