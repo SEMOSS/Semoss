@@ -10,6 +10,7 @@ import java.util.Vector;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
@@ -39,6 +40,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" };
 		H2Frame frame = (H2Frame) this.insight.getDataMaker();
 		String tableName = frame.getTableName();
+		// add headers to metadata
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		for (int i = 0; i < headers.length; i++) {
 			String alias = headers[i];
@@ -50,6 +52,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			metaData.setAliasToProperty(uniqueHeader, alias);
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
 		}
+		
 		String dbName = this.keyValue.get(this.keysToGet[0]);
 		IEngine engine = Utility.getEngine(dbName);
 		if (engine != null) {
@@ -58,29 +61,39 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			Map<String, HashMap> dbMap = MasterDatabaseUtility.getConceptProperties(conceptList, dbName);
 			HashMap<String, ArrayList<String>> conceptMap = dbMap.get(dbName);
 			for (int i = 0; i < conceptList.size(); i++) {
+				// first add concept profile data
 				String concept = conceptList.get(i);
-				// TODO get col name for concepts
-				String conceptColName = concept;
-				// concept data
-				String conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, conceptColName, concept);
+				String primKey = null;
+				String conceptDataType = null;
+				if(engine.getEngineType().equals(ENGINE_TYPE.SESAME)) {
+					conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, concept, primKey);
+					primKey = concept;
+				} else {
+					// get primary key for concept
+					String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
+					String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
+					primKey = Utility.getClassName(tableURI);
+					conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, primKey, concept);
+				}
+				// concept data type
 				if (Utility.isNumericType(conceptDataType)) {
 					String[] cells = new String[8];
 					// table name
 					cells[0] = concept;
 					// column name
-					cells[1] = concept;
+					cells[1] = primKey;
 					// num of blanks
 					cells[2] = 0 + "";
 					// num of unique vals
-					cells[3] = getValue(engine, concept, concept, QueryFunctionHelper.UNIQUE_COUNT) + "";
+					cells[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT) + "";
 					// min
-					cells[4] = getValue(engine, concept, conceptColName, QueryFunctionHelper.MIN) + "";
+					cells[4] = getValue(engine, concept, primKey, QueryFunctionHelper.MIN) + "";
 					// average
-					cells[5] = getValue(engine, concept, conceptColName, QueryFunctionHelper.AVERAGE_1) + "";
+					cells[5] = getValue(engine, concept, primKey, QueryFunctionHelper.AVERAGE_1) + "";
 					// max
-					cells[6] = getValue(engine, concept, conceptColName, QueryFunctionHelper.MAX) + "";
+					cells[6] = getValue(engine, concept, primKey, QueryFunctionHelper.MAX) + "";
 					// sum
-					cells[7] = getValue(engine, concept, conceptColName, QueryFunctionHelper.SUM) + "";
+					cells[7] = getValue(engine, concept, primKey, QueryFunctionHelper.SUM) + "";
 					// add data to frame
 					frame.addRow(tableName, cells, headers, dataTypes);
 				} else {
@@ -89,17 +102,17 @@ public class DatabaseProfileReactor extends AbstractReactor {
 						// table name
 						cells[0] = concept;
 						// column name
-						cells[1] = concept;
+						cells[1] = primKey;
 						// num of blanks
 						cells[2] = null;
 						// num of unique vals
-						cells[3] = getValue(engine, concept, concept, QueryFunctionHelper.UNIQUE_COUNT) + "";
+						cells[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT) + "";
 						// add data to frame
 						frame.addRow(tableName, cells, headers, dataTypes);
 					}
 				}
-				// prop data
 				
+				// now get prop profile data
 				if (conceptMap != null && conceptMap.containsKey(concept)) {
 					ArrayList<String> properties = conceptMap.get(concept);
 					for (String prop : properties) {
@@ -145,7 +158,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 							// add data to frame
 							frame.addRow(tableName, cells, headers, dataTypes);
 						} else {
-							// assume string
+							// assume property is string type
 							if (Utility.isStringType(dataType)) {
 								String[] cells = new String[8];
 								// table name
@@ -179,6 +192,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			funSelector.addInnerSelector(innerSelector);
 			qs2.addSelector(funSelector);
 		}
+		qs2.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
 		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		Object value = it.next().getValues()[0];
 		return value;
