@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.frame.r;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -25,18 +24,26 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		//get table name
 		String table = frame.getTableName();
 		// get inputs
-		String column = getColumn();
+		String column = this.keyValue.get(this.keysToGet[0]);
+		if(column == null) {
+			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.COLUMN.getKey());
+		}
 		if (column.contains("__")) {
 			String[] split = column.split("__");
 			column = split[1];
 		}
-		String newType = getColumnType();
+		String newType = this.keyValue.get(this.keysToGet[1]);
+		if(newType == null) {
+			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
+		}
+		newType = SemossDataType.convertStringToDataType(newType).toString();
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + column);
 		
@@ -47,8 +54,24 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			String script = null;
 			if (Utility.isStringType(newType)) {
 				// df$column <- as.character(df$column);
-				script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
-				frame.executeRScript(script);
+				String df = getColumnType(table, column);
+				// create temp table without scientific format for numeric
+				// columns
+				if (df.equalsIgnoreCase("numeric")) {
+					String tempTable = Utility.getRandomString(6);
+					script = tempTable + " <- format(" + table + "$" + column + ", scientific = FALSE); ";
+					frame.executeRScript(script);
+					script = table + "$" + column + "<- " + tempTable;
+					frame.executeRScript(script);
+					script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
+					frame.executeRScript(script);
+					// perform variable cleanup
+					frame.executeRScript("rm(" + tempTable + ");");
+					frame.executeRScript("gc();");
+				} else {
+					script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
+					frame.executeRScript(script);
+				}
 			} else if (newType.equalsIgnoreCase("factor")) {
 				// df$column <- as.factor(df$column);
 				script = table + "$" + column + " <- as.factor(" + table + "$" + column + ");";
@@ -85,39 +108,5 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-
-	private String getColumn() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			String colName = inputsGRS.getNoun(0).getValue() + "";
-			if (colName.length() > 0) {
-				return colName;
-			}
-		}
-		throw new IllegalArgumentException("Need to define the new column name");
-	}
-
-	private String getColumnType() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		NounMetadata input2 = inputsGRS.getNoun(1);
-		String columnType = input2.getValue() + "";
-		// default to string
-		if (columnType.length() == 0) {
-			columnType = "STRING";
-		}
-		// check if data type is supported
-		SemossDataType dt = SemossDataType.convertStringToDataType(columnType);
-		if (dt == null) {
-			dt = SemossDataType.STRING;
-		}
-		return dt.toString();
 	}
 }
