@@ -4,6 +4,7 @@ public enum PixelOperationType {
 
 	// JOB INFORMATION
 	TASK,
+	TASK_LIST,
 	REMOVE_TASK,
 	TASK_DATA,
 	TASK_METADATA,
