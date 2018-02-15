@@ -287,7 +287,7 @@ public class Insight {
 			if(noun.getExplanation() != null && !noun.getExplanation().isEmpty()) {
 				ret.put("message", noun.getExplanation());
 			}
-		} else if(noun.getNounType() == PixelDataType.CODE) {
+		} else if(noun.getNounType() == PixelDataType.CODE || noun.getNounType() == PixelDataType.TASK_LIST) {
 			// code is a tough one to process
 			// since many operations could have been performed
 			// we need to loop through a set of noun meta datas to output
