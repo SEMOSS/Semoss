@@ -11,9 +11,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class ResetTask extends AbstractReactor {
+public class ResetTaskReactor extends AbstractReactor {
 	
-	public ResetTask() {
+	public ResetTaskReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK_ID.getKey()};
 	}
 	
