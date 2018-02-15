@@ -32,7 +32,7 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 				try {
 					task.reset();
 					logger.info("Success! Starting to collect data");
-					taskOutput.add(new NounMetadata(task.collect(500, true), PixelDataType.TASK, PixelOperationType.TASK));
+					taskOutput.add(new NounMetadata(task.collect(500, true), PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 					logger.info("Done collecting data");
 				} catch(Exception e) {
 					logger.info("Failed to reset task = " + id);
@@ -42,6 +42,6 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 			}
 		}
 		
-		return new NounMetadata(taskOutput, PixelDataType.TASK_LIST, PixelOperationType.TASK_LIST);
+		return new NounMetadata(taskOutput, PixelDataType.TASK_LIST, PixelOperationType.RESET_PANEL_TASKS);
 	}
 }
