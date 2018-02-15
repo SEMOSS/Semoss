@@ -1,6 +1,9 @@
 package prerna.sablecc2.reactor.task;
 
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -20,19 +23,38 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		TaskStore tStore = this.insight.getTaskStore();
-		Set<String> taskIds = tStore.getTaskIds();
 		List<NounMetadata> taskOutput = new Vector<NounMetadata>();
-		for(String id : taskIds) {
+		
+		TaskStore tStore = this.insight.getTaskStore();
+		// note, the ids are ordered
+		Set<String> taskIds = tStore.getTaskIds();
+		
+		// keeping track of processed panels in case tasks
+		// were not properly dropped
+		List<String> processedPanels = new Vector<String>();
+		
+		LinkedList<String> list = new LinkedList<String>(taskIds);
+		Iterator<String> itr = list.descendingIterator();
+		while(itr.hasNext()) {
+			String id = itr.next();
 			ITask task = tStore.getTask(id);
 			// a task is for a panel 
 			// if it has task options
-			if(task.getTaskOptions() != null && !task.getTaskOptions().isEmpty()) {
+			Map<String, Object> tOptions = task.getTaskOptions();
+			if(tOptions != null && !tOptions.isEmpty()) {
+				Set<String> panels = tOptions.keySet();
+				if(processedPanels.containsAll(panels)) {
+					// no new panels, so we can ignore
+					// we require all the panels
+					continue;
+				}
+				processedPanels.addAll(panels);
 				logger.info("Trying to reset task = " + id);
 				try {
 					task.reset();
 					logger.info("Success! Starting to collect data");
-					taskOutput.add(new NounMetadata(task.collect(500, true), PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+					// we add at index 0 since we are going in reverse
+					taskOutput.add(0, new NounMetadata(task.collect(500, true), PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 					logger.info("Done collecting data");
 				} catch(Exception e) {
 					logger.info("Failed to reset task = " + id);

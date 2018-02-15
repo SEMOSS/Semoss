@@ -1,6 +1,6 @@
 package prerna.sablecc2.om.task;
 
-import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -12,7 +12,7 @@ public class TaskStore {
 	private static final Logger LOGGER = LogManager.getLogger(TaskStore.class.getName());
 	
 	// store for the task
-	private Map<String, ITask> taskMap = new Hashtable<String, ITask>(); 
+	private Map<String, ITask> taskMap = new LinkedHashMap<String, ITask>(); 
 	// count when we generate unique job ids
 	private long count = 0;
 
