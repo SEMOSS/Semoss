@@ -23,7 +23,8 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		List<NounMetadata> taskOutput = new Vector<NounMetadata>();
+		// store the tasks to reset
+		List<ITask> tasksToReset = new Vector<ITask>();
 		
 		TaskStore tStore = this.insight.getTaskStore();
 		// note, the ids are ordered
@@ -49,18 +50,33 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 					continue;
 				}
 				processedPanels.addAll(panels);
-				logger.info("Trying to reset task = " + id);
-				try {
-					task.reset();
-					logger.info("Success! Starting to collect data");
-					// we add at index 0 since we are going in reverse
-					taskOutput.add(0, new NounMetadata(task.collect(500, true), PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
-					logger.info("Done collecting data");
-				} catch(Exception e) {
-					logger.info("Failed to reset task = " + id);
-				}
+				logger.info("Found task to reset = " + id);
+				tasksToReset.add(0, task);
 			} else {
 				logger.info("Ignore task = " + id);
+			}
+		}
+		
+		List<NounMetadata> taskOutput = new Vector<NounMetadata>();
+		
+		for(ITask task : tasksToReset) {
+			String id = task.getId();
+			logger.info("Trying to reset task = " + id);
+			try {
+				task.reset();
+				
+				// i was able to reset the task
+				// let me modify the id so the FE knows 
+				// to override the current view
+				tStore.removeTask(id);
+				tStore.addTask(task);
+				
+				logger.info("Success! Starting to collect data");
+				// we add at index 0 since we are going in reverse
+				taskOutput.add(0, new NounMetadata(task.collect(500, true), PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+				logger.info("Done collecting data");
+			} catch(Exception e) {
+				logger.info("Failed to reset task = " + id);
 			}
 		}
 		
