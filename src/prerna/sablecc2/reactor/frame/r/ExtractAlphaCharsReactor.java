@@ -11,14 +11,15 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 	// pixel input keys
 	public static final String OVERRIDE = "override";
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
-	
+
 	public ExtractAlphaCharsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), OVERRIDE};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), OVERRIDE };
 	}
 
 	@Override
@@ -41,13 +42,15 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				// check data type this is only valid on non numeric values
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
+				if (Utility.isStringType(dataType.toString())) {
 					String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
 					try {
 						frame.executeRScript(update);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+				} else {
+					throw new IllegalArgumentException("Column type must be string");
 				}
 			}
 		}
@@ -56,7 +59,7 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if (dataType != SemossDataType.INT && dataType != SemossDataType.DOUBLE) {
+				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					update += table + "$" + newColumn + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ");";
@@ -64,6 +67,8 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(table + "__" + newColumn, "String");
+				} else {
+					throw new IllegalArgumentException("Column type must be string");
 				}
 			}
 		}
@@ -98,9 +103,9 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 		}
 		return override;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(OVERRIDE)) {
