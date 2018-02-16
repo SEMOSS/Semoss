@@ -169,18 +169,22 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 			OwlTemporalEngineMeta metaData = resultsTable.getMetaData();
 			metaData.addVertex(df2);
 			metaData.setPrimKeyToVertex(df2, true);
-			metaData.addProperty(df2, "Original_Column");
-			metaData.setAliasToProperty("Original_Column", "Original_Column");
-			metaData.setDataTypeToProperty("Original_Column", "STRING");
-			metaData.addProperty(df2, "Predicted_Concept");
-			metaData.setAliasToProperty("Predicted_Concept", "Predicted_Concept");
-			metaData.setDataTypeToProperty("Predicted_Concept", "STRING");
-			metaData.addProperty(df2, "URL");
-			metaData.setAliasToProperty("URL", "URL");
-			metaData.setDataTypeToProperty("URL", "STRING");
-			metaData.addProperty(df2, "Prob");
-			metaData.setAliasToProperty("Prob", "Prob");
-			metaData.setDataTypeToProperty("Prob", "NUMBER");
+			String uniqueHeader = df2 + "__" + "Original_Column";
+			metaData.addProperty(df2, uniqueHeader);
+			metaData.setAliasToProperty(uniqueHeader, "Original_Column");
+			metaData.setDataTypeToProperty(uniqueHeader, "STRING");
+			uniqueHeader = df2 + "__" + "Predicted_Concept";
+			metaData.addProperty(df2, uniqueHeader);
+			metaData.setAliasToProperty(uniqueHeader, "Predicted_Concept");
+			metaData.setDataTypeToProperty(uniqueHeader, "STRING");
+			uniqueHeader = df2 + "__" + "URL";
+			metaData.addProperty(df2, uniqueHeader);
+			metaData.setAliasToProperty(uniqueHeader, "URL");
+			metaData.setDataTypeToProperty(uniqueHeader, "STRING");
+			uniqueHeader = df2 + "__" + "Prob";
+			metaData.addProperty(df2, uniqueHeader);
+			metaData.setAliasToProperty(uniqueHeader, "Prob");
+			metaData.setDataTypeToProperty(uniqueHeader, "NUMBER");
 
 			// store the r variable
 			NounMetadata frameNoun = new NounMetadata(resultsTable, PixelDataType.FRAME);
