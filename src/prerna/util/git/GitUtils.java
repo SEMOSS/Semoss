@@ -21,7 +21,9 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.HttpException;
 
+import prerna.security.InstallCertNow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
@@ -52,16 +54,38 @@ public class GitUtils {
 	 * @return
 	 */
 	public static GitHub login(String username, String password) {
-		try {
-			GitHub gh = GitHub.connectUsingPassword(username, password);
-			gh.getMyself();
-			return gh;
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + username + "\"");
-		}
+		return login(username, password, 1);
 	}
 
+	public static GitHub login(String username, String password, int attempt) {
+		GitHub gh = null;
+		if(attempt < 3)
+		{
+			System.out.println("Attempting " + attempt);
+			try {
+				gh = GitHub.connectUsingPassword(username, password);
+				gh.getMyself();
+				return gh;
+			}catch(HttpException ex)
+			{
+				ex.printStackTrace();
+				try {
+					InstallCertNow.please("github.com", null, null);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				attempt = attempt + 1;
+				login(username, password, attempt);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + username + "\"");
+			}
+		}
+		return gh;
+	}
+
+	
 	/**
 	 * 
 	 * @param prefixString
