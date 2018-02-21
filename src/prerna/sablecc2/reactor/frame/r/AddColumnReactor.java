@@ -1,8 +1,8 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -25,12 +25,21 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
+		organizeKeys();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		// get column name from the gen row struct
-		String colName = getNewColumnName();
-		// get the column type from the gen row struct
-		String colType = getDataType();
+		String colName = this.keyValue.get(this.keysToGet[0]);
+		
+		// get the column type and standardize
+		String colType = this.keyValue.get(this.keysToGet[1]);
+		if (colType == null){
+			colType = SemossDataType.convertStringToDataType("STRING").toString();
+		}
+		
+		if (colName == null){
+			throw new IllegalArgumentException("Need to define the new column name");
+		}
 
 		String table = frame.getTableName();
 		// clean colName
@@ -56,14 +65,15 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 
 		// temp table used to assign a data type to the new column
 		String tempTable = null;
-		if ((colType.equalsIgnoreCase("number") || colType.equalsIgnoreCase("numeric"))) {
+		if (Utility.isNumericType(colType)) {
 			// update the metadata depending on the data type
 			metaData.setDataTypeToProperty(table + "__" + colName, "NUMBER");
 			tempTable = Utility.getRandomString(6);
 			script = tempTable + " <- as.numeric(" + table + "$" + colName + ")";
 			frame.executeRScript(script);
 			script = table + "$" + colName + "<-" + tempTable;
-		} else if (colType.equalsIgnoreCase("date")) {
+			frame.executeRScript(script);
+		} else if (Utility.isDateType(colType)) {
 			metaData.setDataTypeToProperty(table + "__" + colName, "DATE");
 			tempTable = Utility.getRandomString(6);
 			String dateFormat = "%Y/%m/%d";
@@ -86,38 +96,5 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(colName));
 		return retNoun;
-	}
-
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-	private String getNewColumnName() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// the new column name will be the first input
-			String colName = inputsGRS.getNoun(0).getValue() + "";
-			if (colName.length() == 0) {
-				throw new IllegalArgumentException("Need to define the new column name");
-			}
-			return colName;
-		}
-		throw new IllegalArgumentException("Need to define the new column name");
-	}
-
-	private String getDataType() {
-		// data type defaults to string unless otherwise specified
-		String dataType = "STRING";
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS.size() > 1) {
-			NounMetadata colTypeNoun = inputsGRS.getNoun(1);
-			String dataTypeInput = colTypeNoun.getValue() + "";
-			if (dataTypeInput.length() > 0) {
-				dataType = dataTypeInput;
-			}
-		}
-		return dataType;
 	}
 }

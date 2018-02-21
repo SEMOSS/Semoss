@@ -85,7 +85,12 @@ public class HistogramReactor extends AbstractRFrameReactor {
 		int[] counts = rJavaTranslator.getHistogramCounts(script);
 		
 		//get the number of bins from the length of the counts
-		int numBins = counts.length;
+		int numBins;
+		if (counts != null){
+			numBins = counts.length;
+		} else {
+			numBins = 0;
+		}
 		Object[][] data = new Object[numBins][2];
 
 		//add the data to the data object
