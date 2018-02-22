@@ -164,7 +164,7 @@ public class RSyntaxHelper {
 			getLeftMergeCols(builder, joinCols);
 			builder.append("), by.y").append(" = c(");
 			getRightMergeCols(builder, joinCols);
-			builder.append("), all = FALSE)");
+			builder.append("), all = FALSE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("left.outer.join")) {
 			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
 			.append(rightTableName).append(", ").append("by.x").append(" = c(");
@@ -172,21 +172,21 @@ public class RSyntaxHelper {
 			builder.append("), by.y").append(" = c(");
 			getRightMergeCols(builder, joinCols);
 			builder.append("), all.x")
-			.append(" = TRUE,").append(" all.y").append(" = FALSE)");
+			.append(" = TRUE,").append(" all.y").append(" = FALSE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("right.outer.join")) {
 			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
 			.append(rightTableName).append(", ").append("by.x").append(" = c("); 
 			getLeftMergeCols(builder, joinCols);
 			builder.append("), by.y").append(" = c(");
 			getRightMergeCols(builder, joinCols);
-			builder.append("), all.x").append(" = FALSE,").append(" all.y").append(" = TRUE)");
+			builder.append("), all.x").append(" = FALSE,").append(" all.y").append(" = TRUE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("outer.join")) {
 			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
 			.append(rightTableName).append(", ").append("by.x").append(" = c(");
 			getLeftMergeCols(builder, joinCols);
 			builder.append("), by.y").append(" = c(");
 			getRightMergeCols(builder, joinCols);
-			builder.append("), all.x").append(" = FALSE,").append(" all.y").append(" = FALSE)");
+			builder.append("), all.x").append(" = FALSE,").append(" all.y").append(" = FALSE, allow.cartesian = TRUE)");
 		}
 
 		return builder.toString();
