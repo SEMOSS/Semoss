@@ -1,33 +1,45 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
+import java.util.Arrays;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
 public class AddColumnReactor extends AbstractFrameReactor {
-
+	
+	/**
+	 * This reactor adds an empty column to the frame The inputs to the reactor are: 
+	 * 1) the name for the new column 
+	 * 2) the new column type
+	 * 3) the column to duplicate values from
+	 */
+	
+	public AddColumnReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+	}
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		H2Frame frame = (H2Frame) getFrame();
-		// get new column name
-		String colName = getNewColumnName();
 		String table = frame.getTableName();
-
-		// clean column name
-		if (colName.contains("__")) {
-			String[] split = colName.split("__");
-			table = split[0];
-			colName = split[1];
+		// get column
+		String colName = this.keyValue.get(this.keysToGet[0]);
+		if (colName == null || colName.length() == 0) {
+			throw new IllegalArgumentException("Need to define the new column name");
+		}
+		// get datatype
+		String dataType = this.keyValue.get(this.keysToGet[1]);
+		if (dataType == null || dataType.isEmpty()) {
+			dataType = "STRING";
 		}
 		colName = getCleanNewColName(table, colName);
-
 		// get new column type or set default to string
-		String dataType = getDataType();
 		// make sql data type
 		dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
 		if (frame != null) {
@@ -43,33 +55,21 @@ public class AddColumnReactor extends AbstractFrameReactor {
 				e.printStackTrace();
 			}
 		}
-
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	/////////////////// PIXEL INPUTS //////////////////////////
-	
-	private String getNewColumnName() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			String colName = inputsGRS.getNoun(0).getValue() + "";
-			if (colName.length() == 0) {
-				throw new IllegalArgumentException("Need to define the new column name");
+		// duplicate existing column if specified
+		String duplicateSrcCol = this.keyValue.get(this.keysToGet[2]).trim();
+		if (duplicateSrcCol != null && !duplicateSrcCol.isEmpty()) {
+			// make sure src column to duplicate exists, if not it will just be blank
+			String[] allCol = getColNames(table);
+			// validate the data types are the same
+			if (Arrays.asList(allCol).contains(duplicateSrcCol)) {
+				String duplicate = "UPDATE " + table + " SET " + colName + " = " + duplicateSrcCol + ";";
+				try {
+					frame.getBuilder().runQuery(duplicate);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-			return colName;
 		}
-		throw new IllegalArgumentException("Need to define the new column name");
-	}
-
-	private String getDataType() {
-		String dataType = "STRING";
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS.size() > 1) {
-			NounMetadata colTypeNoun = inputsGRS.getNoun(1);
-			dataType = colTypeNoun.getValue() + "";
-		}
-		return dataType;
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 }
