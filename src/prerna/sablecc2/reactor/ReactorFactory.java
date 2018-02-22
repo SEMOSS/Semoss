@@ -619,6 +619,7 @@ public class ReactorFactory {
 		h2FrameHash.put("CountIf", prerna.sablecc2.reactor.frame.rdbms.CountIfReactor.class);
 		h2FrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.rdbms.DropColumnReactor.class);
 		h2FrameHash.put("DropRows", prerna.sablecc2.reactor.frame.rdbms.DropRowsReactor.class);
+		h2FrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.rdbms.DuplicateColumnReactor.class);
 		h2FrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.rdbms.ExtractAlphaCharsReactor.class);
 		h2FrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.rdbms.ExtractNumbersReactor.class);
 		h2FrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.rdbms.JoinColumnsReactor.class);
@@ -637,6 +638,7 @@ public class ReactorFactory {
 		rFrameHash.put("CollisionResolver", prerna.sablecc2.reactor.frame.r.CollisionResolverReactor.class);
 		rFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.r.DropColumnReactor.class);
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
+		rFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.r.DuplicateColumnReactor.class);
 		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor.class);
 		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);

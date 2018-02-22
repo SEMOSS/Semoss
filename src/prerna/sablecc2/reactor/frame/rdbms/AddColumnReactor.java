@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
-import java.util.Arrays;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
@@ -21,7 +19,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 	 */
 	
 	public AddColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
 	}
 	@Override
 	public NounMetadata execute() {
@@ -53,21 +51,6 @@ public class AddColumnReactor extends AbstractFrameReactor {
 				metaData.setDataTypeToProperty(table + "__" + colName, dataType);
 			} catch (Exception e) {
 				e.printStackTrace();
-			}
-		}
-		// duplicate existing column if specified
-		String duplicateSrcCol = this.keyValue.get(this.keysToGet[2]).trim();
-		if (duplicateSrcCol != null && !duplicateSrcCol.isEmpty()) {
-			// make sure src column to duplicate exists, if not it will just be blank
-			String[] allCol = getColNames(table);
-			// validate the data types are the same
-			if (Arrays.asList(allCol).contains(duplicateSrcCol)) {
-				String duplicate = "UPDATE " + table + " SET " + colName + " = " + duplicateSrcCol + ";";
-				try {
-					frame.getBuilder().runQuery(duplicate);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
