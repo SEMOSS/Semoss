@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.Arrays;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
@@ -21,7 +19,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public AddColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.COLUMN.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
 	}
 
 	@Override
@@ -62,17 +60,6 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
-		
-		// copy values from column to new column
-		String duplicateSrcCol = this.keyValue.get(this.keysToGet[2]).trim();
-		if (duplicateSrcCol != null && !duplicateSrcCol.isEmpty()){
-			// make sure src column to duplicate exists, if not it will just be blank
-			String[] allCol = getColumns(table);
-			if (Arrays.asList(allCol).contains(duplicateSrcCol)) {
-				String duplicate = table + "$" + newColName + "<-" + table + "$" + duplicateSrcCol + ";";
-				frame.executeRScript(duplicate);
-			}
-		}
 
 		// temp table used to assign a data type to the new column
 		String tempTable = null;
@@ -97,7 +84,6 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			metaData.setDataTypeToProperty(table + "__" + newColName, "STRING");
 		}
 		
-
 		// r temp variable clean up
 		if (tempTable != null) {
 			frame.executeRScript("rm(" + tempTable + ");");
