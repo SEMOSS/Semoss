@@ -78,6 +78,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "");
 			logger.info("2) Done...");
 		} else {
+			dropInsightInSolr(engineName, rdbmsId);
 			logger.info("2) Insight is hidden ... do not add to solr");
 		}
 		
@@ -127,7 +128,16 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		solrModifyInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
 
 		try {
-			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + existingRdbmsId, solrModifyInsights);
+			SolrIndexEngine.getInstance().modifyInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, existingRdbmsId), solrModifyInsights);
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+				| IOException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	private void dropInsightInSolr(String engineName, String rdbmsId) {
+		try {
+			SolrIndexEngine.getInstance().removeInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, rdbmsId));
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e1) {
 			e1.printStackTrace();
