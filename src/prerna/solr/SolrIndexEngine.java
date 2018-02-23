@@ -239,13 +239,28 @@ public class SolrIndexEngine {
 	 * Deletes the specified document based on its Unique ID
 	 * @param uniqueID              ID to be deleted
 	 */
-	public void removeInsight(List<String> uniqueIDs) throws SolrServerException, IOException {
+	public void removeInsight(List<String> uniqueIds) throws SolrServerException, IOException {
 		if (serverActive()) {
 			// delete document based on ID
-			LOGGER.info("Deleting documents with ids:  " + uniqueIDs);
-			insightServer.deleteById(uniqueIDs);
+			LOGGER.info("Deleting documents with ids:  " + uniqueIds);
+			insightServer.deleteById(uniqueIds);
 			insightServer.commit();
-			LOGGER.info("Documents with uniqueIDs: " + uniqueIDs + " have been deleted");
+			LOGGER.info("Documents with uniqueIDs: " + uniqueIds + " have been deleted");
+			buildSuggester();
+		}
+	}
+	
+	/**
+	 * Deletes the specified document based on its Unique ID
+	 * @param uniqueID              ID to be deleted
+	 */
+	public void removeInsight(String uniqueId) throws SolrServerException, IOException {
+		if (serverActive()) {
+			// delete document based on ID
+			LOGGER.info("Deleting documents with id:  " + uniqueId);
+			insightServer.deleteById(uniqueId);
+			insightServer.commit();
+			LOGGER.info("Documents with uniqueId: " + uniqueId + " have been deleted");
 			buildSuggester();
 		}
 	}
