@@ -22,6 +22,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
@@ -528,6 +529,7 @@ public class ReactorFactory {
 		reactorHash.put("RunSimilarity", SimilarityAlgorithmReactor.class);
 		reactorHash.put("RunOutlier", OutlierAlgorithmReactor.class);
 		reactorHash.put("Ratio", RatioAlgorithmReactor.class);
+		reactorHash.put("RunAnomaly", AnomalyReactor.class);
 		
 		// X-Ray reactors
 		reactorHash.put("RunXray", XRayReactor.class);
