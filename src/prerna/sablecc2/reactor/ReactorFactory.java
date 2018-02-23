@@ -155,11 +155,13 @@ import prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor;
 import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
 import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.DistinctReactor;
 import prerna.sablecc2.reactor.qs.GroupByReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.OrderByReactor;
+import prerna.sablecc2.reactor.qs.OverrideImplicitFiltersReactor;
 import prerna.sablecc2.reactor.qs.QueryAllReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
@@ -374,6 +376,8 @@ public class ReactorFactory {
 		reactorHash.put("Join", JoinReactor.class);
 		reactorHash.put("Filter", QueryFilterReactor.class);
 		reactorHash.put("Query", QueryReactor.class);
+		reactorHash.put("Distinct", DistinctReactor.class);
+		reactorHash.put("ImplicitFilterOverride", OverrideImplicitFiltersReactor.class);
 		reactorHash.put("QueryAll", QueryAllReactor.class);
 
 		// If is in its own category
