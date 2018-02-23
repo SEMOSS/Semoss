@@ -3,18 +3,15 @@ package prerna.poi.main;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 
 import prerna.cache.ICache;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.H2QueryUtil;
 
 public class SolrEngineConnector extends AbstractEngineCreator {
 
@@ -136,68 +133,4 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		}
 		return f;
 	}
-
-	//TODO: this will not last here for long... sadly, push for this code cannot be done yet since it can make things unstable
-	//TODO: this will not last here for long... sadly, push for this code cannot be done yet since it can make things unstable
-	//TODO: this will not last here for long... sadly, push for this code cannot be done yet since it can make things unstable
-	protected IEngine createNewInsightsDatabase(String engineName) {
-		H2QueryUtil queryUtil = new H2QueryUtil();
-		Properties prop = new Properties();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionURL = "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + 
-				"insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-		prop.put(Constants.CONNECTION_URL, connectionURL);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
-		prop.put("TEMP", "TRUE");
-		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
-		insightRDBMSEngine.setProperties(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightRDBMSEngine.openDB(null);
-		
-		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
-				+ "ID VARCHAR(50), "
-				+ "QUESTION_NAME VARCHAR(255), "
-				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
-				+ "QUESTION_LAYOUT VARCHAR(225), "
-				+ "QUESTION_ORDER INT, "
-				+ "QUESTION_DATA_MAKER VARCHAR(225), "
-				+ "QUESTION_MAKEUP CLOB, "
-				+ "QUESTION_PROPERTIES CLOB, "
-				+ "QUESTION_OWL CLOB, "
-				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
-				+ "DATA_TABLE_ALIGN VARCHAR(500), "
-				+ "QUESTION_PKQL ARRAY)";
-
-		insightRDBMSEngine.insertData(questionTableCreate);
-
-		// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
-				+ "PARAMETER_ID VARCHAR(255), "
-				+ "PARAMETER_LABEL VARCHAR(255), "
-				+ "PARAMETER_TYPE VARCHAR(225), "
-				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
-				+ "PARAMETER_QUERY VARCHAR(2000), "
-				+ "PARAMETER_OPTIONS VARCHAR(2000), "
-				+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
-				+ "PARAMETER_MULTI_SELECT BOOLEAN, "
-				+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
-				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
-				+ "QUESTION_ID_FK INT)";
-
-		insightRDBMSEngine.insertData(parameterTableCreate);
-		
-		String feTableCreate = "CREATE TABLE UI ("
-				+ "QUESTION_ID_FK INT, "
-				+ "UI_DATA CLOB)";
-		
-		insightRDBMSEngine.insertData(feTableCreate);
-		
-		insightRDBMSEngine.commit();
-		return insightRDBMSEngine;
-	}
-	
 }

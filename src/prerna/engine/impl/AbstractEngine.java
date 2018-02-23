@@ -239,6 +239,15 @@ public abstract class AbstractEngine implements IEngine {
 							}
 						}
 						wrap.cleanUp();
+						
+						q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='HIDDEN_INSIGHT'";
+						wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
+						if(!wrap.hasNext()) {
+							String update = "ALTER TABLE QUESTION_ID ADD HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE;";
+							this.insightRDBMS.insertData(update);
+							this.insightRDBMS.commit();
+						}
+						wrap.cleanUp();
 					}
 					
 				}

@@ -12,11 +12,11 @@ public class InsightAdministrator {
 
 	private static final Logger LOGGER = Logger.getLogger(InsightAdministrator.class.getName());
 	private static final String TABLE_NAME = "QUESTION_ID";
-	private static final String COL_QUESTION_ID = "ID";
-	private static final String COL_QUESTION_NAME = "QUESTION_NAME";
-	private static final String COL_QUESTION_LAYOUT = "QUESTION_LAYOUT";
-	private static final String COL_QUESTION_PKQL = "QUESTION_PKQL";
-//	private static final String GET_LAST_INSIGHT_ID = "SELECT DISTINCT " + COL_QUESTION_ID + " FROM " + TABLE_NAME + " ORDER BY " + COL_QUESTION_ID + " DESC";
+	private static final String QUESTION_ID_COL = "ID";
+	private static final String QUESTION_NAME_COL = "QUESTION_NAME";
+	private static final String QUESTION_LAYOUT_COL = "QUESTION_LAYOUT";
+	private static final String QUESTION_PKQL_COL = "QUESTION_PKQL";
+	private static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
 
 	private IEngine insightEngine;
 	
@@ -32,19 +32,36 @@ public class InsightAdministrator {
 	 * @return
 	 */
 	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave) {
+		return addInsight(insightName, layout, pixelRecipeToSave, false);
+	}
+	
+	public String addInsight(String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
+		String newId = UUID.randomUUID().toString();
+		return addInsight(newId, insightName, layout, pixelRecipeToSave, hidden);
+	}
+	
+	/**
+	 * Insert a new insight into the engine
+	 * @param insightId
+	 * @param insightName
+	 * @param layout
+	 * @param pixelRecipeToSave
+	 */
+	public String addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
+		LOGGER.info("Adding new question with insight id :::: " + insightId);
 		LOGGER.info("Adding new question with name :::: " + insightName);
 		LOGGER.info("Adding new question with layout :::: " + layout);
 		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
 		
 		insightName = escapeForSQLStatement(insightName);
 		layout = escapeForSQLStatement(layout);
-		String newId = UUID.randomUUID().toString();
 		
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
-				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
-				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES ('")
-				.append(newId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ");
+				.append(QUESTION_ID_COL).append(",").append(QUESTION_NAME_COL).append(",")
+				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
+				.append(QUESTION_PKQL_COL).append(") VALUES ('")
+				.append(insightId).append("', ").append("'").append(insightName).append("', ")
+				.append("'").append(layout).append("', ").append(hidden).append(", ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
 		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
@@ -55,38 +72,7 @@ public class InsightAdministrator {
 		this.insightEngine.commit();
 		
 		// return the new rdbms id
-		return newId;
-	}
-	
-	/**
-	 * This method is used only when I know what insight id I want to insert into the database
-	 * @param insightId
-	 * @param insightName
-	 * @param layout
-	 * @param pixelRecipeToSave
-	 */
-	public void addInsight(String insightId, String insightName, String layout, String[] pixelRecipeToSave) {
-		LOGGER.info("Adding new question with insight id :::: " + insightId);
-		LOGGER.info("Adding new question with name :::: " + insightName);
-		LOGGER.info("Adding new question with layout :::: " + layout);
-		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
-		
-		insightName = escapeForSQLStatement(insightName);
-		layout = escapeForSQLStatement(layout);
-		
-		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
-				.append(COL_QUESTION_ID).append(",").append(COL_QUESTION_NAME).append(",")
-				.append(COL_QUESTION_LAYOUT).append(",").append(COL_QUESTION_PKQL).append(") VALUES ('")
-				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ");
-		// loop through and add the recipe
-		// don't forget to escape each entry in the array
-		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
-		insertQuery.append(");");
-		
-		// now run the query and commit
-		this.insightEngine.insertData(insertQuery.toString());
-		this.insightEngine.commit();
+		return insightId;
 	}
 	
 	/**
@@ -97,6 +83,10 @@ public class InsightAdministrator {
 	 * @param pixelRecipeToSave
 	 */
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave) {
+		updateInsight(existingRdbmsId, insightName, layout, pixelRecipeToSave, false);
+	}
+	
+	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
 		LOGGER.info("Modifying insert id :::: " + existingRdbmsId);
 		LOGGER.info("Adding new question with name :::: " + insightName);
 		LOGGER.info("Adding new question with layout :::: " + layout);
@@ -106,11 +96,12 @@ public class InsightAdministrator {
 		layout = escapeForSQLStatement(layout);
 		
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
-				.append(COL_QUESTION_NAME).append(" = '").append(insightName).append("', ")
-				.append(COL_QUESTION_LAYOUT).append(" = '").append(layout).append("', ")
-				.append(COL_QUESTION_PKQL).append("=");
+				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
+				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
+				.append(HIDDEN_INSIGHT_COL).append(" = '").append(hidden).append("', ")
+				.append(QUESTION_PKQL_COL).append("=");
 		updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
-		updateQuery.append(" WHERE ").append(COL_QUESTION_ID).append(" = '").append(existingRdbmsId).append("'");
+		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 		
 		// now run the query and commit
 		this.insightEngine.insertData(updateQuery.toString());
