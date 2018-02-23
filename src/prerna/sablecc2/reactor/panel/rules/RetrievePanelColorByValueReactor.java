@@ -23,6 +23,8 @@ public class RetrievePanelColorByValueReactor extends AbstractPanelColorByValueR
 		// are added to the rule
 		QueryStruct2 newQs = new QueryStruct2();
 		newQs.merge(qs);
+		newQs.setDistinct(qs.isDistinct());
+		newQs.setOverrideImplicit(qs.isOverrideImplicit());
 		return new NounMetadata(newQs, PixelDataType.QUERY_STRUCT, PixelOperationType.QUERY);
 	}
 }
