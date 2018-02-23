@@ -30,7 +30,7 @@ import prerna.util.Utility;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
-	private static final Logger LOGGER = Logger.getLogger(UpdateInsightReactor.class.getName());
+	private static final String CLASS_NAME = UpdateInsightReactor.class.getName();
 
 	public UpdateInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey(), 
@@ -39,10 +39,15 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
+
 		String engineName = getApp();
 		String insightName = getInsightName();
 		String[] recipeToSave = getRecipe();
-		// used for embed url
+		String layout = getLayout();
+		boolean hidden = getHidden();
+		
+		// need to know what we are updating
 		String rdbmsId = getRdbmsId();
 		if(rdbmsId == null) {
 			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
@@ -56,12 +61,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
 
-		// TODO: there can be more than 1 layout given clone...
-		String layout = getLayout();
-		if (layout == null) {
-			layout = "grid";
-		}
-
 		IEngine engine = Utility.getEngine(engineName);
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find engine = " + engineName);
@@ -70,20 +69,26 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
 		// update insight db
-		LOGGER.info("1) Updating insight in rdbms");
+		logger.info("1) Updating insight in rdbms");
 		admin.updateInsight(rdbmsId, insightName, layout, recipeToSave);
-		LOGGER.info("1) Done");
-		// update solr
-		LOGGER.info("2) Update insight in solr");
-		editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "");
-		LOGGER.info("2) Done");
+		logger.info("1) Done");
+		
+		if(!hidden) {
+			logger.info("2) Update insight to solr...");
+			editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "");
+			logger.info("2) Done...");
+		} else {
+			logger.info("2) Insight is hidden ... do not add to solr");
+		}
+		
 		//update recipe text file
-		LOGGER.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
-		updateRecipeFile(engineName, rdbmsId, insightName, layout, IMAGE_NAME, recipeToSave);
-		LOGGER.info("3) Done");
+		logger.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
+		updateRecipeFile(engineName, rdbmsId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
+		logger.info("3) Done");
+		
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			updateSolrImageFromPng(base64Image, rdbmsId, engineName);
+			storeImageFromPng(base64Image, rdbmsId, engineName);
 		}
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
@@ -136,10 +141,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave) {
+	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave, boolean hidden) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID + "\\" + MosfetSyncHelper.RECIPE_FILE;
-		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, imageName, recipeToSave);
+		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
 	}
 
 }

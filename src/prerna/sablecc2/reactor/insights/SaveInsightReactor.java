@@ -32,7 +32,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	
 	public SaveInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(),
-				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
+				HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 	
 	@Override
@@ -43,7 +43,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String engineName = getApp();
 		String insightName = getInsightName();
 		String[] recipeToSave = getRecipe();
-		
+		String layout = getLayout();
+		boolean hidden = getHidden();
+
 		// for testing... should always be passed in
 		if (recipeToSave == null || recipeToSave.length == 0) {
 			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
@@ -52,12 +54,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
 		
-		// TODO: there can be more than 1 layout given clone...
-		String layout = getLayout();
-		if (layout == null) {
-			layout = "grid";
-		}
-
 		IEngine engine = Utility.getEngine(engineName);
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find engine = " + engineName);
@@ -69,19 +65,23 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave);
 		logger.info("1) Done...");
 
-		logger.info("2) Add insight to solr...");
-		addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
-		logger.info("2) Done...");
+		if(!hidden) {
+			logger.info("2) Add insight to solr...");
+			addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
+			logger.info("2) Done...");
+		} else {
+			logger.info("2) Insight is hidden ... do not add to solr");
+		}
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, recipeToSave);
+		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
 		
 		// get base 64 image string and write to file
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			updateSolrImageFromPng(base64Image, newRdbmsId, engineName);
+			storeImageFromPng(base64Image, newRdbmsId, engineName);
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();

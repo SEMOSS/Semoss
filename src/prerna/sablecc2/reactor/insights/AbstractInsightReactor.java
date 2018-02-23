@@ -23,7 +23,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 
 	// used for saving a base insight
 	protected static final String IMAGE_NAME = "image.png";
-	
+	protected static final String HIDDEN_KEY = "hidden";
+
 	protected String getApp() {
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
@@ -80,6 +81,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return null;
 	}
 	
+	protected boolean getHidden() {
+		// see if it was passed directly in with the lower case key ornaments
+		GenRowStruct genericIdGrs = this.store.getNoun(HIDDEN_KEY);
+		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
+			return (boolean) genericIdGrs.get(0);
+		}
+		
+		// well, you are out of luck
+		return false;
+	}
+	
 	protected String getUrl() {
 		// see if it was passed directly in with the lower case key ornaments
 		GenRowStruct genericIdGrs = this.store.getNoun(ReactorKeysEnum.URL.getKey());
@@ -114,8 +126,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			return genericLayoutGrs.get(0).toString();
 		}
 		
-		// well, you are out of luck
-		return null;
+		// TODO: there can be more than 1 layout given clone...
+		return "grid";
 	}
 	
 	/**
@@ -245,7 +257,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	protected void updateSolrImageFromPng(String base64Image, String insightId, String engineName) {
+	protected void storeImageFromPng(String base64Image, String insightId, String engineName) {
 		// set up path to save image to file
 		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ "\\db\\" + engineName + "\\version\\" + insightId
