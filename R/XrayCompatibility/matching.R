@@ -292,7 +292,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	#check for empty df
 	size <- dim(dt)
 	if(size[1] == 0) {
-	  df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Source_Column = numeric(1), Target_Column = numeric(1), stringsAsFactors = FALSE)
+	  df <- data.frame(Source_Database = numeric(1), Source_Table = numeric(1), Source_Column = numeric(1), Target_Database = numeric(1), Target_Table = numeric(1), Target_Column = numeric(1), Score = numeric(1), Source_Instances = numeric(1), Target_Instances = numeric(1), Match_Count = numeric(1), stringsAsFactors = FALSE)
       return(df)
 	}
   }
