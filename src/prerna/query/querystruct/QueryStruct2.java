@@ -289,6 +289,10 @@ public class QueryStruct2 {
 		this.overrideImplicit = overrideImplicit;
 	}
 	
+	public boolean isOverrideImplicit() {
+		return this.overrideImplicit;
+	}
+	
 	public void print() {
 		System.out.println("SELECTORS " + selectors);
 		System.out.println("FILTERS.. " + implicitFilters);
@@ -807,6 +811,7 @@ public class QueryStruct2 {
 			newQs.setFrame(this.frame);
 		}
 		newQs.setDistinct(this.isDistinct);
+		newQs.setOverrideImplicit(this.overrideImplicit);
 		return newQs;
 	}
 
