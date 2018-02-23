@@ -34,7 +34,8 @@ public class QueryStruct2 {
 	protected transient IEngine engine;
 	
 	protected boolean isDistinct = true;
-	/**
+	protected boolean overrideImplicit = false;
+	/*
 	 * 3 main parts to a query
 	 * 
 	 * selectors:
@@ -131,9 +132,36 @@ public class QueryStruct2 {
 	
 	public GenRowFilters getCombinedFilters() {
 		GenRowFilters combinedFilters = new GenRowFilters();
-		combinedFilters.merge(this.implicitFilters.copy());
 		combinedFilters.merge(this.explicitFilters.copy());
+		if(this.overrideImplicit) {
+			// if the user already filtered the column
+			// do not try to merge the other filters
+			// that are held on the data source
+			Set<String> explicitFilteredColumn = combinedFilters.getAllFilteredColumns();
+			int numFilters = this.implicitFilters.size();
+			List<IQueryFilter> implicitFilterVec = this.implicitFilters.getFilters();
+			for(int i = 0; i < numFilters; i++) {
+				IQueryFilter f = implicitFilterVec.get(i);
+				if(!containsAny(f.getAllUsedColumns(), explicitFilteredColumn)) {
+					// user didn't choose a different filter value for the column
+					// so we can add it
+					combinedFilters.addFilters(f);
+				}
+			}
+		} else {
+			combinedFilters.merge(this.implicitFilters.copy());
+		}
 		return combinedFilters;
+	}
+	
+	private boolean containsAny(Set<String> valuesToFind, Set<String> allValues) {
+		for(String valToFind : valuesToFind) {
+			if(allValues.contains(valToFind)) {
+				return true;
+			}
+		}
+			
+		return false;
 	}
 	
 	////////////////////////////////////////////////////
@@ -257,9 +285,13 @@ public class QueryStruct2 {
 		return this.isDistinct;
 	}
 	
+	public void setOverrideImplicit(boolean overrideImplicit) {
+		this.overrideImplicit = overrideImplicit;
+	}
+	
 	public void print() {
 		System.out.println("SELECTORS " + selectors);
-		System.out.println("FILTERS.. " + explicitFilters);
+		System.out.println("FILTERS.. " + implicitFilters);
 		System.out.println("RELATIONS.. " + relations);
 	}
 	
