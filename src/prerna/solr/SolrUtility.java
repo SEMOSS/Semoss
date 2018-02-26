@@ -122,6 +122,56 @@ public final class SolrUtility {
 			fieldData.put("app_name", appName);
 			fieldData.put("app_creation_date", SolrIndexEngine.getDateFormat().format(new Date()));
 			fieldData.put("app_tags", Collections.nCopies(1, appName));
+			
+			// get the db type
+			String engineFile = DIHelper.getInstance().getCoreProp().getProperty(appName + "_" + Constants.STORE);
+			Properties prop = new Properties();
+			FileInputStream fis = null;
+			try {
+				fis = new FileInputStream(engineFile);
+				prop.load(fis);
+			} catch(Exception ex) {
+				ex.printStackTrace();
+			} finally {
+				if(fis != null) {
+					try {
+						fis.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			
+			String eType = prop.getProperty(Constants.ENGINE_TYPE);
+			if(eType.equals("prerna.engine.impl.rdbms.RDBMSNativeEngine")) {
+				fieldData.put("app_type", "RDBMS");
+				fieldData.put("app_cost", "$");
+			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
+				fieldData.put("app_type", "IMPALA");
+				fieldData.put("app_cost", "$$$");
+			} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
+				fieldData.put("app_type", "RDF");
+				fieldData.put("app_cost", "$");
+			} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
+				fieldData.put("app_type", "RDF");
+				fieldData.put("app_cost", "$");
+			} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
+				fieldData.put("app_type", "DATASTAX");
+				fieldData.put("app_cost", "$$$");
+			} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
+				fieldData.put("app_type", "SOLR");
+				fieldData.put("app_cost", "$$");
+			} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
+				String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
+				if(tinkerDriver.equalsIgnoreCase("neo4j")) {
+					fieldData.put("app_type", "NEO4J");
+					fieldData.put("app_cost", "$");
+				} else {
+					fieldData.put("app_type", "Tinker");
+					fieldData.put("app_cost", "$");
+				}
+			}
+			
 			try {
 				solrE.addApp(appName, fieldData);
 			} catch (SolrServerException | IOException e) {

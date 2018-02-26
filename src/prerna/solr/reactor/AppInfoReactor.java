@@ -43,6 +43,8 @@ public class AppInfoReactor extends AbstractReactor {
 		builder.addReturnFields("app_requirements");
 		builder.addReturnFields("app_repo_url");
 		builder.addReturnFields("app_tags");
+		builder.addReturnFields("app_type");
+		builder.addReturnFields("app_cost");
 
 		Map<String, List<String>> filterData = new HashMap<String, List<String>>();
 		List<String> filterList = new ArrayList<String>();
