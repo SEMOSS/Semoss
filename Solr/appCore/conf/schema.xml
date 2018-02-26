@@ -92,6 +92,12 @@
 		<!-- app requirements date -->
 		<field name="app_repo_url" type="string" indexed="true" stored="true" required="false" multiValued="true" />
 
+		<!-- app database type -->
+		<field name="app_type" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+
+		<!-- app cost -->
+		<field name="app_cost" type="string" indexed="true" stored="true" required="false" multiValued="false" />
+		
 		<!-- app tags -->
 		<field name="app_tags" type="string" indexed="true" stored="true" required="false" multiValued="true" /> 
 		<field name="index_app_tags" type="text_en_splitting" indexed="true" stored="false" required="false" multiValued="true" />	
