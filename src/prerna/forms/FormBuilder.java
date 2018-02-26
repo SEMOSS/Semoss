@@ -27,12 +27,15 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.semoss.web.form.FormResource;
+//import prerna.semoss.web.form.FormResource;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public final class FormBuilder {
 
+	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
+	public static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
+	
 	private static final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
 	private static final DateFormat SIMPLE_DATE_DF = new SimpleDateFormat("yyyy-MM-dd");
 	private static final DateFormat GENERIC_DF = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSSSS'Z'");
@@ -164,8 +167,8 @@ public final class FormBuilder {
 			user = engineHash.get("user").toString();
 		}
 		
-		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineName())).toUpperCase() + FormResource.AUDIT_FORM_SUFFIX;
-		IEngine formEng = Utility.getEngine(FormResource.FORM_BUILDER_ENGINE_NAME);
+		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineName())).toUpperCase() + AUDIT_FORM_SUFFIX;
+		IEngine formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		// create audit table if doesn't exist
 		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formEng, checkTableQuery);
@@ -1297,8 +1300,8 @@ public final class FormBuilder {
 
 	public static Map<String, Object> getAuditDataForEngine(String engineName) {
 		Map<String, Object> retMap = new Hashtable<String, Object>();
-		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + FormResource.AUDIT_FORM_SUFFIX;
-		IEngine formEng = Utility.getEngine(FormResource.FORM_BUILDER_ENGINE_NAME);
+		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + AUDIT_FORM_SUFFIX;
+		IEngine formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		
 		String query = "SELECT * FROM " + auditLogTableName;
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formEng, query);
