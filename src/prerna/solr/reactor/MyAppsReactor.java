@@ -79,6 +79,8 @@ public class MyAppsReactor extends AbstractReactor {
 			builder.addReturnFields("app_name");
 			builder.addReturnFields("app_description");
 			builder.addReturnFields("app_tags");
+			builder.addReturnFields("app_type");
+			builder.addReturnFields("app_cost");
 			builder.setSort("app_name", "asc");
 			if(limit == null) {
 				builder.setLimit(100);
@@ -101,7 +103,8 @@ public class MyAppsReactor extends AbstractReactor {
 				appMap.put("app_name", doc.get("app_name"));
 				appMap.put("app_description", doc.get("app_description"));
 				appMap.put("app_tags", doc.get("app_tags"));
-
+				appMap.put("app_type", doc.get("app_type"));
+				appMap.put("app_cost", doc.get("app_cost"));
 				appInfo.add(appMap);
 			}
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException e) {
