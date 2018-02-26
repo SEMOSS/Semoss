@@ -147,6 +147,9 @@ public final class SolrUtility {
 			String eType = prop.getProperty(Constants.ENGINE_TYPE);
 			if(eType.equals("prerna.engine.impl.rdbms.RDBMSNativeEngine")) {
 				String rdbmsType = prop.getProperty(Constants.RDBMS_TYPE);
+				if(rdbmsType == null) {
+					rdbmsType = "H2_DB";
+				}
 				fieldData.put("app_type", rdbmsType.toUpperCase());
 				fieldData.put("app_cost", "$");
 			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
