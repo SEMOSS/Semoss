@@ -22,6 +22,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.forms.FormsReactor;
 import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
@@ -611,6 +612,9 @@ public class ReactorFactory {
 		
 		// Dates
 		reactorHash.put("Date", DateReactor.class);
+		
+		// Forms
+		reactorHash.put("UpdateForm", FormsReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
