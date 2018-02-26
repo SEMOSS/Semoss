@@ -10,6 +10,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class GenericRReactor extends AbstractRFrameReactor {
 
@@ -28,9 +30,12 @@ public class GenericRReactor extends AbstractRFrameReactor {
 		String fileName = fInputs.get(this.keysToGet[0]);
 		String functionName = fInputs.get(this.keysToGet[1]);
 
+		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		fileLoc = fileLoc.replace("\\", "/") + "/R/UserScripts/" + fileName;
+		
 		// loop through and generate the syntax
 		StringBuilder script = new StringBuilder();
-		script.append("src(").append(fileName).append(");");
+		script.append("source(\"").append(fileLoc).append("\");");
 		script.append(functionName).append("(");
 		int counter = 0;
 		for(String key : fInputs.keySet()) {
@@ -50,6 +55,7 @@ public class GenericRReactor extends AbstractRFrameReactor {
 		
 		String scriptStr = script.toString();
 		logger.info("Running script : " + scriptStr);
+		this.rJavaTranslator.runR(scriptStr);
 		
 		return new NounMetadata(scriptStr, PixelDataType.CONST_STRING);
 	}
