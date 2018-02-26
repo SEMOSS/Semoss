@@ -28,6 +28,7 @@ public class GenericRReactor extends AbstractRFrameReactor {
 		String fileName = fInputs.get(this.keysToGet[0]);
 		String functionName = fInputs.get(this.keysToGet[1]);
 
+		// loop through and generate the syntax
 		StringBuilder script = new StringBuilder();
 		script.append("src(").append(fileName).append(");");
 		script.append(functionName).append("(");
@@ -45,7 +46,7 @@ public class GenericRReactor extends AbstractRFrameReactor {
 			}
 			counter++;
 		}
-		script.append(")");
+		script.append(");");
 		
 		String scriptStr = script.toString();
 		logger.info("Running script : " + scriptStr);
@@ -53,6 +54,12 @@ public class GenericRReactor extends AbstractRFrameReactor {
 		return new NounMetadata(scriptStr, PixelDataType.CONST_STRING);
 	}
 	
+	/**
+	 * Merging all the inputs into R specific syntax
+	 * Will generate appropriate vector syntax vs. scalar syntax for inputs
+	 * NOTE ::: Cannot have the variable name "all" since its already used by the reactor
+	 * @return
+	 */
 	private Map<String, String> getFunctionInputs() {
 		Map<String, String> inputs = new HashMap<String, String>();
 		
