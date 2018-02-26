@@ -25,6 +25,7 @@ import prerna.ds.r.RDataTable;
 import prerna.forms.FormsReactor;
 import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
+import prerna.sablecc2.reactor.algorithms.GenericRReactor;
 import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
 import prerna.sablecc2.reactor.algorithms.MultiClusteringAlgorithmReactor;
@@ -524,6 +525,7 @@ public class ReactorFactory {
 		reactorHash.put("CurrentFrame", CurrentFrameReactor.class);
 
 		// Algorithm Reactors
+		reactorHash.put("rAlg", GenericRReactor.class);
 		reactorHash.put("RunClustering", ClusteringAlgorithmReactor.class);
 		reactorHash.put("RunMultiClustering", MultiClusteringAlgorithmReactor.class);
 		reactorHash.put("RunLOF", LOFAlgorithmReactor.class);
