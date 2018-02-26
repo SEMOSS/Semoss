@@ -170,7 +170,7 @@ public final class SolrUtility {
 					fieldData.put("app_type", "NEO4J");
 					fieldData.put("app_cost", "$");
 				} else {
-					fieldData.put("app_type", "Tinker");
+					fieldData.put("app_type", "TINKER");
 					fieldData.put("app_cost", "$");
 				}
 			}
