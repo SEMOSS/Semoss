@@ -17,7 +17,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.semoss.web.form.FormResource;
 import prerna.util.Constants;
 import prerna.util.OWLER;
 import prerna.util.Utility;
@@ -45,7 +44,7 @@ public abstract class AbstractFormBuilder {
 	protected AbstractFormBuilder(IEngine engine) {
 		this.formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		this.engine = engine;
-		this.auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineName())).toUpperCase() + FormResource.AUDIT_FORM_SUFFIX;
+		this.auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineName())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
 		generateEngineAuditLog(this.auditLogTableName);
 	}
 	
