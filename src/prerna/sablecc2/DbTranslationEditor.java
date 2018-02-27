@@ -1,9 +1,9 @@
 package prerna.sablecc2;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
-import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -98,13 +98,12 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 
 	public static void main(String[] args) {
 		String expression = "CreateFrame(py); Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget) | Import();";
-		
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
 		DbTranslationEditor translation = new DbTranslationEditor();
 		translation.setEngineToFind("Movie_RDBMS");
 		translation.setEngineToReplace("MyMovie");
 
 		try {
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 			// parsing the pkql - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
 			// apply the translation.
