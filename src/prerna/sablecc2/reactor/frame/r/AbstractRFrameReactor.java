@@ -13,6 +13,7 @@ import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
@@ -201,7 +202,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		//taskOptions={0={layout=Column, alignment={tooltip=[], label=[MovieBudget], value=[Frequency]}}}
 		
 		//set task options
-		task.setTaskOptions(mapOptions);
+		task.setTaskOptions(new TaskOptions(mapOptions));
 
 		List<Map<String, Object>> vizHeaders = new Vector<Map<String, Object>>();
 		Map<String, Object> labelMap = new Hashtable<String, Object>();

@@ -2,13 +2,13 @@ package prerna.util.ga;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.sablecc2.om.task.options.TaskOptions;
 
 public interface IGoogleAnalytics {
 
@@ -93,7 +93,7 @@ public interface IGoogleAnalytics {
 	 * @throws SQLException
 	 */
 
-	void trackViz(Map<String, Object> taskOptions, Insight in, QueryStruct2 qs);
+	void trackViz(TaskOptions taskOptions, Insight in, QueryStruct2 qs);
 	
 	/**
 	 * Adds logical names from Semantic blending to lookup csv file for recommendations
