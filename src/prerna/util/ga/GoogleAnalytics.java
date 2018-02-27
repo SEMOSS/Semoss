@@ -226,6 +226,9 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 
 				// alignment points to a map of string to vector
 				Map<String, Object> alignmentMap = taskOptions.getAlignmentMap(panelId);
+				if(alignmentMap == null) {
+					continue;
+				}
 				boolean first = true;
 				for (String uiCompName : alignmentMap.keySet()) {
 					// ui name can be label, value, x, y, etc.
