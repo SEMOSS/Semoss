@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.Formatter;
 
 public interface ITask extends Iterator<IHeadersDataRow> {
@@ -39,9 +40,9 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 
 	void setFormatOptions(Map<String, Object> optionValues);
 
-	void setTaskOptions(Map<String, Object> hashMap);
+	void setTaskOptions(TaskOptions taskOptions);
 
-	Map<String, Object> getTaskOptions();
+	TaskOptions getTaskOptions();
 	
 	void setHeaderInfo(List<Map<String, Object>> headerInfo);
 

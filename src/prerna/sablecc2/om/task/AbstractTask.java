@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.FormatFactory;
 import prerna.sablecc2.reactor.export.Formatter;
 import prerna.sablecc2.reactor.export.TableFormatter;
@@ -17,7 +18,7 @@ public abstract class AbstractTask implements ITask {
 
 	protected String id;
 	// this holds the options object for the FE
-	protected transient Map<String, Object> taskOptions; 
+	protected transient TaskOptions taskOptions; 
 	// this holds the header info for the FE
 	protected transient List<Map<String, Object>> headerInfo;
 	// this holds the sort info for the FE
@@ -34,7 +35,6 @@ public abstract class AbstractTask implements ITask {
 	protected long internalOffset = 0;
 	
 	public AbstractTask() {
-		this.taskOptions = new HashMap<>();
 		this.sortInfo = new ArrayList<Map<String, Object>>();
 		this.headerInfo = new ArrayList<Map<String, Object>>();
 		// just default to a table formatter
@@ -112,7 +112,7 @@ public abstract class AbstractTask implements ITask {
 	// OTHER GETTERS 
 	
 	@Override
-	public Map<String, Object> getTaskOptions() {
+	public TaskOptions getTaskOptions() {
 		return this.taskOptions;
 	}
 	
@@ -141,7 +141,7 @@ public abstract class AbstractTask implements ITask {
 	// OTHER SETTESR
 
 	@Override
-	public void setTaskOptions(Map<String, Object> taskOptions) {
+	public void setTaskOptions(TaskOptions taskOptions) {
 		this.taskOptions = taskOptions;
 	}
 	
