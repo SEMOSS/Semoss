@@ -20,20 +20,26 @@ public class TaskOptions {
 	}
 
 	public Map<String, Object> getAlignmentMap(String panelId) {
-		Map<String, Object> panelOptions = (Map<String, Object>) this.options.get(panelId);
-		if(panelOptions != null) {
-			if(panelOptions.containsKey("alignment")) {
-				return (Map<String, Object>) panelOptions.get("alignment");
+		Object pOptions = this.options.get(panelId);
+		if(pOptions instanceof Map) {
+			Map<String, Object> panelOptions = (Map<String, Object>) pOptions;
+			if(panelOptions != null) {
+				if(panelOptions.containsKey("alignment")) {
+					return (Map<String, Object>) panelOptions.get("alignment");
+				}
 			}
 		}
 		return null;
 	}
 
 	public String getLayout(String panelId) {
-		Map<String, Object> panelOptions = (Map<String, Object>) this.options.get(panelId);
-		if(panelOptions != null) {
-			if(panelOptions.containsKey("layout")) {
-				return (String) panelOptions.get("layout");
+		Object pOptions = this.options.get(panelId);
+		if(pOptions instanceof Map) {
+			Map<String, Object> panelOptions = (Map<String, Object>) pOptions;
+			if(panelOptions != null) {
+				if(panelOptions.containsKey("layout")) {
+					return (String) panelOptions.get("layout");
+				}
 			}
 		}
 		return null;
