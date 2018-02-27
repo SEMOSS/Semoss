@@ -32,6 +32,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.PixelDataType;
@@ -185,25 +186,25 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 			query.append(this.filterStatements.get(i).toString());
 		}
-//		boolean firstTime = true;
-//		for(String key : this.andWhereFilters.keySet()) {
-//			String whereStatement = this.andWhereFilters.get(key);
-//			if(firstTime) {
-//				firstTime = false;
-//				query.append(" WHERE ").append(whereStatement);
-//			} else {
-//				query.append(" AND ").append(whereStatement);
-//			}
-//		}
-//		for(String key : this.orWhereFilters.keySet()) {
-//			String whereStatement = this.orWhereFilters.get(key);
-//			if(firstTime) {
-//				firstTime = false;
-//				query.append(" WHERE ").append(whereStatement);
-//			} else {
-//				query.append(" OR ").append(whereStatement);
-//			}
-//		}
+		//		boolean firstTime = true;
+		//		for(String key : this.andWhereFilters.keySet()) {
+		//			String whereStatement = this.andWhereFilters.get(key);
+		//			if(firstTime) {
+		//				firstTime = false;
+		//				query.append(" WHERE ").append(whereStatement);
+		//			} else {
+		//				query.append(" AND ").append(whereStatement);
+		//			}
+		//		}
+		//		for(String key : this.orWhereFilters.keySet()) {
+		//			String whereStatement = this.orWhereFilters.get(key);
+		//			if(firstTime) {
+		//				firstTime = false;
+		//				query.append(" WHERE ").append(whereStatement);
+		//			} else {
+		//				query.append(" OR ").append(whereStatement);
+		//			}
+		//		}
 
 		//grab the order by and get the corresponding display name for that order by column
 		query = appendGroupBy(query);
@@ -273,12 +274,13 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		for(IQuerySelector selector : columnSelectors) {
 			addSelector(selector);
 		}
-		
+
 		for(IQuerySelector selector : mathSelectors) {
 			addSelector(selector);
 		}
 
 		//get the database/table name and add to string
+
 		StringBuilder tableName = new StringBuilder();
 		String[] startPoint = froms.get(0);
 		tableName.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
@@ -326,6 +328,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else {
 			logger.info("SQL QUERY....  " + query1);
 		}
+		System.out.println(query1);
 		return query1.toString();
 	}
 
@@ -371,6 +374,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 * @param selector
 	 * @return
 	 */
+	/*
 	private String processSelector(IQuerySelector selector, boolean addProcessedColumn) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
@@ -388,6 +392,26 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			System.out.println("Selector Type = Arithmetic");
 
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
+		}
+		else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
+			return processOpaqueSelector((QueryOpaqueSelector) selector);
+		}			
+		
+		return null;
+	}
+	*/
+	private String processSelector(IQuerySelector selector, boolean addProcessedColumn) {
+		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
+		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
+			return processConstantSelector((QueryConstantSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+			return processColumnSelector((QueryColumnSelector) selector, addProcessedColumn);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) { 
+			return processFunctionSelector((QueryFunctionSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			return processArithmeticSelector((QueryArithmeticSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
+			return processOpaqueSelector((QueryOpaqueSelector) selector);
 		}
 		return null;
 	}
@@ -432,7 +456,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		// if there are no joins
 		// we need to have a from table
 		if(this.relationList.isEmpty()) {
-			addFrom(table);
+			addFrom(table, tableAlias);
 		}
 
 		// keep track of all the processed columns
@@ -476,6 +500,12 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 
+	private String processOpaqueSelector(QueryOpaqueSelector selector) {
+		if(this.relationList.isEmpty() && selector.getTable() != null) {
+			addFrom(selector.getTable(), selector.getTable());
+		}
+		return selector.getQuerySelectorSyntax();
+	}
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
 
 
@@ -486,9 +516,8 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 * Adds the form statement for each table
 	 * @param conceptualTableName			The name of the table
 	 */
-	private void addFrom(String conceptualTableName)
+	private void addFrom(String conceptualTableName, String alias)
 	{
-		String alias = getAlias(getPhysicalTableNameFromConceptualName(conceptualTableName));
 		// need to determine if we can have multiple froms or not
 		// we don't want to add the from table multiple times as this is invalid in sql
 		if(!tableProcessed.containsKey(conceptualTableName)) {
@@ -593,7 +622,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
-	
+
 	public void addFilters() {
 		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
@@ -603,7 +632,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 	}
-	
+
 	private StringBuilder processFilter(IQueryFilter filter) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
@@ -615,7 +644,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		}
 		return null;
 	}
-	
+
 	private StringBuilder processOrQueryFilter(OrQueryFilter filter) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
@@ -661,6 +690,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
 			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			return addSelectorToQueryFilter(leftComp, rightComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 			return addValueToValueFilter(rightComp, leftComp, thisComparator);
@@ -668,6 +701,39 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 	
+	private StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, false);
+		
+		QueryStruct2 subQs = (QueryStruct2) rightComp.getValue();
+		ImpalaInterpreter innerInterpreter;
+		try {
+			innerInterpreter = this.getClass().newInstance();
+			if(this.frame != null) {
+			//	subQs = QueryStructConverter.getPhysicalQs(subQs, this.frame.getMetaData());
+			}
+			innerInterpreter.setQueryStruct(subQs);
+			innerInterpreter.setLogger(this.logger);
+			String innerQuery = innerInterpreter.composeQuery();
+			
+			StringBuilder filterBuilder = new StringBuilder(leftSelectorExpression);
+			if(thisComparator.trim().equals("==")) {
+				filterBuilder .append(" IN ( ").append(innerQuery).append(" ) ");
+			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder.append(" NOT IN ( ").append(innerQuery).append(" ) ");
+			} else {
+				filterBuilder.append(" ").append(thisComparator).append(" (").append(innerQuery).append(")");
+			}
+			return filterBuilder;
+		} catch (InstantiationException | IllegalAccessException e) {
+			e.printStackTrace();
+		}
+	
+		return null;
+	}
+
+
 	/**
 	 * Add filter for a column to values
 	 * @param filter 
@@ -680,7 +746,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		String leftDataType = leftSelector.getDataType();
-		
+
 		// if it is null, then we know we have a column
 		// need to grab from metadata
 		if(leftDataType == null) {
@@ -688,19 +754,21 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			String[] leftConProp = getConceptProperty(left_concept_property);
 			String leftConcept = leftConProp[0];
 			String leftProperty = leftConProp[1];
-	
+
 			if(engine != null && !engine.isBasic()) {
 				leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
 				// ugh, need to try if it is a property
 				if(leftDataType == null) {
 					leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
 				}
-				leftDataType = leftDataType.replace("TYPE:", "");
-			} else if(frame != null) {
+				if(leftDataType != null) {
+					leftDataType = leftDataType.replace("TYPE:", "");
+				}			
+				} else if(frame != null) {
 				leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
 			}
 		}
-		
+
 		List<Object> objects = new Vector<Object>();
 		// ugh... this is gross
 		if(rightComp.getValue() instanceof List) {
@@ -708,8 +776,8 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else {
 			objects.add(rightComp.getValue());
 		}
-		
-		
+
+
 		StringBuilder filterBuilder = new StringBuilder();
 		if(thisComparator.trim().equals("?like")) {
 			// like requires OR statements for multiple
@@ -742,10 +810,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				filterBuilder.append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 			}
 		}
-		
+
 		return filterBuilder;
 	}
-	
+
 	/**
 	 * Add filter for column to column
 	 * @param leftComp
@@ -760,7 +828,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
-		
+
 		StringBuilder filterBuilder = new StringBuilder();
 		filterBuilder.append(processSelector(leftSelector, false));
 		if(thisComparator.equals("==")) {
@@ -772,7 +840,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 		return filterBuilder;
 	}
-	
+
 	private StringBuilder addValueToValueFilter(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
 		// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
 		// ... what is the point of this... this is a dumb thing... you are dumb
@@ -793,8 +861,8 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		}
 		//TODO: NEED TO CONSIDER DATES!!!
 		String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, comparator);
-		
-		
+
+
 		PixelDataType rCompType = rightComp.getNounType();
 		List<Object> rightObjects = new Vector<Object>();
 		// ugh... this is gross
@@ -803,7 +871,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}
-		
+
 		String rightDataType = null;
 		if(rCompType == PixelDataType.CONST_DECIMAL) {
 			rightDataType = "NUMBER";
@@ -816,7 +884,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
-		
+
 		StringBuilder filterBuilder = new StringBuilder();
 		filterBuilder.append(leftFilterFormatted.toString());
 		if(comparator.equals("==")) {
@@ -840,7 +908,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	private String getFormatedObject(String dataType, List<Object> objects, String comparator) {
 		// this will hold the sql acceptable format of the object
 		StringBuilder myObj = new StringBuilder();
-		
+
 		// defining variables for looping
 		int i = 0;
 		int size = objects.size();
@@ -860,7 +928,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				for(; i < size; i++) {
 					myObj.append(" , ").append(objects.get(i));
 				}
-			} else if(SemossDataType.DATE.equals(type)) {
+			} else if(SemossDataType.DATE == type) {
 				String leftWrapper = null;
 				String rightWrapper = null;
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
@@ -870,7 +938,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-				
+
 				// get the first value
 				String val = objects.get(0).toString();
 				String d = Utility.getDate(val);
@@ -893,7 +961,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-				
+
 				// get the first value
 				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
 				// get the first value
@@ -929,7 +997,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-				
+
 				// get the first value
 				String val = objects.get(0).toString();
 				String d = Utility.getDate(val);
@@ -952,7 +1020,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 					leftWrapper = "'%";
 					rightWrapper = "%'";
 				}
-				
+
 				// get the first value
 				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
 				// get the first value
@@ -965,16 +1033,15 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				}
 			}
 		}
-		
+
 		return myObj.toString();
 	}
-	
+
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
 
 
 	//////////////////////////////////////append order by  ////////////////////////////////////////////
 
-	//TODO : lets get to this once we determine other things work
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
 		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
@@ -984,7 +1051,9 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			String columnConceptualName = orderBySelector.getColumn();
 			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
 
+			boolean origPrim = false;
 			if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+				origPrim = true;
 				columnConceptualName = getPrimKey4Table(tableConceptualName);
 			} else {
 				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
@@ -993,9 +1062,10 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			StringBuilder thisOrderBy = new StringBuilder();
 
 			// might want to order by a derived column being returned
-			if(this.selectorAliases.contains(tableConceptualName)) {
+			if(origPrim && this.selectorAliases.contains((tableConceptualName.toLowerCase()))) {
 				// either instantiate the string builder or add a comma for multi sort
-				thisOrderBy.append("\"").append(tableConceptualName).append("\"");
+				//thisOrderBy.append("\"").append(tableConceptualName).append("\"");
+				thisOrderBy.append(tableConceptualName);
 			} 
 			// we need to make sure the sort is a valid one!
 			// if it is not already processed, there is no way to sort it...
@@ -1003,7 +1073,6 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				if(this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) {
 					thisOrderBy.append(getAlias(tableConceptualName)).append(".").append(columnConceptualName);
 				} else {
-
 					continue;
 				}
 			} 
@@ -1013,7 +1082,6 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				continue;
 			}
 
-
 			if(orderByDir == ORDER_BY_DIRECTION.ASC) {
 				thisOrderBy.append(" ASC ");
 			} else {
@@ -1021,22 +1089,6 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			}
 			validOrderBys.add(thisOrderBy);
 		}
-		//must have an order by, so if blank, add order by first selector
-		if(validOrderBys.size()==0 && (!(retTableToCols.isEmpty()))){
-			String tableConceptualName = retTableToCols.keySet().iterator().next();
-			Vector columnConceptualNameVect = (Vector) retTableToCols.values().toArray()[0];
-			String columnConceptualName = columnConceptualNameVect.get(0).toString();
-			if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
-				columnConceptualName = getPrimKey4Table(tableConceptualName);
-			}
-			StringBuilder thisOrderBy = new StringBuilder();
-			thisOrderBy.append(getAlias(tableConceptualName)).append(".").append(columnConceptualName).append(" ASC ");
-			validOrderBys.add(thisOrderBy);
-
-
-		}
-
-
 
 		int size = validOrderBys.size();
 		for(int i = 0; i < size; i++) {
@@ -1063,7 +1115,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		//all columns must be grouped by, This is because if there is a aggregate function, all columns need to be grouped to that aggregate
 		for(IQuerySelector iterate : selectorTest){
 			SELECTOR_TYPE type = iterate.getSelectorType();
-			System.out.println(type.toString());
+			//System.out.println(type.toString());
 			if(type.toString().equals("COLUMN")){
 				QueryColumnSelector groupBySelector = (QueryColumnSelector) iterate;
 				String tableConceptualName = groupBySelector.getTable();
@@ -1192,6 +1244,8 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 */
 	public String getAlias(String curTableName)
 	{
+		return curTableName;
+	/*
 		// try to find if the table name has schema in it
 		String [] tableTokens = curTableName.split("[.]");
 
@@ -1217,6 +1271,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			aliases.put(tableName, tryAlias);
 			return tryAlias;
 		}
+		*/
 	}
 
 	////////////////////////////// end caching utility methods //////////////////////////////////////
