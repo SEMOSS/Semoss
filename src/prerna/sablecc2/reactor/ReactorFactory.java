@@ -406,7 +406,7 @@ public class ReactorFactory {
 		reactorHash.put("Iterate", IterateReactor.class);
 		reactorHash.put("Task", TaskReactor.class); // defines the task
 		reactorHash.put("ResetTask", ResetTaskReactor.class); // reset a task
-		reactorHash.put("ResetPanelTasks", ResetPanelTasksReactor.class); // reset all panel tasks
+		reactorHash.put("ResetAll", ResetPanelTasksReactor.class); // reset all panel tasks
 		reactorHash.put("RemoveTask", RemoveTaskReactor.class);
 		reactorHash.put("Collect", CollectReactor.class); // collect from task
 		reactorHash.put("CollectGraph", CollectGraphReactor.class); // collect from task

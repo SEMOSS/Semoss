@@ -68,8 +68,7 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 				// i was able to reset the task
 				// let me modify the id so the FE knows 
 				// to override the current view
-				tStore.removeTask(id);
-				tStore.addTask(task);
+				tStore.renameTask(id);
 				
 				logger.info("Success! Starting to collect data");
 				// we add at index 0 since we are going in reverse

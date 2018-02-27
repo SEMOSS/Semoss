@@ -22,10 +22,10 @@ public class TaskStore {
 		return taskId;
 	}
 	
-	public String addTask(ITask data) {
+	public String addTask(ITask newTask) {
 		String newId = generateID();
-		data.setId(newId);
-		return addTask(newId, data);
+		newTask.setId(newId);
+		return addTask(newId, newTask);
 	}
 	
 	public ITask getTask(String taskId) {
@@ -35,6 +35,11 @@ public class TaskStore {
 	public void removeTask(String taskId) {
 		ITask task = this.taskMap.remove(taskId);
 		task.cleanUp();
+	}
+	
+	public void renameTask(String taskId) {
+		ITask task = this.taskMap.remove(taskId);
+		addTask(task);
 	}
 	
 	public void clearAllTasks() {
