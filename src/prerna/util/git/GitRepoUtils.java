@@ -76,13 +76,24 @@ public class GitRepoUtils {
 	 * @param repositoryName
 	 */
 	public static void removeRemote(String localRepository, String repositoryName) {
+		Git thisGit = null;
+		Repository thisRepo = null;
 		try {
-			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+			thisGit = Git.open(new File(localRepository));
+			thisRepo = thisGit.getRepository();
+			StoredConfig config = thisRepo.getConfig();
 			config.unsetSection("remote", repositoryName);
 			config.save();
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Unable to drop remote");
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 
@@ -157,15 +168,26 @@ public class GitRepoUtils {
 	 * @param repoName
 	 */
 	public static void addRemote(String localRepository, String username, String repoName) {
+		Git thisGit = null;
+		Repository thisRepo = null;
 		StoredConfig config;
 		try {
-			config = Git.open(new File(localRepository)).getRepository().getConfig();
+			thisGit = Git.open(new File(localRepository));
+			thisRepo = thisGit.getRepository();
+			config = thisRepo.getConfig();
 			config.setString("remote", repoName , "url", "https://github.com/" + username + "/" + repoName);
 			config.setString("remote", repoName , "fetch", "+refs/heads/*:refs/remotes/" + repoName + "/*");
 			config.save();
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with adding the remote repository");
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 
@@ -185,7 +207,7 @@ public class GitRepoUtils {
 		if(userName != null && password != null && !userName.isEmpty() && !password.isEmpty()) {
 			cp = new UsernamePasswordCredentialsProvider(userName, password);
 		}
-		Git thisGit;
+		Git thisGit = null;
 		try {
 			thisGit = Git.open(file);
 			if(cp != null) {
@@ -193,10 +215,13 @@ public class GitRepoUtils {
 			} else {
 				thisGit.fetch().setRemote(remoteRepo).call();
 			}
-			thisGit.close();
 		} catch (IOException | GitAPIException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
+		} finally {
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 
@@ -217,10 +242,12 @@ public class GitRepoUtils {
 	 */
 	public static List<Map<String, String>> listConfigRemotes(String localRepositoryName) {
 		List<Map<String, String>> returnList = new Vector<Map<String, String>>();
+		Git thisGit = null;
+		Repository thisRepo = null;
 		try {
 			File file = new File(localRepositoryName);
-			Repository thisRepo = Git.open(file).getRepository();
-
+			thisGit = Git.open(file);
+			thisRepo = thisGit.getRepository();
 			String[] remNames = thisRepo.getRemoteNames().toArray(new String[]{});
 			for(int remIndex = 0; remIndex < remNames.length; remIndex++) {
 				String remName = remNames[remIndex] +"";
@@ -241,6 +268,13 @@ public class GitRepoUtils {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 
 		return returnList;
