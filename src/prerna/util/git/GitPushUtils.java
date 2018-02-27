@@ -150,6 +150,7 @@ public class GitPushUtils {
 		} catch (GitAPIException e) {
 			e.printStackTrace();
 		}
+		thisGit.close();
 	}
 	
 
@@ -174,5 +175,6 @@ public class GitPushUtils {
 		} catch (GitAPIException e) {
 			e.printStackTrace();
 		}
+		thisGit.close();
 	}
 }
