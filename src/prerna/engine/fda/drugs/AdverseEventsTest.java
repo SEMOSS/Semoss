@@ -36,9 +36,8 @@ public class AdverseEventsTest {
 		String url = "https://api.fda.gov/drug/event.json";
 
 		CloseableHttpClient httpclient = HttpClients.createDefault();
-		HttpGet getRequest = new HttpGet(url);
-//		printResponse(httpclient, getRequest);
-
+//		printResponse(httpclient, url,  "");
+		
 		// lets look at how we can narrow down what we want
 		url += "?search=";
 
@@ -46,26 +45,61 @@ public class AdverseEventsTest {
 		// serious 1 = death or hospitalization / disability
 		// serious 2 = not 1
 		String component = "serious:1";
-		getRequest = new HttpGet(url + component);
-//		printResponse(httpclient, getRequest);
+//		printResponse(httpclient, url,  component);
 
-		// filter values based on country
-		component = "primarysource.reportercountry:US";
-		getRequest = new HttpGet(url + component);
-		printResponse(httpclient, getRequest);
+		// where the event occurred
+		component = "occurcountry:US";
+//		printResponse(httpclient, url,  component);
 		
 		// can have the above be exact
-		component = "primarysource.reportercountry.exact:US";
-		getRequest = new HttpGet(url + component);
-		printResponse(httpclient, getRequest);
+		component = "occurcountry.exact:US";
+//		printResponse(httpclient, url,  component);
 		
+		// patient sex
+		// 0 = unknown
+		// 1 = male
+		// 2 = female
+		component = "patient.patientsex:1";
+//		printResponse(httpclient, url,  component);
+		
+		// yay, i can combine this as well!!!
+		component = "occurcountry.exact:US&patient.patientsex:1";
+//		printResponse(httpclient, url,  component);
+		
+		// the way a drug is adminsitered 
+		// between 0 to 67
+		component = "patient.drug.drugadministrationroute:067";
+//		printResponse(httpclient, url,  component);
+		
+		// drug name
+		// the response is "HUGE"
+		component = "patient.drug.medicinalproduct:IBUPROFEN";
+		printResponse(httpclient, url,  component);
+		
+		
+		
+		
+		
+		
+		
+		// meh, dont like these as much anymore
+//		// filter values based on country
+//		component = "primarysource.reportercountry:US";
+//		getRequest = new HttpGet(url + component);
+//		printResponse(httpclient, getRequest);
+//		
+//		// can have the above be exact
+//		component = "primarysource.reportercountry.exact:US";
+//		getRequest = new HttpGet(url + component);
+//		printResponse(httpclient, getRequest);
 	}
 
-	private static void printResponse(CloseableHttpClient httpclient, HttpGet getRequest) {
-		System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+	private static void printResponse(CloseableHttpClient httpclient, String baseUrl, String params) {
+		System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + params);
 		HttpResponse response = null;
 		InputStreamReader isr = null;
 		try {
+			HttpGet getRequest = new HttpGet(baseUrl + params);
 			response = httpclient.execute(getRequest);
 			isr = new InputStreamReader(response.getEntity().getContent(), "UTF-8");
 		} catch (Exception e) {
