@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.io.StringBufferInputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -163,4 +165,47 @@ public class PixelUtility {
 		literal = literal.trim();
 		return ((literal.startsWith("\"") || literal.startsWith("'")) && (literal.endsWith("\"") || literal.endsWith("'")));
 	}
+	
+	/**
+	 * Checks if recipe has a param
+	 * @param pixels
+	 * @return
+	 */
+	public static boolean hasParam(String[] pixels) {
+		String recipe = String.join("", pixels);
+		return PixelUtility.hasParam(recipe);
+	}
+	
+	/**
+	 * Checks if recipe has a param
+	 * @param pixels
+	 * @return
+	 */
+	public static boolean hasParam(List<String> pixels) {
+		String recipe = String.join("", pixels);
+		return PixelUtility.hasParam(recipe);
+	}
+	
+	/**
+	 * Checks if recipe has a param
+	 * @param pixel
+	 * @return
+	 */
+	public static boolean hasParam(String pixel) {
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(pixel)), pixel.length())));
+		InsightParamTranslation translation = new InsightParamTranslation();
+		try {
+			// parsing the pixel - this process also determines if expression is syntactically correct
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+			return translation.hasParam();
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+
 }
