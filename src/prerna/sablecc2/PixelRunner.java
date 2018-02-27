@@ -1,9 +1,9 @@
 package prerna.sablecc2;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
-import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,9 +30,9 @@ public class PixelRunner {
 
 	/**
 	 * Runs a given pixel expression (can be multiple if semicolon delimited) on a provided data maker 
-	 * @param expression			The sequence of semicolon delimited pkql expressions.
+	 * @param expression			The sequence of semicolon delimited pixel expressions.
 	 * 								If just one expression, still must end with a semicolon
-	 * @param frame					The data maker to run the pkql expression on
+	 * @param frame					The data maker to run the pixel expression on
 	 */
 	
 	private List<NounMetadata> results = new Vector<NounMetadata>();
@@ -55,7 +55,7 @@ public class PixelRunner {
 	 * Method to take a string and return the parsed value of the pixel
 	 */
 	public static List<String> parsePixel(String expression) throws ParserException, LexerException, IOException {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 		Start tree = p.parse();
 
 		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
@@ -76,9 +76,9 @@ public class PixelRunner {
 	 * throws exception if pixel cannot be parsed
 	 */
 	public static Set<String> validatePixel(String expression) throws ParserException, LexerException, IOException {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 		ValidatorTranslation translation = new ValidatorTranslation();
-		// parsing the pkql - this process also determines if expression is syntactically correct
+		// parsing the pixel - this process also determines if expression is syntactically correct
 		Start tree = p.parse();
 		// apply the translation.
 		tree.apply(translation);
@@ -87,11 +87,11 @@ public class PixelRunner {
 
 	public void runPixel(String expression, Insight insight) {
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodedTextToOriginal);
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(expression)), expression.length())));
-		DepthFirstAdapter translation = new GreedyTranslation(this, insight);
-
 		try {
-			// parsing the pkql - this process also determines if expression is syntactically correct
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+			DepthFirstAdapter translation = new GreedyTranslation(this, insight);
+
+			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
 			// apply the translation.
 			tree.apply(translation);
