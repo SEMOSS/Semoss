@@ -43,7 +43,7 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 			// if it has task options
 			TaskOptions tOptions = task.getTaskOptions();
 			if(tOptions != null && !tOptions.isEmpty()) {
-				List<String> panels = tOptions.getPanelIds();
+				Set<String> panels = tOptions.getPanelIds();
 				if(processedPanels.containsAll(panels)) {
 					// no new panels, so we can ignore
 					// we require all the panels
