@@ -16,6 +16,7 @@ import org.openrdf.rio.RDFHandlerException;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -127,6 +128,11 @@ public class AbstractEngineCreator {
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
+	//added for connect to external Impala workflow
+	protected void generateEngineFromImpalaConnection(String schema, String dbName) {
+		connectToExternalImpalaEngine(schema,dbName);
+		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.IMPALA, this.customBaseURI);
+	}
 	//added for connect to external RDBMS workflow
 	private void connectToExternalRDBMSEngine(String schema, String dbName) {
 		engine = new RDBMSNativeEngine();
@@ -152,6 +158,32 @@ public class AbstractEngineCreator {
 		IEngine insightDatabase = createNewInsightsDatabase(dbName);
 		engine.setInsightDatabase(insightDatabase);
 	}
+	
+	//added for connect to external Impala workflow
+		private void connectToExternalImpalaEngine(String schema, String dbName) {
+			engine = new ImpalaEngine();
+			engine.setEngineName(dbName);
+			Properties prop = new Properties();
+			String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+			prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
+			prop.put(Constants.ENGINE, dbName);
+			prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
+			prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
+			prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
+			prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+
+			// setting as a parameter for engine
+			//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
+			prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database");
+			prop.put("TEMP", "TRUE");
+			prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
+			((AbstractEngine) engine).setProperties(prop);
+			engine.openDB(null);
+			
+			// create the insight database
+			IEngine insightDatabase = createNewInsightsDatabase(dbName);
+			engine.setInsightDatabase(insightDatabase);
+		}
 
 	protected void openEngineWithConnection(String engineName) {
 		engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
@@ -289,7 +321,6 @@ public class AbstractEngineCreator {
 				+ "QUESTION_OWL CLOB, "
 				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
 				+ "DATA_TABLE_ALIGN VARCHAR(500), "
-				+ "HIDDEN_INSIGHT BOOLEAN, "
 				+ "QUESTION_PKQL ARRAY)";
 
 		insightRDBMSEngine.insertData(questionTableCreate);
