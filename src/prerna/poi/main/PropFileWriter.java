@@ -61,12 +61,13 @@ public class PropFileWriter {
 	private File engineDirectory;
 	private String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
 	private String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
+	private String impalaEngine = "prerna.engine.impl.rdbms.ImpalaEngine";
 	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
 	private boolean hasMap = false;
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	SQLQueryUtil queryUtil;
-	
+
 	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default 
 
 	// TODO Change variable names, should we change default.properties to default.smss?
@@ -166,22 +167,7 @@ public class PropFileWriter {
 	 *            String containing the name of the new database
 	 * @throws FileReaderException
 	 */
-	private void writeCustomDBProp(String defaultName, String dbname, ImportOptions.DB_TYPE dbType) throws IOException {
-		writeCustomDBProp(defaultName,dbname, dbType, null);
-	}
-
-	/**
-	 * Creates the contents of the SMSS file in a temp file for the engine Adds file locations of the database, custom map, questions, and OWl files
-	 * for the engine Adds the file locations to the contents of the default SMSS file which contains constant information about the database
-	 * 
-	 * @param defaultName
-	 *            String containing the path to the Default SMSS file
-	 * @param dbname
-	 *            String containing the name of the new database
-	 * @throws FileReaderException
-	 */
 	private void writeCustomDBProp(String defaultName, String dbname, ImportOptions.DB_TYPE dbType, String fileName) throws IOException {
-		
 		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname + ".jnl";
 		// move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
@@ -212,7 +198,13 @@ public class PropFileWriter {
 				if(this.queryUtil == null) {
 					this.queryUtil = SQLQueryUtil.initialize(dbDriverType);
 				}
-				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
+
+				if((this.queryUtil.getDatabaseType().toString().equalsIgnoreCase("IMPALA"))){
+					pw.write(Constants.ENGINE_TYPE + "\t" + this.impalaEngine + "\n");
+				}
+				else{
+					pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
+				}
 				pw.write(Constants.RDBMS_TYPE + "\t" + queryUtil.getDatabaseType().toString() + "\n");
 				pw.write(Constants.DRIVER + "\t" + queryUtil.getDatabaseDriverClassName() + "\n");
 				pw.write(Constants.USERNAME + "\t" + queryUtil.getDefaultDBUserName() + "\n");
@@ -282,11 +274,11 @@ public class PropFileWriter {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void setSQLQueryUtil(SQLQueryUtil queryUtil) {
 		this.queryUtil = queryUtil;
 	}
-	
+
 	public void setBaseDir(String baseDir) {
 		this.baseDirectory = baseDir;
 	}
@@ -294,7 +286,7 @@ public class PropFileWriter {
 	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
 		this.dbDriverType = dbDriverType;
 	}
-	
+
 	public void setTinkerType(ImportOptions.TINKER_DRIVER tinkerDriverType) {
 		this.tinkerDriverType = tinkerDriverType;
 	}

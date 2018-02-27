@@ -41,6 +41,7 @@ public abstract class SQLQueryUtil {
 		DERBY,
 		H2_DB,
 		IMPALA,
+		REDSHIFT,
 		MARIA_DB,
 		MYSQL,
 		ORACLE, 
@@ -121,6 +122,8 @@ public abstract class SQLQueryUtil {
 			return new MySQLQueryUtil(hostname, port, schema, username, password);
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
 			return new OracleQueryUtil(hostname, port, schema, username, password);
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.IMPALA) {
+			return new ImpalaQueryUtil(hostname, port, schema, username, password);
 		} else {
 			return null;
 		}
