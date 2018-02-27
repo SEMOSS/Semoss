@@ -53,7 +53,7 @@ public abstract class AbstractTask implements ITask {
 			collectedData.put("headerInfo", this.headerInfo);
 			if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
 				collectedData.put("format", getFormatMap());
-				collectedData.put("taskOptions", this.taskOptions);
+				collectedData.put("taskOptions", this.taskOptions.getOptions());
 				collectedData.put("sortInfo", this.sortInfo);
 				collectedData.put("filterInfo", this.filterInfo);
 			}
