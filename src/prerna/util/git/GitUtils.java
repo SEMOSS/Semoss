@@ -19,6 +19,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -118,9 +119,13 @@ public class GitUtils {
 	 * @param localRepository
 	 */
 	public static void removeAllIgnore(String localRepository) {
+		Git thisGit = null;
+		Repository thisRepo = null;
 		try {
+			thisGit = Git.open(new File(localRepository));
+			thisRepo = thisGit.getRepository();
 			// remove from checkout
-			StoredConfig config = Git.open(new File(localRepository)).getRepository().getConfig();
+			StoredConfig config = thisRepo.getConfig();
 
 			config.setString("core", null, "sparseCheckout", "false");
 			config.save();
@@ -134,6 +139,13 @@ public class GitUtils {
 			myNewFile.delete();
 		} catch(IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 	
@@ -144,13 +156,24 @@ public class GitUtils {
 	 */
 	public static void checkoutIgnore(String localRepository, String [] files)
 	{
+		Git thisGit = null;
+		Repository thisRepo = null;
 		StoredConfig config = null;
 		try {
-			config = Git.open(new File(localRepository)).getRepository().getConfig();
+			thisGit = Git.open(new File(localRepository));
+			thisRepo = thisGit.getRepository();
+			config = thisRepo.getConfig();
 			config.setString("core", null, "sparseCheckout", "true");
 			config.save();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 
 		File myFile2 = new File(localRepository + "/.git/info/sparse-checkout");

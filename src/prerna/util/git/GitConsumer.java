@@ -173,8 +173,12 @@ public class GitConsumer {
 				}
 				// load the app
 				IEngine app = loadApp(fileToMove.getAbsolutePath(), logger);
+				// load the mosfet
 				loadMosfetFiles(app, versionFolder, logger);
+				// move the smss
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
+				// set the engine to the new smss
+				app.setPropFile(targetDir + "/" + yourName4App + ".smss");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
