@@ -309,7 +309,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 				}
 				// we are done for this panel track it
 				// and then go to the next one
-				String curExpression = exprStart + vizType + ":[" + exprBuilder.toString() + exprEnd;
+				String curExpression = exprStart + "\"" + vizType  + "\""+ ":[" + exprBuilder.toString() + exprEnd;
 				in.trackPixels("viz", curExpression);
 			}
 
