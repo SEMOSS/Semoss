@@ -21,6 +21,7 @@ import org.eclipse.jgit.api.errors.NoMessageException;
 import org.eclipse.jgit.api.errors.UnmergedPathsException;
 import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
 
 public class GitMergeHelper {
 
@@ -39,10 +40,14 @@ public class GitMergeHelper {
 	 */
 	public static void merge(String localRepository, String startPoint, String branchName, int numAttempts, int maxAttempts, boolean delete)
 	{
+		Git thisGit = null;
+		Repository thisRepo = null;
 		try {
-			Git thisGit = Git.open(new File(localRepository));
+			thisGit = Git.open(new File(localRepository));
+			thisRepo = thisGit.getRepository();
+			Ref startRef = thisRepo.findRef(startPoint);
+			
 			CheckoutCommand cc = thisGit.checkout();
-			Ref startRef = thisGit.getRepository().findRef(startPoint);
 			cc.setName(startPoint);
 			cc.setCreateBranch(false); // probably not needed, just to make sure
 			if(startRef != null) {
@@ -90,32 +95,30 @@ public class GitMergeHelper {
 				merge(localRepository, startPoint, branchName, numAttempts, maxAttempts, delete);
 			}
 		} catch (NoFilepatternException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoHeadException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoMessageException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (UnmergedPathsException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ConcurrentRefUpdateException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (WrongRepositoryStateException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (AbortedByHookException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			if(thisRepo != null) {
+				thisRepo.close();
+			}
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 
@@ -148,6 +151,10 @@ public class GitMergeHelper {
 			thisGit.reset().setMode(ResetType.HARD).setRef("HEAD").call();
 		} catch (GitAPIException e) {
 			e.printStackTrace();
+		} finally {
+			if(thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 
