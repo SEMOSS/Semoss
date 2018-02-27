@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.task;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -14,6 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ResetPanelTasksReactor extends AbstractReactor {
@@ -41,9 +41,9 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 			ITask task = tStore.getTask(id);
 			// a task is for a panel 
 			// if it has task options
-			Map<String, Object> tOptions = task.getTaskOptions();
+			TaskOptions tOptions = task.getTaskOptions();
 			if(tOptions != null && !tOptions.isEmpty()) {
-				Set<String> panels = tOptions.keySet();
+				List<String> panels = tOptions.getPanelIds();
 				if(processedPanels.containsAll(panels)) {
 					// no new panels, so we can ignore
 					// we require all the panels
