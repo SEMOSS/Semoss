@@ -1,12 +1,12 @@
 package prerna.sablecc2.reactor.task;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.ga.GATracker;
 
 public class TaskOptionsReactor extends TaskBuilderReactor {
@@ -20,9 +20,9 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 		List<Object> mapOptions = this.curRow.getValuesOfType(PixelDataType.MAP);
 		if(mapOptions == null || mapOptions.size() == 0) {
 			// if it is null, i guess we just clear the map values
-			this.task.setTaskOptions(new HashMap<String, Object>());
+			this.task.setTaskOptions(null);
 		} else {
-			this.task.setTaskOptions((Map<String, Object>) mapOptions.get(0));
+			this.task.setTaskOptions(new TaskOptions((Map<String, Object>) mapOptions.get(0)));
 		}
 		
 		// track GA data
