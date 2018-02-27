@@ -150,8 +150,13 @@ public final class SolrUtility {
 				if(rdbmsType == null) {
 					rdbmsType = "H2_DB";
 				}
-				fieldData.put("app_type", rdbmsType.toUpperCase());
-				fieldData.put("app_cost", "$");
+				rdbmsType = rdbmsType.toUpperCase();
+				fieldData.put("app_type", rdbmsType);
+				if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
+					fieldData.put("app_cost", "$$");
+				} else {
+					fieldData.put("app_cost", "$");
+				}
 			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
 				fieldData.put("app_type", "IMPALA");
 				fieldData.put("app_cost", "$$$");
