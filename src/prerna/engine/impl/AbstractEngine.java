@@ -112,7 +112,7 @@ public abstract class AbstractEngine implements IEngine {
 	private String propFile = null;
 
 	protected Properties prop = null;
-	private Properties generalEngineProp = null;
+	public Properties generalEngineProp = null;
 	private Properties ontoProp = null;
 
 	private MetaHelper owlHelper = null;
