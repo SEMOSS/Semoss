@@ -34,7 +34,7 @@ public class CollectGraphReactor extends CollectReactor {
 		collectedData.put("format", formatMap);
 		collectedData.put("numCollected", "-1");
 		collectedData.put("headerInfo", getHeaderInfo(frame));
-		collectedData.put("taskOptions", this.task.getTaskOptions());
+		collectedData.put("taskOptions", this.task.getTaskOptions().getOptions());
 		collectedData.put("sortInfo", this.task.getSortInfo());
 		collectedData.put("filterInfo", this.task.getFilterInfo());
 		collectedData.put("taskId", this.task.getId());
