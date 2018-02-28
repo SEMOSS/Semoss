@@ -33,6 +33,7 @@ public class DatabaseListReactor extends AbstractReactor {
 		builder.addReturnFields("app_type");
 		builder.addReturnFields("app_cost");
 		builder.setLimit(1000);
+		builder.setSort("app_name", "asc");
 		
 		SolrQuery q = builder.getSolrQuery();
 		SolrIndexEngine solrE;
