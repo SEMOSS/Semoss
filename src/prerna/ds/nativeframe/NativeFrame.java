@@ -185,7 +185,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			if(!qsFilterCols.containsAll(importColsFilters)) {
 				// the import filter is not being overridden
 				// so add it into the qs to sue
-				qs.addExplicitFilter(filter);
+				qs.addImplicitFilter(filter);
 			}
 		}
 		
