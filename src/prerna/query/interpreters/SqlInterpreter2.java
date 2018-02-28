@@ -122,6 +122,10 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		addFilters();
 		
 		StringBuilder query = new StringBuilder("SELECT ");
+		String distinct = "";
+		if(this.qs.isDistinct()) {
+			distinct = "DISTINCT ";
+		}
 		if(this.engine != null && !engine.isBasic() && relationList.isEmpty()) {
 			// if there are no joins, we know we are querying from a single table
 			// the vast majority of the time, there shouldn't be any duplicates if
@@ -133,15 +137,15 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 					// no distinct needed
 					query.append(selectors).append(" FROM ");
 				} else {
-					query.append("DISTINCT ").append(selectors).append(" FROM ");
+					query.append(distinct).append(selectors).append(" FROM ");
 				}
 			} else {
 				// need a distinct
-				query.append("DISTINCT ").append(selectors).append(" FROM ");
+				query.append(distinct).append(selectors).append(" FROM ");
 			}
 		} else {
 			// default is to use a distinct
-			query.append("DISTINCT ").append(selectors).append(" FROM ");
+			query.append(distinct).append(selectors).append(" FROM ");
 		}
 		
 		// if there is a join
