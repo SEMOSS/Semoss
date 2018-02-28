@@ -139,7 +139,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		long blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
 		retRow[2] = blankCount + "";
 		// num of unique vals
-		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT) + "";		
+		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT, true) + "";		
 		return retRow;
 	}
 
@@ -203,7 +203,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		return retRow;
 	}
 
-	private Object getValue(IEngine engine, String concept, String prop, String functionName) {
+	private Object getValue(IEngine engine, String concept, String prop, String functionName, boolean distinct) {
 		QueryStruct2 qs2 = new QueryStruct2();
 		{
 			QueryFunctionSelector funSelector = new QueryFunctionSelector();
@@ -212,6 +212,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			innerSelector.setTable(concept);
 			innerSelector.setColumn(prop);
 			funSelector.addInnerSelector(innerSelector);
+			funSelector.setDistinct(distinct);
 			qs2.addSelector(funSelector);
 		}
 		qs2.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
