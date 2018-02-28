@@ -64,14 +64,14 @@ public class InstallCert {
 	    return;
 	}
 
-	File file = new File("jssecacerts");
+	File file = new File("C:\\Java\\jdk1.8.0_161\\jre\\lib\\security\\cacerts");
 	if (file.isFile() == false) {
 	    char SEP = System.getProperty("file.separator").toCharArray()[0];
 	    File dir = new File(System.getProperty("java.home") + SEP
 		    + "lib" + SEP + "security");
-	    file = new File(dir, "jssecacerts");
+	    file = new File(dir, "C:\\Java\\jdk1.8.0_161\\jre\\lib\\security\\cacerts");
 	    if (file.isFile() == false) {
-		file = new File(dir, "cacerts");
+		file = new File(dir, "C:\\Java\\jdk1.8.0_161\\jre\\lib\\security\\cacerts");
 	    }
 	}
 	System.out.println("Loading KeyStore " + file + "...");
@@ -143,7 +143,7 @@ public class InstallCert {
 	String alias = host + "-" + (k + 1);
 	ks.setCertificateEntry(alias, cert);
 
-	OutputStream out = new FileOutputStream("jssecacerts");
+	OutputStream out = new FileOutputStream("C:\\Java\\jdk1.8.0_161\\jre\\lib\\security\\cacerts");
 	ks.store(out, passphrase);
 	out.close();
 
