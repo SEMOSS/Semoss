@@ -107,7 +107,11 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		
 		// combine the pieces and return
 		StringBuilder query = new StringBuilder();
-		query.append("SELECT DISTINCT ").append(this.selectors.toString());
+		String distinct = "";
+		if(this.qs.isDistinct()) {
+			distinct = "DISTINCT ";
+		}
+		query.append("SELECT ").append(distinct).append(this.selectors.toString());
 		query.append(" WHERE { ");
 		query.append(this.bindWhereClause.toString());
 		query.append(this.selectorWhereClause.toString());
