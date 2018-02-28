@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -140,9 +141,18 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 */
 	private void mergeValues(List<Object> mergeList, Object newValues) {
 		if(newValues instanceof List) {
-			mergeList.addAll( (List) newValues);
+			List<Object> newValuesList = (List<Object>) newValues;
+			int size = newValuesList.size();
+			for(int i = 0; i < size; i++) {
+				Object newElement = newValuesList.get(i);
+				if(!mergeList.contains(newElement)) {
+					mergeList.add(newElement);
+				}
+			}
 		} else {
-			mergeList.add(newValues);
+			if(!mergeList.contains(newValues)) {
+				mergeList.add(newValues);
+			}
 		}
 	}
 	
