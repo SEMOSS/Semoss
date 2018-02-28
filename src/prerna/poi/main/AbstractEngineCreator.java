@@ -321,6 +321,7 @@ public class AbstractEngineCreator {
 				+ "QUESTION_OWL CLOB, "
 				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
 				+ "DATA_TABLE_ALIGN VARCHAR(500), "
+				+ "HIDDEN_INSIGHT BOOLEAN, "
 				+ "QUESTION_PKQL ARRAY)";
 
 		insightRDBMSEngine.insertData(questionTableCreate);
