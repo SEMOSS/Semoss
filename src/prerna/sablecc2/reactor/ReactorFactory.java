@@ -75,6 +75,7 @@ import prerna.sablecc2.reactor.frame.FrameFilterModelReactor;
 import prerna.sablecc2.reactor.frame.FrameTypeReactor;
 import prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor;
 import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
+import prerna.sablecc2.reactor.frame.SetCurrentFrameReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.DeleteFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.GetFrameFilterReactor;
@@ -223,7 +224,6 @@ import prerna.solr.reactor.AppInfoReactor;
 import prerna.solr.reactor.AppInsightsReactor;
 import prerna.solr.reactor.MyAppsReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
-import prerna.solr.reactor.SetAppImageReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
 import prerna.solr.reactor.SetInsightDescriptionReactor;
 import prerna.solr.reactor.SetInsightTagsReactor;
@@ -523,6 +523,7 @@ public class ReactorFactory {
 		reactorHash.put("FrameFilterModel", FrameFilterModelReactor.class);
 		reactorHash.put("HasDuplicates", FrameDuplicatesReactor.class);
 		reactorHash.put("CurrentFrame", CurrentFrameReactor.class);
+		reactorHash.put("SetCurrentFrame", SetCurrentFrameReactor.class);
 
 		// Algorithm Reactors
 		reactorHash.put("rAlg", GenericRReactor.class);
@@ -591,7 +592,6 @@ public class ReactorFactory {
 		reactorHash.put("GetAppInsights", AppInsightsReactor.class);
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
-		reactorHash.put("SetAppImage", SetAppImageReactor.class);
 		// Insight Metadata
 		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
 		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
