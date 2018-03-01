@@ -155,12 +155,16 @@ public class JsonAPIEngine extends AbstractEngine {
 		// selection for the output
 		// output metadata - may not be needed
 		// need to use a better delimiter
+		
+		// need some way to identify how to segregate into one vs. many requests
+		
 		String [] pathParts = query.split("@@@");
 		String [] inputParams = null;
 		String [] jsonPaths = null;
-		String [] types = null; 
+		Hashtable retHash = new Hashtable();
 		
 		Object curDoc = document;
+		//JSONArray [] data = new JSONArray[jsonPaths.length];
 		
 		
 		if(pathParts.length == 2)
@@ -172,24 +176,114 @@ public class JsonAPIEngine extends AbstractEngine {
 		{
 			jsonPaths = pathParts[0].split(";");			
 		}
-
+		// which of the params are list params
+		// hopefully there is only one
+		// I have no idea how to deal with many at htis point
+		// without it being a MESS of for loops
+		Hashtable listParams = new Hashtable();
+		// since I am hoping there is only one
+		// I am keeping it here
+		String listKey = null;
+		String listValue = null;
+		
+		boolean array = false;
+		for(int paramIndex = 0;inputParams != null && paramIndex < inputParams.length;paramIndex++)
+		{
+			String [] keyValue = inputParams[paramIndex].split("=");
+			String key = keyValue[0];
+			String value = keyValue[1];
+			
+			if(value.startsWith("ARRAY"))
+			{
+				array = true;
+				listKey = key;
+				listValue = value;
+				listParams.put(key, value.replace("ARRAY", ""));
+			}
+		}
+		
+		
 		// make the doc
+		// get the content
+		// if this is not a file based then we need to make the URL
 		if(curDoc == null)
 		{
 			String inputData = "";
 			// need to run the http to grab the URL etc. and then load the document
-			if(prop.getProperty(input_method).equalsIgnoreCase("GET"))
-				inputData = doGet(inputParams);
-			curDoc = Configuration.defaultConfiguration().jsonProvider().parse(inputData);
+			
+			// need to make a check to see if this one vs. many
+			Hashtable inputParamHash = Utility.getParamTypeHash(prop.getProperty(input_url));
+			Hashtable inputValHash = getParamHash(inputParams);
+			
+			// make the primary hash
+			Hashtable finalValHash = fillParams(inputParamHash, inputValHash);
+			
+			// replace each value for the key and send it in
+			if(array)
+			{
+				String [] multiValue = listValue.split("<>");
+				for(int valIndex = 0;valIndex < multiValue.length;valIndex++)
+				{
+					finalValHash.put(listKey, multiValue[valIndex]);
+					if(prop.getProperty(input_method).equalsIgnoreCase("GET"))
+						inputData = doGet(finalValHash);
+					else
+						inputData = doPost(finalValHash);
+					
+				
+					curDoc = Configuration.defaultConfiguration().jsonProvider().parse(inputData);
+					
+					// send the data to add to it
+					retHash = getOutput(curDoc, jsonPaths, retHash);					
+				}
+			}
+			else // this is not a list.. one time pull call it a day
+			{
+				if(prop.getProperty(input_method).equalsIgnoreCase("GET"))
+					inputData = doGet(finalValHash);
+				else
+					inputData = doPost(finalValHash);
+							
+				curDoc = Configuration.defaultConfiguration().jsonProvider().parse(inputData);
+				
+				// send the data to add to it
+				retHash = getOutput(curDoc, jsonPaths, retHash);
+			}
+			
 		}
-
+		
+		else // it is a file
+		{
+			retHash = getOutput(curDoc, jsonPaths, retHash);
+		}
+		
+		//System.out.println("Output..  " + data);
+		
+		
+		//return the data
+		return retHash;
+	}
+	
+	private Hashtable getOutput(Object doc, String [] jsonPaths, Hashtable retHash)
+	{
 		JSONArray [] data = new JSONArray[jsonPaths.length];
-		types = new String[jsonPaths.length];
 		int numRows = 0;
+		
+		int totalRows = 0;
+		
+		
 		String [] headers = new String[jsonPaths.length];
+		
+		JSONArray [] input = null;
+		if(retHash.containsKey("DATA"))
+			input = (JSONArray [])	retHash.get("DATA");
+		
+		if(retHash.containsKey("COUNT"))
+			totalRows = (Integer)	retHash.get("COUNT");
 		
 		for(int pathIndex = 0;pathIndex < jsonPaths.length;pathIndex++)
 		{
+			
 			String thisHeader = null;
 			String thisPath = null;
 
@@ -205,36 +299,53 @@ public class JsonAPIEngine extends AbstractEngine {
 				thisHeader = jsonPaths[pathIndex];
 			}
 			
-			data[pathIndex] = JsonPath.read(document, thisPath);
+			data[pathIndex] = JsonPath.read(doc, thisPath);
+			
+			// add it to the current input
+			if(input != null)
+				input[pathIndex].addAll(data[pathIndex]);
 
 			// set the headers
 			headers[pathIndex] = thisHeader;
 						
+			// if we are starting at a new point
+			// add the number of rows to comparator
+			
 			if(numRows == 0 || numRows > data[pathIndex].size())
 				numRows = data[pathIndex].size();
 			
 			System.out.println(" >> " + data[pathIndex].toString());
-			System.out.println("Length >> " + data[pathIndex].size());
-			
-			Object firstOne = data[pathIndex].get(0);
-			if(firstOne instanceof Integer)
-				types[pathIndex] = "int";
-			if(firstOne instanceof JSONArray)
-				types[pathIndex] = "String";
-			if(firstOne instanceof Double)
-				types[pathIndex] = "Double";
+			System.out.println("Length >> " + data[pathIndex].size());	
 		}
 		
-		System.out.println("Output..  " + data);
-		
-		Hashtable retHash = new Hashtable();
-		retHash.put("TYPES", types);
+		totalRows = totalRows + numRows;
+		if(!retHash.containsKey("TYPES"))
+			retHash.put("TYPES", getTypes(data));
 		retHash.put("HEADERS", headers);
 		retHash.put("DATA", data);
-		retHash.put("COUNT", numRows);
+		retHash.put("COUNT", totalRows);
+
+		System.out.println("Output..  " + data);
 		
-		//return the data
 		return retHash;
+	}
+	
+	private String [] getTypes(JSONArray [] data)
+	{
+		
+		String [] types = new String[data.length];
+		for(int dataIndex = 0;dataIndex < data.length;dataIndex++)
+		{
+			Object firstOne = data[dataIndex].get(0);
+			if(firstOne instanceof Integer)
+				types[dataIndex] = "int";
+			if(firstOne instanceof JSONArray)
+				types[dataIndex] = "String";
+			if(firstOne instanceof Double)
+				types[dataIndex] = "Double";
+		}
+
+		return types;
 	}
 
 	@Override
@@ -274,7 +385,7 @@ public class JsonAPIEngine extends AbstractEngine {
 	}
 	
 	// get call
-	private String doGet(String [] params)
+	private String doGet(Hashtable params)
 	{
 		String retString = null;
 		
@@ -299,7 +410,7 @@ public class JsonAPIEngine extends AbstractEngine {
 		return retString;
 	}
 
-	private String doPost(String [] params)
+	private String doPost(Hashtable params)
 	{
 		String retString = null;
 		
@@ -310,13 +421,12 @@ public class JsonAPIEngine extends AbstractEngine {
 			HttpPost httppost = new HttpPost(url);
 			
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-			Hashtable <String, String> paramHash = getParamHash(params);
-			Enumeration <String> keys = paramHash.keys();
+			Enumeration <String> keys = params.keys();
 			
 			while(keys.hasMoreElements())
 			{
 				String key = keys.nextElement();
-				String value = paramHash.get(key);
+				String value = (String)params.get(key);
 				
 				paramList.add(new BasicNameValuePair(key, value));
 			}			
@@ -359,8 +469,29 @@ public class JsonAPIEngine extends AbstractEngine {
 		return paramHash;
 	}
 	
+	private Hashtable fillParams(Hashtable inputParam, Hashtable valParam)
+	{
+		Enumeration <String> keys = inputParam.keys();
+		
+		// replace with the new values
+		while(keys.hasMoreElements())
+		{
+			String key = keys.nextElement();
+			String value = null;
+			if(valParam.containsKey(key))
+				value = (String)valParam.get(key);
+			else if(prop.containsKey(key + "_DEFAULT"))
+				value = (String)prop.getProperty(key + "_DEFAULT");
+			//else
+				// need a way to remove this
+			inputParam.put(key, value);
+		}
+		
+		return inputParam;
+	}
+	
 	// take the URL 
-	private String constructURL(String [] params)
+	private String constructURL(Hashtable params)
 	{
 		// params are given as paramname=value;paramname2=value2
 	
@@ -368,24 +499,9 @@ public class JsonAPIEngine extends AbstractEngine {
 		String inputUrl = prop.getProperty(input_url);
 		String mandatoryInputs = prop.getProperty(mandatory_input);
 		
-		// get hte params
-		String [] paramToks = params;
-		Hashtable <String, String> paramHash = getParamHash(params);
-		
-		Hashtable inputParamHash = Utility.getParamTypeHash(inputUrl);
-		
-		Enumeration <String> keys = inputParamHash.keys();
-		
-		// replace with the new values
-		while(keys.hasMoreElements())
-		{
-			String key = keys.nextElement();
-			String value = paramHash.get(key);
-			paramHash.put(key, value);
-		}
 		
 		// compose the URL
-		String finalURL = Utility.fillParam2(inputUrl, paramHash);
+		String finalURL = Utility.fillParam2(inputUrl, params);
 		
 		return finalURL;
 		
