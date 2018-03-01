@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
@@ -125,7 +126,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 		//		System.out.println(translation.pixels);
 
 
-		TestUtilityMethods.loadDIHelper();
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
@@ -133,11 +134,11 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie.smss";
 		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.setEngineName("Movie");
 		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		DIHelper.getInstance().setLocalProperty("Movie", coreEngine);
 
 		IEngine insightEngine = coreEngine.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
@@ -163,10 +164,11 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 			
 			for(String expression : oldRecipe) {
 				DbTranslationEditor translation = new DbTranslationEditor();
-				translation.setEngineToFind("Movie_RDBMS");
-				translation.setEngineToReplace("MyMovie");
+				translation.setEngineToFind("MovieDatabase");
+				translation.setEngineToReplace("Movie");
 				
 				try {
+					expression = PixelPreProcessor.preProcessPixel(expression.trim(), new HashMap<String, String>());
 					Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
 					// parsing the pkql - this process also determines if expression is syntactically correct
 					Start tree = p.parse();
