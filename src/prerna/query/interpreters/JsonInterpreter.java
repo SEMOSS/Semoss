@@ -130,8 +130,24 @@ public class JsonInterpreter implements IQueryInterpreter2{
 		String thisComparator = filter.getComparator();
 		
 		String leftVal = leftComp.getValue().toString();
+		
 		String rightVal = rightComp.getValue().toString();
 		
+		// need someway to encode if this is an array
+		if(rightComp.getNounType() == prerna.sablecc2.om.PixelDataType.VECTOR)
+		{
+			StringBuffer rightValMaker = new StringBuffer("ARRAY");
+			List list = (List) rightComp.getValue();
+			for(int valIndex = 0;valIndex < list.size();valIndex++)
+			{
+				if(valIndex != 0)
+					rightValMaker.append("<>");
+				rightValMaker.append(list.get(valIndex));
+			}
+			rightValMaker.append("ARRAY");
+			
+			rightVal = rightValMaker.toString();
+		}
 		return new StringBuilder(leftVal + "=" + rightVal);
 	}
 }
