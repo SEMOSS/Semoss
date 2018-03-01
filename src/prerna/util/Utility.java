@@ -881,6 +881,16 @@ public class Utility {
 
 		return cleaned;
 	}
+	
+	public static String makeAlphaNumeric(String s) {
+		s = s.trim();
+		s = s.replaceAll(" ", "_");
+		s = s.replaceAll("[^a-zA-Z0-9\\_]", "");
+		while(s.contains("__")){
+			s = s.replace("__", "_");
+		}
+		return s;
+	}
 
 	public static String cleanPredicateString(String original){
 		String cleaned = cleanString (original, true);
