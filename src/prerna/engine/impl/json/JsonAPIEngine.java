@@ -9,8 +9,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
 
-import net.minidev.json.JSONArray;
-
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
@@ -25,18 +23,18 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+
+import net.minidev.json.JSONArray;
 import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.JsonInterpreter;
-import prerna.query.interpreters.SparqlInterpreter2;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
 
 public class JsonAPIEngine extends AbstractEngine {
 	
@@ -170,8 +168,8 @@ public class JsonAPIEngine extends AbstractEngine {
 		
 		if(pathParts.length == 2)
 		{
-			inputParams = pathParts[0].split(";");		
-			jsonPaths = pathParts[1].split(";");			
+			jsonPaths = pathParts[0].split(";");
+			inputParams = pathParts[1].split(";");		
 		}
 		else
 		{
@@ -194,8 +192,7 @@ public class JsonAPIEngine extends AbstractEngine {
 			String key = keyValue[0];
 			String value = keyValue[1];
 			
-			if(value.startsWith("ARRAY"))
-			{
+			if(value.startsWith("ARRAY")) {
 				array = true;
 				listKey = key;
 				listValue = value;
@@ -213,11 +210,13 @@ public class JsonAPIEngine extends AbstractEngine {
 			// need to run the http to grab the URL etc. and then load the document
 			
 			// need to make a check to see if this one vs. many
-			Hashtable inputParamHash = Utility.getParamTypeHash(prop.getProperty(input_url));
-			Hashtable inputValHash = getParamHash(inputParams);
+//			Hashtable inputParamHash = Utility.getParams(prop.getProperty(input_url));
+//			Hashtable inputValHash = getParamHash(inputParams);
+//			
+//			// make the primary hash
+//			Hashtable finalValHash = fillParams(inputParamHash, inputValHash);
 			
-			// make the primary hash
-			Hashtable finalValHash = fillParams(inputParamHash, inputValHash);
+			Hashtable finalValHash = getParamHash(inputParams);
 			
 			// replace each value for the key and send it in
 			if(array)
