@@ -51,6 +51,7 @@ public class JsonAPIEngine extends AbstractEngine {
 	public static final String path_patterns = "path_patterns";
 	public static final String concat = "concat";
 	public static final String delim = "delim";
+	public static final String repeater = "repeater";
 
 	
 	Object document = null;
@@ -225,6 +226,7 @@ public class JsonAPIEngine extends AbstractEngine {
 				for(int valIndex = 0;valIndex < multiValue.length;valIndex++)
 				{
 					finalValHash.put(listKey, multiValue[valIndex]);
+					
 					if(prop.getProperty(input_method).equalsIgnoreCase("GET"))
 						inputData = doGet(finalValHash);
 					else
@@ -234,7 +236,8 @@ public class JsonAPIEngine extends AbstractEngine {
 					curDoc = Configuration.defaultConfiguration().jsonProvider().parse(inputData);
 					
 					// send the data to add to it
-					retHash = getOutput(curDoc, jsonPaths, retHash);					
+					retHash = getOutput(curDoc, jsonPaths, retHash, listKey, multiValue[valIndex]);					
+					
 				}
 			}
 			else // this is not a list.. one time pull call it a day
@@ -247,14 +250,14 @@ public class JsonAPIEngine extends AbstractEngine {
 				curDoc = Configuration.defaultConfiguration().jsonProvider().parse(inputData);
 				
 				// send the data to add to it
-				retHash = getOutput(curDoc, jsonPaths, retHash);
+				retHash = getOutput(curDoc, jsonPaths, retHash, null, null);
 			}
 			
 		}
 		
 		else // it is a file
 		{
-			retHash = getOutput(curDoc, jsonPaths, retHash);
+			retHash = getOutput(curDoc, jsonPaths, retHash, null, null);
 		}
 		
 		//System.out.println("Output..  " + data);
@@ -264,9 +267,18 @@ public class JsonAPIEngine extends AbstractEngine {
 		return retHash;
 	}
 	
-	private Hashtable getOutput(Object doc, String [] jsonPaths, Hashtable retHash)
+	private Hashtable getOutput(Object doc, String [] jsonPaths, Hashtable retHash, String repeaterHeader, String repeaterValue)
 	{
-		JSONArray [] data = new JSONArray[jsonPaths.length];
+	
+		JSONArray [] data = null;
+		
+		if(repeaterHeader != null)
+			data = new JSONArray[jsonPaths.length+1];
+
+		else
+			data = new JSONArray[jsonPaths.length];
+			
+		
 		int numRows = 0;
 		
 		int totalRows = 0;
@@ -318,11 +330,32 @@ public class JsonAPIEngine extends AbstractEngine {
 			System.out.println("Length >> " + data[pathIndex].size());	
 		}
 		
+		// add the repeater
+		if(repeaterHeader != null)
+		{
+			headers[jsonPaths.length+1] = repeaterHeader;
+			
+			// fill it with the repeater value
+			JSONArray repeaterData = new JSONArray();
+			for(int rowIndex = 0;rowIndex < numRows;rowIndex++)
+				repeaterData.add(repeaterValue);
+
+			data[jsonPaths.length + 1] = repeaterData;
+			
+			if(input != null)
+				input[jsonPaths.length + 1].addAll(data[jsonPaths.length + 1]);
+		}
+		
+		
 		totalRows = totalRows + numRows;
 		if(!retHash.containsKey("TYPES"))
 			retHash.put("TYPES", getTypes(data));
 		retHash.put("HEADERS", headers);
-		retHash.put("DATA", data);
+		if(input == null)
+			retHash.put("DATA", data);
+		else
+			retHash.put("DATA", input);
+			
 		retHash.put("COUNT", totalRows);
 
 		System.out.println("Output..  " + data);
@@ -472,7 +505,11 @@ public class JsonAPIEngine extends AbstractEngine {
 	private Hashtable fillParams(Hashtable inputParam, Hashtable valParam)
 	{
 		Enumeration <String> keys = inputParam.keys();
-		
+
+		String url = prop.getProperty(input_url);
+
+		inputParam.put(input_url, url);
+
 		// replace with the new values
 		while(keys.hasMoreElements())
 		{
@@ -482,8 +519,16 @@ public class JsonAPIEngine extends AbstractEngine {
 				value = (String)valParam.get(key);
 			else if(prop.containsKey(key + "_DEFAULT"))
 				value = (String)prop.getProperty(key + "_DEFAULT");
-			//else
+			else
 				// need a way to remove this
+			{
+				// the value to remove is key:@key@ or key=@key@
+				url = url.replace(key+ ":@" + key + "@", "");
+				url = url.replace(key+ "=@" + key + "@", "");
+				url = url.replace("++", "+");
+				url = url.replace("&&", "&");
+				inputParam.put(input_url, url);
+			}
 			inputParam.put(key, value);
 		}
 		
@@ -496,7 +541,7 @@ public class JsonAPIEngine extends AbstractEngine {
 		// params are given as paramname=value;paramname2=value2
 	
 		// need to get hate URL
-		String inputUrl = prop.getProperty(input_url);
+		String inputUrl = (String)params.get(input_url);
 		String mandatoryInputs = prop.getProperty(mandatory_input);
 		
 		
