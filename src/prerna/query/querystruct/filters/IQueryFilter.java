@@ -52,13 +52,13 @@ public interface IQueryFilter {
 		} else if(comparator.equals("!=") || comparator.equals("<>")) {
 			return "==";
 		} else if(comparator.equals(">")) {
-			return "<=";
-		} else if(comparator.equals(">=")) {
 			return "<";
+		} else if(comparator.equals(">=")) {
+			return "<=";
 		} else if(comparator.equals("<")) {
-			return ">=";
-		} else if(comparator.equals("<=")) {
 			return ">";
+		} else if(comparator.equals("<=")) {
+			return ">=";
 		} else if(comparator.equals("?like")) {
 			// ughhhh... return the same thing
 			return "?like";
@@ -74,13 +74,13 @@ public interface IQueryFilter {
 	 */
 	public static String getReverseNumericalComparator(String comparator) {
 		if(comparator.equals(">")) {
-			return "<=";
-		} else if(comparator.equals(">=")) {
 			return "<";
+		} else if(comparator.equals(">=")) {
+			return "<=";
 		} else if(comparator.equals("<")) {
-			return ">=";
-		} else if(comparator.equals("<=")) {
 			return ">";
+		} else if(comparator.equals("<=")) {
+			return ">=";
 		}
 		return comparator;
 	}
