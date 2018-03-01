@@ -256,7 +256,7 @@ public class ImportUtility {
 	
 	private static void parseCsvFileQsToFlatTable(ITableDataFrame dataframe, CsvQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String csvFileName = FilenameUtils.getBaseName(qs.getCsvFilePath());
+		String csvFileName = Utility.makeAlphaNumeric(FilenameUtils.getBaseName(qs.getCsvFilePath()));
 		Map<String, String> dataTypes = qs.getColumnTypes();
 
 		// define the frame table name as a primary key within the meta
@@ -331,7 +331,7 @@ public class ImportUtility {
 	
 	private static void parseExcelFileQsToFlatTable(ITableDataFrame dataframe, ExcelQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String excelFileName = FilenameUtils.getBaseName(qs.getExcelFilePath());
+		String excelFileName = Utility.makeAlphaNumeric(FilenameUtils.getBaseName(qs.getExcelFilePath()));
 		Map<String, String> dataTypes = qs.getColumnTypes();
 
 		// define the frame table name as a primary key within the meta
