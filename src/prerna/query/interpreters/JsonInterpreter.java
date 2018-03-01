@@ -8,9 +8,9 @@ import prerna.engine.api.IEngine;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class JsonInterpreter implements IQueryInterpreter2{
 
@@ -111,9 +111,14 @@ public class JsonInterpreter implements IQueryInterpreter2{
 		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter);
-			if(filterSyntax != null)
-				this.filters.append(filterSyntax);
+			if(filterSyntax != null) {
+				if(this.filters == null) {
+					this.filters = new StringBuffer(filterSyntax);
+				} else {
+					this.filters = this.filters.append(";").append(filterSyntax);	
+				}
 			}
+		}
 	}
 	
 	private StringBuilder processFilter(IQueryFilter filter) {
@@ -125,29 +130,45 @@ public class JsonInterpreter implements IQueryInterpreter2{
  
 
 	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
-		NounMetadata leftComp = filter.getLComparison();
-		NounMetadata rightComp = filter.getRComparison();
-		String thisComparator = filter.getComparator();
-		
-		String leftVal = leftComp.getValue().toString();
-		
-		String rightVal = rightComp.getValue().toString();
-		
-		// need someway to encode if this is an array
-		if(rightComp.getNounType() == prerna.sablecc2.om.PixelDataType.VECTOR)
-		{
+		// big assumption!!!!
+		// only considering a filter for basic columns
+		// not taking into consideration the actual comparator
+		FILTER_TYPE fType = filter.getFilterType();
+		if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return processColToValFilter((IQuerySelector) filter.getLComparison().getValue(), filter.getRComparison().getValue());
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			return processColToValFilter((IQuerySelector) filter.getRComparison().getValue(), filter.getLComparison().getValue());
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			return processValToValFilter(filter.getRComparison().getValue(), filter.getLComparison().getValue());
+		} else {
+			return null;
+		}
+	}
+	
+	private StringBuilder processValToValFilter(Object value1, Object value2) {
+		// account for arrays
+		// TODO: too lazy atm
+		return new StringBuilder(value2 + "=" + value1);
+	}
+
+
+	private StringBuilder processColToValFilter(IQuerySelector col, Object val) {
+		String alias = col.getAlias();
+		String valStr = null;
+		if(val instanceof List) {
 			StringBuffer rightValMaker = new StringBuffer("ARRAY");
-			List list = (List) rightComp.getValue();
-			for(int valIndex = 0;valIndex < list.size();valIndex++)
+			for(int valIndex = 0; valIndex < ((List) val).size(); valIndex++)
 			{
-				if(valIndex != 0)
+				if(valIndex != 0) {
 					rightValMaker.append("<>");
-				rightValMaker.append(list.get(valIndex));
+				}
+				rightValMaker.append(((List) val).get(valIndex));
 			}
 			rightValMaker.append("ARRAY");
-			
-			rightVal = rightValMaker.toString();
+			valStr = rightValMaker.toString();
+		} else {
+			valStr = val.toString();
 		}
-		return new StringBuilder(leftVal + "=" + rightVal);
+		return new StringBuilder(alias + "=" + valStr);
 	}
 }
