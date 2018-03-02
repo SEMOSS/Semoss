@@ -55,7 +55,7 @@ public class InstallCertNow {
 			InstallCertNow.please("github.com", null, null);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 	
@@ -120,7 +120,7 @@ public class InstallCertNow {
 	    System.out.println("No errors, certificate is already trusted");
 	} catch (SSLException e) {
 	    System.out.println();
-	    e.printStackTrace(System.out);
+	    //e.printStackTrace(System.out);
 	}
 
 	X509Certificate[] chain = tm.chain;

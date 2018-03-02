@@ -241,6 +241,8 @@ public class GitSynchronizer {
 		return fileOps;
 	}
 	
+	
+	
 	public static Map<String, List<String>> synchronize(String localAppName, String remoteAppName, String username, String password, boolean dual)
 	{
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
