@@ -497,6 +497,9 @@ public class Constants {
 	// which type of R connection to use
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 	
+	// where google chrome is located for image capture
+	public static final String GOOGLE_CHROME_HOME = "GOOGLE_CHROME_HOME";
+	
 	//Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";
 	public static final String TINKER_DRIVER = "TINKER_DRIVER";
