@@ -581,6 +581,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param thisComparator
 	 */
 	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		thisComparator = thisComparator.trim();
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, false);
@@ -616,37 +617,64 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			objects.add(rightComp.getValue());
 		}
 		
+		// need to account for null inputs
+		boolean addNullCheck = false;
+		if(objects.contains(null)) {
+			addNullCheck = true;
+			objects.remove(null);
+		}
 		
-		StringBuilder filterBuilder = new StringBuilder();
-		if(thisComparator.trim().equals("?like")) {
-			// like requires OR statements for multiple
-			// cannot use same logic as IN :(
-			int i = 0;
-			int size = objects.size();
-			List<Object> newObjects = new Vector<Object>();
-			newObjects.add(objects.get(i));
-			String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
-			filterBuilder.append("( LOWER(").append(leftSelectorExpression);
-			filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
-			i++;
-			for(; i < size; i++) {
-				newObjects = new Vector<Object>();
-				newObjects.add(objects.get(i));
-				myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
-				filterBuilder.append(" OR LOWER(").append(leftSelectorExpression);
-				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+		StringBuilder filterBuilder = null;
+		// add the null check now
+		if(addNullCheck) {
+			// can only work if comparator is == or !=
+			if(thisComparator.equals("==")) {
+				filterBuilder = new StringBuilder();
+				filterBuilder.append("(").append(leftSelectorExpression).append(") IS NULL ");
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder = new StringBuilder();
+				filterBuilder.append("(").append(leftSelectorExpression).append(") IS NOT NULL ");
 			}
-			filterBuilder.append(")");
-		} else {
-			filterBuilder.append("(").append(leftSelectorExpression).append(")");
-			String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
-
-			if(thisComparator.trim().equals("==")) {
-				filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
-			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
+		}
+		// if there are other instances as well
+		// also add that
+		if(!objects.isEmpty()) {
+			if(filterBuilder == null) {
+				filterBuilder = new StringBuilder();
 			} else {
-				filterBuilder.append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				// we added a null check above
+				filterBuilder.append("OR ");
+			}
+			if(thisComparator.trim().equals("?like")) {
+				// like requires OR statements for multiple
+				// cannot use same logic as IN :(
+				int i = 0;
+				int size = objects.size();
+				List<Object> newObjects = new Vector<Object>();
+				newObjects.add(objects.get(i));
+				String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+				filterBuilder.append("( LOWER(").append(leftSelectorExpression);
+				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+				i++;
+				for(; i < size; i++) {
+					newObjects = new Vector<Object>();
+					newObjects.add(objects.get(i));
+					myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+					filterBuilder.append(" OR LOWER(").append(leftSelectorExpression);
+					filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+				}
+				filterBuilder.append(")");
+			} else {
+				filterBuilder.append("(").append(leftSelectorExpression).append(")");
+				String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
+	
+				if(thisComparator.trim().equals("==")) {
+					filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
+				} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+					filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
+				} else {
+					filterBuilder.append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				}
 			}
 		}
 		
