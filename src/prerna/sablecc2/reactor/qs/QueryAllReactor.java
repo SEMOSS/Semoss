@@ -14,6 +14,7 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 		}
 		
 		this.qs.merge(frame.getMetaData().getFlatTableQs());
+		this.qs.setImplicitFilters(frame.getFrameFilters());
 		return this.qs;
 	}
 	
