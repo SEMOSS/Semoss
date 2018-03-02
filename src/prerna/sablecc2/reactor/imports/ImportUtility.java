@@ -52,12 +52,22 @@ public class ImportUtility {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardQueryStruct) qs).getQuery());
 		} 
 		// frame with qs
-		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME){
-			return frame.query(qs);
+		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME) {
+			ITableDataFrame qsFrame = qs.getFrame();
+			if(qsFrame != null) {
+				return qsFrame.query(qs);
+			} else {
+				return frame.query(qs);
+			}
 		} 
 		// frame with hard coded query
 		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY){
-			return frame.query( ((HardQueryStruct) qs).getQuery());
+			ITableDataFrame qsFrame = qs.getFrame();
+			if(qsFrame != null) {
+				return qsFrame.query( ((HardQueryStruct) qs).getQuery());
+			} else {
+				return frame.query( ((HardQueryStruct) qs).getQuery());
+			}
 		}
 		// csv file (really, any delimited file
 		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
