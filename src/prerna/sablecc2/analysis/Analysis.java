@@ -53,6 +53,7 @@ public interface Analysis extends Switch
     void caseAROpRegTerm(AROpRegTerm node);
     void caseAListRegTerm(AListRegTerm node);
     void caseACsvRegTerm(ACsvRegTerm node);
+    void caseANullRegTerm(ANullRegTerm node);
     void caseAFormula(AFormula node);
     void caseAList(AList node);
     void caseAOtherExpr(AOtherExpr node);
@@ -129,6 +130,7 @@ public interface Analysis extends Switch
     void caseAFractionDecimal(AFractionDecimal node);
 
     void caseTMeta(TMeta node);
+    void caseTNull(TNull node);
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);
     void caseTId(TId node);
