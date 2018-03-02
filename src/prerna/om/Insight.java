@@ -51,6 +51,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
@@ -264,7 +265,7 @@ public class Insight {
 			// this has no meaning for graphs
 			Map<String, String> frameData = new HashMap<String, String>();
 			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			frameData.put("type", frame.getDataMakerName());
+			frameData.put("type", FrameFactory.getFrameType(frame));
 			String name = frame.getTableName();
 			if(name != null) {
 				frameData.put("name", name);

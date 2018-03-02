@@ -27,4 +27,20 @@ public class FrameFactory {
 		default: { return new H2Frame(alias); }
 		}
 	}
+	
+	public static String getFrameType(ITableDataFrame frame) {
+		if(frame instanceof H2Frame) {
+			return "GRID";
+		} else if(frame instanceof TinkerFrame) {
+			return "GRAPH";
+		} else if(frame instanceof RDataTable) {
+			return "R";
+		} else if(frame instanceof PandasFrame) {
+			return "PY";
+		} else if(frame instanceof NativeFrame) {
+			return "NATIVE";
+		} else {
+			return null;
+		}
+	}
 }
