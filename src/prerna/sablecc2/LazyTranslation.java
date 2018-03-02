@@ -51,6 +51,7 @@ import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
 import prerna.sablecc2.node.ANegTerm;
+import prerna.sablecc2.node.ANullRegTerm;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusBaseExpr;
@@ -418,6 +419,15 @@ public class LazyTranslation extends DepthFirstAdapter {
         // not sure if I need anything else right now
         curReactor.closeNoun("s");
     }
+    
+    public void inANullRegTerm(ANullRegTerm node) {
+    	NounMetadata noun = new NounMetadata(null, PixelDataType.NULL_VALUE);
+    	if(curReactor != null) {
+			curReactor.getCurRow().add(noun);
+		} else {
+			this.planner.addVariable("$RESULT", noun);
+		}
+    }
 
     @Override
     public void inAIdWordOrId(AIdWordOrId node)
@@ -491,7 +501,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	        curReactor.getCurRow().addBoolean(bool);
 	        curReactor.setProp(node.toString().trim(), booleanStr);
         } else {
-        	NounMetadata noun = new NounMetadata(bool, PixelDataType.CONST_STRING);
+        	NounMetadata noun = new NounMetadata(bool, PixelDataType.BOOLEAN);
     		this.planner.addVariable("$RESULT", noun);
         }
     }
