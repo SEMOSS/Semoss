@@ -82,10 +82,15 @@ public class NounMetadata {
 	 * To help w/ debugging
 	 */
 	public String toString() {
-		return "NOUN META DATA ::: " + this.value.toString();
+		return "NOUN META DATA ::: " + this.value + "";
 	}
 	
 	public NounMetadata copy() {
+		// I cannot copy a null noun
+		if(this.noun == PixelDataType.NULL_VALUE) {
+			return this;
+		}
+
 		Gson gson = new GsonBuilder().disableHtmlEscaping().excludeFieldsWithModifiers(Modifier.TRANSIENT).create();
 		Class<? extends Object> valueClass = value.getClass();
 		Object cloneValue = gson.fromJson(gson.toJson(value), valueClass);
