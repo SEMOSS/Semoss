@@ -38,7 +38,14 @@ public class GitConsumer {
 	}
 
 	public static void makeAppFromRemote(String yourName4App, String fullRemoteAppName, Logger logger) {
+		
 		// need to get the database folder
+		try {
+			prerna.security.InstallCertNow.please("github.com", null, null);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String dbFolder = baseFolder + "/db/" + yourName4App;
 		File db = new File(dbFolder);
