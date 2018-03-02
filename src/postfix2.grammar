@@ -28,6 +28,7 @@ Helpers
  
 Tokens
  meta = 'META';
+ null = 'null';
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
  id = (letter_s | letter_b | digit | underscore)*;
@@ -163,7 +164,7 @@ Productions
 	| {r_op} r_op
 	| {list} list
 	| {csv} gen_row
-  //| null <- todo, will need to redefine this
+    | {null} null
   	; 
  
  // need to able to group expressions 

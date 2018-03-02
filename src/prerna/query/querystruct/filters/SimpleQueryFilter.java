@@ -542,7 +542,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 						builder.append(", ").append( ((List) rObj).get(i) );
 					}
 					builder.append(" ]");
-					return this.lComparison.getValue() + " " + this.comparator + " " + builder.toString();
+					return ((IQuerySelector) this.lComparison.getValue()).getQueryStructName() + " " + this.comparator + " " + builder.toString();
 				}
 			} else {
 				return ((IQuerySelector) this.lComparison.getValue()).getQueryStructName() + " " + this.comparator + " " + rObj;
@@ -596,12 +596,12 @@ public class SimpleQueryFilter implements IQueryFilter {
 			return FILTER_TYPE.COL_TO_COL;
 		} 
 		// col to values
-		else if(lCompType == PixelDataType.COLUMN && (rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING) ) 
+		else if(lCompType == PixelDataType.COLUMN && (rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE) ) 
 		{
 			return FILTER_TYPE.COL_TO_VALUES;
 		} 
 		// values to col
-		else if((lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING) && rCompType == PixelDataType.COLUMN)
+		else if((lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE) && rCompType == PixelDataType.COLUMN)
 		{
 			return FILTER_TYPE.VALUES_TO_COL;
 		}
@@ -617,7 +617,8 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 		
 		// values to values
-		else if((rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING) && (lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING)) 
+		else if((rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE) 
+				&& (lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE)) 
 		{
 			return FILTER_TYPE.VALUE_TO_VALUE;
 		}

@@ -1021,6 +1021,27 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outACsvRegTerm(node);
     }
 
+    public void inANullRegTerm(ANullRegTerm node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANullRegTerm(ANullRegTerm node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANullRegTerm(ANullRegTerm node)
+    {
+        inANullRegTerm(node);
+        if(node.getNull() != null)
+        {
+            node.getNull().apply(this);
+        }
+        outANullRegTerm(node);
+    }
+
     public void inAFormula(AFormula node)
     {
         defaultIn(node);
