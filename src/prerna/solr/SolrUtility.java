@@ -155,17 +155,17 @@ public final class SolrUtility {
 				if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
 					fieldData.put("app_cost", "$$");
 				} else {
-					fieldData.put("app_cost", "$");
+					fieldData.put("app_cost", "");
 				}
 			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
 				fieldData.put("app_type", "IMPALA");
 				fieldData.put("app_cost", "$$$");
 			} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
 				fieldData.put("app_type", "RDF");
-				fieldData.put("app_cost", "$");
+				fieldData.put("app_cost", "");
 			} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
 				fieldData.put("app_type", "RDF");
-				fieldData.put("app_cost", "$");
+				fieldData.put("app_cost", "");
 			} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
 				fieldData.put("app_type", "DATASTAX");
 				fieldData.put("app_cost", "$$$");
@@ -176,10 +176,10 @@ public final class SolrUtility {
 				String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
 				if(tinkerDriver.equalsIgnoreCase("neo4j")) {
 					fieldData.put("app_type", "NEO4J");
-					fieldData.put("app_cost", "$");
+					fieldData.put("app_cost", "");
 				} else {
 					fieldData.put("app_type", "TINKER");
-					fieldData.put("app_cost", "$");
+					fieldData.put("app_cost", "");
 				}
 			}
 			
