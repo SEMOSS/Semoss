@@ -358,69 +358,99 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			objects.add(rightComp.getValue());
 		}
 		
-		boolean multi = false;
-		String myFilterFormatted = null;
-		// format the objects based on the type of the column
-		if(objects.size() > 1) {
-			multi = true;
-			myFilterFormatted = RSyntaxHelper.createRColVec(objects, leftDataType);
-		} else if(SemossDataType.DATE != leftDataType) {
-			// dont bother doing this if we have a date
-			// since we cannot use "in" with dates
-			myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
+		// need to account for null inputs
+		boolean addNullCheck = false;
+		if(objects.contains(null)) {
+			addNullCheck = true;
+			objects.remove(null);
 		}
-				
-		StringBuilder filterBuilder = new StringBuilder();
-		if(multi) {
-			// special processing for date types
-			if(SemossDataType.DATE == leftDataType) {
-				int size = objects.size();
-				if(thisComparator.equals("==")) {
-					filterBuilder.append("(");
-					for (int i = 0; i < size; i++) {
-						filterBuilder.append(leftSelectorExpression).append(" == ")
-								.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
-						if ((i+1) < size) {
-							filterBuilder.append(" | ");
-						}
-					}
-					filterBuilder.append(")");
-				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					filterBuilder.append("(");
-					for (int i = 0; i < size; i++) {
-						filterBuilder.append(leftSelectorExpression).append(" != ")
-								.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
-						if ((i+1) < size) {
-							filterBuilder.append(" & ");
-						}
-					}
-					filterBuilder.append(")");
-				} else {
-					// this will probably break...
-					myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
-					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
-				}
-			} 
-			// now all the other types
-			else {
-				if(thisComparator.equals("==")) {
-					filterBuilder.append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted);
-				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-					filterBuilder.append("!(").append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
-				} else {
-					// this will probably break...
-					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
-				}
+		
+		StringBuilder filterBuilder = null;
+		// add the null check now
+		if(addNullCheck) {
+			// can only work if comparator is == or !=
+			if(thisComparator.equals("==")) {
+				filterBuilder = new StringBuilder();
+				filterBuilder.append("is.na(").append(leftSelectorExpression).append(")");
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder = new StringBuilder();
+				filterBuilder.append("!is.na(").append(leftSelectorExpression).append(")");
 			}
-		} else {
-			if(thisComparator.equals("?like")) {
-				if(SemossDataType.STRING == leftDataType) {
-					filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
-				} else {
-					filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(\"").append(myFilterFormatted).append("\")");
+		}
+		
+		// if there are other instances as well
+		// also add that
+		if(!objects.isEmpty()) {
+			if(filterBuilder == null) {
+				filterBuilder = new StringBuilder();
+			} else {
+				// we added a null check above
+				filterBuilder.append("OR ");
+			}
+		
+			boolean multi = false;
+			String myFilterFormatted = null;
+			// format the objects based on the type of the column
+			if(objects.size() > 1) {
+				multi = true;
+				myFilterFormatted = RSyntaxHelper.createRColVec(objects, leftDataType);
+			} else if(SemossDataType.DATE != leftDataType) {
+				// dont bother doing this if we have a date
+				// since we cannot use "in" with dates
+				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
+			}
+					
+			if(multi) {
+				// special processing for date types
+				if(SemossDataType.DATE == leftDataType) {
+					int size = objects.size();
+					if(thisComparator.equals("==")) {
+						filterBuilder.append("(");
+						for (int i = 0; i < size; i++) {
+							filterBuilder.append(leftSelectorExpression).append(" == ")
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							if ((i+1) < size) {
+								filterBuilder.append(" | ");
+							}
+						}
+						filterBuilder.append(")");
+					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
+						filterBuilder.append("(");
+						for (int i = 0; i < size; i++) {
+							filterBuilder.append(leftSelectorExpression).append(" != ")
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							if ((i+1) < size) {
+								filterBuilder.append(" & ");
+							}
+						}
+						filterBuilder.append(")");
+					} else {
+						// this will probably break...
+						myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
+						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
+					}
+				} 
+				// now all the other types
+				else {
+					if(thisComparator.equals("==")) {
+						filterBuilder.append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted);
+					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
+						filterBuilder.append("!(").append(leftSelectorExpression).append(" ").append(" %in% ").append(myFilterFormatted).append(")");
+					} else {
+						// this will probably break...
+						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
+					}
 				}
 			} else {
-				filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				if(thisComparator.equals("?like")) {
+					if(SemossDataType.STRING == leftDataType) {
+						filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
+					} else {
+						filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(\"").append(myFilterFormatted).append("\")");
+					}
+				} else {
+					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				}
 			}
 		}
 		return filterBuilder;
