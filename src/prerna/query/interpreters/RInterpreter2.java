@@ -371,10 +371,10 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
 				filterBuilder = new StringBuilder();
-				filterBuilder.append("is.na(").append(leftSelectorExpression).append(")");
+				filterBuilder.append("is.na(").append(leftSelectorExpression).append(") ");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
 				filterBuilder = new StringBuilder();
-				filterBuilder.append("!is.na(").append(leftSelectorExpression).append(")");
+				filterBuilder.append("!is.na(").append(leftSelectorExpression).append(") ");
 			}
 		}
 		
@@ -385,7 +385,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				filterBuilder = new StringBuilder();
 			} else {
 				// we added a null check above
-				filterBuilder.append("OR ");
+				filterBuilder.append("| ");
 			}
 		
 			boolean multi = false;
