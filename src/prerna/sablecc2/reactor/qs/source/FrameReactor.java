@@ -16,9 +16,7 @@ public class FrameReactor extends AbstractQueryStructReactor {
 	@Override
 	protected QueryStruct2 createQueryStruct() {
 		ITableDataFrame frame = getFrameInput();
-		if(frame != null) {
-			qs.setFrame(frame);
-		}
+		qs.setFrame(frame);
 		qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.FRAME);
 		return qs;
 	}
@@ -37,7 +35,7 @@ public class FrameReactor extends AbstractQueryStructReactor {
 				}
 			}
 		}
-		return null;
+		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 	
 }
