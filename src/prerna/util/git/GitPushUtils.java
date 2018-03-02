@@ -156,25 +156,34 @@ public class GitPushUtils {
 
 	public static void push(String repository, String remoteToPush, String branch, String userName, String password)
 	{
-		File dirFile = new File(repository);
-		Git thisGit = null;
-		try {
-			thisGit = Git.open(dirFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		CredentialsProvider cp = new UsernamePasswordCredentialsProvider(userName, password);
-		RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
+		int attempt = 1;
+		push(repository, remoteToPush, branch, userName, password, attempt);
+	}
 
-		PushCommand pc = thisGit.push();
-		pc.setRefSpecs(spec);
-		pc.setRemote(remoteToPush);
-		pc.setCredentialsProvider(cp);
-		try {
-			pc.call();
-		} catch (GitAPIException e) {
-			e.printStackTrace();
+	public static void push(String repository, String remoteToPush, String branch, String userName, String password, int attempt)
+	{
+		if(attempt < 3)
+		{
+			File dirFile = new File(repository);
+			Git thisGit = null;
+			try {
+				thisGit = Git.open(dirFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			CredentialsProvider cp = new UsernamePasswordCredentialsProvider(userName, password);
+			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
+	
+			PushCommand pc = thisGit.push();
+			pc.setRefSpecs(spec);
+			pc.setRemote(remoteToPush);
+			pc.setCredentialsProvider(cp);
+			try {
+				pc.call();
+			} catch (GitAPIException e) {
+				e.printStackTrace();
+			}
+			thisGit.close();
 		}
-		thisGit.close();
 	}
 }
