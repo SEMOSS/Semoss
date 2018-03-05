@@ -62,7 +62,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
 		logger.info("1) Add insight " + insightName + " to rdbms store...");
-		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave);
+		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave, hidden);
 		logger.info("1) Done...");
 
 		if(!hidden) {
