@@ -461,19 +461,24 @@ public final class SolrUtility {
 
 
 					// 2) execute the query and iterate through the insights
-					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE FROM QUESTION_ID";
+					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, HIDDEN_INSIGHT FROM QUESTION_ID";
 					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rne, query);
 					while(wrapper.hasNext()){
 						ISelectStatement ss = wrapper.next();
 
 						// 3) start to get all the relevant metadata surrounding the insight
-
+						boolean hidden = (boolean) ss.getVar("HIDDEN_INSIGHT");
+						if(hidden) {
+							continue;
+						}
+						
 						// get the unique id of the insight within the engine
 						String id = ss.getVar("ID") + "";
 						// get the question name
 						String name = (String) ss.getVar("QUESTION_NAME");
 						// get the question layout
 						String layout = (String) ss.getVar("QUESTION_LAYOUT");
+						// is the insight hidden
 
 						// get the question perspective to use as a default tag
 						String perspective = (String) ss.getVar("QUESTION_PERSPECTIVE");

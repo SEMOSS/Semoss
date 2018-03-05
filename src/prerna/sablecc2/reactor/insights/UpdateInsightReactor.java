@@ -70,7 +70,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
-		admin.updateInsight(rdbmsId, insightName, layout, recipeToSave);
+		admin.updateInsight(rdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("1) Done");
 		
 		if(!hidden) {
