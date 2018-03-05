@@ -32,7 +32,7 @@ BaseFolder	C:\\workspace\\Semoss_Dev
 
 R_CONNECTION_JRI	false
 
-GOOGLE_CHROME_HOME C:/Program Files (x86)/Google/Chrome/Application/chrome.exe
+GOOGLE_CHROME_HOME C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe
 
 SHOW_GOV_WARNING	false
 GPS_SUDOWL_DEFAULT	false
