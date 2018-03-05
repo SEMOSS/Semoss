@@ -137,7 +137,11 @@ public class ImageCaptureReactor  extends AbstractReactor {
 
 		String googleHome = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_HOME);
 		if(googleHome == null) {
-			googleHome = "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe";
+			googleHome = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+		}
+		
+		if(googleHome.contains(" ")) {
+			googleHome = "\"" + googleHome + "\"";
 		}
 		
 		String cmd = googleHome 
