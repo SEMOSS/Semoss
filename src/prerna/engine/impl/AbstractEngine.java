@@ -1546,4 +1546,10 @@ public abstract class AbstractEngine implements IEngine {
 		return retObj;
 	}
 	
+	// load the prop file
+	public void setProp(Properties prop)
+	{
+		this.prop = prop;
+	}
+	
 }
