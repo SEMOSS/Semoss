@@ -182,6 +182,7 @@ import prerna.sablecc2.reactor.qs.selectors.StandardDeviationReactor;
 import prerna.sablecc2.reactor.qs.selectors.SumReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueCountReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
+import prerna.sablecc2.reactor.qs.source.APIReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
@@ -349,6 +350,7 @@ public class ReactorFactory {
 		reactorHash.put("DeleteApp", DeleteAppReactor.class);
 		reactorHash.put("ImageCapture", ImageCaptureReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
+		reactorHash.put("help", HelpReactor.class);
 		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
 
@@ -389,6 +391,7 @@ public class ReactorFactory {
 		// Data Source Reactors
 		// specifies that our pksl operations after this point are dealing with the specified database
 		reactorHash.put("Database", DatabaseReactor.class);
+		reactorHash.put("API", APIReactor.class);
 		reactorHash.put("FileRead", FileSourceReactor.class);
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
@@ -615,6 +618,16 @@ public class ReactorFactory {
 		// Dates
 		reactorHash.put("Date", DateReactor.class);
 		
+		// Forms
+		reactorHash.put("UpdateForm", FormsReactor.class);
+		
+		// LSA
+		//reactorHash.put("LSASpace", LSASpaceReactor.class);
+		//reactorHash.put("CreateCriteria", CreateCriteriaReactor.class); 
+		//reactorHash.put("RunLSI", RunLSIReactor.class); 
+		//reactorHash.put("LSAUpdate", LSAUpdateReactor.class);  
+	 
+
 		// Forms
 		reactorHash.put("UpdateForm", FormsReactor.class);
 	}
