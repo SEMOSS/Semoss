@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -11,12 +12,12 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class FrameDuplicatesReactor extends AbstractReactor {
 	
 	public FrameDuplicatesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		ITableDataFrame dataframe = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataframe = (ITableDataFrame) getFrame();
 		List<String> frameCols = this.curRow.getAllColumns();
 		// if one column passed in is unique throughout the flat structure
 		// of the frame, then we are done
@@ -33,5 +34,20 @@ public class FrameDuplicatesReactor extends AbstractReactor {
 		// no columns were unique
 		// return true, we do have duplicates
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+	
+	private ITableDataFrame getFrame() {
+		// try specific key
+		GenRowStruct frameGrs = this.store.getNoun(keysToGet[0]);
+		if(frameGrs != null && !frameGrs.isEmpty()) {
+			return (ITableDataFrame) frameGrs.get(0);
+		}
+		
+		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
+		if(frameCur != null && !frameCur.isEmpty()) {
+			return (ITableDataFrame) frameCur.get(0).getValue();
+		}
+		
+		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 }
