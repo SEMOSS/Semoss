@@ -189,7 +189,10 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			if (taskOptions == null || taskOptions.isEmpty()) {
 				return;
 			}
-			ITableDataFrame frame = (ITableDataFrame) in.getDataMaker();
+			ITableDataFrame frame = qs.getFrame();
+			if(frame == null) {
+				frame = (ITableDataFrame) in.getDataMaker();
+			}
 			if (frame == null) {
 				return;
 			}
