@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Properties;
 import java.util.Vector;
 
 /**
@@ -139,6 +140,12 @@ public interface IEngine extends IExplorable {
 	 * @return Object based on the type of action
 	 */
 	public Object doAction(IEngine.ACTION_TYPE actionType, Object[] args);
+	
+	// load this particular prop
+	/**
+	 * Reloads the prop file
+	 */
+	public void setProp(Properties prop);
 
 }
 
