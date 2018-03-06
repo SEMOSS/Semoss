@@ -1,6 +1,7 @@
 package prerna.query.interpreters;
 
 import java.util.List;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -148,7 +149,27 @@ public class JsonInterpreter implements IQueryInterpreter2{
 	private StringBuilder processValToValFilter(Object value1, Object value2) {
 		// account for arrays
 		// TODO: too lazy atm
-		return new StringBuilder(value2 + "=" + value1);
+		StringBuilder finalVal = new StringBuilder(value2 + "=");
+		String value1String = value1 + "";
+		
+		if(value1 instanceof Vector)
+		{
+			Vector vecValue1 = (Vector)value1;
+			StringBuffer rightValMaker = new StringBuffer("ARRAY");
+			for(int valIndex = 0; valIndex < vecValue1.size(); valIndex++)
+			{
+				if(valIndex != 0) {
+					rightValMaker.append("<>");
+				}
+				rightValMaker.append(vecValue1.get(valIndex));
+			}
+			rightValMaker.append("ARRAY");
+			finalVal.append(rightValMaker.toString());
+		}
+		else
+			finalVal.append(value1);
+		
+		return finalVal;
 	}
 
 
