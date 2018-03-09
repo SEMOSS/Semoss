@@ -187,7 +187,9 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
+//import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
+//import prerna.sablecc2.reactor.qs.source.ListGoogleSheetsReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
@@ -396,6 +398,8 @@ public class ReactorFactory {
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
+		//reactorHash.put("GoogleSheetSource", GoogleSheetSourceReactor.class);
+		//reactorHash.put("ListGoogleSheets", ListGoogleSheetsReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
@@ -665,6 +669,7 @@ public class ReactorFactory {
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
 		rFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.r.DuplicateColumnReactor.class);
 		rFrameHash.put("EditRules", prerna.sablecc2.reactor.frame.r.EditRulesReactor.class);
+		rFrameHash.put("GetEditRuleTypes",prerna.sablecc2.reactor.frame.r.GetEditRuleTypesReactor.class);
 		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor.class);
 		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);
