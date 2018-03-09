@@ -32,6 +32,9 @@ import prerna.solr.SolrUtility;
 
 public class MosfetSyncHelper {
 
+	// get the directory separator
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	public static final String RECIPE_FILE = ".mosfet";
 
 	// ADDED
@@ -323,7 +326,7 @@ public class MosfetSyncHelper {
 		// we have the .mosfet and want to go up to the version folder
 		File versionDir = mosfetFile.getParentFile().getParentFile();
 		// make a new directory for the insight
-		String newInsightDirLoc = versionDir.getPath() + "/" + newRandomId;
+		String newInsightDirLoc = versionDir.getPath() + DIR_SEPARATOR + newRandomId;
 		File newInsightDir = new File(newInsightDirLoc);
 		newInsightDir.mkdirs();
 
@@ -332,7 +335,7 @@ public class MosfetSyncHelper {
 		mapData.put(INSIGHT_NAME_KEY, newInsightName);
 
 		String json = gson.toJson(mapData);
-		File newMosfetFile = new File(newInsightDirLoc + "/" + RECIPE_FILE);
+		File newMosfetFile = new File(newInsightDirLoc + DIR_SEPARATOR + RECIPE_FILE);
 		try {
 			// write json to file
 			FileUtils.writeStringToFile(newMosfetFile, json);
@@ -367,8 +370,12 @@ public class MosfetSyncHelper {
 	 * @param recipeToSave
 	 */
 	public static File makeMosfitFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave, boolean hidden) {
-		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		recipePath += "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID;
+		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + Constants.DB 
+				+ DIR_SEPARATOR + engineName 
+				+ DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + rdbmsID;
+		
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		// format recipe file
 		HashMap<String, Object> output = new HashMap<String, Object>();

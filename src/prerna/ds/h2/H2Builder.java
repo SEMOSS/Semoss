@@ -1131,6 +1131,9 @@ public class H2Builder {
 	}
 
 	public Connection convertFromInMemToPhysical(String physicalDbLocation) {
+		// get the directory separator
+		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 		try {
 			File dbLocation = null;
 			Connection previousConnection = null;
@@ -1162,9 +1165,10 @@ public class H2Builder {
 			// this is the case where i do not care where the on-disk is created
 			// so just create some random stuff
 			if (dbLocation == null) {
-				folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-						+ RDBMSEngineCreationHelper.cleanTableName(this.schema) + dateStr + "\\";
-				physicalDbLocation = folderToUse.replace('/', '\\') + "_" + dateStr + "_database";
+				folderToUse = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+						DIR_SEPARATOR + RDBMSEngineCreationHelper.cleanTableName(this.schema) + dateStr + 
+						DIR_SEPARATOR + "_" + dateStr + "_database";
+				physicalDbLocation = folderToUse;
 			} else {
 				// this is the case when we have a specific schema we want to move the frame into
 				// this is set when the physicalDbLocation parameter is not null or empty
