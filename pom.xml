@@ -1964,6 +1964,13 @@
 			<artifactId>cassandra-jdbc</artifactId>
 			<version>1.2.1</version>
 		</dependency>
+		<dependency>
+			<groupId>com.github.zhicwu</groupId>
+			<artifactId>cassandra-jdbc-driver</artifactId>
+			<version>0.6.1</version>
+			<!-- comment out the classifier if you don't need shaded jar -->
+			<classifier>shaded</classifier>
+		</dependency>
 		<!-- NEO4J Gremlin -->
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
@@ -2172,5 +2179,21 @@
 		    <artifactId>json-path</artifactId>
 		    <version>2.3.0</version>
 		</dependency> 
+	    <!--  Google Sheets -->
+		<dependency>
+		    <groupId>com.google.apis</groupId>
+		    <artifactId>google-api-services-sheets</artifactId>
+		    <version>v4-rev506-1.23.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.google.gdata</groupId>
+		    <artifactId>core</artifactId>
+		    <version>1.47.1</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.google.apis</groupId>
+		    <artifactId>google-api-services-drive</artifactId>
+		    <version>v3-rev105-1.23.0</version>
+		</dependency>  
 	</dependencies>
 </project>
