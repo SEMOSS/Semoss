@@ -2,25 +2,32 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
 
+import org.codehaus.jackson.map.ObjectMapper;
+
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.ds.r.RSyntaxHelper;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
-public class EditRulesReactor  extends AbstractRFrameReactor {
+/**
+ * This reactor applies edit rules to a data frame
+ * 
+ * Input: 1) the column 2) the type of column (e.g., EditRules(column =
+ * "PersonAge", dataType = "age");
+ */
+
+public class EditRulesReactor extends AbstractRFrameReactor {
 	public EditRulesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_STRUCT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), "type" };
 	}
 
 	@Override
@@ -29,70 +36,93 @@ public class EditRulesReactor  extends AbstractRFrameReactor {
 		init();
 		RDataTable frame = (RDataTable) getFrame();
 		String dfName = frame.getTableName();
-		String[] packages = new String[] {"lpSolveAPI", "igraph", "editRules"};
-		NounMetadata filterNoun = this.getCurRow().getNoun(0);
-		// filter is query struct pksl type
-		// the qs is the value of the filterNoun
-		QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
-		if (qs == null) {
-			throw new IllegalArgumentException("Need to define filter condition");
-		}
-		
-		// write edit rules file
-		String editRulesFilePath = getBaseFolder() + "\\R\\EditRules\\editRules.txt";
+		// check r packages
+		String[] packages = new String[] { "lpSolveAPI", "igraph", "editRules" };
+		// retrieve the column input
+		String column = this.keyValue.get(this.keysToGet[0]);
+		// retrieve the type of column
+		String type = this.keyValue.get(this.keysToGet[1]);
+
+		// read in the edit rules file
+		String fileJsonPath = getBaseFolder() + "\\R\\EditRules\\editRulesTemplate.json";
+		String jsonString = "";
+
+		HashMap<String, Object> editRulesTemplate = null;
 		try {
-			PrintWriter pw = new PrintWriter(new File(editRulesFilePath));
-			StringBuilder sb = new StringBuilder();
-			String rule = "";
-			
-			GenRowFilters grf = qs.getExplicitFilters();
-			Set<String> filteredColumns = grf.getAllFilteredColumns();
-			List<IQueryFilter> filterList2 = grf.getFilters();
-			String sqlStatements = "";
-			for (String column : filteredColumns) {
-				String update = "";
-				List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(column);
-				for (SimpleQueryFilter queryFilter : filterList) {
-					String sqlCondition = "";
-					// col to values
-					NounMetadata leftComp = queryFilter.getLComparison();
-					String columnComp = leftComp.getValue() + "";
-					if (columnComp.contains("__")) {
-						String[] split = columnComp.split("__");
-						sqlCondition += split[1];
-					}
-					// does sqlCondition exist
-//					if (Arrays.asList(null).contains(sqlCondition) != true) {
-//						throw new IllegalArgumentException("Column " + sqlCondition + " doesn't exist.");
-//					}
-					String nounComparator = queryFilter.getComparator();
-					// clean nounComparator for sql statement
-					if (nounComparator.equals("==")) {
-						nounComparator = "=";
-					} else if (nounComparator.equals("<>")) {
-						nounComparator = "!=";
-					}
-					sqlCondition += " " + nounComparator + " ";
-					// rightComp has values
-					NounMetadata rightComp = queryFilter.getRComparison();
-					Object value = rightComp.getValue();
-
-
-					// if it is a string put quotes
-					if (rightComp.getNounType().equals(PixelDataType.CONST_STRING)) {
-						sqlStatements += update + sqlCondition + "'" + value + "' ; ";
-					} else {
-						sqlStatements += update + sqlCondition + "'" + value + "' ; ";
-					}
-				}
-			}
-			sb.append(rule);
-			pw.write(sb.toString());
-			pw.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			jsonString = new String(Files.readAllBytes(Paths.get(fileJsonPath)));
+			editRulesTemplate = new ObjectMapper().readValue(jsonString, HashMap.class);
+		} catch (IOException e2) {
+			throw new IllegalArgumentException("Unable to read file from path: " + fileJsonPath);
 		}
-		
+
+		// now that file is read in, we need to look through it to identify the
+		// appropriate edit rule based on the path
+		// look through the edit rules keyset to find the rule
+		Object typeRule = editRulesTemplate.get(type);
+		HashMap<String, String> inputMap = (HashMap<String, String>) typeRule;
+
+		String columnType = inputMap.get("columnType");
+		String rule = inputMap.get("rule");
+
+		// before updating the rule, check to make sure that the column is the
+		// appropriate type for the rule (e.g., an age column should be numeric)
+		// determine the column type of the column in the data frame
+
+		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
+		String columnTypeInFrame = metadata.getHeaderTypeAsString(dfName + "__" + column);
+
+		boolean typeMatch = false;
+		if (columnType.equalsIgnoreCase("NUMBER")) {
+			if (Utility.isNumericType(columnTypeInFrame)) {
+				typeMatch = true;
+			}
+		} else {
+			if (columnTypeInFrame.equalsIgnoreCase(columnType)) {
+				typeMatch = true;
+			}
+		}
+
+		if (typeMatch) {
+			// go forward with edit rules
+			// update the rule to use the appropriate column name
+			String targetString = "<" + type + ">";
+			String updatedRule = rule.replace(targetString, column);
+			System.out.println(updatedRule);
+			
+			try {
+				// write rule to edit file
+				String editRulesFilePath = getBaseFolder() + "\\R\\EditRules\\" + Utility.getRandomString(8)+".txt";
+				editRulesFilePath = editRulesFilePath.replace("\\", "/");
+				PrintWriter pw = new PrintWriter(new File(editRulesFilePath));
+				pw.write(updatedRule);
+				pw.close();
+				
+				
+				StringBuilder rsb = new StringBuilder();
+				rsb.append("library(editrules);");
+				// read edit file
+				String editFile = "editFile" + Utility.getRandomString(8);
+				rsb.append(editFile + " <- editfile(\"" + editRulesFilePath + "\");");
+
+				// edit rules r script
+				String editRulesScriptFilePath = getBaseFolder() + "\\R\\EditRules\\editRules.R";
+				editRulesScriptFilePath = editRulesScriptFilePath.replace("\\", "/");
+				rsb.append("source(\"" + editRulesScriptFilePath + "\");");
+
+				// call edit rules function
+				String editFrame = "editFrame" + Utility.getRandomString(8);
+				rsb.append(editFrame + " <- editRules(" + dfName + ", " + editFile + ");");
+				System.out.println(rsb.toString());
+				this.rJavaTranslator.runR(rsb.toString());
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+
+		} else {
+			throw new IllegalArgumentException("Column not of type: " + columnType);
+		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
 	}
 
