@@ -33,7 +33,9 @@ import prerna.util.Utility;
 public class ImageCaptureReactor  extends AbstractReactor {
 
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
-
+	// get the directory separator
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
 	public ImageCaptureReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
@@ -129,7 +131,12 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		String id = in.getRdbmsId();
 		String engine = in.getEngineName();
 
-		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\db\\" + engine + "\\version\\" + id;
+		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
+				DIR_SEPARATOR + "db" + 
+				DIR_SEPARATOR + engine + 
+				DIR_SEPARATOR + "version" +
+				DIR_SEPARATOR + id;
+		
 		File imageDir = new File(imageDirStr);
 		if(!imageDir.exists()) {
 			imageDir.mkdirs();
