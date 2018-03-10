@@ -12,7 +12,7 @@ import prerna.om.HeadersDataRow;
 public class JsonWrapper implements IRawSelectWrapper {
 	
 	// set all the data here
-	JSONArray [] data = null;
+	private JSONArray [] data = null;
 	String [] headerNames = null;
 	IEngine engine = null;
 	String query = null;
