@@ -255,7 +255,7 @@ public class JsonAPIEngine extends AbstractEngine {
 					inputData = doPost(finalValHash);
 							
 				
-				curDoc = Configuration.defaultConfiguration().jsonProvider().parse(inputData);
+				curDoc = getDocument(inputData);					
 				
 				// send the data to add to it
 				retHash = getOutput(curDoc, jsonPaths, retHash, null, null);
@@ -293,7 +293,7 @@ public class JsonAPIEngine extends AbstractEngine {
 
 	}
 	
-	private Hashtable getOutput(Object doc, String [] jsonPaths, Hashtable retHash, String repeaterHeader, String repeaterValue)
+	protected Hashtable getOutput(Object doc, String [] jsonPaths, Hashtable retHash, String repeaterHeader, String repeaterValue)
 	{
 	
 		JSONArray [] data = null;
@@ -411,8 +411,9 @@ public class JsonAPIEngine extends AbstractEngine {
 		return retHash;
 	}
 	
-	private String [] getTypes(JSONArray [] data)
+	protected String [] getTypes(Object data2)
 	{
+		JSONArray [] data = (JSONArray [])data2;
 		
 		String [] types = new String[data.length];
 		for(int dataIndex = 0;data != null && dataIndex < data.length;dataIndex++)
@@ -429,6 +430,8 @@ public class JsonAPIEngine extends AbstractEngine {
 					types[dataIndex] = "String";
 				else if(firstOne instanceof Double)
 					types[dataIndex] = "Double";
+				else
+					types[dataIndex] = "String";
 			}
 		}
 
