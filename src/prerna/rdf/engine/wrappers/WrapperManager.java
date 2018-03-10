@@ -37,15 +37,14 @@ import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonWrapper;
+import prerna.engine.impl.json.JsonWrapper2;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.query.interpreters.DataStaxInterpreter;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.JsonInterpreter;
 import prerna.query.interpreters.SolrInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
@@ -136,7 +135,14 @@ public class WrapperManager {
 			
 			// wrapper
 			returnWrapper = new JsonWrapper();
+			break;
 			
+		}
+		case JSON2 : {
+			
+			// wrapper
+			returnWrapper = new JsonWrapper2();
+			break;
 		}
 		default: {
 

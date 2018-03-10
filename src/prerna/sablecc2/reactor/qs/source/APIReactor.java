@@ -6,6 +6,7 @@ import java.util.Properties;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.json.JsonAPIEngine;
+import prerna.engine.impl.json.JsonAPIEngine2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -55,8 +56,14 @@ public class APIReactor extends AbstractQueryStructReactor {
 		
 		// need some way of figuring out what api engine to use to which one
 		// for now I will just force fit
-		IEngine engine = new JsonAPIEngine();
+		IEngine engine = null;
 		
+		if(apiType.equalsIgnoreCase("JSON"))	
+			engine = new JsonAPIEngine();
+
+		else if(apiType.equalsIgnoreCase("JSON2"))	
+			engine = new JsonAPIEngine2();
+
 		
 		// if there is alias get it
 		if(this.getNounStore().getNoun("aliasFile") != null)
