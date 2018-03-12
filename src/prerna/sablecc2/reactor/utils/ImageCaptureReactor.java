@@ -151,13 +151,18 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			googleHome = "\"" + googleHome + "\"";
 		}
 		
+		String insecure = "";
+		if(feUrl.contains("localhost") && feUrl.contains("https")) {
+			insecure = "--allow-insecure-localhost ";
+		}
+		
 		String cmd = googleHome 
 				+ " "
 				+ "--headless "
 				+ "--disable-gpu "
 				+ "--window-size=1440,1440 "
 				+ "--virtual-time-budget=10000 "
-				+ "--allow-insecure-localhost "
+				+ insecure
 				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
 				+ "\"" + feUrl + "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000\"";
 
