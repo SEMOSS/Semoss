@@ -669,6 +669,7 @@ public class ReactorFactory {
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
 		rFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.r.DuplicateColumnReactor.class);
 		rFrameHash.put("EditRules", prerna.sablecc2.reactor.frame.r.EditRulesReactor.class);
+		rFrameHash.put("RunEditRules", prerna.sablecc2.reactor.frame.r.RunEditRulesReactor.class);
 		rFrameHash.put("GetEditRuleTypes",prerna.sablecc2.reactor.frame.r.GetEditRuleTypesReactor.class);
 		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor.class);
 		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
