@@ -34,6 +34,7 @@ import org.apache.solr.common.SolrInputDocument;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.MetaHelper;
@@ -459,7 +460,18 @@ public final class SolrUtility {
 					// set all the users to be default...
 					String userID = "default";
 
-
+					// TO ACCOOMDATE FOR SCHEMA CHANGE!!!!
+					// TO ACCOOMDATE FOR SCHEMA CHANGE!!!!
+					// TO ACCOOMDATE FOR SCHEMA CHANGE!!!!
+					String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='HIDDEN_INSIGHT'";
+					IRawSelectWrapper  wrap = WrapperManager.getInstance().getRawWrapper(rne, q);
+					if(!wrap.hasNext()) {
+						String update = "ALTER TABLE QUESTION_ID ADD HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE;";
+						rne.insertData(update);
+						rne.commit();
+					}
+					wrap.cleanUp();
+					
 					// 2) execute the query and iterate through the insights
 					String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, HIDDEN_INSIGHT FROM QUESTION_ID";
 					ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(rne, query);

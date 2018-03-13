@@ -34,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -48,7 +49,7 @@ import prerna.util.sql.SQLQueryUtil;
 
 public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	
-	static final Logger logger = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
 
 	public IEngine addNewRDBMS(ImportOptions options) throws IOException {
 		SQLQueryUtil.DB_TYPE sqlType = options.getRDBMSDriverType();
@@ -153,74 +154,114 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		return success + "";
 	}
 
-	public HashMap<String, Object> getSchemaDetails(String type, String host, String port, String username,
-			String password, String schema) throws SQLException {
-		Connection con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null);
-		HashMap<String, ArrayList<HashMap>> tableDetails = new HashMap<String, ArrayList<HashMap>>(); // tablename:
-																										// [colDetails]
-		HashMap<String, ArrayList<HashMap>> relations = new HashMap<String, ArrayList<HashMap>>(); // sub_table:
-																									// [(obj_table,
-																									// fromCol,
-																									// toCol)]
+	public Map<String, Object> getSchemaDetails(String type, String host, String port, String username, String password, String schema) throws SQLException {
+		Connection con;
+		try {
+			con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null);
+		} catch (SQLException e) {
+			throw new SQLException("Unable to establish connection");
+		}
+		
+		// tablename
+		Map<String, List<Map>> tableDetails = new HashMap<String, List<Map>>();
+		// sub tatble [objtable, fromcol, tocol]
+		Map<String, List<Map>> relations = new HashMap<String, List<Map>>();
+		
+		DatabaseMetaData meta;
+		try {
+			meta = con.getMetaData();
+		} catch (SQLException e) {
+			throw new SQLException("Unable to get database metadata");
+		}
+		ResultSet tables;
+		try {
+			tables = meta.getTables(null, null, null, new String[] { "TABLE" });
+		} catch (SQLException e) {
+			throw new SQLException("Unable to get tables from database metadata");
+		}
+		try {
+			while (tables.next()) {
+				String table = tables.getString("table_name");
+				LOGGER.info("Processing table = " + table);
 
-		DatabaseMetaData meta = con.getMetaData();
-		ResultSet tables = meta.getTables(null, null, null, new String[] { "TABLE" });
-		while (tables.next()) {
-			ArrayList<String> primaryKeys = new ArrayList<String>();
-			HashMap<String, Object> colDetails = new HashMap<String, Object>(); // name:
-																				// ,
-																				// type:
-																				// ,
-																				// isPK:
-			ArrayList<HashMap> allCols = new ArrayList<HashMap>();
-			HashMap<String, String> fkDetails = new HashMap<String, String>();
-			ArrayList<HashMap> allRels = new ArrayList<HashMap>();
+				List<String> primaryKeys = new ArrayList<String>();
+				//name, type, isPK
+				Map<String, Object> colDetails = new HashMap<String, Object>(); 
 
-			String table = tables.getString("table_name");
-			System.out.println("Table: " + table);
-			ResultSet keys = meta.getPrimaryKeys(null, null, table);
-			while (keys.next()) {
-				primaryKeys.add(keys.getString("column_name"));
+				List<Map> allCols = new ArrayList<Map>();
+				Map<String, String> fkDetails = new HashMap<String, String>();
+				List<Map> allRels = new ArrayList<Map>();
 
-				System.out.println(keys.getString("table_name") + ": " + keys.getString("column_name") + " added.");
-			}
-
-			System.out.println("COLUMNS " + primaryKeys);
-			keys = meta.getColumns(null, null, table, null);
-			while (keys.next()) {
-				colDetails = new HashMap<String, Object>();
-				colDetails.put("name", keys.getString("column_name"));
-				colDetails.put("type", keys.getString("type_name"));
-				if (primaryKeys.contains(keys.getString("column_name"))) {
-					colDetails.put("isPK", true);
-				} else {
-					colDetails.put("isPK", false);
+				ResultSet keys = null;
+				try {
+					keys = meta.getPrimaryKeys(null, null, table);
+					while(keys.next()) {
+						primaryKeys.add(keys.getString("column_name"));
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				} finally {
+					closeRs(keys);
 				}
-				allCols.add(colDetails);
+				
 
-				System.out.println(
-						"\t" + keys.getString("column_name") + " (" + keys.getString("type_name") + ") added.");
+				try {
+					LOGGER.info("Processing table columns");
+					keys = meta.getColumns(null, null, table, null);
+					while (keys.next()) {
+						colDetails = new HashMap<String, Object>();
+						colDetails.put("name", keys.getString("column_name"));
+						colDetails.put("type", keys.getString("type_name"));
+						if (primaryKeys.contains(keys.getString("column_name"))) {
+							colDetails.put("isPK", true);
+						} else {
+							colDetails.put("isPK", false);
+						}
+						allCols.add(colDetails);
+					}
+					tableDetails.put(table, allCols);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				} finally {
+					closeRs(keys);
+				}
+
+				try {
+					LOGGER.info("Processing table foreign keys");
+					keys = meta.getExportedKeys(null, null, table);
+					while (keys.next()) {
+						fkDetails = new HashMap<String, String>();
+						fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
+						fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
+						fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
+						allRels.add(fkDetails);
+					}
+					relations.put(table, allRels);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				} finally {
+					closeRs(keys);
+				}
 			}
-			tableDetails.put(table, allCols);
-
-			System.out.println("FOREIGN KEYS");
-			keys = meta.getExportedKeys(null, null, table);
-			while (keys.next()) {
-				fkDetails = new HashMap<String, String>();
-				fkDetails.put("fromCol", keys.getString("PKCOLUMN_NAME"));
-				fkDetails.put("toTable", keys.getString("FKTABLE_NAME"));
-				fkDetails.put("toCol", keys.getString("FKCOLUMN_NAME"));
-				allRels.add(fkDetails);
-
-				System.out.println(keys.getString("PKTABLE_NAME") + ": " + keys.getString("PKCOLUMN_NAME") + " -> "
-						+ keys.getString("FKTABLE_NAME") + ": " + keys.getString("FKCOLUMN_NAME") + " added.");
-			}
-			relations.put(table, allRels);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeRs(tables);
 		}
 
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ret.put("tables", tableDetails);
 		ret.put("relationships", relations);
 		return ret;
+	}
+	
+	private void closeRs(ResultSet rs) {
+		if(rs != null) {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }
