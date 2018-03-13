@@ -8,24 +8,27 @@ getDqFrame <- function(df, issueFrame) {
 	for(i in 1:nrow(ruleDF)) {
 	  rule <- ruleDF$originalRules[i]
 	  ruleEScript <- paste("E<- editset(expression(", rule, "))", sep="") 
-
 	  tryCatch({
 	    eval(parse(text=ruleEScript))
-		  
 		if(exists('E')) {
 			editFrame <- as.data.frame(E)
 			translatedRule <- editFrame$edit
 			ruleDF$translatedRules[i] <- translatedRule
 	    }
 	  }, error = function(e) {
+	  
 	  })
 	
 	  rm(E, editFrame, translatedRule, ruleEScript)
 	}
+	# add numerical rule
+	tempDF <- df
+	tempDF$rls213i9dslf <- 1
 
 	# now create E with valid rules 
 	ruleDF <- ruleDF[which(ruleDF$translatedRules != ""),]
 	originalRules <- as.vector(ruleDF$originalRules)
+	originalRules <- append(originalRules, "rls213i9dslf > 0")
 	E <- editset(originalRules)
 
 	# get constraints in frame
@@ -33,7 +36,7 @@ getDqFrame <- function(df, issueFrame) {
 	editNames <- editFrame$name
 
 	# check violations
-	ve <- violatedEdits(E, df)
+	ve <- violatedEdits(E, tempDF)
 	veFrame <- as.data.frame(ve)
 
 	# add results to data quality frame
