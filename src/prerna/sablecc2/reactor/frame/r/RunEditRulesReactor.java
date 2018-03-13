@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -22,45 +23,49 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		String dfName = frame.getTableName();
 		List<Object> mapList = this.curRow.getValuesOfType(PixelDataType.MAP);
-		StringBuilder sb = new StringBuilder();
+		StringBuilder rsb = new StringBuilder();
+		String issueFrame = "issueFrame";
+		int size = mapList.size();
+		Object[] nameCol = new Object[size];
+		Object[] descCol = new Object[size];
+		Object[] ruleCol = new Object[size];
 		for(int i = 0; i < mapList.size(); i++) {
 			Map<String, Object> mapOptions = (Map<String, Object>) mapList.get(i);
 			String name = (String) mapOptions.get("name");
+			nameCol[i] = name;
 			String description = (String) mapOptions.get("description");
+			descCol[i] = description;
 			String rule = (String) mapOptions.get("rule");
-			sb.append(rule + "\n");
+			ruleCol[i] = rule;
 		}
+		
+		// create rule frame with the following columns: name, description, rule
+		String issueFrameNameCol = "name";
+		rsb.append(issueFrameNameCol + "<-" + RSyntaxHelper.createStringRColVec(nameCol));
+		rsb.append(";");
+		String issueFrameDescriptionCol = "description";
+		rsb.append(issueFrameDescriptionCol + "<-" + RSyntaxHelper.createStringRColVec(descCol));
+		rsb.append(";");
+		String issueFrameRuleCol = "rule";
+		rsb.append(issueFrameRuleCol + "<-" + RSyntaxHelper.createStringRColVec(ruleCol));
+		rsb.append(";");
+		
+		rsb.append(issueFrame + "<- data.frame("+issueFrameNameCol+","+issueFrameDescriptionCol+","+issueFrameRuleCol +");");
+		System.out.println(rsb.toString());
+		
+		
+		rsb.append("library(editrules);");
 
-		try {
-			// write rules to edit file
-			String editRulesFilePath = getBaseFolder() + "\\R\\EditRules\\" + Utility.getRandomString(8)+".txt";
-			editRulesFilePath = editRulesFilePath.replace("\\", "/");
-			PrintWriter pw = new PrintWriter(new File(editRulesFilePath));
-			pw.write(sb.toString());
-			pw.close();
-			
-			
-			StringBuilder rsb = new StringBuilder();
-			rsb.append("library(editrules);");
-			// read edit file
-			String editFile = "editFile" + Utility.getRandomString(8);
-			rsb.append(editFile + " <- editfile(\"" + editRulesFilePath + "\");");
+		// edit rules r script
+		String editRulesScriptFilePath = getBaseFolder() + "\\R\\EditRules\\editRules2.R";
+		editRulesScriptFilePath = editRulesScriptFilePath.replace("\\", "/");
+		rsb.append("source(\"" + editRulesScriptFilePath + "\");");
 
-			// edit rules r script
-			String editRulesScriptFilePath = getBaseFolder() + "\\R\\EditRules\\editRules.R";
-			editRulesScriptFilePath = editRulesScriptFilePath.replace("\\", "/");
-			rsb.append("source(\"" + editRulesScriptFilePath + "\");");
-
-			// call edit rules function
-			String editFrame = "editFrame" + Utility.getRandomString(8);
-			rsb.append(editFrame + " <- editRules(" + dfName + ", " + editFile + ");");
-			System.out.println(rsb.toString());
-			this.rJavaTranslator.runR(rsb.toString());
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		// call edit rules function
+		String editFrame = "editFrame" + Utility.getRandomString(8);
+		rsb.append(editFrame + " <- getDqFrame(" + dfName + ", " + issueFrame + ");");
+		System.out.println(rsb.toString());
+		this.rJavaTranslator.runR(rsb.toString());
 		
 		return null;
 	}
