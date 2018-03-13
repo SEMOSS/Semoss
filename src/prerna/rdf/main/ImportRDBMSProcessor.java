@@ -66,7 +66,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get("nodes");
 		List<String[]> relationships = (List<String[]>) externalMetamodel.get("relationships");
 
-		queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
+		this.queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
 		prepEngineCreator(null, options.getOwlFileLocation(), options.getSMSSLocation());
 		// this will create the class variable this.engine
 		generateEngineFromRDBMSConnection(schema, engineName);
