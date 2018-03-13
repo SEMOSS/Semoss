@@ -52,6 +52,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	private static final Logger LOGGER = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
 
 	public IEngine addNewRDBMS(ImportOptions options) throws IOException {
+		// information for connection details
 		SQLQueryUtil.DB_TYPE sqlType = options.getRDBMSDriverType();
 		String host = options.getHost();
 		String port = options.getPort();
@@ -59,37 +60,43 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		String username = options.getUsername();
 		String password = options.getPassword();
 		String engineName = options.getDbName();
-		HashMap<String, Object> externalMetamodel = options.getExternalMetamodel();
+
+		// the logical metamodel for the upload
+		Map<String, Object> externalMetamodel = options.getExternalMetamodel();
+		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get("nodes");
+		List<String[]> relationships = (List<String[]>) externalMetamodel.get("relationships");
+
 		queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
 		prepEngineCreator(null, options.getOwlFileLocation(), options.getSMSSLocation());
-		// openRdbmsEngineWithoutConnection(engineName);
-		generateEngineFromRDBMSConnection(schema, engineName);// added for testing
-															// connect to
-															// external wf
-		HashMap<String, ArrayList<String>> nodesAndProps = (HashMap<String, ArrayList<String>>) externalMetamodel
-				.get("nodes");
-		ArrayList<String[]> relationships = (ArrayList<String[]>) externalMetamodel.get("relationships");
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
-		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(); // Uncleaned
-																				// concepts
-																				// and
-																				// their
-																				// primkeys
-
-		nodesAndPrimKeys = parseNodesAndProps(nodesAndProps, existingRDBMSStructure);
+		// this will create the class variable this.engine
+		generateEngineFromRDBMSConnection(schema, engineName);
+		
+		// get the existing table names -> column name, column type
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.engine);
+		
+		// parse the nodes and get the prim keys
+		// and write to OWL
+		Map<String, String> nodesAndPrimKeys = parseNodesAndProps(nodesAndProps, existingRDBMSStructure);
+		// parse the relationships
+		// and write to OWL
 		parseRelationships(relationships, existingRDBMSStructure, nodesAndPrimKeys);
-		createBaseRelations(); // TODO: this should be moved into
-								// ImportDataProcessor and removed from every
-								// subclass of AbstractEngineCreator
-
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
-
+		// commit / save the owl
+		createBaseRelations();
+		
+		// generate base insights
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine);
 		return this.engine;
 	}
 
-	private HashMap<String, String> parseNodesAndProps(HashMap<String, ArrayList<String>> nodesAndProps,
-			Map<String, Map<String, String>> dataTypes) {
-		HashMap<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
+	/**
+	 * Add the concepts and properties into the OWL
+	 * @param nodesAndProps
+	 * @param dataTypes
+	 * @return
+	 */
+	private Map<String, String> parseNodesAndProps(Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) 
+	{
+		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
 		for (String node : nodesAndProps.keySet()) {
 			String[] tableAndPrimaryKey = node.split("\\.");
 			String nodeName = tableAndPrimaryKey[0];
@@ -109,26 +116,53 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		return nodesAndPrimKeys;
 	}
 
-	private void parseRelationships(ArrayList<String[]> relationships, Map<String, Map<String, String>> dataTypes,
-			Map<String, String> nodesAndPrimKeys) {
+	/**
+	 * Add the relationships into the OWL
+	 * @param relationships
+	 * @param dataTypes
+	 * @param nodesAndPrimKeys
+	 */
+	private void parseRelationships(List<String[]> relationships, Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) 
+	{
 		for (String[] relationship : relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relationship[0]);
 			String object = RDBMSEngineCreationHelper.cleanTableName(relationship[2]);
-			String[] joinColumns = relationship[1].split("\\."); // TODO: check
-																	// if this
-																	// needs to
-																	// be
-																	// cleaned
-			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1]; // predicate
-																										// is:
-																										// "fromTable.fromJoinCol.toTable.toJoinCol"
+			// TODO: check if this needs to be cleaned
+			String[] joinColumns = relationship[1].split("\\."); 
+			// predicate is: "fromTable.fromJoinCol.toTable.toJoinCol"
+			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1]; 
 			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
 		}
 	}
 
+	/**
+	 * Determine if a connection is valid
+	 * @param type
+	 * @param host
+	 * @param port
+	 * @param username
+	 * @param password
+	 * @param schema
+	 * @return
+	 */
+	public String checkConnectionParams(String type, String host, String port, String username, String password, String schema) {
+		boolean success;
+		try {
+			success = isValidConnection(RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null));
+		} catch (SQLException e) {
+			return e.getMessage();
+		}
+
+		return success + "";
+	}
+	
+	/**
+	 * Determine if a connection is valid
+	 * @param con
+	 * @return
+	 */
 	private boolean isValidConnection(Connection con) {
 		boolean isValid = false;
-
 		try {
 			if (con.isValid(5)) {
 				isValid = true;
@@ -142,18 +176,17 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		return isValid;
 	}
 
-	public String checkConnectionParams(String type, String host, String port, String username, String password,
-			String schema) {
-		boolean success;
-		try {
-			success = isValidConnection(RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null));
-		} catch (SQLException e) {
-			return e.getMessage();
-		}
-
-		return success + "";
-	}
-
+	/**
+	 * Parse through the database metadata to get the schema of the rdbms database
+	 * @param type
+	 * @param host
+	 * @param port
+	 * @param username
+	 * @param password
+	 * @param schema
+	 * @return
+	 * @throws SQLException
+	 */
 	public Map<String, Object> getSchemaDetails(String type, String host, String port, String username, String password, String schema) throws SQLException {
 		Connection con;
 		try {
@@ -203,7 +236,6 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 				} finally {
 					closeRs(keys);
 				}
-				
 
 				try {
 					LOGGER.info("Processing table columns");
@@ -255,6 +287,10 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		return ret;
 	}
 	
+	/**
+	 * Close the result set
+	 * @param rs
+	 */
 	private void closeRs(ResultSet rs) {
 		if(rs != null) {
 			try {
