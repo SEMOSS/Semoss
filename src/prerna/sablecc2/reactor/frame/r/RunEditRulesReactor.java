@@ -52,7 +52,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 				// look up name in template
 				if (editRulesTemplate == null) {
 					// read in the edit rules file
-					String fileJsonPath = getBaseFolder() + "\\R\\EditRules\\editRulesTemplate.json";
+					String fileJsonPath = getBaseFolder() + "\\R\\EditRules\\validateRulesTemplate.json";
 					String jsonString = "";
 					try {
 						jsonString = new String(Files.readAllBytes(Paths.get(fileJsonPath)));
