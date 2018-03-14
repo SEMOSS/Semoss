@@ -23,6 +23,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
+		String[] packages = new String[]{"validate", "settings", "yaml"};
 		RDataTable frame = (RDataTable) getFrame();
 		String dfName = frame.getTableName();
 		List<Object> mapList = this.curRow.getValuesOfType(PixelDataType.MAP);
@@ -44,6 +45,8 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 			nameCol[i] = name;
 			String description = (String) mapOptions.get("description");
 			String rule = (String) mapOptions.get("rule");
+			
+			
 			if (rule == null) {
 
 				// look up name in template
@@ -78,6 +81,8 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 				description = (String) ruleTemplate.get("description");
 
 			}
+			// decode rule sent from fe
+			rule = Utility.decodeURIComponent(rule);
 			ruleCol[i] = rule;
 			descCol[i] = description;
 
@@ -96,10 +101,9 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 
 		rsb.append(issueFrame + "<- data.frame(" + issueFrameNameCol + "," + issueFrameDescriptionCol + ","
 				+ issueFrameRuleCol + ");");
-		rsb.append("library(editrules);");
 
 		// edit rules r script
-		String editRulesScriptFilePath = getBaseFolder() + "\\R\\EditRules\\editRules.R";
+		String editRulesScriptFilePath = getBaseFolder() + "\\R\\EditRules\\validate.R";
 		editRulesScriptFilePath = editRulesScriptFilePath.replace("\\", "/");
 		rsb.append("source(\"" + editRulesScriptFilePath + "\");");
 
@@ -108,7 +112,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		rsb.append(editFrame + " <- getDqFrame(" + dfName + ", " + issueFrame + ");");
 		System.out.println(rsb.toString());
 		this.rJavaTranslator.runR(rsb.toString());
-		
+
 		return null;
 	}
 
