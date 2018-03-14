@@ -82,8 +82,8 @@ public class AbstractEngineCreator {
 		prop.put(Constants.ENGINE, dbName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
+		prop.put(Constants.RDBMS_TYPE, queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
 		((AbstractEngine) engine).setProperties(prop);
 		engine.openDB(null);

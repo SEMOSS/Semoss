@@ -126,6 +126,115 @@ public class RdbmsConnectionHelper {
 	}
 	
 	/**
+	 * Return the connection url string
+	 * @param driverType
+	 * @param host
+	 * @param port
+	 * @param schema
+	 * @param additonalProperties
+	 * @return
+	 * @throws SQLException
+	 */
+	public static String getConnectionUrl(String driverType, String host, String port, String schema, String additonalProperties) throws SQLException {
+		String connectionUrl = "";
+		driverType = driverType.toUpperCase();
+		if (driverType.equalsIgnoreCase(ASTER)) {
+			connectionUrl = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(CASSANDRA)) {
+			connectionUrl = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(DB2)) {
+			connectionUrl = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(DERBY)) {
+			connectionUrl = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(H2)) {
+			connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(IMPALA)) {
+			connectionUrl = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(MARIADB)) {
+			connectionUrl = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(MYSQL)) {
+			connectionUrl = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(ORACLE)) {
+			connectionUrl = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
+		} else if (driverType.equalsIgnoreCase(PHOENIX)) {
+			connectionUrl = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(POSTGRES)) {
+			connectionUrl = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(SAP_HANA)) {
+			connectionUrl = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(SQLSERVER)) {
+			connectionUrl = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(TERADATA)) {
+			connectionUrl = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (driverType.equalsIgnoreCase(REDSHIFT)) {
+			connectionUrl = "jdbc:redshift://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else {
+			throw new SQLException("Invalid driver");
+		}
+		
+		// replace the PORT if defined
+		// else it should use the default
+		if (port != null && !port.isEmpty()) {
+			connectionUrl = connectionUrl.replace(":PORT", ":" + port);
+		} else {
+			connectionUrl = connectionUrl.replace(":PORT", "");
+		}
+		
+		// add additional properties that are considered optional
+		if(additonalProperties != null && !additonalProperties.isEmpty()) {
+			if(!additonalProperties.startsWith(";")) {
+				connectionUrl += ";" + additonalProperties;
+			} else {
+				connectionUrl += additonalProperties;
+			}
+		}
+		return connectionUrl;
+	}
+	
+	/**
+	 * Get the driver for a specific db type
+	 * @param driver
+	 * @return
+	 */
+	public static String getDriver(String driver) {
+		String driverType = driver.toUpperCase();
+		if (driverType.equalsIgnoreCase(ASTER)) {
+			return ASTER_DRIVER;
+		} else if (driverType.equalsIgnoreCase(CASSANDRA)) {
+			return CASSANDRA_DRIVER;
+		} else if (driverType.equalsIgnoreCase(DB2)) {
+			return DB2_DRIVER;
+		} else if (driverType.equalsIgnoreCase(DERBY)) {
+			return DERBY_DRIVER;
+		} else if (driverType.equalsIgnoreCase(H2)) {
+			return H2_DRIVER;
+		} else if (driverType.equalsIgnoreCase(IMPALA)) {
+			return IMPALA_DRIVER;
+		} else if (driverType.equalsIgnoreCase(MARIADB)) {
+			return MARIADB_DRIVER;
+		} else if (driverType.equalsIgnoreCase(MYSQL)) {
+			return MYSQL_DRIVER;
+		} else if (driverType.equalsIgnoreCase(ORACLE)) {
+			return ORACLE_DRIVER;
+		} else if (driverType.equalsIgnoreCase(PHOENIX)) {
+			return PHOENIX_DRIVER;
+		} else if (driverType.equalsIgnoreCase(POSTGRES)) {
+			return POSTGRES_DRIVER;
+		} else if (driverType.equalsIgnoreCase(SAP_HANA)) {
+			return SAP_HANA_DRIVER;
+		} else if (driverType.equalsIgnoreCase(SQLSERVER)) {
+			return SQLSERVER_DRIVER;
+		} else if (driverType.equalsIgnoreCase(TERADATA)) {
+			return TERADATA_DRIVER;
+		} else if (driverType.equalsIgnoreCase(REDSHIFT)) {
+			return REDSHIFT_DRIVER;
+		} else {
+			// assume the input is good
+			return driver;
+		}
+	}
+	
+	/**
 	 * Try to construct the connection URL based on inputs
 	 * @param driver
 	 * @param host
@@ -138,189 +247,8 @@ public class RdbmsConnectionHelper {
 	 * @throws SQLException 
 	 */
 	public static Connection buildConnection(String driver, String host, String port, String userName, String password, String schema, String additonalProperties) throws SQLException {
-		String connectionUrl = "";
-		driver = driver.toUpperCase();
-		try {
-			if (driver.equalsIgnoreCase(ASTER)) {
-				Class.forName(ASTER_DRIVER);
-				connectionUrl = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(CASSANDRA)) {
-				Class.forName(CASSANDRA_DRIVER);
-				connectionUrl = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(DB2)) {
-				Class.forName(DB2_DRIVER);
-				connectionUrl = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(DERBY)) {
-				Class.forName(DERBY_DRIVER);
-				connectionUrl = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			}
-			
-			else if (driver.equalsIgnoreCase(H2)) {
-				Class.forName(H2_DRIVER);
-				connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(IMPALA)) {
-				Class.forName(IMPALA_DRIVER);
-				connectionUrl = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(MARIADB)) {
-				Class.forName(MARIADB_DRIVER);
-				connectionUrl = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(MYSQL)) {
-				Class.forName(MYSQL_DRIVER);
-				connectionUrl = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(ORACLE)) {
-				Class.forName(ORACLE_DRIVER);
-				connectionUrl = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			}
-			
-			else if (driver.equalsIgnoreCase(PHOENIX)) {
-				Class.forName(PHOENIX_DRIVER);
-				connectionUrl = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(POSTGRES)) {
-				Class.forName(POSTGRES_DRIVER);
-				connectionUrl = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(SAP_HANA)) {
-				Class.forName(SAP_HANA_DRIVER);
-				connectionUrl = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(SQLSERVER)) {
-				Class.forName(SQLSERVER_DRIVER);
-				connectionUrl = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			} 
-			
-			else if (driver.equalsIgnoreCase(TERADATA)) {
-				Class.forName(TERADATA_DRIVER);
-				connectionUrl = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			}
-			
-			 else if (driver.equalsIgnoreCase(REDSHIFT)) {
-				Class.forName(REDSHIFT_DRIVER);
-				connectionUrl = "jdbc:redshift://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-				if (port != null && !port.isEmpty()) {
-					connectionUrl = connectionUrl.replace(":PORT", ":" + port);
-				} else {
-					connectionUrl = connectionUrl.replace(":PORT", "");
-				}
-			}
-			
-			else {
-				throw new SQLException("Invalid driver");
-			}
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-			throw new SQLException("Unable to find driver for engine type");
-		}
-		
-		// add additional properties that are considered optional
-		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";")) {
-				connectionUrl += ";" + additonalProperties;
-			} else {
-				connectionUrl += additonalProperties;
-			}
-		}
-		
-		Connection conn;
-		try {
-			if (userName == null || password == null) {
-				conn = DriverManager.getConnection(connectionUrl);
-			} else {
-				conn = DriverManager.getConnection(connectionUrl, userName, password);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new SQLException(e.getMessage());
-		}
-		
-		return conn;
+		String connectionUrl = getConnectionUrl(driver, host, port, schema, additonalProperties);
+		return getConnection(connectionUrl, userName, password, driver);
 	}
 	
 	/**

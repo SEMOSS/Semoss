@@ -111,7 +111,9 @@ public abstract class SQLQueryUtil {
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
 			return new OracleQueryUtil();
 		} else {
-			return new H2QueryUtil();
+			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil();
+			queryUtil.setDbType(dbtype);
+			return queryUtil;
 		}
 	}
 	
@@ -125,7 +127,8 @@ public abstract class SQLQueryUtil {
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.IMPALA) {
 			return new ImpalaQueryUtil(hostname, port, schema, username, password);
 		} else {
-			return null;
+			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil(dbtype, hostname, port, schema, username, password);
+			return queryUtil;
 		}
 	}
 	
@@ -137,7 +140,9 @@ public abstract class SQLQueryUtil {
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
 			return new OracleQueryUtil(connectionURL, username, password);
 		} else {
-			return null;
+			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil();
+			queryUtil.setDbType(dbtype);
+			return queryUtil;
 		}
 	}
 
@@ -151,6 +156,7 @@ public abstract class SQLQueryUtil {
 
 	public abstract String getDialectIndexInfo(String indexName, String dbName);
 
+	public abstract String getEngineNameFromConnectionURL(String connectionURL);
 
 	//"full outer join"
 	//this is definetly going to be db specific
@@ -433,7 +439,6 @@ public abstract class SQLQueryUtil {
 	public String getTempConnectionURL(){
 		return "";
 	}
-	public abstract String getEngineNameFromConnectionURL(String connectionURL);
 
 	public String getDialectCreateDatabase(String engineName){
 		return "CREATE DATABASE " + engineName ;
