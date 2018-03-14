@@ -7,8 +7,11 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.date.SemossDate;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.util.gson.NumberAdapter;
+import prerna.util.gson.SemossDateAdapter;
 
 public class NounMetadata {
 	
@@ -91,7 +94,12 @@ public class NounMetadata {
 			return this;
 		}
 
-		Gson gson = new GsonBuilder().disableHtmlEscaping().excludeFieldsWithModifiers(Modifier.TRANSIENT).create();
+		Gson gson = new GsonBuilder()
+				.disableHtmlEscaping()
+				.excludeFieldsWithModifiers(Modifier.TRANSIENT)
+				.registerTypeAdapter(Double.class, new NumberAdapter())
+				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+				.create();
 		Class<? extends Object> valueClass = value.getClass();
 		Object cloneValue = gson.fromJson(gson.toJson(value), valueClass);
 		return new NounMetadata(cloneValue, this.noun, this.opType);

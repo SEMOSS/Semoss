@@ -27,27 +27,17 @@
  *******************************************************************************/
 package prerna.engine.impl.r;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.DeleteDbFiles;
-import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.QueryStruct;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator2;
 import prerna.ds.util.CsvFileIterator;
@@ -60,10 +50,7 @@ import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PersistentHash;
 import prerna.util.Utility;
-import prerna.util.sql.RDBMSUtility;
-import prerna.util.sql.SQLQueryUtil;
 
 public class RNativeEngine extends AbstractEngine {
 
@@ -72,29 +59,11 @@ public class RNativeEngine extends AbstractEngine {
 	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
 	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
 	
-
-	static final Logger logger = LogManager.getLogger(RNativeEngine.class.getName());
-	DriverManager manager = null;
-	boolean engineConnected = false;
-	boolean datasourceConnected = false;
-	private SQLQueryUtil.DB_TYPE dbType;
-	private BasicDataSource dataSource = null;
-	Connection engineConn = null;
-	private boolean useConnectionPooling = false;
-	int tableCount = 0;
-	PersistentHash conceptIdHash = null;
-	Hashtable tablePresent = new Hashtable();
+	private static final Logger logger = LogManager.getLogger(RNativeEngine.class.getName());
 	private String fileDB = null;
-	
-	private String password = null;
-	private String driver = null;
-	private String connectionURL = null;
-	private String userName = null;
-	private String createString = null;
 	
 	String rvarName = null;
 	String fakeHeader = null;
-	
 	RDataTable dt = new RDataTable();
 
 	@Override
@@ -209,14 +178,6 @@ public class RNativeEngine extends AbstractEngine {
 		// there is no insert data on R not with queries
 	}
 
-	private void closeConnections(Connection conn, ResultSet rs, Statement stmt){
-		if(isConnected()){
-			dt.closeConnection();
-		}
-		// just setting the varname to null 
-		// need a method to close JRI
-	}
-
 	@Override
 	public ENGINE_TYPE getEngineType()
 	{
@@ -230,12 +191,9 @@ public class RNativeEngine extends AbstractEngine {
 		// need a way to maintain 
 		
 		return null;
-
 	}
 
-	
 	public Vector<Object> getCleanSelect(String query){
-	
 		Vector <Object> retObject = null;
 		
 		RIterator2 it = (RIterator2) dt.query(query);
@@ -256,9 +214,8 @@ public class RNativeEngine extends AbstractEngine {
 	}
 
 	@Override
-	public boolean isConnected()
-	{
-		return this.engineConnected;
+	public boolean isConnected() {
+		return true;
 	}
 
 	@Override
@@ -287,77 +244,10 @@ public class RNativeEngine extends AbstractEngine {
 		// not implemented for R
 	}
 
-	// traverse from a type to a type
-	public String traverseOutputQuery(String fromType, String toType, List <String> fromInstances)
-	{
-		/*
-		 * 1. Get the relation for the type
-		 * 2. For every relation create a join
-		 * 3. If Properties are included get the properties
-		 * 4. Add the properties
-		 * 5. For every, type 
-		 */
-		IQueryInterpreter builder = getQueryInterpreter();
-		QueryStruct qs = new QueryStruct();
-		
-		String fromTableName = Utility.getInstanceName(fromType);
-		String toTableName = Utility.getInstanceName(toType);
-		qs.addSelector(fromTableName, QueryStruct.PRIM_KEY_PLACEHOLDER);
-		qs.addSelector(toTableName, QueryStruct.PRIM_KEY_PLACEHOLDER);
-
-		// determine relationship order
-		String relationQuery = "SELECT ?relation WHERE {"
-				+ "{" + "<" + fromType + "> ?relation <" + toType +">}"
-				+ "{?relation <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>}"
-				+ "}";
-
-		String relationName = getRelation(relationQuery);
-		if(relationName != null && relationName.length() != 0) {
-			qs.addRelation(fromTableName, toTableName, "inner.join");
-		} else {
-			qs.addRelation(toTableName, fromTableName, "inner.join");
-		}
-
-		if(fromInstances != null) {
-			// convert instances to simple instance
-			Vector <String> simpleFromInstances = new Vector<String>();
-			for(int fromIndex = 0;fromIndex < fromInstances.size();fromIndex++) {
-				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
-			}
-			qs.addFilter(fromTableName, "=", simpleFromInstances);
-		}
-		
-		String retQuery = builder.composeQuery();
-		return retQuery;
-	}
-
-	private String getRelation(String query)
-	{
-		String relation = null;
-		try {
-			TupleQueryResult tqr = (TupleQueryResult)execOntoSelectQuery(query);
-			while(tqr.hasNext())
-			{
-				BindingSet bs = tqr.next();
-				relation = bs.getBinding("relation").getValue() + "";
-				if(!relation.equalsIgnoreCase("http://semoss.org/ontologies/Relation"))
-					break;
-			}
-		} catch (QueryEvaluationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		return relation;
-	}
-
-
 	public void deleteDB() {
 		logger.debug("Deleting RDBMS Engine: " + this.engineName);
-
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
-			//this.insightRDBMS.getConnection().close();
 			closeDB();
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
 		} catch (Exception e) {
@@ -367,21 +257,13 @@ public class RNativeEngine extends AbstractEngine {
 		// Clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
-
-
-
-	private String resetH2ConnectionURL() {
-		String baseH2URL = RDBMSUtility.getH2BaseConnectionURL();
-		return RDBMSUtility.fillH2ConnectionURL(baseH2URL, engineName);
-	}
-
-	
 	
 	@Override
 	public IQueryInterpreter2 getQueryInterpreter2(){
 		RInterpreter2 retInterp = new RInterpreter2();
-		if(fakeHeader != null)
+		if(fakeHeader != null) {
 			retInterp.addHeaderToRemove(fakeHeader);
+		}
 		retInterp.setDataTableName(rvarName);
 		return retInterp;
 	} 
