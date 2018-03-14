@@ -46,6 +46,7 @@ import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
@@ -204,7 +205,7 @@ public class Insight {
 		List<Boolean> isMeta = runner.isMeta();
 		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
 		boolean invalidSyntax = runner.isInvalidSyntax();
-		
+		System.out.println("");
 		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
 		String expression = null;
 		for (int i = 0; i < pixelStrings.size(); i++) {
@@ -212,7 +213,7 @@ public class Insight {
 			Map<String, Object> ret = processNounMetadata(noun);
 			// get the expression which created this return
 			expression = pixelStrings.get(i);
-			expression = recreateOriginalPixelExpression(expression, encodedTextToOriginal);
+			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
 			ret.put("pixelExpression", expression);
 			// save the expression for future use
 			// only if it is not meta
@@ -307,19 +308,7 @@ public class Insight {
 		return ret;
 	}
 	
-	private String recreateOriginalPixelExpression(String expression, Map<String, String> encodedTextToOriginal) {
-		if(encodedTextToOriginal == null || encodedTextToOriginal.isEmpty()) {
-			return expression;
-		}
-		// loop through and see if any encodedText portions have been modified
-		// if they have, try and replace them back so it looks pretty for the FE
-		for(String encodedText : encodedTextToOriginal.keySet()) {
-			if(expression.contains(encodedText)) {
-				expression = expression.replace(encodedText, encodedTextToOriginal.get(encodedText));
-			}
-		}
-		return expression;
-	}
+
 	
 	public PixelRunner getPixelRunner() {
 		PixelRunner runner = new PixelRunner();
