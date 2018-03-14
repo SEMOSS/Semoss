@@ -219,6 +219,7 @@ import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
+import prerna.sablecc2.reactor.utils.GetRequestReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
@@ -356,7 +357,7 @@ public class ReactorFactory {
 		reactorHash.put("help", HelpReactor.class);
 		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
-
+		reactorHash.put("GetRequest", GetRequestReactor.class);
 		
 		// Semantic blending
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
