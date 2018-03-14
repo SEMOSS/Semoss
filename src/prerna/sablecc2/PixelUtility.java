@@ -7,6 +7,7 @@ import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.LogManager;
@@ -207,5 +208,26 @@ public class PixelUtility {
 		return false;
 	}
 	
-
+	/**
+	 * 
+	 * @param expression
+	 * @param encodedTextToOriginal
+	 * @return
+	 * 
+	 * Returns the string of the NOT encoded expression
+	 * allows us to get the expression in its not encoded form from a mapping of the expression to what it looked like originally
+	 */
+	public static String recreateOriginalPixelExpression(String expression, Map<String, String> encodedTextToOriginal) {
+		if(encodedTextToOriginal == null || encodedTextToOriginal.isEmpty()) {
+			return expression;
+		}
+		// loop through and see if any encodedText portions have been modified
+		// if they have, try and replace them back so it looks pretty for the FE
+		for(String encodedText : encodedTextToOriginal.keySet()) {
+			if(expression.contains(encodedText)) {
+				expression = expression.replace(encodedText, encodedTextToOriginal.get(encodedText));
+			}
+		}
+		return expression;
+	}
 }
