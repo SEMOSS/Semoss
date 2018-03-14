@@ -104,13 +104,13 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();		
-		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
-		
-		boolean error = false;
-
 		cleanString = options.getCleanString();
+		
+		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+
+		boolean error = false;
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
@@ -181,13 +181,13 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();		
-		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
-
-		boolean error = false;
-		
 		cleanString = options.getCleanString();
+
+		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		
+		boolean error = false;
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);

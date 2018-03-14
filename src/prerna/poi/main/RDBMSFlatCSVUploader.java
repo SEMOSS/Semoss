@@ -70,15 +70,12 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();	
-		
-		// replace owl 
+		cleanString = options.getCleanString();
 		
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		
 		boolean error = false;
-
-		cleanString = options.getCleanString();
-		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
@@ -158,15 +155,16 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();		
 		autoLoad = options.isAutoLoad();
+		cleanString = options.getCleanString();
+		
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		
 		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
 		paramHash2.put("engine", engineName);
 		owlPath = Utility.fillParam2(owlPath, paramHash2);
 		
 		boolean error = false;
-		
-		cleanString = options.getCleanString();
-		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		// sets the custom base uri, sets the owl path, sets the smss location
 		// and returns the fileLocations split into an array based on ';' character
 		String[] files = prepareReader(fileLocations, customBaseURI, owlPath, smssLocation);
