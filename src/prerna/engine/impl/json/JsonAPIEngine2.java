@@ -120,7 +120,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			if(pathIndex == 0)
 				composer.append(jsonPaths[pathIndex]);
 			else
-				composer.append(jsonPaths[pathIndex]).append(",");
+				composer.append(",").append(jsonPaths[pathIndex]);
 			headers[pathIndex] = jsonPaths[pathIndex];
 		}
 		
