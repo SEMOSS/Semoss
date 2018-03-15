@@ -351,14 +351,11 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			this.addedSelectors.put(fromNodeVarName, fromURI);
 			
 		} else if(joinType.equals("outer.join")) {
+			addNodeSelectorTriple(fromNodeVarName, fromNode);
+			addNodeSelectorTriple(toNodeVarName, toNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
-				.append("{?").append(fromNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(fromURI).append(">} ")
-				.append("{?").append(toNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(toURI).append(">} ")
 				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
 				.append("}");
-			
-			this.addedSelectors.put(fromNodeVarName, fromURI);
-			this.addedSelectors.put(toNodeVarName, toURI);
 		}
 	}
 	
