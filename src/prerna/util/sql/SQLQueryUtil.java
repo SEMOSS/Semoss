@@ -102,7 +102,9 @@ public abstract class SQLQueryUtil {
 
 	// Add SQLServer compatibility
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
+		if(dbtype == SQLQueryUtil.DB_TYPE.H2_DB) {
+			return new H2QueryUtil();
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
 			return new MariaDbQueryUtil();
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil();
@@ -118,7 +120,9 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String hostname, String port, String schema, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		if(dbtype == SQLQueryUtil.DB_TYPE.H2_DB) {
+			return new H2QueryUtil();
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil(hostname, port, schema, username, password);
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
 			return new MySQLQueryUtil(hostname, port, schema, username, password);
@@ -133,7 +137,9 @@ public abstract class SQLQueryUtil {
 	}
 	
 	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String connectionURL, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		if(dbtype == SQLQueryUtil.DB_TYPE.H2_DB) {
+			return new H2QueryUtil();
+		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
 			return new SQLServerQueryUtil(connectionURL, username, password);
 		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
 			return new MySQLQueryUtil(connectionURL, username, password);
