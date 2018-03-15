@@ -41,7 +41,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String engineName = getApp();
+		if(engineName == null || engineName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
+		}
 		String insightName = getInsightName();
+		if(insightName == null || insightName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the insight name");
+		}
 		String[] recipeToSave = getRecipe();
 		String layout = getLayout();
 		boolean hidden = getHidden();
