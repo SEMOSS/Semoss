@@ -40,11 +40,12 @@ public class AppInsightsReactor extends AbstractReactor {
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
 		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
 			builder.setSearchString(searchTerm);
-			builder.setDefaultDisMaxWeighting();
+			if(!searchTerm.equals("*:*")) {
+				builder.setDefaultDisMaxWeighting();
+			}
 		} else {
 			builder.setSearchString("*:*");
 		}
-		
 		
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(SolrIndexEngine.ID);
