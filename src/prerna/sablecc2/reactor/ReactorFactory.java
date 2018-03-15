@@ -213,6 +213,8 @@ import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
 import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
+import prerna.sablecc2.reactor.test.LSASpaceColumnLearnedReactor;
+import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupAppReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
@@ -628,15 +630,10 @@ public class ReactorFactory {
 		// Forms
 		reactorHash.put("UpdateForm", FormsReactor.class);
 		
-		// LSA
-		//reactorHash.put("LSASpace", LSASpaceReactor.class);
-		//reactorHash.put("CreateCriteria", CreateCriteriaReactor.class); 
-		//reactorHash.put("RunLSI", RunLSIReactor.class); 
-		//reactorHash.put("LSAUpdate", LSAUpdateReactor.class);  
-	 
+		//LSA
+		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
+		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class); 
 
-		// Forms
-		reactorHash.put("UpdateForm", FormsReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
