@@ -42,8 +42,17 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 
 		String engineName = getApp();
+		if(engineName == null || engineName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
+		}
 		String insightName = getInsightName();
+		if(insightName == null || insightName.isEmpty()) {
+			throw new IllegalArgumentException("Need to define the insight name");
+		}
 		String[] recipeToSave = getRecipe();
+		if(recipeToSave == null || recipeToSave.length == 0) {
+			throw new IllegalArgumentException("Need to define the recipe to save");
+		}
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		

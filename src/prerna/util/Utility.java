@@ -2826,7 +2826,7 @@ public class Utility {
 			engineLocks.remove(engineName);
 		} else {
 			// start the engine using the smss file
-			String smssFile = (String)DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
+			String smssFile = (String) DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
 			// start it up
 			if(smssFile != null) {
 				ReentrantLock lock = getEngineLock(engineName);
