@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -24,6 +25,69 @@ import prerna.util.Utility;
 public class MasterDatabaseUtility {
 
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
+	
+	public static void initLocalMaster() {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		String [] colNames = null;
+		String [] types = null;
+		
+		// engine table
+		colNames = new String[]{"ID", "EngineName", "ModifiedDate", "Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engine", colNames, types));
+		
+		// engine concept table
+		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engineconcept", colNames, types));
+		
+		// concept table
+		colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("concept", colNames, types));
+		
+		// relation table
+		colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("relation", colNames, types));
+		
+		// engine relation table
+		colNames = new String[]{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID", "SourceProperty", "TargetProperty", "RelationName"}; //"DomainName"};
+		types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("enginerelation", colNames, types));
+		
+		// kv store
+		colNames = new String[]{"K","V"};
+		types = new String[]{"varchar(800)", "varchar(800)"};
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("kvstore", colNames, types));
+
+		// concept metadata
+		colNames = new String[] {Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types));
+		
+		// x-ray config
+		colNames = new String[]{"filename", "config" };
+		types = new String[]{"varchar(800)", "varchar(20000)" };
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("xrayconfigs", colNames, types));
+	}
+	
+	private static void executeSql(Connection conn, String sql) {
+		Statement stmt = null;
+		try {
+			stmt = conn.createStatement();
+			stmt.execute(sql);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	
 	/**
 	 * Return all the logical names for a given conceptual name
