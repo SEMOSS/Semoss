@@ -145,10 +145,10 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	 * @param schema
 	 * @return
 	 */
-	public String checkConnectionParams(String type, String host, String port, String username, String password, String schema) {
+	public String checkConnectionParams(String type, String host, String port, String username, String password, String schema, String additionalProperties) {
 		boolean success;
 		try {
-			success = isValidConnection(RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null));
+			success = isValidConnection(RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, additionalProperties));
 		} catch (SQLException e) {
 			return e.getMessage();
 		}
@@ -187,10 +187,10 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	 * @return
 	 * @throws SQLException
 	 */
-	public Map<String, Object> getSchemaDetails(String type, String host, String port, String username, String password, String schema) throws SQLException {
+	public Map<String, Object> getSchemaDetails(String type, String host, String port, String username, String password, String schema, String additonalProperties) throws SQLException {
 		Connection con;
 		try {
-			con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, null);
+			con = RdbmsConnectionHelper.buildConnection(type, host, port, username, password, schema, additonalProperties);
 		} catch (SQLException e) {
 			throw new SQLException("Unable to establish connection");
 		}
