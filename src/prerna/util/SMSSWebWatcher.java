@@ -258,6 +258,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			localMasterIndex = 0;
 			// let us first load the master index
 			loadExistingDB(fileNames[0]);
+			// initialize the local master
+			MasterDatabaseUtility.initLocalMaster();
 			// update file index
 			fileIdx++;
 		}
