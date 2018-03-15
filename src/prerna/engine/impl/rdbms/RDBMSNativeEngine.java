@@ -666,13 +666,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public void closeDB() {
 		super.closeDB();
 		try {
-			if(useConnectionPooling){
+			if(this.useConnectionPooling){
 				this.engineConnected = false;
-				ConnectionUtils.closeConnection(engineConn);
+				ConnectionUtils.closeConnection(this.engineConn);
 			} else {
-				if(engineConn != null && !engineConn.isClosed()) {
-					engineConn.commit(); // addeing the commit
-					engineConn.close();
+				if(this.engineConn != null && !this.engineConn.isClosed()) {
+					if(!this.engineConn.getAutoCommit()) {
+						this.engineConn.commit();
+					}
+					this.engineConn.close();
 					this.engineConnected = false;
 				}
 			}
@@ -683,9 +685,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 
 	private void closeDataSource(){
-		if(dataSource != null) {
+		if(this.dataSource != null) {
 			try {
-				dataSource.close();
+				this.dataSource.close();
 				this.datasourceConnected = false;
 			} catch (SQLException e) {
 				e.printStackTrace();
