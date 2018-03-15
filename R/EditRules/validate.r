@@ -41,7 +41,7 @@ getDqFrame <- function(cf, issueFrame) {
 	# join issueFrame name description columns with originalRules
 	joinDf <- merge (summaryFrame, issueFrame, by.x = c("expression") , by.y = c("translatedRules"), all.y = TRUE)
 	joinDf <- subset(joinDf, select=-c(expression, ruleAlias))
-	colnames(joinDf) <- c("Total_Count", "Valid_Count", "Invalid_Count", "Number_of_NAs", "Rule_Error", "Rule_Name", "Description", "Rule")
+	colnames(joinDf) <- c("Total_Count", "Valid_Count", "Invalid_Count", "Number_of_NAs", "Rule_Error", "Rule_Name", "Description", "Rule", "InputColumns")
 	return(joinDf)
 }
 
@@ -99,5 +99,13 @@ getErrorFrame <- function(cf, issueFrame) {
 	}
 
 	return (vdat)
+}
+
+###############################################
+# Add rule columns to dataframe
+###############################################
+getDF <- function (df, errorFrame) {
+	df <- cbind(df,errorFrame)
+	return (df)
 }
 
