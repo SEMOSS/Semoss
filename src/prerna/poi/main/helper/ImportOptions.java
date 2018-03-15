@@ -49,6 +49,7 @@ public class ImportOptions {
 		SCHEMA,
 		USERNAME,
 		PASSWORD,
+		ADDITIONAL_JDBC_PROPERTIES,
 		EXTERNAL_METAMODEL,
 		OBJECT_VALUE_MAP,		// RDBMSReader will look in these maps for objects that are specified in the prop file,
 								// but do not exist as headers in a CSV
@@ -354,6 +355,14 @@ public class ImportOptions {
 	
 	public void setPassword(String password) {
 		thisMap.put(IMPORT_OPTIONS.PASSWORD, password);
+	}
+	
+	public String getAdditionalJDBCProperties() {
+		return (String) thisMap.get(IMPORT_OPTIONS.ADDITIONAL_JDBC_PROPERTIES);
+	}
+	
+	public void setAdditionalJDBCProperties(String additionalProperties) {
+		thisMap.put(IMPORT_OPTIONS.ADDITIONAL_JDBC_PROPERTIES, additionalProperties);
 	}
 	
 	public HashMap<String, Object> getExternalMetamodel() {
