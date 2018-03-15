@@ -1,13 +1,19 @@
 package prerna.sablecc2.reactor.utils;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -25,14 +31,26 @@ public class GetRequestReactor extends AbstractReactor {
 		organizeKeys();
 		String url = this.keyValue.get(this.keysToGet[0]);
 		
-		CloseableHttpClient httpClient = HttpClients.createDefault();
-		HttpGet httpGet = new HttpGet(url);
-		
 		ResponseHandler<String> handler = new BasicResponseHandler();
-		CloseableHttpResponse response;
+		CloseableHttpResponse response = null;
 		try {
+			SSLContextBuilder builder = new SSLContextBuilder();
+			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
+			CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+			HttpGet httpGet = new HttpGet(url);
 			response = httpClient.execute(httpGet);
-		} catch (IOException e1) {
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Could not connect to URL at " + url);
+		} catch (KeyManagementException e) {
+			e.printStackTrace();
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 		
