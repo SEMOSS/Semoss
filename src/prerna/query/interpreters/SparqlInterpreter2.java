@@ -91,13 +91,14 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		this.selectorAlias = new HashMap<String, String>();
 		this.selectorWhereClause = new StringBuilder();
 		this.addedSelectors = new HashMap<String, String>();
+		
+		// add the join where clause
+		addJoins(this.qs.getRelations());
+				
 		addSelectors(this.qs.getSelectors());
 		
 		// add the filters
 		addFilters(this.qs.getCombinedFilters(), baseUri);
-		
-		// add the join where clause
-		addJoins(this.qs.getRelations());
 		
 		// add the group bys
 		addGroupClause(this.qs.getGroupBy());
@@ -141,7 +142,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 
 		return query.toString();
 	}
-
+	
 	/**
 	 * Add the selector variables
 	 * @param selectors2
@@ -297,10 +298,10 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	private void addJoin(String fromNode, String joinType, String toNode) {
-		String fromNodeVarName =  Utility.cleanVariableString(fromNode);
-		String fromURI = addNodeSelectorTriple(fromNodeVarName, fromNode);
-		String toNodeVarName =  Utility.cleanVariableString(toNode);
-		String toURI = addNodeSelectorTriple(toNodeVarName, toNode);
+		String fromNodeVarName = Utility.cleanVariableString(fromNode);
+		String fromURI = this.engine.getPhysicalUriFromConceptualUri(SEMOSS_CONCEPT_PREFIX + "/" + fromNode);
+		String toNodeVarName = Utility.cleanVariableString(toNode);
+		String toURI = this.engine.getPhysicalUriFromConceptualUri(SEMOSS_CONCEPT_PREFIX + "/" + toNode);
 		
 		// need to figure out what the predicate is from the owl
 		// also need to determine the direction of the relationship -- if it is forward or backward
@@ -327,9 +328,37 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		String randomRelVarName = Utility.getRandomString(6);
 		this.relationshipWhereClause.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">} ");
 		if(joinType.equals("inner.join")) {
+			addNodeSelectorTriple(fromNodeVarName, fromNode);
+			addNodeSelectorTriple(toNodeVarName, toNode);
 			this.relationshipWhereClause.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("} ");
-		} else {
-			this.relationshipWhereClause.append("OPTIONAL{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("} ");
+		
+		} else if(joinType.equals("left.outer.join")) {
+			addNodeSelectorTriple(fromNodeVarName, fromNode);
+			this.relationshipWhereClause.append("OPTIONAL {")
+				.append("{?").append(toNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(toURI).append(">} ")
+				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
+				.append("}");
+			
+			this.addedSelectors.put(toNodeVarName, toURI);
+
+		} else if(joinType.equals("right.outer.join")) {
+			addNodeSelectorTriple(toNodeVarName, toNode);
+			this.relationshipWhereClause.append("OPTIONAL {")
+				.append("{?").append(fromNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(fromURI).append(">} ")
+				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
+				.append("}");
+			
+			this.addedSelectors.put(fromNodeVarName, fromURI);
+			
+		} else if(joinType.equals("outer.join")) {
+			this.relationshipWhereClause.append("OPTIONAL {")
+				.append("{?").append(fromNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(fromURI).append(">} ")
+				.append("{?").append(toNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(toURI).append(">} ")
+				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
+				.append("}");
+			
+			this.addedSelectors.put(fromNodeVarName, fromURI);
+			this.addedSelectors.put(toNodeVarName, toURI);
 		}
 	}
 	
