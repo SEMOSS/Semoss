@@ -30,7 +30,9 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		String[] packages = new String[] { "validate", "settings", "yaml" };
+		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
+		OwlTemporalEngineMeta meta = frame.getMetaData();
 		String dfName = frame.getTableName();
 		String[] frameColumnNames = frame.getColumnNames();
 		HashMap<String, Pattern> colRegexMap = new HashMap<String, Pattern>();
@@ -77,8 +79,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 						throw new IllegalArgumentException("Unable to read file from path: " + fileJsonPath);
 					}
 				}
-				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate
-						.get(mapOptions.get("name"));
+				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate.get(mapOptions.get("name"));
 				rule = (String) ruleTemplate.get("rule");
 				HashMap<String, Object> columnTemplate = (HashMap<String, Object>) ruleTemplate.get("columns");
 				HashMap<String, Object> columnParms = (HashMap<String, Object>) mapOptions.get("columns");
@@ -86,12 +87,22 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 				for (String key : columnTemplate.keySet()) {
 					String column = (String) columnParms.get(key);
 					if (column != null) {
-						// go forward with edit rules
-						inputColsList.add(column);
-						inputColsListCol[i] = inputColsList;
-						// update the rule to use the appropriate column name
-						String targetString = "<" + key + ">";
-						rule = rule.replace(targetString, column);
+						// check columnType
+						String dataType = meta.getHeaderTypeAsString(dfName + "__" + column);
+						Map<String, Object> colMetaMap = (Map<String, Object>) columnTemplate.get(key);
+						String requiredType = (String) colMetaMap.get("columnType");
+						// check if dataTypes match for input col and template
+						if ((Utility.isNumericType(requiredType) && Utility.isNumericType(dataType))
+								|| (Utility.isStringType(requiredType) && Utility.isStringType(dataType))) {
+							// go forward with edit rules
+							inputColsList.add(column);
+							inputColsListCol[i] = inputColsList;
+							// update the rule to use the appropriate column name
+							String targetString = "<" + key + ">";
+							rule = rule.replace(targetString, column);
+						} else {
+							throw new IllegalArgumentException(column + " must be a " + requiredType);
+						}
 					}
 				}
 				// get description
@@ -118,7 +129,6 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 			}
 			ruleCol[i] = rule;
 			descCol[i] = description;
-
 		}
 
 		// create rule frame with the following columns: name, description, rule
@@ -134,7 +144,6 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		String issueFrameInputColsListCol = "inputColsList" + Utility.getRandomString(8);
 		rsb.append(issueFrameInputColsListCol + "<-" + RSyntaxHelper.createStringRColVec(inputColsListCol));
 		rsb.append(";");
-
 		rsb.append(issueFrame + "<- data.frame(" + issueFrameNameCol + "," + issueFrameDescriptionCol + ","
 				+ issueFrameRuleCol + "," + issueFrameInputColsListCol + ");");
 
@@ -164,9 +173,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 
 		// add new columns to meta
 		// update the metadata to include this new column
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String[] ruleColumns = this.rJavaTranslator.getColumns(errorFrame);
-
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + list + ");");
@@ -182,9 +189,9 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		if (ruleColumns != null) {
 			for (String newColName : ruleColumns) {
-				metaData.addProperty(dfName, dfName + "__" + newColName);
-				metaData.setAliasToProperty(dfName + "__" + newColName, newColName);
-				metaData.setDataTypeToProperty(dfName + "__" + newColName, "STRING");
+				meta.addProperty(dfName, dfName + "__" + newColName);
+				meta.setAliasToProperty(dfName + "__" + newColName, newColName);
+				meta.setDataTypeToProperty(dfName + "__" + newColName, "STRING");
 			}
 		} else {
 			// no results

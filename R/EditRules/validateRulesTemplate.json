@@ -1,75 +1,174 @@
 {
-  "country": {
-    "rule": "grepl(\\\"(Afghanistan|Albania|Algeria|Andorra|Angola|Anguilla|Antigua & Barbuda|Argentina|Armenia|Australia|Austria|Azerbaijan|Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bermuda|Bhutan|Bolivia|Bosnia & Herzegovina|Botswana|Brazil|Brunei Darussalam|Bulgaria|Burkina Faso|Myanmar/Burma|Burundi|Cambodia|Cameroon|Canada|Cape Verde|Cayman Islands|Central African Republic|Chad|Chile|China|Colombia|Comoros|Congo|Costa Rica|Croatia|Cuba|Cyprus|Czech Republic|Democratic Republic of the Congo|Denmark|Djibouti|Dominican Republic|Dominica|Ecuador|Egypt|El Salvador|Equatorial Guinea|Eritrea|Estonia|Ethiopia|Fiji|Finland|France|French Guiana|Gabon|Gambia|Georgia|Germany|Ghana|Great Britain|Greece|Grenada|Guadeloupe|Guatemala|Guinea|Guinea-Bissau|Guyana|Haiti|Honduras|Hungary|Iceland|India|Indonesia|Iran|Iraq|Israel and the Occupied Territories|Italy|Ivory Coast (Cote d'Ivoire)|Jamaica|Japan|Jordan|Kazakhstan|Kenya|Kosovo|Kuwait|Kyrgyz Republic (Kyrgyzstan)|Laos|Latvia|Lebanon|Lesotho|Liberia|Libya|Liechtenstein|Lithuania|Luxembourg|Republic of Macedonia|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Martinique|Mauritania|Mauritius|Mayotte|Mexico|Moldova, Republic of|Monaco|Mongolia|Montenegro|Montserrat|Morocco|Mozambique|Namibia|Nepal|Netherlands|New Zealand|Nicaragua|Niger|Nigeria|Korea, Democratic Republic of (North Korea)|Norway|Oman|Pacific Islands|Pakistan|Panama|Papua New Guinea|Paraguay|Peru|Philippines|Poland|Portugal|Puerto Rico|Qatar|Reunion|Romania|Russian Federation|Rwanda|Saint Kitts and Nevis|Saint Lucia|Saint Vincent's & Grenadines|Samoa|Sao Tome and Principe|Saudi Arabia|Senegal|Serbia|Seychelles|Sierra Leone|Singapore|Slovak Republic (Slovakia)|Slovenia|Solomon Islands|Somalia|South Africa|Korea, Republic of (South Korea)|South Sudan|Spain|Sri Lanka|Sudan|Suriname|Swaziland|Sweden|Switzerland|Syria|Tajikistan|Tanzania|Thailand|Timor Leste|Togo|Trinidad & Tobago|Tunisia|Turkey|Turkmenistan|Turks & Caicos Islands|Uganda|Ukraine|United Arab Emirates|United States of America (USA)|Uruguay|Uzbekistan|Venezuela|Vietnam|Virgin Islands (UK)|Virgin Islands (US)|Yemen|Zambia|Zimbabwe)\\\", <country>)",
-    "columns": {
-      "country": {
-        "description": "A country.",
-        "columnType": "STRING"
-      }
-    },
-    "description": "Countries"
-  },
-  "interest": {
-    "rule": "<I> == <P>*<R>*<T>",
-    "columns": {
-      "I": {
-        "description": "Interest",
-        "columnType": "NUMBER"
-      },
-      "P": {
-        "description": "Principal",
-        "columnType": "NUMBER"
-      },
-      "R": {
-        "description": "Rate",
-        "columnType": "NUMBER"
-      },
-      "T": {
-        "description": "Time",
-        "columnType": "NUMBER"
-      }
-    },
-    "description": "Calculate interest"
-  },
-  "stateAbbreviation": {
-    "rule": "grepl(\\\"(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\\\", <stateAbbreviation>)",
-    "columns": {
-      "state": {
-        "description": "A state abbreviation in the U.S.",
-        "columnType": "STRING"
-      }
-    },
-    "description": "State abbreviations"
-  },
-  "state": {
-    "rule": "grepl(\\\"(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\\\", <state>)",
-    "columns": {
-      "state": {
-        "description": "A state in the U.S.",
-        "columnType": "STRING"
-      }
-    },
-    "description": "States"
-  },
-  "age": {
-    "rule": "<age> > 0 & <age> < 100",
-    "columns": {
-      "age": {
-        "description": "The age",
-        "columnType": "NUMBER"
-      }
-    },
-    "description": "Rule for age"
-  },
-  "Email": {
-    "columns": {
-      "Email": {
-        "columnType": "STRING",
-        "description": "The email address"
-      }
-    },
-    "rule": "grepl(\\\"^([a-zA-Z]|\\\\d)*@([a-zA-Z]|\\\\d)*.[a-zA-Z]{2,6}$\\\", <Email>)",
-    "description": "An email address",
-    "type": "Regex"
-  }
+	"Country": {
+		"rule": "grepl(\\\"(Afghanistan|Albania|Algeria|Andorra|Angola|Anguilla|Antigua & Barbuda|Argentina|Armenia|Australia|Austria|Azerbaijan|Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bermuda|Bhutan|Bolivia|Bosnia & Herzegovina|Botswana|Brazil|Brunei Darussalam|Bulgaria|Burkina Faso|Myanmar/Burma|Burundi|Cambodia|Cameroon|Canada|Cape Verde|Cayman Islands|Central African Republic|Chad|Chile|China|Colombia|Comoros|Congo|Costa Rica|Croatia|Cuba|Cyprus|Czech Republic|Democratic Republic of the Congo|Denmark|Djibouti|Dominican Republic|Dominica|Ecuador|Egypt|El Salvador|Equatorial Guinea|Eritrea|Estonia|Ethiopia|Fiji|Finland|France|French Guiana|Gabon|Gambia|Georgia|Germany|Ghana|Great Britain|Greece|Grenada|Guadeloupe|Guatemala|Guinea|Guinea-Bissau|Guyana|Haiti|Honduras|Hungary|Iceland|India|Indonesia|Iran|Iraq|Israel and the Occupied Territories|Italy|Ivory Coast (Cote d'Ivoire)|Jamaica|Japan|Jordan|Kazakhstan|Kenya|Kosovo|Kuwait|Kyrgyz Republic (Kyrgyzstan)|Laos|Latvia|Lebanon|Lesotho|Liberia|Libya|Liechtenstein|Lithuania|Luxembourg|Republic of Macedonia|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Martinique|Mauritania|Mauritius|Mayotte|Mexico|Moldova, Republic of|Monaco|Mongolia|Montenegro|Montserrat|Morocco|Mozambique|Namibia|Nepal|Netherlands|New Zealand|Nicaragua|Niger|Nigeria|Korea, Democratic Republic of (North Korea)|Norway|Oman|Pacific Islands|Pakistan|Panama|Papua New Guinea|Paraguay|Peru|Philippines|Poland|Portugal|Puerto Rico|Qatar|Reunion|Romania|Russian Federation|Rwanda|Saint Kitts and Nevis|Saint Lucia|Saint Vincent's & Grenadines|Samoa|Sao Tome and Principe|Saudi Arabia|Senegal|Serbia|Seychelles|Sierra Leone|Singapore|Slovak Republic (Slovakia)|Slovenia|Solomon Islands|Somalia|South Africa|Korea, Republic of (South Korea)|South Sudan|Spain|Sri Lanka|Sudan|Suriname|Swaziland|Sweden|Switzerland|Syria|Tajikistan|Tanzania|Thailand|Timor Leste|Togo|Trinidad & Tobago|Tunisia|Turkey|Turkmenistan|Turks & Caicos Islands|Uganda|Ukraine|United Arab Emirates|United States of America (USA)|Uruguay|Uzbekistan|Venezuela|Vietnam|Virgin Islands (UK)|Virgin Islands (US)|Yemen|Zambia|Zimbabwe)\\\", <Country>)",
+		"columns": {
+			"Country": {
+				"description": "A country.",
+				"columnType": "STRING"
+			}
+		},
+		"description": "Countries"
+	},
+	"Interest": {
+		"rule": "<I> == <P>*<R>*<T>",
+		"columns": {
+			"I": {
+				"description": "Interest",
+				"columnType": "NUMBER"
+			},
+			"P": {
+				"description": "Principal",
+				"columnType": "NUMBER"
+			},
+			"R": {
+				"description": "Rate",
+				"columnType": "NUMBER"
+			},
+			"T": {
+				"description": "Time",
+				"columnType": "NUMBER"
+			}
+		},
+		"description": "Calculate interest"
+	},
+	"State_Abbreviation": {
+		"rule": "grepl(\\\"(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\\\", <State_Abbreviation>)",
+		"columns": {
+			"State_Abbreviation": {
+				"description": "A state abbreviation in the U.S.",
+				"columnType": "STRING"
+			}
+		},
+		"description": "State abbreviations"
+	},
+	"State": {
+		"rule": "grepl(\\\"(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\\\", <State>)",
+		"columns": {
+			"State": {
+				"description": "A state in the U.S.",
+				"columnType": "STRING"
+			}
+		},
+		"description": "States"
+	},
+	"Age": {
+		"rule": "<Age> > 0 & <Age> < 100",
+		"columns": {
+			"Age": {
+				"description": "The age",
+				"columnType": "NUMBER"
+			}
+		},
+		"description": "Rule for age"
+	},
+	"Currency": {
+		"columns": {
+			"Currency": {
+				"columnType": "STRING",
+				"description": "Phone number column"
+			}
+		},
+		"rule": "grepl(\\\"-?\\\\\\\\$((\\\\\\\\d{1,3}(,\\\\\\\\d{3})*)(\\\\\\\\.\\\\\\\\d{2}))\\\", <Currency>)",
+		"description": "Checks Currency"
+	},
+	"Phone_Number": {
+		"columns": {
+			"Phone_Number": {
+				"columnType": "STRING",
+				"description": "Phone number column"
+			}
+		},
+		"rule": "grepl(\\\"^\\\\\\\\s*(?:\\\\\\\\+?(\\\\\\\\d{1,3}))?[-. (]*(\\\\\\\\d{3})[-. )]*(\\\\\\\\d{3})[-. ]*(\\\\\\\\d{4})(?: *x(\\\\\\\\d+))?\\\\\\\\s*$ \\\", <Phone_Number>) == TRUE",
+		"description": "Checks Phone Numbers"
+	},
+	"Email": {
+		"columns": {
+			"Email": {
+				"columnType": "STRING",
+				"description": "The email address"
+			}
+		},
+		"rule": "grepl(\\\"^([a-zA-Z]|\\\\\\\\d)*@([a-zA-Z]|\\\\\\\\d)*.[a-zA-Z]{2,6}$\\\", <Email>) == TRUE",
+		"description": "An email address"
+	},
+	"URL": {
+		"columns": {
+			"URL": {
+				"columnType": "STRING",
+				"description": "URL Column"
+			}
+		},
+		"rule": "grepl(\\\"^(https?:\\\\\\\\/\\\\\\\\/)?([\\\\\\\\da-z\\\\\\\\.-]\\\\\\\\.([a-z\\\\\\\\.]{2,6})([\\\\\\\\/\\\\\\\\w\\\\\\\\.-]*)*\\\\\\\\/?\\\", <URL>) == TRUE",
+		"description": "Check URLs"
+	},
+	"IP_Address": {
+		"columns": {
+			"IP_Address": {
+				"columnType": "STRING",
+				"description": "IP Address Column"
+			}
+		},
+		"rule": "grepl(\\\"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\\\\\\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\\", <IP_Address>) == TRUE",
+		"description": "Check IPs"
+	},
+	"Positive_Integers": {
+		"columns": {
+			"Positive_Integers": {
+				"columnType": "STRING",
+				"description": "Positive Integers"
+			}
+		},
+		"rule": "grepl(\\\"^\\\\\\\\d+$\\\", <Positive_Integers>) == TRUE",
+		"description": "Check positive integers"
+	},
+	"Negative_Integers": {
+		"columns": {
+			"Negative_Integers": {
+				"columnType": "STRING",
+				"description": "Negative Integers"
+			}
+		},
+		"rule": "grepl(\\\"^-\\\\\\\\d+$\\\", <Negative_Integers>) == TRUE",
+		"description": "Check negative integers"
+	},
+	"Integers": {
+		"columns": {
+			"Integers": {
+				"columnType": "STRING",
+				"description": "Integers"
+			}
+		},
+		"rule": "grepl(\\\"^-?\\\\\\\\d+$\\\", <Integers>) == TRUE",
+		"description": "Check integers"
+	},
+	"Positive_Double": {
+		"columns": {
+			"Positive_Double": {
+				"columnType": "STRING",
+				"description": "Positive double"
+			}
+		},
+		"rule": "grepl(\\\"^\\\\\\\\d*\\\\\\\\.?\\\\\\\\d+$\\\", <Positive_Double>) == TRUE",
+		"description": "Check positive doubles"
+	},
+	"Negative_Double": {
+		"columns": {
+			"Negative_Double": {
+				"columnType": "STRING",
+				"description": "Negative double"
+			}
+		},
+		"rule": "grepl(\\\"^-\\\\\\\\d*\\\\\\\\.?\\\\\\\\d+$\\\", <Negative_Double>) == TRUE",
+		"description": "Check negative doubles"
+	},
+	"Double": {
+		"columns": {
+			"Double": {
+				"columnType": "STRING",
+				"description": "Double"
+			}
+		},
+		"rule": "grepl(\\\"^-?\\\\\\\\d*\\\\\\\\.?\\\\\\\\d+$\\\", <Double>) == TRUE",
+		"description": "Check positive or negative doubles"
+	}
 }
