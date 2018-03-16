@@ -15,7 +15,7 @@ public class GetEditRuleTypesReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String fileJsonPath = getBaseFolder() + "\\R\\EditRules\\editRulesTemplate.json";
+		String fileJsonPath = getBaseFolder() + "\\R\\EditRules\\validateRulesTemplate.json";
         String jsonString = "";
         HashMap<String, Object> editRules = new HashMap<String,Object>();
         try {
@@ -24,7 +24,7 @@ public class GetEditRuleTypesReactor extends AbstractRFrameReactor {
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read file from path: " + fileJsonPath);
         }
-		return new NounMetadata(editRules.keySet(),PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(editRules,PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 
 }
