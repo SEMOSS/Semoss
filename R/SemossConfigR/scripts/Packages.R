@@ -39,6 +39,9 @@ install.packages("tidyr")
 install.packages("purrr")
 install.packages("stringdist")
 
+# Business rules
+install.packages("arules")
+
 # Semantic matching
 install.packages("plyr")
 install.packages("WikidataR")
@@ -51,3 +54,10 @@ install.packages("WikipediR")
 # Google Analytics
 install.packages("RGoogleAnalytics")
 install.packages("lubridate")
+
+# Edit Rules
+install.packages("validate")
+install.packages("yaml")
+install.packages("settings")
+
+
