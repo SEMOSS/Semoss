@@ -12,13 +12,12 @@ import java.util.regex.Pattern;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.kenai.jffi.Array;
-
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -37,26 +36,23 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		HashMap<String, Pattern> colRegexMap = new HashMap<String, Pattern>();
 		List<Object> mapList = this.curRow.getValuesOfType(PixelDataType.MAP);
 		StringBuilder rsb = new StringBuilder();
-
 		// this frame holds the rule meta data
 		String issueFrame = "issueFrame" + Utility.getRandomString(8);
 		// this frame holds the rule summary
 		// valid count, invalid count
 		String dqFrame = "dqFrame" + Utility.getRandomString(8);
-
 		int size = mapList.size();
 		Object[] nameCol = new Object[size];
 		Object[] descCol = new Object[size];
 		Object[] ruleCol = new Object[size];
 		Object[] inputColsListCol = new Object[size]; ///
-
 		HashMap<String, Object> validateRulesTemplate = null;
 
 		// now that file is read in, we need to look through it to identify the
 		// appropriate edit rule based on the path
 		// look through the edit rules keyset to find the rule
 		HeadersException colNameChecker = HeadersException.getInstance();
-		ArrayList<String> headers = new ArrayList<String>( Arrays.asList(frameColumnNames));
+		ArrayList<String> headers = new ArrayList<String>(Arrays.asList(frameColumnNames));
 		for (int i = 0; i < mapList.size(); i++) {
 			Map<String, Object> mapOptions = (Map<String, Object>) mapList.get(i);
 			// this will be the column header for dataframe
@@ -69,7 +65,6 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 			ArrayList<String> inputColsList = new ArrayList<String>();
 
 			if (rule == null) {
-
 				// look up name in template
 				if (validateRulesTemplate == null) {
 					// read in the edit rules file
@@ -82,11 +77,11 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 						throw new IllegalArgumentException("Unable to read file from path: " + fileJsonPath);
 					}
 				}
-				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate.get(name);
+				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate
+						.get(mapOptions.get("name"));
 				rule = (String) ruleTemplate.get("rule");
 				HashMap<String, Object> columnTemplate = (HashMap<String, Object>) ruleTemplate.get("columns");
 				HashMap<String, Object> columnParms = (HashMap<String, Object>) mapOptions.get("columns");
-
 				// apply column params to rule
 				for (String key : columnTemplate.keySet()) {
 					String column = (String) columnParms.get(key);
@@ -94,7 +89,6 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 						// go forward with edit rules
 						inputColsList.add(column);
 						inputColsListCol[i] = inputColsList;
-
 						// update the rule to use the appropriate column name
 						String targetString = "<" + key + ">";
 						rule = rule.replace(targetString, column);
@@ -102,11 +96,9 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 				}
 				// get description
 				description = (String) ruleTemplate.get("description");
-
 			} else {
 				// decode rule sent from fe
 				rule = Utility.decodeURIComponent(rule);
-
 				// if rule is not null, then need to identify column(s) that the
 				// rule is targeting
 				if (colRegexMap.isEmpty()) {
@@ -115,26 +107,19 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 						colRegexMap.put(columnName, Pattern.compile(columnName));
 					}
 				}
-
 				for (HashMap.Entry<String, Pattern> entry : colRegexMap.entrySet()) {
 					String columnName = entry.getKey();
 					Pattern rx = entry.getValue();
 					if (rx.matcher(rule).find()) {
 						inputColsList.add(columnName);
-						inputColsListCol[i] = inputColsList;
 					}
+					inputColsListCol[i] = inputColsList;
 				}
 			}
 			ruleCol[i] = rule;
 			descCol[i] = description;
 
 		}
-
-		// print out frame for testing
-		// TODO REMOVE this!!!!
-		String frameFile = getBaseFolder() + "\\R\\EditRules\\test.csv";
-		frameFile = frameFile.replace("\\", "/");
-		rsb.append("write.csv(" + dfName + ", \"" + frameFile + "\", row.names = FALSE, na = \"\");");
 
 		// create rule frame with the following columns: name, description, rule
 		String issueFrameNameCol = "name" + Utility.getRandomString(8);
@@ -163,8 +148,8 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		String list = "list" + Utility.getRandomString(8);
 		rsb.append(list + " <- createCF(" + dfName + "," + issueFrame + ");");
 		String cf = "cf" + Utility.getRandomString(8);
-		rsb.append(cf + " <- "+list+"$cf;");
-		rsb.append(issueFrame + " <- "+list+"$issueFrame;");
+		rsb.append(cf + " <- " + list + "$cf;");
+		rsb.append(issueFrame + " <- " + list + "$issueFrame;");
 		rsb.append(dqFrame + "<- getDqFrame(" + cf + ", " + issueFrame + ");");
 
 		// get errorFrame
@@ -178,19 +163,9 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// add new columns to meta
-
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String[] ruleColumns = this.rJavaTranslator.getColumns(errorFrame);
-		if (ruleColumns != null) {
-			for (String newColName : ruleColumns) {
-				metaData.addProperty(dfName, dfName + "__" + newColName);
-				metaData.setAliasToProperty(dfName + "__" + newColName, newColName);
-				metaData.setDataTypeToProperty(dfName + "__" + newColName, "STRING");
-			}
-		} else {
-			// no results
-		}
 
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
@@ -201,12 +176,21 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + issueFrameRuleCol + ");");
 		cleanUpScript.append("rm(" + issueFrameInputColsListCol + ");");
 		// rm function names
-		cleanUpScript.append("rm(createCF, getDqFrame, getErrorIndex, getErrorFrame, getDF );");
+		cleanUpScript.append("rm(createCF, getDqFrame, getErrorFrame, getDF, run.seq );");
 		cleanUpScript.append("rm(" + errorFrame + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
-
-		return null;
+		if (ruleColumns != null) {
+			for (String newColName : ruleColumns) {
+				metaData.addProperty(dfName, dfName + "__" + newColName);
+				metaData.setAliasToProperty(dfName + "__" + newColName, newColName);
+				metaData.setDataTypeToProperty(dfName + "__" + newColName, "STRING");
+			}
+		} else {
+			// no results
+			throw new IllegalArgumentException("Invalid Rules");
+		}
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
 }

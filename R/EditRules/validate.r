@@ -1,3 +1,5 @@
+run.seq <- function(x) as.numeric(ave(paste(x), x, FUN = seq_along))
+
 createCF <- function (df, issueFrame) {
 	library(validate)
 	originalRules <- issueFrame$rule
@@ -29,7 +31,10 @@ createCF <- function (df, issueFrame) {
 	vFrame <- as.data.frame(v)
 	vFrame <- subset(vFrame, select=-c(label, origin, description, created))
 	colnames(vFrame) <- c("translatedRules", "ruleAlias")
-	issueFrame <- merge (vFrame, issueFrame, by.x = c("translatedRules") , by.y = c("translatedRules"), all.y = TRUE)
+	
+	L <- list(issueFrame,vFrame)
+	L2 <- lapply(L, function(x) cbind(x, run.seq = run.seq(x$translatedRules)))
+	issueFrame <- Reduce(function(...) merge(..., all = TRUE), L2)[-2]
 
 	return (list(cf=cf, issueFrame=issueFrame))
 }
@@ -38,47 +43,18 @@ getDqFrame <- function(cf, issueFrame) {
 	# check violations
 	summaryFrame <- summary(cf)
 	summaryFrame <- subset(summaryFrame, select=-c(name, warning))
-	# join issueFrame name description columns with originalRules
-	joinDf <- merge (summaryFrame, issueFrame, by.x = c("expression") , by.y = c("translatedRules"), all.y = TRUE)
-	joinDf <- subset(joinDf, select=-c(expression, ruleAlias))
-	colnames(joinDf) <- c("Total_Count", "Valid_Count", "Invalid_Count", "Number_of_NAs", "Rule_Error", "Rule_Name", "Description", "Rule", "InputColumns")
-	return(joinDf)
-}
-
-getErrorIndex <- function(cf, issueFrame) {
-	values <- values(cf)
-	vdat <- as.data.frame(values)
-	size <- nrow(vdat)
-	errorFrameColSize <- ncol(vdat)
-	errorFrame <- data.frame(matrix(NA, nrow=nrow(vdat), ncol=errorFrameColSize))
-	for(i in colnames(vdat)) {
-		errorIndexScript <- paste("indicesPerRule <- which(vdat$",i,"== FALSE)", sep="")
-		eval(parse(text=errorIndexScript))
-		#indicesPerRule <- which(vdat$V2 == FALSE)
-		ruleRow <- issueFrame[which(issueFrame$ruleAlias == i),]
-		ruleName <- as.character(ruleRow$name)
-
-		#adding error indicies for rule name
-		indexCol <- as.vector(indicesPerRule)
-		length(indexCol) <- size
-		errorFrame <- cbind(errorFrame, indexCol)
-		# rename col to rule name
-		colnames(errorFrame)[colnames(errorFrame)=="indexCol"] <- ruleName
-	}
+	# rename columns
+	colnames(summaryFrame) <- c("Total_Count", "Valid_Count", "Invalid_Count", "Number_of_NAs", "Rule_Error", "translatedRules")
+	colnames(issueFrame) <- c("translatedRules", "Name", "Description", "Rule", "InputColumns", "ruleAlias")
 	
-	# retrieves indices where all validations = false 
-	# only for more than 1 rule
-	if(errorFrameColSize > 1) {
-		indicesAllRules <- which(apply(values, 1, function(x) all(x == FALSE))) 
-		length(indicesAllRules) <- size
-
-		errorFrame$all <- indicesAllRules
-		colnames(errorFrame)[colnames(errorFrame)=="all"] <- "All_Rules"
-
-	}
-	errorFrame <- subset(errorFrame, select=-c(1:errorFrameColSize))	
-
-	return (errorFrame)
+	# merge issueFrame with summaryFrame by translatedRules
+	L <- list(issueFrame,summaryFrame)
+	L2 <- lapply(L, function(x) cbind(x, run.seq = run.seq(x$translatedRules)))
+	joinDf <- Reduce(function(...) merge(..., all = TRUE), L2)[-2]
+	
+	# drop translatedRules, ruleAlias
+	joinDf <- subset(joinDf, select=-c(translatedRules, ruleAlias))
+	return (joinDf)
 }
 
 getErrorFrame <- function(cf, issueFrame) {
