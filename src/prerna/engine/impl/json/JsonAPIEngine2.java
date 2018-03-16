@@ -155,7 +155,8 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		// the data is typically of the form ArrayNode of ArrayNode where each column is an array node within the bigger aray node
 		if(!(data instanceof NullNode))
 		{
-			numRows = data.get(0).size();
+			// I need to find the total length of it
+			numRows = data.size();
 			totalRows = totalRows + numRows;
 			
 			// need to make the repeater
