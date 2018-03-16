@@ -56,6 +56,7 @@ public class RunLSILearnedReactor extends AbstractRFrameReactor{
 		StringBuilder rsb = new StringBuilder();
 		// load r packages
 		
+		rsb.append("numMatch<-"+numRows+";");
 		rsb.append("source(\"" + rScriptPath1 + "\");");
 		String readDescriptions = "Description<-data.frame(gsub(\"_\",\" \"," + returnTable + "[," + frameJoinCol + "]));";
 		rsb.append(readDescriptions);
@@ -63,7 +64,6 @@ public class RunLSILearnedReactor extends AbstractRFrameReactor{
 		rsb.append(alterFrameSpace);
 		rsb.append("LSAspace <- readRDS(\"lsalearned.rds\");");
 		rsb.append("source(\"" + rScriptPath2 + "\");");
-		rsb.append("dfFinal<-data.table(sortdf[ave(1:nrow(sortdf), sortdf$joinDescription, FUN = seq_along) <="+ numRows + ", ]);");
 		
 		
 		String leftTableName = returnTable;
@@ -72,15 +72,15 @@ public class RunLSILearnedReactor extends AbstractRFrameReactor{
 		
 		//TODO Change dfFinal to random string generated. Edit the R script. 
 
-		rsb.append("dfFinal$joinDescription<-gsub(\" \",\"_\"," + "dfFinal$joinDescription);");
-		rsb.append(returnTable+"$LSA_Score<-NULL;"+returnTable+"$LSA_Category<-NULL;");
+		rsb.append("dfFinal$Description<-gsub(\" \",\"_\"," + "dfFinal$Description);");
+		rsb.append(returnTable+"$LSA_Score<-NULL;"+returnTable+"$LSA_Category<-NULL;"+returnTable+"$Match<-NULL;");
 		// only a single join type can be passed at a time
 		String joinType = "left.outer.join";
 		List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
 
 			Map<String, String> joinColMapping = new HashMap<String, String>();
 			//TODO Change Description to something else
-			joinColMapping.put(frameJoinCol,"joinDescription");
+			joinColMapping.put(frameJoinCol,"Description");
 			joinCols.add(joinColMapping);
 		
 		
