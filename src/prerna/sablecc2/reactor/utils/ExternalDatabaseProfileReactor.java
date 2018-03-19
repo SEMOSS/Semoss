@@ -5,6 +5,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,10 +27,22 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		// output frame
-		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum" };
-		String[] dataTypes = new String[] { "String", "String", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE" };
-		H2Frame frame = new H2Frame(headers, dataTypes);
-
+		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum" , "numOfNullValues"};
+		String[] dataTypes = new String[] { "String", "String", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE" , "DOUBLE"};
+		H2Frame frame = (H2Frame) this.insight.getDataMaker();
+		String tableName = frame.getTableName();
+		
+		// add headers to metadata output frame
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
+		for (int i = 0; i < headers.length; i++) {
+			String alias = headers[i];
+			String dataType = dataTypes[i];
+			String uniqueHeader = tableName + "__" + alias;
+			metaData.addProperty(tableName, uniqueHeader);
+			metaData.setAliasToProperty(uniqueHeader, alias);
+			metaData.setDataTypeToProperty(uniqueHeader, dataType);
+		}
+		
 		Connection con = null;
 		String dbDriver = this.keyValue.get(this.keysToGet[0]);
 		String host = this.keyValue.get(this.keysToGet[1]);
@@ -50,10 +63,9 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 				while (columns.next()) {
 					String colName = columns.getString("column_name");
 					String type = columns.getString("type_name");
-					// System.out.println(table + " " + colName + " " + type);
 					if (Utility.isNumericType(type)) {
 						// will need to get min, average, max, sum
-						Object[] cells = new Object[8];
+						String[] cells = new String[9];
 						// table name
 						cells[0] = table;
 						// column name
@@ -61,46 +73,51 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 						// # of blanks
 						String query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " in('');";
 						rs = con.createStatement().executeQuery(query);
-						rs = null;
 						rs.next();
 						long count = rs.getLong(1);
-						cells[2] = count;
+						cells[2] = count + "";
 						// # of unique values
 						query = "SELECT DISTINCT COUNT(" + colName + ") FROM " + table + ";";
 						rs = con.createStatement().executeQuery(query);
 						rs.next();
 						long uniqueNRow = rs.getLong(1);
-						cells[3] = uniqueNRow;
+						cells[3] = uniqueNRow + "";
 						// min
 						query = "SELECT MIN(" + colName + ") FROM " + table + ";";
 						rs = con.createStatement().executeQuery(query);
 						rs.next();
 						long min = rs.getLong(1);
-						cells[4] = min;
+						cells[4] = min + "";
 						// average
 						query = "SELECT AVG(" + colName + ") FROM " + table + ";";
 						rs = con.createStatement().executeQuery(query);
 						rs.next();
 						long avg = rs.getLong(1);
-						cells[5] = avg;
+						cells[5] = avg + "";
 						// max
 						query = "SELECT MAX(" + colName + ") FROM " + table + ";";
 						rs = con.createStatement().executeQuery(query);
 						rs.next();
 						long max = rs.getLong(1);
-						cells[6] = max;
+						cells[6] = max + "";
 						// sum
 						query = "SELECT SUM(" + colName + ") FROM " + table + ";";
 						rs = con.createStatement().executeQuery(query);
 						rs.next();
 						long sum = rs.getLong(1);
-						cells[7] = sum;
+						cells[7] = sum + "";
+						// # of null values
+						query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " is null;";
+						rs = con.createStatement().executeQuery(query);
+						rs.next();
+						count = rs.getLong(1);
+						cells[8] = count + "";
 						// add data to frame
-						frame.addRow(cells, headers);
+						frame.addRow(tableName, cells, headers, dataTypes);
 					} else {
 						// assume string
 						if (Utility.isStringType(type)) {
-							Object[] cells = new Object[8];
+							String[] cells = new String[9];
 							// table name
 							cells[0] = table;
 							// column name
@@ -109,14 +126,21 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 							rs = con.createStatement().executeQuery(query);
 							rs.next();
 							long count = rs.getLong(1);
-							cells[2] = count;
+							cells[2] = count + "";
 							// # of unique values
 							query = "SELECT DISTINCT COUNT(" + colName + ") FROM " + table + ";";
 							rs = con.createStatement().executeQuery(query);
 							rs.next();
 							long uniqueNRow = rs.getLong(1);
-							cells[3] = uniqueNRow;
-							frame.addRow(cells, headers);
+							cells[3] = uniqueNRow + "";
+							// # of null values
+							query = "SELECT COUNT(*) FROM " + table + " WHERE " + colName + " is null;";
+							rs = con.createStatement().executeQuery(query);
+							rs.next();
+							count = rs.getLong(1);
+							cells[8] = count + "";
+							// add data to frame
+							frame.addRow(tableName, cells, headers, dataTypes);
 						}
 					}
 				}
@@ -146,6 +170,6 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 }

@@ -37,8 +37,8 @@ public class DatabaseProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		// output frame
-		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum" };
-		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" };
+		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum", "numOfNullValues" };
+		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
 		H2Frame frame = (H2Frame) this.insight.getDataMaker();
 		String tableName = frame.getTableName();
 		// add headers to metadata output frame
@@ -112,13 +112,14 @@ public class DatabaseProfileReactor extends AbstractReactor {
 	}
 
 	private String[] getStringProfileData(IEngine engine, String concept, String primKey) {
-		String[] retRow = new String[8];
+		String[] retRow = new String[9];
 		// table name
 		retRow[0] = concept;
 		// column name
 		retRow[1] = primKey;
 		// num of blanks
 		QueryStruct2 qs2 = new QueryStruct2();
+		QueryStruct2 qs_nulls = new QueryStruct2();
 		{
 			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
 			uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
@@ -134,17 +135,30 @@ public class DatabaseProfileReactor extends AbstractReactor {
 					new NounMetadata(col, PixelDataType.COLUMN), "==",
 					new NounMetadata("", PixelDataType.CONST_STRING));
 			qs2.addExplicitFilter(filter);
+			// nulls
+			qs_nulls.addSelector(uniqueCountSelector);
+			SimpleQueryFilter nulls = new SimpleQueryFilter(
+					new NounMetadata(col, PixelDataType.COLUMN), "==",
+					new NounMetadata("null", PixelDataType.NULL_VALUE));
+			qs_nulls.addExplicitFilter(nulls);
 		}
+		// get blank values count
 		Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		long blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
 		retRow[2] = blankCount + "";
+		
 		// num of unique vals
-		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT, true) + "";		
+		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
+
+		// get null values count
+		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
+		long nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		retRow[8] = nullCount + "";
 		return retRow;
 	}
 
 	private String[] getNumericalProfileData(IEngine engine, String concept, String prop) {
-		String[] retRow = new String[8];
+		String[] retRow = new String[9];
 		// table name
 		retRow[0] = concept;
 		// column name
@@ -153,6 +167,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		retRow[2] = 0 + "";
 		// create qs
 		QueryStruct2 qs2 = new QueryStruct2();
+		QueryStruct2 qs_nulls = new QueryStruct2();
 		{
 			// inner selector
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
@@ -183,6 +198,15 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			sum.setFunction(QueryFunctionHelper.SUM);
 			sum.addInnerSelector(innerSelector);
 			qs2.addSelector(sum);
+			// nulls
+			QueryFunctionSelector countNullsSelector = new QueryFunctionSelector();
+			countNullsSelector.setFunction(QueryFunctionHelper.COUNT);
+			qs_nulls.addSelector(countNullsSelector);
+			SimpleQueryFilter nulls = new SimpleQueryFilter(
+					new NounMetadata(innerSelector, PixelDataType.COLUMN), "==",
+					new NounMetadata("null", PixelDataType.NULL_VALUE));
+			qs_nulls.addExplicitFilter(nulls);
+
 		}
 		qs2.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
 		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
@@ -200,6 +224,10 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			// sum
 			retRow[7] = values[4] + "";
 		}
+		// get null values count
+		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
+		long nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		retRow[8] = nullCount + "";
 		return retRow;
 	}
 
