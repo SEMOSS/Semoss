@@ -100,6 +100,9 @@ public enum PixelOperationType {
 	
 	//GA ANALYTICS
 	VIZ_RECOMMENDATION,
+
+	// Google
+	GOOGLE_SHEET_LIST,
 	
 	// SOME KIND OF OPERATION THAT WE WANT TO OUTPUT
 	HELP,
@@ -107,5 +110,5 @@ public enum PixelOperationType {
 	OPERATION,
 	WARNING,
 	ERROR,
-	INVALID_SYNTAX; 
+	INVALID_SYNTAX;
 }
