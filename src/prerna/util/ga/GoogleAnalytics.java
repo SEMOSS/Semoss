@@ -11,8 +11,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.neo4j.cypher.internal.compiler.v2_3.codegen.ir.JoinData;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
@@ -21,8 +29,10 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class GoogleAnalytics implements IGoogleAnalytics {
 
@@ -68,13 +78,29 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		final String exprStart = "{\"dataquery\":[";
 		final String exprEnd = "]}";
 
+		HashMap<String, String[]> joinHash = new HashMap();
 		String engineName = qs.getEngineName();
 		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			// person has entered their own query
 			String query = ((HardQueryStruct) qs).getQuery();
-			String expression = exprStart + "{\"dbName\":\"" + engineName + "\",\"tableName\":\"null\",\"columnName\":\"null\",\"query\":\"" + query + "\"}" + exprEnd;
+			String expression = exprStart + "{\"dbName\":\"" + engineName + 
+					"\",\"tableName\":\"null\",\"columnName\":\"\",	\"joinType\": \"\",\"joinColumn\": \"\", \"query\":\"" 
+					+ query + "\"}" + exprEnd;
 			in.trackPixels("dataquery:", expression);
 		} else {
+			// get join relationships and put in a map to easily retrieve later by column
+			Map<String, Map<String, List>> relations = qs.getRelations();
+			for (String relationKey : relations.keySet()) {
+				Map<String, List> joinTable = relations.get(relationKey);
+				for (String joinKey : joinTable.keySet()) {
+					List cols = (List) joinTable.get(joinKey);
+					for (int i = 0; i < cols.size(); i++) {
+						String[] data = { joinKey, relationKey };
+						joinHash.put(cols.get(i) + "", data);
+					}
+				}
+			}
+
 			// person is using pixel so there is a query struct w/ selectors
 			List<IQuerySelector> selectors = qs.getSelectors();
 			int size = selectors.size();
@@ -90,9 +116,23 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 					QueryColumnSelector selector = (QueryColumnSelector) s;
 					String tableName = selector.getTable();
 					String columnName = selector.getColumn();
+					// retrieve join data from the joinHash
+					String[] joinData;
+					if (columnName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+						joinData = joinHash.get(tableName);
+					} else {
+						joinData = joinHash.get(columnName);
+					}
+					String joinType = "";
+					String joinColumn = "";
+					if (joinData != null) {
+						joinType = joinData[0];
+						joinColumn = joinData[1];
+					}
+					// build the json expression
 					exprBuilder.append("{\"dbName\":\"").append(engineName).append("\",\"tableName\":\"")
-							.append(tableName).append("\",\"columnName\":\"").append(columnName)
-							.append("\",\"query\":\"null\"}");
+					.append(tableName).append("\",\"columnName\":\"").append(columnName)
+					.append("\",\"joinType\":\"").append(joinType).append("\",\"joinColumn\":\"").append(joinColumn).append("\",\"query\":\"\"}");
 					// increase counter
 					counter++;
 				}
@@ -222,6 +262,9 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 			}
 	
 			for (String panelId : taskOptions.getPanelIds()) {
+				if (panelId.equalsIgnoreCase("rule")){
+					return;
+				}
 				final String exprStart = "{\"Viz\":{";
 				final String exprEnd = "]}}";
 				StringBuilder exprBuilder = new StringBuilder();
@@ -262,7 +305,43 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 								table = conceptPropSplit[0];
 								column = conceptPropSplit[1];
 							}
+							
+							// get unique column values
+							IEngine engine = Utility.getEngine(db);
+							ENGINE_TYPE type = engine.getEngineType();
+							RDFFileSesameEngine owlEngine = null;
+							if (type.equals(ENGINE_TYPE.RDBMS)) {
+								RDBMSNativeEngine eng = (RDBMSNativeEngine) engine;
+								owlEngine = eng.getBaseDataEngine();
+							} else if (type.equals(ENGINE_TYPE.TINKER)) {
+								TinkerEngine eng = (TinkerEngine) engine;
+								owlEngine = eng.getBaseDataEngine();
+							} else if (type.equals(ENGINE_TYPE.JENA)) {
+								RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
+								owlEngine = eng.getBaseDataEngine();
+							}
+							
 							String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
+							// get unique values for string columns, if it doesnt exist
+							// or isnt a string then it is defaulted to zero
+							long uniqueValues = 0;
+							if (dataType != null && dataType.equals("STRING")){
+								String queryCol = column;
+								// prim key placeholder cant be queried in the owl
+								// so we convert it back to the display name of the concept
+								if (column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+									queryCol = table;
+								}
+								String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
+										+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
+										+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
+								IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+								while(it.hasNext()) {
+									Object[] row = it.next().getValues();
+									uniqueValues = Long.parseLong(row[1].toString());
+								}
+							}
+
 							if (processedFirst) {
 								exprBuilder.append(",");
 							} else {
@@ -272,7 +351,8 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 									.append("\",\"tableName\": \"").append(table)
 									.append("\",\"columnName\": \"").append(column)
 									.append("\",\"columnType\":\"").append(dataType)
-									.append("\",\"component\": \"").append(uiCompName);
+									.append("\",\"component\": \"").append(uiCompName)
+									.append("\",\"uniqueValues\": ").append(uniqueValues);
 
 							// if lookup map is empty, initialize it
 							String uniqueName = db + "_" + table + "_" + column;
@@ -298,7 +378,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 								logicalNamesList.add("");
 							}
 							// always send exactly 5 elements
-							exprBuilder.append("\",\"reference1\": \"").append(db).append("$").append(table).append("$")
+							exprBuilder.append(",\"reference1\": \"").append(db).append("$").append(table).append("$")
 									.append(column);
 							for (int j = 0; j < 5; j++) {
 								if (j < logicalNamesList.size()) {
