@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.frame;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -47,7 +49,19 @@ public class GetFrameHeaderMetadataReactor extends AbstractReactor {
 			// default to all types
 			headersObj = dm.getMetaData().getTableHeaderObjects();
 		}
-
+		
+		// now loop through and add if there are any filters on the header
+		Set<String> filteredCols = dm.getFrameFilters().getAllFilteredColumns();
+		List<Map<String, Object>> headersMap = (List<Map<String, Object>>) headersObj.get("headers");
+		for(Map<String, Object> headerMap : headersMap) {
+			String alias = (String) headerMap.get("alias");
+			String rawHeader = (String) headerMap.get("header");
+			if(filteredCols.contains(alias) || filteredCols.contains(rawHeader)) {
+				headerMap.put("isFiltered", true);
+			} else {
+				headerMap.put("isFiltered", false);
+			}
+		}
 		NounMetadata noun = new NounMetadata(headersObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS);
 		return noun;
 	}
