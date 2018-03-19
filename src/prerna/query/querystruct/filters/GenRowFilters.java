@@ -133,13 +133,16 @@ public class GenRowFilters {
 				// if we came to this point, we were not able to merge
 				// so add it to the list to append
 				newFiltersToAppend.add(i_filter);
-				newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
 			}
 			// i have no idea how i would merge AND/OR filters together
 			// so just add it
 			else {
 				newFiltersToAppend.add(incoming_filter);
 			}
+			
+			// store all the filtered cols
+			// regardless of filter type
+			newColumnsToFilter.addAll(incoming_filter.getAllUsedColumns());
 		}
 		
 		// now loop through and add all the new filters
