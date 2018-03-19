@@ -40,6 +40,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
@@ -69,7 +70,7 @@ public class Insight {
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
 	protected String insightId;
-	protected String userId;
+	protected User user;
 	protected String insightName;
 
 	// if this is a saved insight
@@ -371,13 +372,20 @@ public class Insight {
 	}
 
 	public String getUserId() {
-		return userId;
+		if(this.user == null) {
+			return "-1";
+		}
+		return user.getId();
 	}
 
-	public void setUserId(String userId) {
-		this.userId = userId;
+	public User getUser(User user) {
+		return this.user;
 	}
-
+	
+	public void setUser(User user) {
+		this.user = user;
+	}
+	
 	public String getRdbmsId() {
 		return rdbmsId;
 	}

@@ -112,7 +112,7 @@ public class InsightUtility {
 //		IEngine engine = Utility.getEngine(engineName);
 //		Insight insight = new Insight(engine, "H2Frame", "Grid");
 		Insight insight = new Insight();
-		insight.setUserId("myUserId");
+//		insight.setUserId("myUserId");
 		insight.setRdbmsId("myRdbmsId");
 		insight.setInsightName("myInsightName");
 		String uniqueId = InsightStore.getInstance().put(insight);

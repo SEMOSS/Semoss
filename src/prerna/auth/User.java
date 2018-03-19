@@ -30,16 +30,25 @@ package prerna.auth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 public class User {
-	public static enum LOGIN_TYPES {google, facebook, twitter, cac, anonymous, email};
 	
+	// login types
+	public static enum LOGIN_TYPES {GOOGLE, FACEBOOK, TWITTER, CAC, EMAIL, AD, ANONYMOUS};
+	
+	// user metadata
 	private String userId;
 	private String name;
 	private LOGIN_TYPES loginType;
 	private String email;
 	private String pictureUrl= "";
 	private boolean admin = false;
+	// this is used as a catch all for specific objects we would
+	// want to store based on the specific login type
+	private Map<String, Object> additionalData;
+	
+	// permissions for user
 	private HashMap<String, HashMap<String, Boolean>> enginePermissions = new HashMap<String, HashMap<String, Boolean>>();
 	private Hashtable<String, String> userParamPreferences = new Hashtable<String, String>();
 	private Hashtable<String, Object> customProps = new Hashtable<String, Object>();
@@ -49,6 +58,7 @@ public class User {
 		this.name = name;
 		this.loginType = type;
 		this.email = email;
+		this.additionalData = new HashMap<String, Object>();
 	}
 	
 	public User(String userId, String name, LOGIN_TYPES type, String email, String picture) {
@@ -57,6 +67,7 @@ public class User {
 		this.loginType = type;
 		this.email = email;
 		this.pictureUrl = picture;
+		this.additionalData = new HashMap<String, Object>();
 	}
 	
 	public String getId() {
@@ -77,6 +88,14 @@ public class User {
 	
 	public String getPicture() {
 		return this.pictureUrl;
+	}
+	
+	public Object getAdditionalData(String key) {
+		return this.additionalData.get(key);
+	}
+	
+	public void setAdditionalData(String key, Object obj) {
+		this.additionalData.put(key, obj);
 	}
 	
 	public String[] getPermissionsForEngine(String engine) {
