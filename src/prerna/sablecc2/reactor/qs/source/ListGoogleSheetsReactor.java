@@ -78,7 +78,7 @@ public class ListGoogleSheetsReactor extends AbstractReactor {
 						masterList.add(tempMap);
 					}
 				}
-				return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
+				return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.GOOGLE_SHEET_LIST);
 			} catch (IOException e) {
 				throw new IllegalArgumentException("Unable to retrieve files from Google Drive");
 			}
