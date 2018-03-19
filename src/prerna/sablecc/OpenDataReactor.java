@@ -13,7 +13,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Utility;
 
 /**
@@ -54,10 +53,10 @@ public class OpenDataReactor extends AbstractReactor {
 		}
 		Insight insightObj = ((AbstractEngine)coreEngine).getInsight(engine_id).get(0);
 		
-		IDataMaker insight = (IDataMaker)myStore.get("G");
-		if(insight != null) {
-			insightObj.setUserId(insight.getUserId());
-		}
+//		IDataMaker insight = (IDataMaker)myStore.get("G");
+//		if(insight != null) {
+//			insightObj.setUserId(insight.getUserId());
+//		}
 		
 		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
