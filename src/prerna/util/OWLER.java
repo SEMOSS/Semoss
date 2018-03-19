@@ -3,17 +3,32 @@ package prerna.util;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.BaseDatabaseCreator;
+import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class OWLER {
 
@@ -587,6 +602,86 @@ public class OWLER {
 	 */
 	public String addProp(String tableName, String propertyCol, String dataType) {
 		return addProp(tableName, "", propertyCol, dataType);
+	}
+	
+	/**
+	 * This method will calculate the unique values in each column/property
+	 * and add it to the owl file.
+	 * 
+	 * @param table
+	 * @param column
+	 * @param engine
+	 */
+	public void addUniqueCounts(String table, String column, IEngine engine){
+		String concept = table;
+		String className = null;
+		RDFFileSesameEngine owlEngine = null;
+		ENGINE_TYPE engineType = engine.getEngineType();
+
+		if (engineType.equals(ENGINE_TYPE.RDBMS)){
+			RDBMSNativeEngine engineRDB = (RDBMSNativeEngine) engine;
+			owlEngine = engineRDB.getBaseDataEngine();
+		} else if (engineType.equals(ENGINE_TYPE.TINKER)){
+			// tinker query always returns null
+			TinkerEngine engineRDB = (TinkerEngine) engine;
+			owlEngine = engineRDB.getBaseDataEngine();
+		} else if (engineType.equals(ENGINE_TYPE.SESAME)){
+			// sparql query always throws error
+			BigDataEngine engineRDB = (BigDataEngine) engine;
+			owlEngine = engineRDB.getBaseDataEngine();
+		} else {
+			// if the database is anything else then dont tracking
+			// we dont want to track for big data by accident
+			return;
+		}
+
+		// get class name
+		className = Utility.getClassName(column);
+		
+		// if column isnt a string then end here
+		String dataType = MasterDatabaseUtility.getBasicDataType(engine.getEngineName(), className, null);
+		if (dataType == null || !dataType.equalsIgnoreCase("STRING")){
+			return;
+		}
+		
+		// query for unique column values and dont 
+		// store it if it returns null
+		QueryStruct2 qs2 = new QueryStruct2();
+		QueryFunctionSelector newSelector = new QueryFunctionSelector();
+		newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
+		newSelector.setDistinct(true);
+		QueryColumnSelector innerSelector = new QueryColumnSelector();
+		innerSelector.setTable(table);
+		innerSelector.setColumn(className);
+		newSelector.addInnerSelector(innerSelector);
+		qs2.addSelector(newSelector);
+		
+		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+		if (!it.hasNext()) {
+			return;
+		}
+		long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
+
+		// update the owl file and export it
+		String baseUri = engine.getNodeBaseUri();
+		String conceptUri = baseUri + className + "/" + Utility.getInstanceName(concept);
+	
+		String prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
+		owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+		owlEngine.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+		owlEngine.commit();
+		try {
+			owlEngine.exportDB();
+		} catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	/////////////////// END ADDING PROPERTIES TO CONCEPTS INTO THE OWL /////////////////////////////////
