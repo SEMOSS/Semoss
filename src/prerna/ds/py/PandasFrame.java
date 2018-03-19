@@ -126,12 +126,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		this.jep.eval(query);
-		this.jep.run();
-		while(!jep.isCompleted()) {
-			// wait
-		}
-		System.out.println(this.jep.retrieveValue());
+		System.out.println(this.jep.eval(query));
 		return null;
 	}
 
