@@ -547,7 +547,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 				statement[3] = false;
 			}
 
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
+			this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
@@ -567,7 +567,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			statement[2] = newUri;
 			statement[3] = data[3];
 
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
+			this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 
 			// add audit log statement
 			Calendar cal = Calendar.getInstance();
