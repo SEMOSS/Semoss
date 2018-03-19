@@ -378,7 +378,7 @@ public class Insight {
 		return user.getId();
 	}
 
-	public User getUser(User user) {
+	public User getUser() {
 		return this.user;
 	}
 	
@@ -709,7 +709,7 @@ public class Insight {
 			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME));
 		}
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
-	}
+	}	
 
 	
 }
