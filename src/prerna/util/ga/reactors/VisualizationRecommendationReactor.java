@@ -10,7 +10,14 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -18,7 +25,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
 
 public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 	public static final String MAX_RECOMMENDATIONS = "max";
@@ -52,11 +58,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 		// prep script components
 		StringBuilder builder = new StringBuilder();
-		StringBuilder builder2 = new StringBuilder();
 		String inputFrame = "inputFrame." + Utility.getRandomString(8);
-		String inputFrame2 = "inputFrame." + Utility.getRandomString(8);
-		String dfStart = inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = character(), reference4 = character(), reference5 = character(), reference6 = character(), stringsAsFactors = FALSE);";
-		String dfStart2 = inputFrame2 + " <- data.frame(reference1 = character(), reference2 = character(), stringsAsFactors = FALSE);";
+		String dfStart = inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);";
 
 		// iterate selectors and update data table builder section of R script
 		Map<String, String> aliasHash = new HashMap<String, String>();
@@ -72,8 +75,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 			for (int j = 0; j < size; j++) {
 				String[] engineQs = dbInfo.get(0);
 				if(engineQs.length == 1) {
-					// we do not know the source of this
-					// column
+					// we do not know the source of this column
 					continue;
 				}
 				String db = engineQs[0];
@@ -88,25 +90,49 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 				// add row to data type R df used for offline recommendations
 				String dataType = meta.getHeaderTypeAsString(name);
-				builder2.append(inputFrame2).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"").append(", \"").append(dataType).append("\");");
-
-				// add column and logical names to alias hash so we can look up alias later
-				aliasHash.put(column + "_" + table + "_" + db, alias);
 				
-				// get List from GA of logical names
-				ArrayList<String> logicalNames = GATracker.getInstance()
-						.getLogicalNames(db + "_" + table + "_" + column);
+				// get unique column values
+				IEngine engine = Utility.getEngine(db);
+				ENGINE_TYPE type = engine.getEngineType();
+				RDFFileSesameEngine owlEngine = null;
+				if (type.equals(ENGINE_TYPE.RDBMS)) {
+					RDBMSNativeEngine eng = (RDBMSNativeEngine) engine;
+					owlEngine = eng.getBaseDataEngine();
+				} else if (type.equals(ENGINE_TYPE.TINKER)) {
+					TinkerEngine eng = (TinkerEngine) engine;
+					owlEngine = eng.getBaseDataEngine();
+				} else if (type.equals(ENGINE_TYPE.JENA)) {
+					RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
+					owlEngine = eng.getBaseDataEngine();
+				}
 
-				// build R df of all columns in semoss frame plus logical names
-				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(table).append("$").append(column).append("\"");
-				for (int k = 0; k < 5; k++) {
-					if (logicalNames != null && k < logicalNames.size()) {
-						builder.append(", \"").append(logicalNames.get(k)).append("\"");
-					} else {
-						builder.append(", \"\"");
+				// get unique values for string columns, if it doesnt exist
+				// or isnt a string then it is defaulted to zero
+				long uniqueValues = 0;
+				if (dataType != null && dataType.equals("STRING")) {
+					String queryCol = column;
+					// prim key placeholder cant be queried in the owl
+					// so we convert it back to the display name of the concept
+					if (column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+						queryCol = table;
+					}
+					String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
+							+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table
+							+ "> AS ?concept)"
+							+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
+					IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+					while (it.hasNext()) {
+						Object[] row = it.next().getValues();
+						uniqueValues = Long.parseLong(row[1].toString());
 					}
 				}
-				builder.append(");");
+
+				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$")
+						.append(table).append("$").append(column).append("\"").append(", \"").append(dataType)
+						.append("\" , ").append(uniqueValues).append(");");
+
+				// add column alias hash so we can look up alias later
+				aliasHash.put(column + "_" + table + "_" + db, alias);
 				rowCount++;
 			}
 		}
@@ -123,12 +149,14 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 		String runPredictScripts = "source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; "
 				+ historicalDf + "<-read.csv(\"" + baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv\") ;" 
-				+ recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + "," + inputFrame2 + "); " 
+				+ recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + ", \"Grid\", 5); " 
 				+ "library(jsonlite);" + outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);"; 
 		runPredictScripts = runPredictScripts.replace("\\", "/");
 
 		// combine script pieces and execute in R
-		String script = dfStart + builder + dfStart2 + builder2 + runPredictScripts;
+		String script = dfStart + builder + runPredictScripts;
+		System.out.println(script);
+		System.out.println(script);
 		this.rJavaTranslator.runR(script);
 
 		// receive json string from R
@@ -137,7 +165,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		Gson gson = new Gson();
 		
 		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + inputFrame + ", " + inputFrame2 + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
+
 		this.rJavaTranslator.runR(gc);
 		// if recommendations fail return empty map
 		if (json == null) {
