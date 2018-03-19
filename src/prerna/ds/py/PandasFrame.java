@@ -15,6 +15,7 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
@@ -125,14 +126,21 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		// TODO Auto-generated method stub
+		this.jep.eval(query);
+		this.jep.run();
+		while(!jep.isCompleted()) {
+			// wait
+		}
+		System.out.println(this.jep.retrieveValue());
 		return null;
 	}
 
 	@Override
 	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
-		// TODO Auto-generated method stub
-		return null;
+		PandasInterpreter interp = new PandasInterpreter();
+		interp.setDataTableName(this.tableName);
+		String query = interp.composeQuery();
+		return query(query);
 	}
 
 	@Override
