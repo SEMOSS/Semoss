@@ -103,6 +103,7 @@ public enum PixelOperationType {
 
 	// Google
 	GOOGLE_SHEET_LIST,
+	GOOGLE_DRIVE_LIST,
 	
 	// SOME KIND OF OPERATION THAT WE WANT TO OUTPUT
 	HELP,
