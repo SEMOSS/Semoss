@@ -68,7 +68,7 @@ public class ListGoogleDriveFilesReactor extends AbstractReactor {
 					}
 				}
 				return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-						PixelOperationType.GOOGLE_SHEET_LIST);
+						PixelOperationType.GOOGLE_DRIVE_LIST);
 			}
 		}
 
