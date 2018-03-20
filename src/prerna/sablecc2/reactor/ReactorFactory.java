@@ -190,6 +190,7 @@ import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
+import prerna.sablecc2.reactor.qs.source.ListGoogleDriveFilesReactor;
 import prerna.sablecc2.reactor.qs.source.ListGoogleSheetsReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
@@ -404,6 +405,7 @@ public class ReactorFactory {
 		reactorHash.put("URLSource", URLSourceReactor.class);
 		reactorHash.put("GoogleSheetSource", GoogleSheetSourceReactor.class);
 		reactorHash.put("ListGoogleSheets", ListGoogleSheetsReactor.class);
+		reactorHash.put("ListGoogleDriveFiles", ListGoogleDriveFilesReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
