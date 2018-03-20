@@ -13,6 +13,7 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.Sheets.Spreadsheets.Get;
 import com.google.api.services.sheets.v4.model.Sheet;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 
@@ -27,63 +28,38 @@ public class ListGoogleSheetsReactor extends AbstractReactor {
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
 	public ListGoogleSheetsReactor() {
-		this.keysToGet = new String[] {};
+		this.keysToGet = new String[] { "sheetId" };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		List<HashMap<String, Object>> masterList = new ArrayList<HashMap<String, Object>>();
+		organizeKeys();
+		List<String> sheetList = new ArrayList<String>();
 		GoogleCredential gc = null;
+		String sheetId = this.keyValue.get(this.keysToGet[0]);
 		User user = this.insight.getUser();
 		if (user != null) {
 			gc = (GoogleCredential) user.getAdditionalData("googleCredential");
 		}
 		if (gc != null) {
-			// google drive api
-			Drive driveService = new Drive.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
-
+			Sheets sheetsService = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
+			Spreadsheet spreadsheet = null;
 			try {
-				FileList files = driveService.files().list()
-						.setQ("mimeType contains '.spreadsheet' or mimeType contains 'text/csv' ").execute();
-				List<File> fileList = files.getFiles();
-				// TODO may not be null here - need to test
-				// when theres not excels in the drive
-				if (fileList != null) {
-					Sheets sheetsService = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS")
-							.build();
-					for (int i = 0; i < fileList.size(); i++) {
-						// {"id":"id###","kind":"drive#file","mimeType":"application/vnd.google-apps.spreadsheet","name":"name##"}
-						File file = fileList.get(i);
-						HashMap<String, Object> tempMap = new HashMap<String, Object>();
-						String fileType = "";
-						if (file.get("mimeType").equals("text/csv")) {
-							fileType = "CSV";
-						} else {
-							fileType = ".spreadsheet";
-						}
-						tempMap.put("type", fileType);
-						tempMap.put("id", file.get("id"));
-						tempMap.put("name", file.get("name"));
-						if (fileType != "CSV") {
-							Spreadsheet spreadsheet = sheetsService.spreadsheets().get(file.get("id").toString())
-									.execute();
-							List<Sheet> sheets = spreadsheet.getSheets();
-							List<String> tempSheetsNameList = new ArrayList<String>();
-							for (int j = 0; j < sheets.size(); j++) {
-								String sheetName = sheets.get(j).getProperties().getTitle();
-								tempSheetsNameList.add(sheetName);
-								tempMap.put("sheets", tempSheetsNameList);
-							}
-						}
-						masterList.add(tempMap);
+				spreadsheet = sheetsService.spreadsheets().get(sheetId).setIncludeGridData(false).execute();
+				if (spreadsheet != null) {
+					List<Sheet> sheets = spreadsheet.getSheets();
+					for (int j = 0; j < sheets.size(); j++) {
+						String sheetName = sheets.get(j).getProperties().getTitle();
+						sheetList.add(sheetName);
 					}
+					return new NounMetadata(sheetList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.GOOGLE_SHEET_LIST);
 				}
-				return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.GOOGLE_SHEET_LIST);
 			} catch (IOException e) {
-				throw new IllegalArgumentException("Unable to retrieve files from Google Drive");
+				e.printStackTrace();
+				throw new IllegalArgumentException("Unable to get sheet names");
 			}
+			 
 		}
-
 		throw new IllegalArgumentException("Please login");
 	}
 
