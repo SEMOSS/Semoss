@@ -201,6 +201,7 @@ import prerna.sablecc2.reactor.storage.RetrieveValue;
 import prerna.sablecc2.reactor.storage.StoreValue;
 import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
 import prerna.sablecc2.reactor.storage.TaxSaveScenarioReactor;
+import prerna.sablecc2.reactor.task.AutoTaskOptionsReactor;
 import prerna.sablecc2.reactor.task.RemoveTaskReactor;
 import prerna.sablecc2.reactor.task.ResetPanelTasksReactor;
 import prerna.sablecc2.reactor.task.ResetTaskReactor;
@@ -427,6 +428,7 @@ public class ReactorFactory {
 		reactorHash.put("CollectMeta", TaskMetaCollectorReactor.class); // collect meta from task
 		reactorHash.put("Format", TaskFormatReactor.class); // set formats
 		reactorHash.put("TaskOptions", TaskOptionsReactor.class); // set options
+		reactorHash.put("AutoTaskOptions", AutoTaskOptionsReactor.class);
 		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
 		// Task Operations
