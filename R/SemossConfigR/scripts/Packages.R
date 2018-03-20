@@ -50,6 +50,8 @@ install.packages("openssl")
 install.packages("httr")
 install.packages("jsonlite")
 install.packages("WikipediR")
+install.packages("LSAfun")
+install.packages("text2vec")
 
 # Google Analytics
 install.packages("RGoogleAnalytics")
