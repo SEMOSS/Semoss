@@ -39,6 +39,8 @@ public class RunLSILearnedReactor extends AbstractRFrameReactor{
 		organizeKeys();
 		// get R connection
 		init();
+		String[] packages = new String[] { "LSAfun", "text2vec"};
+		this.rJavaTranslator.checkPackages(packages);
 		// output frame name
 		RDataTable frame = (RDataTable) getFrame();
 		String returnTable = frame.getTableName();
@@ -85,15 +87,14 @@ public class RunLSILearnedReactor extends AbstractRFrameReactor{
 		
 		
 		//execute r command
-		String mergeString = RSyntaxHelper.getMergeSyntax("dfDisplay", leftTableName, rightTableName, joinType, joinCols);
+		String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 		rsb.append(mergeString);
 		rsb.append(";");
 		
 		//run script
 		this.rJavaTranslator.runR(rsb.toString());
 	
-		return null;
-		//return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 
 	}
 
