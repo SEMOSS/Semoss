@@ -33,6 +33,8 @@ public class LSASpaceColumnLearnedReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// initialize the rJavaTranslator
 		init();
+		String[] packages = new String[] { "LSAfun", "text2vec"};
+		this.rJavaTranslator.checkPackages(packages);
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
