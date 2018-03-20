@@ -308,37 +308,39 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 							String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
 							// get unique values
 							long uniqueValues = 0;
-							IEngine engine = Utility.getEngine(db);
-							if(engine != null) {
-								ENGINE_TYPE type = engine.getEngineType();
-								RDFFileSesameEngine owlEngine = null;
-								if (type.equals(ENGINE_TYPE.RDBMS)) {
-									RDBMSNativeEngine eng = (RDBMSNativeEngine) engine;
-									owlEngine = eng.getBaseDataEngine();
-								} else if (type.equals(ENGINE_TYPE.TINKER)) {
-									TinkerEngine eng = (TinkerEngine) engine;
-									owlEngine = eng.getBaseDataEngine();
-								} else if (type.equals(ENGINE_TYPE.JENA)) {
-									RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
-									owlEngine = eng.getBaseDataEngine();
-								}
-								
-								// get unique values for string columns, if it doesnt exist
-								// or isnt a string then it is defaulted to zero
-								if (dataType != null && dataType.equals("STRING")){
-									String queryCol = column;
-									// prim key placeholder cant be queried in the owl
-									// so we convert it back to the display name of the concept
-									if (column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
-										queryCol = table;
+							if(db != null) {
+								IEngine engine = Utility.getEngine(db);
+								if(engine != null) {
+									ENGINE_TYPE type = engine.getEngineType();
+									RDFFileSesameEngine owlEngine = null;
+									if (type.equals(ENGINE_TYPE.RDBMS)) {
+										RDBMSNativeEngine eng = (RDBMSNativeEngine) engine;
+										owlEngine = eng.getBaseDataEngine();
+									} else if (type.equals(ENGINE_TYPE.TINKER)) {
+										TinkerEngine eng = (TinkerEngine) engine;
+										owlEngine = eng.getBaseDataEngine();
+									} else if (type.equals(ENGINE_TYPE.JENA)) {
+										RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
+										owlEngine = eng.getBaseDataEngine();
 									}
-									String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
-											+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
-											+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-									IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
-									while(it.hasNext()) {
-										Object[] row = it.next().getValues();
-										uniqueValues = Long.parseLong(row[1].toString());
+									
+									// get unique values for string columns, if it doesnt exist
+									// or isnt a string then it is defaulted to zero
+									if (dataType != null && dataType.equals("STRING")){
+										String queryCol = column;
+										// prim key placeholder cant be queried in the owl
+										// so we convert it back to the display name of the concept
+										if (column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+											queryCol = table;
+										}
+										String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
+												+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
+												+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
+										IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+										while(it.hasNext()) {
+											Object[] row = it.next().getValues();
+											uniqueValues = Long.parseLong(row[1].toString());
+										}
 									}
 								}
 							}
