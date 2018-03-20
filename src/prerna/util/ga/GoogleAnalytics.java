@@ -14,11 +14,9 @@ import java.util.Map.Entry;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
@@ -311,19 +309,8 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 							if(db != null) {
 								IEngine engine = Utility.getEngine(db);
 								if(engine != null) {
-									ENGINE_TYPE type = engine.getEngineType();
-									RDFFileSesameEngine owlEngine = null;
-									if (type.equals(ENGINE_TYPE.RDBMS)) {
-										RDBMSNativeEngine eng = (RDBMSNativeEngine) engine;
-										owlEngine = eng.getBaseDataEngine();
-									} else if (type.equals(ENGINE_TYPE.TINKER)) {
-										TinkerEngine eng = (TinkerEngine) engine;
-										owlEngine = eng.getBaseDataEngine();
-									} else if (type.equals(ENGINE_TYPE.JENA)) {
-										RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
-										owlEngine = eng.getBaseDataEngine();
-									}
-									
+									RDFFileSesameEngine owlEngine = ((AbstractEngine) engine).getBaseDataEngine();
+
 									// get unique values for string columns, if it doesnt exist
 									// or isnt a string then it is defaulted to zero
 									if (dataType != null && dataType.equals("STRING")){
