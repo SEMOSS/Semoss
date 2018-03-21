@@ -76,6 +76,7 @@ public enum ReactorKeysEnum {
 	REGEX("regex", 											"Regular expression (sequence of characters)"),
 	REPOSITORY("repository", 								"Name of the repository. Usually namespaced to be username\\appname"),
 	ROUTINE("routine",                                      "The name of the routine"),
+	RULES_MAP("rulesMap",                                   "The map of rules for validation, including information such as the name of the rule, the rule definition, the columns, and the description"),
 	SCHEMA("schema",                                        "The database schema."),
 	SESSION_ID("sessionId", 								"Id of the session"),
 	SHEET_NAME("sheetName",                                 "The name of the excel sheet"),
