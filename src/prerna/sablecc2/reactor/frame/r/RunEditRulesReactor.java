@@ -18,12 +18,13 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class RunEditRulesReactor extends AbstractRFrameReactor {
 	public RunEditRulesReactor() {
-		this.keysToGet = new String[] { "rulesMap" };
+		this.keysToGet = new String[] {ReactorKeysEnum.RULES_MAP.getKey()};
 	}
 
 	@Override
