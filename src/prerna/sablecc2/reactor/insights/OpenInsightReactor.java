@@ -77,7 +77,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// yay... not legacy
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
-
+		// set user 
+		newInsight.setUser(this.insight.getUser());
 		// get the insight output
 		Map<String, Object> insightData = null;
 		// add additional pixels if necessary
