@@ -17,7 +17,7 @@ import prerna.util.Utility;
 public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 	
 	public OpenEmptyInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PARAM_KEY.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.PARAM_KEY.getKey()};
 	}
 	
 	@Override
@@ -25,7 +25,9 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		// create a new empty insight
 		Insight newInsight = new Insight();
 		InsightStore.getInstance().put(newInsight);
-
+		// set the user in the insight
+		newInsight.setUser(this.insight.getUser());
+		
 		List<String> recipe = Arrays.asList(getRecipe());
 		List<String> newRecipe = new Vector<String>();
 		for(String r : recipe) {
