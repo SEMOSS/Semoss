@@ -14,6 +14,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import org.json.JSONObject;
@@ -29,7 +30,7 @@ public class AddEditRuleReactor extends AbstractRFrameReactor {
 	 */
 	
 	public AddEditRuleReactor() {
-		this.keysToGet = new String[] { "rulesMap" };
+		this.keysToGet = new String[] {ReactorKeysEnum.RULES_MAP.getKey()};
 	}
 	
 	@Override
