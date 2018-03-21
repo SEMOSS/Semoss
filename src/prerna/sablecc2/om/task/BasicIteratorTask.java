@@ -50,7 +50,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.iterator == null && this.qs == null) {
 			return false;
 		} else if( this.qs != null && this.iterator == null) {
-			generateIterator(this.qs);
+			generateIterator(this.qs, false);
 		}
 		
 		if(this.iterator == null) {
@@ -101,16 +101,19 @@ public class BasicIteratorTask extends AbstractTask {
 			this.qs.setLimit(this.startLimit);
 			this.qs.setOffSet(this.startOffset);
 			this.internalOffset = 0;
-			generateIterator(this.qs);
+			generateIterator(this.qs, true);
 		}
 	}
 	
-	private void generateIterator(QueryStruct2 qs) {
+	private void generateIterator(QueryStruct2 qs, boolean overrideImplicitFilters) {
 		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE || 
 				qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
+			if(overrideImplicitFilters) {
+				qs.setImplicitFilters(frame.getFrameFilters());
+			}
 			frame.setLogger(this.logger);
 			optimizeFrame(frame, qs.getOrderBy());
 			iterator = frame.query(qs);
@@ -162,7 +165,7 @@ public class BasicIteratorTask extends AbstractTask {
 				this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
 				addedOrder = true;
 			}
-			generateIterator(this.qs);
+			generateIterator(this.qs, false);
 			// we got the iterator
 			// if we added an order, remove it
 			if(addedOrder) {
