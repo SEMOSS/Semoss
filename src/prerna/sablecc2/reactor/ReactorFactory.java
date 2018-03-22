@@ -99,6 +99,7 @@ import prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor;
 import prerna.sablecc2.reactor.insights.InsightHandleReactor;
 import prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
+import prerna.sablecc2.reactor.insights.OpenOptimizedInsightReactor;
 import prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.SaveInsightReactor;
 import prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor;
@@ -508,6 +509,7 @@ public class ReactorFactory {
 		// Insight Reactors
 		reactorHash.put("InsightRecipe", GetSavedInsightRecipeReactor.class);
 		reactorHash.put("OpenInsight", OpenInsightReactor.class);
+		reactorHash.put("OpenOptimizedInsight", OpenOptimizedInsightReactor.class);
 		reactorHash.put("OpenEmptyInsight", OpenEmptyInsightReactor.class);
 		reactorHash.put("DropInsight", DropInsightReactor.class);
 		reactorHash.put("ClearInsight", ClearInsightReactor.class);

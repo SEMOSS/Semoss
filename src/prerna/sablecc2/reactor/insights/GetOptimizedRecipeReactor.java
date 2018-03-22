@@ -30,16 +30,43 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 		// grab the full recipe
 		List<String> pixelRecipe = this.insight.getPixelRecipe();
 		// return the modified recipe
-		return new NounMetadata(getModifiedRecipe(pixelRecipe), PixelDataType.CONST_STRING, PixelOperationType.CURRENT_INSIGHT_RECIPE);
+		return new NounMetadata(getModifiedRecipeString(pixelRecipe), PixelDataType.CONST_STRING, PixelOperationType.CURRENT_INSIGHT_RECIPE);
 	}
 	
 	/**
-	 * This method is used to get the modified recipe based on the full recipe
+	 * This method is used to retrieve the recipe as a String rather than as List<String>
 	 * 
 	 * @param recipe
 	 * @return modifiedRecipe
 	 */
-	public static String getModifiedRecipe(List<String> recipe) {
+	public String getModifiedRecipeString(List<String> recipe) {
+		List<String> modifiedRecipeList = getModifiedRecipeList(recipe);
+		return recipeToString(modifiedRecipeList);
+	}
+	
+	/**
+	 * This method converts the recipe from List<String> to a single string
+	 * 
+	 * @param recipe
+	 * @return recipe (as String)
+	 */
+	private static String recipeToString(List<String> recipe) {
+		StringBuilder sb = new StringBuilder();
+		// iterate through the recipe and build as a string builder
+		for (int i = 0; i < recipe.size(); i++) {
+			sb.append(recipe.get(i));
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * This method is used to get the modified recipe based on the full recipe
+	 * retrieves as List<String>
+	 * 
+	 * @param recipe
+	 * @return modifiedRecipe
+	 */
+	public List<String> getModifiedRecipeList(List<String> recipe) {
 		// create a new translation object that will do the work of figuring out which pixel expressions to keep
 		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
 		// we want to iterate through the current recipe

@@ -57,6 +57,7 @@ import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
+import prerna.sablecc2.reactor.insights.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ga.GATracker;
 
@@ -358,6 +359,17 @@ public class Insight {
 	public List<String> getPixelRecipe() {
 		return this.pixelList;
 	}
+	
+	/**
+	 * This method returns the optimized pixel recipe
+	 * 
+	 * @return modifiedRecipe
+	 */
+	public List<String> getOptimizedPixelRecipe() {
+		GetOptimizedRecipeReactor ORR = new GetOptimizedRecipeReactor();
+		List<String> recipe = ORR.getModifiedRecipeList(this.pixelList);
+		return recipe;
+	}
 
 	public void setPixelRecipe(List<String> pixelList) {
 		this.pixelList = pixelList;
@@ -648,6 +660,37 @@ public class Insight {
 		this.varStore.clear();
 		this.insightPanels.clear();
 		return runPkql(this.pixelList);
+	}
+	
+	/**
+	 * re-run the optimized version of the pixel recipe
+	 * @return runPixel(newList) -- returns pixel data
+	 */
+	public Map<String, Object> reRunOptimizedPixelInsight() {
+		Set<String> keys = this.varStore.getKeys();
+		for(String key : keys) {
+			NounMetadata noun = this.varStore.get(key);
+			if(noun.getValue() instanceof H2Frame) {
+				H2Frame frame = (H2Frame) noun.getValue();
+				frame.dropTable();
+				if(!frame.isInMem()) {
+					frame.dropOnDiskTemporalSchema();
+				}
+			}
+		}
+		
+		// copy over the recipe to a new list
+		// and clear the current container
+		List<String> newList = new Vector<String>();
+		newList.addAll(this.getOptimizedPixelRecipe());
+		this.pixelList.clear();
+		
+		// clear the var store
+		this.varStore.clear();
+		// clear the panels
+		this.insightPanels.clear();
+		
+		return runPixel(newList);
 	}
 	
 	public Map<String, Object> reRunPixelInsight() {
