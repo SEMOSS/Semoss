@@ -52,6 +52,7 @@ public class QSAliasToPhysicalConverter {
 		// now go through the filters
 		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta));
 		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta));
+		convertedQs.setHavingFilters(convertGenRowFilters(qs.getHavingFilters(), meta));
 
 		// now go through the joins
 		Map<String, Map<String, List>> joins = qs.getRelations();

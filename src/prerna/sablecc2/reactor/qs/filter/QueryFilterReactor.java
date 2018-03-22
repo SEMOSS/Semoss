@@ -35,7 +35,7 @@ public class QueryFilterReactor extends AbstractQueryStructReactor {
 		return qs;
 	}
 	
-	private boolean isValidFilter(SimpleQueryFilter filter) {
+	protected boolean isValidFilter(SimpleQueryFilter filter) {
 		SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 		if(filterType == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 			// make sure right side has values
