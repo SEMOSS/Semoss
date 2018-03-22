@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.r.rules;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,8 +10,9 @@ import org.codehaus.jackson.map.ObjectMapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 
-public class GetEditRuleTypesReactor extends AbstractRFrameReactor {
+public class GetRuleTypesReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {

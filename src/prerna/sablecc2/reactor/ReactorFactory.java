@@ -699,10 +699,10 @@ public class ReactorFactory {
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
 		rFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.r.HistogramReactor.class);
 		
-		//edit rules
-		rFrameHash.put("AddEditRule", prerna.sablecc2.reactor.frame.r.AddEditRuleReactor.class);
-		rFrameHash.put("RunEditRules", prerna.sablecc2.reactor.frame.r.RunEditRulesReactor.class);
-		rFrameHash.put("GetEditRuleTypes",prerna.sablecc2.reactor.frame.r.GetEditRuleTypesReactor.class);
+		// rules
+		rFrameHash.put("AddRule", prerna.sablecc2.reactor.frame.r.rules.AddRuleReactor.class);
+		rFrameHash.put("RunRules", prerna.sablecc2.reactor.frame.r.rules.RunRulesReactor.class);
+		rFrameHash.put("GetRuleTypes", prerna.sablecc2.reactor.frame.r.rules.GetRuleTypesReactor.class);
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
