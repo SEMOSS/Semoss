@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.r.rules;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,10 +20,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
 
-public class RunEditRulesReactor extends AbstractRFrameReactor {
-	public RunEditRulesReactor() {
+public class RunRulesReactor extends AbstractRFrameReactor {
+	public RunRulesReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.RULES_MAP.getKey()};
 	}
 
@@ -48,7 +49,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		Object[] nameCol = new Object[size];
 		Object[] descCol = new Object[size];
 		Object[] ruleCol = new Object[size];
-		Object[] inputColsListCol = new Object[size]; ///
+		Object[] inputColsListCol = new Object[size]; 
 		HashMap<String, Object> validateRulesTemplate = null;
 
 		// now that file is read in, we need to look through it to identify the
@@ -65,10 +66,11 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 			nameCol[i] = name;
 			String description = (String) mapOptions.get("description");
 			String rule = (String) mapOptions.get("rule");
+			String definedRuleType = (String) mapOptions.get("definedRuleType");
 			ArrayList<String> inputColsList = new ArrayList<String>();
-
-			if (rule == null) {
-				// look up name in template
+			
+			if (definedRuleType != null && definedRuleType != "") {
+				// look up rule in template
 				if (validateRulesTemplate == null) {
 					// read in the edit rules file
 					String fileJsonPath = getBaseFolder() + "\\R\\EditRules\\validateRulesTemplate.json";
@@ -80,39 +82,48 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 						throw new IllegalArgumentException("Unable to read file from path: " + fileJsonPath);
 					}
 				}
-				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate.get(mapOptions.get("name"));
+				
+				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate.get(mapOptions.get("definedRuleType"));
 				rule = (String) ruleTemplate.get("rule");
+				rule = RSyntaxHelper.escapeRegexR(rule);
 				HashMap<String, Object> columnTemplate = (HashMap<String, Object>) ruleTemplate.get("columns");
 				HashMap<String, Object> columnParms = (HashMap<String, Object>) mapOptions.get("columns");
-				// apply column params to rule
-				for (String key : columnTemplate.keySet()) {
-					String column = (String) columnParms.get(key);
-					if (column != null) {
-						// check columnType
-						String dataType = meta.getHeaderTypeAsString(dfName + "__" + column);
-						Map<String, Object> colMetaMap = (Map<String, Object>) columnTemplate.get(key);
-						String requiredType = (String) colMetaMap.get("columnType");
-						// check if dataTypes match for input col and template
-						if ((Utility.isNumericType(requiredType) && Utility.isNumericType(dataType))
-								|| (Utility.isStringType(requiredType) && Utility.isStringType(dataType))) {
-							// go forward with edit rules
-							inputColsList.add(column);
-							inputColsListCol[i] = inputColsList;
-							// update the rule to use the appropriate column name
-							String targetString = "<" + key + ">";
-							rule = rule.replace(targetString, column);
-						} else {
-							throw new IllegalArgumentException(column + " must be a " + requiredType);
+				
+				if (columnTemplate.size() == columnParms.size()){
+					// apply column params to rule
+					for (String key : columnTemplate.keySet()) {
+						String column = (String) columnParms.get(key);
+						if (column != null) {
+							// check columnType
+							String dataType = meta.getHeaderTypeAsString(dfName + "__" + column);
+							Map<String, Object> colMetaMap = (Map<String, Object>) columnTemplate.get(key);
+							String requiredType = (String) colMetaMap.get("columnType");
+							// check if dataTypes match for input col and template
+							if ((Utility.isNumericType(requiredType) && Utility.isNumericType(dataType))
+									|| (Utility.isStringType(requiredType) && Utility.isStringType(dataType))) {
+								// go forward with edit rules
+								inputColsList.add(column);
+								inputColsListCol[i] = inputColsList;
+								// update the rule to use the appropriate column name
+								String targetString = "<" + key + ">";
+								rule = rule.replace(targetString, column);
+							} else {
+								throw new IllegalArgumentException(column + " must be a " + requiredType);
+							}
 						}
 					}
+				} else {
+					throw new IllegalArgumentException("Number of column parameters in the input does not match"
+							+ "the number of columns defined in the rule template for rule: " + rule);
 				}
+
 				// get description
 				description = (String) ruleTemplate.get("description");
-			} else {
+			} else if (rule != null && rule != "") {
 				// decode rule sent from fe
-				rule = Utility.decodeURIComponent(rule);
-				// if rule is not null, then need to identify column(s) that the
-				// rule is targeting
+				rule = Utility.decodeURIComponent((String) rule); 
+				rule = RSyntaxHelper.escapeRegexR(rule);
+				// if rule is not null, then need to identify column(s) that the rule is targeting
 				if (colRegexMap.isEmpty()) {
 					for (int j = 0; j < frameColumnNames.length; j++) {
 						String columnName = frameColumnNames[j];
@@ -127,6 +138,9 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 					}
 					inputColsListCol[i] = inputColsList;
 				}
+			} else {
+				throw new IllegalArgumentException("Must specify ONE of the following: adhoc rule "
+						+ "or the predefined rule name");
 			}
 			ruleCol[i] = rule;
 			descCol[i] = description;
@@ -184,7 +198,7 @@ public class RunEditRulesReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + issueFrameRuleCol + ");");
 		cleanUpScript.append("rm(" + issueFrameInputColsListCol + ");");
 		// rm function names
-		cleanUpScript.append("rm(createCF, getDqFrame, getErrorFrame, getDF, run.seq );");
+		cleanUpScript.append("rm(createCF, getDqFrame, getErrorFrame, getDF, run.seq, escapeRegexR);");
 		cleanUpScript.append("rm(" + errorFrame + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
