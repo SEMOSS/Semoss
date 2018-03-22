@@ -55,9 +55,12 @@ public class QueryStruct2 {
 	 */
 	
 	protected List<IQuerySelector> selectors = new ArrayList<>();
+	// filters on existing data
 	protected GenRowFilters explicitFilters = new GenRowFilters();
 	protected GenRowFilters implicitFilters = new GenRowFilters();
-
+	// filters on derived calculations
+	protected GenRowFilters havingFilters = new GenRowFilters();
+	
 	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
 	// relations are of the form
 	// item = <relation vector>
@@ -128,6 +131,20 @@ public class QueryStruct2 {
 	
 	public void setImplicitFilters(GenRowFilters filters) {
 		this.implicitFilters = filters;
+	}
+	
+	public void addHavingFilter(IQueryFilter newFilter) {
+		GenRowFilters newGrf = new GenRowFilters();
+		newGrf.addFilters(newFilter);
+		this.havingFilters.merge(newGrf);
+	}
+	
+	public GenRowFilters getHavingFilters() {
+		return this.havingFilters;
+	}
+	
+	public void setHavingFilters(GenRowFilters filters) {
+		this.havingFilters = filters;
 	}
 	
 	public GenRowFilters getCombinedFilters() {
