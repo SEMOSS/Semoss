@@ -65,6 +65,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	// key is always a combination of concept and comparator
 	// and the values are values
 	private List<String> filterStatements = new Vector<String>();
+	private List<String> havingFilterStatements = new Vector<String>();
 	
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
@@ -120,7 +121,8 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		addJoins();
 		addSelectors();
 		addFilters();
-		
+		addHavingFilters();
+
 		StringBuilder query = new StringBuilder("SELECT ");
 		String distinct = "";
 		if(this.qs.isDistinct()) {
@@ -175,7 +177,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		
 		// add the join data
 		query.append(relationList.getJoinPath(startPoints));
-		
+		// add where clause filters
 		int numFilters = this.filterStatements.size();
 		for(int i = 0; i < numFilters; i++) {
 			if(i == 0) {
@@ -188,6 +190,17 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		
 		//grab the order by and get the corresponding display name for that order by column
 		query = appendGroupBy(query);
+		// add having filters
+		numFilters = this.havingFilterStatements.size();
+		for(int i = 0; i < numFilters; i++) {
+			if(i == 0) {
+				query.append(" HAVING ");
+			} else {
+				query.append(" AND ");
+			}
+			query.append(this.havingFilterStatements.get(i).toString());
+		}
+
 		query = appendOrderBy(query);
 		
 		long limit = qs.getLimit();
@@ -462,6 +475,16 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
+	
+	private void addHavingFilters() {
+		List<IQueryFilter> filters = qs.getHavingFilters().getFilters();
+		for(IQueryFilter filter : filters) {
+			StringBuilder filterSyntax = processFilter(filter);
+			if(filterSyntax != null) {
+				this.havingFilterStatements.add(filterSyntax.toString());
+			}
+		}
+	}
 	
 	public void addFilters() {
 		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
