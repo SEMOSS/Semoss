@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
 
@@ -350,6 +351,19 @@ public class RSyntaxHelper {
 				return value + "";
 			}
 		}
+	}
+	
+	public static String escapeRegexR(String expr){
+		if (Pattern.matches("^(grepl).*?", expr)){
+			String [] parsedRegex = (String[]) expr.split("\\\\\"");
+			String regex = "";
+			for (int k=1; k < parsedRegex.length - 1; k++){
+				String escapedParsedRegex = parsedRegex[k].replace("\\", "\\\\");
+				regex = regex + escapedParsedRegex;
+			}
+			expr = parsedRegex[0] + "\\\"" + regex + "\\\"" + parsedRegex[parsedRegex.length - 1];
+		}
+		return expr;
 	}
 
 	public static void main(String[] args) {
