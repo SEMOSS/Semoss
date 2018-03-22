@@ -25,7 +25,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	private static final Logger LOGGER = LogManager.getLogger(OptimizeRecipeTranslation.class.getName());
 	
 	// we are going to take recipe and modify it to delete views (pixels with TaskOptions) that aren't needed
-	private StringBuilder modifiedRecipe = new StringBuilder();
+	private List<String> modifiedRecipe = new ArrayList<String>();
 
 	// keep track of the index of expressions
 	private int index = 0;
@@ -179,7 +179,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		for (int j = 0; j < expressionsToKeep.size(); j++) {
 			Integer indexToGrab = expressionsToKeep.get(j);
 			String keepExpression = expressionMap.get(indexToGrab);
-			modifiedRecipe.append(keepExpression);
+			modifiedRecipe.add(keepExpression);
 		}
 	}
 
@@ -188,9 +188,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	 * 
 	 * @return modifiedRecipe
 	 */
-	public String getModifiedRecipe() {
-		return modifiedRecipe.toString();
+	public List<String> getModifiedRecipe() {
+		return modifiedRecipe;
 	}
+	
 	
 	/**
 	 * This method is used for adding expressions to the list of expressionsToKeep by first checking to see if the index is already contained
