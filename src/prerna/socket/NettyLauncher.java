@@ -1,4 +1,7 @@
-package prerna.socket.py;
+package prerna.socket;
+
+import java.util.Hashtable;
+import java.util.List;
 
 import com.corundumstudio.socketio.AckRequest;
 import com.corundumstudio.socketio.Configuration;
@@ -7,25 +10,30 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 
-public class PyLauncher {
+public class NettyLauncher {
 
+	// overall server
 	private SocketIOServer server;
 
-	// singleton design
-	private static PyLauncher singleton;
+	// keep track of the client
+	// TODO: for now, just keep track of the type
+	private Hashtable<String, SocketIOClient> clientHash;
 	
-	public static PyLauncher getInstance() {
+	// singleton design
+	private static NettyLauncher singleton;
+	
+	public static NettyLauncher getInstance() {
 		if(singleton == null) {
-			singleton = new PyLauncher();
+			singleton = new NettyLauncher();
 		}
 		return singleton;
 	}
 
-	private PyLauncher() {
+	private NettyLauncher() {
 		Configuration config = new Configuration();
 		config.setHostname("localhost");
 		config.setPort(3000);
-
+		config.setMaxFramePayloadLength(Integer.MAX_VALUE);
 		this.server = new SocketIOServer(config);
 		addListeners();
 	}
@@ -39,7 +47,7 @@ public class PyLauncher {
 			@Override
 			public void onConnect(SocketIOClient client) {
 				System.out.println("Client Connected.. " + client.getSessionId());
-				client.sendEvent("chat message", "welcome from NETTY");
+				client.sendEvent("hello", "welcome from NETTY");
 			}
 
 		});
@@ -47,6 +55,16 @@ public class PyLauncher {
 		this.server.addEventListener("chat message", String.class, new DataListener<String>() {
 			@Override
 			public void onData(SocketIOClient client, String data, AckRequest ackRequest) {
+				// broadcast messages to all clients
+				System.out.println(client.getSessionId());
+				System.out.println(" Data came in.. " + data);
+				client.sendEvent("chat message", data);
+			}
+		});
+		
+		this.server.addEventListener("pandasData", List.class, new DataListener<List>() {
+			@Override
+			public void onData(SocketIOClient client, List data, AckRequest ackRequest) {
 				// broadcast messages to all clients
 				System.out.println(client.getSessionId());
 				System.out.println(" Data came in.. " + data);
@@ -58,7 +76,7 @@ public class PyLauncher {
 	/**
 	 * Start the server
 	 */
-	public PyLauncher startServer() {
+	public NettyLauncher startServer() {
 		server.start();
 		return this;
 	}
@@ -85,7 +103,7 @@ public class PyLauncher {
 	 * @throws InterruptedException
 	 */
 	public static void main(String[] args) throws InterruptedException {
-		PyLauncher launcher = PyLauncher.getInstance().startServer();
+		NettyLauncher launcher = NettyLauncher.getInstance().startServer();
 		Thread.sleep(Integer.MAX_VALUE);
 	}
 
