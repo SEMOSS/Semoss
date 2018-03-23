@@ -34,6 +34,10 @@ public class FormatFactory {
 			return new ClustergramFormatter();
 		}
 		
+		case "HIERARCHY" : {
+			return new HierarchyFormatter();
+		}
+		
 		default : {
 			return new TableFormatter();
 		}
