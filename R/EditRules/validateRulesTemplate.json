@@ -1,174 +1,174 @@
 {
-	"Country": {
-		"rule": "grepl(\\\"(Afghanistan|Albania|Algeria|Andorra|Angola|Anguilla|Antigua_&_Barbuda|Argentina|Armenia|Australia|Austria|Azerbaijan|Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bermuda|Bhutan|Bolivia|Bosnia_&_Herzegovina|Botswana|Brazil|Brunei_Darussalam|Bulgaria|Burkina_Faso|Myanmar/Burma|Burundi|Cambodia|Cameroon|Canada|Cape_Verde|Cayman_Islands|Central_African_Republic|Chad|Chile|China|Colombia|Comoros|Congo|Costa_Rica|Croatia|Cuba|Cyprus|Czech_Republic|Democratic_Republic_of_the_Congo|Denmark|Djibouti|Dominican_Republic|Dominica|Ecuador|Egypt|El_Salvador|Equatorial_Guinea|Eritrea|Estonia|Ethiopia|Fiji|Finland|France|French_Guiana|Gabon|Gambia|Georgia|Germany|Ghana|Great_Britain|Greece|Grenada|Guadeloupe|Guatemala|Guinea|Guinea-Bissau|Guyana|Haiti|Honduras|Hungary|Iceland|India|Indonesia|Iran|Iraq|Israel_and_the_Occupied_Territories|Italy|Ivory_Coast_(Cote_d'Ivoire)|Jamaica|Japan|Jordan|Kazakhstan|Kenya|Kosovo|Kuwait|Kyrgyz_Republic_(Kyrgyzstan)|Laos|Latvia|Lebanon|Lesotho|Liberia|Libya|Liechtenstein|Lithuania|Luxembourg|Republic_of_Macedonia|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Martinique|Mauritania|Mauritius|Mayotte|Mexico|Moldova,_Republic_of|Monaco|Mongolia|Montenegro|Montserrat|Morocco|Mozambique|Namibia|Nepal|Netherlands|New_Zealand|Nicaragua|Niger|Nigeria|Korea,_Democratic_Republic_of_(North_Korea)|Norway|Oman|Pacific_Islands|Pakistan|Panama|Papua_New_Guinea|Paraguay|Peru|Philippines|Poland|Portugal|Puerto_Rico|Qatar|Reunion|Romania|Russian_Federation|Rwanda|Saint_Kitts_and_Nevis|Saint_Lucia|Saint_Vincent's_&_Grenadines|Samoa|Sao_Tome_and_Principe|Saudi_Arabia|Senegal|Serbia|Seychelles|Sierra_Leone|Singapore|Slovak_Republic_(Slovakia)|Slovenia|Solomon_Islands|Somalia|South_Africa|Korea,_Republic_of_(South_Korea)|South_Sudan|Spain|Sri_Lanka|Sudan|Suriname|Swaziland|Sweden|Switzerland|Syria|Tajikistan|Tanzania|Thailand|Timor_Leste|Togo|Trinidad_&_Tobago|Tunisia|Turkey|Turkmenistan|Turks_&_Caicos_Islands|Uganda|Ukraine|United_Arab_Emirates|United_States_of_America_(USA)|United_States_of_America|USA|Uruguay|Uzbekistan|Venezuela|Vietnam|Virgin_Islands_(UK)|Virgin_Islands_(US)|Yemen|Zambia|Zimbabwe)\\\", <Country>, ignore.case = TRUE)",
-		"columns": {
-			"Country": {
-				"description": "A country.",
-				"columnType": "STRING"
-			}
-		},
-		"description": "Countries (case-insensitive check)"
-	},
-	"Interest": {
-		"rule": "<I> == <P>*<R>*<T>",
-		"columns": {
-			"I": {
-				"description": "Interest",
-				"columnType": "NUMBER"
-			},
-			"P": {
-				"description": "Principal",
-				"columnType": "NUMBER"
-			},
-			"R": {
-				"description": "Rate",
-				"columnType": "NUMBER"
-			},
-			"T": {
-				"description": "Time",
-				"columnType": "NUMBER"
-			}
-		},
-		"description": "Calculate interest"
-	},
-	"State_Abbreviation": {
-		"rule": "grepl(\\\"(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\\\", <State_Abbreviation>, ignore.case = TRUE)",
-		"columns": {
-			"State_Abbreviation": {
-				"description": "A state abbreviation in the U.S.",
-				"columnType": "STRING"
-			}
-		},
-		"description": "State abbreviations (case-insensitive check)"
-	},
-	"State": {
-		"rule": "grepl(\\\"(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New_Hampshire|New_Jersey|New_Mexico|New_York|North_Carolina|North_Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode_Island|South_Carolina|South_Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West_Virginia|Wisconsin|Wyoming)\\\", <State>, ignore.case = TRUE)",
-		"columns": {
-			"State": {
-				"description": "A state in the U.S.",
-				"columnType": "STRING"
-			}
-		},
-		"description": "States (case-insensitive check)"
-	},
-	"Age": {
-		"rule": "<Age> > 0 & <Age> < 100",
-		"columns": {
-			"Age": {
-				"description": "The age",
-				"columnType": "NUMBER"
-			}
-		},
-		"description": "Rule for age"
-	},
-	"Currency": {
-		"columns": {
-			"Currency": {
-				"columnType": "STRING",
-				"description": "Phone number column"
-			}
-		},
-		"rule": "grepl(\\\"^((?:-?\\\\\\\\$)?-?\\\\\\\\d{1,3}(,?\\\\\\\\d{3})?(\\\\\\\\.\\\\\\\\d\\\\\\\\d?)?|\\\\\\\\(\\\\\\\\$?\\\\\\\\d{1,3}(,?\\\\\\\\d{3})?(\\\\\\\\.\\\\\\\\d\\\\\\\\d?)?\\\\\\\\))$\\\", <Currency>) == TRUE",
-		"description": "Checks Currency"
-	},
-	"Phone_Number": {
-		"columns": {
-			"Phone_Number": {
-				"columnType": "STRING",
-				"description": "Phone number column"
-			}
-		},
-		"rule": "grepl(\\\"^\\\\\\\\s*(?:\\\\\\\\+?(\\\\\\\\d{1,3}))?[-._]*(\\\\\\\\d{3})[-.)_]*(\\\\\\\\d{3})[-._]*(\\\\\\\\d{4})(?: *x(\\\\\\\\d+))?\\\\\\\\s*$\\\", <Phone_Number>) == TRUE", 
-		"description": "Checks Phone Numbers"
-	},
-	"Email": {
-		"columns": {
-			"Email": {
-				"columnType": "STRING",
-				"description": "The email address"
-			}
-		},
-		"rule": "grepl(\\\"^([a-zA-Z0-9.%+!#$%&'*/=?^_`{|}~()\\\\\\\\-])+@([a-zA-Z0-9.\\\\\\\\-_]+\\\\\\\\.[a-zA-Z]{2,6})$\\\", <Email>) == TRUE",
-		"description": "An email address"
-	},
-	"URL": {
-		"columns": {
-			"URL": {
-				"columnType": "STRING",
-				"description": "URL Column"
-			}
-		},
-		"rule": "grepl(\\\"(http[^ ]*)|(ftp[^ ]*)|(___www\\\\\\\\.[^ ]*)|(\\\\\\\\.[^ ]*)\\\", <URL>) == TRUE",
-		"description": "Check URLs"
-	},
-	"IP_Address": {
-		"columns": {
-			"IP_Address": {
-				"columnType": "STRING",
-				"description": "IP Address Column"
-			}
-		},
-		"rule": "grepl(\\\"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\\\\\\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$\\\", <IP_Address>) == TRUE",
-		"description": "Check IPs"
-	},
-	"Positive_Integers": {
-		"columns": {
-			"Positive_Integers": {
-				"columnType": "STRING",
-				"description": "Positive Integers"
-			}
-		},
-		"rule": "grepl(\\\"^\\\\\\\\d+$\\\", <Positive_Integers>) == TRUE",
-		"description": "Check positive integers"
-	},
-	"Negative_Integers": {
-		"columns": {
-			"Negative_Integers": {
-				"columnType": "STRING",
-				"description": "Negative Integers"
-			}
-		},
-		"rule": "grepl(\\\"^-\\\\\\\\d+$\\\", <Negative_Integers>) == TRUE",
-		"description": "Check negative integers"
-	},
-	"Integers": {
-		"columns": {
-			"Integers": {
-				"columnType": "STRING",
-				"description": "Integers"
-			}
-		},
-		"rule": "grepl(\\\"^-?\\\\\\\\d+$\\\", <Integers>) == TRUE",
-		"description": "Check integers"
-	},
-	"Positive_Double": {
-		"columns": {
-			"Positive_Double": {
-				"columnType": "STRING",
-				"description": "Positive double"
-			}
-		},
-		"rule": "grepl(\\\"^\\\\\\\\d*\\\\\\\\.?\\\\\\\\d+$\\\", <Positive_Double>) == TRUE",
-		"description": "Check positive doubles"
-	},
-	"Negative_Double": {
-		"columns": {
-			"Negative_Double": {
-				"columnType": "STRING",
-				"description": "Negative double"
-			}
-		},
-		"rule": "grepl(\\\"^-\\\\\\\\d*\\\\\\\\.?\\\\\\\\d+$\\\", <Negative_Double>) == TRUE",
-		"description": "Check negative doubles"
-	},
-	"Double": {
-		"columns": {
-			"Double": {
-				"columnType": "STRING",
-				"description": "Double"
-			}
-		},
-		"rule": "grepl(\\\"^-?\\\\\\\\d*\\\\\\\\.?\\\\\\\\d+$\\\", <Double>) == TRUE",
-		"description": "Check positive or negative doubles"
-	}
+  "Integers": {
+    "columns": {
+      "Integers": {
+        "columnType": "STRING",
+        "description": "Integers"
+      }
+    },
+    "rule": "grepl(\\\"^-?\\d+$\\\", <Integers>) == TRUE",
+    "description": "Check integers"
+  },
+  "Email": {
+    "columns": {
+      "Email": {
+        "columnType": "STRING",
+        "description": "The email address"
+      }
+    },
+    "rule": "grepl(\\\"^([a-zA-Z0-9.%+!#$%&'*/=?^_`{|}~()\\-])+@([a-zA-Z0-9.\\-_]+\\.[a-zA-Z]{2,6})$\\\", <Email>) == TRUE",
+    "description": "An email address"
+  },
+  "Negative_Integers": {
+    "columns": {
+      "Negative_Integers": {
+        "columnType": "STRING",
+        "description": "Negative Integers"
+      }
+    },
+    "rule": "grepl(\\\"^-\\d+$\\\", <Negative_Integers>) == TRUE",
+    "description": "Check negative integers"
+  },
+  "Phone_Number": {
+    "columns": {
+      "Phone_Number": {
+        "columnType": "STRING",
+        "description": "Phone number column"
+      }
+    },
+    "rule": "grepl(\\\"^\\s*(?:\\+?(\\d{1,3}))?[-._]*(\\d{3})[-.)_]*(\\d{3})[-._]*(\\d{4})(?: *x(\\d+))?\\s*$\\\", <Phone_Number>) == TRUE",
+    "description": "Checks Phone Numbers"
+  },
+  "Negative_Double": {
+    "columns": {
+      "Negative_Double": {
+        "columnType": "STRING",
+        "description": "Negative double"
+      }
+    },
+    "rule": "grepl(\\\"^-\\d*\\.?\\d+$\\\", <Negative_Double>) == TRUE",
+    "description": "Check negative doubles"
+  },
+  "Positive_Integers": {
+    "columns": {
+      "Positive_Integers": {
+        "columnType": "STRING",
+        "description": "Positive Integers"
+      }
+    },
+    "rule": "grepl(\\\"^\\d+$\\\", <Positive_Integers>) == TRUE",
+    "description": "Check positive integers"
+  },
+  "Double": {
+    "columns": {
+      "Double": {
+        "columnType": "STRING",
+        "description": "Double"
+      }
+    },
+    "rule": "grepl(\\\"^-?\\d*\\.?\\d+$\\\", <Double>) == TRUE",
+    "description": "Check positive or negative doubles"
+  },
+  "URL": {
+    "columns": {
+      "URL": {
+        "columnType": "STRING",
+        "description": "URL Column"
+      }
+    },
+    "rule": "grepl(\\\"(http[^ ]*)|(ftp[^ ]*)|(___www\\.[^ ]*)|(\\.[^ ]*)\\\", <URL>) == TRUE",
+    "description": "Check URLs"
+  },
+  "IP_Address": {
+    "columns": {
+      "IP_Address": {
+        "columnType": "STRING",
+        "description": "IP Address Column"
+      }
+    },
+    "rule": "grepl(\\\"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$\\\", <IP_Address>) == TRUE",
+    "description": "Check IPs"
+  },
+  "Interest": {
+    "rule": "<I> == <P>*<R>*<T>",
+    "columns": {
+      "I": {
+        "description": "Interest",
+        "columnType": "NUMBER"
+      },
+      "P": {
+        "description": "Principal",
+        "columnType": "NUMBER"
+      },
+      "R": {
+        "description": "Rate",
+        "columnType": "NUMBER"
+      },
+      "T": {
+        "description": "Time",
+        "columnType": "NUMBER"
+      }
+    },
+    "description": "Calculate interest"
+  },
+  "Positive_Double": {
+    "columns": {
+      "Positive_Double": {
+        "columnType": "STRING",
+        "description": "Positive double"
+      }
+    },
+    "rule": "grepl(\\\"^\\d*\\.?\\d+$\\\", <Positive_Double>) == TRUE",
+    "description": "Check positive doubles"
+  },
+  "State": {
+    "rule": "grepl(\\\"(Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New_Hampshire|New_Jersey|New_Mexico|New_York|North_Carolina|North_Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode_Island|South_Carolina|South_Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West_Virginia|Wisconsin|Wyoming)\\\", <State>, ignore.case = TRUE)",
+    "columns": {
+      "State": {
+        "description": "A state in the U.S.",
+        "columnType": "STRING"
+      }
+    },
+    "description": "States (case-insensitive check)"
+  },
+  "Currency": {
+    "columns": {
+      "Currency": {
+        "columnType": "STRING",
+        "description": "Phone number column"
+      }
+    },
+    "rule": "grepl(\\\"^((?:-?\\$)?-?\\d{1,3}(,?\\d{3})?(\\.\\d\\d?)?|\\(\\$?\\d{1,3}(,?\\d{3})?(\\.\\d\\d?)?\\))$\\\", <Currency>) == TRUE",
+    "description": "Checks Currency"
+  },
+  "State_Abbreviation": {
+    "rule": "grepl(\\\"(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\\\", <State_Abbreviation>, ignore.case = TRUE)",
+    "columns": {
+      "State_Abbreviation": {
+        "description": "A state abbreviation in the U.S.",
+        "columnType": "STRING"
+      }
+    },
+    "description": "State abbreviations (case-insensitive check)"
+  },
+  "Country": {
+    "rule": "grepl(\\\"(Afghanistan|Albania|Algeria|Andorra|Angola|Anguilla|Antigua_&_Barbuda|Argentina|Armenia|Australia|Austria|Azerbaijan|Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bermuda|Bhutan|Bolivia|Bosnia_&_Herzegovina|Botswana|Brazil|Brunei_Darussalam|Bulgaria|Burkina_Faso|Myanmar/Burma|Burundi|Cambodia|Cameroon|Canada|Cape_Verde|Cayman_Islands|Central_African_Republic|Chad|Chile|China|Colombia|Comoros|Congo|Costa_Rica|Croatia|Cuba|Cyprus|Czech_Republic|Democratic_Republic_of_the_Congo|Denmark|Djibouti|Dominican_Republic|Dominica|Ecuador|Egypt|El_Salvador|Equatorial_Guinea|Eritrea|Estonia|Ethiopia|Fiji|Finland|France|French_Guiana|Gabon|Gambia|Georgia|Germany|Ghana|Great_Britain|Greece|Grenada|Guadeloupe|Guatemala|Guinea|Guinea-Bissau|Guyana|Haiti|Honduras|Hungary|Iceland|India|Indonesia|Iran|Iraq|Israel_and_the_Occupied_Territories|Italy|Ivory_Coast_(Cote_d'Ivoire)|Jamaica|Japan|Jordan|Kazakhstan|Kenya|Kosovo|Kuwait|Kyrgyz_Republic_(Kyrgyzstan)|Laos|Latvia|Lebanon|Lesotho|Liberia|Libya|Liechtenstein|Lithuania|Luxembourg|Republic_of_Macedonia|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Martinique|Mauritania|Mauritius|Mayotte|Mexico|Moldova,_Republic_of|Monaco|Mongolia|Montenegro|Montserrat|Morocco|Mozambique|Namibia|Nepal|Netherlands|New_Zealand|Nicaragua|Niger|Nigeria|Korea,_Democratic_Republic_of_(North_Korea)|Norway|Oman|Pacific_Islands|Pakistan|Panama|Papua_New_Guinea|Paraguay|Peru|Philippines|Poland|Portugal|Puerto_Rico|Qatar|Reunion|Romania|Russian_Federation|Rwanda|Saint_Kitts_and_Nevis|Saint_Lucia|Saint_Vincent's_&_Grenadines|Samoa|Sao_Tome_and_Principe|Saudi_Arabia|Senegal|Serbia|Seychelles|Sierra_Leone|Singapore|Slovak_Republic_(Slovakia)|Slovenia|Solomon_Islands|Somalia|South_Africa|Korea,_Republic_of_(South_Korea)|South_Sudan|Spain|Sri_Lanka|Sudan|Suriname|Swaziland|Sweden|Switzerland|Syria|Tajikistan|Tanzania|Thailand|Timor_Leste|Togo|Trinidad_&_Tobago|Tunisia|Turkey|Turkmenistan|Turks_&_Caicos_Islands|Uganda|Ukraine|United_Arab_Emirates|United_States_of_America_(USA)|United_States_of_America|USA|Uruguay|Uzbekistan|Venezuela|Vietnam|Virgin_Islands_(UK)|Virgin_Islands_(US)|Yemen|Zambia|Zimbabwe)\\\", <Country>, ignore.case = TRUE)",
+    "columns": {
+      "Country": {
+        "description": "A country.",
+        "columnType": "STRING"
+      }
+    },
+    "description": "Countries (case-insensitive check)"
+  },
+  "Age": {
+    "rule": "<Age> > 0 & <Age> < 100",
+    "columns": {
+      "Age": {
+        "description": "The age",
+        "columnType": "NUMBER"
+      }
+    },
+    "description": "Rule for age"
+  }
 }
