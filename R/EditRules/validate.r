@@ -1,12 +1,23 @@
 run.seq <- function(x) as.numeric(ave(paste(x), x, FUN = seq_along))
 
+escapeRegexR <- function(greplExpr){
+	splitRule <- strsplit(as.character(greplExpr), '"')[[1]]
+	lengthMinusOne <- length(splitRule) - 1
+	regex <- paste(splitRule[2:as.double(lengthMinusOne)], sep="")
+	regex <- stri_escape_unicode(regex)
+	greplExpr <- paste(splitRule[1],'"',regex,'"', splitRule[length(splitRule)], sep="")
+}
+
 createCF <- function (df, issueFrame) {
-	library(validate)
+	lapply(list('validate', 'stringi'), require, character.only = TRUE)
 	originalRules <- issueFrame$rule
 	issueFrame$translatedRules <- ""
 	# figure out translated rule from V object
 	for(i in 1:nrow(issueFrame)) {
 	  rule <- issueFrame$rule[i]
+	  
+	  if(grepl("^(grepl).*", rule)) rule <- escapeRegexR(rule)
+	  
 	  ruleEScript <- paste("V<- validator(",rule,")", sep="") 
 	  tryCatch({
 	    eval(parse(text=ruleEScript))
@@ -16,12 +27,12 @@ createCF <- function (df, issueFrame) {
 			issueFrame$translatedRules[i] <- translatedRule
 	    }
 	  }, error = function(e) {})
-	  rm(V, editFrame, translatedRule, ruleEScript)
+	  rm(V, editFrame, translatedRule, ruleEScript, splitRule, lengthMinusOne, regex)
 	}
 
 	# now create V with valid rules 
-	originalRules <- issueFrame[which(issueFrame$translatedRules != ""),]
-	testDF <- data.frame(rule = originalRules$rule)
+	validRules <- issueFrame[which(issueFrame$translatedRules != ""),]
+	testDF <- data.frame(rule = validRules$translatedRules)
 	v <- validator(.data=testDF)
 
 	# check violations
@@ -84,4 +95,5 @@ getDF <- function (df, errorFrame) {
 	df <- cbind(df,errorFrame)
 	return (df)
 }
+
 
