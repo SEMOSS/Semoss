@@ -1206,7 +1206,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);
 		propWriter.setRDBMSType(dbType);
-		propWriter.runWriter(engineName, "", "" , ImportOptions.DB_TYPE.RDBMS);
+		propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 
 
 		Hashtable<String, String>[] rdfMapArr = new Hashtable[1];
