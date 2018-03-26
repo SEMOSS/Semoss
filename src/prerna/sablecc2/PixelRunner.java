@@ -98,6 +98,9 @@ public class PixelRunner {
 			tree.apply(translation);
 		} catch(SemossPixelException e) {
 			addResult(expression, e.getAdditionalReturn(), false);
+			if(!e.isContinueThreadOfExecution()) {
+				throw e;
+			}
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
 			String eMessage = e.getMessage();
