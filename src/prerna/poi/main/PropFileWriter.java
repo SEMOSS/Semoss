@@ -71,9 +71,9 @@ public class PropFileWriter {
 	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default 
 
 	// TODO Change variable names, should we change default.properties to default.smss?
-	public void runWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.DB_TYPE dbType) throws IllegalArgumentException, FileNotFoundException, IOException 
+	public void runWriter(String dbName, String dbPropFile, ImportOptions.DB_TYPE dbType) throws IllegalArgumentException, FileNotFoundException, IOException 
 	{
-		runWriter(dbName, dbPropFile, questionFile, dbType, null); // overloaded method to satisfy the file csv
+		runWriter(dbName, dbPropFile, dbType, null); // overloaded method to satisfy the file csv
 	}
 
 	/**
@@ -91,7 +91,7 @@ public class PropFileWriter {
 	 * @throws FileNotFoundException
 	 * @throws IOException 
 	 */
-	public void runWriter(String dbName, String dbPropFile, String questionFile, ImportOptions.DB_TYPE dbType, String fileName)
+	public void runWriter(String dbName, String dbPropFile, ImportOptions.DB_TYPE dbType, String fileName)
 			throws IllegalArgumentException, FileNotFoundException, IOException {
 		if (dbName == null) {
 			throw new IllegalArgumentException("Database name is invalid.");
