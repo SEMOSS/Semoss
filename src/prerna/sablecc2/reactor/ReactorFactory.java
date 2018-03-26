@@ -91,7 +91,6 @@ import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
-import prerna.sablecc2.reactor.insights.DeleteInsightReactor;
 import prerna.sablecc2.reactor.insights.DropInsightReactor;
 import prerna.sablecc2.reactor.insights.GetCurrentRecipeReactor;
 import prerna.sablecc2.reactor.insights.GetOptimizedRecipeReactor;
@@ -101,11 +100,12 @@ import prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenOptimizedInsightReactor;
 import prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor;
-import prerna.sablecc2.reactor.insights.SaveInsightReactor;
 import prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor;
-import prerna.sablecc2.reactor.insights.UpdateInsightImageReactor;
-import prerna.sablecc2.reactor.insights.UpdateInsightReactor;
 import prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor;
+import prerna.sablecc2.reactor.insights.save.DeleteInsightReactor;
+import prerna.sablecc2.reactor.insights.save.SaveInsightReactor;
+import prerna.sablecc2.reactor.insights.save.UpdateInsightImageReactor;
+import prerna.sablecc2.reactor.insights.save.UpdateInsightReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
@@ -229,6 +229,7 @@ import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
+import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
@@ -365,7 +366,8 @@ public class ReactorFactory {
 		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
 		reactorHash.put("GetRequest", GetRequestReactor.class);
-		
+		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
+
 		// Semantic blending
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		
