@@ -446,10 +446,6 @@ public class InsightFilesToDatabaseReader {
 		return this.newTables;
 	}
 	
-	public void setUpEngine() {
-		
-	}
-	
 	public static void main(String[] args) throws IOException {
 		TestUtilityMethods.loadDIHelper();
 
