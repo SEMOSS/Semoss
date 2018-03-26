@@ -1,9 +1,12 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPString;
@@ -16,6 +19,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
@@ -262,6 +267,76 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
 			throw new IllegalArgumentException(errorMessage);
 		}
-
     }
+    
+	@Override
+	public void runR(String script) {
+		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
+		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+
+		File f = new File(tempFileLocation);
+		try {
+			FileUtils.writeStringToFile(f, script);
+		} catch (IOException e1) {
+			System.out.println("Error in writing R script for execution!");
+			e1.printStackTrace();
+		}
+
+		try {
+			this.executeR("source(\"" + tempFileLocation + "\")");
+		} finally {
+			f.delete();
+		}
+	}
+
+	@Override
+	public String runRAndReturnOutput(String script) {
+		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
+		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
+		tempFileLocation = tempFileLocation.replace("\\", "/");
+
+		String outputLoc = baseDir + Utility.getRandomString(15) + ".txt";
+		outputLoc = outputLoc.replace("\\", "/");
+		File outputF = new File(outputLoc);
+		try {
+			outputF.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		File f = new File(tempFileLocation);
+		try {
+			script = script.trim();
+			if(!script.endsWith(";")) {
+				script = script +";";
+			}
+			script = "sink(\"" + outputLoc + "\", append = TRUE); " + script + " sink();";
+			FileUtils.writeStringToFile(f, script);
+		} catch (IOException e1) {
+			System.out.println("Error in writing R script for execution!");
+			e1.printStackTrace();
+		}
+
+		String scriptOutput = null;
+		try {
+			String finalScript = "print(source(\"" + tempFileLocation + "\", print.eval=TRUE)); ";
+			this.executeR(finalScript);
+			try {
+				scriptOutput = FileUtils.readFileToString(outputF);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} finally {
+			f.delete();
+			outputF.delete();
+		}
+		
+		// return the final output
+		return scriptOutput;
+	}
 }

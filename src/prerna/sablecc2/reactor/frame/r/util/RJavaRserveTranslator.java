@@ -2,20 +2,13 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.REXPDouble;
-import org.rosuda.REngine.REXPGenericVector;
-import org.rosuda.REngine.REXPInteger;
-import org.rosuda.REngine.REXPList;
 import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.REXPString;
 import org.rosuda.REngine.REngineException;
-import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -72,9 +65,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				// reshape2
 				retCon.eval("library(reshape2);");
 				logger.info("Loaded packages reshape2");
-				// rjdbc
-				retCon.eval("library(RJDBC);");
-				logger.info("Loaded packages RJDBC");
 				// stringr
 				retCon.eval("library(stringr)");
 				logger.info("Loaded packages stringr");
@@ -85,14 +75,12 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				System.out.println(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
 								+ "1)Rserve\n" + "2)splitstackshape\n" + "3)data.table\n" + "4)reshape2\n"
-								+ "5)RJDBC*\n" + "6)stringr\n\n"
-								+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
+								+ "5)stringr\n\n");
 				e.printStackTrace();
 				throw new IllegalArgumentException(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
 								+ "1)Rserve\n" + "2)splitstackshape\n" + "3)data.table\n" + "4)reshape2\n"
-								+ "5)RJDBC*\n" + "6)stringr\n\n"
-								+ "*Please note RJDBC might require JAVA_HOME environment path to be defined on your system.");
+								+ "5)stringr\n\n");
 			}
 		}
 	}
@@ -361,155 +349,5 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 //		} catch (Exception e) {
 //			e.printStackTrace();
 //		}
-	}
-
-	@Override
-	public void runR(String script) {
-		runR(script, true);
-	}
-
-	public void runR(String script, boolean result) {
-		String newScript = "paste(capture.output(print(" + script + ")),collapse='\n')";
-		Object output;
-		try {
-			output = this.parseAndEvalScript(newScript);
-			if (result && output != null) {
-				try {
-					System.out.println(((REXP) output).asString());
-				} catch (REXPMismatchException e) {
-					e.printStackTrace();
-				}
-			}
-		} catch (IOException e) {
-			output = this.executeR(script);
-			if (result) {
-				System.out.println("RCon data.. " + output);
-				StringBuilder builder = new StringBuilder();
-				getResultAsString(output, builder);
-				System.out.println("Output : " + builder.toString());
-			}
-		}
-	}
-	
-	private void getResultAsString(Object output, StringBuilder builder)
-	{
-		// Generic vector..
-		if(output instanceof REXPGenericVector) 
-		{			
-			RList list = ((REXPGenericVector)output).asList();
-			
-			String[] attributeNames = getAttributeArr(((REXPGenericVector)output)._attr());
-			boolean matchesRows = false;
-			// output list attribute names if present
-			if(attributeNames != null) {
-				// Due to the way R sends back data
-				// When there is a list, it may contain a name label
-				matchesRows = list.size() == attributeNames.length;
-				if(!matchesRows) {
-					if(attributeNames.length == 1) {
-						builder.append("\n" + attributeNames[0] + "\n");
-					} else if(attributeNames.length > 1){
-						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
-					}
-				}
-			}
-			int size = list.size();
-			for(int listIndex = 0; listIndex < size; listIndex++) {
-				if(matchesRows) {
-					builder.append("\n" + attributeNames[listIndex] + " : ");
-				}
-				getResultAsString(list.get(listIndex), builder);
-			}
-		}
-		
-		// List..
-		else if(output instanceof REXPList) {
-			RList list = ((REXPList)output).asList();
-			
-			String[] attributeNames = getAttributeArr(((REXPList)output)._attr());
-			boolean matchesRows = false;
-			// output list attribute names if present
-			if(attributeNames != null) {
-				// Due to the way R sends back data
-				// When there is a list, it may contain a name label
-				matchesRows = list.size() == attributeNames.length;
-				if(!matchesRows) {
-					if(attributeNames.length == 1) {
-						builder.append("\n" + attributeNames[0] + "\n");
-					} else if(attributeNames.length > 1){
-						builder.append("\n" + Arrays.toString(attributeNames) + "\n");
-					}
-				}
-			}
-			int size = list.size();
-			for(int listIndex = 0; listIndex < size; listIndex++) {
-				if(matchesRows) {
-					builder.append("\n" + attributeNames[listIndex] + " : ");
-				}
-				getResultAsString(list.get(listIndex), builder);
-			}
-		}
-		
-		// Integers..
-		else if(output instanceof REXPInteger)
-		{
-			int [] ints =  ((REXPInteger)output).asIntegers();
-			if(ints.length > 1)
-			{
-				for(int intIndex = 0;intIndex < ints.length; intIndex++) {
-					if(intIndex == 0) {
-						builder.append(ints[intIndex]);
-					} else {
-						builder.append(" ").append(ints[intIndex]);
-					}
-				}
-			}
-			else
-			{					
-				builder.append(ints[0]);
-			}
-		}
-		
-		// Doubles.. 
-		else if(output instanceof REXPDouble)
-		{
-			double [] doubles =  ((REXPDouble)output).asDoubles();
-			if(doubles.length > 1)
-			{
-				for(int intIndex = 0;intIndex < doubles.length; intIndex++) {
-					if(intIndex == 0) {
-						builder.append(doubles[intIndex]);
-					} else {
-						builder.append(" ").append(doubles[intIndex]);
-					}
-				}
-			}
-			else
-			{					
-				builder.append(doubles[0]);
-			}
-		}
-		
-		// Strings..
-		else if(output instanceof REXPString)
-		{
-			String [] strings =  ((REXPString)output).asStrings();
-			if(strings.length > 1)
-			{				
-				for(int intIndex = 0;intIndex < strings.length; intIndex++) {
-					if(intIndex == 0) {
-						builder.append(strings[intIndex]);
-					} else {
-						builder.append(" ").append(strings[intIndex]);
-					}
-				}
-			}
-			else
-			{					
-				builder.append(strings[0]);
-			}
-		}
-		
-		builder.append("\n");
 	}
 }
