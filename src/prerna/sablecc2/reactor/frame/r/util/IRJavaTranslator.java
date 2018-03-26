@@ -33,6 +33,12 @@ public interface IRJavaTranslator {
 	void runR(String rScript);
 	
 	/**
+	 * Run a combination of r scripts
+	 * @param rScript
+	 */
+	String runRAndReturnOutput(String rScript);
+	
+	/**
 	 * Get a string from an r script
 	 * @param script
 	 * @return
