@@ -51,6 +51,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.impl.r.RSingleton;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.HeadersException;
@@ -61,7 +62,6 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.H2Importer;
 import prerna.sablecc2.reactor.imports.ImportUtility;
@@ -99,35 +99,26 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	////////////////////////////////////////////////////////////
 	/////////////////// Abstract R Methods /////////////////////
 
-	/*
-	 * These are the methods that we cannot make generic between the
-	 * implementations of R
+	/**
+	 * Reconnect the main R server port
+	 * @param port
 	 */
-	protected abstract void runR(String script);
-
-	protected abstract void runR(String script, boolean outputResult);
-
-	protected abstract void endR();
-
-	// table specific abstract methods
-	protected abstract Object[][] getColumnCount(String frameName, String colName);
-
-	protected abstract Object[][] getColumnCount(String frameName, String colName, boolean top);
-
-	protected abstract Object[][] getDescriptiveStats(String frameName, String colName);
-
-	protected abstract Object[][] getHistogram(String frameName, String column, int numBreaks);
-
-	protected abstract Map<String, Object> flushObjectAsTable(String framename, String[] colNames);
+	public void reconnectR(int port) {
+		RSingleton.getConnection(port);
+	}
 	
-	//for split clean routine
-	protected abstract void performSplitColumn(String frameName, String[] columnNames, String separator, String direction, boolean dropColumn, boolean frameReplace);
-
-
+	public void initR(int port) {
+		RSingleton.getConnection(port);
+	}
+	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////////// R Methods /////////////////////////
 
+	public void runR(String script) {
+		System.out.println("R output: \n" + this.rJavaTranslator.runRAndReturnOutput(script));
+	}
+	
 	protected void recreateMetadata(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(frameName);
@@ -532,61 +523,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		synchronizeGridFromR(frameName, true);
 	}
 
-//	protected void initiateDriver(String url, String username) {
-//		String driver = "org.h2.Driver";
-//		String jarLocation = "";
-//		if (retrieveVariable("H2DRIVER_PATH") == null) {
-//			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
-//			;
-//			String jar = "h2-1.4.185.jar"; // TODO: create an enum of available
-//			// drivers and the necessary jar for
-//			// each
-//			jarLocation = workingDir + "/RDFGraphLib/" + jar;
-//		} else {
-//			jarLocation = (String) retrieveVariable("H2DRIVER_PATH");
-//		}
-//		logger.info("Loading driver.. " + jarLocation);
-//		// line of R script that connects to H2Frame
-//		String script = "drv <- JDBC('" + driver + "', '" + jarLocation + "', identifier.quote='`');"
-//				+ "conn <- dbConnect(drv, '" + url + "', '" + username + "', '')"; 
-//		runR(script);
-//	}
-
-	/**
-	 * Synchronize a CSV File into an R Data Table
-	 * 
-	 * @param fileName
-	 * @param frameName
-	 */
-	protected void synchronizeCSVToR(String fileName, String frameName) {
-		this.rJavaTranslator.executeR(frameName + " <- fread(\"" + fileName + "\")");
-		System.out.println("Completed synchronization of CSV " + fileName);
-	}
-
-	/**
-	 * Get the column count of a given column
-	 * 
-	 * @param column
-	 */
-	protected Object[][] getColumnCount(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		return getColumnCount(frameName, colName);
-	}
-
-	/**
-	 * Get the column count of a given column
-	 * 
-	 * @param column
-	 */
-	protected Object[][] getDescriptiveStats(String colName) {
-		String frameName = (String) retrieveVariable("GRID_NAME");
-		return getDescriptiveStats(frameName, colName);
-	}
-
-	public void getHistogram(String frameName, String column) {
-		getHistogram(frameName, column, 0);
-	}
-
 	protected void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
 		int size = oldNames.length;
 		if (size != newNames.length) {
@@ -637,31 +573,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 		}
 		return false;
-	}
-
-	protected Map<String, Object> getBarChartInfo(String label, String value, Object[][] dataValues) {
-		// create the weird object the FE needs to paint a bar chart
-		ConstantDataTask task = new ConstantDataTask();
-		task.setId("TEMP_ID");
-		Map<String, Object> returnData = new Hashtable<String, Object>();
-		returnData.put("values", dataValues);
-		returnData.put("headers", new String[]{label, value});
-		task.setOutputObject(returnData);
-
-		List<Map<String, Object>> vizHeaders = new Vector<Map<String, Object>>();
-		Map<String, Object> labelMap = new Hashtable<String, Object>();
-		labelMap.put("header", label);
-		labelMap.put("derived", true);
-		Map<String, Object> frequencyMap = new Hashtable<String, Object>();
-		frequencyMap.put("header", value);
-		frequencyMap.put("derived", true);
-
-		vizHeaders.add(labelMap);
-		vizHeaders.add(frequencyMap);
-
-		task.setHeaderInfo(vizHeaders);
-
-		return task.collect(0, true);
 	}
 
 	////////////////////////////////////////////////////////////
