@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.insights;
+package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,6 +22,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
