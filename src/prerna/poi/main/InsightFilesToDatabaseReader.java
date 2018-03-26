@@ -166,7 +166,7 @@ public class InsightFilesToDatabaseReader {
 				PropFileWriter propWriter = new PropFileWriter();
 				propWriter.setBaseDir(baseDirectory);
 				propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
-				propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
+				propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 	
 				// need to go back and clean the prop writer
 				smssLocation = propWriter.propFileName;
@@ -307,12 +307,12 @@ public class InsightFilesToDatabaseReader {
 			PropFileWriter propWriter = new PropFileWriter();
 			propWriter.setBaseDir(baseDirectory);
 			propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
-			propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
+			propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 
 			if(fileLocation.isEmpty()) // check to see if they passed the file
-				propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
+				propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 			else // if the file location is not empty at this point use it to point to the RDBMS file - I also want some other check to say, if the user asked me to create a h2 do it
-				propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS, fileLocation);
+				propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS, fileLocation);
 			// need to go back and clean the prop writer
 
 			// need to go back and clean the prop writer
