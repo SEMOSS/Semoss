@@ -145,13 +145,7 @@ public class GreedyTranslation extends LazyTranslation {
 	    		return;
 	    	}
 	    	
-	    	NounMetadata output = null;
-	    	try {
-	    		output = curReactor.execute();
-	    	} catch(Exception e) {
-	    		e.printStackTrace();
-				throw new IllegalArgumentException(e.getMessage());
-			}
+	    	NounMetadata output = curReactor.execute();
 	    	this.planner = ((AbstractReactor)curReactor).planner;
 	    	
 	    	//set the curReactor

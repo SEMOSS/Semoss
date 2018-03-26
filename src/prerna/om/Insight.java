@@ -51,6 +51,7 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.frame.FrameFactory;
@@ -188,7 +189,13 @@ public class Insight {
 		for(int i = 0; i < size; i++) {
 			String pixelString = pixelList.get(i);
 			LOGGER.info("Running >>> " + pixelString);
-			runner.runPixel(pixelString, this);
+			try {
+				runner.runPixel(pixelString, this);
+			} catch(SemossPixelException e) {
+				if(!e.isContinueThreadOfExecution()) {
+					break;
+				}
+			}
 		}
 		return collectPixelData(runner);
 	}
