@@ -696,7 +696,7 @@ public class ImportDataProcessor {
 	// TOOD: need to go through and make prop file writer cleaner
 	private PropFileWriter runPropWriter(ImportOptions options) throws IOException {
 		PropFileWriter propWriter = new PropFileWriter();
-		String dbName = options.getDbName(), dbPropFile = options.getSMSSLocation(), questionFile = options.getQuestionFile();
+		String dbName = options.getDbName(), dbPropFile = options.getSMSSLocation();
 		ImportOptions.DB_TYPE dbType = options.getDbType();		
 		// need to make provision for dbType
 		if(dbType == ImportOptions.DB_TYPE.RDBMS) {
@@ -720,7 +720,7 @@ public class ImportDataProcessor {
 		}
 
 		propWriter.setBaseDir(baseDirectory);
-		propWriter.runWriter(dbName, dbPropFile, questionFile, dbType);
+		propWriter.runWriter(dbName, dbPropFile, dbType);
 		return propWriter;
 	}
 

@@ -821,7 +821,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		PropFileWriter propWriter = new PropFileWriter();
 		propWriter.setBaseDir(baseFolder);
 		propWriter.setRDBMSType(dbType);
-		propWriter.runWriter(engineName, "", "", ImportOptions.DB_TYPE.RDBMS);
+		propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 		
 		// do the actual db loading
 		RDBMSFlatExcelUploader reader = new RDBMSFlatExcelUploader();
