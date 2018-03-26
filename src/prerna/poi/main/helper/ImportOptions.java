@@ -31,7 +31,6 @@ public class ImportOptions {
 		BASE_URL, 				// should point to string - the base URI for the db (http://health.mil/ontologies for MHS)
 		DB_NAME, 				// should point to string - either the name of the new DB to create or the existing DB to alter
 		BASE_FOLDER,			// should point to string - the base workspace location on the machine
-		QUESTION_FILE, 			// should point to string - the file path to the question file
 		DB_DRIVER_TYPE, 		// should point to SQLQueryUtil.DB_TYPE - only valid for RDBMS where we need to specify the type
 		ALLOW_DUPLICATES, 		// should point to boolean - only valid for RDBMS where we should remove duplicate values in tables
 		AUTO_LOAD, 				// should point to boolean - determine if we should load the database directly or shut it down and have
@@ -186,18 +185,6 @@ public class ImportOptions {
 	
 	public void setBaseFolder(String baseFolder) {
 		thisMap.put(IMPORT_OPTIONS.BASE_FOLDER, baseFolder);
-	}
-	
-	/**
-	 * Get the question file location
-	 * @return
-	 */
-	public String getQuestionFile() {
-		return (String) thisMap.get(IMPORT_OPTIONS.QUESTION_FILE);
-	}
-	
-	public void setQuestionFile(String questionFileName) {
-		thisMap.put(IMPORT_OPTIONS.QUESTION_FILE, questionFileName);
 	}
 	
 	/**
