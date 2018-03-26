@@ -12,12 +12,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -430,8 +426,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-				new Object[] { nodeType, instanceName });
+		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] {nodeType, instanceName});
 		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
 			if (!vertProps.contains(key)) {

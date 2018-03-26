@@ -16,6 +16,7 @@ import org.openrdf.rio.RDFHandlerException;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -73,6 +74,11 @@ public class AbstractEngineCreator {
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
+	protected void openREngineWithoutConnection(String dbName) {
+		createNewREngine(dbName);
+		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
+	}
+	
 	private void createNewRDBMSEngine(String dbName) {
 		engine = new RDBMSNativeEngine();
 		engine.setEngineName(dbName);
@@ -114,6 +120,16 @@ public class AbstractEngineCreator {
 	
 	private void createNewTinkerEngine(String dbName) {
 		engine = new TinkerEngine();
+		engine.setEngineName(dbName);
+		engine.openDB(dbPropFile);
+		
+		// create the insight database
+		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		engine.setInsightDatabase(insightDatabase);
+	}
+	
+	private void createNewREngine(String dbName) {
+		engine = new RNativeEngine();
 		engine.setEngineName(dbName);
 		engine.openDB(dbPropFile);
 		

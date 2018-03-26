@@ -49,9 +49,9 @@ public class SaveInsightFilesReactor extends AbstractReactor {
 		
 		ITableDataFrame dataframe = (ITableDataFrame) this.insight.getDataMaker();
 		if(dataframe instanceof H2Frame) {
-			createdEng = createEngine( (H2Frame) dataframe);
+			createdEng = createEngine( (H2Frame) dataframe, appName);
 		} else if(dataframe instanceof RDataTable) {
-			createdEng = createEngine( (RDataTable) dataframe);
+			createdEng = createEngine( (RDataTable) dataframe, appName);
 		} else {
 			InsightFilesToDatabaseReader creator = new InsightFilesToDatabaseReader();
 			try { 
@@ -181,11 +181,11 @@ public class SaveInsightFilesReactor extends AbstractReactor {
 	 * Make a new engine from a csv file
 	 */
 	
-	private IEngine createEngine(RDataTable dataframe) {
+	private IEngine createEngine(RDataTable dataframe, String appName) {
 		return null;
 	}
 
-	private IEngine createEngine(H2Frame dataframe) {
+	private IEngine createEngine(H2Frame dataframe, String appName) {
 		return null;
 	}
 
