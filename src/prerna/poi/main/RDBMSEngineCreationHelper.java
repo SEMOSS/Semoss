@@ -20,8 +20,7 @@ public class RDBMSEngineCreationHelper {
 		
 	}
 	
-	public static void insertAllTablesAsInsights(IEngine rdbmsEngine)
-	{		
+	public static void insertAllTablesAsInsights(IEngine rdbmsEngine) {		
 		// get all the tables names in the database
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(rdbmsEngine);
 		insertAllTablesAsInsights(rdbmsEngine, existingMetaModel);

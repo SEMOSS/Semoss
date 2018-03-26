@@ -54,14 +54,9 @@ import prerna.util.Utility;
 
 public class RNativeEngine extends AbstractEngine {
 
-	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
-	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
-	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
-	public static final String ENGINE_CONNECTION_OBJECT = "ENGINE_CONNECTION_OBJECT";
-	
 	private static final Logger logger = LogManager.getLogger(RNativeEngine.class.getName());
 	private String fileDB = null;
-	
+
 	String rvarName = null;
 	String fakeHeader = null;
 	RDataTable dt = new RDataTable();
@@ -70,7 +65,7 @@ public class RNativeEngine extends AbstractEngine {
 	public void openDB(String propFile)
 	{
 		if(propFile == null && prop == null){
-			logger.fatal("Cannot load this R Engine No Property file found");
+			logger.fatal("Cannot load this R Engine. No Property file found");
 		} else {
 			// will mostly be sent the connection string and I will connect here
 			// I need to see if the connection pool has been initiated
@@ -82,95 +77,85 @@ public class RNativeEngine extends AbstractEngine {
 				}
 			}
 
+			// load everything from file
+			fileDB = prop.getProperty(DATA_FILE);
+			Map <String, String> paramHash = new Hashtable<String, String>();
 
-			// make a check to see if it is asking to use file
-			boolean useFile = false;
-			if(prop.containsKey(USE_FILE))
-				useFile = Boolean.valueOf(prop.getProperty(USE_FILE));
-			if(useFile)
+			paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
+			paramHash.put("ENGINE", getEngineName());
+			fileDB = Utility.fillParam2(fileDB, paramHash);
+
+			Vector <String> concepts = this.getConcepts();
+			// usually there should be only one, but just a check again
+			// need to account for concept being itself
+			if(concepts.size() > 2)
 			{
-				// load everything from file
-				fileDB = prop.getProperty(DATA_FILE);
-				Map <String, String> paramHash = new Hashtable<String, String>();
-				
-				paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-				paramHash.put("ENGINE", getEngineName());
-				fileDB = Utility.fillParam2(fileDB, paramHash);
-							
-				Vector <String> concepts = this.getConcepts();
-				// usually there should be only one, but just a check again
-				// need to account for concept being itself
-				if(concepts.size() > 2)
-				{
-					logger.fatal("RDBMS Engine suggests to use file, but there are more than one concepts i.e. this is not a flat file");
-					return;
-				}
-
-				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
-				Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
-				for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++)
-				{
-					List <String> propList = getProperties4Concept(conceptsArray[conceptIndex], false);
-					if(propList.size() > 0)
-						fakeHeader = conceptsArray[conceptIndex];
-					String [] propArray = propList.toArray(new String[propList.size()]);
-					
-					Map<String, String> typeMap = getDataTypes(propArray);
-					conceptAndType.putAll(typeMap);
-				}
-				
-				// convert it to a data type
-				Map <String, SemossDataType> conceptMetaMap = new Hashtable<String, SemossDataType>();
-				Iterator <String> conceptKeys = conceptAndType.keySet().iterator();
-
-				// I need to create a CSVFileIterator
-				// and then let RBuilder primarily load it
-				// I may not need these metadata types
-				// not sure why I am doing it twice - CSVQueryStruct and then the conceptMap
-				// it is just there
-				
-				while(conceptKeys.hasNext())
-				{
-					String thisKey = conceptKeys.next();
-					String thisType = conceptAndType.get(thisKey);
-					
-					// this is the keys
-					thisKey = Utility.getClassName(thisKey);
-					thisKey = thisKey.toUpperCase();
-					
-					SemossDataType newType = SemossDataType.convertStringToDataType(thisType);
-					conceptMetaMap.put(thisKey, newType);
-				}
-				
-				CsvQueryStruct cqs = new CsvQueryStruct();
-				cqs.setCsvFilePath(fileDB);
-				cqs.setColumnTypes(conceptAndType);
-				
-				// the filte iterator will rip through the whole thing anyways
-				CsvFileIterator fit = new CsvFileIterator(cqs);
-				
-				
-
-				String dbName = fileDB.replace(".csv", "");
-				dbName = dbName.replace(".tsv", "");
-				// delete the database if it exists to start with
-
-				rvarName = Utility.getRandomString(6);
-				
-				//rvarName = Utility.cleanString(fileDB, true);
-//				builder.createTableViaIterator(rvarName, fit, conceptMetaMap);
-				dt = new RDataTable(rvarName);
-				dt.addRowsViaIterator(fit, rvarName, conceptMetaMap);
-				fakeHeader = Utility.getInstanceName(fakeHeader);
-				dt.generateRowIdWithName();//fakeHeader);
-				//fakeHeader = null;
-				
-				// process is complete at this point
-				// at this point I will just have a builder and I am good to go
+				logger.fatal("RDBMS Engine suggests to use file, but there are more than one concepts i.e. this is not a flat file");
+				return;
 			}
+
+			String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
+			Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
+			for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++)
+			{
+				List <String> propList = getProperties4Concept(conceptsArray[conceptIndex], false);
+				if(propList.size() > 0) {
+					fakeHeader = conceptsArray[conceptIndex];
+				}
+				String [] propArray = propList.toArray(new String[propList.size()]);
+
+				Map<String, String> typeMap = getDataTypes(propArray);
+				conceptAndType.putAll(typeMap);
+			}
+
+			// convert it to a data type
+			Map <String, SemossDataType> conceptMetaMap = new Hashtable<String, SemossDataType>();
+			Iterator <String> conceptKeys = conceptAndType.keySet().iterator();
+
+			// I need to create a CSVFileIterator
+			// and then let RBuilder primarily load it
+			// I may not need these metadata types
+			// not sure why I am doing it twice - CSVQueryStruct and then the conceptMap
+			// it is just there
+
+			while(conceptKeys.hasNext())
+			{
+				String thisKey = conceptKeys.next();
+				String thisType = conceptAndType.get(thisKey);
+
+				// this is the keys
+				thisKey = Utility.getClassName(thisKey);
+				thisKey = thisKey.toUpperCase();
+
+				SemossDataType newType = SemossDataType.convertStringToDataType(thisType);
+				conceptMetaMap.put(thisKey, newType);
+			}
+
+			CsvQueryStruct cqs = new CsvQueryStruct();
+			cqs.setCsvFilePath(fileDB);
+			cqs.setColumnTypes(conceptAndType);
+
+			// the filte iterator will rip through the whole thing anyways
+			CsvFileIterator fit = new CsvFileIterator(cqs);
+			String dbName = fileDB.replace(".csv", "");
+			dbName = dbName.replace(".tsv", "");
+			// delete the database if it exists to start with
+
+			rvarName = Utility.getRandomString(6);
+
+			//rvarName = Utility.cleanString(fileDB, true);
+			//				builder.createTableViaIterator(rvarName, fit, conceptMetaMap);
+			dt = new RDataTable(rvarName);
+			dt.addRowsViaIterator(fit, rvarName, conceptMetaMap);
+			fakeHeader = Utility.getInstanceName(fakeHeader);
+			dt.generateRowIdWithName();//fakeHeader);
+			//fakeHeader = null;
+
+			// process is complete at this point
+			// at this point I will just have a builder and I am good to go
 		}
 	}	
-		
+
 	@Override
 	// need to clean up the exception it will never be thrown
 	public void insertData(String query) 
@@ -189,18 +174,18 @@ public class RNativeEngine extends AbstractEngine {
 	{
 		// need to confirm if it is only legacy or we should implement
 		// need a way to maintain 
-		
+
 		return null;
 	}
 
 	public Vector<Object> getCleanSelect(String query){
 		Vector <Object> retObject = null;
-		
+
 		RIterator2 it = (RIterator2) dt.query(query);
 		if(it.getHeaders() != null && it.getHeaders().length > 0)
 		{
 			String headerName = it.getHeaders()[0];
-		
+
 			retObject = new Vector();
 			while(it.hasNext())
 				retObject.add(it.next().getField(headerName));
@@ -257,7 +242,7 @@ public class RNativeEngine extends AbstractEngine {
 		// Clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
-	
+
 	@Override
 	public IQueryInterpreter2 getQueryInterpreter2(){
 		RInterpreter2 retInterp = new RInterpreter2();
