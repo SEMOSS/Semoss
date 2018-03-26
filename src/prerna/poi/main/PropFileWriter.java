@@ -199,10 +199,9 @@ public class PropFileWriter {
 					this.queryUtil = SQLQueryUtil.initialize(dbDriverType);
 				}
 
-				if((this.queryUtil.getDatabaseType().toString().equalsIgnoreCase("IMPALA"))){
+				if(this.queryUtil.getDatabaseType().toString().equalsIgnoreCase("IMPALA")) {
 					pw.write(Constants.ENGINE_TYPE + "\t" + this.impalaEngine + "\n");
-				}
-				else{
+				} else {
 					pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
 				}
 				pw.write(Constants.RDBMS_TYPE + "\t" + queryUtil.getDatabaseType().toString() + "\n");
@@ -211,10 +210,9 @@ public class PropFileWriter {
 				pw.write(Constants.PASSWORD + "\t" + queryUtil.getDefaultDBPassword() + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 				if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
-					if(fileName == null)
+					if(fileName == null) {
 						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
-					if(fileName != null)
-					{
+					} else {
 						pw.write("USE_FILE" + "\ttrue\n");
 						fileName = fileName.replace(baseFolder, "@BaseFolder@");
 						fileName = fileName.replace(dbname, "@ENGINE@");
