@@ -23,6 +23,9 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
@@ -30,11 +33,12 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
+	
 	private final HttpTransport TRANSPORT = new NetHttpTransport();
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
 	public GoogleSheetSourceReactor() {
-		this.keysToGet = new String[] { "id", "sheetNames", "type" };
+		this.keysToGet = new String[]{"id", "sheetNames", "type"};
 	}
 
 	@Override
@@ -127,7 +131,11 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 			qs.setColumnTypes(dataTypes);
 			return qs;
 		}
-		throw new IllegalArgumentException("Please login");
+		
+		SemossPixelException exception = new SemossPixelException();
+		exception.setContinueThreadOfExecution(false);
+		exception.setAdditionalReturn(new NounMetadata("Please login to your Google account", PixelDataType.ERROR, PixelOperationType.GOOGLE_LOGIN_REQUIRED));
+		throw exception;
 	}
 
 	private List<String> getSheetNames() {
