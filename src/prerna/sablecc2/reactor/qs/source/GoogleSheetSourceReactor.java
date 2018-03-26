@@ -6,8 +6,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.neo4j.metrics.MetricsSettings.CsvFile;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.HttpTransport;
@@ -18,7 +21,6 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import prerna.auth.User;
-import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
@@ -107,7 +109,6 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 							out.write(csvRow + System.getProperty("line.separator"));
 						}
 						out.close();
-
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -118,13 +119,19 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 			CSVFileHelper helper = new CSVFileHelper();
 			helper.setDelimiter(',');
 			helper.parse(filePath);
-			MetaModelCreator predictor = new MetaModelCreator(helper, null);
-			Map<String, String> dataTypes = predictor.getDataTypeMap();
-			CsvQueryStruct qs = new CsvQueryStruct();
-			for (String key : dataTypes.keySet()) {
-				qs.addSelector("DND", key);
-			}
+			String[] colNames = helper.getHeaders();
+			String[] types = helper.predictTypes();
+			// clear the helper
 			helper.clear();
+			
+			CsvQueryStruct qs = new CsvQueryStruct();
+			qs.setSource(CsvQueryStruct.ORIG_SOURCE.API_CALL);
+			Map<String, String> dataTypes = new HashMap<String, String>();
+			int numHeaders = colNames.length;
+			for (int i = 0; i < numHeaders; i++) {
+				qs.addSelector("DND", colNames[i]);
+				dataTypes.put(colNames[i], types[i]);
+			}
 			qs.merge(this.qs);
 			qs.setCsvFilePath(filePath);
 			qs.setDelimiter(',');
