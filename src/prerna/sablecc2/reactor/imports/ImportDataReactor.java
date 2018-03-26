@@ -94,14 +94,16 @@ public class ImportDataReactor extends AbstractReactor {
 	}
 
 	private void storeCsvFileMeta(CsvQueryStruct qs) {
-		FileMeta fileMeta = new FileMeta();
-		fileMeta.setFileLoc(qs.getCsvFilePath());
-		fileMeta.setDataMap(qs.getColumnTypes());
-		fileMeta.setNewHeaders(qs.getNewHeaderNames());
-		fileMeta.setPixelString(this.originalSignature);
-		fileMeta.setSelectors(qs.getSelectors());
-		fileMeta.setType(FileMeta.FILE_TYPE.CSV);
-		this.insight.addFileUsedInInsight(fileMeta);
+		if(qs.getSource() == CsvQueryStruct.ORIG_SOURCE.FILE_UPLOAD) {
+			FileMeta fileMeta = new FileMeta();
+			fileMeta.setFileLoc(qs.getCsvFilePath());
+			fileMeta.setDataMap(qs.getColumnTypes());
+			fileMeta.setNewHeaders(qs.getNewHeaderNames());
+			fileMeta.setPixelString(this.originalSignature);
+			fileMeta.setSelectors(qs.getSelectors());
+			fileMeta.setType(FileMeta.FILE_TYPE.CSV);
+			this.insight.addFileUsedInInsight(fileMeta);
+		}
 	}
 	
 	private void storeExcelFileMeta(ExcelQueryStruct qs) {

@@ -5,6 +5,9 @@ import java.util.Map;
 
 public class CsvQueryStruct extends QueryStruct2 {
 
+	public enum ORIG_SOURCE {FILE_UPLOAD, API_CALL}
+	
+	private ORIG_SOURCE source = ORIG_SOURCE.FILE_UPLOAD;
 	private String csvFilePath;
 	private Map<String, String> columnTypes = new HashMap<String, String>();
 	private Map<String, String> newHeaderNames = new HashMap<String, String>();
@@ -20,6 +23,14 @@ public class CsvQueryStruct extends QueryStruct2 {
 
 	public void setCsvFilePath(String csvFilePath) {
 		this.csvFilePath = csvFilePath;
+	}
+	
+	public void setSource(ORIG_SOURCE source) {
+		this.source = source;
+	}
+	
+	public ORIG_SOURCE getSource() {
+		return this.source;
 	}
 	
 	public void setSelectorsAndTypes(String[] colNames, String[] colTypes) {
