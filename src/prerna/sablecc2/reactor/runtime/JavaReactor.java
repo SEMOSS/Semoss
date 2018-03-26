@@ -20,8 +20,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public class JavaReactor extends AbstractReactor {
 
@@ -75,18 +73,9 @@ public class JavaReactor extends AbstractReactor {
 			String packageName = "t" + System.currentTimeMillis(); // make it unique
 			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do something else
 			
-			// need to find what is the R configuration 
-			// and then wrap specific class
-			String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
-			boolean useJri = false;
-			if(useJriStr != null) {
-				useJri = Boolean.valueOf(useJriStr);
-			}
-			if(useJri) {
-				cc.setSuperclass(pool.get("prerna.sablecc2.reactor.runtime.AbstractBaseJriRImpl"));
-			} else {
-				cc.setSuperclass(pool.get("prerna.sablecc2.reactor.runtime.AbstractBaseRserveRImpl"));
-			}
+			// the configuration of JRI vs. RServe
+			// is now encapsulated within Abstract + RJavaTranslator
+			cc.setSuperclass(pool.get("prerna.sablecc2.reactor.runtime.AbstractBaseRClass"));
 
 			String content = code;
 			if(content.contains("runR")) {
