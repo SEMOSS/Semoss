@@ -195,6 +195,7 @@ import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
 import prerna.sablecc2.reactor.qs.source.ListGoogleDriveFilesReactor;
 import prerna.sablecc2.reactor.qs.source.ListGoogleSheetsReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
+import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
@@ -642,6 +643,9 @@ public class ReactorFactory {
 		//LSA
 		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
 		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class); 
+		
+		// General Code Execution
+		reactorHash.put("CodeExec", CodeExecReactor.class);
 
 	}
 
