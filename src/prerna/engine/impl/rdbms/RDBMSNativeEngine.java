@@ -203,127 +203,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-			
-//			if(useFile)
-//			{
-//				// load everything from file
-//				fileDB = prop.getProperty(DATA_FILE);
-//				Map <String, String> paramHash = new Hashtable<String, String>();
-//				
-//				paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-//				paramHash.put("ENGINE", getEngineName());
-//				fileDB = Utility.fillParam2(fileDB, paramHash);
-//				
-//
-//				Vector <String> concepts = this.getConcepts();
-//				// usually there should be only one, but just a check again
-//				// need to account for concept being itself
-//				if(concepts.size() > 2)
-//				{
-//					logger.fatal("RDBMS Engine suggests to use file, but there are more than one concepts i.e. this is not a flat file");
-//					return;
-//				}
-//
-//				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
-//				Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
-//				for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++)
-//				{
-//					List <String> propList = getProperties4Concept(conceptsArray[conceptIndex], false);
-//					String [] propArray = propList.toArray(new String[propList.size()]);
-//					
-//					Map<String, String> typeMap = getDataTypes(propArray);
-//					conceptAndType.putAll(typeMap);
-//				}
-//				
-//				createString = makeCreateString(fileDB, conceptAndType);
-//
-//				String dbName = fileDB.replace(".csv", "");
-//				dbName = dbName.replace(".tsv", "");
-//				// delete the database if it exists to start with
-//				
-//				paramHash.put("database", dbName);
-//				connectionURL = Utility.fillParam2(connectionURL, paramHash);
-//
-//				makeConnection(driver, userName, password, connectionURL, createString);
-//				
-//				
-//				
-//			}
-//			else // this is the regular flow
-//			{
-//				
-//				
-//				useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
-//				
-//				dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString)) : (SQLQueryUtil.DB_TYPE.H2_DB);			
-//	
-//				if(dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
-//					if(engineName != null) {
-//						connectionURL = RDBMSUtility.fillH2ConnectionURL(connectionURL, engineName);
-//						try {
-//							Class.forName(H2QueryUtil.DATABASE_DRIVER);
-//							Connection c = DriverManager.getConnection(connectionURL, userName , password);
-//							if(!(new File(RDBMSUtility.getH2ConnectionURLAbsolutePath(connectionURL)).exists()) || !RDBMSUtility.isValidConnection(c)) {
-//								connectionURL = resetH2ConnectionURL();
-//							}
-//							c.close();
-//						} catch (ClassNotFoundException | SQLException e) {
-//							logger.error("H2 Connection Error: " + e.getMessage() + " for Connection URL: " + connectionURL);
-//							connectionURL = resetH2ConnectionURL();
-//						}
-//					}
-//					prop.setProperty(Constants.CONNECTION_URL, connectionURL);
-//				}
-//	
-//				try {
-//					Class.forName(driver);
-//					//if the tempConnectionURL is set, connect to mysql, create the database, disconnect then reconnect to the database you created
-//					if((!dbType.equals(SQLQueryUtil.DB_TYPE.H2_DB)) && (tempConnectionURL != null && tempConnectionURL.length()>0)){
-//						if(useConnectionPooling){
-//							dataSource = setupDataSource(driver, tempConnectionURL, userName, password);
-//							engineConn = getConnection();
-//						} else {
-//							engineConn = DriverManager.getConnection(tempConnectionURL, userName, password);
-//						}
-//	
-//						this.engineConnected = true;
-//	
-//						//if workflow is coming from ImportRDBMSProcessor (i.e. connect to external/existing db, no need to create new db)
-//						String externalDB = prop.getProperty("SCHEMA");
-//						if(externalDB == null || externalDB.isEmpty()){
-//							//create database
-//							createDatabase(tempEngineName);
-//							//
-//							closeEngine();
-//						}
-//						if(useConnectionPooling){
-//							closeDataSource();
-//						}
-//					}
-//					if(!isConnected()){
-//						if(useConnectionPooling){
-//							dataSource = setupDataSource(driver, connectionURL, userName, password);
-//							//						engineConn = getConnection();
-//						} else if(userName != null && !userName.isEmpty()){
-//							engineConn = DriverManager.getConnection(connectionURL, userName, password);
-//						} else {
-//							engineConn = DriverManager.getConnection(connectionURL);
-//						}
-//						this.engineConnected = true;
-//					}
-//				} catch (ClassNotFoundException | SQLException e) {
-//					// TODO Auto-generated catch block
-//					logger.error("Exception occured opening database", e);
-//					this.engineConnected = false;
-//				
-//				}
-//			}// the block for loading the engine without the file
 		}
 	}	
 		
-	private void makeConnection(String driver, String userName,
-			String password, String url, String createString) {
-		
+	private void makeConnection(String driver, String userName, String password, String url, String createString) {
 		try {
 			Class.forName("org.h2.Driver");
 			engineConn = DriverManager.getConnection(url, userName, password);
@@ -339,106 +222,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	// you cant change owl right now
-	public void reloadFile()
-	{
+	public void reloadFile() {
 		try {
 			engineConn.close();
 			makeConnection(driver, userName, password, connectionURL, createString);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 	}
-
-//	private String makeCreateString(String fileName, Map <String, String> conceptTypes)
-//	{
-//		// if the fileName db exists delete it
-//		// I also need to think about multi-user ?
-//		// may be not, not until they move to the new version ok
-//		String dbName = fileName;
-//		dbName = fileName.replace(".csv", "");
-//		dbName = fileName.replace(".tsv", "");
-//		
-//		try {
-//			File file = new File(dbName + ".mv.db");
-//			if(file.exists())
-//				FileUtils.forceDelete(file);
-//			file = new File(dbName + ".trace.db");
-//			if(file.exists())
-//				FileUtils.forceDelete(file);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//
-//		
-//		StringBuffer dropTable = new StringBuffer("DROP TABLE IF EXISTS ");
-//		
-//		StringBuffer createString = new StringBuffer("CREATE TABLE ");
-//		
-//		StringBuffer selectString = new StringBuffer("SELECT ");
-//		 
-//		Iterator <String> keys = conceptTypes.keySet().iterator();
-//		int count = 0;
-//		while(keys.hasNext())
-//		{
-//			String name = keys.next();
-//			String tableName = Utility.getInstanceName(name);
-//			String type = conceptTypes.get(name);
-//			name = Utility.getClassName(name);
-//			
-//			if(count == 0)
-//			{
-//				createString.append(tableName + " (");
-//				dropTable.append(tableName + "; ");
-//			}
-//			type = type.replace("TYPE:", "");
-//
-//
-//			StringBuffer tempSelect = new StringBuffer(""); 
-//			
-//			if(name.contains("UNIQUE_ROW_ID"))
-//				tempSelect.append("ROWNUM()");
-//			else
-//			{
-//				if(type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT") || type.equalsIgnoreCase("NUMBER"))
-//					tempSelect.append("CONVERT(" + name + ", " +"Double)");
-//				else if(type.equalsIgnoreCase("Integer"))
-//					tempSelect.append("CONVERT(" + name + ", " +"Int)");
-//				else if(type.equalsIgnoreCase("Date"))
-//					tempSelect.append("CONVERT(" + name + ", " +"Date)");
-//				else if(type.equalsIgnoreCase("Bigint") || type.equalsIgnoreCase("Long"))
-//					tempSelect.append("CONVERT(" + name + ", " +"Bigint)");
-//				else if(type.equalsIgnoreCase("boolean"))
-//					tempSelect.append("CONVERT(" + name + ", " +"boolean)");
-//				else //if(type.contains("varchar"))
-//					tempSelect.append(name);
-//			}
-//			if(count == 0)
-//			{
-//				createString.append(name + " " + type);
-//				selectString.append(tempSelect);
-//			}
-//			else
-//			{
-//				createString.append(", " + name + " " + type);
-//				selectString.append(", " + tempSelect);
-//			}
-//			count++; 
-//		}
-//		
-//		createString.append(") AS ").append(selectString).append(" from CSVREAD('" + fileName + "');");
-//		
-//		dropTable.append(createString);
-//		
-//		return dropTable.toString();
-//	}
-//	
-//	//moving the logic for connection pooling from openDB() to this method 
-//	private void poolConnection(){
-//
-//	}
 
 	public void makeConnection(String url, String userName, String password)
 	{
@@ -472,23 +264,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		//System.out.println("use datasource connection");
 		return connObj;
 	}
-
-//	private BasicDataSource setupDataSource(String driver, String connectURI, String userName, String password) {
-//		//System.out.println("setupDataSource:: driver [" + driver +"] connectURI [" +  connectURI + "] userName ["+ userName+"] password [" + password + "]");
-//		BasicDataSource ds = new BasicDataSource();
-//		ds.setDriverClassName(driver);
-//		ds.setUrl(connectURI);
-//		ds.setUsername(userName);
-//		ds.setPassword(password);
-//		ds.setDefaultAutoCommit(false);
-//		this.datasourceConnected = true;
-//		return ds;
-//	}
-//
-//	private void createDatabase(String engineName){
-//		insertData(SQLQueryUtil.initialize(dbType).getDialectCreateDatabase(engineName));
-//	}
-	
 
 	@Override
 	// need to clean up the exception it will never be thrown
@@ -879,11 +654,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
-//	private String resetH2ConnectionURL() {
-//		String baseH2URL = RDBMSUtility.getH2BaseConnectionURL();
-//		return RDBMSUtility.fillH2ConnectionURL(baseH2URL, engineName);
-//	}
-
 	/**
 	 * This is intended to be executed via doAction
 	 * @param args			Object[] where the first index is the table name
@@ -963,24 +733,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	{
 		return this.tableCount;
 	}
-	
-//	public boolean isTablePresent(String tableName)
-//	{
-//		getConnection();
-//		int count = 0;
-//		try {
-//			String checkQuery = "select count(*) from information_schema.tables where table_schema='PUBLIC' and table_name = 'CONCEPT'";
-//			ResultSet rs = engineConn.createStatement().executeQuery(checkQuery);
-//			while(rs.next())
-//				count = rs.getInt(1);
-//		} catch (SQLException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//		return count > 0;
-//		
-//	}
 	
 	public PersistentHash getConceptIdHash()
 	{

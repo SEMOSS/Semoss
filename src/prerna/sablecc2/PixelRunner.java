@@ -22,6 +22,7 @@ import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
@@ -95,6 +96,8 @@ public class PixelRunner {
 			Start tree = p.parse();
 			// apply the translation.
 			tree.apply(translation);
+		} catch(SemossPixelException e) {
+			addResult(expression, e.getAdditionalReturn(), false);
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
 			String eMessage = e.getMessage();

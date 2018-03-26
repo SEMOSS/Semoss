@@ -66,6 +66,7 @@ import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
@@ -133,6 +134,19 @@ public class LazyTranslation extends DepthFirstAdapter {
         {
         	try {
         		e.apply(this);
+        	} catch(SemossPixelException ex) {
+        		// if we want to continue the thread of execution
+        		// nothing special
+        		// just add the error to the return
+        		if(ex.isContinueThreadOfExecution()) {
+        			planner.addVariable("$RESULT", ex.getAdditionalReturn());
+            		postProcess(e.toString().trim());
+        		} else {
+        			// if we do want to stop
+        			// propogate the error up and the PixelRunner
+        			// will handle grabbing the meta and returning it to the FE
+        			throw ex;
+        		}
         	} catch(Exception ex) {
 //        		ex.printStackTrace();
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
