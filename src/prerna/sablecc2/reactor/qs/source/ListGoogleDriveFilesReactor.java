@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.HttpTransport;
@@ -41,7 +42,10 @@ public class ListGoogleDriveFilesReactor extends AbstractReactor {
 		if(gc == null) {
 			SemossPixelException exception = new SemossPixelException();
 			exception.setContinueThreadOfExecution(false);
-			exception.setAdditionalReturn(new NounMetadata("Please login to your Google account", PixelDataType.ERROR, PixelOperationType.GOOGLE_LOGIN_REQUIRED));
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "google");
+			retMap.put("message", "Please login to your Google account");
+			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 			throw exception;
 		}
 
