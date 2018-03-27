@@ -76,14 +76,20 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// get the insight output
 		Map<String, Object> insightData = null;
 		// add additional pixels if necessary
+		List<String> fullRecipe = new Vector<String>();
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			// just add it directly to the pixel list
 			// and the reRunPiexelInsight will do its job
 			newInsight.getPixelRecipe().addAll(additionalPixels);
-			// get the insight data
-			// note, we do not cache when there are the additional pixels
+			
+			// store the recipe in case an error occurs
+			fullRecipe.addAll(newInsight.getPixelRecipe());
+			
+			// rerun the insight
 			insightData = newInsight.reRunPixelInsight();
 		} else {
+			fullRecipe.addAll(newInsight.getPixelRecipe());
+			
 //			insightData = getCachedData(appName, rdbmsId);
 //			if(insightData == null) {
 				insightData = newInsight.reRunPixelInsight();
@@ -100,12 +106,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				Map<String, Object> openInsightData = new HashMap<String, Object>();
 				openInsightData.put(this.keysToGet[0], appName);
 				openInsightData.put(this.keysToGet[1], rdbmsId);
-				if(params != null) {
-					openInsightData.put(this.keysToGet[2], params);
-				}
-				if(additionalPixels != null) {
-					openInsightData.put(this.keysToGet[3], additionalPixels);
-				}
+//				if(params != null) {
+//					openInsightData.put(this.keysToGet[2], params);
+//				}
+//				if(additionalPixels != null) {
+//					openInsightData.put(this.keysToGet[3], additionalPixels);
+//				}
+				openInsightData.put("recipe", fullRecipe);
 				lastResult.put("openInsight", openInsightData);
 			}
 		}
