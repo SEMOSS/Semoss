@@ -34,9 +34,11 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	private StringBuilder selectorCriteria = new StringBuilder(); 
 	// keep track of the filters
 	private StringBuilder filterCriteria = new StringBuilder();
+	private StringBuilder havingFilterCriteria = new StringBuilder();
+
 	// keep track of group bys
 	private StringBuilder groupBys = new StringBuilder();
-	//keep track of order bys
+	// keep track of order bys
 	private StringBuilder orderBys = new StringBuilder();
 	
 	// need to keep track of selectors
@@ -54,9 +56,10 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			this.colDataTypes = new Hashtable<String, SemossDataType>();
 		}
 
+		boolean isDistinct = qs.isDistinct();
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
-		addFilters();
+		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false);
 		addSelector();
 		addGroupBy();
 
@@ -64,24 +67,41 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		String tempVarName = "temp" + Utility.getRandomString(10);
 		query.append(tempVarName + " <- ");
 		
-		query.append("unique(")
-			.append(this.dataTableName)
+		if(isDistinct) {
+			query.append("unique(");
+		}
+		query.append(this.dataTableName)
 			.append("[ ")
 			.append(this.filterCriteria.toString())
 			.append(", ")
 			.append(this.selectorCriteria.toString())
 			.append(this.groupBys)
-			.append("])");
+			.append("]");
+		if(isDistinct) {
+			query.append(")");
+		}
+		
+		// add having filters 
+		addFilters(qs.getHavingFilters().getFilters(), tempVarName, this.havingFilterCriteria, true);
+		//append having filters
+		String having = this.havingFilterCriteria.toString();
+		if(!having.isEmpty()) {
+			query.append("; ")
+			.append(tempVarName)
+			.append("<-")
+			.append(tempVarName)
+			.append("[ ")
+			.append(having)
+			.append(", ] ");
+		}
 		
 		// get the order by values
 		addOrderBy(tempVarName);
-		
 		// append order by at the end
 		String order = this.orderBys.toString();
 		if(!order.isEmpty()) {
-			query.append(order).append("; ");
+			query.append(";").append(order).append("; ");
 		}
-		
 		
 		// we need to convert dates from being integer values
 		// to output as dates
@@ -102,6 +122,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 				}
 			}
 		}
+		
 		if(addedColToDateChange) {
 			query.append(";").append(tempVarName).append(";");
 		}
@@ -133,7 +154,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			}
 			
 			String tempName = "V" + i;
-			selectorBuilder.append(tempName).append("=").append(processSelector(selector, false));
+			selectorBuilder.append(tempName).append("=").append(processSelector(selector, this.dataTableName, false, false));
 			outputNames.append(alias).append("=").append(tempName);
 			
 			// also keep track of headers
@@ -146,25 +167,34 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	
 	/**
 	 * Method is used to generate the appropriate syntax for each type of selector
-	 * Note, this returns everything without the alias since this is called again from
+	 * Note, this returns everything without the alias (unless we have indicated to use alias) since this is called again from
 	 * the base methods it calls to allow for complex math expressions
 	 * @param selector
+	 * @param tableName
+	 * @param includeTableName
+	 * @param useAlias
 	 * @return
 	 */
-	private String processSelector(IQuerySelector selector, boolean includeTableName) {
+	private String processSelector(IQuerySelector selector, String tableName, boolean includeTableName, boolean useAlias) {
+		if(useAlias) {
+			if(includeTableName) {
+				return tableName + "$" + selector.getAlias();
+			}
+			return selector.getAlias();
+		}
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return processConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-			return processColumnSelector((QueryColumnSelector) selector, includeTableName);
+			return processColumnSelector((QueryColumnSelector) selector, tableName, includeTableName, useAlias);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return processFunctionSelector((QueryFunctionSelector) selector, includeTableName);
+			return processFunctionSelector((QueryFunctionSelector) selector, tableName, includeTableName, useAlias);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
-			return processArithmeticSelector((QueryArithmeticSelector) selector, includeTableName);
+			return processArithmeticSelector((QueryArithmeticSelector) selector, tableName, includeTableName, useAlias);
 		}
 		return null;
 	}
-
+	
 	private String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
 		if(constant instanceof Number) {
@@ -174,14 +204,20 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 
-	private String processColumnSelector(QueryColumnSelector selector, boolean includeTableName) {
+	private String processColumnSelector(QueryColumnSelector selector, String tableName, boolean includeTableName, boolean useAlias) {
 		if(includeTableName) {
-			return this.dataTableName + "$" + selector.getColumn();
+			if(useAlias) {
+				return tableName + "$" + selector.getAlias();
+			}
+			return tableName + "$" + selector.getColumn();
+		}
+		if(useAlias) {
+			return selector.getAlias();
 		}
 		return selector.getColumn();
 	}
 	
-	private String processFunctionSelector(QueryFunctionSelector selector, boolean includeTableName) {
+	private String processFunctionSelector(QueryFunctionSelector selector, String tableName, boolean includeTableName, boolean useAlias) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		String function = selector.getFunction();
 
@@ -209,52 +245,51 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		int size = innerSelectors.size();
 		for(int i = 0; i< size; i++) {
 			if(i == 0) {
-				expression.append(processSelector(innerSelectors.get(i), includeTableName));
+				expression.append(processSelector(innerSelectors.get(i), tableName, includeTableName, false));
 			} else {
-				expression.append(",").append(processSelector(innerSelectors.get(i), includeTableName));
+				expression.append(",").append(processSelector(innerSelectors.get(i), tableName, includeTableName, useAlias));
 			}
 		}
 		expression.append(endExpr);
 		return expression.toString();
 	}
 	
-	private String processArithmeticSelector(QueryArithmeticSelector selector, boolean includeTableName) {
+	private String processArithmeticSelector(QueryArithmeticSelector selector, String tableName, boolean includeTableName, boolean useAlias) {
 		IQuerySelector leftSelector = selector.getLeftSelector();
 		IQuerySelector rightSelector = selector.getRightSelector();
 		String mathExpr = selector.getMathExpr();
-		return "(" + processSelector(leftSelector, includeTableName) + " " + mathExpr + " " + processSelector(rightSelector, includeTableName) + ")";
+		return "(" + processSelector(leftSelector, tableName, includeTableName, useAlias) + " " + mathExpr + " " + processSelector(rightSelector, tableName, includeTableName, useAlias) + ")";
 	}
 	
 	//////////////////////////////////// end adding selectors /////////////////////////////////////
 
 	//////////////////////////////////// start adding filters /////////////////////////////////////
-
-	public void addFilters() {
-		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
+	
+	public void addFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias) {
 		for(IQueryFilter filter : filters) {
-			StringBuilder filterSyntax = processFilter(filter);
+			StringBuilder filterSyntax = processFilter(filter, tableName, useAlias);
 			if(filterSyntax != null) {
-				if (filterCriteria.length() > 0) {
-					filterCriteria.append(" & ");
+				if (builder.length() > 0) {
+					builder.append(" & ");
 				}
-				this.filterCriteria.append(filterSyntax.toString());
+				builder.append(filterSyntax.toString());
 			}
 		}
 	}
 	
-	private StringBuilder processFilter(IQueryFilter filter) {
+	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return processSimpleQueryFilter((SimpleQueryFilter) filter);
+			return processSimpleQueryFilter((SimpleQueryFilter) filter, tableName, useAlias);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return processAndQueryFilter((AndQueryFilter) filter);
+			return processAndQueryFilter((AndQueryFilter) filter, tableName, useAlias);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return processOrQueryFilter((OrQueryFilter) filter);
+			return processOrQueryFilter((OrQueryFilter) filter, tableName, useAlias);
 		}
 		return null;
 	}
 	
-	private StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -264,13 +299,13 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			} else {
 				filterBuilder.append(" | ");
 			}
-			filterBuilder.append(processFilter(filterList.get(i)));
+			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
 
-	private StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -280,25 +315,25 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			} else {
 				filterBuilder.append(" & ");
 			}
-			filterBuilder.append(processFilter(filterList.get(i)));
+			filterBuilder.append(processFilter(filterList.get(i), tableName, useAlias));
 		}
 		filterBuilder.append(")");
 		return filterBuilder;
 	}
-
-	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+	
+	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 		String thisComparator = filter.getComparator();
 		
 		FILTER_TYPE fType = filter.getFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
-			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias);
 		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
@@ -311,7 +346,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
@@ -322,25 +357,25 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		
 		StringBuilder filterBuilder = new StringBuilder();
 		if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-			filterBuilder.append("!( ").append(processSelector(leftSelector, true)).append(" ")
-			.append(" == ").append(this.dataTableName).append("$").append(processSelector(rightSelector, true)).append(")");
+			filterBuilder.append("!( ").append(processSelector(leftSelector, tableName, true, useAlias)).append(" ")
+			.append(" == ").append(tableName).append("$").append(processSelector(rightSelector, tableName, true, useAlias)).append(")");
 		} else if(thisComparator.equals("?like")) {
 			// some operation
-			filterBuilder.append("as.character(").append(processSelector(leftSelector, true)).append(") %like% as.character(")
-			.append(processSelector(rightSelector, true)).append(")");
+			filterBuilder.append("as.character(").append(processSelector(leftSelector, tableName, true, useAlias)).append(") %like% as.character(")
+			.append(processSelector(rightSelector, tableName, true, useAlias)).append(")");
 		} else {
 			// some operation
-			filterBuilder.append(processSelector(leftSelector, true)).append(" ").append(thisComparator)
-			.append(" ").append(processSelector(rightSelector, true));
+			filterBuilder.append(processSelector(leftSelector, tableName, true, useAlias)).append(" ").append(thisComparator)
+			.append(" ").append(processSelector(rightSelector, tableName, true, useAlias));
 		}
 		
 		return filterBuilder;
 	}
-
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-		String leftSelectorExpression = processSelector(leftSelector, true);
+		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);
 		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
 		
 		// if it is null, then we know we have a column
@@ -474,6 +509,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		}
 		this.groupBys.append(")");
  	}
+
 	
 	private void addOrderBy(String tempTableName) {
 		//grab the order by and get the corresponding display name for that order by column
@@ -516,7 +552,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		}
 		
 		if(builderOrdering != null) {
-			orderBys.append("; ").append(tempTableName).append(" <- ").append(tempTableName)
+			orderBys.append(tempTableName).append(" <- ").append(tempTableName)
 					.append("[order(").append(builderOrdering.toString()).append("),]");
 		}
 	}
@@ -531,6 +567,10 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 
 	public StringBuilder getFilterCriteria() {
 		return this.filterCriteria;
+	}
+	
+	public StringBuilder getHavingFilterCriteria() {
+		return this.havingFilterCriteria;
 	}
 	
 	public void addHeaderToRemove(String header)

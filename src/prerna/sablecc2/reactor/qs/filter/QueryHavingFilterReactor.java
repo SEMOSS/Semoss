@@ -1,8 +1,10 @@
 package prerna.sablecc2.reactor.qs.filter;
 
 import java.util.List;
+import java.util.Vector;
 
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.AbstractListFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,14 +27,42 @@ public class QueryHavingFilterReactor extends QueryFilterReactor {
 			if(nextFilter != null) {
 				if(nextFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 					if(isValidFilter((SimpleQueryFilter) nextFilter)) {
+						// try to fix the selectors if it is a query struct
+						// when in reality it is just a function column selector
 						qs.addHavingFilter(processSimpleFilter( (SimpleQueryFilter) nextFilter));
 					}
 				} else {
-					qs.addHavingFilter(nextFilter);
+					// need to recursively try to fix 
+					// the selectors if they are a query struct
+					// when in reality it is just a function column selector
+					qs.addHavingFilter(processQueryFilter( (AbstractListFilter) nextFilter));
 				}
 			}
 		}
 		return qs;
+	}
+	
+	/**
+	 * Process the query filter for the case that we have more than just one simple filter
+	 * @param filter
+	 * @return
+	 */
+	private AbstractListFilter processQueryFilter(AbstractListFilter filter) {
+		List<IQueryFilter> newList = new Vector<IQueryFilter>();
+		
+		List<IQueryFilter> oldList = filter.getFilterList();
+		for(IQueryFilter f : oldList) {
+			if(f instanceof AbstractListFilter) {
+				newList.add( processQueryFilter((AbstractListFilter) f) );
+			} else {
+				// it is simple
+				newList.add( processSimpleFilter( (SimpleQueryFilter) f) );
+			}
+		}
+		
+		filter.getFilterList().clear();
+		filter.setFilterList(newList);
+		return filter;
 	}
 	
 	/**
