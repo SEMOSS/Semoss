@@ -8,6 +8,7 @@ public class QueryArithmeticSelector extends AbstractQuerySelector {
 	private IQuerySelector leftSelector;
 	private String mathExpr;
 	private IQuerySelector rightSelector;
+	boolean encapsulated = false;
 	
 	public QueryArithmeticSelector() {
 		this.mathExpr = "";
@@ -39,6 +40,14 @@ public class QueryArithmeticSelector extends AbstractQuerySelector {
 	@Override
 	public String getDataType() {
 		return "NUMBER";
+	}
+	
+	public boolean isEncapsulated() {
+		return this.encapsulated;
+	}
+	
+	public void setEncapsulated(boolean encapsulated) {
+		this.encapsulated = encapsulated;
 	}
 	
 	public IQuerySelector getLeftSelector() {

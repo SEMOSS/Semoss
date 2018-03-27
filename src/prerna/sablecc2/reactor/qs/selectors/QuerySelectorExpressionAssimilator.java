@@ -14,6 +14,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 
 	private String mathExpr;
+	private boolean encapsulated;
 	
 	@Override
 	public NounMetadata execute() {
@@ -21,6 +22,7 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		IQuerySelector leftSelector = getSelector(qsInputs.getNoun(0));
 		IQuerySelector rightSelector = getSelector(qsInputs.getNoun(1));
 		QueryArithmeticSelector newSelector = combineSelectorsModingForOOO(this.mathExpr, leftSelector, rightSelector);
+		newSelector.setEncapsulated(this.encapsulated);
 		QueryStruct2 qs = new QueryStruct2();
 		qs.addSelector(newSelector);
 		return new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
@@ -30,6 +32,15 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		this.mathExpr = mathExpr;
 	}
 	
+	/**
+	 * Since query expression assimilators are embedded within each other
+	 * We set an encapsulated boolean to account for logic with modifying for OOO
+	 * @param encapsulated
+	 */
+	public void setEncapsulated(boolean encapsulated) {
+		this.encapsulated = encapsulated;
+	}
+
 	private IQuerySelector getSelector(NounMetadata input) {
 		PixelDataType nounType = input.getNounType();
 		if(nounType == PixelDataType.QUERY_STRUCT) {
@@ -74,7 +85,7 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		if(mathExpression.equals("*") || mathExpression.equals("/")) {
 			// this is only the case when we have a mult/div operation
 			// and the expression must be a plus/minus
-			if(leftSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			if(leftSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC && !((QueryArithmeticSelector) leftSelector).isEncapsulated()) {
 				QueryArithmeticSelector leftArithSelector = (QueryArithmeticSelector) leftSelector;
 				String leftSideMathExpression = leftArithSelector.getMathExpr();
 				if(leftSideMathExpression.equals("-") || leftSideMathExpression.equals("+")) {
@@ -95,7 +106,7 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 					newSelector.setMathExpr(leftSideMathExpression);
 					return newSelector;
 				}
-			} else if(rightSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			} else if(rightSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC && !((QueryArithmeticSelector) rightSelector).isEncapsulated()) {
 				QueryArithmeticSelector rightArithSelector = (QueryArithmeticSelector) rightSelector;
 				String rightSideMathExpression = rightArithSelector.getMathExpr();
 				if(rightSideMathExpression.equals("-") || rightSideMathExpression.equals("+")) {
@@ -125,5 +136,4 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		newSelector.setMathExpr(mathExpression);
 		return newSelector;
 	}
-	
 }
