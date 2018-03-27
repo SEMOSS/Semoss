@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -10,24 +9,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.solr.client.solrj.SolrServerException;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.solr.SolrIndexEngine;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ga.GATracker;
 
@@ -95,6 +89,25 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				insightData = newInsight.reRunPixelInsight();
 //				cacheInsightData(appName, rdbmsId, insightData);
 //			}
+		}
+		
+		// see if the last response was an error
+		if(insightData.containsKey("pixelReturn")) {
+			Vector<Map<String, Object>> returns = (Vector<Map<String, Object>>) insightData.get("pixelReturn");
+			Map<String, Object> lastResult = (Map<String, Object>) returns.get(returns.size()-1);
+			Vector<PixelOperationType> opTypes = (Vector<PixelOperationType>) lastResult.get("operationType");
+			if(PixelUtility.autoExecuteAfterUserInput(opTypes)) {
+				Map<String, Object> openInsightData = new HashMap<String, Object>();
+				openInsightData.put(this.keysToGet[0], appName);
+				openInsightData.put(this.keysToGet[1], rdbmsId);
+				if(params != null) {
+					openInsightData.put(this.keysToGet[2], params);
+				}
+				if(additionalPixels != null) {
+					openInsightData.put(this.keysToGet[3], additionalPixels);
+				}
+				lastResult.put("openInsight", openInsightData);
+			}
 		}
 		
 		Map<String, Object> insightMap = new HashMap<String, Object>();
