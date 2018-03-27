@@ -113,6 +113,8 @@ public enum PixelOperationType {
 	WARNING,
 	
 	ERROR,
+	
+	USER_INPUT_REQUIRED,
 	LOGGIN_REQUIRED_ERROR,
 
 	INVALID_SYNTAX;
