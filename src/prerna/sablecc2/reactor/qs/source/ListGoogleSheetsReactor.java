@@ -15,11 +15,12 @@ import com.google.api.services.sheets.v4.model.Spreadsheet;
 import prerna.auth.User;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ListGoogleSheetsReactor extends AbstractReactor {
-	
+
 	private final HttpTransport TRANSPORT = new NetHttpTransport();
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -37,26 +38,32 @@ public class ListGoogleSheetsReactor extends AbstractReactor {
 		if (user != null) {
 			gc = (GoogleCredential) user.getAdditionalData("googleCredential");
 		}
-		if (gc != null) {
-			Sheets sheetsService = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
-			Spreadsheet spreadsheet = null;
-			try {
-				spreadsheet = sheetsService.spreadsheets().get(sheetId).setIncludeGridData(false).execute();
-				if (spreadsheet != null) {
-					List<Sheet> sheets = spreadsheet.getSheets();
-					for (int j = 0; j < sheets.size(); j++) {
-						String sheetName = sheets.get(j).getProperties().getTitle();
-						sheetList.add(sheetName);
-					}
-					return new NounMetadata(sheetList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.GOOGLE_SHEET_LIST);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException("Unable to get sheet names");
-			}
-			 
+
+		if(gc == null) {
+			SemossPixelException exception = new SemossPixelException();
+			exception.setContinueThreadOfExecution(false);
+			exception.setAdditionalReturn(new NounMetadata("Please login to your Google account", PixelDataType.ERROR, PixelOperationType.GOOGLE_LOGIN_REQUIRED));
+			throw exception;
 		}
-		throw new IllegalArgumentException("Please login");
+
+		Sheets sheetsService = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
+		Spreadsheet spreadsheet = null;
+		try {
+			spreadsheet = sheetsService.spreadsheets().get(sheetId).setIncludeGridData(false).execute();
+			if (spreadsheet != null) {
+				List<Sheet> sheets = spreadsheet.getSheets();
+				for (int j = 0; j < sheets.size(); j++) {
+					String sheetName = sheets.get(j).getProperties().getTitle();
+					sheetList.add(sheetName);
+				}
+				return new NounMetadata(sheetList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.GOOGLE_SHEET_LIST);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Unable to get sheet names");
+		}
+
+		throw new IllegalArgumentException("No files found. Please consider logging into a different account.");
 	}
 
 }
