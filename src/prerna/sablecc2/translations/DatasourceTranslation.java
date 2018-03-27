@@ -1,4 +1,4 @@
-package prerna.sablecc2;
+package prerna.sablecc2.translations;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -80,6 +81,13 @@ public class DatasourceTranslation extends DepthFirstAdapter {
 		}
 	}
 	
+	////////////////////////////////////////////
+	
+	/*
+	 * START
+	 * Section for finding parameters for the datasource
+	 */
+	
 	@Override
 	public void outAGeneric(AGeneric node) {
 		if(currentSourceStatement != null) {
@@ -112,6 +120,13 @@ public class DatasourceTranslation extends DepthFirstAdapter {
 		}
 	}
 	
+	
+	/*
+	 * END
+	 * Section for finding parameters for the datasource
+	 */
+	
+	////////////////////////////////////////////
 
 	public List<Map<String, Object>> getDatasourcePixels() {
 		return this.datasourcePixels;

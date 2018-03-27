@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.insights;
+package prerna.sablecc2.reactor.workflow;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.util.HashMap;
 import java.util.List;
-import prerna.sablecc2.OptimizeRecipeTranslation;
+
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -17,6 +17,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.translations.OptimizeRecipeTranslation;
 
 public class GetOptimizedRecipeReactor extends AbstractReactor {
 	
