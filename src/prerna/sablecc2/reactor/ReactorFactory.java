@@ -643,6 +643,11 @@ public class ReactorFactory {
 		// Forms
 		reactorHash.put("UpdateForm", FormsReactor.class);
 		
+		// Pixels for legacy playsheets
+		reactorHash.put("RunPlaysheetMethod", prerna.sablecc2.reactor.legacy.playsheets.RunPlaysheetMethodReactor.class);
+		reactorHash.put("RunPlaysheet", prerna.sablecc2.reactor.legacy.playsheets.RunPlaysheetReactor.class);
+		reactorHash.put("GetPlaysheetParams", prerna.sablecc2.reactor.legacy.playsheets.GetPlaysheetParamsReactor.class);
+		
 		//LSA
 		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
 		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class); 
