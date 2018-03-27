@@ -16,11 +16,12 @@ import com.google.api.services.drive.model.FileList;
 import prerna.auth.User;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ListGoogleDriveFilesReactor extends AbstractReactor {
-	
+
 	private final HttpTransport TRANSPORT = new NetHttpTransport();
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -36,43 +37,48 @@ public class ListGoogleDriveFilesReactor extends AbstractReactor {
 		if (user != null) {
 			gc = (GoogleCredential) user.getAdditionalData("googleCredential");
 		}
-		if (gc != null) {
-			// google drive api
-			Drive driveService = new Drive.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
 
-			FileList files = null;
-			try {
-				files = driveService.files().list().setQ("mimeType contains '.spreadsheet' or mimeType contains 'text/csv' ").execute();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			if (files != null) {
-				List<File> fileList = files.getFiles();
-				// TODO may not be null here - need to test
-				// when theres not excels in the drive
-				if (fileList != null) {
-					for (int i = 0; i < fileList.size(); i++) {
-						// {"id":"id###","kind":"drive#file","mimeType":"application/vnd.google-apps.spreadsheet","name":"name##"}
-						File file = fileList.get(i);
-						HashMap<String, Object> tempMap = new HashMap<String, Object>();
-						String fileType = "";
-						if (file.get("mimeType").equals("text/csv")) {
-							fileType = "CSV";
-						} else {
-							fileType = ".spreadsheet";
-						}
-						tempMap.put("type", fileType);
-						tempMap.put("id", file.get("id"));
-						tempMap.put("name", file.get("name"));
-						masterList.add(tempMap);
-					}
-				}
-				return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-						PixelOperationType.GOOGLE_DRIVE_LIST);
-			}
+		if(gc == null) {
+			SemossPixelException exception = new SemossPixelException();
+			exception.setContinueThreadOfExecution(false);
+			exception.setAdditionalReturn(new NounMetadata("Please login to your Google account", PixelDataType.ERROR, PixelOperationType.GOOGLE_LOGIN_REQUIRED));
+			throw exception;
 		}
 
-		throw new IllegalArgumentException("Please login");
+		// google drive api
+		Drive driveService = new Drive.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
+
+		FileList files = null;
+		try {
+			files = driveService.files().list().setQ("mimeType contains '.spreadsheet' or mimeType contains 'text/csv' ").execute();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if (files != null) {
+			List<File> fileList = files.getFiles();
+			// TODO may not be null here - need to test
+			// when theres not excels in the drive
+			if (fileList != null) {
+				for (int i = 0; i < fileList.size(); i++) {
+					// {"id":"id###","kind":"drive#file","mimeType":"application/vnd.google-apps.spreadsheet","name":"name##"}
+					File file = fileList.get(i);
+					HashMap<String, Object> tempMap = new HashMap<String, Object>();
+					String fileType = "";
+					if (file.get("mimeType").equals("text/csv")) {
+						fileType = "CSV";
+					} else {
+						fileType = ".spreadsheet";
+					}
+					tempMap.put("type", fileType);
+					tempMap.put("id", file.get("id"));
+					tempMap.put("name", file.get("name"));
+					masterList.add(tempMap);
+				}
+			}
+			return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.GOOGLE_DRIVE_LIST);
+		}
+
+		throw new IllegalArgumentException("No files found. Please consider logging into a different account.");
 	}
 
 }
