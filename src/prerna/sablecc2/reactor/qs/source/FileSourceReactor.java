@@ -47,7 +47,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 
 		// get inputs
 		Map<String, String> dataTypes = getDataTypes(); 
-		Map<String, String> headers = getHeaders(); 
+		Map<String, String> newHeaders = getHeaders(); 
 		String fileLocation = getFileLocation();
 		String fileExtension = "";
 
@@ -66,14 +66,14 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 			((ExcelQueryStruct) qs).setExcelFilePath(fileLocation);
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
 			((ExcelQueryStruct) qs).setColumnTypes(dataTypes);
-			((ExcelQueryStruct) qs).setNewHeaderNames(headers);
+			((ExcelQueryStruct) qs).setNewHeaderNames(newHeaders);
 		} else { // set csv qs
 			char delimiter = getDelimiter();
 			qs = new CsvQueryStruct();
 			((CsvQueryStruct) qs).setCsvFilePath(fileLocation);
 			((CsvQueryStruct) qs).setDelimiter(delimiter);
 			((CsvQueryStruct) qs).setColumnTypes(dataTypes);
-			((CsvQueryStruct) qs).setNewHeaderNames(headers);
+			((CsvQueryStruct) qs).setNewHeaderNames(newHeaders);
 		}
 		qs.merge(this.qs);
 		
