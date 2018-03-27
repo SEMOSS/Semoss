@@ -219,7 +219,7 @@ public class Insight {
 		String expression = null;
 		for (int i = 0; i < pixelStrings.size(); i++) {
 			NounMetadata noun = resultList.get(i);
-			Map<String, Object> ret = processNounMetadata(noun);
+			Map<String, Object> ret = PixelUtility.processNounMetadata(noun);
 			// get the expression which created this return
 			expression = pixelStrings.get(i);
 			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
@@ -266,59 +266,6 @@ public class Insight {
 		}
 	}
 
-	private Map<String, Object> processNounMetadata(NounMetadata noun) {
-		Map<String, Object> ret = new HashMap<String, Object>();
-		if(noun.getNounType() == PixelDataType.FRAME) {
-			// if we have a frame
-			// return the table name of the frame
-			// FE needs this to create proper QS
-			// this has no meaning for graphs
-			Map<String, String> frameData = new HashMap<String, String>();
-			ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-			frameData.put("type", FrameFactory.getFrameType(frame));
-			String name = frame.getTableName();
-			if(name != null) {
-				frameData.put("name", name);
-			}
-			ret.put("output", frameData);
-			ret.put("operationType", noun.getOpType());
-			
-			// add additional outputs
-			List<Map<String, Object>> additionalOutputList = new Vector<Map<String, Object>>();
-			List<NounMetadata> addReturns = noun.getAdditionalReturn();
-			int numOutputs = addReturns.size();
-			for(int i = 0; i < numOutputs; i++) {
-				additionalOutputList.add(processNounMetadata(addReturns.get(i)));
-			}
-			if(!additionalOutputList.isEmpty()) {
-				ret.put("additionalOutput", additionalOutputList);
-			}
-			
-			// add message
-			if(noun.getExplanation() != null && !noun.getExplanation().isEmpty()) {
-				ret.put("message", noun.getExplanation());
-			}
-		} else if(noun.getNounType() == PixelDataType.CODE || noun.getNounType() == PixelDataType.TASK_LIST) {
-			// code is a tough one to process
-			// since many operations could have been performed
-			// we need to loop through a set of noun meta datas to output
-			ret.put("operationType", noun.getOpType());
-			List<Map<String, Object>> outputList = new Vector<Map<String, Object>>();
-			List<NounMetadata> codeOutputs = (List<NounMetadata>) noun.getValue();
-			int numOutputs = codeOutputs.size();
-			for(int i = 0; i < numOutputs; i++) {
-				outputList.add(processNounMetadata(codeOutputs.get(i)));
-			}
-			ret.put("output", outputList);
-		} else {
-			ret.put("output", noun.getValue());
-			ret.put("operationType", noun.getOpType());
-		}
-		return ret;
-	}
-	
-
-	
 	public PixelRunner getPixelRunner() {
 		PixelRunner runner = new PixelRunner();
 		return runner;
