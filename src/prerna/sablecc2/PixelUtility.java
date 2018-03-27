@@ -18,6 +18,7 @@ import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
@@ -229,5 +230,17 @@ public class PixelUtility {
 			}
 		}
 		return expression;
+	}
+	
+	/**
+	 * Determine if an operation op type is an error that requires user input and then a re-run of the insight
+	 * @param opTypes
+	 * @return
+	 */
+	public static boolean autoExecuteAfterUserInput(List<PixelOperationType> opTypes) {
+		if(opTypes.contains(PixelOperationType.GOOGLE_LOGIN_REQUIRED)) {
+			return true;
+		}
+		return false;
 	}
 }
