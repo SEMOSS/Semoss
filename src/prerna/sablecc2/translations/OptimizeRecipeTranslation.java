@@ -1,4 +1,4 @@
-package prerna.sablecc2;
+package prerna.sablecc2.translations;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AOperation;
