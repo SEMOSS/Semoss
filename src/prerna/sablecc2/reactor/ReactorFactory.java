@@ -93,7 +93,6 @@ import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
 import prerna.sablecc2.reactor.insights.DropInsightReactor;
 import prerna.sablecc2.reactor.insights.GetCurrentRecipeReactor;
-import prerna.sablecc2.reactor.insights.GetOptimizedRecipeReactor;
 import prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor;
 import prerna.sablecc2.reactor.insights.InsightHandleReactor;
 import prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor;
@@ -233,7 +232,9 @@ import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
-import prerna.sablecc2.reactor.workflow.GetInsightDatasourcesReactor;
+import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
+import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
+import prerna.sablecc2.reactor.workflow.ModifyInsightDatasourceReactor;
 import prerna.solr.reactor.AppInfoReactor;
 import prerna.solr.reactor.AppInsightsReactor;
 import prerna.solr.reactor.MyAppsReactor;
@@ -525,7 +526,6 @@ public class ReactorFactory {
 		reactorHash.put("RetrieveInsightOrnament", RetrieveInsightOrnamentReactor.class);
 		reactorHash.put("UpdateInsightImage", UpdateInsightImageReactor.class);
 		reactorHash.put("GetCurrentRecipe", GetCurrentRecipeReactor.class);
-		reactorHash.put("GetOptimizedRecipe", GetOptimizedRecipeReactor.class);
 
 		// Save Reactors
 		reactorHash.put("SaveInsight", SaveInsightReactor.class);
@@ -651,8 +651,9 @@ public class ReactorFactory {
 		reactorHash.put("CodeExec", CodeExecReactor.class);
 		
 		// Pixel Recipe Parsing / Manipulation
-		reactorHash.put("GetInsightDatasources", GetInsightDatasourcesReactor.class);
-
+		reactorHash.put("GetInsightDatasources", InsightDatasourcesReactor.class);
+		reactorHash.put("ModifyInsightDatasource", ModifyInsightDatasourceReactor.class);
+		reactorHash.put("GetOptimizedRecipe", GetOptimizedRecipeReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
