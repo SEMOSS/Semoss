@@ -40,7 +40,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 	private List<String> pixels = new Vector<String>();
 	// a replacement for the given input
 	private String origPixelPortion = null;
-	private String relacementPixel = null;
+	private String replacementPixel = null;
 
 	// set the engine name to find and replace
 	private String engineToReplace = null;
@@ -57,11 +57,11 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 			e.apply(this);
 			// if we ended up making the modificaiton
 			// the replacement string will not be null
-			if(this.relacementPixel != null && this.origPixelPortion != null) {
-				String newExpression = expression.replace(this.origPixelPortion, this.relacementPixel);
+			if(this.replacementPixel != null && this.origPixelPortion != null) {
+				String newExpression = expression.replace(this.origPixelPortion, this.replacementPixel);
 				this.pixels.add(newExpression);
 				// now we need to null replacement
-				this.relacementPixel = null;
+				this.replacementPixel = null;
 				this.origPixelPortion = null;
 
 				// set that we needed some kind of modication
@@ -85,7 +85,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 				// okay, it is a match
 				// we need to replace
 				this.origPixelPortion = node.toString();
-				this.relacementPixel = node.toString().replace(this.engineToFind, this.engineToReplace);
+				this.replacementPixel = node.toString().replace(this.engineToFind, this.engineToReplace);
 			}
 		}
 	}
