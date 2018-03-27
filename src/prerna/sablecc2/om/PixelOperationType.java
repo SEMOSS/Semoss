@@ -86,6 +86,7 @@ public enum PixelOperationType {
 	
 	// OLD INSIGHT
 	OLD_INSIGHT,
+	PLAYSHEET_PARAMS,
 	
 	// GIT_MARKET
 	MARKET_PLACE, // general market routine
