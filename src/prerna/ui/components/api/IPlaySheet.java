@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.ui.components.api;
 
-import java.util.Hashtable;
+import java.util.Map;
 
 import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
@@ -188,7 +188,7 @@ public interface IPlaySheet extends Runnable{
 	public void runAnalytics();
 
 	// this is for custom methods called from the front end
-	public Object doMethod(String methodName, Hashtable argHash);
+	public Object doMethod(String methodName, Map argHash);
 
 	public void processQueryData();
 	

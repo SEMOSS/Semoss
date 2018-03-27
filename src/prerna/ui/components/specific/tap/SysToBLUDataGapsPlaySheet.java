@@ -35,7 +35,7 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyVetoException;
-import java.util.Hashtable;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -51,6 +51,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.InternalFrameEvent;
 
+import aurelienribon.ui.css.Style;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -60,7 +61,6 @@ import prerna.ui.swing.custom.CustomButton;
 import prerna.util.CSSApplication;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import aurelienribon.ui.css.Style;
 
 
 
@@ -364,7 +364,7 @@ public class SysToBLUDataGapsPlaySheet extends JInternalFrame implements IPlaySh
 	}
 
 	@Override
-	public Object doMethod(String methodName, Hashtable argHash) {
+	public Object doMethod(String methodName, Map argHash) {
 		// TODO Auto-generated method stub
 		return null;
 	}

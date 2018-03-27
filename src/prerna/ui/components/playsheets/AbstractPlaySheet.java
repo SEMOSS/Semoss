@@ -271,7 +271,7 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 	}
     
 	//for handling playsheet specific tool calls
-	public Object doMethod(String methodName, Hashtable argHash)
+	public Object doMethod(String methodName, Map argHash)
 	{    	
 		logger.info("Trying to preform method " + methodName + " with arguments " + argHash.toString());
 		java.lang.reflect.Method method = null;
