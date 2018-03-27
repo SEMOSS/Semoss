@@ -238,7 +238,7 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static boolean autoExecuteAfterUserInput(List<PixelOperationType> opTypes) {
-		if(opTypes.contains(PixelOperationType.GOOGLE_LOGIN_REQUIRED)) {
+		if(opTypes.contains(PixelOperationType.LOGGIN_REQUIRED_ERROR)) {
 			return true;
 		}
 		return false;
