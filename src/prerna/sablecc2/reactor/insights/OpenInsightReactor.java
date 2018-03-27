@@ -98,22 +98,26 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// see if the last response was an error
+		// if it is an error that requires user input
+		// hyderate the last result to contain the new information
 		if(insightData.containsKey("pixelReturn")) {
 			Vector<Map<String, Object>> returns = (Vector<Map<String, Object>>) insightData.get("pixelReturn");
 			Map<String, Object> lastResult = (Map<String, Object>) returns.get(returns.size()-1);
 			Vector<PixelOperationType> opTypes = (Vector<PixelOperationType>) lastResult.get("operationType");
 			if(PixelUtility.autoExecuteAfterUserInput(opTypes)) {
-				Map<String, Object> openInsightData = new HashMap<String, Object>();
-				openInsightData.put(this.keysToGet[0], appName);
-				openInsightData.put(this.keysToGet[1], rdbmsId);
-//				if(params != null) {
-//					openInsightData.put(this.keysToGet[2], params);
-//				}
-//				if(additionalPixels != null) {
-//					openInsightData.put(this.keysToGet[3], additionalPixels);
-//				}
-				openInsightData.put("recipe", fullRecipe);
-				lastResult.put("openInsight", openInsightData);
+				Map<String, Object> openInsightNounValue = new HashMap<String, Object>();
+				openInsightNounValue.put(this.keysToGet[0], appName);
+				openInsightNounValue.put(this.keysToGet[1], rdbmsId);
+				openInsightNounValue.put("recipe", fullRecipe);
+				openInsightNounValue.put("errorData", lastResult.get("output"));
+				NounMetadata newLastNoun = new NounMetadata(openInsightNounValue, PixelDataType.CUSTOM_DATA_STRUCTURE, opTypes);
+				
+				Map<String, Object> newLastResult = PixelUtility.processNounMetadata(newLastNoun);
+				newLastResult.put("pixelExpression", lastResult.get("pixelExpression"));
+				newLastResult.put("isMeta", lastResult.get("isMeta"));
+
+				returns.remove(returns.size()-1);
+				returns.add(newLastResult);
 			}
 		}
 		
