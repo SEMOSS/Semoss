@@ -233,6 +233,7 @@ import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
+import prerna.sablecc2.reactor.workflow.GetInsightDatasourcesReactor;
 import prerna.solr.reactor.AppInfoReactor;
 import prerna.solr.reactor.AppInsightsReactor;
 import prerna.solr.reactor.MyAppsReactor;
@@ -648,6 +649,9 @@ public class ReactorFactory {
 		
 		// General Code Execution
 		reactorHash.put("CodeExec", CodeExecReactor.class);
+		
+		// Pixel Recipe Parsing / Manipulation
+		reactorHash.put("GetInsightDatasources", GetInsightDatasourcesReactor.class);
 
 	}
 
