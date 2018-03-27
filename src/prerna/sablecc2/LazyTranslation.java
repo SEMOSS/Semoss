@@ -14,6 +14,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.adapters.QueryArithmeticSelectorAdapter;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
@@ -914,7 +915,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAPlusBaseExpr(APlusBaseExpr node) {
     	String nodeExpr = node.toString().trim();
-    	if(requireAssimilator(nodeExpr, "+")) {
+    	if(requireAssimilator(nodeExpr, "+", encapsulatedInFormula(node))) {
 	    	defaultIn(node);
 			
 	    	Assimilator assm = new Assimilator();
@@ -939,7 +940,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAMinusBaseExpr(AMinusBaseExpr node) {
     	String nodeExpr = node.toString().trim();
-    	if(requireAssimilator(nodeExpr, "-")) {
+    	if(requireAssimilator(nodeExpr, "-", encapsulatedInFormula(node))) {
 	    	defaultIn(node);
 			
 	    	Assimilator assm = new Assimilator();
@@ -972,7 +973,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inADivBaseExpr(ADivBaseExpr node) {
     	String nodeExpr = node.toString().trim();
-    	if(requireAssimilator(nodeExpr, "/")) {
+    	if(requireAssimilator(nodeExpr, "/", encapsulatedInFormula(node))) {
 	    	defaultIn(node);
 			
 	    	Assimilator assm = new Assimilator();
@@ -996,7 +997,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAMultBaseExpr(AMultBaseExpr node) {
     	String nodeExpr = node.toString().trim();
-    	if(requireAssimilator(nodeExpr, "*")) {
+    	if(requireAssimilator(nodeExpr, "*", encapsulatedInFormula(node))) {
 	    	defaultIn(node);
 			
 	    	Assimilator assm = new Assimilator();
@@ -1020,7 +1021,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAModBaseExpr(AModBaseExpr node) {
     	String nodeExpr = node.toString().trim();
-    	if(requireAssimilator(nodeExpr, "%")) {
+    	if(requireAssimilator(nodeExpr, "%", encapsulatedInFormula(node))) {
 	    	defaultIn(node);
 			
 	    	Assimilator assm = new Assimilator();
@@ -1048,12 +1049,13 @@ public class LazyTranslation extends DepthFirstAdapter {
      * @param math
      * @return
      */
-    private boolean requireAssimilator(String nodeExpr, String math) {
+	private boolean requireAssimilator(String nodeExpr, String math, boolean encapsulated) {
     	if(curReactor instanceof Assimilator) {
         	return false;
     	} else if(curReactor instanceof QuerySelectorExpressionAssimilator) {
     		QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
+        	qAssm.setEncapsulated(encapsulated);
         	qAssm.setPixel("EXPR", nodeExpr);
     		initReactor(qAssm);	
         	return false;
@@ -1075,6 +1077,10 @@ public class LazyTranslation extends DepthFirstAdapter {
         }
     	
     	return true;
+    }
+    
+    private boolean encapsulatedInFormula(Node node) {
+    	return node.parent().parent() instanceof AFormula;
     }
     
     @Override
