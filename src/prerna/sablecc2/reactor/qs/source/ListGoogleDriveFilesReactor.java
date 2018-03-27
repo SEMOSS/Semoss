@@ -20,6 +20,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ListGoogleDriveFilesReactor extends AbstractReactor {
+	
 	private final HttpTransport TRANSPORT = new NetHttpTransport();
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -41,8 +42,7 @@ public class ListGoogleDriveFilesReactor extends AbstractReactor {
 
 			FileList files = null;
 			try {
-				files = driveService.files().list()
-						.setQ("mimeType contains '.spreadsheet' or mimeType contains 'text/csv' ").execute();
+				files = driveService.files().list().setQ("mimeType contains '.spreadsheet' or mimeType contains 'text/csv' ").execute();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
