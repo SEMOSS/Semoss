@@ -33,7 +33,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
-	
+
 	private final HttpTransport TRANSPORT = new NetHttpTransport();
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -68,79 +68,80 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 		if (user != null) {
 			gc = (GoogleCredential) user.getAdditionalData("googleCredential");
 		}
-		if (gc != null) {
-			String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-					+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-			filePath += "\\" + Utility.getRandomString(10) + ".csv";
-			filePath = filePath.replace("\\", "/");
-
-			// download csv from google drive
-			if (mimeType.equals("CSV")) {
-				Drive driveService = new Drive.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
-				try {
-					OutputStream os = new FileOutputStream(new File(filePath));
-					driveService.files().get(fileId).executeMediaAndDownloadTo(os);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			// download google sheet
-			else {
-				Sheets service = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
-				try {
-					ValueRange response = service.spreadsheets().values().get(fileId, sheetName).execute();
-					List<List<Object>> values = response.getValues();
-					// check if sheet has data
-					if (values == null || values.size() == 0) {
-						throw new IllegalArgumentException("No data found.");
-					} else {
-						// flush out sheet to file csv path
-						PrintWriter out = new PrintWriter(filePath);
-						for (List<?> row : values) {
-							String csvRow = "";
-							for (int i = 0; i < row.size(); i++) {
-								csvRow += row.get(i).toString();
-								if (i < row.size() - 1) {
-									csvRow += ",";
-								}
-							}
-							out.write(csvRow + System.getProperty("line.separator"));
-						}
-						out.close();
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-
-			// get datatypes
-			CSVFileHelper helper = new CSVFileHelper();
-			helper.setDelimiter(',');
-			helper.parse(filePath);
-			String[] colNames = helper.getHeaders();
-			String[] types = helper.predictTypes();
-			// clear the helper
-			helper.clear();
-			
-			CsvQueryStruct qs = new CsvQueryStruct();
-			qs.setSource(CsvQueryStruct.ORIG_SOURCE.API_CALL);
-			Map<String, String> dataTypes = new HashMap<String, String>();
-			int numHeaders = colNames.length;
-			for (int i = 0; i < numHeaders; i++) {
-				qs.addSelector("DND", colNames[i]);
-				dataTypes.put(colNames[i], types[i]);
-			}
-			qs.merge(this.qs);
-			qs.setCsvFilePath(filePath);
-			qs.setDelimiter(',');
-			qs.setColumnTypes(dataTypes);
-			return qs;
-		}
 		
-		SemossPixelException exception = new SemossPixelException();
-		exception.setContinueThreadOfExecution(false);
-		exception.setAdditionalReturn(new NounMetadata("Please login to your Google account", PixelDataType.ERROR, PixelOperationType.GOOGLE_LOGIN_REQUIRED));
-		throw exception;
+		if(gc == null) {
+			SemossPixelException exception = new SemossPixelException();
+			exception.setContinueThreadOfExecution(false);
+			exception.setAdditionalReturn(new NounMetadata("Please login to your Google account", PixelDataType.ERROR, PixelOperationType.GOOGLE_LOGIN_REQUIRED));
+			throw exception;
+		}
+
+		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		filePath += "\\" + Utility.getRandomString(10) + ".csv";
+		filePath = filePath.replace("\\", "/");
+
+		// download csv from google drive
+		if (mimeType.equals("CSV")) {
+			Drive driveService = new Drive.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
+			try {
+				OutputStream os = new FileOutputStream(new File(filePath));
+				driveService.files().get(fileId).executeMediaAndDownloadTo(os);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		// download google sheet
+		else {
+			Sheets service = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
+			try {
+				ValueRange response = service.spreadsheets().values().get(fileId, sheetName).execute();
+				List<List<Object>> values = response.getValues();
+				// check if sheet has data
+				if (values == null || values.size() == 0) {
+					throw new IllegalArgumentException("No data found.");
+				} else {
+					// flush out sheet to file csv path
+					PrintWriter out = new PrintWriter(filePath);
+					for (List<?> row : values) {
+						String csvRow = "";
+						for (int i = 0; i < row.size(); i++) {
+							csvRow += row.get(i).toString();
+							if (i < row.size() - 1) {
+								csvRow += ",";
+							}
+						}
+						out.write(csvRow + System.getProperty("line.separator"));
+					}
+					out.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		// get datatypes
+		CSVFileHelper helper = new CSVFileHelper();
+		helper.setDelimiter(',');
+		helper.parse(filePath);
+		String[] colNames = helper.getHeaders();
+		String[] types = helper.predictTypes();
+		// clear the helper
+		helper.clear();
+
+		CsvQueryStruct qs = new CsvQueryStruct();
+		qs.setSource(CsvQueryStruct.ORIG_SOURCE.API_CALL);
+		Map<String, String> dataTypes = new HashMap<String, String>();
+		int numHeaders = colNames.length;
+		for (int i = 0; i < numHeaders; i++) {
+			qs.addSelector("DND", colNames[i]);
+			dataTypes.put(colNames[i], types[i]);
+		}
+		qs.merge(this.qs);
+		qs.setCsvFilePath(filePath);
+		qs.setDelimiter(',');
+		qs.setColumnTypes(dataTypes);
+		return qs;
 	}
 
 	private List<String> getSheetNames() {
