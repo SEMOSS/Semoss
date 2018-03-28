@@ -63,13 +63,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
 		}
 
-		// for testing... should always be passed in
-		if (recipeToSave == null || recipeToSave.length == 0) {
-			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
-		} else {
-			// this is always encoded before it gets here
-			recipeToSave = decodeRecipe(recipeToSave);
-		}
+		// this is always encoded before it gets here
+		recipeToSave = decodeRecipe(recipeToSave);
 
 		IEngine engine = Utility.getEngine(engineName);
 		if(engine == null) {
