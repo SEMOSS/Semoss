@@ -33,7 +33,6 @@ import java.util.Vector;
 
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
-import prerna.om.SEMOSSParam;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -123,8 +122,6 @@ public interface IExplorable {
 	void setInsightDatabase(IEngine insightDatabase);
 	
 	String getInsightDefinition();
-	
-	Vector<SEMOSSParam> getParams(String... paramIds);
 	
 	/**
 	 * Get the physical URI from the conceptual URI

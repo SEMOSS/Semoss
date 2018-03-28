@@ -32,7 +32,6 @@ import java.awt.event.ActionEvent;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
@@ -49,6 +48,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamPanel;
 import prerna.ui.components.api.IChakraListener;
@@ -117,7 +117,7 @@ public class QuestionListener implements IChakraListener {
 
 			logger.info("Sparql is " + sparql);
 
-			Vector<SEMOSSParam> paramInfoVector = engine.getParams(questionID);
+			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), questionID);
 			
 			ParamPanel panel = new ParamPanel();
 			panel.setParams(paramInfoVector);
