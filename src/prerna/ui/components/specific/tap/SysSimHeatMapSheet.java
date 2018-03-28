@@ -33,12 +33,13 @@ import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-
-import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
-import prerna.util.Utility;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
+import prerna.ui.main.listener.specific.tap.SysSimHealthGridListener;
+import prerna.util.Utility;
 
 
 /**
@@ -257,9 +258,9 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 
 	@Override
 	public Hashtable getDataMakerOutput(String... selectors) {
-		ArrayList args = prepareOrderedVars();
-		Hashtable testHash = new Hashtable();
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> list = calculateHash(args, testHash);
+		List args = prepareOrderedVars();
+		Map testHash = new Hashtable();
+		List<Map<String, Map<String, Double>>> list = calculateHash(args, testHash);
 		//this.paramDataHash.clear();
 //		for(Hashtable hash : list){ //Browser crashes on TAP Core when sending all of the data... for now just going to add one array (max of 20,000 cells)
 //			specdataHash.putAll(list.get(0));
@@ -285,7 +286,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
 		if (dataHash != null)
 			returnHash.put("specificData", dataHash);
-		ArrayList<Object[]> tableData = flattenData(list, true);
+		List<Object[]> tableData = flattenData(list, true);
 		returnHash.put("data", tableData);
 		returnHash.put("headers", new String[]{comparisonObjectTypeX,comparisonObjectTypeY,"Score"});
 //		Gson gson = new Gson();
@@ -295,11 +296,11 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		return returnHash;
 	}
 	
-	public ArrayList<Object[]> flattenData(ArrayList<Hashtable<String, Hashtable<String, Double>>> list, boolean initialLoad)
+	public List<Object[]> flattenData(List<Map<String, Map<String, Double>>> list, boolean initialLoad)
 	{
 		logger.info("Starting to flatten data");
-		ArrayList<Object[]> returnTable = new ArrayList<Object[]>();
-		for(Hashtable<String,Hashtable<String, Double>> hash : list){
+		List<Object[]> returnTable = new ArrayList<Object[]>();
+		for(Map<String, Map<String, Double>> hash : list){
 //		Hashtable<String,Hashtable<String, Double>> hash = list.get(0);
 			Collection<String> keys = hash.keySet();
 			Collection<String> newKeys = new ArrayList<String>(); // avoid concurrent modification
@@ -307,7 +308,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 			Iterator<String> it = newKeys.iterator();
 			while(it.hasNext()){
 				String key = it.next();
-				Hashtable value = hash.get(key);
+				Map value = hash.get(key);
 				Double score = (Double) value.get("Score");
 				if(score > 50){
 					Object[] row = new Object[3];
@@ -339,19 +340,19 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 	}
 	
 	//web function for refreshing the heat map data given parameters
-	public Hashtable refreshSysSimData(Hashtable webDataHash) {
+	public Hashtable refreshSysSimData(Map webDataHash) {
 		Gson gson = new Gson();
 		Hashtable retHash = new Hashtable();
-		ArrayList<String> selectedVarsList = (ArrayList<String>) webDataHash.get("selectedVars");
-		Hashtable<String, Double> specifiedWeights = gson.fromJson(gson.toJson(webDataHash.get("specifiedWeights")), new TypeToken<Hashtable<String, Double>>() {}.getType());
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = this.calculateHash(selectedVarsList, specifiedWeights);
-		ArrayList<Object[]> table = this.flattenData(calculatedHash, false);
+		List<String> selectedVarsList = (List<String>) webDataHash.get("selectedVars");
+		Map<String, Double> specifiedWeights = gson.fromJson(gson.toJson(webDataHash.get("specifiedWeights")), new TypeToken<Map<String, Double>>() {}.getType());
+		List<Map<String, Map<String, Double>>> calculatedHash = this.calculateHash(selectedVarsList, specifiedWeights);
+		List<Object[]> table = this.flattenData(calculatedHash, false);
 		retHash.put("data", table);
 		return retHash;
 	}
 	
 	//web function for bar chart data
-	public Hashtable getSysSimBarData(Hashtable webDataHash) {
+	public Hashtable getSysSimBarData(Map webDataHash) {
 		Gson gson = new Gson();
 		Hashtable retHash = new Hashtable();
 		ArrayList<String> categoryArray = (ArrayList<String>) webDataHash.get("categoryArray");

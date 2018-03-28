@@ -35,6 +35,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -49,16 +51,16 @@ import javax.swing.border.BevelBorder;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import aurelienribon.ui.css.Style;
 import prerna.algorithm.impl.specific.tap.SysSiteOptimizer;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.SysSiteOptBtnListener;
 import prerna.ui.swing.custom.ToggleButton;
 import prerna.util.Utility;
-import aurelienribon.ui.css.Style;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * This is the playsheet used exclusively for TAP system optimization at the site level.
@@ -373,9 +375,9 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * @param webDataHash	Hashtable that includes names of checkboxes and whether they are selected
 	 * @return	Hashtable that includes a list of systems that meet the input conditions
 	 */
-	public Hashtable getSystems(Hashtable<String, Object> webDataHash) {
-		Hashtable returnHash = (Hashtable) super.getDataMakerOutput();
-		Hashtable<String, ArrayList<String>> dataHash = new Hashtable<String, ArrayList<String>>();
+	public Map getSystems(Map<String, Object> webDataHash) {
+		Map returnHash = (Map) super.getDataMakerOutput();
+		Map<String, List<String>> dataHash = new Hashtable<String, List<String>>();
 		
 		Gson gson = new Gson();
 		Boolean lpi = gson.fromJson(gson.toJson(webDataHash.get("lpi")), Boolean.class);
@@ -430,13 +432,13 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * @param webDataHash
 	 * @return ArrayList with all the systems and algorithm recommendation on whether to modernize or decommission
 	 */
-	public ArrayList<Hashtable<String,String>> runDefaultOpt(Hashtable<String, Object> webDataHash) {
+	public List<Map<String,String>> runDefaultOpt(Map<String, Object> webDataHash) {
 
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) Utility.getEngine(siteEngineName);
 		if(siteEngine == null) {
 			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
-			return new ArrayList<Hashtable<String,String>>();
+			return new ArrayList<Map<String,String>>();
 		}
 		
 		ArrayList<String> sysList;
@@ -451,7 +453,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		}
 		if(sysList.isEmpty()) {
 			LOGGER.error("There are no systems that fit requirements.");
-			return new ArrayList<Hashtable<String,String>>();
+			return new ArrayList<Map<String,String>>();
 		}
 		
 		ArrayList<String> modList= new ArrayList<String>(sysUpdater.getSelectedSystemList(true, false, false, false, false, false, false, true, false));
@@ -459,7 +461,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 		
 		if(!setUpOpt(siteEngine, 1000000000, 10, 1.5/100, 2.5/100, 80.0/100.0, 15.0/100.0, 150, "Savings", false, capOrBPURI)) {
 			LOGGER.error("Optimization type is not valid.");
-			return new ArrayList<Hashtable<String,String>>();
+			return new ArrayList<Map<String,String>>();
 		}
 		opt.setSysList(sysList,modList,decomList);
 		opt.executeWeb();
@@ -476,19 +478,19 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * @param webDataHash
 	 * @return ArrayList with all the systems and algorithm recommendation on whether to modernize or decommission
 	 */
-	public ArrayList<Hashtable<String,String>> runOpt(Hashtable<String, Object> webDataHash) {
+	public List<Map<String,String>> runOpt(Map<String, Object> webDataHash) {
 		//TODO edit what is being sent in from web to remove optimization and number of points
 
 		//check to make sure site engine is loaded
 		IEngine siteEngine = (IEngine) Utility.getEngine(siteEngineName);
 		if(siteEngine == null) {
 			LOGGER.error("Missing databases. Please make sure you have: TAP_Core_Data_Data and TAP_Site_Data");
-			return new ArrayList<Hashtable<String,String>>();
+			return new ArrayList<Map<String,String>>();
 		}
 		
 		Gson gson = new Gson();
 		//general params
-		ArrayList<Hashtable<String, String>> sysHashList = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<ArrayList<Hashtable<String, String>>>() {}.getType());
+		List<Map<String, String>> sysHashList = gson.fromJson(gson.toJson(webDataHash.get("systemList")), new TypeToken<List<Map<String, String>>>() {}.getType());
 		double yearBudget = gson.fromJson(gson.toJson(webDataHash.get("maxAnnualBudget")), Double.class);
 		int years = gson.fromJson(gson.toJson(webDataHash.get("maxYearValue")), Integer.class);
 		Boolean useDHMSMCap = gson.fromJson(gson.toJson(webDataHash.get("dhmsmCap")), Boolean.class);
@@ -502,7 +504,7 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 
 		if(!setUpOpt(siteEngine, yearBudget, years, infl/100.0, disc/100.0, 80.0/100.0, trainingRate/100.0, hourlyCost, optType, useDHMSMCap, capOrBPURI)) {
 			LOGGER.error("Optimization type is not valid.");
-			return new ArrayList<Hashtable<String,String>>();
+			return new ArrayList<Map<String,String>>();
 		}
 		
 		opt.setSysHashList(sysHashList);
@@ -618,8 +620,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * 3) Health Grid - all sustained and consolidated systems
 	 * 4) Coverage - Data/BLU provided by all systems
 	 */
-	public Hashtable getOverviewPageData(Hashtable webDataHash) {
-		Hashtable retHash = new Hashtable();
+	public Map getOverviewPageData(Map webDataHash) {
+		Map retHash = new Hashtable();
 		String type = (String) webDataHash.get("type");
         if (type.equals("info")) {
         	retHash = opt.getOverviewInfoData();
@@ -646,8 +648,8 @@ public class SysSiteOptPlaySheet extends OptPlaySheet{
 	 * 3) Health Grid - all sustained and consolidated systems
 	 * 4) Coverage - Data/BLU coverage filtered to data/blu provided by this system
 	 */
-	public Hashtable getSystemPageData(Hashtable webDataHash) {
-		Hashtable retHash = new Hashtable();
+	public Map getSystemPageData(Map webDataHash) {
+		Map retHash = new Hashtable();
         String type = (String) webDataHash.get("type");
         String system = (String) webDataHash.get("system");
         String ind = (String) webDataHash.get("ind");

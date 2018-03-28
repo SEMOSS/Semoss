@@ -277,7 +277,7 @@ public abstract class AbstractPlaySheet extends JInternalFrame implements IPlayS
 		java.lang.reflect.Method method = null;
 		Object ret = null;
 		try {
-			method = this.getClass().getMethod(methodName, Hashtable.class);
+			method = this.getClass().getMethod(methodName, Map.class);
 			logger.info("Successfully got method : " + methodName);
 			ret = method.invoke(this, argHash);
 			logger.info("Successfully invoked method : " + methodName);
