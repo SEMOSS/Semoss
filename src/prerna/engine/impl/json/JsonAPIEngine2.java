@@ -29,13 +29,13 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	// that uses jmes path instead to aggregate results
 	// evrything remains the same the way you get the output changes
 	
-	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
+	private static final Logger logger = LogManager.getLogger(JsonAPIEngine2.class.getName());
 	
 	ObjectMapper mapper = null;
 	JsonNode input = null;
 	JmesPath<JsonNode> jmespath = new JacksonRuntime();
 	
-	public static final String root = "root";
+	public static final String ROOT = "root";
 
 
 
@@ -101,27 +101,42 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		JsonNode data = null;
 		
 		
-		String root = prop.getProperty(this.root) + "[].";
+		String root = prop.getProperty(ROOT) + "[].";
 		
 		String selects = null;
 		
 		StringBuffer composer = new StringBuffer("[");
 
 		String [] headers  = null;
-		
-		if(repeaterHeader != null)
+		if(repeaterHeader != null) {
 			headers = new String[jsonPaths.length + 1];
-		else
+		} else {
 			headers = new String[jsonPaths.length];
+		}
 		
 		// leave the root out
-		for(int pathIndex = 0;pathIndex < jsonPaths.length;pathIndex++)
-		{
-			if(pathIndex == 0)
+		for(int pathIndex = 0; pathIndex < jsonPaths.length; pathIndex++) {
+			// for multi
+			// separate with comma
+			if(pathIndex == 0) {
+				composer.append(",");
+			}
+			
+			// this is the case when we send a custom header
+			// i.e. [custom_distance_name=distance]
+			// we want to pull the data from distance but our header name
+			// is custom_distance so we pass in those values accordingly
+			// the opposite case is that these two are equal since
+			// there is no = sign
+			if(jsonPaths[pathIndex].contains("=")) {
+				String[] split = jsonPaths[pathIndex].split("=");
+				composer.append(split[1]);
+				headers[pathIndex] = split[0];
+			} else {
+				// normal case
 				composer.append(jsonPaths[pathIndex]);
-			else
-				composer.append(",").append(jsonPaths[pathIndex]);
-			headers[pathIndex] = jsonPaths[pathIndex];
+				headers[pathIndex] = jsonPaths[pathIndex];
+			}
 		}
 		
 		composer.append("]");
