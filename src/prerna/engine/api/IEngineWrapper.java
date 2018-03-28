@@ -29,8 +29,6 @@ package prerna.engine.api;
 
 import java.util.Map;
 
-import prerna.ds.QueryStruct;
-
 public interface IEngineWrapper {
 
 	void execute();
@@ -38,8 +36,6 @@ public interface IEngineWrapper {
 	boolean hasNext();
 
 	void setQuery(String query);
-	
-//	void setQueryStruct(QueryStruct qs);
 	
 	void setEngine(IEngine engine);
 	

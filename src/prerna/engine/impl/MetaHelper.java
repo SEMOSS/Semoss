@@ -196,13 +196,6 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public Vector<SEMOSSParam> getParams(String... paramIds) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public Vector<String> executeInsightQuery(String sparqlQuery,
 			boolean isDbQuery) {
 		// TODO Auto-generated method stub
