@@ -40,14 +40,14 @@ import java.util.logging.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.teamdev.jxbrowser.chromium.LoggerProvider;
+
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.ui.main.listener.specific.tap.SimilarityBarChartBrowserFunction;
 import prerna.ui.main.listener.specific.tap.SimilarityRefreshBrowserFunction;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-
-import com.google.gson.Gson;
-import com.teamdev.jxbrowser.chromium.LoggerProvider;
 
 
 /**
@@ -199,11 +199,11 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 	public void callIt()
 	{
 		Gson gson = new Gson();
-		ArrayList args = prepareOrderedVars();
+		List args = prepareOrderedVars();
 		Hashtable testHash = new Hashtable();
 //		testHash.put("Deployment_(Theater/Garrison)", 0.90);
 //		browser.executeScript("dataBuilder('" + gson.toJson(args) + "', '" + gson.toJson(testHash) + "');");
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray = calculateHash(args, testHash);
+		List<Map<String, Map<String, Double>>> calculatedArray = calculateHash(args, testHash);
 		sendData(calculatedArray);
 		
 		//send available dimensions:
@@ -226,10 +226,10 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		allHash.clear();
 //		paramDataHash.clear();
 	}
-	public ArrayList getSimBarChartData(String cellKey, ArrayList<String> selectedVars, Hashtable<String, Double> specifiedWeights){
+	public List getSimBarChartData(String cellKey, List<String> selectedVars, Map<String, Double> specifiedWeights){
 		logger.info("cellKey = " + cellKey);
 		
-		ArrayList<String> selectedVarsList = new ArrayList<String>();
+		List<String> selectedVarsList = new ArrayList<String>();
 		logger.info("Selected Vars are : ");
 		for(String obj : selectedVars) {
 			logger.info(obj);
@@ -243,12 +243,12 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 				logger.info(obj + " " + specifiedWeights.get(obj));
 		}
 		
-		ArrayList calculatedArray = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
+		List calculatedArray = retrieveValues(selectedVarsList, specifiedWeights, cellKey);
 		return calculatedArray;
 	}
 	
-	public ArrayList retrieveValues(ArrayList<String> selectedVars, Hashtable<String, Double>minimumWeights, String key){
-		ArrayList<Hashtable> retHash = new ArrayList<Hashtable>();
+	public List retrieveValues(List<String> selectedVars, Map<String, Double>minimumWeights, String key){
+		List<Hashtable> retHash = new ArrayList<Hashtable>();
 
 		//for each checked var, get scores for key above minVal for that var
 		for(int varIdx = 0; varIdx < selectedVars.size(); varIdx++){
@@ -290,7 +290,7 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 				logger.info(obj + " " + specifiedWeights.get(obj));
 		}
 		
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
+		List<Map<String, Map<String, Double>>> calculatedHash = calculateHash(selectedVarsList, specifiedWeights);
 		sendData(calculatedHash);
 		
 		System.out.println("Java is done -- calling function");
@@ -300,9 +300,9 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		return true;
 	}
 	
-	public void sendData(ArrayList<Hashtable<String, Hashtable<String, Double>>> calculatedArray){
+	public void sendData(List<Map<String, Map<String, Double>>> calculatedArray){
 		Gson gson = new Gson();
-		for(Hashtable hash : calculatedArray)
+		for(Map<String, Map<String, Double>> hash : calculatedArray)
 		{
 			System.out.println("Sending hash with " + hash.size());
 			browser.executeJavaScript("dataBuilder('" + gson.toJson(hash) + "');");
@@ -323,8 +323,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 //		}
 	}
 	
-	public ArrayList<Hashtable<String, Hashtable<String, Double>>> calculateHash(ArrayList<String> selectedVars, Hashtable<String, Double >minimumWeights){
-		ArrayList<Hashtable<String, Hashtable<String, Double>>> retArray = new ArrayList<Hashtable<String, Hashtable<String, Double>>> ();
+	public List<Map<String, Map<String, Double>>> calculateHash(List<String> selectedVars, Map<String, Double >minimumWeights){
+		List<Map<String, Map<String, Double>>> retArray = new ArrayList<Map<String, Map<String, Double>>> ();
 		
 		int totalVars = selectedVars.size();
 		
@@ -431,8 +431,8 @@ public class SimilarityHeatMapSheet extends BrowserPlaySheet{
 		return retArray;
 	}
 	
-	public ArrayList<Hashtable<String, Hashtable<String, Double>>> storeCellInArray(String key, Hashtable cellHash, ArrayList<Hashtable<String, Hashtable<String, Double>>> arrayStore){
-		Hashtable hash = null;
+	public List<Map<String, Map<String, Double>>> storeCellInArray(String key, Map cellHash, List<Map<String, Map<String, Double>>> arrayStore){
+		Map hash = null;
 		if(arrayStore.size()>0){
 			hash = arrayStore.get(0);
 			if(hash.size()>this.maxDataSize){
