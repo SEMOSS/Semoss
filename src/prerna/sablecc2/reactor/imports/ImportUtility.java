@@ -938,7 +938,7 @@ public class ImportUtility {
 				
 				// if this is true, it means that the unique name of this selector is part of a join
 				// and we want to replace its name
-				if(qsName.equals(newColName)) {
+				if(qsName.equals(newColName) || alias.equals(newColName)) {
 					foundColumnJoin = true;
 					if(existingColName.contains("__")) {
 						modifiedNewHeaders[i] = existingColName.split("__")[1];
