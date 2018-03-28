@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -34,6 +36,8 @@ import prerna.util.Utility;
 
 public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 
+	private static final String CLASS_NAME = GoogleSheetSourceReactor.class.getName();
+	
 	private final HttpTransport TRANSPORT = new NetHttpTransport();
 	private final JacksonFactory JSON_FACTORY = new JacksonFactory();
 
@@ -43,6 +47,7 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
+		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String fileId = this.keyValue.get(this.keysToGet[0]);
 		if (fileId == null || fileId.length() <= 0) {
@@ -86,6 +91,7 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 
 		// download csv from google drive
 		if (mimeType.equals("CSV")) {
+			logger.info("Start downloading CSV file from Google Drive");
 			Drive driveService = new Drive.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
 			try {
 				OutputStream os = new FileOutputStream(new File(filePath));
@@ -93,9 +99,11 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			logger.info("Done downloading CSV file from Google Drive");
 		}
 		// download google sheet
 		else {
+			logger.info("Start downloading Sheet as CSV from Google Drive");
 			Sheets service = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();
 			try {
 				ValueRange response = service.spreadsheets().values().get(fileId, sheetName).execute();
@@ -121,6 +129,7 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			logger.info("Done downloading CSV file from Google Drive");
 		}
 
 		// get datatypes
