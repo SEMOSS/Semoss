@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -113,6 +114,7 @@ public class MergeDataReactor extends AbstractReactor {
 		this.insight.setDataMaker(frame);
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
+		
 		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
 		} else if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
@@ -158,6 +160,12 @@ public class MergeDataReactor extends AbstractReactor {
 			fileMeta.setSelectors(qs.getSelectors());
 			fileMeta.setType(FileMeta.FILE_TYPE.CSV);
 			this.insight.addFileUsedInInsight(fileMeta);
+		} else {
+			// it is from an API call of some sort
+			// delete it
+			// when we save, we want to repull every time
+			File csvFile = new File(qs.getCsvFilePath());
+			csvFile.delete();
 		}
 	}
 	

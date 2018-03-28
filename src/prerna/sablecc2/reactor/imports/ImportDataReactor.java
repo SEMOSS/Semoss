@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -103,6 +104,12 @@ public class ImportDataReactor extends AbstractReactor {
 			fileMeta.setSelectors(qs.getSelectors());
 			fileMeta.setType(FileMeta.FILE_TYPE.CSV);
 			this.insight.addFileUsedInInsight(fileMeta);
+		} else {
+			// it is from an API call of some sort
+			// delete it
+			// when we save, we want to repull every time
+			File csvFile = new File(qs.getCsvFilePath());
+			csvFile.delete();
 		}
 	}
 	
