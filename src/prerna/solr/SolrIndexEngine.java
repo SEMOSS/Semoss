@@ -983,7 +983,7 @@ public class SolrIndexEngine {
 	 * @throws KeyStoreException
 	 * @throws SolrServerException
 	 */
-	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, List<String> facetList)
+	public Map<String, Map<String, Long>> executeQueryFacetResults(String searchString, List<String> facetList, SOLR_PATHS path)
 					throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException 
 	{
 		/*
@@ -1020,7 +1020,7 @@ public class SolrIndexEngine {
 		queryBuilder.setFacetSortCount(true);
 
 		// 3) execute the query and get the facet results
-		return facetDocument(queryBuilder);
+		return facetDocument(queryBuilder, path);
 	}
 
 	/**
@@ -1033,7 +1033,7 @@ public class SolrIndexEngine {
 	 * 												number of times that instance value appears 
 	 * @throws SolrServerException
 	 */
-	private Map<String, Map<String, Long>> facetDocument(SolrIndexEngineQueryBuilder queryBuilder) throws SolrServerException {
+	private Map<String, Map<String, Long>> facetDocument(SolrIndexEngineQueryBuilder queryBuilder, SOLR_PATHS path) throws SolrServerException {
 		Map<String, Map<String, Long>> facetFieldMap = new LinkedHashMap<String, Map<String, Long>>();
 		if (serverActive()) {
 			/*
@@ -1053,7 +1053,7 @@ public class SolrIndexEngine {
 			SolrQuery query = queryBuilder.getSolrQuery();
 			
 			// 2) execute the query and get the facet results
-			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+			QueryResponse res = getQueryResponse(query, path);
 			List<FacetField> facetFieldList = res.getFacetFields();
 			
 			// this code block is only entered if the results from executing on the insight core are empty
@@ -1069,7 +1069,7 @@ public class SolrIndexEngine {
 				queryBuilder.setSearchString(updatedQuerySearch);
 				query = queryBuilder.getSolrQuery();
 				// 5) query the insight core
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+				res = getQueryResponse(query, path);
 				facetFieldList = res.getFacetFields();
 			}
 
