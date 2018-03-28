@@ -50,19 +50,12 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		// store in insight store
 		InsightStore.getInstance().put(insightObj);
 
-		// we have some old legacy stuff...
-		// just run and return the object
-		OldInsightProcessor processor = new OldInsightProcessor((OldInsight) insightObj);
-		Map<String, Object> obj = processor.runWeb();
-		((Map) obj).put("isPkqlRunnable", false);
-		((Map) obj).put("recipe", new Object[0]);
-
 		// TODO: why did we allow the FE to still require this when
 		// we already pass a boolean that says this is not pkql....
 		// wtf...
 
-		HashMap insightMap = new HashMap();
-		Map stuipdFEInsightGarabage = new HashMap();
+		Map<String, Object> insightMap = new HashMap<String, Object>();
+		Map<String, Object> stuipdFEInsightGarabage = new HashMap<String, Object>();
 		stuipdFEInsightGarabage.put("clear", false);
 		stuipdFEInsightGarabage.put("closedPanels", new Object[0]);
 		stuipdFEInsightGarabage.put("dataID", 0);
@@ -72,10 +65,16 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		stuipdFEInsightGarabage.put("newInsights", new Object[0]);
 		stuipdFEInsightGarabage.put("pkqlData", new Object[0]);
 		insightMap.put("insights", new Object[] { stuipdFEInsightGarabage });
-		((Map) obj).put("pkqlOutput", insightMap);
+		
+		
+		// we have some old legacy stuff...
+		// just run and return the object
+		OldInsightProcessor processor = new OldInsightProcessor((OldInsight) insightObj);
+		Map<String, Object> obj = processor.runWeb();
+		obj.put("isPkqlRunnable", false);
+		obj.put("recipe", new Object[0]);
+		obj.put("pkqlOutput", insightMap);
 
-		// update security db user tracker
-		// tracker.trackInsightExecution(userId,engine.app,insightObj.insightId,session.getId());
 		// update global solr tracker
 		try {
 			SolrIndexEngine.getInstance().updateViewedInsight(engine.getEngineName() + "_" + insightId);
