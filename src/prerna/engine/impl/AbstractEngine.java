@@ -142,21 +142,13 @@ public abstract class AbstractEngine implements IEngine {
 
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
-	private static final String GET_ALL_INSIGHTS_WITH_METADATA_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, ID FROM QUESTION_ID ORDER BY ID";
 
 	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
 
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
 	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 
-//	private static final String PERSPECTIVE_PARAM_KEY = "@PERSPECTIVE_VALUE@";
-//	private static final String GET_ALL_INSIGHTS_IN_PERSPECTIVE = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID WHERE QUESTION_PERSPECTIVE = '" + PERSPECTIVE_PARAM_KEY + "' ORDER BY QUESTION_ORDER";
-
-	private static final String QUESTION_ID_FK_PARAM_KEY = "@QUESTION_ID_FK_VALUES@";
-	private static final String GET_ALL_PARAMS_FOR_QUESTION_ID = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID, PARAMETER_ID FROM PARAMETER_ID WHERE QUESTION_ID_FK = " + QUESTION_ID_FK_PARAM_KEY;
-
 	private static final String PARAMETER_ID_PARAM_KEY = "@PARAMETER_ID";
-	private static final String GET_INFO_FOR_PARAM = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID = '" + PARAMETER_ID_PARAM_KEY + "'";
 	private static final String GET_INFO_FOR_PARAMS = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID IN (" + PARAMETER_ID_PARAM_KEY + ")";
 	
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
@@ -320,150 +312,6 @@ public abstract class AbstractEngine implements IEngine {
 		} 
 	}
 	
-	@Deprecated
-	private void updateToPixelInsights() {
-		InsightsConverter2 converter = new InsightsConverter2(this);
-		try {
-			converter.modifyInsightsDatabase();
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		}
-	}
-	
-	@Deprecated
-	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
-		try {
-			// if solr doesn't have this engine
-			// do not add anything yet
-			// let it get added later
-			if(!SolrIndexEngine.getInstance().containsEngine(this.engineName)) {
-				return;
-			}
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e3) {
-			e3.printStackTrace();
-		}
-		boolean tableExists = false;
-		ResultSet rs = null;
-		try {
-			rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
-			if (rs.next()) {
-				  tableExists = true;
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if(rs != null) {
-					rs.close();
-				}
-			} catch(SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		if(tableExists) {
-			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
-			File exploreF = new File(exploreLoc);
-			if(!exploreF.exists()) {
-				// ughhh... cant do anything for ya buddy
-				return;
-			}
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.engineName);
-			} catch (IOException e2) {
-				// can't help ya
-				return;
-			}
-			newPixel += "} </encode>\" ) ;";
-			
-			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
-			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
-			IRawSelectWrapper it1 = null;
-			String oldId = null;
-			try {
-				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where "
-						+ "question_name = 'Explore an instance of a selected node type' OR question_name = 'Explore an Instance(s) of a Selected Node'" );
-				while(it1.hasNext()) {
-					// drop the old insight
-					oldId = it1.next().getValues()[0].toString();
-					admin.dropInsight(oldId);
-					try {
-						List<String> rList = new Vector<String>();
-						rList.add(this.engineName + "_" + oldId);
-						SolrIndexEngine.getInstance().removeInsight(rList);
-					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-							| IOException e1) {
-						e1.printStackTrace();
-					}
-				}
-			} catch(Exception e) {
-				// if we have a db that doesn't actually have this table (forms, local master, etc.)
-			} finally {
-				if(it1 != null) {
-					it1.cleanUp();
-				}
-			}
-			
-			IRawSelectWrapper it2 = null;
-			try {
-				it2 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an Instance(s) of a Selected Node'");
-				if(!it2.hasNext()) {
-					// add the new insight
-					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
-		
-					if(oldId != null) {
-						insightRDBMS.insertData("UPDATE QUESTION_ID SET ID='" + oldId + "' WHERE ID='" + insightIdToSave + "'");
-						insightIdToSave = oldId;
-					}
-					
-					Map<String, Object> solrInsights = new HashMap<>();
-					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-					Date date = new Date();
-					String currDate = dateFormat.format(date);
-					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an instance of a selected node type");
-					solrInsights.put(SolrIndexEngine.TAGS, "Explore");
-					solrInsights.put(SolrIndexEngine.LAYOUT, "Graph");
-					solrInsights.put(SolrIndexEngine.CREATED_ON, currDate);
-					solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
-					solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
-					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, insightIdToSave);
-					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
-		
-					// TODO: figure out which engines are used within this insight
-					solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
-					solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
-		
-					try {
-						SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
-						SolrUtility.addAppToSolr(engineName);
-					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-							| IOException e1) {
-						e1.printStackTrace();
-					}
-				} else {
-					// right now, delete and re add it
-					// only need to to do this on the recipe
-					// no need to modify solr
-					oldId = it2.next().getValues()[0].toString();
-					admin.dropInsight(oldId);
-					
-					// add the new insight
-					// and modify the id
-					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
-					insightRDBMS.insertData("UPDATE QUESTION_ID SET ID='" + oldId + "' WHERE ID='" + insightIdToSave + "'");
-				}
-			} catch(Exception e) {
-				e.printStackTrace();
-			} finally {
-				if(it2 != null) {
-					it2.cleanUp();
-				}
-			}
-		}
-	}
-
 	@Override
 	public void closeDB() {
 		if(this.baseDataEngine != null) {
@@ -572,6 +420,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * 
 	 * @return RDFFileSesameEngine - the base data engine
 	 */
+	@Override
 	public RDFFileSesameEngine getBaseDataEngine() {
 		return this.baseDataEngine;
 	}
@@ -776,24 +625,6 @@ public abstract class AbstractEngine implements IEngine {
 		return this.baseDataEngine.execQuery(query);
 	}
 
-	/**
-	 * Runs insert query on base data engine of this engine
-	 */
-	public void ontoInsertData(String query) {
-		logger.debug("Running insert query on base data engine of " + this.engineName);
-		logger.debug("Query is " + query);
-		baseDataEngine.insertData(query);
-	}
-
-	/**
-	 * This method runs an update query on the base data engine which contains all owl and metamodel information
-	 */
-	public void ontoRemoveData(String query) {
-		logger.debug("Running update query on base data engine of " + this.engineName);
-		logger.debug("Query is " + query);
-		baseDataEngine.removeData(query);
-	}
-
 	public String getMethodName(IEngine.ACTION_TYPE actionType){
 		String retString = "";
 		switch(actionType) {
@@ -905,34 +736,6 @@ public abstract class AbstractEngine implements IEngine {
 		return new SPARQLQueryParser();
 	}
 
-	public static void main(String [] args) throws Exception
-	{
-		DIHelper.getInstance().loadCoreProp("C:\\workspace\\SEMOSSDev\\RDF_Map.prop");
-		FileInputStream fileIn = null;
-		try{
-			Properties prop = new Properties();
-			String fileName = "C:\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
-			fileIn = new FileInputStream(fileName);
-			prop.load(fileIn);
-			System.err.println("Loading DB " + fileName);
-			Utility.loadEngine(fileName, prop);
-		}catch(IOException e){
-			e.printStackTrace();
-		}finally{
-			try{
-				if(fileIn!=null)
-					fileIn.close();
-			}catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
-		List<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title", false);
-		while(!props.isEmpty()){
-			System.out.println(props.remove(0));
-		}
-	}
-
 	@Override
 	public IEngine getInsightDatabase() {
 		return this.insightRDBMS;
@@ -983,38 +786,6 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	@Override
-	public List<Map<String, Object>> getAllInsightsMetaData() {
-		List<Map<String, Object>> retList = new Vector<Map<String, Object>>();
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, GET_ALL_INSIGHTS_WITH_METADATA_QUERY);
-		String[] names = wrap.getVariables();
-		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String insight = ss.getVar(names[0]) + "";
-			String insightLabel = ss.getVar(names[1]) + "";
-			String perspective = ss.getVar(names[2]) + "";
-			String layout = ss.getVar(names[3]) + "";
-
-			// TODO: need to clean this up
-			// seems unnecessary to pass this for each insight since we know its from this engine
-			HashMap<String, String> engineMetaData = new HashMap<String, String>();
-			engineMetaData.put("name", this.engineName);
-			engineMetaData.put("type", this.getEngineType().toString());
-			
-			Map<String, Object> insightMetadata = new Hashtable<String, Object>();
-			insightMetadata.put("insight", insight);
-			insightMetadata.put("label", insightLabel);
-			insightMetadata.put("engine", engineMetaData);
-			insightMetadata.put("perspective", perspective);
-			insightMetadata.put("layout", layout);
-			insightMetadata.put("visibility", "me");
-			insightMetadata.put("count", 0);
-			
-			retList.add(insightMetadata);
-		}
-		return retList;
-	}
-
-	@Override
 	public Vector<SEMOSSParam> getParams(String... paramIds) {
 		String pIdString = "";
 		int numIDs = paramIds.length;
@@ -1058,142 +829,6 @@ public abstract class AbstractEngine implements IEngine {
 		return retParams;
 	}
 
-	
-	public Vector<SEMOSSParam> getParams(String questionID) {
-		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, questionID);
-		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, query);
-
-		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-		while(wrap.hasNext()) {
-			// get a bunch of options
-			IHeadersDataRow ss = wrap.next();
-			Object[] dataRow = ss.getValues();
-			String label = dataRow[0] + "";
-			SEMOSSParam param = new SEMOSSParam();
-			param.setName(label);
-			Object type = dataRow[1];
-			if(type != null && !type.toString().isEmpty()) {
-				param.setType(type.toString());
-			}
-			Object options = dataRow[2];
-			if(options != null && !options.toString().isEmpty()) {
-				param.setOptions(options.toString());
-			}
-			Object paramQuery = dataRow[3];
-			if(paramQuery != null && !paramQuery.toString().isEmpty()) {
-				param.setQuery(paramQuery.toString());
-			}
-			Object paramDependency = dataRow[4];
-			if(paramDependency != null && !paramDependency.toString().isEmpty()) {
-				String[] vars = paramDependency.toString().split(";");
-				for(String var : vars){
-					param.addDependVar(var);
-				}
-				param.setQuery(paramQuery.toString());
-			}
-			Object isDbQuery = dataRow[5];
-			if(isDbQuery != null) {
-				param.setDbQuery((boolean) isDbQuery);
-			}
-			Object isMultiSelect = dataRow[6];
-			if(isDbQuery != null) {
-				param.setMultiSelect((boolean) isMultiSelect);
-			}
-			Object componentFilter = dataRow[7];
-			if(componentFilter != null && !componentFilter.toString().isEmpty()) {
-				param.setComponentFilterId(componentFilter.toString());
-			}
-			Object paramId = dataRow[8];
-			if(paramId != null && !paramId.toString().isEmpty()) {
-				param.setParamID(paramId.toString());
-			}
-			// add to the set
-			retParam.addElement(param);
-		}
-
-		return retParam;
-	}
-
-	@Override
-	public Vector<Object> getParamOptions(String parameterID) {
-		String query = GET_INFO_FOR_PARAM.replace(PARAMETER_ID_PARAM_KEY, parameterID);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-		String[] names = wrap.getVariables();
-
-		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String label = ss.getVar(names[0]) + "";
-			SEMOSSParam param = new SEMOSSParam();
-			param.setName(label);
-			if(ss.getVar(names[1]) != null)
-				param.setType(ss.getVar(names[1]) +"");
-			if(ss.getVar(names[2]) != null)
-				param.setOptions(ss.getVar(names[2]) + "");
-			if(ss.getVar(names[3]) != null)
-				param.setQuery(ss.getVar(names[3]) + "");
-			if(ss.getRawVar(names[4]) != null)
-				param.addDependVar(ss.getRawVar(names[4]) +"");
-			if(ss.getVar(names[5]) != null && !ss.getVar(names[5]).toString().isEmpty())
-				param.setDbQuery((boolean) ss.getVar(names[5]));
-			if(!ss.getVar(names[6]).toString().isEmpty())
-				param.setMultiSelect((boolean) ss.getVar(names[6]));
-			if(!ss.getVar(names[7]).toString().isEmpty())
-				param.setComponentFilterId(ss.getVar(names[7]) + "");
-			if(ss.getVar(names[0]) != null)
-				param.setParamID(ss.getVar(names[0]) +"");
-			retParam.addElement(param);
-		}
-
-		Vector<Object> uris = new Vector<Object>();
-		if(!retParam.isEmpty()){
-			SEMOSSParam ourParam = retParam.get(0); // there should only be one as we are getting the param from a specific param URI
-			//if the param has options defined, we are all set
-			//grab the options and we are good to go
-			Vector<String> options = ourParam.getOptions();
-			if (options != null && !options.isEmpty()) {
-				uris.addAll(options);
-			}
-			else{
-				// if options are not defined, need to get uris either from custom sparql or type
-				// need to use custom query if it has been specified in the xml
-				// otherwise use generic fill query
-				String paramQuery = ourParam.getQuery();
-				String type = ourParam.getType();
-				boolean isDbQuery = ourParam.isDbQuery();
-				// RDBMS right now does type:type... need to get just the second type. This will be fixed once insights don't store generic query
-				// TODO: fix this logic. need to decide how to store param type for rdbms
-				if(paramQuery != null && !paramQuery.isEmpty()) {
-					//TODO: rdbms has type as null... this is confusing given the other comments here....
-					if(type != null && !type.isEmpty()) {
-						if (this.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-							if (type.contains(":")) {
-								String[] typeArray = type.split(":");
-								type = typeArray[1];
-								//if (type != null && table != null && !type.equalsIgnoreCase(table)) // Parameter structure: '@ParamName-Table:Column@'
-								//paramQuery = paramQuery.substring(0, paramQuery.lastIndexOf("@entity@")) + table;
-							}
-						}
-						Map<String, List<Object>> paramTable = new Hashtable<String, List<Object>>();
-						List<Object> typeList = new Vector<Object>();
-						typeList.add(type);
-						paramTable.put(Constants.ENTITY, typeList);
-						paramQuery = Utility.fillParam(paramQuery, paramTable);
-					}
-					if(isDbQuery) {
-						uris = this.getCleanSelect(paramQuery);
-					} else {
-						uris = this.baseDataEngine.getCleanSelect(paramQuery);
-					}
-				}else { 
-					// anything that is get Entity of Type must be on db
-					uris = this.getEntityOfType(type);
-				}
-			}
-		}
-		return uris;
-	}
-	
 	@Override
 	public Vector<Insight> getInsight(String... questionIDs) {
 		String idString = "";
@@ -1270,20 +905,6 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 		return insightV;
-	}
-
-	//TODO: currently these are never actually used in the application....
-	@Override
-	public Vector<String> getInsight4Type(String type) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	//TODO: currently these are never actually used in the application....
-	@Override
-	public Vector<String> getInsight4Tag(String tag) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
@@ -1550,6 +1171,191 @@ public abstract class AbstractEngine implements IEngine {
 	public void setProp(Properties prop)
 	{
 		this.prop = prop;
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Methods that exist only to automate changes to databases
+	 */
+	
+	@Deprecated
+	private void updateToPixelInsights() {
+		InsightsConverter2 converter = new InsightsConverter2(this);
+		try {
+			converter.modifyInsightsDatabase();
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
+	}
+	
+	@Deprecated
+	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
+		try {
+			// if solr doesn't have this engine
+			// do not add anything yet
+			// let it get added later
+			if(!SolrIndexEngine.getInstance().containsEngine(this.engineName)) {
+				return;
+			}
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e3) {
+			e3.printStackTrace();
+		}
+		boolean tableExists = false;
+		ResultSet rs = null;
+		try {
+			rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
+			if (rs.next()) {
+				  tableExists = true;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if(tableExists) {
+			String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
+			File exploreF = new File(exploreLoc);
+			if(!exploreF.exists()) {
+				// ughhh... cant do anything for ya buddy
+				return;
+			}
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.engineName);
+			} catch (IOException e2) {
+				// can't help ya
+				return;
+			}
+			newPixel += "} </encode>\" ) ;";
+			
+			// for debugging... delete from question_id where question_name = 'New Explore an Instance'
+			InsightAdministrator admin = new InsightAdministrator(insightRDBMS);
+			IRawSelectWrapper it1 = null;
+			String oldId = null;
+			try {
+				it1 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where "
+						+ "question_name = 'Explore an instance of a selected node type' OR question_name = 'Explore an Instance(s) of a Selected Node'" );
+				while(it1.hasNext()) {
+					// drop the old insight
+					oldId = it1.next().getValues()[0].toString();
+					admin.dropInsight(oldId);
+					try {
+						List<String> rList = new Vector<String>();
+						rList.add(this.engineName + "_" + oldId);
+						SolrIndexEngine.getInstance().removeInsight(rList);
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+							| IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+			} catch(Exception e) {
+				// if we have a db that doesn't actually have this table (forms, local master, etc.)
+			} finally {
+				if(it1 != null) {
+					it1.cleanUp();
+				}
+			}
+			
+			IRawSelectWrapper it2 = null;
+			try {
+				it2 = WrapperManager.getInstance().getRawWrapper(insightRDBMS, "select id from question_id where question_name = 'Explore an Instance(s) of a Selected Node'");
+				if(!it2.hasNext()) {
+					// add the new insight
+					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
+		
+					if(oldId != null) {
+						insightRDBMS.insertData("UPDATE QUESTION_ID SET ID='" + oldId + "' WHERE ID='" + insightIdToSave + "'");
+						insightIdToSave = oldId;
+					}
+					
+					Map<String, Object> solrInsights = new HashMap<>();
+					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
+					Date date = new Date();
+					String currDate = dateFormat.format(date);
+					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an instance of a selected node type");
+					solrInsights.put(SolrIndexEngine.TAGS, "Explore");
+					solrInsights.put(SolrIndexEngine.LAYOUT, "Graph");
+					solrInsights.put(SolrIndexEngine.CREATED_ON, currDate);
+					solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
+					solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
+					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
+					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, insightIdToSave);
+					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
+		
+					// TODO: figure out which engines are used within this insight
+					solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
+					solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
+		
+					try {
+						SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
+						SolrUtility.addAppToSolr(engineName);
+					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+							| IOException e1) {
+						e1.printStackTrace();
+					}
+				} else {
+					// right now, delete and re add it
+					// only need to to do this on the recipe
+					// no need to modify solr
+					oldId = it2.next().getValues()[0].toString();
+					admin.dropInsight(oldId);
+					
+					// add the new insight
+					// and modify the id
+					String insightIdToSave = admin.addInsight("Explore an instance of a selected node type", "Graph", new String[]{newPixel});
+					insightRDBMS.insertData("UPDATE QUESTION_ID SET ID='" + oldId + "' WHERE ID='" + insightIdToSave + "'");
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			} finally {
+				if(it2 != null) {
+					it2.cleanUp();
+				}
+			}
+		}
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Testing
+	 */
+	
+	public static void main(String [] args) throws Exception
+	{
+		DIHelper.getInstance().loadCoreProp("C:\\workspace\\SEMOSSDev\\RDF_Map.prop");
+		FileInputStream fileIn = null;
+		try{
+			Properties prop = new Properties();
+			String fileName = "C:\\workspace\\SEMOSSDev\\db\\Movie_Test.smss";
+			fileIn = new FileInputStream(fileName);
+			prop.load(fileIn);
+			System.err.println("Loading DB " + fileName);
+			Utility.loadEngine(fileName, prop);
+		}catch(IOException e){
+			e.printStackTrace();
+		}finally{
+			try{
+				if(fileIn!=null)
+					fileIn.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
+		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
+		List<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title", false);
+		while(!props.isEmpty()){
+			System.out.println(props.remove(0));
+		}
 	}
 	
 }
