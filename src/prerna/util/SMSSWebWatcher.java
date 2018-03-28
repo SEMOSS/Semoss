@@ -48,6 +48,7 @@ import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.solr.SolrIndexEngine;
+import prerna.solr.SolrIndexEngine.SOLR_PATHS;
 import prerna.solr.SolrUtility;
 
 /**
@@ -130,15 +131,18 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String fileName = folderToWatch + "/" + newFile;
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, fileName);
 				String engineTypeString = null;
-				// @TODO when we get to modifying engines
-				if((""+prop.get(Constants.ENGINE_TYPE)).contains("RDBMS"))
+				String rawType = prop.get(Constants.ENGINE_TYPE).toString();
+				if(rawType.contains("RDBMS")) {
 					engineTypeString = "RDBMS";
-				else
+				} else if(rawType.contains("AppEngine")) {
+					engineTypeString = "APP";
+				} else {
 					engineTypeString = "RDF";
+				}
 				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.TYPE, engineTypeString);
+				
 				String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-				if(!(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName))) 
-				{
+				if(!(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName))) {
 					engineNames = engineNames + ";" + engineName;
 					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 				}
@@ -174,16 +178,22 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					LOGGER.info("Engine " + engineName + " is a hidden database. Do not load into local master or solr.");
 					return null;
 				} else {
-					// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
-					// GOTTA MAKE SURE IT IS MODERNIZED VERSION
-					// AS TIME GOES ON, THIS CODE CAN BE REMOVED
-					// IF IT DOES CHANGE THE OWL, THE TIMESTAMP WILL CHAGNE AND LOCAL MASTER
-					// WILL AUTOMATICALLY UPDATE
-					OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
-					modernizer.run();
+					// we want to ignore AppEngine
+					// since it contains no data / owl
+					if(!engineTypeString.equals("APP")) {
+						// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
+						// GOTTA MAKE SURE IT IS MODERNIZED VERSION
+						// AS TIME GOES ON, THIS CODE CAN BE REMOVED
+						// IF IT DOES CHANGE THE OWL, THE TIMESTAMP WILL CHAGNE AND LOCAL MASTER
+						// WILL AUTOMATICALLY UPDATE
+						OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
+						modernizer.run();
+						
+						// get that metadata I say
+						Utility.synchronizeEngineMetadata(engineName);
+					}
 					
-					// get that metadata I say
-					Utility.synchronizeEngineMetadata(engineName);
+					// now add to solr
 					// add instances
 					SolrUtility.addToSolrInsightCore(engineName);
 					// add app
@@ -305,15 +315,17 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 				LOGGER.info("Deleting the engine..... " + engine);
 				remover.deleteEngineRDBMS(engine);
+				SolrUtility.deleteFromSolr(engine);
 			}
 		}
 	
 		try {
 			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
 			if(solrIndexEngine.serverActive()) {
+				// check the insight core
 				List<String> facetList = new ArrayList<String>();
 				facetList.add(SolrIndexEngine.CORE_ENGINE);
-				Map<String, Map<String, Long>> facetReturn = SolrIndexEngine.getInstance().executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList);
+				Map<String, Map<String, Long>> facetReturn = solrIndexEngine.executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				if(facetReturn != null && !facetReturn.isEmpty()) {
 					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
 					if(solrEngines != null) {
@@ -327,6 +339,24 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						}
 					}
 				}
+				// check also the app core
+				facetList = new ArrayList<String>();
+				facetList.add("app_name");
+				facetReturn = solrIndexEngine.executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList, SOLR_PATHS.SOLR_APP_PATH_NAME);
+				if(facetReturn != null && !facetReturn.isEmpty()) {
+					Map<String, Long> solrEngines = facetReturn.get("app_name");
+					if(solrEngines != null) {
+						Set<String> engineSet = solrEngines.keySet();
+						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well
+						for(String engine : engineSet) {
+							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+								SolrUtility.deleteFromSolr(engine);
+								remover.deleteEngineRDBMS(engine);
+							}
+						}
+					}
+				}
+				
 				// need to build the suggester
 				solrIndexEngine.buildSuggester();
 			}
