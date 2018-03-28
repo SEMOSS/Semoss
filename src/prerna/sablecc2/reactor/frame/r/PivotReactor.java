@@ -10,7 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class PivotReactor extends AbstractRFrameReactor{
+public class PivotReactor extends AbstractRFrameReactor {
 
 	/**
 	 * This reactor pivots a column so that the unique values will be transformed into new headers
@@ -38,14 +38,12 @@ public class PivotReactor extends AbstractRFrameReactor{
 		
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		
 		//get frame name
 		String table = frame.getTableName();
-		
 		// get inputs
-		//get the column to pivot
+		// get the column to pivot
 		String pivotCol = getColumnToPivot();
-		//separate the column name from the frame name
+		// separate the column name from the frame name
 		if (pivotCol.contains("__")) {
 			pivotCol = pivotCol.split("__")[1];
 		}
@@ -57,24 +55,21 @@ public class PivotReactor extends AbstractRFrameReactor{
 			valuesCol = valuesCol.split("__")[1];
 		} 
 			
-		//keep track of the columns to keep
+		// keep track of the columns to keep
 		List<String> colsToKeep = getKeepCols();
-			
-		//get the aggregate function if it exists; if it does not exist, it will be of length zero
+		// get the aggregate function if it exists; if it does not exist
+		// it will be of length zero
 		String aggregateFunction = getAggregateFunction();
-			
 		// makes the columns and converts them into rows
 		// dcast(molten, formula = subject~ variable)
 		// I need columns to keep and columns to pivot
 		String newFrame = Utility.getRandomString(8);
-
 		String keepString = "";
-		
 		int numColsToKeep = 0;
 		if (colsToKeep != null) {
 			numColsToKeep = colsToKeep.size();
 		}
-		
+		boolean dropColumn = false;
 		if (numColsToKeep > 0) {
 			// with the portion of code to ignore if the user passes in the 
 			// col to pivot or value to pivot in the selected columns
@@ -98,7 +93,11 @@ public class PivotReactor extends AbstractRFrameReactor{
 				keepString = keepString.substring(0, keepString.length() - 3);
 			}
 			keepString = keepString + " ~ " + pivotCol + ", value.var=\"" + valuesCol + "\"";
-		} 
+		} else {
+			// this creates a new column .
+			dropColumn = true;
+			keepString = ", formula = .~" + pivotCol + ", value.var=\"" + valuesCol + "\""; ;
+		}
 
 		String aggregateString = "";
 		if (aggregateFunction != null && aggregateFunction.length() > 0) {
@@ -112,11 +111,13 @@ public class PivotReactor extends AbstractRFrameReactor{
         this.rJavaTranslator.executeR(cleanScript);
 
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
-		frame.executeRScript(script);
-		script = newFrame + " <- as.data.table(" + newFrame + ");";
-		frame.executeRScript(script);
-		script = table + " <- " + newFrame;
-		frame.executeRScript(script);
+		script += newFrame + " <- as.data.table(" + newFrame + ");";
+		script += table + " <- " + newFrame + ";";
+		if(dropColumn) {
+			// drop the . column
+			script += table + " <- " + table + "[,.:=NULL];";
+		}
+		this.rJavaTranslator.runR(script);
 		recreateMetadata(table);
 		
 		//clean up temp r variables
@@ -171,7 +172,7 @@ public class PivotReactor extends AbstractRFrameReactor{
 				return colInputs;
 			}
 		}
-		throw new IllegalArgumentException("Need to define columns to maintain");
+		return null;
 	}
 	
 	//aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"
