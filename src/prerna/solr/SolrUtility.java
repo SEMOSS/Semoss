@@ -143,6 +143,8 @@ public final class SolrUtility {
 				}
 			}
 			
+			String app_type = null;
+			String app_cost = null;
 			// the whole app cost stuff is completely made up...
 			// but it will look cool so we are doing it
 			String eType = prop.getProperty(Constants.ENGINE_TYPE);
@@ -152,37 +154,46 @@ public final class SolrUtility {
 					rdbmsType = "H2_DB";
 				}
 				rdbmsType = rdbmsType.toUpperCase();
-				fieldData.put("app_type", rdbmsType);
+				app_type = rdbmsType;
 				if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
-					fieldData.put("app_cost", "$$");
+					app_cost = "$$";
 				} else {
-					fieldData.put("app_cost", "");
+					app_cost = "";
 				}
 			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
-				fieldData.put("app_type", "IMPALA");
-				fieldData.put("app_cost", "$$$");
+				app_type = "IMPALA";
+				app_cost = "$$$";
 			} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
-				fieldData.put("app_type", "RDF");
-				fieldData.put("app_cost", "");
+				app_type = "RDF";
+				app_cost = "";
 			} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
-				fieldData.put("app_type", "RDF");
-				fieldData.put("app_cost", "");
+				app_type = "RDF";
+				app_cost = "";
 			} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
-				fieldData.put("app_type", "DATASTAX");
-				fieldData.put("app_cost", "$$$");
+				app_type = "DATASTAX";
+				app_cost = "$$$";
 			} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
-				fieldData.put("app_type", "SOLR");
-				fieldData.put("app_cost", "$$");
+				app_type = "SOLR";
+				app_cost = "$$";
 			} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
 				String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
 				if(tinkerDriver.equalsIgnoreCase("neo4j")) {
-					fieldData.put("app_type", "NEO4J");
-					fieldData.put("app_cost", "");
+					app_type = "NEO4J";
+					app_cost = "";
 				} else {
-					fieldData.put("app_type", "TINKER");
-					fieldData.put("app_cost", "");
+					app_type = "TINKER";
+					app_cost = "";
 				}
+			} else if(eType.equals("prerna.engine.impl.json.JsonAPIEngine") || eType.equals("prerna.engine.impl.json.JsonAPIEngine2")) {
+				app_type = "JSON";
+				app_cost = "";
+			} else if(eType.equals("prerna.engine.impl.app.AppEngine")) {
+				app_type = "APP";
+				app_cost = "$";
 			}
+			
+			fieldData.put("app_type", app_type);
+			fieldData.put("app_cost", app_cost);
 			
 			try {
 				solrE.addApp(appName, fieldData);
