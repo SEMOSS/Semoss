@@ -66,7 +66,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 	static final Logger logger = LogManager.getLogger(ParamPanel.class.getName());
 
 	//Hashtable<String, String> params = null;
-	Vector<SEMOSSParam> params = null;
+	List<SEMOSSParam> params = null;
 	//Hashtable<String, String> paramType = null;
 	String questionId = "";
 	Map<String, List<Object>> knownValues = new Hashtable<String, List<Object>>();
@@ -324,7 +324,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 		this.params = params;
 	}*/
 	
-	public void setParams(Vector<SEMOSSParam> params)
+	public void setParams(List<SEMOSSParam> params)
 	{
 		this.params = params;
 	}
@@ -352,7 +352,7 @@ public class ParamPanel extends JPanel implements ActionListener {
 	 * Gets parameters.
 	
 	 * @return Hashtable<String,String>	Hashtable of parameters. */
-	public Vector<SEMOSSParam> getParams()
+	public List<SEMOSSParam> getParams()
 	{
 		return params;
 	}

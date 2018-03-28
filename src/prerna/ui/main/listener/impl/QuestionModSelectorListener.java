@@ -28,6 +28,7 @@
 package prerna.ui.main.listener.impl;
 
 import java.awt.event.ActionEvent;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -43,6 +44,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.util.Constants;
@@ -144,7 +146,8 @@ public class QuestionModSelectorListener implements IChakraListener {
 			
 			order = in.getOrder();
 			
-			Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParams(questionId);
+			List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), questionId);
+
 			// empties the vectors so it doesn't duplicate existing elements
 			parameterQueryVector.removeAllElements();
 			dependVector.removeAllElements();
@@ -159,7 +162,7 @@ public class QuestionModSelectorListener implements IChakraListener {
 					
 					if (!paramInfoVector.get(i).getDependVars().isEmpty() && !paramInfoVector.get(i).getDependVars().get(0).equals("None")) {
 						for (int j = 0; j < paramInfoVector.get(i).getDependVars().size(); j++) {
-							Vector<SEMOSSParam> dps = engine.getParams(paramInfoVector.get(i).getDependVars().toArray(new String[]{}));
+							List<SEMOSSParam> dps = LegacyInsightDatabaseUtility.getParamsFromParamIds(engine.getInsightDatabase(), paramInfoVector.get(i).getDependVars().toArray(new String[]{}));
 							for(int k = 0; k < dps.size(); k++) {
 								dependVector.add(paramInfoVector.get(i).getName() + "_DEPEND_-_" + dps.get(k).getName());
 							}

@@ -78,7 +78,7 @@ public class OldInsight extends Insight {
 	private transient String dataMakerName;												// the name of the data maker
 	private transient List<DataMakerComponent> dmComponents;					// the list of data maker components in order for creation of insight
 	private transient Map<String, List<Object>> paramHash;						// the parameters selected by user for filtering on insights
-	private transient Vector<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
+	private transient List<SEMOSSParam> insightParameters;					// the SEMOSSParam objects for the insight
 	private String uiOptions;
 	protected String layout;
 
@@ -186,7 +186,7 @@ public class OldInsight extends Insight {
 	 * Setter for the SEMOSSParam objects for the insight
 	 * @param insightParameters
 	 */
-	public void setInsightParameters(Vector<SEMOSSParam> insightParameters) {
+	public void setInsightParameters(List<SEMOSSParam> insightParameters) {
 		this.insightParameters = insightParameters;
 	}
 
@@ -194,7 +194,7 @@ public class OldInsight extends Insight {
 	 * Getter for the SEMOSSParam objects for the insight
 	 * @return
 	 */
-	public Vector<SEMOSSParam> getInsightParameters() {
+	public List<SEMOSSParam> getInsightParameters() {
 		return this.insightParameters;
 	}
 	

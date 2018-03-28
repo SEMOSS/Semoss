@@ -99,7 +99,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// see if the last response was an error
 		// if it is an error that requires user input
-		// hyderate the last result to contain the new information
+		// hydrate the last result to contain the new information
 		if(insightData.containsKey("pixelReturn")) {
 			Vector<Map<String, Object>> returns = (Vector<Map<String, Object>>) insightData.get("pixelReturn");
 			Map<String, Object> lastResult = (Map<String, Object>) returns.get(returns.size()-1);

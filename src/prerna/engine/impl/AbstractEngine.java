@@ -67,7 +67,6 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSParam;
 import prerna.om.SEMOSSVertex;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter2;
@@ -80,6 +79,7 @@ import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
+import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
 import prerna.ui.components.RDFEngineHelper;
@@ -148,9 +148,6 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
 	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 
-	private static final String PARAMETER_ID_PARAM_KEY = "@PARAMETER_ID";
-	private static final String GET_INFO_FOR_PARAMS = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID FROM PARAMETER_ID WHERE PARAMETER_ID IN (" + PARAMETER_ID_PARAM_KEY + ")";
-	
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
 	/**
@@ -786,50 +783,6 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	@Override
-	public Vector<SEMOSSParam> getParams(String... paramIds) {
-		String pIdString = "";
-		int numIDs = paramIds.length;
-		for(int i = 0; i < numIDs; i++) {
-			String id = paramIds[i];
-			pIdString = pIdString + "'" + id + "'";
-			if(i != numIDs - 1) {
-				pIdString = pIdString + ", ";
-			}
-		}
-		String query = GET_INFO_FOR_PARAMS.replace(PARAMETER_ID_PARAM_KEY, pIdString);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-		String[] names = wrap.getVariables();
-
-		Vector<SEMOSSParam> retParams = new Vector<SEMOSSParam>();
-		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String label = ss.getVar(names[0]) + "";
-			SEMOSSParam param = new SEMOSSParam();
-			param.setName(label);
-			if(ss.getVar(names[1]) != null)
-				param.setType(ss.getVar(names[1]) +"");
-			if(ss.getVar(names[2]) != null)
-				param.setOptions(ss.getVar(names[2]) + "");
-			if(ss.getVar(names[3]) != null)
-				param.setQuery(ss.getVar(names[3]) + "");
-			if(ss.getRawVar(names[4]) != null)
-				param.addDependVar(ss.getRawVar(names[4]) +"");
-			if(ss.getVar(names[5]) != null && !ss.getVar(names[5]).toString().isEmpty())
-				param.setDbQuery((boolean) ss.getVar(names[5]));
-			if(!ss.getVar(names[6]).toString().isEmpty())
-				param.setMultiSelect((boolean) ss.getVar(names[6]));
-			if(!ss.getVar(names[7]).toString().isEmpty())
-				param.setComponentFilterId(ss.getVar(names[7]) + "");
-			if(ss.getVar(names[0]) != null)
-				param.setParamID(ss.getVar(names[0]) +"");
-			
-			retParams.addElement(param);
-		}		
-		
-		return retParams;
-	}
-
-	@Override
 	public Vector<Insight> getInsight(String... questionIDs) {
 		String idString = "";
 		int numIDs = questionIDs.length;
@@ -889,7 +842,7 @@ public abstract class AbstractEngine implements IEngine {
 //					in.setOrder(order);
 					((OldInsight) in).setDataTableAlign(dataTableAlign);
 					// adding semoss parameters to insight
-					((OldInsight) in).setInsightParameters(getParams(rdbmsId));
+					((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRDBMS, rdbmsId));
 					in.setIsOldInsight(true);
 				} else {
 					in = new Insight(this.engineName, rdbmsId);

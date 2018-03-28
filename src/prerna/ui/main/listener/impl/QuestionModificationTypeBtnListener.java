@@ -30,6 +30,7 @@ package prerna.ui.main.listener.impl;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -49,6 +50,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.ParamComboBox;
 import prerna.util.Constants;
@@ -214,8 +216,8 @@ public class QuestionModificationTypeBtnListener extends AbstractListener {
 		Vector<String> parameterQueryVector = new Vector<String>();
 		Vector<String> dependVector = new Vector<String>();
 		Vector<String> optionVector = new Vector<String>();
-		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine)engine).getParams(id);
-		
+		List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), id);
+
 		order = in.getOrder();
 		
 		if(!paramInfoVector.isEmpty()){
