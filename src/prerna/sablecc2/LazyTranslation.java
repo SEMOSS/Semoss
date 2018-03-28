@@ -136,6 +136,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		e.apply(this);
         	} catch(SemossPixelException ex) {
+        		ex.printStackTrace();
         		// if we want to continue the thread of execution
         		// nothing special
         		// just add the error to the return
@@ -149,7 +150,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         			throw ex;
         		}
         	} catch(Exception ex) {
-//        		ex.printStackTrace();
+        		ex.printStackTrace();
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}

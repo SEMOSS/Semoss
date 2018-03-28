@@ -118,7 +118,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		for(int pathIndex = 0; pathIndex < jsonPaths.length; pathIndex++) {
 			// for multi
 			// separate with comma
-			if(pathIndex == 0) {
+			if(pathIndex != 0) {
 				composer.append(",");
 			}
 			
