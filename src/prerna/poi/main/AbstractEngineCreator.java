@@ -309,8 +309,10 @@ public class AbstractEngineCreator {
 	protected IEngine createNewInsightsDatabase(String engineName) {
 		H2QueryUtil queryUtil = new H2QueryUtil();
 		Properties prop = new Properties();
+		
+		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionURL = "jdbc:h2:" + baseFolder + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + 
+		String connectionURL = "jdbc:h2:" + baseFolder + FILE_SEP + "db" + FILE_SEP + engineName + FILE_SEP + 
 				"insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 		prop.put(Constants.CONNECTION_URL, connectionURL);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
