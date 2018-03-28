@@ -53,7 +53,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String layout = getLayout();
 		boolean hidden = getHidden();
 
-		// for testing... should always be passed in
+		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.length == 0) {
 			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
 		} else {

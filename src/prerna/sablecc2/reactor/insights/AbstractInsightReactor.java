@@ -176,78 +176,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		return decodedRecipe;
 	}
 	
-//	/**
-//	 * Capture insight image from the embeded url link
-//	 * Save image to file Semoss/images/engineName_insightID.png
-//	 * 
-//	 *	TODO remove param hack solr insightIDToView
-//	 *
-//	 * @param solrInsightIDToUpdate
-//	 *            id used to update solr image string
-//	 * @param imageInsightIDToView
-//	 *            id used for embed url link to load in image capture browser
-//	 * @param baseURL
-//	 * @param engineName
-//	 */
-//	protected void updateSolrImageByRecreatingInsight(String solrInsightIDToUpdate, String imageInsightIDToView, String baseURL, String engineName) {
-//
-//		// solr id to update
-//		final String finalID = solrInsightIDToUpdate;
-//		// id used for embed link
-//		final String idForURL = imageInsightIDToView;
-//		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-//				+ "\\db\\" + engineName + "\\version\\" + finalID
-//				+ "\\" + IMAGE_NAME;
-//		
-//		// not supported by the embedded browser
-//		Runnable r = new Runnable() {
-//			public void run() {
-//				// Set up the embedded browser
-//				InsightScreenshot screenshot = new InsightScreenshot();
-//				screenshot.showUrl(baseURL, imagePath);
-//
-//				// wait for screenshot
-//				long startTime = System.currentTimeMillis();
-//				try {
-//					screenshot.getComplete();
-//					long endTime = System.currentTimeMillis();
-//					LOGGER.info("IMAGE CAPTURE TIME " + (endTime - startTime) + " ms");
-//
-//					// Update solr
-//					Map<String, Object> solrInsights = new HashMap<>();
-//					solrInsights.put(SolrIndexEngine.IMAGE, "\\db\\" + engineName + "\\version\\" + finalID + "\\" + IMAGE_NAME);
-//					solrInsights.put(SolrIndexEngine.IMAGE_URL, baseURL);
-//					try {
-//						SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + finalID, solrInsights);
-//						LOGGER.info("Updated solr id: " + finalID + " image");
-//						// clean up temp param insight data
-//						if (!finalID.equals(idForURL)) {
-//							// remove Solr data for temporary param
-//							List<String> insightsToRemove = new ArrayList<String>();
-//							insightsToRemove.add(engineName + "_" + idForURL);
-//							LOGGER.info("REMOVING TEMP SOLR INSTANCE FOR PARAM INSIGHT "
-//									+ Arrays.toString(insightsToRemove.toArray()));
-//							SolrIndexEngine.getInstance().removeInsight(insightsToRemove);
-//							IEngine engine = Utility.getEngine(engineName);
-//							InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
-//							admin.dropInsight(idForURL);
-//						}
-//					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-//							| IOException e) {
-//						e.printStackTrace();
-//					}
-//					// Catch browser image exception
-//				} catch (Exception e1) {
-//					LOGGER.error("Unable to capture image from " + baseURL);
-//				}
-//			}
-//		};
-//		// use this for new image capture
-//		Thread t = new Thread(r);
-//		t.setPriority(Thread.MAX_PRIORITY);
-//		t.start();
-//	}
-	
 	/**
 	 * Save base64 encoded image to file
 	 * Semoss/images/engineName_insightID.png
@@ -259,32 +187,19 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 */
 	protected void storeImageFromPng(String base64Image, String insightId, String engineName) {
 		// set up path to save image to file
+		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "\\db\\" + engineName + "\\version\\" + insightId
-				+ "\\image.png";
+				+ DIR_SEP + "db" + DIR_SEP + engineName + DIR_SEP + "version" + DIR_SEP + insightId + DIR_SEP + "image.png";
 		
 		// decode image and write to file
 		byte[] data = Base64.decodeBase64(base64Image);
 		try (OutputStream stream = new FileOutputStream(imagePath)) {
 			stream.write(data);
-//			// update solr with image path to file
-//			Map<String, Object> solrInsights = new HashMap<>();
-//			solrInsights.put(SolrIndexEngine.IMAGE, "\\db\\" + engineName + "\\version\\" + insightId + "\\" + IMAGE_NAME);
-//			SolrIndexEngine.getInstance().modifyInsight(engineName + "_" + insightId, solrInsights);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-//		catch (KeyManagementException e) {
-//			e.printStackTrace();
-//		} catch (NoSuchAlgorithmException e) {
-//			e.printStackTrace();
-//		} catch (KeyStoreException e) {
-//			e.printStackTrace();
-//		} catch (SolrServerException e) {
-//			e.printStackTrace();
-//		}
 	}
 
 }
