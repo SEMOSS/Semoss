@@ -247,7 +247,7 @@ public class RDFEngineHelper {
 			String subject = sct.getSubject();
 			String predicate = sct.getPredicate();
 			Object obj = sct.getObject();
-			System.out.println("local node prop " + subject+ obj+ predicate);
+//			System.out.println("local node prop " + subject+ obj+ predicate);
 
 			// add the property
 			ps.addNodeProperty(subject, obj, predicate);
@@ -290,7 +290,7 @@ public class RDFEngineHelper {
 			String outNode = sct.getRawVar("outNode") + "";
 			Object value = sct.getRawVar("value");
 
-			System.out.println("local edge prop " + edge+value+prop+ outNode+ inNode);
+//			System.out.println("local edge prop " + edge+value+prop+ outNode+ inNode);
 			// add the property
 			ps.addEdgeProperty(edge, value, prop, outNode, inNode);
 
