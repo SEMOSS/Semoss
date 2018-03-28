@@ -1270,7 +1270,12 @@ public class LazyTranslation extends DepthFirstAdapter {
      * Sets the pixel operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) getDataMaker(), curReactor);
+    	IDataMaker dataTable = getDataMaker();
+    	if(dataTable instanceof ITableDataFrame) {
+    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
+    	} else {
+    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
+    	}
     }
     
     public void defaultIn(Node node)

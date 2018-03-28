@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -227,10 +228,10 @@ public class SysSiteOptimizer extends UnivariateOpt {
 
 	}
 	
-	public void setSysHashList(ArrayList<Hashtable<String, String>> sysHashList) {
+	public void setSysHashList(List<Map<String, String>> sysHashList) {
 		
 		ArrayList<String> sysList = new ArrayList<String>();
-		for(Hashtable<String, String> sysHash : sysHashList) {
+		for(Map<String, String> sysHash : sysHashList) {
 			sysList.add(sysHash.get("name"));
 		}
 		
@@ -246,7 +247,7 @@ public class SysSiteOptimizer extends UnivariateOpt {
 		int[] centralSystemIsDecomArr = new int[numCentralSys];	
 		
 		int index;
-		for(Hashtable<String, String> hash : sysHashList) {
+		for(Map<String, String> hash : sysHashList) {
 			String sys = hash.get("name");
 			String status = hash.get("ind");
 			
@@ -785,8 +786,8 @@ public class SysSiteOptimizer extends UnivariateOpt {
 	 * specifically whether to Sustain or Consolidate each system
 	 * Return is list filled with a hashtable for each system with the system's name and recommendation
 	 */
-	public ArrayList<Hashtable<String,String>> getSysResultList() {
-		ArrayList<Hashtable<String,String>> sysResultList = new ArrayList<Hashtable<String,String>>();
+	public List<Map<String,String>> getSysResultList() {
+		List<Map<String,String>> sysResultList = new ArrayList<Map<String,String>>();
 		
 		int i;
 		int numSys = localSysList.size();

@@ -30,6 +30,8 @@ package prerna.ui.components.specific.tap;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -42,8 +44,8 @@ import prerna.ui.components.playsheets.GraphPlaySheet;
 
 public class InterfaceGraphPlaySheet extends GraphPlaySheet {	
 
-	public Hashtable runLoopIdentifer(Hashtable webDataHash) {
-        Hashtable retHash = new Hashtable();
+	public Map runLoopIdentifer(Map webDataHash) {
+		Map retHash = new Hashtable();
         LoopIdentifierProcessor pro = new LoopIdentifierProcessor();
 		pro.setGraphData(this.getVerts(), this.getEdges());
 		pro.setPlaySheet(this);	
@@ -52,9 +54,9 @@ public class InterfaceGraphPlaySheet extends GraphPlaySheet {
 		return retHash;
 	}
 	
-	public Hashtable runIslandIdentifier(Hashtable webDataHash) {
+	public Map runIslandIdentifier(Map webDataHash) {
 		Gson gson = new Gson();
-        Hashtable retHash = new Hashtable();
+		Map retHash = new Hashtable();
         IslandIdentifierProcessor pro = new IslandIdentifierProcessor();
 		if (!(webDataHash.get("selectedNodes") == (null))) {
 			ArrayList<Hashtable<String, Object>> nodesArray = gson.fromJson(gson.toJson(webDataHash.get("selectedNodes")), new TypeToken<ArrayList<Hashtable<String, Object>>>() {}.getType());
@@ -79,12 +81,12 @@ public class InterfaceGraphPlaySheet extends GraphPlaySheet {
 		return retHash;
 	}
 	
-	public Hashtable runDataLatency(Hashtable webDataHash) {
+	public Map runDataLatency(Map webDataHash) {
 		Gson gson = new Gson();
-        Hashtable retHash = new Hashtable();
+		Map retHash = new Hashtable();
         SEMOSSVertex[] pickedVertex;
 		if (!(webDataHash.get("selectedNodes") == (null))) {
-			ArrayList<Hashtable<String, Object>> nodesArray = gson.fromJson(gson.toJson(webDataHash.get("selectedNodes")), new TypeToken<ArrayList<Hashtable<String, Object>>>() {}.getType());
+			List<Map<String, Object>> nodesArray = gson.fromJson(gson.toJson(webDataHash.get("selectedNodes")), new TypeToken<List<Map<String, Object>>>() {}.getType());
 			pickedVertex = new SEMOSSVertex[1];Object desiredUri = nodesArray.get(0).get("uri");
 			Iterator<SEMOSSVertex> myIt = this.getVerts().iterator();
 			while(pickedVertex[0] == null && myIt.hasNext()){
