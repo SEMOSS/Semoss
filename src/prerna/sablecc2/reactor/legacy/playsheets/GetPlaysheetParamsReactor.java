@@ -42,11 +42,11 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		Hashtable outputHash = new Hashtable<String, Hashtable>();
 		outputHash.put("result", in.getRdbmsId());
 		if (in.isOldInsight()) {
-			Vector<SEMOSSParam> paramVector = ((OldInsight) in).getInsightParameters();
+			List<SEMOSSParam> paramVector = ((OldInsight) in).getInsightParameters();
 			Hashtable optionsHash = new Hashtable();
 			Hashtable paramsHash = new Hashtable();
 			for (int paramIndex = 0; paramIndex < paramVector.size(); paramIndex++) {
-				SEMOSSParam param = paramVector.elementAt(paramIndex);
+				SEMOSSParam param = paramVector.get(paramIndex);
 				if (param.isDepends().equalsIgnoreCase("false")) {
 					List<Object> vals = getParamOptions(engine, param.getParamID());
 					Set<Object> uniqueVals = new HashSet<Object>(vals);

@@ -50,6 +50,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.QuestionAdministrator;
 import prerna.om.OldInsight;
 import prerna.om.SEMOSSParam;
+import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.MapComboBoxRenderer;
 import prerna.ui.components.api.IChakraListener;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -249,7 +250,7 @@ public class QuestionModButtonListener implements IChakraListener {
 	}
 
 	public void populateParamVectors() {
-		Vector<SEMOSSParam> paramInfoVector = ((AbstractEngine) engine).getParams(currentQuestionKey);
+		List<SEMOSSParam> paramInfoVector = LegacyInsightDatabaseUtility.getParamsFromInsightId(engine.getInsightDatabase(), currentQuestionKey);
 
 		// if there are params, get any related data (queries/dependencies)
 		// and store them
