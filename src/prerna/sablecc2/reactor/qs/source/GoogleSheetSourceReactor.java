@@ -110,7 +110,7 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 				List<List<Object>> values = response.getValues();
 				// check if sheet has data
 				if (values == null || values.size() == 0) {
-					throw new IllegalArgumentException("No data found.");
+					throw new IllegalArgumentException("Google sheet selected contains no data");
 				} else {
 					// flush out sheet to file csv path
 					PrintWriter out = new PrintWriter(filePath);
