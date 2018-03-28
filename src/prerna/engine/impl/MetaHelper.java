@@ -53,12 +53,7 @@ public class MetaHelper implements IExplorable {
 			+ "{?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf>* ?y}"
 			+ "}";
 	
-	private static final String QUESTION_ID_FK_PARAM_KEY = "@QUESTION_ID_FK_VALUES@";
-	private static final String GET_ALL_PARAMS_FOR_QUESTION_ID = "SELECT DISTINCT PARAMETER_LABEL, PARAMETER_TYPE, PARAMETER_OPTIONS, PARAMETER_QUERY, PARAMETER_DEPENDENCY, PARAMETER_IS_DB_QUERY, PARAMETER_MULTI_SELECT, PARAMETER_COMPONENT_FILTER_ID, PARAMETER_ID FROM PARAMETER_ID WHERE QUESTION_ID_FK = " + QUESTION_ID_FK_PARAM_KEY;
 	public RDBMSNativeEngine insightRDBMS = null;
-
-	
-	protected Hashtable<String,String> transformedNodeNames = new Hashtable<String,String>();
 
 	public MetaHelper(RDFFileSesameEngine baseDataEngine, IEngine.ENGINE_TYPE engineType, String engineName)
 	{
@@ -104,18 +99,6 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public Vector<Insight> getInsight(String... id) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Vector<String> getInsight4Type(String type) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Vector<String> getInsight4Tag(String tag) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -194,12 +177,6 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public Vector<Object> getParamOptions(String parameterURI) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		// TODO Auto-generated method stub
 		return null;
@@ -208,12 +185,6 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public IEngine getInsightDatabase() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Map<String, Object>> getAllInsightsMetaData() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -539,45 +510,6 @@ public class MetaHelper implements IExplorable {
 		return null;
 	}
 	
-	public Vector<SEMOSSParam> getParams(String questionID) {
-		String query = GET_ALL_PARAMS_FOR_QUESTION_ID.replace(QUESTION_ID_FK_PARAM_KEY, questionID);
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRDBMS, query);
-		String[] names = wrap.getVariables();
-
-		Vector<SEMOSSParam> retParam = new Vector<SEMOSSParam>();
-		while(wrap.hasNext()) {
-			ISelectStatement ss = wrap.next();
-			String label = ss.getVar(names[0]) + "";
-			SEMOSSParam param = new SEMOSSParam();
-			param.setName(label);
-			if(!ss.getVar(names[1]).toString().isEmpty())
-				param.setType(ss.getVar(names[1]) +"");
-			if(!ss.getVar(names[2]).toString().isEmpty())
-				param.setOptions(ss.getVar(names[2]) + "");
-			if(!ss.getVar(names[3]).toString().isEmpty())
-				param.setQuery(ss.getVar(names[3]) + "");
-			if(!ss.getVar(names[4]).toString().isEmpty()) {
-				String[] vars = (ss.getVar(names[4]) +"").split(";");
-				for(String var : vars){
-					param.addDependVar(var);
-				}
-			}
-			if(!ss.getVar(names[5]).toString().isEmpty()) {
-				param.setDbQuery((boolean) ss.getVar(names[5]));
-			}
-			if(!ss.getVar(names[6]).toString().isEmpty()) {
-				param.setMultiSelect((boolean) ss.getVar(names[6]));
-			}
-			if(!ss.getVar(names[7]).toString().isEmpty())
-				param.setComponentFilterId(ss.getVar(names[7]) + "");
-			if(!ss.getRawVar(names[8]).toString().isEmpty())
-				param.setParamID(ss.getVar(names[8]) +"");
-			retParam.addElement(param);
-		}
-
-		return retParam;
-	}
-
 	@Override
 	public List<String> getParentOfProperty2(String property) {
 		// TODO Auto-generated method stub
@@ -606,6 +538,12 @@ public class MetaHelper implements IExplorable {
 	public void setBasic(boolean isBasic) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public RDFFileSesameEngine getBaseDataEngine() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
