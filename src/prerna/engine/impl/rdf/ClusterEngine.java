@@ -134,26 +134,6 @@ public class ClusterEngine extends AbstractEngine {
 	// the only other thing I really need to be able to do is
 	// say pull data from multiple of these engines
 	
-	// I will leave the question for now
-	// gets all the questions tagged for this question type
-	public Vector getQuestions(String... entityType) 
-	{
-		// get the insights and convert
-		Vector finalVector = new Vector();
-		for(int entityIndex = 0;entityIndex < entityType.length;entityIndex++)
-		{
-			Iterator <IEngine> engines = engineHash.values().iterator();
-			for(int engineIndex = 0;engines.hasNext();engineIndex++)
-			{
-				Vector engineInsights = engines.next().getInsight4Type(entityType[entityIndex]);
-				// need to capture this so that I can relate this back to the engine when selected
-				if(engineInsights == null)
-					finalVector.add(engineInsights);					
-			}
-		}
-		return finalVector;
-	}
-
 	@Override
 	public void closeDB() {
 		// TODO Auto-generated method stub

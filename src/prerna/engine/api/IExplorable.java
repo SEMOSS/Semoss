@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.query.interpreters.IQueryInterpreter2;
@@ -55,14 +56,6 @@ public interface IExplorable {
 	// REFAC: Not sure we need this anymore - we can do this where id is null
 	Vector<Insight> getInsight(String... id);
 	
-	// gets insights for a given type of entity
-	// REFAC: Not sure we need this anymore 
-	Vector<String> getInsight4Type(String type);
-	
-	// get insights for a tag
-	// REFAC: Not sure we need this anymore - Goes to SOLR	
-	Vector<String> getInsight4Tag(String tag) ;
-	
 	// gets the from neighborhood for a given node
 	Vector<String> getFromNeighbors(String nodeType, int neighborHood);
 	
@@ -72,9 +65,6 @@ public interface IExplorable {
 	// gets the from and to nodes
 	Vector<String> getNeighbors(String nodeType, int neighborHood);
 	
-	// gets all the params
-	Vector<SEMOSSParam> getParams(String insightName);
-
 	// sets the owl
 	void setOWL(String owl);
 	
@@ -87,6 +77,12 @@ public interface IExplorable {
 	// gets the owl definitions
 	String getOWLDefinition();
 
+	/**
+	 * Get the OWL engine
+	 * @return
+	 */
+	RDFFileSesameEngine getBaseDataEngine();
+	
 	// commits the OWL
 	void commitOWL();
 	
@@ -97,9 +93,6 @@ public interface IExplorable {
 	// get property
 	String getProperty(String key);
 	
-	// gets the param values for a parameter
-	Vector<Object> getParamOptions(String parameterURI);
-
 	IQueryInterpreter getQueryInterpreter();
 	
 	IQueryInterpreter2 getQueryInterpreter2();
@@ -125,22 +118,11 @@ public interface IExplorable {
 	// REFAC: Change this to engine
 	Object execOntoSelectQuery(String query);
 	
-	// executes an insert query on the ontology engine
-	// REFAC: Change this to engine
-	void ontoInsertData(String query);
-	
-	// executes a remove query on the onotology engine
-	// REFAC: Change this to engine
-	void ontoRemoveData(String query);
-
 	IEngine getInsightDatabase();
 
 	void setInsightDatabase(IEngine insightDatabase);
 	
-	List<Map<String, Object>> getAllInsightsMetaData();
-	
 	String getInsightDefinition();
-	
 	
 	Vector<SEMOSSParam> getParams(String... paramIds);
 	
