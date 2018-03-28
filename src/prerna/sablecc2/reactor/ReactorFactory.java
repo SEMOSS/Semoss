@@ -22,6 +22,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.impl.app.reactor.GenerateEmptyAppReactor;
 import prerna.forms.FormsReactor;
 import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
@@ -626,6 +627,9 @@ public class ReactorFactory {
 		reactorHash.put("DeleteInsightComment", DeleteInsightCommentReactor.class);
 		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
 		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
+		
+		// Making Apps/Databases
+		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
 		
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
