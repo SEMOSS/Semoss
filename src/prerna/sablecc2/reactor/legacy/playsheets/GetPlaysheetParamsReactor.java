@@ -39,12 +39,14 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		String insightId = this.keyValue.get(this.keysToGet[1]);
 		IEngine engine = Utility.getEngine(app);
 		Insight in = engine.getInsight(insightId).get(0);
-		Hashtable outputHash = new Hashtable<String, Hashtable>();
+		Map<String, Object> outputHash = new Hashtable<String, Object>();
 		outputHash.put("result", in.getRdbmsId());
 		if (in.isOldInsight()) {
+			// get the parameters
 			List<SEMOSSParam> paramVector = ((OldInsight) in).getInsightParameters();
-			Hashtable optionsHash = new Hashtable();
-			Hashtable paramsHash = new Hashtable();
+			// try to flush them out as long as they dont have a depends
+			Map<String, Object> optionsHash = new Hashtable<String, Object>();
+			Map<String, Object> paramsHash = new Hashtable<String, Object>();
 			for (int paramIndex = 0; paramIndex < paramVector.size(); paramIndex++) {
 				SEMOSSParam param = paramVector.get(paramIndex);
 				if (param.isDepends().equalsIgnoreCase("false")) {
@@ -159,7 +161,4 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 		}
 		return ret;
 	}
-	
-	
-	
 }
