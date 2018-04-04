@@ -399,10 +399,11 @@ public class PixelUtility {
 		map.put("label", insightName);
 		map.put("description", "Auto generated Param Insight");
 		// add params
+		List<Map<String, Object>> paramList = new Vector<Map<String, Object>>();
 		for(String param : params) {
 			// each param gets its own search
 			Map<String, Object> paramSearchMap = new LinkedHashMap<String, Object>();
-			paramSearchMap.put("paramName", param + "_search");
+			paramSearchMap.put("paramName", param + "_Search");
 			paramSearchMap.put("view", false);
 			Map<String, String> paramSearchModel = new LinkedHashMap<String, String>();
 			paramSearchModel.put("defaultValue", "");
@@ -429,21 +430,28 @@ public class PixelUtility {
 			// nested map for model
 			Map<String, Object> modelMap = new LinkedHashMap<String, Object>();
 			Map<String, String> processedParam = processedParams.get(param);
-			String paramQ = "(infinite = " + processedParam.get("source") + " | Select( " + processedParam.get("qs") 
-					+ " ) | Filter( <" + param + "> ?like \"<" + param + "_search>\" ) | Sort(cols=[< " 
-					+ param + "> ], direction=[asc]) | Iterate()) | Collect(50);";  
+			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + processedParam.get("qs") 
+					+ ") | Filter(" + param + " ?like <" + param + "_Search>) | Sort(cols=[" 
+					+ param + "], direction=[asc]) | Iterate()) | Collect(50);";  
 			modelMap.put("query", paramQ);
 			modelMap.put("infiniteQuery", "infinite | Collect(50)");
-			modelMap.put("searchParam", param + "_search");
+			modelMap.put("searchParam", param + "_Search");
 			paramMap.put("model", modelMap);
+			paramMap.put("dependsOn", new String[]{param + "_Search"});
+			
+			// add to the param list
+			paramList.add(paramSearchMap);
+			paramList.add(paramMap);
 		}
+		// add param list
+		map.put("params", paramList);
 		// add execute
 		map.put("exeucte", "button");
 		vec.add(map);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String json = gson.toJson(vec);
-		String finalRecipe = "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode>'" + json + "'</encode>\");"; 
+		String finalRecipe = "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + json + "}</encode>\");"; 
 		System.out.println(json);
 		return finalRecipe;
 	}
