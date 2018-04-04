@@ -14,7 +14,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.adapters.QueryArithmeticSelectorAdapter;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
@@ -1158,7 +1157,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				curReactor.mergeUp();
 				curReactor.updatePlan();
 			} catch(Exception e) {
-				LOGGER.error(e.getMessage());
+				e.printStackTrace();
 				throw new IllegalArgumentException(e.getMessage());
 			}
 			// get the parent
@@ -1177,7 +1176,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     	// TODO: need to account for multiple data makers
     	// i.e. when a data maker is referenced
     	// put it in the planner for use here
-   		return this.insight.getDataMaker();
+    	if(this.insight != null) {
+    		return this.insight.getDataMaker();
+    	}
+    	return null;
     }
     
     //////////////////////////////////////////////////////////////////
@@ -1272,7 +1274,7 @@ public class LazyTranslation extends DepthFirstAdapter {
      */
     private IReactor getReactor(String reactorId, String nodeString) {
     	IDataMaker dataTable = getDataMaker();
-    	if(dataTable instanceof ITableDataFrame) {
+    	if(dataTable != null && dataTable instanceof ITableDataFrame) {
     		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
     	} else {
     		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);

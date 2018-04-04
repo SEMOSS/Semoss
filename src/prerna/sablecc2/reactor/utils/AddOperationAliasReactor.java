@@ -29,73 +29,74 @@ public class AddOperationAliasReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
-		// get inputs
-		String reactorName = getReactorName();
-		String alias = getReactorAlias();
-
-		// logic for this reactor:
-		// first: check the regular reactor hash to see if the reactor is specified there
-		// if it is, then update that prop file
-		// then check the expression hash
-		// then check the frame-specific hashes
-		// use a counter to make sure that at least one file was updated
-		// if nothing is updated then throw an error
-		int counter = 0;
-
-		// for each properties file:
-		// get the properties object, if the reactor can be found in the properties object
-		// if it can be found, add the alias to the properties object
-		// then update the file
-
-		// general reactor hash
-		Properties prop = addReactorAliasToProperties(ReactorFactory.REACTOR_PROP_PATH, reactorName, alias);
-		if (prop != null && prop.size() > 0) {
-			updatePropFile(prop, ReactorFactory.REACTOR_PROP_PATH);
-			counter++;
-		}
-
-		// expression hash
-		prop = addReactorAliasToProperties(ReactorFactory.EXPRESSION_PROP_PATH, reactorName, alias);
-		if (prop != null && prop.size() > 0) {
-			updatePropFile(prop, ReactorFactory.EXPRESSION_PROP_PATH);
-			counter++;
-		}
-
-		// frame specific hashes
-		if (counter < 1) {
-			prop = addReactorAliasToProperties(ReactorFactory.H2_FRAME_PROP_PATH, reactorName, alias);
-			if (prop != null && prop.size() > 0) {
-				updatePropFile(prop, ReactorFactory.H2_FRAME_PROP_PATH);
-				counter++;
-			}
-
-			prop = addReactorAliasToProperties(ReactorFactory.R_FRAME_PROP_PATH, reactorName, alias);
-			if (prop != null && prop.size() > 0) {
-				updatePropFile(prop, ReactorFactory.R_FRAME_PROP_PATH);
-				counter++;
-			}
-
-			prop = addReactorAliasToProperties(ReactorFactory.NATIVE_FRAME_PROP_PATH, reactorName, alias);
-			if (prop != null && prop.size() > 0) {
-				updatePropFile(prop, ReactorFactory.NATIVE_FRAME_PROP_PATH);
-				counter++;
-			}
-
-			prop = addReactorAliasToProperties(ReactorFactory.TINKER_FRAME_PROP_PATH, reactorName, alias);
-			if (prop != null && prop.size() > 0) {
-				updatePropFile(prop, ReactorFactory.TINKER_FRAME_PROP_PATH);
-				counter++;
-			}
-		}
-
-		// return metadata if one of the prop files has been updated
-		if (counter > 0) {
-			boolean fileUpdated = true;
-			return new NounMetadata(fileUpdated, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
-		} else {
-			throw new IllegalArgumentException("The specified reactor cannot be found");
-		}
+//
+//		// get inputs
+//		String reactorName = getReactorName();
+//		String alias = getReactorAlias();
+//
+//		// logic for this reactor:
+//		// first: check the regular reactor hash to see if the reactor is specified there
+//		// if it is, then update that prop file
+//		// then check the expression hash
+//		// then check the frame-specific hashes
+//		// use a counter to make sure that at least one file was updated
+//		// if nothing is updated then throw an error
+//		int counter = 0;
+//
+//		// for each properties file:
+//		// get the properties object, if the reactor can be found in the properties object
+//		// if it can be found, add the alias to the properties object
+//		// then update the file
+//
+//		// general reactor hash
+//		Properties prop = addReactorAliasToProperties(ReactorFactory.REACTOR_PROP_PATH, reactorName, alias);
+//		if (prop != null && prop.size() > 0) {
+//			updatePropFile(prop, ReactorFactory.REACTOR_PROP_PATH);
+//			counter++;
+//		}
+//
+//		// expression hash
+//		prop = addReactorAliasToProperties(ReactorFactory.EXPRESSION_PROP_PATH, reactorName, alias);
+//		if (prop != null && prop.size() > 0) {
+//			updatePropFile(prop, ReactorFactory.EXPRESSION_PROP_PATH);
+//			counter++;
+//		}
+//
+//		// frame specific hashes
+//		if (counter < 1) {
+//			prop = addReactorAliasToProperties(ReactorFactory.H2_FRAME_PROP_PATH, reactorName, alias);
+//			if (prop != null && prop.size() > 0) {
+//				updatePropFile(prop, ReactorFactory.H2_FRAME_PROP_PATH);
+//				counter++;
+//			}
+//
+//			prop = addReactorAliasToProperties(ReactorFactory.R_FRAME_PROP_PATH, reactorName, alias);
+//			if (prop != null && prop.size() > 0) {
+//				updatePropFile(prop, ReactorFactory.R_FRAME_PROP_PATH);
+//				counter++;
+//			}
+//
+//			prop = addReactorAliasToProperties(ReactorFactory.NATIVE_FRAME_PROP_PATH, reactorName, alias);
+//			if (prop != null && prop.size() > 0) {
+//				updatePropFile(prop, ReactorFactory.NATIVE_FRAME_PROP_PATH);
+//				counter++;
+//			}
+//
+//			prop = addReactorAliasToProperties(ReactorFactory.TINKER_FRAME_PROP_PATH, reactorName, alias);
+//			if (prop != null && prop.size() > 0) {
+//				updatePropFile(prop, ReactorFactory.TINKER_FRAME_PROP_PATH);
+//				counter++;
+//			}
+//		}
+//
+//		// return metadata if one of the prop files has been updated
+//		if (counter > 0) {
+//			boolean fileUpdated = true;
+//			return new NounMetadata(fileUpdated, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+//		} else {
+//			throw new IllegalArgumentException("The specified reactor cannot be found");
+//		}
+		return null;
 	}
 
 	//////////////////////////////////////////////////////////////////////
@@ -142,19 +143,19 @@ public class AddOperationAliasReactor extends AbstractReactor {
 				properties.put(alias, reactor.getName());
 				// also update the appropriate hash so that we do not have to
 				// restart the server every time we add an alias
-				if (path.equals(ReactorFactory.REACTOR_PROP_PATH)) {
-					ReactorFactory.reactorHash.put(alias, reactor);
-				} else if (path.equals(ReactorFactory.EXPRESSION_PROP_PATH)) {
-					ReactorFactory.expressionHash.put(alias, reactor);
-				} else if (path.equals(ReactorFactory.H2_FRAME_PROP_PATH)) {
-					ReactorFactory.h2FrameHash.put(alias, reactor);
-				} else if (path.equals(ReactorFactory.NATIVE_FRAME_PROP_PATH)) {
-					ReactorFactory.nativeFrameHash.put(alias, reactor);
-				} else if (path.equals(ReactorFactory.R_FRAME_PROP_PATH)) {
-					ReactorFactory.rFrameHash.put(alias, reactor);
-				} else if (path.equals(ReactorFactory.TINKER_FRAME_PROP_PATH)) {
-					ReactorFactory.tinkerFrameHash.put(alias, reactor);
-				}
+//				if (path.equals(ReactorFactory.REACTOR_PROP_PATH)) {
+//					ReactorFactory.reactorHash.put(alias, reactor);
+//				} else if (path.equals(ReactorFactory.EXPRESSION_PROP_PATH)) {
+//					ReactorFactory.expressionHash.put(alias, reactor);
+//				} else if (path.equals(ReactorFactory.H2_FRAME_PROP_PATH)) {
+//					ReactorFactory.h2FrameHash.put(alias, reactor);
+//				} else if (path.equals(ReactorFactory.NATIVE_FRAME_PROP_PATH)) {
+//					ReactorFactory.nativeFrameHash.put(alias, reactor);
+//				} else if (path.equals(ReactorFactory.R_FRAME_PROP_PATH)) {
+//					ReactorFactory.rFrameHash.put(alias, reactor);
+//				} else if (path.equals(ReactorFactory.TINKER_FRAME_PROP_PATH)) {
+//					ReactorFactory.tinkerFrameHash.put(alias, reactor);
+//				}
 				return properties;
 			}
 

@@ -35,8 +35,7 @@ public class AsReactor extends AbstractReactor {
 		{
 			String singleKey = keys.nextElement();
 			GenRowStruct struct = store.nounRow.get(singleKey);
-			List <String> inputs = struct.getAllColumns(); // ideally this should get only one column for now
-
+			List<String> inputs = struct.getAllStrValues(); // ideally this should get only one column for now
 			asNames = new String[1];
 			asNames[0] = inputs.get(0).trim();
 		}

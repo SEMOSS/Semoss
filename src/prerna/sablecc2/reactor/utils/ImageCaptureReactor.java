@@ -93,7 +93,15 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				e.printStackTrace();
 			} finally {
 				// destroy it
-				p.destroy();
+				if(p != null) {
+					p.destroy();
+				} else {
+					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+				}
 			}
 		}
 	}
