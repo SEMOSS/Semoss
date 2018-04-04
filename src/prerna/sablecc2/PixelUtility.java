@@ -431,13 +431,13 @@ public class PixelUtility {
 			Map<String, Object> modelMap = new LinkedHashMap<String, Object>();
 			Map<String, String> processedParam = processedParams.get(param);
 			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + processedParam.get("qs") 
-					+ ") | Filter(" + param + " ?like <" + param + "_Search>) | Sort(cols=[" 
+					+ ") | Filter(" + param + " ?like \"<" + param + "_Search>\") | Sort(cols=[" 
 					+ param + "], direction=[asc]) | Iterate()) | Collect(50);";  
 			modelMap.put("query", paramQ);
 			modelMap.put("infiniteQuery", "infinite | Collect(50)");
 			modelMap.put("searchParam", param + "_Search");
+			modelMap.put("dependsOn", new String[]{param + "_Search"});
 			paramMap.put("model", modelMap);
-			paramMap.put("dependsOn", new String[]{param + "_Search"});
 			
 			// add to the param list
 			paramList.add(paramSearchMap);
@@ -446,7 +446,7 @@ public class PixelUtility {
 		// add param list
 		map.put("params", paramList);
 		// add execute
-		map.put("exeucte", "button");
+		map.put("execute", "button");
 		vec.add(map);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
