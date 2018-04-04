@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +15,11 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.Insight;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -25,6 +30,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.translations.DatasourceTranslation;
+import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
+import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
 
 public class PixelUtility {
 
@@ -236,6 +244,58 @@ public class PixelUtility {
 	}
 	
 	/**
+	 * Get the data sources within the full expression
+	 * @param expression
+	 * @return
+	 */
+	public static List<Map<String, Object>> getDatasourcesMetadata(String expression) {
+		/*
+		 * Using a translation object to go through and figure out all 
+		 * the datasources and how we would want to manipulate
+		 * and change them as people swap the data but want to use the same
+		 * routine / analysis
+		 */
+		
+		DatasourceTranslation translation = new DatasourceTranslation();
+		try {
+			expression = PixelPreProcessor.preProcessPixel(expression, new HashMap<String, String>());
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+		}
+		
+		List<Map<String, Object>> sourcePixels = translation.getDatasourcePixels();
+		return sourcePixels;
+	}
+	
+	/**
+	 * Modify the file datasources in a given recipe
+	 * @param fullRecipe					String containing the original recipe to change
+	 * @param replacementOptions			List of maps containing "index" and "pixel" which represents the pixel step to change 
+	 * 										and the new pixel to put in its place
+	 * 										If no index is found and the size of the list is 1, we will replace the first datasource
+	 * @return
+	 */
+	public static List<String> modifyInsightDatasource(String fullRecipe, List<Map<String, Object>> replacementOptions) {
+		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation();
+		translation.setReplacements(replacementOptions);
+		try {
+			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodedToOriginal);
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(fullRecipe.getBytes("UTF-8"))), fullRecipe.length())));
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+		}
+		
+		return translation.getPixels();
+	}
+	
+	/**
 	 * Determine if an operation op type is an error that requires user input and then a re-run of the insight
 	 * @param opTypes
 	 * @return
@@ -301,5 +361,90 @@ public class PixelUtility {
 			ret.put("operationType", noun.getOpType());
 		}
 		return ret;
+	}
+	
+	/**
+	 * Add parameters into an existing recipe
+	 * @param recipe
+	 * @param params
+	 * @return
+	 */
+	public static String getParameterizedRecipe(String[] recipe, List<String> params, String insightName) {
+		Insight in = new Insight();
+		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
+		translation.setInputsToParameterize(params);
+		
+		// loop through recipe
+		for(String expression : recipe) {
+			try {
+				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation.
+				tree.apply(translation);
+			} catch (ParserException | LexerException | IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		List<String> newRecipe = translation.getPixels();
+		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
+		
+		List<Map<String, Object>> vec = new Vector<Map<String, Object>>();
+		Map<String, Object> map = new LinkedHashMap<String, Object>();
+		// recipe is the query
+		map.put("query", newRecipe);
+		map.put("label", insightName);
+		map.put("description", "Auto generated Param Insight");
+		// add params
+		for(String param : params) {
+			// each param gets its own search
+			Map<String, Object> paramSearchMap = new LinkedHashMap<String, Object>();
+			paramSearchMap.put("paramName", param + "_search");
+			paramSearchMap.put("view", false);
+			Map<String, String> paramSearchModel = new LinkedHashMap<String, String>();
+			paramSearchModel.put("defaultValue", "");
+			paramSearchMap.put("model", paramSearchModel);
+			
+			// and now for the param itself
+			Map<String, Object> paramMap = new LinkedHashMap<String, Object>();
+			paramMap.put("paramName", param);
+			paramMap.put("required", true);
+			paramMap.put("useSelectedValues", true);
+			// nested map for view
+			Map<String, Object> paramViewMap = new LinkedHashMap<String, Object>();
+			paramViewMap.put("displayType", "checklist");
+			paramViewMap.put("label", "Select an Instance");
+			paramViewMap.put("description", "Select an Instance Of The Parameter");
+			// nested attributes map within nested view map
+			Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<String, Boolean>();
+			paramViewAttrMap.put("searchable", true);
+			paramViewAttrMap.put("multiple", true);
+			paramViewAttrMap.put("quickselect", true);
+			paramViewMap.put("attributes", paramViewAttrMap);
+			// add view
+			paramMap.put("view", paramViewMap);
+			// nested map for model
+			Map<String, Object> modelMap = new LinkedHashMap<String, Object>();
+			Map<String, String> processedParam = processedParams.get(param);
+			String paramQ = "(infinite = " + processedParam.get("source") + " | Select( " + processedParam.get("qs") 
+					+ " ) | Filter( <" + param + "> ?like \"<" + param + "_search>\" ) | Sort(cols=[< " 
+					+ param + "> ], direction=[asc]) | Iterate()) | Collect(50);";  
+			modelMap.put("query", paramQ);
+			modelMap.put("infiniteQuery", "infinite | Collect(50)");
+			modelMap.put("searchParam", param + "_search");
+			paramMap.put("model", modelMap);
+		}
+		// add execute
+		map.put("exeucte", "button");
+		vec.add(map);
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		String json = gson.toJson(vec);
+		String finalRecipe = "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode>'" + json + "'</encode>\");"; 
+		System.out.println(json);
+		return finalRecipe;
 	}
 }

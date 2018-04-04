@@ -1,25 +1,15 @@
 package prerna.sablecc2.reactor.workflow;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.sablecc2.PixelPreProcessor;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.Start;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
 
 public class ModifyInsightDatasourceReactor extends AbstractReactor {
 
@@ -38,24 +28,7 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 		}
 		String fullRecipe = b.toString();
 		
-		/*
-		 * Using a translation object to perform the replacement for me
-		 * 
-		 */
-		
-		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation();
-		translation.setReplacements(replacementOptions);
-		try {
-			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodedToOriginal);
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(fullRecipe.getBytes("UTF-8"))), fullRecipe.length())));
-			Start tree = p.parse();
-			// apply the translation.
-			tree.apply(translation);
-		} catch (ParserException | LexerException | IOException e) {
-			e.printStackTrace();
-		}
-		
-		List<String> newRecipe = translation.getPixels();
+		List<String> newRecipe = PixelUtility.modifyInsightDatasource(fullRecipe, replacementOptions);
 		return new NounMetadata(newRecipe, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	

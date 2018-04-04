@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -35,7 +36,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 	public UpdateInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey(), 
-				 ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
+				 ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
+				 ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 
 	@Override
@@ -58,14 +60,31 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		boolean hidden = getHidden();
 		
 		// need to know what we are updating
-		String rdbmsId = getRdbmsId();
-		if(rdbmsId == null) {
+		String existingId = getRdbmsId();
+		if(existingId == null) {
 			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
 		}
 
+		Object paramInput = getParams();
+		List<String> params = new Vector<String>();
+		if(paramInput != null) {
+			if(paramInput instanceof List) {
+				params = (List<String>) paramInput;
+			} else {
+				params.add(paramInput.toString());
+			}
+		}
+		
 		// this is always encoded before it gets here
 		recipeToSave = decodeRecipe(recipeToSave);
-
+		// get an updated recipe if there are files used
+		// and save the files in the correct location
+		recipeToSave = saveFilesInInsight(recipeToSave, engineName, existingId);
+		
+		if(params != null && !params.isEmpty()) {
+			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
+		}
+		
 		IEngine engine = Utility.getEngine(engineName);
 		if(engine == null) {
 			throw new IllegalArgumentException("Cannot find engine = " + engineName);
@@ -75,32 +94,33 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 
 		// update insight db
 		logger.info("1) Updating insight in rdbms");
-		admin.updateInsight(rdbmsId, insightName, layout, recipeToSave, hidden);
+		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden);
 		logger.info("1) Done");
 		
 		if(!hidden) {
 			logger.info("2) Update insight to solr...");
-			editExistingInsightInSolr(engineName, rdbmsId, insightName, layout, "", new ArrayList<String>(), "");
+			editExistingInsightInSolr(engineName, existingId, insightName, layout, "", new ArrayList<String>(), "");
 			logger.info("2) Done...");
 		} else {
-			dropInsightInSolr(engineName, rdbmsId);
+			dropInsightInSolr(engineName, existingId);
 			logger.info("2) Insight is hidden ... do not add to solr");
 		}
 		
 		//update recipe text file
 		logger.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
-		updateRecipeFile(engineName, rdbmsId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
+		updateRecipeFile(engineName, existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
 		logger.info("3) Done");
 		
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			storeImageFromPng(base64Image, rdbmsId, engineName);
+			storeImageFromPng(base64Image, existingId, engineName);
 		}
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
-		returnMap.put("core_engine_id", rdbmsId);
+		returnMap.put("core_engine_id", existingId);
 		returnMap.put("core_engine", engineName);
+		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -157,8 +177,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave, boolean hidden) {
+		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "\\" + Constants.DB + "\\" + engineName + "\\version\\" + rdbmsID + "\\" + MosfetSyncHelper.RECIPE_FILE;
+				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + engineName + DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
 		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
 	}
 

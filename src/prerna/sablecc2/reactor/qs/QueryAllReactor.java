@@ -12,9 +12,10 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 			frame = (ITableDataFrame) this.insight.getDataMaker();
 			this.qs.setFrame(frame);
 		}
-		
-		this.qs.merge(frame.getMetaData().getFlatTableQs());
-		this.qs.setImplicitFilters(frame.getFrameFilters());
+		if(frame != null) {
+			this.qs.merge(frame.getMetaData().getFlatTableQs());
+			this.qs.setImplicitFilters(frame.getFrameFilters());
+		}
 		return this.qs;
 	}
 	
