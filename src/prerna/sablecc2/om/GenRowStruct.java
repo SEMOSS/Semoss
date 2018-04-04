@@ -133,6 +133,16 @@ public class GenRowStruct {
 		return retVector;
 	}
 	
+	public List<String> getAllStrValues() {
+		List<String> retVector = new ArrayList<>();
+		for(NounMetadata noun : vector) {
+			if(noun.getNounType() == PixelDataType.COLUMN || noun.getNounType() == PixelDataType.CONST_STRING) {
+				retVector.add((String)noun.getValue());
+			}
+		}
+		return retVector;
+	}
+	
 	public List<Join> getAllJoins()
 	{
 		List<Join> retVector = new ArrayList<>();
