@@ -51,9 +51,9 @@ public class DatasourceTranslation extends DepthFirstAdapter {
 			
 			// if we ended up finding something to store
 			if(this.currentSourceStatement != null) {
-				currentSourceStatement.put("pixelStepIndex", currentIndex);
+				this.currentSourceStatement.put("pixelStepIndex", currentIndex);
 				// add the source to store
-				this.datasourcePixels.add(currentSourceStatement);
+				this.datasourcePixels.add(this.currentSourceStatement);
 				// at the end, we will null it
 				this.currentSourceStatement = null;
 			}

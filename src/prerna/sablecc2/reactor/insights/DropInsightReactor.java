@@ -77,15 +77,15 @@ public class DropInsightReactor extends AbstractInsightReactor{
 		logger.info("Successfully removed all variables from varstore");
 		
 		// also delete any files that were used
-		List<FileMeta> fileData = insight.getFilesUsedInInsight();
-		if (fileData != null && !fileData.isEmpty()) {
-			for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
-				FileMeta file = fileData.get(fileIdx);
-				File f = new File(file.getFileLoc());
-				f.delete();
-				logger.info("Successfully deleted File used in insight " + f.getName());
-			}
-		}
+//		List<FileMeta> fileData = insight.getFilesUsedInInsight();
+//		if (fileData != null && !fileData.isEmpty()) {
+//			for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
+//				FileMeta file = fileData.get(fileIdx);
+//				File f = new File(file.getFileLoc());
+//				f.delete();
+//				logger.info("Successfully deleted File used in insight " + f.getName());
+//			}
+//		}
 		
 		Map<String, String> fileExports = insight.getExportFiles();
 		if (fileExports != null && !fileExports.isEmpty()) {

@@ -74,7 +74,9 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		
 		if(this.qs == null) {
 			this.qs = new QueryStruct2();
-			this.qs.setFrame((ITableDataFrame) this.insight.getDataMaker());
+			if(this.insight != null) {
+				this.qs.setFrame((ITableDataFrame) this.insight.getDataMaker());
+			}
 		}
 	}
 	
