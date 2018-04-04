@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -33,7 +35,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	
 	public SaveInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(),
-				HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
+				HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 	
 	@Override
@@ -52,13 +54,32 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String[] recipeToSave = getRecipe();
 		String layout = getLayout();
 		boolean hidden = getHidden();
-
+		Object paramInput = getParams();
+		List<String> params = new Vector<String>();
+		if(paramInput != null) {
+			if(paramInput instanceof List) {
+				params = (List<String>) paramInput;
+			} else {
+				params.add(paramInput.toString());
+			}
+		}
+		
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.length == 0) {
 			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
 		} else {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);
+		}
+
+		// get the new insight id
+		String newInsightId = UUID.randomUUID().toString();
+		// get an updated recipe if there are files used
+		// and save the files in the correct location
+		recipeToSave = saveFilesInInsight(recipeToSave, engineName, newInsightId);
+		
+		if(params != null && !params.isEmpty()) {
+			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
 		}
 		
 		IEngine engine = Utility.getEngine(engineName);
@@ -69,7 +90,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
 		logger.info("1) Add insight " + insightName + " to rdbms store...");
-		String newRdbmsId = admin.addInsight(insightName, layout, recipeToSave, hidden);
+		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden);
 		logger.info("1) Done...");
 
 		if(!hidden) {
@@ -95,6 +116,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		returnMap.put("name", insightName);
 		returnMap.put("core_engine_id", newRdbmsId);
 		returnMap.put("core_engine", engineName);
+		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 
 		// track GA data
@@ -102,7 +124,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		return noun;
 	}
-
+	
 	/**
 	 * Add an insight into solr
 	 * @param engineName

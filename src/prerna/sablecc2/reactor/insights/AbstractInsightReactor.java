@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.insights;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -7,10 +8,16 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -202,4 +209,76 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * Update the recipe to save the files in the insight location
+	 * @param recipeToSave
+	 * @param appName
+	 * @param newInsightId
+	 * @return
+	 */
+	protected String[] saveFilesInInsight(String[] recipeToSave, String appName, String newInsightId) {
+		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+		
+		// store modifications to be made
+		List<Map<String, Object>> modificationList = new Vector<Map<String, Object>>();
+		// need to go through and find the files so we can save them in the right location
+		StringBuilder sb = new StringBuilder();
+		for(int i = 0; i< recipeToSave.length; i++) {
+			sb.append(recipeToSave[i]);
+		}
+		String fullRecipe = sb.toString();
+		// shift any csv files to be moved into the insight folder for the new insight
+		List<Map<String, Object>> datasources = PixelUtility.getDatasourcesMetadata(fullRecipe);
+		for(int i = 0; i < datasources.size(); i++) {
+			Map<String, Object> datasourceMap = datasources.get(i);
+			String datasourceType = datasourceMap.get("type").toString().toUpperCase();
+			if(datasourceType.equals("FILEREAD")) {
+				// we have a file we want to shift
+				String fileLoc = ((Map<String, List<String>>) datasourceMap.get("params")).get("filePath").get(0);
+				// remove the start and end " 
+				fileLoc = fileLoc.substring(1, fileLoc.length()-1);
+				
+				String filename = FilenameUtils.getName(fileLoc);
+				File origF = new File(fileLoc);
+				String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
+										appName + DIR_SEPARATOR + 
+										"version" + DIR_SEPARATOR +
+										newInsightId + DIR_SEPARATOR + 
+										"data";
+				// create parent directory
+				File newF = new File(newFileLoc);
+				newF.mkdirs();
+				newF = new File(newFileLoc + DIR_SEPARATOR + filename);		
+				// copy file over
+				if(!origF.getAbsolutePath().equals(newF.getAbsolutePath())) {
+					try {
+						FileUtils.copyFile(origF, newF);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				// need to make new pixel
+				String newPixel = datasourceMap.get("expression").toString().replace(fileLoc, newF.getAbsolutePath());
+				Map<String, Object> modificationMap = new HashMap<String, Object>();
+				modificationMap.put("index", datasourceMap.get("pixelStepIndex"));
+				modificationMap.put("pixel", newPixel);
+				modificationList.add(modificationMap);
+			}
+		}
+		
+		// hey, we found something to change
+		if(!modificationList.isEmpty()) {
+			recipeToSave = PixelUtility.modifyInsightDatasource(fullRecipe, modificationList).toArray(new String[]{});
+		}
+		
+		return recipeToSave;
+	}
+	
+	protected String[] getParamRecipe(String[] recipe, List<String> params, String insightName) {
+		String paramRecipe = PixelUtility.getParameterizedRecipe(recipe, params, insightName);
+		return new String[]{paramRecipe};
+	}
+	
 }

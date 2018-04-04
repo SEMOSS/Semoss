@@ -22,7 +22,14 @@ public class GATracker {
 	 * @return
 	 */
 	private static IGoogleAnalytics createInstance() {
-		String trackingOn = DIHelper.getInstance().getProperty("GA_TRACKING");
+		String trackingOn = "true";
+		try {
+			trackingOn = DIHelper.getInstance().getProperty("GA_TRACKING");
+		} catch(Exception e) {
+			// this happens if DIHelper isn't loaded
+			// occurs when testing
+			trackingOn = "false";
+		}
 		boolean track = true;
 		if(trackingOn != null) {
 			track = Boolean.valueOf(trackingOn);

@@ -284,16 +284,26 @@ public class ReactorFactory {
 	public static Map<String, Class> h2FrameHash;
 	public static Map<String, Class> tinkerFrameHash;
 	public static Map<String, Class> nativeFrameHash;
-	public static final String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");	
-	public static final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
-	public static final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
-	public static final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
-	public static final String PANDAS_FRAME_PROP_PATH = baseFolder + "\\src\\pyFrameReactors.prop";
-	public static final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
-	public static final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
-	public static final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
-
+	
 	static {
+		String baseFolder = "";
+		try {
+			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");	
+		} catch(Exception e) {
+			// ignore
+			// this would only be null during testing
+			// and DIHelper isn't loaded
+			// hopefully you dont have anything in a prop file you care about
+			// or update the var directly
+		}
+		final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
+		final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
+		final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
+		final String PANDAS_FRAME_PROP_PATH = baseFolder + "\\src\\pyFrameReactors.prop";
+		final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
+		final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
+		final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
+		
 		// check if external reactor paths exists if not load reactors defined in this class
 		reactorHash = new HashMap<>();
 		createReactorHash(reactorHash);
@@ -896,12 +906,12 @@ public class ReactorFactory {
 	}
 	
 	public static void main(String[] args) {
-		writeHashToFile(ReactorFactory.reactorHash, ReactorFactory.REACTOR_PROP_PATH);
-		writeHashToFile(ReactorFactory.expressionHash, ReactorFactory.EXPRESSION_PROP_PATH);
-		writeHashToFile(ReactorFactory.rFrameHash, ReactorFactory.R_FRAME_PROP_PATH);
-		writeHashToFile(ReactorFactory.h2FrameHash, ReactorFactory.H2_FRAME_PROP_PATH);
-		writeHashToFile(ReactorFactory.tinkerFrameHash, ReactorFactory.TINKER_FRAME_PROP_PATH);
-		writeHashToFile(ReactorFactory.nativeFrameHash, ReactorFactory.NATIVE_FRAME_PROP_PATH);
+//		writeHashToFile(ReactorFactory.reactorHash, ReactorFactory.REACTOR_PROP_PATH);
+//		writeHashToFile(ReactorFactory.expressionHash, ReactorFactory.EXPRESSION_PROP_PATH);
+//		writeHashToFile(ReactorFactory.rFrameHash, ReactorFactory.R_FRAME_PROP_PATH);
+//		writeHashToFile(ReactorFactory.h2FrameHash, ReactorFactory.H2_FRAME_PROP_PATH);
+//		writeHashToFile(ReactorFactory.tinkerFrameHash, ReactorFactory.TINKER_FRAME_PROP_PATH);
+//		writeHashToFile(ReactorFactory.nativeFrameHash, ReactorFactory.NATIVE_FRAME_PROP_PATH);
 	}
 	
 	private static void writeHashToFile (Map<String, Class> hash, String path) {
