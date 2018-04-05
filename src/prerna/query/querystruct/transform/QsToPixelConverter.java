@@ -136,6 +136,7 @@ public class QsToPixelConverter {
 
 	public static String convertJoins(Map<String, Map<String, List>> joins) {
 		StringBuilder b = new StringBuilder();
+		boolean first = true;
 		// iterate through and construct the joins
 		for(String startCol : joins.keySet()) {
 			Map<String, List> compMap = joins.get(startCol);
@@ -145,8 +146,12 @@ public class QsToPixelConverter {
 				List<String> endColList = compMap.get(comparator);
 				
 				for(String endCol : endColList) {
-					b.append("(").append(startCol).append(" ").append(comparator)
-						.append(" ").append(endCol).append(")");
+					if(!first) {
+						b.append(", ");
+					}
+					b.append("(").append(startCol).append(", ").append(comparator)
+						.append(", ").append(endCol).append(")");
+					first = false;
 				}
 			}
 		}
