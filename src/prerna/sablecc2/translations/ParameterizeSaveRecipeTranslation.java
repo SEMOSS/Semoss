@@ -68,10 +68,6 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	private String importStr;
 	private Map<String, Map<String, String>> paramToSource = new HashMap<String, Map<String, String>>();
 	
-	public ParameterizeSaveRecipeTranslation() {
-		super();
-	}
-	
 	public ParameterizeSaveRecipeTranslation(Insight insight) {
 		super(insight);
 	}
