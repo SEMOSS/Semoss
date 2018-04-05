@@ -35,7 +35,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		}
 		Map<String, Object> insightMap = new HashMap<String, Object>();
 		insightMap.put("insightData", newInsight.runPixel(newRecipe));
-		insightMap.put("params", getParams());
+		insightMap.put("params", getExecutionParams());
 
 		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.NEW_EMPTY_INSIGHT);
 	}
