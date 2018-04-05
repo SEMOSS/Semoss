@@ -16,7 +16,7 @@ import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QsAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
@@ -130,7 +130,7 @@ public class BasicIteratorTask extends AbstractTask {
 			OwlTemporalEngineMeta meta = hFrame.getMetaData();
 			for(int i = 0; i < orderBys.size(); i++) {
 				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
-				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
+				QueryColumnOrderBySelector convertedOrderByS = QsAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
 				String col = convertedOrderByS.getColumn();
 				if(!QueryStruct2.PRIM_KEY_PLACEHOLDER.equals(col) && !indexedCols.contains(col)) {
 					hFrame.addColumnIndex(col);

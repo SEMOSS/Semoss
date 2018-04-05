@@ -12,7 +12,7 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QsAliasToPhysicalConverter;
 import prerna.util.Utility;
 
 public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
@@ -95,7 +95,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		// dont forget about filters
 		qs.mergeImplicitFilters(frame.getFrameFilters());
 		
-		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		qs = QsAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter2 interp = new RInterpreter2();
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(frame.getTableName());
