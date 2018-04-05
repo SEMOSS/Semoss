@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -58,21 +57,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 		String layout = getLayout();
 		boolean hidden = getHidden();
+		List<String> params = getParams();
 		
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 		if(existingId == null) {
 			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
-		}
-
-		Object paramInput = getParams();
-		List<String> params = new Vector<String>();
-		if(paramInput != null) {
-			if(paramInput instanceof List) {
-				params = (List<String>) paramInput;
-			} else {
-				params.add(paramInput.toString());
-			}
 		}
 		
 		// this is always encoded before it gets here

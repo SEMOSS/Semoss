@@ -54,7 +54,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		if(rdbmsId == null) {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
-		Object params = getParams();
+		List<String> params = getParams();
 		List<String> additionalPixels = getAdditionalPixels();
 
 		// get the engine so i can get the new insight
