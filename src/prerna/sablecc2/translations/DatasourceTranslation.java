@@ -7,6 +7,7 @@ import java.io.PushbackReader;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,9 @@ import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
 import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.lexer.Lexer;
@@ -37,13 +41,8 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.imports.ImportDataReactor;
-import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.map.AbstractMapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
-import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
-import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
 import prerna.test.TestUtilityMethods;
 
@@ -51,13 +50,17 @@ public class DatasourceTranslation extends LazyTranslation {
 
 	private static final Logger LOGGER = LogManager.getLogger(DatasourceTranslation.class.getName());
 
-	private List<Map<String, Object>> datasourcePixels = new Vector<Map<String, Object>>();
+	private static Set<String> importTypes = new HashSet<String>();
 
+	static {
+		importTypes.add("Database");
+		importTypes.add("FileRead");
+		importTypes.add("GoogleSheetSource");
+	}
+	
+	private List<Map<String, Object>> datasourcePixels = new Vector<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
-	private List<Object> currentSourceParamInput = null;
-	private QueryStruct2 importQs;
-	private String sourceStr;
-	private String importStr;
+	
 	
 	public DatasourceTranslation(Insight insight) {
 		super(insight);
@@ -75,6 +78,8 @@ public class DatasourceTranslation extends LazyTranslation {
 			// if we ended up finding something to store
 			if(this.currentSourceStatement != null) {
 				this.currentSourceStatement.put("pixelStepIndex", currentIndex);
+				// process to ensure query structs are broken into parts for FE to consume
+				postProcessParams(this.currentSourceStatement);
 				// add the source to store
 				this.datasourcePixels.add(this.currentSourceStatement);
 				// at the end, we will null it
@@ -86,48 +91,94 @@ public class DatasourceTranslation extends LazyTranslation {
 		}
 	}
 
+	private void postProcessParams(Map<String, Object> sourceInfo) {
+		Map<String, List<Object>> paramMap = (Map<String, List<Object>>) sourceInfo.get("params");
+		if(paramMap != null) {
+			Set<String> keysToRemove = new HashSet<String>();
+			Map<String, List<Object>> processedParams = new HashMap<String, List<Object>>();
+			for(String key : paramMap.keySet()) {
+				// right now, only want to process query structs into a more readable format
+				if(key.equals(PixelDataType.QUERY_STRUCT.toString())) {
+					List<Object> inputs = paramMap.get(key);
+					// i am 99.999999% positve this will always be size 1
+					QueryStruct2 inputQs = (QueryStruct2) inputs.get(0);
+					// grab the unique set of selectors
+					Set<String> uniqueCols = new HashSet<String>();
+					List<IQuerySelector> selectors = inputQs.getSelectors();
+					for(IQuerySelector selector : selectors) {
+						List<QueryColumnSelector> baseColsUsed = selector.getAllQueryColumns();
+						for(QueryColumnSelector s : baseColsUsed) {
+							uniqueCols.add(s.getQueryStructName());
+						}
+					}
+					List<IQueryFilter> filters = inputQs.getExplicitFilters().getFilters();
+					for(IQueryFilter f : filters) {
+						uniqueCols.addAll(f.getAllQueryStructColumns());
+					}
+					// add all joins
+					Map<String, Map<String, List>> relations = inputQs.getRelations();
+					for(String up : relations.keySet()) {
+						// store the up node
+						uniqueCols.add(up);
+						Map<String, List> inner = relations.get(up);
+						for(String jType : inner.keySet()) {
+							List<String> downList = inner.get(jType);
+							for(String down : downList) {
+								// store the down node
+								uniqueCols.add(down);
+							}
+						}
+					}
+					// we have the list of columns that we would want to find equiv.
+					// for that are used in the import
+					// wrap in list to hold structure
+					List<Object> obj = new Vector<Object>();
+					obj.add(uniqueCols);
+					processedParams.put("qsColumns", obj);
+					keysToRemove.add(key);
+				}
+			}
+			// now we remove the QS and add the columns
+			if(!processedParams.isEmpty()) {
+				paramMap.keySet().removeAll(keysToRemove);
+				paramMap.putAll(processedParams);
+			}
+		}
+	}
+
 	@Override
 	public void inAOperation(AOperation node) {
 		super.inAOperation(node);
 		
 		// looking for data sources
 		String reactorId = node.getId().toString().trim();
-		if(reactorId.equals("FileRead")) {
+		if(importTypes.contains(reactorId)) {
 			this.currentSourceStatement = new HashMap<String, Object>();
 			this.currentSourceStatement.put("expression", node.toString());
-			this.currentSourceStatement.put("type", "FileRead");
-		} 
-		else if(reactorId.equals("GoogleSheetSource")) {
-			this.currentSourceStatement = new HashMap<String, Object>();
-			this.currentSourceStatement.put("expression", node.toString());
-			this.currentSourceStatement.put("type", "GoogleSheetSource");
-		} 
-		else if(reactorId.equals("Database")) {
-			this.currentSourceStatement = new HashMap<String, Object>();
-			this.currentSourceStatement.put("expression", node.toString());
-			this.currentSourceStatement.put("type", "Database");
-		}
-		
-		if(this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileSourceReactor
-				|| this.curReactor instanceof GoogleSheetSourceReactor || this.curReactor instanceof FrameReactor) {
-			this.sourceStr = node.toString().trim();
-		}
-		else if(this.curReactor instanceof ImportDataReactor || this.curReactor instanceof MergeDataReactor) {
-			this.importStr = node.toString().trim();
+			this.currentSourceStatement.put("type", reactorId);
+			Map<String, List<Object>> sourceParams = new HashMap<String, List<Object>>();
+			this.currentSourceStatement.put("params", sourceParams);
 		}
 	}
 	
 	public void outAOperation(AOperation node) {
 		if(this.currentSourceStatement != null) {
 			// store the inputs of the
-			Map<String, List<Object>> sourceParams = new HashMap<String, List<Object>>();
-			this.currentSourceStatement.put("params", sourceParams);
+			Map<String, List<Object>> sourceParams = (Map<String, List<Object>>) this.currentSourceStatement.get("params");
 			
 			NounStore nouns = this.curReactor.getNounStore();
 			Set<String> inputKeys = nouns.getNounKeys();
+			boolean single = inputKeys.size() == 1;
 			for(String key : inputKeys) {
-				GenRowStruct grs = nouns.getNoun(key);
-				sourceParams.put(key, grs.getAllValues());
+				if(single && key.equals("all")) {
+					GenRowStruct grs = nouns.getNoun(key);
+					if(!grs.isEmpty()) {
+						sourceParams.put("noKey", grs.getAllValues());
+					}
+				} else if(!key.equals("all")) {
+					GenRowStruct grs = nouns.getNoun(key);
+					sourceParams.put(key, grs.getAllValues());
+				}
 			}
 		}
 		
@@ -147,7 +198,6 @@ public class DatasourceTranslation extends LazyTranslation {
     	}
     	
     	boolean isQs = false;
-    	boolean isImport = false;
     	boolean requireExec = false;
     	// need to merge generic reactors & maps for proper input setting
     	if(thisPrevReactor !=null && (thisPrevReactor instanceof GenericReactor || thisPrevReactor instanceof AbstractMapReactor)) {
@@ -166,10 +216,6 @@ public class DatasourceTranslation extends LazyTranslation {
     			isQs = true;
     		}
 		} 
-    	// need to find imports
-    	else if(thisPrevReactor != null && (thisPrevReactor instanceof ImportDataReactor || thisPrevReactor instanceof MergeDataReactor)) {
-			isImport = true;
-		}
     	
 		// only want to execute for qs
 		if(isQs || requireExec) {
@@ -187,12 +233,6 @@ public class DatasourceTranslation extends LazyTranslation {
 	    	} else {
 	    		this.planner.removeVariable("$RESULT");
 	    	}
-			
-		} else if(isImport) {
-			GenRowStruct grs = thisPrevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
-			if(grs != null) {
-				this.importQs = (QueryStruct2) grs.get(0);
-			}
 		}
 	}
 	
@@ -215,8 +255,8 @@ public class DatasourceTranslation extends LazyTranslation {
 				  + "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"%7B%22core_engine%22%3A%22NEWSEMOSSAPP%22%7D\" ) ; "
 				  + "CreateFrame ( Grid ) .as ( [ 'FRAME549443' ] ) ; "
 				  + "GoogleSheetSource ( id=[ \"1EZbv_mXn_tnguDG02awFwQ30EqGMoWKZBflUVlcLgxY\" ] , sheetNames=[ \"diabetes\" ] , type=[ \".spreadsheet\" ] ) | Import ( ) ;"
-//				  + "FileRead(filePath=[\"C:/workspace/Semoss_Dev/Movie_Data2018_03_27_13_08_21_0875.csv\"],dataTypeMap=[{\"Nominated\":\"STRING\",\"Title\":\"STRING\",\"Genre\":\"STRING\",\"Studio\":\"STRING\",\"Director\":\"STRING\",\"Revenue_Domestic\":\"NUMBER\",\"MovieBudget\":\"NUMBER\",\"Revenue_International\":\"NUMBER\",\"RottenTomatoes_Critics\":\"NUMBER\",\"RottenTomatoes_Audience\":\"NUMBER\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"Movie_Data\"])|Select(DND__Nominated, DND__Title, DND__Genre, DND__Studio, DND__Director, DND__Revenue_Domestic, DND__MovieBudget, DND__Revenue_International, DND__RottenTomatoes_Critics, DND__RottenTomatoes_Audience).as([Nominated, Title, Genre, Studio, Director, Revenue_Domestic, MovieBudget, Revenue_International, RottenTomatoes_Critics, RottenTomatoes_Audience]) | Filter(DND__Genre == \"Drama\") | Filter(DND__MovieBudget > 10) |Import ( ) ; "
-//				  + "Database(Movie_RDBMS) | Select(Title, Title__MovieBudget, Studio) | Join((Title, inner.join, Studio)) | Import(); "
+				  + "FileRead(filePath=[\"C:/workspace/Semoss_Dev/Movie_Data2018_03_27_13_08_21_0875.csv\"],dataTypeMap=[{\"Nominated\":\"STRING\",\"Title\":\"STRING\",\"Genre\":\"STRING\",\"Studio\":\"STRING\",\"Director\":\"STRING\",\"Revenue_Domestic\":\"NUMBER\",\"MovieBudget\":\"NUMBER\",\"Revenue_International\":\"NUMBER\",\"RottenTomatoes_Critics\":\"NUMBER\",\"RottenTomatoes_Audience\":\"NUMBER\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"Movie_Data\"])|Select(DND__Nominated, DND__Title, DND__Genre, DND__Studio, DND__Director, DND__Revenue_Domestic, DND__MovieBudget, DND__Revenue_International, DND__RottenTomatoes_Critics, DND__RottenTomatoes_Audience).as([Nominated, Title, Genre, Studio, Director, Revenue_Domestic, MovieBudget, Revenue_International, RottenTomatoes_Critics, RottenTomatoes_Audience]) | Filter(DND__Genre == \"Drama\") | Filter(DND__MovieBudget > 10) |Import ( ) ; "
+				  + "Database(Movie_RDBMS) | Select(Title, Title__MovieBudget, Studio) | Join((Title, inner.join, Studio)) | Import(); "
 				  + "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ; "
 				  + "Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ; "
 //				  + "if ( ( HasDuplicates ( Drug ) ) , ( Select ( Drug , Average ( id ) ) .as ( [ Drug , Averageofid ] ) | Group ( Drug ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Averageofid\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Drug , id ) .as ( [ Drug , id ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"id\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ; "
