@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -54,15 +53,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String[] recipeToSave = getRecipe();
 		String layout = getLayout();
 		boolean hidden = getHidden();
-		Object paramInput = getParams();
-		List<String> params = new Vector<String>();
-		if(paramInput != null) {
-			if(paramInput instanceof List) {
-				params = (List<String>) paramInput;
-			} else {
-				params.add(paramInput.toString());
-			}
-		}
+		List<String> params = getParams();
 		
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.length == 0) {

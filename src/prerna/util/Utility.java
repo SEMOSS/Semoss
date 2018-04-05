@@ -2689,6 +2689,14 @@ public class Utility {
 				}
 			}
 		}
+		
+		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
+		if(rawType.contains("AppEngine")) {
+			// this engine has no data! it is just a collection of insights
+			// nothing to synchronize into local master
+			return;
+		}
+		
 		AddToMasterDB adder = new AddToMasterDB();
 
 		Date rdbmsDate = adder.getEngineDate(engineName);
