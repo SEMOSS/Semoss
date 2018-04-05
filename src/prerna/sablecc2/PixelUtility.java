@@ -256,7 +256,8 @@ public class PixelUtility {
 		 * routine / analysis
 		 */
 		
-		DatasourceTranslation translation = new DatasourceTranslation();
+		Insight in = new Insight();
+		DatasourceTranslation translation = new DatasourceTranslation(in);
 		try {
 			expression = PixelPreProcessor.preProcessPixel(expression, new HashMap<String, String>());
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
