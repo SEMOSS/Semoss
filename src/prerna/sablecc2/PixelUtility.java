@@ -390,12 +390,16 @@ public class PixelUtility {
 		}
 		
 		List<String> newRecipe = translation.getPixels();
+		StringBuilder fullRecipe = new StringBuilder();
+		for(String s : newRecipe) {
+			fullRecipe.append(s.trim());
+		}
 		Map<String, Map<String, String>> processedParams = translation.getParamToSource();
 		
 		List<Map<String, Object>> vec = new Vector<Map<String, Object>>();
 		Map<String, Object> map = new LinkedHashMap<String, Object>();
 		// recipe is the query
-		map.put("query", newRecipe);
+		map.put("query", fullRecipe.toString());
 		map.put("label", insightName);
 		map.put("description", "Auto generated Param Insight");
 		// add params
@@ -450,9 +454,7 @@ public class PixelUtility {
 		vec.add(map);
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		String json = gson.toJson(vec);
-		String finalRecipe = "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + json + "}</encode>\");"; 
-		System.out.println(json);
+		String finalRecipe = "AddPanel(0); Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec) + "}</encode>\");"; 
 		return finalRecipe;
 	}
 }
