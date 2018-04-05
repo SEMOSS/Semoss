@@ -23,9 +23,9 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class QSAliasToPhysicalConverter {
+public class QsAliasToPhysicalConverter {
 
-	private QSAliasToPhysicalConverter() {
+	private QsAliasToPhysicalConverter() {
 
 	}
 
@@ -66,8 +66,8 @@ public class QSAliasToPhysicalConverter {
 		if(origGroups != null && !origGroups.isEmpty()) {
 			List<QueryColumnSelector> convertedGroups =  new Vector<QueryColumnSelector>();
 			for(int i = 0; i < origGroups.size(); i++) {
-				IQuerySelector origGrupS = origGroups.get(i);
-				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGrupS, meta);
+				IQuerySelector origGroupS = origGroups.get(i);
+				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, meta);
 				convertedGroups.add(convertedGroupS);
 			}
 			convertedQs.setGroupBy(convertedGroups);

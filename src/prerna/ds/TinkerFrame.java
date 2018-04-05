@@ -39,7 +39,7 @@ import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QsAliasToPhysicalConverter;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.reactor.imports.IImporter;
@@ -1095,7 +1095,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// fill in relationships into qs
 			qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 //		}
-		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		qs = QsAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		GremlinInterpreter2 interp = new GremlinInterpreter2(this.g, this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);

@@ -3,11 +3,8 @@ package prerna.query.querystruct.transform;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
-import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -21,7 +18,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class QsToPixelConverter {
@@ -89,19 +85,24 @@ public class QsToPixelConverter {
 			joinBuilder.append("Join(").append(joins).append(")");
 		}
 
+		// now go through group bys
+		boolean hasGroups = false;
+		StringBuilder groupBuilder = new StringBuilder();
+		List<QueryColumnSelector> origGroups = qs.getGroupBy();
+		if(!origGroups.isEmpty()) {
+			hasGroups = true;
+			groupBuilder.append("Group(");
+			for(int i = 0; i < origGroups.size(); i++) {
+				if(i != 0) {
+					groupBuilder.append(",");
+				}
+				IQuerySelector origGroupS = origGroups.get(i);
+				groupBuilder.append(convertSelector(origGroupS));
+			}
+			groupBuilder.append(")");
+		}
 		
-//		// now go through the group by
-//		List<QueryColumnSelector> origGroups = qs.getGroupBy();
-//		if(origGroups != null && !origGroups.isEmpty()) {
-//			List<QueryColumnSelector> convertedGroups =  new Vector<QueryColumnSelector>();
-//			for(int i = 0; i < origGroups.size(); i++) {
-//				IQuerySelector origGrupS = origGroups.get(i);
-//				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGrupS);
-//				convertedGroups.add(convertedGroupS);
-//			}
-//			convertedQs.setGroupBy(convertedGroups);
-//		}
-//		
+		//TODO: add order!!!
 //		// now go through the order by
 //		List<QueryColumnOrderBySelector> origOrders = qs.getOrderBy();
 //		if(origOrders != null && !origOrders.isEmpty()) {
@@ -122,6 +123,9 @@ public class QsToPixelConverter {
 		if(hasJoins) {
 			 pixel.append(" | ").append(joinBuilder.toString());
 		}
+		if(hasGroups) {
+			pixel.append(" | ").append(groupBuilder.toString());
+		}
 		if(hasHaving) {
 			pixel.append(" | ").append(havingFilterBuilder.toString());
 		}
@@ -134,6 +138,12 @@ public class QsToPixelConverter {
 		return pixel.toString();
 	}
 
+	/**
+	 * Convert the joins into its pixel string
+	 * Does not include the Join syntax but only provides the contents inside
+	 * @param joins
+	 * @return
+	 */
 	public static String convertJoins(Map<String, Map<String, List>> joins) {
 		StringBuilder b = new StringBuilder();
 		boolean first = true;
@@ -160,7 +170,7 @@ public class QsToPixelConverter {
 	}
 
 	/**
-	 * Modify the selectors
+	 * Converts a selector into its pixel string
 	 * @param selector
 	 * @return
 	 */
@@ -178,11 +188,21 @@ public class QsToPixelConverter {
 		return null;
 	}
 
+	/**
+	 * Converts a basic column selector into its pixel string
+	 * @param selector
+	 * @return
+	 */
 	private static String convertColumnSelector(QueryColumnSelector selector) {
 		String qsName = selector.getQueryStructName();
 		return qsName;
 	}
 
+	/**
+	 * Converts a math selector into its pixel string
+	 * @param selector
+	 * @return
+	 */
 	private static String convertArithmeticSelector(QueryArithmeticSelector selector) {
 		StringBuilder b = new StringBuilder();
 		b.append("(").append(convertSelector(selector.getLeftSelector())).append(selector.getMathExpr())
@@ -190,6 +210,11 @@ public class QsToPixelConverter {
 		return b.toString();
 	}
 
+	/**
+	 * Converts a function selector into its pixel string
+	 * @param selector
+	 * @return
+	 */
 	private static String convertFunctionSelector(QueryFunctionSelector selector) {
 		StringBuilder b = new StringBuilder();
 		b.append(selector.getFunction()).append("(");
@@ -206,6 +231,11 @@ public class QsToPixelConverter {
 		return b.toString();
 	}
 
+	/**
+	 * Converts a constant selector into its pixel string
+	 * @param selector
+	 * @return
+	 */
 	private static String convertConstantSelector(QueryConstantSelector selector) {
 		Object val = selector.getConstant();
 		if(val instanceof Number) {
@@ -215,34 +245,14 @@ public class QsToPixelConverter {
 		}
 	}
 	
-//	/**
-//	 * Convert an order by selector
-//	 * Same as conversion of a column selector, but adding the sort direction
-//	 * @param selector
-//	 * @param meta
-//	 * @return
-//	 */
-//	public static QueryColumnOrderBySelector convertOrderBySelector(QueryColumnOrderBySelector selector) {
-//		String newQsName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
-//		if(newQsName == null) {
-//			// nothing to do
-//			// return the original
-//			return selector;
-//		}
-//		QueryColumnOrderBySelector newS = new QueryColumnOrderBySelector();
-//		if(newQsName.contains("__")) {
-//			String[] split = newQsName.split("__");
-//			newS.setTable(split[0]);
-//			newS.setColumn(split[1]);
-//		} else {
-//			newS.setTable(newQsName);
-//			newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
-//		}
-//		newS.setSortDir(selector.getSortDirString());
-//		newS.setAlias(selector.getAlias());
-//		return newS;
-//	}
-	
+	/**
+	 * Convert a GenRowFilter into its pixel string
+	 * Since GenRowFilter is used in many situations, the 
+	 * method calling this is responsible for adding a Filter or Having 
+	 * around the contents it returns
+	 * @param grs
+	 * @return
+	 */
 	public static String convertGenRowFilters(GenRowFilters grs) {
 		List<IQueryFilter> origGrf = grs.getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
@@ -279,6 +289,11 @@ public class QsToPixelConverter {
 		}
 	}
 	
+	/**
+	 * Convert and Or Query Filter into its pixel string
+	 * @param queryFilter
+	 * @return
+	 */
 	private static String convertOrQueryFilter(OrQueryFilter queryFilter) {
 		List<String> orFilters = new Vector<String>();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
@@ -298,6 +313,11 @@ public class QsToPixelConverter {
 		return b.toString();
 	}
 
+	/**
+	 * Convert a And Query Filter into its pixel string
+	 * @param queryFilter
+	 * @return
+	 */
 	private static String convertAndQueryFilter(AndQueryFilter queryFilter) {
 		List<String> andFilters = new Vector<String>();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
@@ -317,138 +337,112 @@ public class QsToPixelConverter {
 		return b.toString();
 	}
 
+	/**
+	 * Convert a simple filter into its pixel string
+	 * Takes into account when we are doing this and have a parameter
+	 * Which must be a single item and starts with "<" and ends with ">"
+	 * @param queryFilter
+	 * @return
+	 */
 	private static String convertSimpleQueryFilter(SimpleQueryFilter queryFilter) {
 		StringBuilder b = new StringBuilder();
+		// add left hand side
 		NounMetadata origL = queryFilter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
 			String col = convertSelector((IQuerySelector) origL.getValue());
 			b.append(col);
 		} else {
-			List<Object> valList = new Vector<Object>();
 			Object values = origL.getValue();
-			if(values instanceof List) {
-				valList = (List) values;
-			} else {
-				valList.add(values);
-			}
-			
-			if(valList.size() == 1) {
-				Object val = valList.get(0);
-				if(val instanceof Number) {
-					b.append(val);
-				} else if(val.toString().startsWith("<") && val.toString().endsWith(">")){
-					b.append("[").append(values).append("]");
-				} else {
-					b.append("\"").append(values).append("\"");
-				}
-			} else {
-				b.append("[");
-				for(int i = 0; i < valList.size(); i++) {
-					if(i != 0) {
-						b.append(",");
-					}
-					if(values instanceof Number) {
-						b.append(values);
-					} else {
-						b.append("\"").append(values).append("\"");
-					}
-				}
-				b.append("]");
-			}
+			appendValuestoStringBuilder(b, values);
 		}
+		
+		// add comparator
 		b.append(" ").append(queryFilter.getComparator()).append(" ");
+		
+		// add right hand side
 		NounMetadata origR = queryFilter.getRComparison();
 		if(origR.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
 			String col = convertSelector((IQuerySelector) origR.getValue());
 			b.append(col);
 		} else {
-			List<Object> valList = new Vector<Object>();
 			Object values = origR.getValue();
-			if(values instanceof List) {
-				valList = (List) values;
+			appendValuestoStringBuilder(b, values);
+		}
+
+		return b.toString();
+	}
+	
+	/**
+	 * Process the values in a simple query filter when it is not a column
+	 * @param b
+	 * @param values
+	 */
+	private static void appendValuestoStringBuilder(StringBuilder b, Object values) {
+		List<Object> valList = new Vector<Object>();
+		if(values instanceof List) {
+			valList = (List) values;
+		} else {
+			valList.add(values);
+		}
+		
+		// if single element
+		if(valList.size() == 1) {
+			// account for numbers or for a parameter!
+			Object val = valList.get(0);
+			if(val instanceof Number) {
+				b.append(val);
+			} else if(val.toString().startsWith("<") && val.toString().endsWith(">")){
+				b.append("[").append(values).append("]");
 			} else {
-				valList.add(values);
+				b.append("\"").append(values).append("\"");
 			}
-			
-			if(valList.size() == 1) {
-				Object val = valList.get(0);
-				if(val instanceof Number) {
-					b.append(val);
-				} else if(val.toString().startsWith("<") && val.toString().endsWith(">")){
-					b.append("[").append(values).append("]");
+		} else {
+			// otherwise, it is a list
+			b.append("[");
+			for(int i = 0; i < valList.size(); i++) {
+				if(i != 0) {
+					b.append(",");
+				}
+				if(values instanceof Number) {
+					b.append(values);
 				} else {
 					b.append("\"").append(values).append("\"");
 				}
-			} else {
-				b.append("[");
-				for(int i = 0; i < valList.size(); i++) {
-					if(i != 0) {
-						b.append(",");
-					}
-					if(values instanceof Number) {
-						b.append(values);
-					} else {
-						b.append("\"").append(values).append("\"");
-					}
-				}
-				b.append("]");
 			}
+			b.append("]");
 		}
-
-		return b.toString();
 	}
 	
-	private static String getDatasource(QueryStruct2 qs) {
-		StringBuilder b = new StringBuilder();
-		if(qs instanceof CsvQueryStruct) {
-			b.append("FileRead(");
-			CsvQueryStruct csvQs = (CsvQueryStruct) qs;
-			b.append(ReactorKeysEnum.FILE_PATH.getKey()).append("=[\"").append(csvQs.getCsvFilePath()).append("\"]");
-			b.append(",");
-			b.append(ReactorKeysEnum.DATA_TYPE_MAP.getKey()).append("=[").append(convertMap(csvQs.getColumnTypes())).append("]");
-			b.append(",");
-			b.append(ReactorKeysEnum.DELIMITER.getKey()).append("=[\"").append(csvQs.getDelimiter()).append("\"]");
-			b.append(",");
-			b.append(ReactorKeysEnum.NEW_HEADER_NAMES.getKey()).append("=[").append(convertMap(csvQs.getNewHeaderNames())).append("]");
-			b.append(")");
-		} else if(qs instanceof ExcelQueryStruct) {
-			b.append("FileRead(");
-			ExcelQueryStruct xlQs = (ExcelQueryStruct) qs;
-			b.append(ReactorKeysEnum.FILE_PATH.getKey()).append("=[\"").append(xlQs.getExcelFilePath()).append("\"]");
-			b.append(",");
-			b.append(ReactorKeysEnum.DATA_TYPE_MAP.getKey()).append("=[").append(convertMap(xlQs.getColumnTypes())).append("]");
-			b.append(",");
-			b.append("sheetName=[\"").append(xlQs.getSheetName()).append("\"]");
-			b.append(",");
-			b.append(ReactorKeysEnum.NEW_HEADER_NAMES.getKey()).append("=[").append(convertMap(xlQs.getNewHeaderNames())).append("]");
-			b.append(")");
-		} else {
-			String engineName = qs.getEngineName();
-			if(engineName != null) {
-				b.append("Database(").append(engineName).append(")");
-			} else {
-				b.append("Frame()");
-			}
-		}
-		return b.toString();
-	}
+//	/**
+//	 * Convert an order by selector
+//	 * Same as conversion of a column selector, but adding the sort direction
+//	 * @param selector
+//	 * @param meta
+//	 * @return
+//	 */
+//	public static QueryColumnOrderBySelector convertOrderBySelector(QueryColumnOrderBySelector selector) {
+//		String newQsName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
+//		if(newQsName == null) {
+//			// nothing to do
+//			// return the original
+//			return selector;
+//		}
+//		QueryColumnOrderBySelector newS = new QueryColumnOrderBySelector();
+//		if(newQsName.contains("__")) {
+//			String[] split = newQsName.split("__");
+//			newS.setTable(split[0]);
+//			newS.setColumn(split[1]);
+//		} else {
+//			newS.setTable(newQsName);
+//			newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+//		}
+//		newS.setSortDir(selector.getSortDirString());
+//		newS.setAlias(selector.getAlias());
+//		return newS;
+//	}
 	
-	private static String convertMap(Map<String, String> map) {
-		StringBuilder b = new StringBuilder("{");
-		
-		int counter = 0;
-		Set<String> keys = map.keySet();
-		for(String key : keys) {
-			if(counter != 0) {
-				b.append(",");
-			}
-			b.append("\"").append(key).append("\":\"").append(map.get(key)).append("\"");
-			counter++;
-		}
-		b.append("}");
-		return b.toString();
-	}
-
+	
+	
 }
