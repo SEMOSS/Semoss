@@ -19,6 +19,12 @@ public interface IQueryFilter {
 	Set<String> getAllUsedColumns();
 	
 	/**
+	 * Get all columns used by the filter
+	 * @return
+	 */
+	Set<String> getAllQueryStructColumns();
+	
+	/**
 	 * See if the filter is using a specific column
 	 * @param column
 	 * @return
