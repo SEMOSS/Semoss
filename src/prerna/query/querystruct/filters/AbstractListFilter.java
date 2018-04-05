@@ -36,6 +36,15 @@ public abstract class AbstractListFilter implements IQueryFilter {
 	}
 	
 	@Override
+	public Set<String> getAllQueryStructColumns() {
+		Set<String> usedCols = new HashSet<String>();
+		for(IQueryFilter f : this.filterList) {
+			usedCols.addAll(f.getAllQueryStructColumns());
+		}
+		return usedCols;
+	}
+	
+	@Override
 	public boolean containsColumn(String column) {
 		for(IQueryFilter f : this.filterList) {
 			if(f.containsColumn(column)) {

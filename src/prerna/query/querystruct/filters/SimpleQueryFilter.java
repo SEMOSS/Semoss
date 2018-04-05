@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.stream.Collectors;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -469,6 +468,21 @@ public class SimpleQueryFilter implements IQueryFilter {
 		// guess the left hand didn't... now try the right hand side
 		if(isCol(rComparison)) {
 			usedCols.add( ((IQuerySelector) rComparison.getValue()).getAlias());
+		}
+		return usedCols;
+	}
+	
+	@Override
+	public Set<String> getAllQueryStructColumns() {
+		Set<String> usedCols = new HashSet<String>();
+		//is the left hand side a column?
+		if(isCol(lComparison)) {
+			usedCols.add( ((IQuerySelector) lComparison.getValue()).getQueryStructName());
+		}
+
+		// guess the left hand didn't... now try the right hand side
+		if(isCol(rComparison)) {
+			usedCols.add( ((IQuerySelector) rComparison.getValue()).getQueryStructName());
 		}
 		return usedCols;
 	}
