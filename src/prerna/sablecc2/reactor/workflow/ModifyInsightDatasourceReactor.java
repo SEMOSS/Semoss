@@ -29,6 +29,8 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 		String fullRecipe = b.toString();
 		
 		List<String> newRecipe = PixelUtility.modifyInsightDatasource(fullRecipe, replacementOptions);
+		
+		this.insight.getPixelRecipe().clear();
 		return new NounMetadata(newRecipe, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	
