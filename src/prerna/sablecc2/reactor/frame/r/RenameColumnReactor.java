@@ -6,7 +6,7 @@ import java.util.Map;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.transform.QsRenameColumnConverter;
+import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -75,7 +75,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// also modify the frame filters
 		Map<String, String> modMap = new HashMap<String, String>();
 		modMap.put(originalColName, validNewHeader);
-		frame.setFrameFilters(QsRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
+		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
 		
 		// return the output
 		return retNoun;
