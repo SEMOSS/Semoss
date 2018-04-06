@@ -83,6 +83,10 @@ public class ClearInsightReactor extends AbstractReactor {
 				logger.info("Successfully deleted File used in insight " + f.getName());
 			}
 		}
+		
+		// clear the recipe
+		this.insight.getPixelRecipe().clear();
+		logger.info("Successfully cleared the insight recipe");
 
 		logger.info("Successfully cleared insight");
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
