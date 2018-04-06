@@ -17,7 +17,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.query.querystruct.transform.QsAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -189,7 +189,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			}
 		}
 		
-		qs = QsAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return iterator;
 	}

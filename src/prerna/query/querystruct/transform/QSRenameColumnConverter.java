@@ -22,9 +22,9 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class QsRenameColumnConverter {
+public class QSRenameColumnConverter {
 	
-	private QsRenameColumnConverter() {
+	private QSRenameColumnConverter() {
 
 	}
 

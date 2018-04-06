@@ -31,7 +31,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
-import prerna.query.querystruct.transform.QsAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.PixelDataType;
@@ -574,7 +574,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		try {
 			innerInterpreter = this.getClass().newInstance();
 			if(this.frame != null) {
-				subQs = QsAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
+				subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
 			}
 			innerInterpreter.setQueryStruct(subQs);
 			innerInterpreter.setLogger(this.logger);
@@ -598,7 +598,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 
 	/**
 	 * Add filter for a column to values
-	 * @param filter 
+	 * @param filters 
 	 * @param leftComp
 	 * @param rightComp
 	 * @param thisComparator
