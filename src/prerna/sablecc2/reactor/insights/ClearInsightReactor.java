@@ -84,10 +84,6 @@ public class ClearInsightReactor extends AbstractReactor {
 			}
 		}
 		
-		// clear the recipe
-		this.insight.getPixelRecipe().clear();
-		logger.info("Successfully cleared the insight recipe");
-
 		logger.info("Successfully cleared insight");
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 	}
