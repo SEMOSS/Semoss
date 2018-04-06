@@ -10,11 +10,10 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.parsers.OpaqueSqlParser;
-import prerna.query.parsers.SqlParser;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.transform.QsAliasToPhysicalConverter;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
@@ -84,7 +83,7 @@ public class NativeFrameImporter implements IImporter {
 		// first, load the entire native frame into rframe
 		QueryStruct2 nativeQs = this.dataframe.getQueryStruct();
 		// need to convert the native QS to properly form the RDataTable
-		nativeQs = QsAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
+		nativeQs = QSAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
 		Iterator<IHeadersDataRow> nativeFrameIt = this.dataframe.query(nativeQs);
 		RDataTable rFrame = new RDataTable(Utility.getRandomString(8));
 		RImporter rImporter = new RImporter(rFrame, nativeQs, nativeFrameIt);
