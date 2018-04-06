@@ -61,7 +61,6 @@ public class DatasourceTranslation extends LazyTranslation {
 	private List<Map<String, Object>> datasourcePixels = new Vector<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
 	
-	
 	public DatasourceTranslation(Insight insight) {
 		super(insight);
 	}
@@ -73,17 +72,28 @@ public class DatasourceTranslation extends LazyTranslation {
 		for(PRoutine e : copy) {
 			String expression = e.toString();
 			LOGGER.info("Processing " + expression);
-			e.apply(this);
+
+			boolean process = false;
+			for(String iType : importTypes) {
+				if(expression.contains(iType)) {
+					process = true;
+					break;
+				}
+			}
 			
-			// if we ended up finding something to store
-			if(this.currentSourceStatement != null) {
-				this.currentSourceStatement.put("pixelStepIndex", currentIndex);
-				// process to ensure query structs are broken into parts for FE to consume
-				postProcessParams(this.currentSourceStatement);
-				// add the source to store
-				this.datasourcePixels.add(this.currentSourceStatement);
-				// at the end, we will null it
-				this.currentSourceStatement = null;
+			// only execute pixels that at least contain the import
+			if(process) {
+				e.apply(this);
+				// if we ended up finding something to store
+				if(this.currentSourceStatement != null) {
+					this.currentSourceStatement.put("pixelStepIndex", currentIndex);
+					// process to ensure query structs are broken into parts for FE to consume
+					postProcessParams(this.currentSourceStatement);
+					// add the source to store
+					this.datasourcePixels.add(this.currentSourceStatement);
+					// at the end, we will null it
+					this.currentSourceStatement = null;
+				}
 			}
 			
 			// update the index
