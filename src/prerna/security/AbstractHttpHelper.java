@@ -28,16 +28,23 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User2;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class AbstractHttpHelper 
+public abstract class AbstractHttpHelper 
 {
 
+	static ObjectMapper mapper = new ObjectMapper();
+
+	
 	// makes a request to get access token with a params hashtable
-	public static String getAccessToken(String url, Hashtable params, boolean json, boolean extract)
+	public static AccessToken getAccessToken(String url, Hashtable params, boolean json, boolean extract)
 	{
 		String accessToken = null;
+		AccessToken tok = new AccessToken();
 		try {
 			CloseableHttpClient httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
@@ -76,12 +83,14 @@ public class AbstractHttpHelper
 			System.out.println("Result ..  " + result);
 			accessToken = result.toString();
 			
+			tok.setAccess_token(accessToken);
+			
 			if(status == 200 && extract)
 			{
 				if(json)
-					accessToken = getJAccessToken(result.toString());
+					tok = getJAccessToken(result.toString());
 				else
-					accessToken = getAccessToken(result.toString());
+					tok = getAccessToken(result.toString());
 					
 			}
 			
@@ -99,19 +108,22 @@ public class AbstractHttpHelper
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		System.out.println("Forcing redo");
 
-		return accessToken;
+		return tok;
 	}
 	
-	public static String getAccessToken(String input)
+	public static AccessToken getAccessToken(String input)
 	{
 		return getAccessToken(input, "access_token");
 	}
 	
 	// processes to get he access token as simple
-	public static String getAccessToken(String input, String nameOfToken)
+	public static AccessToken getAccessToken(String input, String nameOfToken)
 	{
 		String accessToken = null;
+		
 		// access_token=2577b7a6ef68c2a736bf0648ea024b0f4d10e32d&scope=public_repo%2Cuser&token_type=bearer
 		String [] tokens = input.split("&");
 		for(int tokenIndex = 0;tokenIndex < tokens.length;tokenIndex++)
@@ -120,17 +132,21 @@ public class AbstractHttpHelper
 			if(thisToken.startsWith(nameOfToken))
 				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
 		}
-		return accessToken;
+		AccessToken tok = new AccessToken();
+		tok.setAccess_token(accessToken);
+		tok.init();
+		
+		return tok;
 	
 	}
 
-	public static String getJAccessToken(String input)
+	public static AccessToken getJAccessToken(String input)
 	{
-		return getJAccessToken(input, "access_token");
+		return getJAccessToken(input, "[access_token, token_type, expires_in]");
 	}
 	
 	// processes to get the access token as json
-	public static String getJAccessToken(String json, String nameOfToken)
+	public static AccessToken getJAccessToken(String json, String nameOfToken)
 	{
 		JsonNode result;
 		String retString = null;
@@ -141,28 +157,37 @@ public class AbstractHttpHelper
 			// prepared statements.
 			Expression<JsonNode> expression = jmespath.compile(nameOfToken);
 
-			
-			ObjectMapper mapper = new ObjectMapper();
+			//AccessToken tok = mapper.readValue(json, AccessToken.class);
+			AccessToken tok = new AccessToken();
 			JsonNode input = mapper.readTree(json);
 			result = expression.search(input);
+			if(result.size() >= 0)
+				tok.setAccess_token(result.get(0).asText());
+			if(result.size() >= 1)
+				tok.setToken_type(result.get(1).asText());
+			if(result.size() >= 2)
+				tok.setExpires_in(result.get(2).asInt());
 			
-			retString = result.asText();
+			tok.init();
+			retString = tok.getAccess_token();
+			
+			return tok;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return retString;
+		return null;
 
 	}
 
 	// makes the call to every resource going forward with the specified keys as get
 	public static String makeGetCall(String url_str, String accessToken)
 	{
-		return makeGetCall(url_str, accessToken, null);
+		return makeGetCall(url_str, accessToken, null, true);
 	}
 
 	// makes the call to every resource going forward with the specified keys as get
-	public static String makeGetCall(String url_str, String accessToken, Hashtable params)
+	public static String makeGetCall(String url_str, String accessToken, Hashtable params, boolean auth)
 	{
 		String retString = null;
 		
@@ -203,17 +228,20 @@ public class AbstractHttpHelper
 		    con.setUseCaches(false);
 		    con.setRequestMethod("GET");
 		    con.setRequestProperty("User-Agent", "SEMOSS");
-		    con.setRequestProperty("Authorization","Bearer " + accessToken);
+		    if(auth)
+		    	con.setRequestProperty("Authorization","Bearer " + accessToken);
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
 
 		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() ));
-		    String str = null;
+		    String str = "";
 		    String line;
 		    while((line = br.readLine()) != null){
 		        str += line;
 		    }
-		    System.out.println(str);			
+		    System.out.println(str);	
+		    
+		    retString = str;
 			//System.out.println("Output.. " + retString);
 			
 		} catch (MalformedURLException e) {
@@ -226,6 +254,68 @@ public class AbstractHttpHelper
 		
 		return retString;
 	}
+
+	// makes the call to every resource going forward with the specified keys as get
+	public static BufferedReader getHttpStream(String url_str, String accessToken, Hashtable params, boolean auth)
+	{
+		String retString = null;
+		
+		// fill the params on the get since it is not null
+		if(params != null)
+		{
+			StringBuffer urlBuf = new StringBuffer(url_str);
+			urlBuf.append("?");
+			Enumeration keys = params.keys();
+			boolean first = true;
+			while(keys.hasMoreElements())
+			{
+				Object key = keys.nextElement() +"";
+				Object value = params.get(key);
+				
+				if(!first)
+					urlBuf.append("&");
+				
+				try {
+					urlBuf.append(key).append("=").append(URLEncoder.encode(value+"", "UTF-8"));
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				first = false;
+			}
+			url_str = urlBuf.toString();
+		}
+		
+		try {
+			
+			HttpURLConnection con = null;
+			URL url = new URL(url_str);
+		    con = ( HttpURLConnection )url.openConnection();
+		    con.setDoInput(true);
+		    con.setDoOutput(true);
+		    con.setUseCaches(false);
+		    con.setRequestMethod("GET");
+		    con.setRequestProperty("User-Agent", "SEMOSS");
+		    if(auth)
+		    	con.setRequestProperty("Authorization","Bearer " + accessToken);
+		    con.setRequestProperty("Accept","application/json"); // I added this line.
+		    con.connect();
+
+		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() ));
+		    
+		    return br;
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+
 	
 	// makes the call to every resource going forward with the specified keys as post
 	
@@ -248,5 +338,9 @@ public class AbstractHttpHelper
 
 	}
 	
-	
+	public static void main(String [] args)
+	{
+		String json = "{ \"access_token\": \"***REMOVED***\", \"token_type\": \"Bearer\", \"expires_in\": 3600}";
+		AbstractHttpHelper.getJAccessToken(json);
+	}	
 }
