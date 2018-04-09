@@ -84,7 +84,8 @@ public class ReplaceDatasourceTranslation extends DepthFirstAdapter {
 		// looking for data sources
 		String reactorId = node.getId().toString().trim();
 		if(reactorId.equals("FileRead") || 
-				reactorId.equals("GoogleSheetSource")) {
+				reactorId.equals("GoogleSheetSource") ||
+				reactorId.equals("Database")) {
 			tryPerformReplacement(node.toString().trim());
 		}
 	}
@@ -188,6 +189,37 @@ public class ReplaceDatasourceTranslation extends DepthFirstAdapter {
 		testReplacements = new Vector<Map<String, Object>>();
 		replacementMap = new HashMap<String, Object>();
 		replacementPixelToUse = "FileRead(filePath=[\"C:/workspace/Semoss_Dev/Movie_Data2018_03_27_13_08_21_0875.csv\"],dataTypeMap=[{\"Nominated\":\"STRING\",\"Title\":\"STRING\",\"Genre\":\"STRING\",\"Studio\":\"STRING\",\"Director\":\"STRING\",\"Revenue_Domestic\":\"NUMBER\",\"MovieBudget\":\"NUMBER\",\"Revenue_International\":\"NUMBER\",\"RottenTomatoes_Critics\":\"NUMBER\",\"RottenTomatoes_Audience\":\"NUMBER\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"Movie_Data\"])|Select(DND__Nominated, DND__Title, DND__Genre, DND__Studio, DND__Director, DND__Revenue_Domestic, DND__MovieBudget, DND__Revenue_International, DND__RottenTomatoes_Critics, DND__RottenTomatoes_Audience).as([Nominated, Title, Genre, Studio, Director, Revenue_Domestic, MovieBudget, Revenue_International, RottenTomatoes_Critics, RottenTomatoes_Audience])";
+		replacementMap.put("pixel", replacementPixelToUse);
+		replacementMap.put("index", 6);
+
+		testReplacements.add(replacementMap);
+		
+		translation = new ReplaceDatasourceTranslation();
+		translation.setReplacements(testReplacements);
+		try {
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), new HashMap<String, String>());
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+			// parsing the pixel - this process also determines if expression is syntactically correct
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+		}
+		
+		sourcePixels = translation.getPixels();
+		System.out.println(gson.toJson(sourcePixels));
+		
+		
+		LOGGER.info("");
+		LOGGER.info("");
+
+		LOGGER.info("TRYING WITH DATABASE ");
+		expression = "AddPanel ( 0 ) ;Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eUnfilterFrame(\u003cSelectedColumn\u003e);\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"\u003cencode\u003eif(IsEmpty(\u003cSelectedValues\u003e), UnfilterFrame(\u003cSelectedColumn\u003e), SetFrameFilter(\u003cSelectedColumn\u003e\u003d\u003d\u003cSelectedValues\u003e));\u003c/encode\u003e\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;Panel ( 0 ) | RetrievePanelEvents ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" , \"\u003cencode\u003e{\"type\":\"echarts\"}\u003c/encode\u003e\" ) ;Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"\u003cencode\u003e{\"core_engine\":\"NEWSEMOSSAPP\"}\u003c/encode\u003e\" ) ;CreateFrame ( Grid ) .as ( [ \u0027FRAME549443\u0027 ] ) ;Database(abc) | Select(Title, Title__Movie_Budget) | Import ( ) ;Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel \u003d [ \"0\" ] , layout \u003d [ \"Grid\" ] ) | Collect ( 500 ) ;if ( ( HasDuplicates ( Drug ) ) , ( Select ( Drug , Average ( id ) ) .as ( [ Drug , Averageofid ] ) | Group ( Drug ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"Averageofid\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Drug , id ) .as ( [ Drug , id ] ) | With ( Panel ( 0 ) ) | Format ( type \u003d [ \u0027table\u0027 ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Pie\" , \"alignment\" : { \"label\" : [ \"Drug\" ] , \"value\" : [ \"id\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;Panel(0)|AddPanelOrnaments({\"showMenu\":true});Panel(0)|RetrievePanelOrnaments(\"showMenu\");";
+		
+		testReplacements = new Vector<Map<String, Object>>();
+		replacementMap = new HashMap<String, Object>();
+		replacementPixelToUse = "Database(NewDatabaseToUse)";
 		replacementMap.put("pixel", replacementPixelToUse);
 		replacementMap.put("index", 6);
 
