@@ -28,7 +28,7 @@ public class QSRenameColumnConverter {
 
 	}
 
-	public static QueryStruct2 convertSelector(QueryStruct2 qs, Map<String, String> transformationMap) {
+	public static QueryStruct2 convertQs(QueryStruct2 qs, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		if(qs instanceof HardQueryStruct) {
 			return qs;
 		}
@@ -43,15 +43,15 @@ public class QSRenameColumnConverter {
 		List<IQuerySelector> convertedSelectors = new Vector<IQuerySelector>();
 		for(int i = 0; i < origSelectors.size(); i++) {
 			IQuerySelector origS = origSelectors.get(i);
-			IQuerySelector convertedS = convertSelector(origS, transformationMap);
+			IQuerySelector convertedS = convertSelector(origS, transformationMap, keepOrigAlias);
 			convertedSelectors.add(convertedS);
 		}
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
-		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), transformationMap));
-		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), transformationMap));
-		convertedQs.setHavingFilters(convertGenRowFilters(qs.getHavingFilters(), transformationMap));
+		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), transformationMap, keepOrigAlias));
+		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), transformationMap, keepOrigAlias));
+		convertedQs.setHavingFilters(convertGenRowFilters(qs.getHavingFilters(), transformationMap, keepOrigAlias));
 
 		// now go through the joins
 		Map<String, Map<String, List>> joins = qs.getRelations();
@@ -66,7 +66,7 @@ public class QSRenameColumnConverter {
 			List<QueryColumnSelector> convertedGroups =  new Vector<QueryColumnSelector>();
 			for(int i = 0; i < origGroups.size(); i++) {
 				IQuerySelector origGroupS = origGroups.get(i);
-				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, transformationMap);
+				QueryColumnSelector convertedGroupS = (QueryColumnSelector) convertSelector(origGroupS, transformationMap, keepOrigAlias);
 				convertedGroups.add(convertedGroupS);
 			}
 			convertedQs.setGroupBy(convertedGroups);
@@ -129,27 +129,29 @@ public class QSRenameColumnConverter {
 	 * @param selector
 	 * @return
 	 */
-	public static IQuerySelector convertSelector(IQuerySelector selector, Map<String, String> transformationMap) {
+	public static IQuerySelector convertSelector(IQuerySelector selector, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return convertConstantSelector((QueryConstantSelector) selector);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
-			return convertColumnSelector((QueryColumnSelector) selector, transformationMap);
+			return convertColumnSelector((QueryColumnSelector) selector, transformationMap, keepOrigAlias);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
-			return convertFunctionSelector((QueryFunctionSelector) selector, transformationMap);
+			return convertFunctionSelector((QueryFunctionSelector) selector, transformationMap, keepOrigAlias);
 		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
-			return convertArithmeticSelector((QueryArithmeticSelector) selector, transformationMap);
+			return convertArithmeticSelector((QueryArithmeticSelector) selector, transformationMap, keepOrigAlias);
 		}
 		return null;
 	}
 
-	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, Map<String, String> transformationMap) {
-		String alias = selector.getAlias();
-		if(transformationMap.containsKey(alias)) {
+	private static IQuerySelector convertColumnSelector(QueryColumnSelector selector, Map<String, String> transformationMap, boolean keepOrigAlias) {
+		String qsName = selector.getQueryStructName();
+		if(transformationMap.containsKey(qsName)) {
 			// we need to switch
-			String newAlias = transformationMap.get(alias);
+			String newAlias = transformationMap.get(qsName);
 			QueryColumnSelector newS = new QueryColumnSelector(newAlias);
-			newS.setAlias(newAlias);
+			if(keepOrigAlias) {
+				newS.setAlias(selector.getAlias());
+			}
 			newS.setTableAlias(selector.getTableAlias());
 			return newS;
 		}
@@ -159,19 +161,19 @@ public class QSRenameColumnConverter {
 		return selector;
 	}
 
-	private static IQuerySelector convertArithmeticSelector(QueryArithmeticSelector selector, Map<String, String> transformationMap) {
+	private static IQuerySelector convertArithmeticSelector(QueryArithmeticSelector selector, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		QueryArithmeticSelector newS = new QueryArithmeticSelector();
-		newS.setLeftSelector(convertSelector(selector.getLeftSelector(), transformationMap));
-		newS.setRightSelector(convertSelector(selector.getRightSelector(), transformationMap));
+		newS.setLeftSelector(convertSelector(selector.getLeftSelector(), transformationMap, keepOrigAlias));
+		newS.setRightSelector(convertSelector(selector.getRightSelector(), transformationMap, keepOrigAlias));
 		newS.setMathExpr(selector.getMathExpr());
 		newS.setAlias(selector.getAlias());
 		return newS;
 	}
 
-	private static IQuerySelector convertFunctionSelector(QueryFunctionSelector selector, Map<String, String> transformationMap) {
+	private static IQuerySelector convertFunctionSelector(QueryFunctionSelector selector, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		QueryFunctionSelector newS = new QueryFunctionSelector();
 		for(IQuerySelector innerS : selector.getInnerSelector()) {
-			newS.addInnerSelector(convertSelector(innerS, transformationMap));
+			newS.addInnerSelector(convertSelector(innerS, transformationMap, keepOrigAlias));
 		}
 		newS.setFunction(selector.getFunction());
 		newS.setDistinct(selector.isDistinct());
@@ -205,12 +207,12 @@ public class QSRenameColumnConverter {
 		return newS;
 	}
 	
-	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, Map<String, String> transformationMap) {
+	public static GenRowFilters convertGenRowFilters(GenRowFilters grs, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		List<IQueryFilter> origGrf = grs.getFilters();
 		if(origGrf != null && !origGrf.isEmpty()) {
 			GenRowFilters convertedGrf = new GenRowFilters();
 			for(int i = 0; i < origGrf.size(); i++) {
-				convertedGrf.addFilters(convertFilter(origGrf.get(i), transformationMap));
+				convertedGrf.addFilters(convertFilter(origGrf.get(i), transformationMap, keepOrigAlias));
 			}
 			return convertedGrf;
 		}
@@ -226,51 +228,51 @@ public class QSRenameColumnConverter {
 	 * @param meta
 	 * @return
 	 */
-	public static IQueryFilter convertFilter(IQueryFilter queryFilter, Map<String, String> transformationMap) {
+	public static IQueryFilter convertFilter(IQueryFilter queryFilter, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, transformationMap);
+			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, transformationMap, keepOrigAlias);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
-			return convertAndQueryFilter((AndQueryFilter) queryFilter, transformationMap);
+			return convertAndQueryFilter((AndQueryFilter) queryFilter, transformationMap, keepOrigAlias);
 		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
-			return convertOrQueryFilter((OrQueryFilter) queryFilter, transformationMap);
+			return convertOrQueryFilter((OrQueryFilter) queryFilter, transformationMap, keepOrigAlias);
 		} else {
 			return null;
 		}
 	}
 	
-	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, Map<String, String> transformationMap) {
+	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		OrQueryFilter newF = new OrQueryFilter();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
 		for(IQueryFilter f : andFilterList) {
-			newF.addFilter(convertFilter(f, transformationMap));
+			newF.addFilter(convertFilter(f, transformationMap, keepOrigAlias));
 		}
 		return newF;
 	}
 
-	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, Map<String, String> transformationMap) {
+	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		AndQueryFilter newF = new AndQueryFilter();
 		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
 		for(IQueryFilter f : andFilterList) {
-			newF.addFilter(convertFilter(f, transformationMap));
+			newF.addFilter(convertFilter(f, transformationMap, keepOrigAlias));
 		}
 		return newF;
 	}
 
-	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, Map<String, String> transformationMap) {
+	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		NounMetadata newL = null;
 		NounMetadata newR = null;
 
 		NounMetadata origL = queryFilter.getLComparison();
 		if(origL.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
-			newL = new NounMetadata( convertSelector((IQuerySelector) origL.getValue(), transformationMap) , PixelDataType.COLUMN);
+			newL = new NounMetadata( convertSelector((IQuerySelector) origL.getValue(), transformationMap, keepOrigAlias) , PixelDataType.COLUMN);
 		} else {
 			newL = origL;
 		}
 		NounMetadata origR = queryFilter.getRComparison();
 		if(origR.getNounType() == PixelDataType.COLUMN) {
 			// need to convert
-			newR = new NounMetadata( convertSelector((IQuerySelector) origR.getValue(), transformationMap) , PixelDataType.COLUMN);
+			newR = new NounMetadata( convertSelector((IQuerySelector) origR.getValue(), transformationMap, keepOrigAlias) , PixelDataType.COLUMN);
 		} else {
 			newR = origR;
 		}

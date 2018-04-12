@@ -41,7 +41,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 			frame.getBuilder().runQuery(update);
 			// update metadata
 			OwlTemporalEngineMeta metaData = frame.getMetaData();
-			metaData.modifyPropertyName(table + "__" + column, table, table + "__" + newColName);
+			metaData.modifyPropertyName(table + "__" + originalColName, table, table + "__" + newColName);
 			metaData.setAliasToProperty(table + "__" + newColName, newColName);
 			frame.syncHeaders();
 		} catch (Exception e) {
@@ -55,7 +55,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		// also modify the frame filters
 		Map<String, String> modMap = new HashMap<String, String>();
 		modMap.put(originalColName, newColName);
-		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
+		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap, false));
 		
 		// return the output
 		return retNoun;
