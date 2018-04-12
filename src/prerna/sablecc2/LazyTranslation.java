@@ -1162,10 +1162,11 @@ public class LazyTranslation extends DepthFirstAdapter {
 			}
 			// get the parent
 			Object parent = curReactor.Out();
-						
+			
 			// set the parent as the curReactor if it is present
+			prevReactor = curReactor;
 			if(parent != null && parent instanceof IReactor) {
-				curReactor = (IReactor)parent;
+				curReactor = (IReactor) parent;
 			} else {
 				curReactor = null;
 			}
