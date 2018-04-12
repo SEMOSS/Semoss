@@ -7,22 +7,23 @@ import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class JdbcEngineConnectorReactor extends AbstractQueryStructReactor {
 	
 	public JdbcEngineConnectorReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.USERNAME.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.DB_DRIVER_KEY.getKey(), 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
 	}
 	
 	@Override
 	protected QueryStruct2 createQueryStruct() {
-		String userName = getUserName();
-		String password = getPassword();
-		String driver = getDbDriver();
-		String connectionUrl = getConnectionString();
+		organizeKeys();
+		String connectionUrl = this.keyValue.get(this.keysToGet[0]);
+		String driver = this.keyValue.get(this.keysToGet[1]);
+		String userName = this.keyValue.get(this.keysToGet[2]);
+		String password = this.keyValue.get(this.keysToGet[3]);
 
 		Connection con = null;
 		try {
@@ -51,38 +52,4 @@ public class JdbcEngineConnectorReactor extends AbstractQueryStructReactor {
 		return this.qs;
 	}
 	
-	/*
-	 * Pixel inputs
-	 */
-	private String getConnectionString() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
-	}
-
-	private String getDbDriver() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
-	}
-
-	private String getPassword() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[2]);
-	}
-
-	private String getUserName() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[3]);
-	}
 }

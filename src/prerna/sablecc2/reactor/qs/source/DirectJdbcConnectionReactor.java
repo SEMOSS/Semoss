@@ -7,24 +7,25 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 	
 	public DirectJdbcConnectionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
+				ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey() };
 	}
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
-		String query = getQuery();
-		String userName = getUserName();
-		String password = getPassword();
-		String driver = getDbDriver();
-		String connectionUrl = getConnectionString();
-
+		organizeKeys();
+		String query = this.keyValue.get(this.keysToGet[0]);
+		String connectionUrl = this.keyValue.get(this.keysToGet[1]);
+		String driver = this.keyValue.get(this.keysToGet[2]);
+		String userName = this.keyValue.get(this.keysToGet[3]);
+		String password = this.keyValue.get(this.keysToGet[4]);
+		
 		Connection con = null;
 		try {
 			con = RdbmsConnectionHelper.getConnection(connectionUrl, userName, password, driver);
@@ -43,49 +44,6 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		qs.setEngine(fakeEngine);
 		qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return qs;
-	}
-	
-	/*
-	 * Pixel inputs
-	 */
-	private String getConnectionString() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[1]);
-	}
-
-	private String getDbDriver() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[2]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[2]);
-	}
-
-	private String getPassword() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[4]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[4]);
-	}
-
-	private String getUserName() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[3]);
-	}
-
-	private String getQuery() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-		throw new IllegalArgumentException("Need to define " + keysToGet[0]);
 	}
 
 }
