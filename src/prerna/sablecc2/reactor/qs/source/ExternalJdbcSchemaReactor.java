@@ -133,6 +133,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				} finally {
 					closeRs(keys);
 				}
+				databaseTables.add(tableDetails);
 
 				// we are now done with the table info
 				// let us go to the joins
@@ -159,12 +160,19 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			e.printStackTrace();
 		} finally {
 			closeRs(tablesRs);
+			if(con != null) {
+				try {
+					con.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ret.put("tables", databaseTables);
 		ret.put("relationships", databaseJoins);
-		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
+		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	
 	/**
