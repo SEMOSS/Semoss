@@ -281,7 +281,8 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static List<String> modifyInsightDatasource(String fullRecipe, List<Map<String, Object>> replacementOptions) {
-		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation();
+		Insight in = new Insight();
+		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation(in);
 		translation.setReplacements(replacementOptions);
 		try {
 			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodedToOriginal);

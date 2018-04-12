@@ -24,7 +24,6 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
@@ -35,29 +34,14 @@ import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.reactor.AssignmentReactor;
-import prerna.sablecc2.reactor.GenericReactor;
-import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.map.AbstractMapReactor;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
 import prerna.test.TestUtilityMethods;
 
-public class DatasourceTranslation extends LazyTranslation {
+public class DatasourceTranslation extends AbstractDatasourceModificationTranslation {
 
 	private static final Logger LOGGER = LogManager.getLogger(DatasourceTranslation.class.getName());
 
-	private static Set<String> importTypes = new HashSet<String>();
-
-	static {
-		importTypes.add("Database");
-		importTypes.add("FileRead");
-		importTypes.add("GoogleSheetSource");
-	}
-	
 	private List<Map<String, Object>> datasourcePixels = new Vector<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
 	
@@ -171,6 +155,7 @@ public class DatasourceTranslation extends LazyTranslation {
 		}
 	}
 	
+	@Override
 	public void outAOperation(AOperation node) {
 		if(this.currentSourceStatement != null) {
 			// store the inputs of the
@@ -193,57 +178,6 @@ public class DatasourceTranslation extends LazyTranslation {
 		}
 		
 		super.outAOperation(node);
-	}
-	
-	protected void deInitReactor()
-	{
-		IReactor thisPrevReactor = curReactor;
-		Object parent = curReactor.Out();
-		
-		//set the curReactor
-    	if(parent != null && parent instanceof IReactor) {
-    		curReactor = (IReactor)parent;
-    	} else {
-    		curReactor = null;
-    	}
-    	
-    	boolean isQs = false;
-    	boolean requireExec = false;
-    	// need to merge generic reactors & maps for proper input setting
-    	if(thisPrevReactor !=null && (thisPrevReactor instanceof GenericReactor || thisPrevReactor instanceof AbstractMapReactor)) {
-    		requireExec = true;
-    	}
-    	// need to merge qs
-    	else if(thisPrevReactor != null && thisPrevReactor instanceof AbstractQueryStructReactor) {
-    		if(thisPrevReactor instanceof GoogleSheetSourceReactor) {
-    			//TODO: need to figure out google sheets!!!!
-    			//TODO: need to figure out google sheets!!!!
-    			//TODO: need to figure out google sheets!!!!
-    			//TODO: need to figure out google sheets!!!!
-    			//TODO: need to figure out google sheets!!!!
-    			isQs = false;
-    		} else {
-    			isQs = true;
-    		}
-		} 
-    	
-		// only want to execute for qs
-		if(isQs || requireExec) {
-			NounMetadata output = thisPrevReactor.execute();
-			
-			// synchronize the result to the parent reactor
-			if(output != null) {
-	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
-	    			// add the value to the parent's curnoun
-	    			curReactor.getCurRow().add(output);
-		    	} else {
-		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
-		    		this.planner.addVariable("$RESULT", output);
-		    	}
-	    	} else {
-	    		this.planner.removeVariable("$RESULT");
-	    	}
-		}
 	}
 	
 	public List<Map<String, Object>> getDatasourcePixels() {

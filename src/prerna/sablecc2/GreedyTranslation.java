@@ -147,10 +147,12 @@ public class GreedyTranslation extends LazyTranslation {
 	    	
 	    	NounMetadata output = curReactor.execute();
 	    	this.planner = ((AbstractReactor)curReactor).planner;
-	    	
+
+	    	// this now becomes the prev reactor
+    		prevReactor = curReactor;
 	    	//set the curReactor
 	    	if(parent != null && parent instanceof IReactor) {
-	    		curReactor = (IReactor)parent;
+	    		curReactor = (IReactor) parent;
 	    	} else {
 	    		curReactor = null;
 	    	}

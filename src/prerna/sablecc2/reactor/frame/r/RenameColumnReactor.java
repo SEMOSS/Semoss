@@ -75,7 +75,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// also modify the frame filters
 		Map<String, String> modMap = new HashMap<String, String>();
 		modMap.put(originalColName, validNewHeader);
-		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap));
+		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap, false));
 		
 		// return the output
 		return retNoun;
