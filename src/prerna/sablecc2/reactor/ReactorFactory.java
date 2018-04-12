@@ -191,6 +191,7 @@ import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
 import prerna.sablecc2.reactor.qs.source.APIReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
+import prerna.sablecc2.reactor.qs.source.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
@@ -428,6 +429,7 @@ public class ReactorFactory {
 		reactorHash.put("FileRead", FileSourceReactor.class);
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
+		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
 		reactorHash.put("GoogleSheetSource", GoogleSheetSourceReactor.class);
 		reactorHash.put("ListGoogleSheets", ListGoogleSheetsReactor.class);

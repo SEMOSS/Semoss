@@ -20,6 +20,7 @@ public enum ReactorKeysEnum {
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
 	CONFIG_FILE("configFile",                               "The configuration file."),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
+	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams", 			"Additional JDBC connection params to perform connection"),
 	CRITERIA("criteria", 									"Criteria to be evaluated"),
 	CRON_EXPRESSION("cronExpression",                       "The cron expression"),
 	DATABASE("database",									"Name of the datasource"),
