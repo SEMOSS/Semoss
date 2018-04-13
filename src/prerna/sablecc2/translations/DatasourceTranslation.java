@@ -127,7 +127,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 					// for that are used in the import
 					// wrap in list to hold structure
 					List<Object> obj = new Vector<Object>();
-					obj.add(uniqueCols);
+					obj.addAll(uniqueCols);
 					processedParams.put("qsColumns", obj);
 					keysToRemove.add(key);
 				}
