@@ -184,7 +184,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 	 */
 	protected void installR(String packageName) {
 		this.logger.info("Starting to install package " + packageName + "... ");
-		this.rJavaTranslator.executeR("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
+		this.rJavaTranslator.executeEmptyR("install.packages('" + packageName + "', repos='http://cran.us.r-project.org');");
 		this.logger.info("Succesfully installed package " + packageName);
 		System.out.println("Succesfully installed package " + packageName);
 	}
@@ -225,11 +225,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String random = Utility.getRandomString(10);
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
 		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
-		this.rJavaTranslator.executeR("library(data.table);");
-		this.rJavaTranslator.executeR(frameName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
+		this.rJavaTranslator.executeEmptyR("library(data.table);");
+		this.rJavaTranslator.executeEmptyR(frameName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);
 		f.delete();
-		this.rJavaTranslator.executeR("setDT(" + frameName + ")");
+		this.rJavaTranslator.executeEmptyR("setDT(" + frameName + ")");
 
 		// modify the headers to be what they used to be because the query
 		// return everything in
@@ -479,7 +479,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String tempFileLocation = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
-		this.rJavaTranslator.executeR("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
+		this.rJavaTranslator.executeEmptyR("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
 		qs.setCsvFilePath(tempFileLocation);
@@ -547,7 +547,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		newC.append(")");
 
 		String script = "setnames(" + frameName + ", old = " + oldC + ", new = " + newC + ")";
-		this.rJavaTranslator.executeR(script);
+		this.rJavaTranslator.executeEmptyR(script);
 
 		if (print) {
 			System.out.println("Running script : " + script);
@@ -617,7 +617,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			wd = wd.replace("\\", "/");
 
 			// set the working directory
-			this.rJavaTranslator.executeR("setwd(\"" + wd + "\")");
+			this.rJavaTranslator.executeEmptyR("setwd(\"" + wd + "\")");
 			// load the library
 			Object ret = this.rJavaTranslator.executeR("library(\"igraph\");");
 			if (ret == null) {
@@ -627,7 +627,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			String loadGraphScript = graphName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
 			java.lang.System.out.println(" Load !! " + loadGraphScript);
 			// load the graph
-			this.rJavaTranslator.executeR(loadGraphScript);
+			this.rJavaTranslator.executeEmptyR(loadGraphScript);
 
 			System.out.println("Successfully synchronized, your graph is now available as " + graphName);
 			// store the graph name for future use
@@ -647,7 +647,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} finally {
 			// reset back to the original wd
 			if (curWd != null) {
-				this.rJavaTranslator.executeR("setwd(\"" + curWd + "\")");
+				this.rJavaTranslator.executeEmptyR("setwd(\"" + curWd + "\")");
 			}
 		}
 		java.lang.System.setSecurityManager(reactorManager);
@@ -723,7 +723,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				java.lang.System.out.println("Deleting node = " + name);
 				// eval is abstract and is determined by the specific R
 				// implementation
-				this.rJavaTranslator.executeR(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName
+				this.rJavaTranslator.executeEmptyR(graphName + " <- delete_vertices(" + graphName + ", V(" + graphName + ")[vertex_attr(" + graphName
 						+ ", \"" + TinkerFrame.TINKER_ID + "\") == \"" + name + "\"])");
 			} catch (Exception ex) {
 				java.lang.System.out.println("ERROR ::: Could not delete node = " + name);
@@ -747,7 +747,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		try {
 			logger.info("Determining graph clusters...");
-			this.rJavaTranslator.executeR("clus <- " + clusterRoutine + "(" + graphName + ")");
+			this.rJavaTranslator.executeEmptyR("clus <- " + clusterRoutine + "(" + graphName + ")");
 			logger.info("Done calculating graph clusters...");
 			storeVariable("CLUSTER_NAME", new NounMetadata("clus", PixelDataType.CONST_STRING));
 			colorClusters();
@@ -763,7 +763,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		try {
 			logger.info("Determining graph clusters...");
-			this.rJavaTranslator.executeR("clus <- cluster_walktrap(" + graphName + ", membership=TRUE)");
+			this.rJavaTranslator.executeEmptyR("clus <- cluster_walktrap(" + graphName + ", membership=TRUE)");
 			logger.info("Done calculating graph clusters...");
 			storeVariable("CLUSTER_NAME",  new NounMetadata("clus", PixelDataType.CONST_STRING));
 			colorClusters();
@@ -906,7 +906,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		try {
 			logger.info("Determining vertex positions...");
-			this.rJavaTranslator.executeR("xy_layout <- " + layout + "(" + graphName + ")");
+			this.rJavaTranslator.executeEmptyR("xy_layout <- " + layout + "(" + graphName + ")");
 			logger.info("Done calculating positions...");
 			synchronizeXY("xy_layout");
 		} catch (Exception ex) {
