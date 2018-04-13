@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import org.rosuda.REngine.Rserve.RConnection;
+
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -20,7 +21,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		String varName = getVarName();
-		this.rJavaTranslator.executeR(varName + " <- as.data.table(" + varName + ")");
+		this.rJavaTranslator.executeEmptyR(varName + " <- as.data.table(" + varName + ")");
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(varName);
 		String[] colTypes = this.rJavaTranslator.getColumnTypes(varName);

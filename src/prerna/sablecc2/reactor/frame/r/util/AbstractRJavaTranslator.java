@@ -49,6 +49,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		String[] colTypes = this.getStringArray(script);
 		return colTypes;
 	}
+	
 	/**
 	 * Alter a column to a new type
 	 * @param frameName
@@ -286,7 +287,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 
 		try {
-			this.executeR("source(\"" + tempFileLocation + "\")");
+			this.executeEmptyR("source(\"" + tempFileLocation + "\")");
 		} finally {
 			f.delete();
 		}

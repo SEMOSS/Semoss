@@ -27,6 +27,12 @@ public interface IRJavaTranslator {
 	Object executeR(String rScript);
 	
 	/**
+	 * Execute an R Script without a return
+	 * @param rScript
+	 */
+	void executeEmptyR(String rScript);
+	
+	/**
 	 * Run a combination of r scripts
 	 * @param rScript
 	 */
