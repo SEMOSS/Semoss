@@ -94,6 +94,15 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	@Override
+	public void executeEmptyR(String rScript) {
+		try {
+			retCon.voidEval(rScript);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	@Override
 	public String getString(String script) {

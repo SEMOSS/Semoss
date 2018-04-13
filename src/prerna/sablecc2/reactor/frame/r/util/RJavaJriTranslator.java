@@ -113,6 +113,11 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	@Override
+	public void executeEmptyR(String rScript) {
+		engine.eval(rScript, false);
+	}
 
 	@Override
 	public String getString(String script) {
