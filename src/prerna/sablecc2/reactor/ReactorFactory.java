@@ -267,6 +267,8 @@ import prerna.util.git.reactors.RenameMosfitFileReactor;
 import prerna.util.git.reactors.SearchAppCollaborator;
 import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
+import prerna.util.git.reactors.SyncAppFilesOAuth;
+import prerna.util.git.reactors.SyncAppOAuth;
 
 public class ReactorFactory {
 
@@ -627,6 +629,11 @@ public class ReactorFactory {
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
+		reactorHash.put("CreateAsset", prerna.util.git.reactors.CreateAssetReactor.class);
+		reactorHash.put("UpdateAsset", prerna.util.git.reactors.UpdateAssetReactor.class);
+		reactorHash.put("DeleteAsset", prerna.util.git.reactors.DeleteAssetReactor.class);
+		reactorHash.put("SyncAppO", SyncAppOAuth.class);
+		reactorHash.put("SyncAppFilesO", SyncAppFilesOAuth.class);
 		
 		// Solr Metadata
 		// App Metadata
