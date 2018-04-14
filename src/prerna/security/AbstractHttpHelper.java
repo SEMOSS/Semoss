@@ -23,13 +23,13 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 
 import prerna.auth.AccessToken;
-import prerna.auth.User2;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -316,6 +316,69 @@ public abstract class AbstractHttpHelper
 		return null;
 	}
 
+	// make a post call
+	
+	public static String makePostCall(String url, String accessToken, Object input,  boolean json)
+	{
+		
+		try {
+			CloseableHttpClient httpclient = HttpClients.createDefault();
+			HttpPost httppost = new HttpPost(url);
+			httppost.addHeader("Authorization", "Bearer " + accessToken);
+			httppost.addHeader("Content-Type","application/json; charset=utf-8");
+
+			Hashtable params = null;
+			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+			if(!json)
+			{
+				params = (Hashtable)input;
+
+				Enumeration<String> keys = params.keys();
+				
+				int paramIndex = 0;
+				
+				while (keys.hasMoreElements()) {
+					String key = keys.nextElement();
+					String value = (String) params.get(key);
+					paramList.add(new BasicNameValuePair(key, value));
+					paramIndex++;
+				}
+				
+				httppost.setEntity(new UrlEncodedFormEntity(paramList));
+
+			}
+			else // this is a json input
+			{
+				String inputJson = mapper.writeValueAsString(input);
+				
+				httppost.setEntity(new StringEntity(inputJson));								
+			}
+			
+			ResponseHandler<String> handler = new BasicResponseHandler();
+			CloseableHttpResponse response = httpclient.execute(httppost);
+			
+			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
+			
+			int status = response.getStatusLine().getStatusCode();
+			
+			BufferedReader rd = new BufferedReader(
+			        new InputStreamReader(response.getEntity().getContent()));
+
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
+			return result.toString();
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		return null;
+
+	}
+	
 	
 	// makes the call to every resource going forward with the specified keys as post
 	
