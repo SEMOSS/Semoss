@@ -9,7 +9,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitCollaboratorUtils;
 
-public class RemoveAppCollaborator extends AbstractReactor {
+public class RemoveAppCollaborator extends GitBaseReactor {
 
 	public RemoveAppCollaborator() {
 		this.keysToGet = new String[]{
@@ -27,11 +27,18 @@ public class RemoveAppCollaborator extends AbstractReactor {
 
 		String repository = this.keyValue.get(this.keysToGet[0]);
 		String collaborator = this.keyValue.get(this.keysToGet[1]);
-		String username = this.keyValue.get(this.keysToGet[2]);
-		String password = this.keyValue.get(this.keysToGet[3]);
-				
 		logger.info("Removing Collaborator...");
-		GitCollaboratorUtils.removeCollaborator(repository, username, password, collaborator);
+		if(keyValue.size() == 4)
+		{
+			String username = this.keyValue.get(this.keysToGet[2]);
+			String password = this.keyValue.get(this.keysToGet[3]);
+			GitCollaboratorUtils.removeCollaborator(repository, username, password, collaborator);
+		}
+		else
+		{
+			String token = getToken();
+			GitCollaboratorUtils.removeCollaborator(repository, collaborator, token);
+		}
 		logger.info("Collaborator Removed");
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}

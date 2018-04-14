@@ -86,6 +86,39 @@ public class GitUtils {
 		return gh;
 	}
 
+
+	public static GitHub login(String oAuth) {
+		return login(oAuth, 1);
+	}
+
+	public static GitHub login(String oAuth, int attempt) {
+		GitHub gh = null;
+		if(attempt < 3)
+		{
+			System.out.println("Attempting " + attempt);
+			try {
+				gh = GitHub.connectUsingOAuth(oAuth);
+				gh.getMyself();
+				return gh;
+			}catch(HttpException ex)
+			{
+				ex.printStackTrace();
+				try {
+					InstallCertNow.please("github.com", null, null);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				attempt = attempt + 1;
+				login(oAuth, attempt);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + oAuth + "\"");
+			}
+		}
+		return gh;
+	}
+
 	
 	/**
 	 * 
@@ -95,7 +128,7 @@ public class GitUtils {
 	public static String getDateMessage(String prefixString) {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 		Date date = new Date();
-		return prefixString + " <d>" + dateFormat.format(date);
+		return prefixString + " : " + dateFormat.format(date);
 	}
 	
 	public static void semossInit(String dir) {

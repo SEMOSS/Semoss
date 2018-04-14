@@ -12,7 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitCollaboratorUtils;
 
-public class SearchAppCollaborator extends AbstractReactor {
+public class SearchAppCollaborator extends GitBaseReactor {
 
 	/**
 	 * Search for another user
@@ -28,16 +28,27 @@ public class SearchAppCollaborator extends AbstractReactor {
 		organizeKeys();
 
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
-		String username = this.keyValue.get(this.keysToGet[1]);
-		String password = this.keyValue.get(this.keysToGet[2]);
-		
+
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Establishing connection");
 		logger.info("This can take several minutes depending on the speed of your internet");
 		logger.info("Validating user");
 		logger.info("Searching for " + searchTerm);
+
+		List<Map<String, String>> collabList = null;
+		if(keyValue.size() == 3)
+		{
+			String username = this.keyValue.get(this.keysToGet[1]);
+			String password = this.keyValue.get(this.keysToGet[2]);
 		
-		List<Map<String, String>> collabList = GitCollaboratorUtils.searchUsers(searchTerm, username, password);
+			collabList = GitCollaboratorUtils.searchUsers(searchTerm, username, password);
+		}
+		else
+		{
+			String token = getToken();
+			collabList = GitCollaboratorUtils.searchUsers(searchTerm, token);
+			
+		}
 		logger.info("Search Complete");
 		return new NounMetadata(collabList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
