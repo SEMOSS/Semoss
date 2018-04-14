@@ -9,6 +9,8 @@ public class RemoteItem extends AbstractValueObject {
 	String description = null;
 	String folder = null;
 	String type = null;
+	String path = null;
+	
 	public String getId() {
 		return id;
 	}
@@ -38,6 +40,12 @@ public class RemoteItem extends AbstractValueObject {
 	}
 	public void setType(String type) {
 		this.type = type;
+	}
+	public String getPath() {
+		return path;
+	}
+	public void setPath(String path) {
+		this.path = path;
 	}
 	
 	
