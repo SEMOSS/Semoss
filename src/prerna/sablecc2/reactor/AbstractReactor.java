@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -19,7 +20,9 @@ import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public abstract class AbstractReactor implements IReactor {
@@ -437,5 +440,26 @@ public abstract class AbstractReactor implements IReactor {
 		} else {
 			return LogManager.getLogger(className);
 		}
+	}
+	
+	public void checkMin(int numKey)
+	{
+		// checks to see if the minmum number of keys are present else
+		// will throw an error
+		if(keyValue.size() < numKey)
+		{
+			Hashtable details = new Hashtable();
+			details.put("error", "Parameters are not present: was expecting " + numKey + " but found only " + keyValue.size());
+			details.put("message", "please try help on this command for more details");
+			throwError(details);
+		}
+	}
+	
+	public void throwError(Map details)
+	{
+		SemossPixelException exception = new SemossPixelException();
+		exception.setContinueThreadOfExecution(false);
+		exception.setAdditionalReturn(new NounMetadata(details, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
+		throw exception;
 	}
 }

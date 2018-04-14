@@ -416,4 +416,105 @@ public class GitSynchronizer {
 		}
 		return null;
 	}
+	
+	
+	/*************** OAUTH Overloads Go Here ***********************/
+	/***************************************************************/
+
+	
+	
+	public static void syncDatabases(String localAppName, String remoteAppName, String token, Logger logger) {
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String appFolder = baseFolder + "/db/" + localAppName;
+		
+		// the remote location
+		// is of the form account_name/repo_name
+		// so we want to split this out
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
+		
+		// we need to move the database files from the current db
+		// into the version folder
+		pushFilesToVersionFolder(appFolder);
+		
+		String versionFolder = appFolder + "/version";
+		// we want to get rid of the ignore 
+		GitUtils.removeAllIgnore(versionFolder);
+		// now we push everything locally
+		GitPushUtils.addAllFiles(versionFolder, true);
+		GitDestroyer.removeFiles(versionFolder, true, true);
+		GitPushUtils.commitAddedFiles(versionFolder);
+		GitPushUtils.push(versionFolder, repoName, "master", token);
+
+		// add back the ignore
+		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
+		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
+		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
+		
+		// we now need to move over these new files
+		GitConsumer.moveDataFilesToApp(baseFolder, localAppName, logger);
+	}
+
+	/**
+	 * Synchronize files to a specific Git repo
+	 * @param localAppName
+	 * @param remoteAppName
+	 * @param username
+	 * @param password
+	 * @param filesToAdd
+	 * @param dual
+	 * @return 
+	 */
+	public static Map<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String token, List<String> filesToSync, boolean dual) {
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String versionFolder = baseFolder + "/db/" + localAppName + "/version";
+		
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
+		
+		GitRepoUtils.fetchRemote(versionFolder, repoName, token);
+		List<String>[] filesSplit = determineFileOperation(filesToSync);
+		GitPushUtils.addSpecificFiles(versionFolder, filesSplit[0]);
+		GitDestroyer.removeSpecificFiles(versionFolder, true, filesSplit[1]);
+		GitPushUtils.commitAddedFiles(versionFolder);
+		
+		// need to get a list of files to process
+		String thisMaster = "refs/heads/master";
+		String remoteMaster = "refs/remotes/" + repoName +"/master";
+		
+		Hashtable<String, List<String>> returnFiles = getFilesToAdd(versionFolder, thisMaster, remoteMaster);
+		
+		// check to see if there are conflicts
+		// it is now done as part of merge
+		// merge everything
+		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
+		List <String> conflicted = getConflictedFiles(versionFolder);
+		
+		if(conflicted.size() > 0) {
+			// we cannot proceed with merging.. until the conflicts are resolved
+			// so abort!
+			GitMergeHelper.abortMerge(versionFolder);
+		}
+		// only push back if there are no conflicts
+		// and the user wants to push as well as pull
+		else if(dual) {
+			GitPushUtils.push(versionFolder, repoName, "master",token);
+		}
+		return returnFiles;
+	}
+	
+	
+	
 }

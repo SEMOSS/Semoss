@@ -10,7 +10,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.git.GitRepoUtils;
 
-public class DeleteAppRepo extends AbstractReactor {
+public class DeleteAppRepo extends GitBaseReactor {
 
 	public DeleteAppRepo() {
 		this.keysToGet = new String[]{
@@ -26,16 +26,30 @@ public class DeleteAppRepo extends AbstractReactor {
 		logger.info("Removing remote...");
 		String appName = this.keyValue.get(this.keysToGet[0]);
 		String repository = this.keyValue.get(this.keysToGet[1]);
-		String username = this.keyValue.get(this.keysToGet[2]);
-		String password = this.keyValue.get(this.keysToGet[3]);
 
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String appFolder = baseFolder + "/db/" + appName + "/version";
+
+		if(keyValue.size() == 4)
+		{
+			String username = this.keyValue.get(this.keysToGet[2]);
+			String password = this.keyValue.get(this.keysToGet[3]);
+			// drop it from external
+			GitRepoUtils.deleteRemoteRepository(repository, username, password);
+		}
+		else
+		{
+			String oauth = getToken();
+
+			GitRepoUtils.deleteRemoteRepository(repository, oauth);
+			
+		}
+	
 		// remove it from remote
 		GitRepoUtils.deleteRemoteRepositorySettings(appFolder, repository);
-		// drop it from external
-		GitRepoUtils.deleteRemoteRepository(repository, username, password);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 
+	
+	
 }
