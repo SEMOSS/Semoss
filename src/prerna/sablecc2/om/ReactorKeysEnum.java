@@ -20,6 +20,7 @@ public enum ReactorKeysEnum {
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
 	CONFIG_FILE("configFile",                               "The configuration file."),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
+	CONTENT("content", 									    "The actual content to be persisted on the file. Tab and Newline Separated"),
 	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams", 			"Additional JDBC connection params to perform connection"),
 	CRITERIA("criteria", 									"Criteria to be evaluated"),
 	CRON_EXPRESSION("cronExpression",                       "The cron expression"),
@@ -96,7 +97,8 @@ public enum ReactorKeysEnum {
 	URL("url",                                              "The url"),
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
-	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores");
+	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores"),
+	SCALE("scale", 											"How much to scale the graph, default value is set at 20 based on screen size");
 	
 	private String key;
 	private String description;

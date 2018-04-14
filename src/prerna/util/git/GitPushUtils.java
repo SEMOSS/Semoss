@@ -186,4 +186,42 @@ public class GitPushUtils {
 			thisGit.close();
 		}
 	}
+	
+	/*************** OAUTH Overloads Go Here ***********************/
+	/***************************************************************/
+
+	public static void push(String repository, String remoteToPush, String branch, String token)
+	{
+		int attempt = 1;
+		push(repository, remoteToPush, branch, token, attempt);
+	}
+
+	public static void push(String repository, String remoteToPush, String branch, String token, int attempt)
+	{
+		if(attempt < 3)
+		{
+			File dirFile = new File(repository);
+			Git thisGit = null;
+			try {
+				thisGit = Git.open(dirFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			CredentialsProvider cp = new UsernamePasswordCredentialsProvider(token, "");
+			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
+	
+			PushCommand pc = thisGit.push();
+			pc.setRefSpecs(spec);
+			pc.setRemote(remoteToPush);
+			pc.setCredentialsProvider(cp);
+			try {
+				pc.call();
+			} catch (GitAPIException e) {
+				e.printStackTrace();
+			}
+			thisGit.close();
+		}
+	}
+
+	
 }

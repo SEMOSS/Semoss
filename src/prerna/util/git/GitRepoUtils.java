@@ -250,6 +250,55 @@ public class GitRepoUtils {
 			return false;
 	}
 
+	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth) {
+		int attempt = 1;
+		return checkRemoteRepositoryO(repositoryName, oauth, attempt);
+	}
+
+	/**
+	 * Check if a repo exists
+	 * @param repositoryName
+	 * @param username
+	 * @param password
+	 * @return
+	 * @throws IOException
+	 */
+	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth, int attempt) {
+		
+		if(attempt < 3)
+		{
+			String [] repoParts = repositoryName.split("/");
+			GitHubClient client = GitHubClient.createClient("https://github.com");
+			if(oauth != null) {
+				client.setOAuth2Token(oauth);
+			}
+			
+			RepositoryService service = new RepositoryService(client);
+			
+			boolean returnVal = true;
+			try {
+				service.getRepository(repoParts[0], repoParts[1]);
+			}catch(HttpException ex)
+			{
+				ex.printStackTrace();
+				try {
+					InstallCertNow.please("github.com", null, null);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				attempt = attempt + 1;
+				checkRemoteRepositoryO(repositoryName, oauth, attempt);
+			} catch (Exception ex) {
+				throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for username " + repoParts[0]);
+			}
+			return returnVal;
+		}
+		else
+			return false;
+	}
+
+	
 	/**
 	 * 
 	 * @param localRepository
@@ -435,4 +484,159 @@ public class GitRepoUtils {
 		}
 		return null;
 	}
+
+	
+	
+	/*************** OAUTH Overloads Go Here ***********************/
+	/***************************************************************/
+
+
+
+	public static List<String> listRemotesForUser(String token) {
+		int attempt = 1;
+		return listRemotesForUser(token, attempt);
+	}
+
+		
+	/**
+	 * Get the list of repos for a given user
+	 * @param username
+	 * @param password
+	 * @return
+	 */
+	public static List<String> listRemotesForUser(String token, int attempt) {
+		if(attempt < 3)
+		{
+			
+			List<String> remoteRepos = new Vector<String>();
+			GitHubClient client = GitHubClient.createClient("https://github.com");
+			client.setOAuth2Token(token);
+			RepositoryService service = new RepositoryService(client);
+			try {
+				List<org.eclipse.egit.github.core.Repository> repList = service.getRepositories();
+				for(int repIndex = 0;repIndex < repList.size();repIndex++) {
+					remoteRepos.add(repList.get(repIndex).getName());
+				}
+			}catch(HttpException ex)
+			{
+				ex.printStackTrace();
+				try {
+					InstallCertNow.please("github.com", null, null);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				attempt = attempt + 1;
+				listRemotesForUser(token, attempt);
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+	
+			return remoteRepos;
+		}
+		return null;
+	}
+
+	public static void deleteRemoteRepository(String repositoryName, String token) {
+		
+		int attempt = 1;
+		deleteRemoteRepository(repositoryName, token, attempt);
+	}
+
+
+	/**
+	 * Delete a repository
+	 * @param repositoryName
+	 * @param username
+	 * @param password
+	 * @throws IOException
+	 */
+	public static void deleteRemoteRepository(String repositoryName, String token, int attempt) {
+		if(attempt < 3)
+		{
+			String repoName = repositoryName.split("/")[1];
+			if(checkRemoteRepositoryO(repoName, token)) {
+				GitHub gh = GitUtils.login(token);
+				GHRepository ghr = null;
+				try {
+					ghr = gh.getRepository(repositoryName);
+					ghr.delete();
+				} catch(HttpException ex)
+				{
+					ex.printStackTrace();
+					try {
+						InstallCertNow.please("github.com", null, null);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					attempt = attempt + 1;
+					deleteRemoteRepository(repositoryName, token, attempt);
+				}catch (IOException e) {
+					e.printStackTrace();
+					throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
+				}
+			}
+		}
+	}
+	
+
+
+	public static void fetchRemote(String localRepo, String remoteRepo, String token) {
+		int attempt = 1;
+		fetchRemote(localRepo, remoteRepo, token, attempt);
+	}
+
+	/**
+	 * Switch to a specific git remote
+	 * @param localRepo
+	 * @param remoteRepo
+	 * @param userName
+	 * @param password
+	 */
+	public static void fetchRemote(String localRepo, String remoteRepo, String token, int attempt) {
+		
+		if(attempt < 3)
+		{
+			File file = new File(localRepo);
+			RefSpec spec = new RefSpec("refs/heads/master:refs/remotes/" + remoteRepo +"/master");
+			List <RefSpec> refList = new ArrayList<RefSpec>();
+			refList.add(spec);
+			CredentialsProvider cp = null;
+			if(token != null) {
+				cp = new UsernamePasswordCredentialsProvider(token, "");
+			}
+			Git thisGit = null;
+			try {
+				thisGit = Git.open(file);
+				if(cp != null) {
+					thisGit.fetch().setCredentialsProvider(cp).setRemote(remoteRepo).call();
+				} else {
+					thisGit.fetch().setRemote(remoteRepo).call();
+				}
+			}catch(SSLHandshakeException ex)
+			{
+				ex.printStackTrace();
+				try {
+					InstallCertNow.please("github.com", null, null);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				attempt = attempt + 1;
+				fetchRemote(localRepo, remoteRepo, token, attempt);
+				
+			} catch (IOException | GitAPIException e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
+			} finally {
+				if(thisGit != null) {
+					thisGit.close();
+				}
+			}
+		}
+	}
+
+
 }
