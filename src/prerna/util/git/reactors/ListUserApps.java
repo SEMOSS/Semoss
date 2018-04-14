@@ -11,7 +11,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitRepoUtils;
 
-public class ListUserApps extends AbstractReactor {
+public class ListUserApps extends GitBaseReactor {
 
 	public ListUserApps() {
 		this.keysToGet = new String[]{ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey()};
@@ -25,10 +25,18 @@ public class ListUserApps extends AbstractReactor {
 		String username = this.keyValue.get(this.keysToGet[0]);
 		String password = this.keyValue.get(this.keysToGet[1]);
 		
+		List<String> repoList = null;
+		
 		logger.info("Establishing connection ");
 		logger.info("This can take several minutes depending on the speed of your internet ");
 		logger.info("Validating User ");
-		List<String> repoList = GitRepoUtils.listRemotesForUser(username, password);
+		if(keyValue.size() == 2)
+			repoList = GitRepoUtils.listRemotesForUser(username, password);
+		else
+		{
+			String token = getToken();
+			repoList = GitRepoUtils.listRemotesForUser(token);
+		}
 		logger.info("Repo List Complete");
 		return new NounMetadata(repoList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
