@@ -57,6 +57,9 @@ public enum PixelOperationType {
 	DATABASE_CONCEPT_PROPERTIES,
 	LOGICAL_NAMES,
 	
+	// APP SPECIFIC WIDGETS
+	APP_WIDGETS, 
+	
 	//Database
 	DELETE_ENGINE,
 	

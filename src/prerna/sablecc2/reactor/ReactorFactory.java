@@ -43,6 +43,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
+import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
@@ -373,6 +374,7 @@ public class ReactorFactory {
 		reactorHash.put("Merge", MergeDataReactor.class);
 
 		// Utility Reactors
+		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
 		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
@@ -600,17 +602,6 @@ public class ReactorFactory {
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 		
-		// Pixel operation reactors 
-		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
-
-		// Tax specific handles
-		reactorHash.put("LoadClient", LoadGraphClient.class);
-		reactorHash.put("RunPlan", ExecuteJavaGraphPlannerReactor.class);
-		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor2.class);
-		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
-		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
-		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
-		
 		// Git it
 		reactorHash.put("InitAppRepo", InitAppRepo.class);
 		reactorHash.put("AddAppCollaborator", AddAppCollaborator.class);
@@ -642,6 +633,7 @@ public class ReactorFactory {
 		reactorHash.put("GetAppInsights", AppInsightsReactor.class);
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
+		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
 		// Insight Metadata
 		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
 		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
@@ -687,6 +679,17 @@ public class ReactorFactory {
 		reactorHash.put("GetInsightDatasources", InsightDatasourcesReactor.class);
 		reactorHash.put("ModifyInsightDatasource", ModifyInsightDatasourceReactor.class);
 		reactorHash.put("GetOptimizedRecipe", GetOptimizedRecipeReactor.class);
+		
+		
+		
+		
+		// Tax specific handles
+		reactorHash.put("LoadClient", LoadGraphClient.class);
+		reactorHash.put("RunPlan", ExecuteJavaGraphPlannerReactor.class);
+		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor2.class);
+		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
+		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
+		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
