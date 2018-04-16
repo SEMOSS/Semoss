@@ -39,8 +39,8 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
+import prerna.auth.User2;
 import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
@@ -54,7 +54,6 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
@@ -73,6 +72,9 @@ public class Insight {
 	// it varies from one instance of an insight to another instance of the same insight
 	protected String insightId;
 	protected User user;
+
+	// new user object
+	protected User2 user2;
 	protected String insightName;
 
 	// if this is a saved insight
@@ -351,7 +353,15 @@ public class Insight {
 	public void setUser(User user) {
 		this.user = user;
 	}
-	
+
+	public void setUser2(User2 user2) {
+		this.user2 = user2;
+	}
+
+	public User2 getUser2() {
+		return this.user2;
+	}
+
 	public String getRdbmsId() {
 		return rdbmsId;
 	}
