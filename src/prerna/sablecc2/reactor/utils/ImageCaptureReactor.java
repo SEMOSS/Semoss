@@ -171,7 +171,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				+ "--window-size=1440,1440 "
 				+ "--virtual-time-budget=10000 "
 				+ insecure
-				+ "--screenshot=\"" + imageDirStr + "\\image.png\" "
+				+ "--screenshot=\"" + imageDirStr + DIR_SEPARATOR + "image.png\" "
 				+ "\"" + feUrl + "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000\"";
 
 		return cmd;
