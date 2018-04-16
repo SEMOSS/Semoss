@@ -1,11 +1,10 @@
 package prerna.sablecc2.reactor.app;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -28,7 +27,7 @@ public class GetAppWidgetsReactor extends AbstractReactor {
 		organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
 		
-		Map<String, String> appWidgetsMap = new HashMap<String, String>();
+		Map<String, Object> appWidgetsMap = new HashMap<String, Object>();
 		
 		final String basePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String appWidgetDirLoc = basePath + DIR_SEPARATOR + "db" + 
@@ -50,11 +49,14 @@ public class GetAppWidgetsReactor extends AbstractReactor {
 					File config = new File(widgetDir.getAbsolutePath() +  DIR_SEPARATOR + "config.json");
 					if(config.exists()) {
 						// this is what we want to send the FE
+						Map<String, Object> mapData = null;
 						try {
-							appWidgetsMap.put(widgetDir.getName(), FileUtils.readFileToString(config, "UTF-8"));
-						} catch (IOException e) {
+							mapData = new ObjectMapper().readValue(config, Map.class);
+						} catch(Exception e) {
 							e.printStackTrace();
+							continue;
 						}
+						appWidgetsMap.put(widgetDir.getName(), mapData);
 					}
 				}
 			}
