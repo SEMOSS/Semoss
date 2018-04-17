@@ -89,6 +89,7 @@ public enum ReactorKeysEnum {
 	SYNC_DATABASE("syncDatabase", 							"True/False value to detetermine if the database should be published with the app"),
 	TASK("task", 											"Task object (can retrieve the object by using Task(taskId) where taskId is the unique id for the task)"),
 	TASK_ID("taskId", 										"Unique id of the task within the insight"),
+	TRANSFORMATION("transformation", 						"Name of the lambda transformtion to perform"),				
 	TRAVERSAL("traversal", 									"The traversal path within the map"),
 	USE_FRAME_FILTERS("useFrameFilters", 					"A boolean indication (true or false) to use frame filters"), 								
 	USERNAME("username", 									"Unique identifier for the user to access a service"),
