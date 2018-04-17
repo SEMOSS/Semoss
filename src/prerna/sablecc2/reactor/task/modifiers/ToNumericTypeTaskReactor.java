@@ -2,15 +2,12 @@ package prerna.sablecc2.reactor.task.modifiers;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import prerna.engine.api.IHeadersDataRow;
-import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.task.AbstractTaskOperation;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.sablecc2.reactor.task.transformation.map.MapTransformationTask;
+import prerna.sablecc2.reactor.task.transformation.map.ToNumericTypeTransformation;
 
 public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 
@@ -20,35 +17,17 @@ public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 	
 	@Override
 	protected void buildTask() {
-		// take the inner task and use it within the new task
-		ToNumericTypeIterator newTask = new ToNumericTypeIterator(this.task);
 		// get the columns
 		List<String> cols = getColumns();
-		int numCols = cols.size();
-		// figure out which indices are those we want to convert to a double
-		List<Integer> indices = new ArrayList<Integer>();
-		List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
-		int totalCols = headerInfo.size();
 		
-		NEXT_COLUMN : for(int i = 0; i < numCols; i++) {
-			String headerToConvert = cols.get(i);
-			for(int j = 0; j < totalCols; j++) {
-				Map<String, Object> headerMap = headerInfo.get(j);
-				String alias = headerMap.get("alias").toString();
-				if(alias.equals(headerToConvert)) {
-					// add the index to convert
-					// modify the type to double
-					indices.add(new Integer(j));
-					headerMap.put("type", "NUMBER");
-					continue NEXT_COLUMN;
-				}
-			}
-		}
-		newTask.setIndices(indices);
-		
-		// output values
+		// create a new task and add to stores
+		MapTransformationTask newTask = new MapTransformationTask();
+		newTask.setInnerTask(this.task);
+		ToNumericTypeTransformation transformation = new ToNumericTypeTransformation();
+		transformation.init(this.task.getHeaderInfo(), cols);
+		newTask.setTransformation(transformation);
+		newTask.setHeaderInfo(transformation.getModifiedHeaderInfo());
 		this.task = newTask;
-		// also add this to the store!!!
 		this.insight.getTaskStore().addTask(this.task);
 	}
 	
@@ -69,47 +48,5 @@ public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 			columns.add(this.curRow.get(i).toString());
 		}
 		return columns;
-	}
-}
-
-class ToNumericTypeIterator extends AbstractTaskOperation {
-
-	private int numCols;
-	private List<Integer> colIndices;
-
-	public ToNumericTypeIterator(ITask innerTask) {
-		super(innerTask);
-	}
-
-	@Override
-	public boolean hasNext() {
-		return this.innerTask.hasNext();
-	}
-
-	@Override
-	public IHeadersDataRow next() {
-		// as you iterate
-		// just convert it to a Double
-		IHeadersDataRow row = this.innerTask.next();
-		String[] headers = row.getHeaders();
-		Object[] values = row.getValues();
-		for(int i = 0; i < numCols; i++) {
-			int indexToGet = colIndices.get(i).intValue();
-			// try to convert it
-			String val = values[indexToGet].toString();
-			try {
-				Double doubleVal = Double.parseDouble(val);
-				values[indexToGet] = doubleVal;
-			} catch(NumberFormatException e) {
-				values[indexToGet] = null;
-			}
-		}
-		
-		return new HeadersDataRow(headers, values);
-	}
-	
-	public void setIndices(List<Integer> colIndices) {
-		this.colIndices = colIndices;
-		this.numCols = this.colIndices.size();
 	}
 }
