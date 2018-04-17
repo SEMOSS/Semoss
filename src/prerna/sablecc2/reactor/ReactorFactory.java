@@ -218,6 +218,7 @@ import prerna.sablecc2.reactor.task.TaskMetaCollectorReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
 import prerna.sablecc2.reactor.task.TaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor;
+import prerna.sablecc2.reactor.task.modifiers.GenericMapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.MapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeTaskReactor;
@@ -462,8 +463,10 @@ public class ReactorFactory {
 		reactorHash.put("AutoTaskOptions", AutoTaskOptionsReactor.class);
 		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
+		
 		// Task Operations
-		reactorHash.put("Lambda", MapLambdaTaskReactor.class);
+		reactorHash.put("CodeLambda", GenericMapLambdaTaskReactor.class);
+		reactorHash.put("MapLambda", MapLambdaTaskReactor.class);
 		reactorHash.put("FilterLambda", FilterLambdaTaskReactor.class);
 		reactorHash.put("ToNumericType", ToNumericTypeTaskReactor.class);
 		reactorHash.put("ToUrlType", ToUrlTypeTaskReactor.class);
