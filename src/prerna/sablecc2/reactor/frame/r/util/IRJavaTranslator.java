@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -21,6 +19,8 @@ public interface IRJavaTranslator {
 	
 	/**
 	 * Execute an R Script
+	 * YOU SHOULD ONLY BE USING THIS WHEN YOU NEED THE RETURN
+	 * OTHERWISE, USE executeEmptyR
 	 * @param rScript
 	 */
 	Object executeR(String rScript);
@@ -91,29 +91,22 @@ public interface IRJavaTranslator {
 	double[][] getDoubleMatrix(String rScript);
 	
 	/**
+	 * Retrieve a boolean
+	 * @param rScript
+	 * @return
+	 */
+	boolean getBoolean(String rScript);
+	
+	/**
 	 * Retrieve a factor from an R Script
 	 * @param rScript
 	 */
+	//TODO: why is this an object
+	//TODO: why is this an object
+	//TODO: why is this an object
+	//TODO: why is this an object
+	//TODO: why is this an object
 	Object getFactor(String rScript);
-	
-	/**
-	 * This method uses specific Rserve or JRI methods to get the breaks for a histogram as double[]
-	 * @param script
-	 */
-	double[] getHistogramBreaks(String script);
-	
-	/**
-	 * This method uses specific Rserve or JRI methods to get the counts for a histogram as int[]
-	 * @param script
-	 */
-	int[] getHistogramCounts(String script);
-	
-	/**
-	 * This method uses specific Rserve or JRI methods to get a table in the form Map<String, Object>
-	 * @param framename
-	 * @param colNames
-	 */
-	Map<String, Object> flushObjectAsTable(String framename, String[] colNames);
 	
 	/**
 	 * Set the insight
@@ -139,6 +132,9 @@ public interface IRJavaTranslator {
 	 */
 	void setPort(String port);
 	
+	/**
+	 * End the R
+	 */
 	void endR();
 	
 }
