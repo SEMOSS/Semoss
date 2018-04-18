@@ -15,6 +15,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -162,7 +163,11 @@ public class BasicIteratorTask extends AbstractTask {
 			if(this.qs.getOrderBy().isEmpty()) {
 				// need to add an implicit order
 				IQuerySelector firstSelector = this.qs.getSelectors().get(0);
-				this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+				if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
+					this.qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
+				} else {
+					this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+				}
 				addedOrder = true;
 			}
 			generateIterator(this.qs, false);
