@@ -96,7 +96,7 @@ public abstract class AbstractRBaseReducer extends AbstractReactor {
 			myStore.put("STATUS",STATUS.SUCCESS);
 		} else {
 			// we assume there is only 1 value to return
-			Object val = rDataTable.getScalarValue(builder.toString());
+			Object val = null; // rDataTable.getScalarValue(builder.toString());
 			IExpressionSelector lastSelector = this.builder.getLastSelector();
 			RConstantSelector constant = new RConstantSelector(val);
 			constant.setTableColumnsUsed(lastSelector.getTableColumns());

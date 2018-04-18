@@ -16,7 +16,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 
 	private static final Logger LOGGER = LogManager.getLogger(RIterator2.class.getName());
 	
-	private AbstractRBuilder builder;
+	private RFrameBuilder builder;
 	private QueryStruct2 qs;
 
 	private String tempVarName;
@@ -30,7 +30,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 	private int rowIndex = 1;
 	private int bulkRowSize = 5000;
 
-	public RIterator2(AbstractRBuilder builder, String rQuery, QueryStruct2 qs) {
+	public RIterator2(RFrameBuilder builder, String rQuery, QueryStruct2 qs) {
 		this.builder = builder;
 		this.qs = qs;
 		//Validate user input won't break R and crash JVM
@@ -41,7 +41,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 
 		this.tempVarName = "temp" + Utility.getRandomString(6);
 		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
-		this.builder.executeR(tempVarQuery);
+		this.builder.evalR(tempVarQuery);
 		this.numRows = builder.getNumRows(this.tempVarName);
 		
 		// need to account for limit and offset
@@ -52,7 +52,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 			this.numRows = 0;
 		} else if(limit > 0 || offset > 0) {
 			String updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
-			this.builder.executeR(updatedTempVarQuery);
+			this.builder.evalR(updatedTempVarQuery);
 			// and then update the number of rows
 			this.numRows = builder.getNumRows(this.tempVarName);
 		}
@@ -71,14 +71,14 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		this.colTypes = builder.getColumnTypes(tempVarName);
 	}
 
-	public RIterator2(AbstractRBuilder builder, String rQuery) {
+	public RIterator2(RFrameBuilder builder, String rQuery) {
 		this.builder = builder;
 
 		long start = System.currentTimeMillis();
 
 		this.tempVarName = "temp" + Utility.getRandomString(6);
 		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
-		this.builder.executeR(tempVarQuery);
+		this.builder.evalR(tempVarQuery);
 		this.numRows = builder.getNumRows(this.tempVarName);
 		
 		// need to account for limit and offset		
@@ -122,7 +122,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 		if (rowIndex <= this.numRows) {
 			return true;
 		} else {
-			this.builder.executeR("rm(" + this.tempVarName + ")");
+			this.builder.evalR("rm(" + this.tempVarName + ")");
 			return false;
 		}
 	}

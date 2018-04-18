@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.CsvFileIterator;
@@ -24,25 +23,39 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public abstract class AbstractRBuilder {
+public class RFrameBuilder {
 
-	protected static final String CLASS_NAME = AbstractRBuilder.class.getName();
+	protected static final String CLASS_NAME = RFrameBuilder.class.getName();
 	protected Logger logger = LogManager.getLogger(CLASS_NAME);
 	
-	// holds the connection for RDataFrame to the instance of R running
+	// holds the name of the current data table
 	protected String dataTableName = "datatable";
 
-	public AbstractRBuilder() {
-		
+	// holds the connection object to execute r
+	protected AbstractRJavaTranslator rJavaTranslator = null;
+	
+	public RFrameBuilder() {
+		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(null, logger);
+		this.rJavaTranslator.startR(); 
 	}
 
-	public AbstractRBuilder(String dataTableName) throws RserveException {
-		super();
+	public RFrameBuilder(String dataTableName) {
+		this();
 		this.dataTableName = dataTableName;
+	}
+	
+	public RFrameBuilder(String dataTableName, RConnection retCon, String port) {
+		this();
+		this.dataTableName = dataTableName;
+		this.rJavaTranslator.setConnection(retCon);
+		this.rJavaTranslator.setPort(port);
 	}
 
 	protected String getTableName() {
@@ -64,33 +77,9 @@ public abstract class AbstractRBuilder {
 	 * Method to run a r script and not need to process output
 	 * @param r
 	 */
-	protected abstract void evalR(String r);
-	
-	protected abstract RConnection getConnection();
-
-	protected abstract String getPort();
-	
-	protected abstract Object executeR(String rScript);
-	
-	protected abstract boolean isEmpty();
-	
-	protected abstract int getNumRows();
-	
-	protected abstract int getNumRows(String varName);
-	
-	protected abstract Object[] getDataRow(String rScript, String[] headerOrdering);
-	
-	protected abstract List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering);
-	
-	protected abstract Object getScalarReturn(String rScript);
-
-	protected abstract String[] getColumnNames();
-
-	protected abstract String[] getColumnNames(String varName);
-
-	protected abstract String[] getColumnTypes();
-	
-	protected abstract String[] getColumnTypes(String varName);
+	protected void evalR(String r) {
+		this.rJavaTranslator.executeEmptyR(r);
+	}
 	
 	/**
 	 * Wrap the R script in a try-eval in order to get the same error message that a user would see if using
@@ -341,4 +330,55 @@ public abstract class AbstractRBuilder {
 			}
 		}
 	}
+	
+	protected Object[] getDataRow(String rScript, String[] headerOrdering) {
+		return this.rJavaTranslator.getDataRow(rScript, headerOrdering);
+	}
+	
+	protected List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+		return this.rJavaTranslator.getBulkDataRow(rScript, headerOrdering);
+	}
+
+	protected boolean isEmpty() {
+		return this.rJavaTranslator.isEmpty(this.dataTableName);
+	}
+
+	protected int getNumRows() {
+		return getNumRows(this.dataTableName);
+	}
+	
+	protected int getNumRows(String varName) {
+		return this.rJavaTranslator.getNumRows(varName);
+	}
+	
+	protected String[] getColumnNames() {
+		return getColumnNames(this.dataTableName);
+	}
+
+	protected String[] getColumnNames(String varName) {
+		return this.rJavaTranslator.getColumns(this.dataTableName);
+	}
+
+	protected String[] getColumnTypes() {
+		return getColumnTypes(this.dataTableName);
+	}
+	
+	protected String[] getColumnTypes(String varName) {
+		return this.rJavaTranslator.getColumnTypes(varName);
+	}
+
+	protected RConnection getConnection() {
+		if(this.rJavaTranslator instanceof RJavaRserveTranslator) {
+			return ((RJavaRserveTranslator) this.rJavaTranslator).getConnection();
+		}
+		return null;
+	}
+
+	protected String getPort() {
+		if(this.rJavaTranslator instanceof RJavaRserveTranslator) {
+			return ((RJavaRserveTranslator) this.rJavaTranslator).getPort();
+		}
+		return null;
+	}
+	
 }
