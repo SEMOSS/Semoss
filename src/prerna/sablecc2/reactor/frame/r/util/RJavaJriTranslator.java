@@ -78,7 +78,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				}
 				
 				// set the rengine
-				this.insight.getVarStore().put(IRJavaTranslator.R_ENGINE, new NounMetadata(retEngine, PixelDataType.R_ENGINE));
+				if(this.insight != null) {
+					this.insight.getVarStore().put(IRJavaTranslator.R_ENGINE, new NounMetadata(retEngine, PixelDataType.R_ENGINE));
+				}
 			} catch(NullPointerException e) {
 				e.printStackTrace();
 				System.out.println("Could not connect to R JRI.  Please make sure paths are accurate");
@@ -99,7 +101,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				e.printStackTrace();
 			}
 		}
-		engine = retEngine;
+		this.engine = retEngine;
 	}
 
 	@Override
