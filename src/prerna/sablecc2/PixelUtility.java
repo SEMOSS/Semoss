@@ -436,9 +436,10 @@ public class PixelUtility {
 			// nested map for model
 			Map<String, Object> modelMap = new LinkedHashMap<String, Object>();
 			Map<String, String> processedParam = processedParams.get(param);
-			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + processedParam.get("qs") 
-					+ ") | Filter(" + param + " ?like \"<" + param + "_Search>\") | Sort(cols=[" 
-					+ param + "], direction=[asc]) | Iterate()) | Collect(50);";  
+			String physicalQs = processedParam.get("qs");
+			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + physicalQs 
+					+ ") | Filter(" + physicalQs + " ?like \"<" + param + "_Search>\") | Sort(cols=[" 
+					+ physicalQs + "], direction=[asc]) | Iterate()) | Collect(50);";  
 			modelMap.put("query", paramQ);
 			modelMap.put("infiniteQuery", "infinite | Collect(50)");
 			modelMap.put("searchParam", param + "_Search");

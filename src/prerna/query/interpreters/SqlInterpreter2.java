@@ -675,14 +675,16 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 				int size = objects.size();
 				List<Object> newObjects = new Vector<Object>();
 				newObjects.add(objects.get(i));
-				String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+				// always process as string
+				String myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
 				filterBuilder.append("( LOWER(").append(leftSelectorExpression);
 				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 				i++;
 				for(; i < size; i++) {
 					newObjects = new Vector<Object>();
 					newObjects.add(objects.get(i));
-					myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
+					// always process as string
+					myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
 					filterBuilder.append(" OR LOWER(").append(leftSelectorExpression);
 					filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 				}
@@ -841,7 +843,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 					// get the first value
 					myObj.append(" , ").append(leftWrapper).append(d).append(rightWrapper);
 				}
-			}else {
+			} else {
 				String leftWrapper = null;
 				String rightWrapper = null;
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
