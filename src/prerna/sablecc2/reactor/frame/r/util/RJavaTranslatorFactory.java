@@ -59,16 +59,18 @@ public class RJavaTranslatorFactory {
 		}
 		try {
 			newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
-			newInstance.setInsight(insight);
 			newInstance.setLogger(logger);
 			
 			// TODO: until we get everythign using this
 			// let us pass the r connection info
 			// if we have an r data table
-			ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
-			if(dm != null && dm instanceof RDataTable) {
-				newInstance.setConnection(((RDataTable) dm).getConnection());
-				newInstance.setPort(((RDataTable) dm).getPort());
+			if(insight != null) {
+				newInstance.setInsight(insight);
+				ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
+				if(dm != null && dm instanceof RDataTable) {
+					newInstance.setConnection(((RDataTable) dm).getConnection());
+					newInstance.setPort(((RDataTable) dm).getPort());
+				}
 			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();

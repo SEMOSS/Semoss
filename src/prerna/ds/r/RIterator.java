@@ -5,7 +5,7 @@ import java.util.List;
 
 public class RIterator implements Iterator<Object[]>{
 
-	private AbstractRBuilder builder;
+	private RFrameBuilder builder;
 	
 	// keep track of the frame name
 	private String tableName = "datatable";
@@ -28,7 +28,7 @@ public class RIterator implements Iterator<Object[]>{
 	private int dataPos = 0;
 	private int bulkRowSize = 500;
 	
-	public RIterator(AbstractRBuilder builder, String[] headers, int limit, int offset) {
+	public RIterator(RFrameBuilder builder, String[] headers, int limit, int offset) {
 		this.builder = builder;
 		this.tableName = builder.getTableName();
 		this.headers = headers;

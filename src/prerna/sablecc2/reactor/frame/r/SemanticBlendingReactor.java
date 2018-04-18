@@ -140,14 +140,14 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
 		// send to GA to store semantic names for predictions
 		String[] colNamesGA = { "Original_Column", "Predicted_Concept", "Prob", "URL" };
-		Map<String, Object> tableGA = this.rJavaTranslator.flushObjectAsTable(df2, colNamesGA);
+		Map<String, Object> tableGA = this.rJavaTranslator.flushFrameAsTable(df2, colNamesGA);
 		GATracker.getInstance().addNewLogicalNames(tableGA, columns, frame);
 		
 		// if we are running semantic blending
 		if (!generateFrameIndicator) {
 			// these are the column names for the results
 			String[] colNames = { "Predicted_Concept", "Prob", "URL" };
-			Map<String, Object> table = this.rJavaTranslator.flushObjectAsTable(df2, colNames);
+			Map<String, Object> table = this.rJavaTranslator.flushFrameAsTable(df2, colNames);
 			return new NounMetadata(table, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.WIKI_LOGICAL_NAMES);
 		} else {
 			// we are not running semantic blending; we are running the widget
