@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -96,12 +95,6 @@ public interface IRJavaTranslator {
 	 * @param rScript
 	 */
 	Object getFactor(String rScript);
-	
-	/**
-	 * This method uses specific Rserve or JRI parseAndEval methods
-	 * @throws IOException 
-	 */
-	Object parseAndEvalScript(String script) throws IOException;
 	
 	/**
 	 * This method uses specific Rserve or JRI methods to get the breaks for a histogram as double[]

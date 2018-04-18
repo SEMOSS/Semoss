@@ -24,7 +24,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void startR() {
 		Rengine retEngine = Rengine.getMainEngine();
-		if(retEngine == null) {
+		if(retEngine == null && this.insight != null) {
 			if(this.insight.getVarStore().containsKey(R_ENGINE)) {
 				retEngine = (Rengine) this.insight.getVarStore().get(R_ENGINE).getValue();
 			}
@@ -273,11 +273,6 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		retMap.put("data", dataMatrix);
 		
 		return retMap; 
-	}
-
-	@Override
-	public Object parseAndEvalScript(String script) {
-		return engine.eval(script);
 	}
 
 	@Override
