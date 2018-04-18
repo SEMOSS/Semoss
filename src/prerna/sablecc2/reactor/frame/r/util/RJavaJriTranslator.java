@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.rosuda.JRI.REXP;
+import org.rosuda.JRI.RFactor;
 import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.Rengine;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -181,6 +183,15 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	@Override
+	public boolean getBoolean(String script) {
+		REXP val = engine.eval(script);
+		if(val != null) {
+			return val.asBool().isTRUE();
+		}
+		return false;
+	}
 
 	@Override
 	public Object getFactor(String script) {
@@ -204,7 +215,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public int[] getHistogramCounts(String script) {
-		REXP histR = (REXP)engine.eval(script);
+		REXP histR = (REXP) engine.eval(script);
 		if (histR != null) {
 			RVector vectorR = histR.asVector();
 			int[] counts = vectorR.at("counts").asIntArray();
@@ -214,7 +225,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	}
 	
 	@Override
-	public Map<String, Object> flushObjectAsTable(String framename, String[] colNames) {
+	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
 		List<Object[]> dataMatrix = new ArrayList<Object[]>();
 		
 		int numCols = colNames.length;
@@ -274,6 +285,149 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		
 		return retMap; 
 	}
+	
+	@Override
+	public Object[] getDataRow(String rScript, String[] headerOrdering) {
+		// we do not need the header ordering
+		// it is only needed for the RServe version of R
+		// this will return based on the same order as the rScript
+		
+		REXP rs = (REXP) executeR(rScript);
+		RVector rVec = rs.asVector();
+		Vector names = rVec.getNames();
+		int numColumns = headerOrdering.length;
+		int[] headerIndex = new int[numColumns];
+		for(int i = 0; i < numColumns; i++) {
+			headerIndex[i] = names.indexOf(headerOrdering[i]);
+		}
+		
+		Object[] retArr = new Object[numColumns];
+		for(int colNum = 0; colNum < numColumns; colNum++) {
+			int idx = headerIndex[colNum];
+			REXP val = rVec.at(idx);
+			int typeInt = val.getType();
+			if(typeInt == REXP.XT_DOUBLE) {
+				retArr[colNum] = val.asDouble();
+			} else if(typeInt == REXP.XT_ARRAY_DOUBLE) {
+				retArr[colNum] = val.asDoubleArray()[0];
+			} else if(typeInt == REXP.XT_INT) {
+				retArr[colNum] = val.asInt();
+			} else if(typeInt == REXP.XT_ARRAY_INT) {
+				retArr[colNum] = val.asIntArray()[0];
+			} else if(typeInt == REXP.XT_STR) {
+				retArr[colNum] = val.asString();
+			} else if(typeInt == REXP.XT_ARRAY_STR) {
+				retArr[colNum] = val.asStringArray()[0];
+			} else if(typeInt == REXP.XT_BOOL) {
+				retArr[colNum] = val.asBool();
+			} else if(typeInt == REXP.XT_FACTOR) {
+				retArr[colNum] = val.asFactor().at(0);
+			} else {
+				retArr[colNum] = val;
+			}
+		}
+		
+		return retArr;
+	}
+
+
+	@Override
+	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+		REXP rs = (REXP) executeR(rScript);
+		RVector rVec = rs.asVector();
+		Vector names = rVec.getNames();
+
+		int numColumns = headerOrdering.length;
+		int[] headerIndex = new int[numColumns];
+		for(int i = 0; i < numColumns; i++) {
+			headerIndex[i] = names.indexOf(headerOrdering[i]);
+		}
+		List<Object[]> retArr = new Vector<Object[]>(500);
+		
+		for(int colNum = 0; colNum < numColumns; colNum++) {
+			int idx = headerIndex[colNum];
+			REXP val = rVec.at(idx);
+			int typeInt = val.getType();
+			if(typeInt == REXP.XT_ARRAY_DOUBLE) {
+				double[] data = val.asDoubleArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[colNum] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[colNum] = data[i];
+					}
+				}
+			} else if(typeInt == REXP.XT_ARRAY_INT) {
+				int[] data = val.asIntArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[colNum] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[colNum] = data[i];
+					}
+				}
+			} else if(typeInt == REXP.XT_ARRAY_STR) {
+				String[] data = val.asStringArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[colNum] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[colNum] = data[i];
+					}
+				}
+			} else if(typeInt == REXP.XT_FACTOR) {
+				RFactor data = val.asFactor();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.size(); i++) {
+						Object[] values = new Object[numColumns];
+						values[colNum] = data.at(i);
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.size(); i++) {
+						Object[] values = retArr.get(i);
+						values[colNum] = data.at(i);
+					}
+				}
+			} else if (typeInt == REXP.XT_STR) {
+				String[] data = val.asStringArray();
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[colNum] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[colNum] = data[i];
+					}
+				}
+			}
+			
+			else {
+				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
+			}
+		}
+		
+		return retArr;
+	}
+	
 
 	@Override
 	public void setConnection(RConnection connection) {
@@ -295,5 +449,5 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		System.out.println("R Shutdown!!");
 		// java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 }

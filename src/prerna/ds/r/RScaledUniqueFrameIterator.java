@@ -17,7 +17,7 @@ import prerna.util.Utility;
 
 public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
-	private AbstractRBuilder builder;
+	private RFrameBuilder builder;
 	private OwlTemporalEngineMeta metaData;
 	
 	private String uniqueColumnName;
@@ -29,7 +29,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
 	public RScaledUniqueFrameIterator(
 			RDataTable frame,
-			AbstractRBuilder builder,
+			RFrameBuilder builder,
 			String columnName, 
 			Double[] maxArr, 
 			Double[] minArr, 
@@ -104,7 +104,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		
 		this.tempVarName = "temp" + Utility.getRandomString(6);
 		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
-		this.builder.executeR(tempVarQuery);
+		this.builder.evalR(tempVarQuery);
 		this.headers = builder.getColumnNames(tempVarName);
 	}
 

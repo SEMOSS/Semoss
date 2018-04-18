@@ -8,7 +8,6 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -21,48 +20,27 @@ import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public class RDataTable extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
 	
-	private AbstractRBuilder builder;
-	
+	private RFrameBuilder builder;
+
 	public RDataTable() {
 		this(null);
 	}
 	
 	public RDataTable(String rTableVarName) {
-		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
-		boolean useJri = false;
-		if(useJriStr != null) {
-			useJri = Boolean.valueOf(useJriStr);
-		}
-		try {
-			if(useJri) {
-				this.builder = new RBuilderJRI(rTableVarName);
-			} else {
-				this.builder = new RBuilder(rTableVarName);
-			}
-		} catch (RserveException e) {
-			e.printStackTrace();
-			closeConnection();
-			throw new IllegalStateException("Could not create valid connection to R. "
-					+ "Please make sure R is installed properly and running on machine.");
+		if(rTableVarName != null && !rTableVarName.isEmpty()) {
+			this.builder = new RFrameBuilder(rTableVarName);
+		} else {
+			this.builder = new RFrameBuilder();
 		}
 	}
 	
 	public RDataTable(String rTableVarName, RConnection retCon, String port) {
-		try {
-			this.builder = new RBuilder(rTableVarName, retCon, port);
-		} catch (RserveException e) {
-			e.printStackTrace();
-			closeConnection();
-			throw new IllegalStateException("Could not create valid connection to R. "
-					+ "Please make sure R is installed properly and running on machine.");
-		}
+		this.builder = new RFrameBuilder(rTableVarName, retCon, port);
 	}
 	
 	public RConnection getConnection() {
@@ -123,16 +101,12 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.getBulkDataRow(rScript, headerOrdering);
 	}
 	
-	public Object getScalarValue(String rScript) {
-		return this.builder.getScalarReturn(rScript);
-	}
-	
 	public void executeRScript(String rScript) {
 		//Validate user input won't break R and crash JVM
 		RregexValidator reg = new RregexValidator();
 		reg.Validate(rScript);
 		
-		this.builder.executeR(rScript);
+		this.builder.evalR(rScript);
 	}
 	
 	public String[] getColumnNames() {

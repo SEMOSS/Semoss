@@ -5,11 +5,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.REXPList;
-import org.rosuda.REngine.REXPString;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -28,6 +27,57 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	protected Insight insight = null;
 	protected Logger logger = null;
 
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+
+	/*
+	 * Abstract methods defined here
+	 */
+	
+	/**
+	 * This method uses specific Rserve or JRI methods to get the breaks for a histogram as double[]
+	 * @param script
+	 */
+	public abstract double[] getHistogramBreaks(String script);
+	
+	/**
+	 * This method uses specific Rserve or JRI methods to get the counts for a histogram as int[]
+	 * @param script
+	 */
+	public abstract int[] getHistogramCounts(String script);
+	
+	/**
+	 * This method uses specific Rserve or JRI methods to get a table in the form Map<String, Object>
+	 * @param framename
+	 * @param colNames
+	 */
+	public abstract Map<String, Object> flushFrameAsTable(String framename, String[] colNames);
+	
+	/**
+	 * Execute to get a row of data
+	 * @param rScript
+	 * @param headerOrdering
+	 * @return
+	 */
+	public abstract Object[] getDataRow(String rScript, String[] headerOrdering);
+	
+	/**
+	 * Execute to get a list of data rows
+	 * @param rScript
+	 * @param headerOrdering
+	 * @return
+	 */
+	public abstract List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering);
+	
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+
+	
 	/**
 	 * This method is used to get the column names of a frame
 	 * 
@@ -48,6 +98,17 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		String script = "sapply(" + frameName + ", class);";
 		String[] colTypes = this.getStringArray(script);
 		return colTypes;
+	}
+	
+	/**
+	 * Determine if a frame is empty / exists
+	 * 
+	 * @param frameName
+	 * @return
+	 */
+	public boolean isEmpty(String frameName) {
+		String script = "(is.data.table(" + frameName + ") && nrow(" + frameName + ") == 0)";
+		return this.getBoolean(script);
 	}
 	
 	/**
@@ -166,20 +227,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		this.logger = logger;
 	}
 
-	public String[] getAttributeArr(REXPList attrList) {
-		if (attrList == null) {
-			return null;
-		}
-		if (attrList.length() > 0) {
-			Object attr = attrList.asList().get(0);
-			if (attr instanceof REXPString) {
-				String[] strAttr = ((REXPString) attr).asStrings();
-				return strAttr;
-			}
-		}
-		return null;
-	}
-	
 	/**
 	 * This method is used initialize an empty matrix with the appropriate
 	 * number of rows and columns
