@@ -47,7 +47,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		logger.info("Connection right now is set to.. " + retCon);
-		if (retCon == null) {
+		if (this.retCon == null) {
 			try {
 				this.retCon = RSingleton.getConnection();
 //				port = Utility.findOpenPort();
@@ -69,8 +69,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				retCon.eval("library(stringr)");
 				logger.info("Loaded packages stringr");
 
-				this.insight.getVarStore().put(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
-				this.insight.getVarStore().put(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
+				if(this.insight != null) {
+					this.insight.getVarStore().put(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
+					this.insight.getVarStore().put(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
+				}
 			} catch (Exception e) {
 				System.out.println(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
