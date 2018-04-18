@@ -152,6 +152,9 @@ public class MasterDatabaseUtility {
 				String column = rs.getString(1);
 				String table = rs.getString(2);
 				String type = rs.getString(3);
+				if(type.equals("DOUBLE") || type.equals("INT")) {
+					type = "NUMBER";
+				}
 				boolean pk = rs.getBoolean(4);
 				
 				data.add(new Object[]{table, column, type, pk});
