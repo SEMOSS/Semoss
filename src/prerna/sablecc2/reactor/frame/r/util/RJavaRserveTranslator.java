@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,7 +7,7 @@ import java.util.Map;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.REngineException;
+import org.rosuda.REngine.REngine;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -36,15 +35,15 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	 */
 	@Override
 	public void startR() {
-		// we store the connection in the PKQL Runner
-		// retrieve it if it is already defined within the insight
-		NounMetadata noun = (NounMetadata) this.insight.getVarStore().get(R_CONN);
-		if (noun != null) {
-			retCon = (RConnection) this.insight.getVarStore().get(R_CONN).getValue();
-		}
-		NounMetadata nounPort = this.insight.getVarStore().get(R_PORT);
-		if (nounPort != null) {
-			port = (String) nounPort.getValue();
+		if(this.insight != null) {
+			NounMetadata noun = (NounMetadata) this.insight.getVarStore().get(R_CONN);
+			if (noun != null) {
+				retCon = (RConnection) this.insight.getVarStore().get(R_CONN).getValue();
+			}
+			NounMetadata nounPort = this.insight.getVarStore().get(R_PORT);
+			if (nounPort != null) {
+				port = (String) nounPort.getValue();
+			}
 		}
 		logger.info("Connection right now is set to.. " + retCon);
 		if (retCon == null) {
@@ -83,6 +82,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 								+ "5)stringr\n\n");
 			}
 		}
+		REngine x = RConnection.getLastEngine();
 	}
 
 	@Override
@@ -99,7 +99,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyR(String rScript) {
 		try {
 			retCon.voidEval(rScript);
-		} catch (Exception e) {
+		} catch (RserveException e) {
 			e.printStackTrace();
 		}
 	}
@@ -320,17 +320,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		return retMap;
 	}
 	
-	@Override
-	public Object parseAndEvalScript(String script) throws IOException {
-		try {
-			return retCon.parseAndEval(script);
-		} catch (REngineException e) {
-			throw new IOException("Error with execution of : " + script);
-		} catch (REXPMismatchException e) {
-			throw new IOException("Error with execution of : " + script);
-		}
-	}
-
 	@Override
 	public void setConnection(RConnection connection) {
 		if (connection != null) {
