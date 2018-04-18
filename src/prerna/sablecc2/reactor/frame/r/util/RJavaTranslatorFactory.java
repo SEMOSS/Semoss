@@ -66,7 +66,7 @@ public class RJavaTranslatorFactory {
 			// let us pass the r connection info
 			// if we have an r data table
 			ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
-			if(dm instanceof RDataTable) {
+			if(dm != null && dm instanceof RDataTable) {
 				newInstance.setConnection(((RDataTable) dm).getConnection());
 				newInstance.setPort(((RDataTable) dm).getPort());
 			}

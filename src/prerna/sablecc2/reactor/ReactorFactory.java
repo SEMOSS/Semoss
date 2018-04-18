@@ -118,6 +118,7 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseTableStructureReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
@@ -479,6 +480,10 @@ public class ReactorFactory {
 		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
+		
+		// NEW FEDERATE
+		reactorHash.put("GetDatabaseTableStructure", DatabaseTableStructureReactor.class);
+
 		// Logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
