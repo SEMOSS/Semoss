@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.Vector;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -121,6 +122,48 @@ public class MasterDatabaseUtility {
 			closeStreams(stmt, rs);
 		}
 		return logicalNames;
+	}
+	
+	/**
+	 * Get a list of arrays containing [table, column, type] for a given database
+	 * @param engineName
+	 * @return
+	 */
+	public static List<Object[]> getAllTablesAndColumns(String engineName) {
+		String query = "select c.conceptualname as column, c2.conceptualname as table, ec.property_type as type, ec.pk as pk "
+				+ "from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2 "
+				+ "where e.id = ec.engine "
+				+ "and e.enginename = '" + engineName + "' "
+				+ "and ec.localconceptid = c.localconceptid "
+				+ "and ec.parentphysicalid = ec2.physicalnameid "
+				+ "and ec2.localconceptid = c2.localconceptid "
+				+ "order by table, pk desc, column, type";
+
+		List<Object[]> data = new Vector<Object[]>();
+		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String column = rs.getString(1);
+				String table = rs.getString(2);
+				String type = rs.getString(3);
+				boolean pk = rs.getBoolean(4);
+				
+				data.add(new Object[]{table, column, type, pk});
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return data;
 	}
 
 	public static Map<String, Object[]> getMetamodelRDBMS(String engineName) {
