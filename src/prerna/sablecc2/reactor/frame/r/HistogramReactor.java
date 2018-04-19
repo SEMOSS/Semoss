@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Map;
+
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -81,8 +82,9 @@ public class HistogramReactor extends AbstractRFrameReactor {
 
 		//get r vector - this will be specific to reserve or JRI
 		//then use the r vector to get the breaks (double array) and the counts (int array)
-		double[] breaks = rJavaTranslator.getHistogramBreaks(script);
-		int[] counts = rJavaTranslator.getHistogramCounts(script);
+		Map<String, Object> hist = rJavaTranslator.getHistogramBreaksAndCounts(script);
+		double[] breaks = (double[]) hist.get("breaks");
+		int[] counts = (int[]) hist.get("counts");
 		
 		//get the number of bins from the length of the counts
 		int numBins;

@@ -223,11 +223,16 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	@Override
-	public double[] getHistogramBreaks(String script) {
+	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		try {
 			Map<String, Object> histJ = (Map<String, Object>) (retCon.eval(script).asNativeJavaObject());
 			double[] breaks = (double[]) histJ.get("breaks");
-			return breaks;
+			int[] counts = (int[]) histJ.get("counts");
+			
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("breaks", breaks);
+			retMap.put("counts", counts);
+			return retMap;
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -236,20 +241,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		return null;
 	}
 
-	@Override
-	public int[] getHistogramCounts(String script) {
-		try {
-			Map<String, Object> histJ = (Map<String, Object>) (retCon.eval(script).asNativeJavaObject());
-			int[] counts = (int[]) histJ.get("counts");
-			return counts;
-		} catch (RserveException e) {
-			e.printStackTrace();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
 		List<Object[]> dataMatrix = new ArrayList<Object[]>();
