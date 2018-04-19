@@ -205,23 +205,17 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	}
 	
 	@Override
-	public double[] getHistogramBreaks(String script) {
+	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		REXP histR = (REXP)engine.eval(script);
-		if (histR != null) {
+		if(histR != null) {
 			RVector vectorR = histR.asVector();
 			double[] breaks = vectorR.at("breaks").asDoubleArray();
-			return breaks;
-		}
-		return null;
-	}
-	
-	@Override
-	public int[] getHistogramCounts(String script) {
-		REXP histR = (REXP) engine.eval(script);
-		if (histR != null) {
-			RVector vectorR = histR.asVector();
 			int[] counts = vectorR.at("counts").asIntArray();
-			return counts;
+
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("breaks", breaks);
+			retMap.put("counts", counts);
+			return retMap;
 		}
 		return null;
 	}
@@ -231,7 +225,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		List<Object[]> dataMatrix = new ArrayList<Object[]>();
 		
 		int numCols = colNames.length;
-		for (int i = 0; i < numCols; i++) {
+		for(int i = 0; i < numCols; i++) {
 			String script = framename + "$" + colNames[i];
 			REXP val = (REXP) executeR(script);
 			int typeInt = val.getType();
