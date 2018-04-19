@@ -37,16 +37,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	
 	/**
-	 * This method uses specific Rserve or JRI methods to get the breaks for a histogram as double[]
+	 * This method uses specific Rserve or JRI methods to get the breaks and counts for a histogram
+	 * breaks for a histogram as double[]
+	 * counts for a histogram as int[]
+	 * Map keys are breaks and counts
 	 * @param script
 	 */
-	public abstract double[] getHistogramBreaks(String script);
-	
-	/**
-	 * This method uses specific Rserve or JRI methods to get the counts for a histogram as int[]
-	 * @param script
-	 */
-	public abstract int[] getHistogramCounts(String script);
+	public abstract Map<String, Object> getHistogramBreaksAndCounts(String script);
 	
 	/**
 	 * This method uses specific Rserve or JRI methods to get a table in the form Map<String, Object>
@@ -130,7 +127,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		} else if(typeToConvert == SemossDataType.TIMESTAMP) {
 			rScript = RSyntaxHelper.alterColumnTypeToDateTime(frameName, columnName);
 		}
-		this.executeR(rScript);
+		this.executeEmptyR(rScript);
 	}
 	
 	/**
@@ -162,13 +159,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		String script = null;
 		if (newType.equalsIgnoreCase("string")) {
 			script = frameName + " <- " + frameName + "[, " + colName + " := as.character(" + colName + ")]";
-			this.executeR(script);
+			this.executeEmptyR(script);
 		} else if (newType.equalsIgnoreCase("factor")) {
 			script = frameName + " <- " + frameName + "[, " + colName + " := as.factor(" + colName + ")]";
-			this.executeR(script);
+			this.executeEmptyR(script);
 		} else if (newType.equalsIgnoreCase("number")) {
 			script = frameName + " <- " + frameName + "[, " + colName + " := as.numeric(" + colName + ")]";
-			this.executeR(script);
+			this.executeEmptyR(script);
 		} else if (newType.equalsIgnoreCase("date")) {
 			// we have a different script to run if it is a str to date
 			// conversion
@@ -178,18 +175,18 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			if (type.equalsIgnoreCase("date")) {
 				String formatString = ", format = '" + dateFormat + "'";
 				script = tempTable + " <- format(" + frameName + "$" + colName + formatString + ")";
-				this.executeR(script);
+				this.executeEmptyR(script);
 				script = frameName + "$" + colName + " <- " + "as.Date(" + tempTable + formatString + ")";
-				this.executeR(script);
+				this.executeEmptyR(script);
 			} else {
 				script = tempTable + " <- as.Date(" + frameName + "$" + colName + ", format='" + dateFormat + "')";
-				this.executeR(script);
+				this.executeEmptyR(script);
 				script = frameName + "$" + colName + " <- " + tempTable;
-				this.executeR(script);
+				this.executeEmptyR(script);
 			}
 			// perform variable cleanup
-			this.executeR("rm(" + tempTable + ");");
-			this.executeR("gc();");
+			this.executeEmptyR("rm(" + tempTable + ");");
+			this.executeEmptyR("gc();");
 		}
 		logger.info("Successfully changed data type for column = " + colName);
 		frame.getMetaData().modifyDataTypeToProperty(frameName + "__" + colName, frameName, newType);
