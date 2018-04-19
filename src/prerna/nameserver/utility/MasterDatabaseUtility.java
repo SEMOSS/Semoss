@@ -925,6 +925,51 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
+	 * Get the properties for a given concept
+	 * @param conceptName
+	 * @param engineName		filter for the properties
+	 * @return
+	 */
+	public static Map<String, List<String>> getSpecificConceptPropertiesRDBMS(String conceptString, String engineName) {
+		// get the bindings based on the input list
+		String engineString = " and e.enginename= '" + engineName +"' ";
+		if(engineName == null || engineName.isEmpty()) {
+			throw new IllegalArgumentException("Must define engineName");
+		}
+		
+		String propQuery = "select distinct e.enginename, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
+				+ "from engineconcept ec, concept c, engine e where ec.parentphysicalid in "
+				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in ('" +  conceptString + "')) )" 
+				+ engineString
+				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
+		
+		Map<String, List<String>> returnHash = new HashMap<String, List<String>>();
+
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		ArrayList<String> properties = new ArrayList<String>();
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(propQuery);
+			while(rs.next()) {
+				String propName = rs.getString(2);
+				properties.add(propName);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		returnHash.put(engineName, properties);
+		return returnHash;
+	}
+	
+	
+	/**
 	 * Returns Xray config files
 	 * 
 	 * @return
