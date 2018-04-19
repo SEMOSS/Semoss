@@ -25,6 +25,7 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
@@ -44,58 +45,50 @@ public class TinkerEngine extends AbstractEngine {
 		super.openDB(propFile);
 
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String fileName = baseFolder + "/db/" + this.engineName + "/" + this.engineName;
-		String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
-		System.out.println(">>>>>TINKER DRIVER IS: " + tinkerDriver);
-		
-		if(tinkerDriver.equalsIgnoreCase("neo4j")) {
+		String fileName = prop.getProperty(Constants.TINKER_FILE);
+		fileName = fileName.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
+		fileName = fileName.replaceAll("@" + Constants.ENGINE + "@", this.engineName);
+		LOGGER.info("Opening graph: " + fileName);
+		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
+		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 			isNeo4j = true;
 		}
-		
 		if (isNeo4j) {
 			g = Neo4jGraph.open(fileName);
-
 		} else {
 			g = TinkerGraph.open();
 			((TinkerGraph) g).createIndex(TinkerFrame.TINKER_TYPE, Vertex.class);
 			((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Vertex.class);
 			((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
 			((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
-
-			// TODO get file extension
-			// String tinkerFile = prop.getProperty(Constants.TINKER_FILE);
-
 			try {
-				if (tinkerDriver.equalsIgnoreCase("TG")) {
+				if (tinkerDriver == TINKER_DRIVER.TG) {
 					// user kyro to de-serialize the cached graph
-					String fileExtension = ".tg";
 					Builder<GryoIo> builder = IoCore.gryo();
 					builder.graph(this.g);
 					IoRegistry kryo = new MyGraphIoRegistry();
 					builder.registry(kryo);
 					GryoIo yes = builder.create();
-					yes.readGraph(fileName+fileExtension);
-				} else if (tinkerDriver.equalsIgnoreCase("JSON")) {
+					yes.readGraph(fileName);
+				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 					// user kyro to de-serialize the cached graph
-					String fileExtension = ".json";
 					Builder<GraphSONIo> builder = IoCore.graphson();
 					builder.graph(this.g);
 					IoRegistry kryo = new MyGraphIoRegistry();
 					builder.registry(kryo);
 					GraphSONIo yes = builder.create();
-					yes.readGraph(fileName+fileExtension);
-				} else if (tinkerDriver.equalsIgnoreCase("XML")) {
-					String fileExtension = ".xml";
+					yes.readGraph(fileName);
+				} else if (tinkerDriver == TINKER_DRIVER.XML) {
 					Builder<GraphMLIo> builder = IoCore.graphml();
 					builder.graph(this.g);
 					IoRegistry kryo = new MyGraphIoRegistry();
 					builder.registry(kryo);
 					GraphMLIo yes = builder.create();
-					yes.readGraph(fileName+fileExtension);
+					yes.readGraph(fileName);
 				}
 
 			} catch (IOException e) {
-
+				e.printStackTrace();
 			}
 		}
 	}
@@ -159,36 +152,32 @@ public class TinkerEngine extends AbstractEngine {
 		try {
 			long startTime = System.currentTimeMillis();
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
-			String fileName = baseFolder + "/db/" + this.engineName + "/" + this.engineName;
+			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
+			String fileName = prop.getProperty(Constants.TINKER_FILE);
+			fileName = fileName.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
+			fileName = fileName.replaceAll("@" + Constants.ENGINE + "@", this.engineName);
 			if (!isNeo4j) {
-				if (tinkerDriver.equalsIgnoreCase("TG")) {
-					String fileExtension = ".tg";
+				if (tinkerDriver == TINKER_DRIVER.TG) {
 					Builder<GryoIo> builder = IoCore.gryo();
 					builder.graph(g);
 					IoRegistry kryo = new MyGraphIoRegistry();
-					;
 					builder.registry(kryo);
 					GryoIo yes = builder.create();
-					yes.writeGraph(fileName+fileExtension);
-				} else if (tinkerDriver.equalsIgnoreCase("JSON")) {
-					String fileExtension = ".json";
+					yes.writeGraph(fileName);
+				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 					Builder<GraphSONIo> builder = IoCore.graphson();
 					builder.graph(g);
 					IoRegistry kryo = new MyGraphIoRegistry();
-					;
 					builder.registry(kryo);
 					GraphSONIo yes = builder.create();
-					yes.writeGraph(fileName+fileExtension);
-				} else if (tinkerDriver.equalsIgnoreCase("XML")) {
-					String fileExtension = ".xml";
+					yes.writeGraph(fileName);
+				} else if (tinkerDriver == TINKER_DRIVER.XML) {
 					Builder<GraphMLIo> builder = IoCore.graphml();
 					builder.graph(g);
 					IoRegistry kryo = new MyGraphIoRegistry();
-					;
 					builder.registry(kryo);
 					GraphMLIo yes = builder.create();
-					yes.writeGraph(fileName+fileExtension);
+					yes.writeGraph(fileName);
 				}
 
 				long endTime = System.currentTimeMillis();
@@ -197,7 +186,7 @@ public class TinkerEngine extends AbstractEngine {
 			} else {
 				g.tx().commit();
 				long endTime = System.currentTimeMillis();
-				LOGGER.info("Successfully saved Neo4jFrame to file: " + baseFolder + "/db/" + this.engineName + "/" + this.engineName + "(" + (endTime - startTime) + " ms)");
+				LOGGER.info("Successfully saved Neo4jFrame to file: " + fileName + "(" + (endTime - startTime) + " ms)");
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

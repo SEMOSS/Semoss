@@ -39,6 +39,7 @@ import java.io.Reader;
 import org.apache.commons.io.FileUtils;
 
 import prerna.poi.main.helper.ImportOptions;
+import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.sql.RDBMSUtility;
@@ -242,9 +243,20 @@ public class PropFileWriter {
 					pw.write(currentLine + "\n");
 				}
 			}
-			if(dbType == ImportOptions.DB_TYPE.TINKER) {
-				//tinker-specific properties
-				pw.write(Constants.TINKER_FILE + " @BaseFolder@/db/@ENGINE@/@ENGINE@.tg" + "\n");
+			if (dbType == ImportOptions.DB_TYPE.TINKER) {
+				// tinker-specific properties
+				// neo4j does not have an extension
+				// basefolder/db/engine/engine
+				if (this.tinkerDriverType == TINKER_DRIVER.NEO4J) {
+					pw.write(Constants.TINKER_FILE + " @BaseFolder@" + System.getProperty("file.separator") + "db"
+							+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
+							+ "@ENGINE@\n");
+				} else {
+					// basefolder/db/engine/engine.driverTypeExtension
+					pw.write(Constants.TINKER_FILE + " @BaseFolder@" + System.getProperty("file.separator") + "db"
+							+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
+							+ "@ENGINE@." + this.tinkerDriverType + "\n");
+				}
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultTinkerEngine + "\n");
 				pw.write(Constants.TINKER_DRIVER + "\t" + this.tinkerDriverType + "\n");
 			}
