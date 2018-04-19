@@ -70,6 +70,8 @@ import prerna.sablecc2.reactor.expression.OpSumIfs;
 import prerna.sablecc2.reactor.expression.OpSumProduct;
 import prerna.sablecc2.reactor.expression.filter.OpAnd;
 import prerna.sablecc2.reactor.expression.filter.OpOr;
+import prerna.sablecc2.reactor.federation.AdvancedFederationBlend;
+import prerna.sablecc2.reactor.federation.AdvancedFederationGetBestMatch;
 import prerna.sablecc2.reactor.frame.CreateFrameReactor;
 import prerna.sablecc2.reactor.frame.CurrentFrameReactor;
 import prerna.sablecc2.reactor.frame.FrameDuplicatesReactor;
@@ -118,6 +120,7 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseSpecificConceptPropertiesReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseTableStructureReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
@@ -483,7 +486,10 @@ public class ReactorFactory {
 		
 		// NEW FEDERATE
 		reactorHash.put("GetDatabaseTableStructure", DatabaseTableStructureReactor.class);
-
+		reactorHash.put("GetSpecificConceptProperties", DatabaseSpecificConceptPropertiesReactor.class);
+		reactorHash.put("FederationBlend", AdvancedFederationBlend.class);
+		reactorHash.put("FederationBestMatches", AdvancedFederationGetBestMatch.class);
+		
 		// Logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
