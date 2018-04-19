@@ -63,19 +63,18 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 
 		//create temporary table
 		String tempName = Utility.getRandomString(6);
-
 		//define r script to be executed
 		//this script will create a table with one column of col vals and one column of the corresponding frequency
-		String script = tempName + " <-  " + table + "[, .N, by=\"" + column + "\"];";
-		this.rJavaTranslator.executeEmptyR(script);
+		String script = null;
 
 		//sort based on boolean top variable; if true, sort descending
 		//more frequent items in the column will appear first
 		if (top) {
-			this.rJavaTranslator.executeEmptyR(tempName + " <- head(" + tempName + "[order(-rank(N)),] , 100)");
+			script = tempName + " <-  head(" + table + "[, .N, by=\"" + column + "\"][order(-rank(N)),] , 25);";
 		} else {
-			this.rJavaTranslator.executeEmptyR(tempName + " <- head(" + tempName + "[order(rank(N)),] , 100)");
+			script = tempName + " <-  head(" + table + "[, .N, by=\"" + column + "\"][order(rank(N)),] , 25);";
 		}
+		this.rJavaTranslator.executeEmptyR(script);
 
 		// store the values of the column in a string array
 		// get the column names
@@ -113,7 +112,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		}
 
 		// create and return a task
-		Map<String, Object> taskData = getBarChartInfo(panelId ,column, "Frequency", retOutput);
+		Map<String, Object> taskData = getBarChartInfo(panelId, column, "Frequency", retOutput);
 
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + tempName + "); gc();");
