@@ -54,7 +54,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 			}
 		}
 		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
-		this.rJavaTranslator.executeR(script);
+		this.rJavaTranslator.executeEmptyR(script);
 		RDataTable newTable = null;
 		if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
 			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(IRJavaTranslator.R_CONN), (String) retrieveVariable(IRJavaTranslator.R_PORT));
@@ -98,7 +98,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		newC.append(")");
 
 		String script = "setnames(" + frameName + ", old = " + oldC + ", new = " + newC + ")";
-		this.rJavaTranslator.executeR(script);
+		this.rJavaTranslator.executeEmptyR(script);
 
 		if (print) {
 			System.out.println("Running script : " + script);

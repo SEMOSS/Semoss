@@ -12,6 +12,11 @@ import prerna.sablecc2.reactor.task.transformation.map.MapTransformations;
 
 public class MapLambdaTaskReactor extends TaskBuilderReactor {
 
+	/**
+	 * Allow you to modidy an existing column(s) or add new columns
+	 * Will not allow you to add new rows
+	 */
+	
 	public MapLambdaTaskReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TRANSFORMATION.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
 	}
@@ -36,6 +41,19 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 		this.task = newTask;
 		this.insight.getTaskStore().addTask(this.task);
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	// inputs
+	
+	private String getTransformation() {
+		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
+		if(colGrs != null && !colGrs.isEmpty()) {
+			return colGrs.get(0).toString();
+		}
+		
+		throw new IllegalArgumentException("Unknown transformation type");
+	}
 	
 	private List<String> getColumns() {
 		GenRowStruct colGrs = this.store.getNoun(keysToGet[1]);
@@ -49,14 +67,5 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 		}
 		
 		return null;
-	}
-	
-	private String getTransformation() {
-		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
-		if(colGrs != null && !colGrs.isEmpty()) {
-			return colGrs.get(0).toString();
-		}
-		
-		throw new IllegalArgumentException("Unknown transformation type");
 	}
 }
