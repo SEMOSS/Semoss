@@ -253,9 +253,6 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			if(datasourceType.equals("FILEREAD")) {
 				// we have a file we want to shift
 				String fileLoc = ((Map<String, List<String>>) datasourceMap.get("params")).get("filePath").get(0);
-				// remove the start and end " 
-				fileLoc = fileLoc.substring(1, fileLoc.length()-1);
-				
 				String filename = FilenameUtils.getName(fileLoc);
 				File origF = new File(fileLoc);
 				String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
