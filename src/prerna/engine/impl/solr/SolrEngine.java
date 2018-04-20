@@ -162,12 +162,6 @@ public class SolrEngine extends AbstractEngine {
 	}
 
 	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
 	public void insertData(String query) {
 		// TODO Auto-generated method stub
 

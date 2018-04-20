@@ -62,13 +62,10 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		return ENGINE_TYPE.DATASTAX_GRAPH;
 	}
 	
-	
-	
-	
-	
-	
-	
-	
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
 	
 	
 
@@ -100,12 +97,6 @@ public class DataStaxGraphEngine extends AbstractEngine {
 	public void commit() {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

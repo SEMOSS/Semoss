@@ -193,12 +193,6 @@ public class TinkerEngine extends AbstractEngine {
 		}
 	}
 
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	/**
 	 * Generate the tinker vertex for a specific instance
 	 * 

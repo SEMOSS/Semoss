@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -735,23 +734,6 @@ public class OWLER {
 		}
 		owler.getOwlAsString();
 		rfse.openFile(owler.getOwlPath(), "RDF/XML", BASE_URI);
-
-		// get all of the composite keys
-		String baseComposite = BASE_URI + DEFAULT_COMPOSITE_CLASS;	
-		String compositeQuery = "SELECT DISTINCT ?" + Constants.ENTITY + " WHERE {?" + Constants.ENTITY + " <" + RDF.TYPE.stringValue() + "> <" + baseComposite + ">}";
-		Vector<Object> composites = rfse.getCleanSelect(compositeQuery);
-		for (Object composite : composites) {
-			
-			// for each composite list out all the primary keys
-			String compositeURI = composite.toString();
-			System.out.println("Composite URI: " + compositeURI);
-			String keyQuery = "SELECT DISTINCT ?" + Constants.ENTITY + " WHERE {<" + compositeURI + "> <" + Constants.META_KEY + "> ?" + Constants.ENTITY + "}";
-			Vector<Object> primkeys = rfse.getCleanSelect(keyQuery);
-			for (Object primkey : primkeys) {
-				String primkeyURI = primkey.toString();
-				System.out.println("Primkey URI: " + primkeyURI);
-			}
-		}		
 	}
 		
 	public String getOwlAsString() {
