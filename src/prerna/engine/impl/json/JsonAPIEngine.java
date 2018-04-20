@@ -468,12 +468,6 @@ public class JsonAPIEngine extends AbstractEngine {
 
 	}
 
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	// get call
 	private String doGet(Hashtable params)
 	{

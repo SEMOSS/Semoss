@@ -168,12 +168,4 @@ public class GoogleSheetsEngine extends AbstractEngine {
 		
 	}
 
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	
-	
 }

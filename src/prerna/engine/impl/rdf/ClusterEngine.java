@@ -28,7 +28,6 @@
 package prerna.engine.impl.rdf;
 
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -174,12 +173,6 @@ public class ClusterEngine extends AbstractEngine {
 	public void commit() {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	// TODO: do we really need this?
