@@ -156,11 +156,4 @@ public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 		// This does nothing
 		
 	}
-
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

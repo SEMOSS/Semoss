@@ -544,8 +544,6 @@ public abstract class AbstractEngine implements IEngine {
 		this.baseDataEngine.commit();
 	}
 
-	public abstract Vector<Object> getCleanSelect(String query);
-
 	public Vector<String> getConcepts() {
 		if(owlHelper == null)
 			return null;

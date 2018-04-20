@@ -94,10 +94,4 @@ public class AppEngine extends AbstractEngine {
 		
 	}
 
-	@Override
-	public Vector<Object> getCleanSelect(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }
