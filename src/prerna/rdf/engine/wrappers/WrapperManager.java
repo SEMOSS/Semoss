@@ -42,6 +42,7 @@ import prerna.engine.impl.json.JsonWrapper2;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.engine.impl.web.WebWrapper;
 import prerna.query.interpreters.DataStaxInterpreter;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
@@ -142,6 +143,12 @@ public class WrapperManager {
 			
 			// wrapper
 			returnWrapper = new JsonWrapper2();
+			break;
+		}
+		case WEB : {
+			
+			// wrapper
+			returnWrapper = new WebWrapper();
 			break;
 		}
 		default: {

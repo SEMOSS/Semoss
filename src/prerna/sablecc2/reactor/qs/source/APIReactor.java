@@ -7,6 +7,7 @@ import java.util.Properties;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonAPIEngine2;
+import prerna.engine.impl.web.WebScrapeEngine;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -64,6 +65,9 @@ public class APIReactor extends AbstractQueryStructReactor {
 		else if(apiType.equalsIgnoreCase("JSON2"))	
 			engine = new JsonAPIEngine2();
 
+		else if(apiType.equalsIgnoreCase("WEB"))	
+			engine = new WebScrapeEngine();
+
 		
 		// if there is alias get it
 		if(this.getNounStore().getNoun("aliasFile") != null)
@@ -93,8 +97,13 @@ public class APIReactor extends AbstractQueryStructReactor {
 			// may be I can fit all these things into the alias map and call it a day. 
 			HashMap map = null;
 			
+			// also need a headersmap
+			
 			if(this.getNounStore().getNoun("aliasMap") != null)
 				map = (HashMap)this.getNounStore().getNoun("aliasMap").getNoun(0).getValue();
+			
+			if(this.getNounStore().getNoun("headersMap") != null)
+				map.put("HEADERS", this.getNounStore().getNoun("headersMap").getNoun(0).getValue());
 			
 			Properties aliasProp = getAlias(null);
 			
