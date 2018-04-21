@@ -237,6 +237,8 @@ import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
+import prerna.sablecc2.reactor.utils.GetWebTableHeader;
+import prerna.sablecc2.reactor.utils.GetWebTableNum;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
@@ -694,6 +696,10 @@ public class ReactorFactory {
 		reactorHash.put("ModifyInsightDatasource", ModifyInsightDatasourceReactor.class);
 		reactorHash.put("GetOptimizedRecipe", GetOptimizedRecipeReactor.class);
 		
+		
+		// web scrape engine
+		reactorHash.put("GetTableHeader", GetWebTableHeader.class);
+		reactorHash.put("GetNumTable", GetWebTableNum.class);
 		
 		
 		

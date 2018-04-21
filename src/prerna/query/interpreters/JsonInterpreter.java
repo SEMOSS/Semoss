@@ -39,7 +39,9 @@ public class JsonInterpreter implements IQueryInterpreter2{
 		addSelectors();
 		addFilters();
 		
-		String retString = selectors.toString();
+		String retString = "";
+		if(selectors != null)
+			retString = selectors.toString();
 		
 		if(filters != null)
 			retString = selectors.toString() + "@@@" + filters.toString();
