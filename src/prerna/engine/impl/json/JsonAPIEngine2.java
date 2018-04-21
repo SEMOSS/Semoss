@@ -209,6 +209,9 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			
 		retHash.put("COUNT", totalRows);
 
+		if(prop.containsKey("SEPARATOR"))
+			retHash.put("SEPARATOR", prop.get("SEPARATOR"));
+		
 		System.out.println("Output..  " + data);
 		return retHash;
 	}
