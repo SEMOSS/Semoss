@@ -14,11 +14,12 @@ public class JsonWrapper implements IRawSelectWrapper {
 	// set all the data here
 	private JSONArray [] data = null;
 	String [] headerNames = null;
-	IEngine engine = null;
-	String query = null;
-	int numRows = -1;
-	int curRow = 0;
-	String [] types = null;
+	public IEngine engine = null;
+	public String query = null;
+	public int numRows = -1;
+	public int curRow = 0;
+	public String [] types = null;
+	String separator = "_";
 	
 	
 	public JsonWrapper()
@@ -34,6 +35,8 @@ public class JsonWrapper implements IRawSelectWrapper {
 		headerNames = (String [])output.get("HEADERS");
 		numRows = (Integer)output.get("COUNT");
 		types = (String [])output.get("TYPES");
+		if(output.containsKey("SEPARATOR"))
+			separator = (String)output.get("SEPARATOR");
 	}
 
 	@Override
@@ -77,6 +80,16 @@ public class JsonWrapper implements IRawSelectWrapper {
 			if(thisValue instanceof JSONArray)
 			{
 				// need to do the magic of delimiters etc. 
+				JSONArray thisValueArray = (JSONArray)thisValue;
+				StringBuffer output = new StringBuffer("");
+				for(int valIndex = 0;valIndex < thisValueArray.size();valIndex++)
+				{
+					if(valIndex != 0)
+						output.append(separator);
+					output.append(thisValueArray.get(valIndex));	
+				}
+				thisValue = output.toString();
+
 			}
 			
 			values[colIndex] = thisValue;

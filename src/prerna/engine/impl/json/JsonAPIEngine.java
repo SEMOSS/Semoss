@@ -1,11 +1,16 @@
 package prerna.engine.impl.json;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
@@ -234,12 +239,16 @@ public class JsonAPIEngine extends AbstractEngine {
 				for(int valIndex = 0;valIndex < multiValue.length;valIndex++)
 				{
 					finalValHash.put(listKey, multiValue[valIndex]);
+					String url = constructURL(finalValHash);
 					
 					if(prop.getProperty(input_method).equalsIgnoreCase("GET"))
-						inputData = doGet(finalValHash);
+					{
+						inputData = doGet(url);
+					}
 					else
+					{
 						inputData = doPost(finalValHash);
-					
+					}
 				
 					curDoc = getDocument(inputData);					
 					// send the data to add to it
@@ -249,8 +258,9 @@ public class JsonAPIEngine extends AbstractEngine {
 			}
 			else // this is not a list.. one time pull call it a day
 			{
+				String url = constructURL(finalValHash);
 				if(prop.getProperty(input_method).equalsIgnoreCase("GET"))
-					inputData = doGet(finalValHash);
+					inputData = doGet(url);
 				else
 					inputData = doPost(finalValHash);
 							
@@ -469,15 +479,29 @@ public class JsonAPIEngine extends AbstractEngine {
 	}
 
 	// get call
-	private String doGet(Hashtable params)
+	public String doGet(String url)
 	{
 		String retString = null;
 		
 		try {
-			String url = constructURL(params);
 			
 			CloseableHttpClient httpclient = HttpClients.createDefault();
 			HttpGet httpget = new HttpGet(url);
+			
+			// need to set headers if the headers are there
+			if(prop.containsKey("HEADERS"))
+			{
+				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				
+				Iterator keys = headersMap.keySet().iterator();
+				while(keys.hasNext())
+				{
+					String thisKey = (String)keys.next();
+					String thisValue = (String)headersMap.get(thisKey);
+					// need to fill the headers
+					httpget.addHeader(thisKey, thisValue);
+				}
+			}
 			
 			ResponseHandler<String> handler = new BasicResponseHandler();
 			CloseableHttpResponse response = httpclient.execute(httpget);
@@ -494,7 +518,7 @@ public class JsonAPIEngine extends AbstractEngine {
 		return retString;
 	}
 
-	private String doPost(Hashtable params)
+	public String doPost(Hashtable params)
 	{
 		String retString = null;
 		
@@ -503,7 +527,22 @@ public class JsonAPIEngine extends AbstractEngine {
 			
 			CloseableHttpClient httpclient = HttpClients.createDefault();
 			HttpPost httppost = new HttpPost(url);
-			
+
+			// need to set headers if the headers are there
+			if(prop.containsKey("HEADERS"))
+			{
+				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				
+				Iterator keys = headersMap.keySet().iterator();
+				while(keys.hasNext())
+				{
+					String thisKey = (String)keys.next();
+					String thisValue = (String)headersMap.get(thisKey);
+					// need to fill the headers
+					httppost.addHeader(thisKey, thisValue);
+				}
+			}
+
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			Enumeration <String> keys = params.keys();
 			
@@ -521,8 +560,20 @@ public class JsonAPIEngine extends AbstractEngine {
 			ResponseHandler<String> handler = new BasicResponseHandler();
 			CloseableHttpResponse response = httpclient.execute(httppost);
 			
-			retString = handler.handleResponse(response);
+			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
 			
+			int status = response.getStatusLine().getStatusCode();
+			
+			BufferedReader rd = new BufferedReader(
+			        new InputStreamReader(response.getEntity().getContent()));
+
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
+			
+			retString = result.toString();
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -532,6 +583,102 @@ public class JsonAPIEngine extends AbstractEngine {
 		}
 				
 		return retString;
+	}
+
+	
+	// gets this as input stream
+	public InputStream doPostI(Hashtable params)
+	{
+		InputStream retStream = null;
+		
+		try {
+			String url = prop.getProperty(input_url);
+			
+			CloseableHttpClient httpclient = HttpClients.createDefault();
+			HttpPost httppost = new HttpPost(url);
+
+			// need to set headers if the headers are there
+			if(prop != null && prop.containsKey("HEADERS"))
+			{
+				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				
+				Iterator keys = headersMap.keySet().iterator();
+				while(keys.hasNext())
+				{
+					String thisKey = (String)keys.next();
+					String thisValue = (String)headersMap.get(thisKey);
+					// need to fill the headers
+					httppost.addHeader(thisKey, thisValue);
+				}
+			}
+
+			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+			Enumeration <String> keys = params.keys();
+			
+			while(keys.hasMoreElements())
+			{
+				String key = keys.nextElement();
+				String value = (String)params.get(key);
+				
+				paramList.add(new BasicNameValuePair(key, value));
+			}			
+			
+			// set entity
+			httppost.setEntity(new UrlEncodedFormEntity(paramList));
+			
+			ResponseHandler<String> handler = new BasicResponseHandler();
+			CloseableHttpResponse response = httpclient.execute(httppost);
+			retStream = response.getEntity().getContent();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+				
+		return retStream;
+	}
+
+
+	// get call
+	public InputStream doGetI(String url)
+	{
+		InputStream retStream = null;
+		
+		try {
+			
+			CloseableHttpClient httpclient = HttpClients.createDefault();
+			HttpGet httpget = new HttpGet(url);
+			
+			// need to set headers if the headers are there
+			if(prop!= null && prop.containsKey("HEADERS"))
+			{
+				HashMap headersMap = (HashMap)prop.get("HEADERS");
+				
+				Iterator keys = headersMap.keySet().iterator();
+				while(keys.hasNext())
+				{
+					String thisKey = (String)keys.next();
+					String thisValue = (String)headersMap.get(thisKey);
+					// need to fill the headers
+					httpget.addHeader(thisKey, thisValue);
+				}
+			}
+			
+			ResponseHandler<String> handler = new BasicResponseHandler();
+			CloseableHttpResponse response = httpclient.execute(httpget);
+
+			retStream = response.getEntity().getContent();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+				
+		return retStream;
 	}
 
 	// get the inputs needed
