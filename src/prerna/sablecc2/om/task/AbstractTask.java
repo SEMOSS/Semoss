@@ -63,6 +63,19 @@ public abstract class AbstractTask implements ITask {
 		return collectedData;
 	}
 	
+	@Override
+	public Map<String, Object> getMeta() {
+		Map<String, Object> collectedData = new HashMap<String, Object>(7);
+		collectedData.put("headerInfo", this.headerInfo);
+		if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
+			collectedData.put("format", getFormatMap());
+			collectedData.put("taskOptions", this.taskOptions.getOptions());
+			collectedData.put("sortInfo", this.sortInfo);
+			collectedData.put("filterInfo", this.filterInfo);
+		}
+		return collectedData;
+	}
+	
 	/**
 	 * Returns structure based on the formatter: Example for Table
 	 * {
@@ -70,7 +83,6 @@ public abstract class AbstractTask implements ITask {
 	 * 	headers: headers of my data 
 	 * }
 	 */
-	@Override
 	public Object getData(int num) {
 		this.formatter.clear();
 		boolean collectAll = false;

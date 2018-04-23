@@ -8,8 +8,6 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrQuery.ORDER;
 
 import prerna.ds.QueryStruct;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class SolrInterpreter implements IQueryInterpreter {
@@ -170,16 +168,6 @@ public class SolrInterpreter implements IQueryInterpreter {
 		solr.setEngineName("insightCore");
 		solr.openDB(null);
 		System.out.println("Active " + solr.serverActive());
-		QueryStruct qs = new QueryStruct();
-		qs.addSelector("id", QueryStruct.PRIM_KEY_PLACEHOLDER);
-		qs.addSelector("id", "core_engine");
-		qs.addSelector("id", "layout");
-		//		qs.addFilter("view_count", ">=", Arrays.asList(new Object[]{10}));
-
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(solr, qs);
-		while(it.hasNext()) {
-			System.out.println(it.next());
-		}
 	}
 
 }
