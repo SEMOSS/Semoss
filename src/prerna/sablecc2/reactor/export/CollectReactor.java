@@ -26,9 +26,10 @@ public class CollectReactor extends TaskBuilderReactor {
 		this.limit = getTotalToCollect();
 		this.task = getTask();
 		buildTask();
-		Object data = this.task.collect(this.limit, collectMeta());
-		NounMetadata result = new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		return result;
+		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA); //return the data
+//		Object data = this.task.collect(this.limit, collectMeta());
+//		NounMetadata result = new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+//		return result;
 	}
 	
 	@Override

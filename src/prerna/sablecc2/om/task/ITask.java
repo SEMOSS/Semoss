@@ -23,12 +23,7 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	 */
 	Map<String, Object> collect(int numRecordsToGet, boolean meta);
 	
-	/**
-	 * Returns the data based on the formatter
-	 * @param numRecordsToGet
-	 * @return
-	 */
-	Object getData(int numRecordsToGet);
+	Map<String, Object> getMeta();
 	
 	void setId(String taskId);
 	

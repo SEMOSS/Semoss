@@ -30,8 +30,12 @@ public class ConstantDataTask extends AbstractTask {
 		return collectedData;
 	}
 	
-	public void setOutputObject(Object outputData) {
+	public void setOutputData(Object outputData) {
 		this.outputData = outputData;
+	}
+	
+	public Object getOutputData() {
+		return this.outputData;
 	}
 	
 	private Map<String, Object> getFormatMap() {

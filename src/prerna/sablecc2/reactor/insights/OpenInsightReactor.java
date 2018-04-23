@@ -15,6 +15,7 @@ import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -74,7 +75,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// set user 
 		newInsight.setUser(this.insight.getUser());
 		// get the insight output
-		Map<String, Object> insightData = null;
+		PixelRunner runner = null;
 		// add additional pixels if necessary
 		List<String> fullRecipe = new Vector<String>();
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
@@ -86,13 +87,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			fullRecipe.addAll(newInsight.getPixelRecipe());
 			
 			// rerun the insight
-			insightData = newInsight.reRunPixelInsight();
+			runner = newInsight.reRunPixelInsight();
 		} else {
 			fullRecipe.addAll(newInsight.getPixelRecipe());
 			
 //			insightData = getCachedData(appName, rdbmsId);
 //			if(insightData == null) {
-				insightData = newInsight.reRunPixelInsight();
+				runner = newInsight.reRunPixelInsight();
 //				cacheInsightData(appName, rdbmsId, insightData);
 //			}
 		}
@@ -100,35 +101,35 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// see if the last response was an error
 		// if it is an error that requires user input
 		// hydrate the last result to contain the new information
-		if(insightData.containsKey("pixelReturn")) {
-			Vector<Map<String, Object>> returns = (Vector<Map<String, Object>>) insightData.get("pixelReturn");
-			Map<String, Object> lastResult = (Map<String, Object>) returns.get(returns.size()-1);
-			Vector<PixelOperationType> opTypes = (Vector<PixelOperationType>) lastResult.get("operationType");
-			if(PixelUtility.autoExecuteAfterUserInput(opTypes)) {
-				Map<String, Object> openInsightNounValue = new HashMap<String, Object>();
-				openInsightNounValue.put(this.keysToGet[0], appName);
-				openInsightNounValue.put(this.keysToGet[1], rdbmsId);
-				openInsightNounValue.put("recipe", fullRecipe);
-				openInsightNounValue.put("errorData", lastResult.get("output"));
-				NounMetadata newLastNoun = new NounMetadata(openInsightNounValue, PixelDataType.CUSTOM_DATA_STRUCTURE, opTypes);
-				
-				Map<String, Object> newLastResult = PixelUtility.processNounMetadata(newLastNoun);
-				newLastResult.put("pixelExpression", lastResult.get("pixelExpression"));
-				newLastResult.put("isMeta", lastResult.get("isMeta"));
-
-				returns.remove(returns.size()-1);
-				returns.add(newLastResult);
-			}
-		}
+//		if(insightData.containsKey("pixelReturn")) {
+//			Vector<Map<String, Object>> returns = (Vector<Map<String, Object>>) insightData.get("pixelReturn");
+//			Map<String, Object> lastResult = (Map<String, Object>) returns.get(returns.size()-1);
+//			Vector<PixelOperationType> opTypes = (Vector<PixelOperationType>) lastResult.get("operationType");
+//			if(PixelUtility.autoExecuteAfterUserInput(opTypes)) {
+//				Map<String, Object> openInsightNounValue = new HashMap<String, Object>();
+//				openInsightNounValue.put(this.keysToGet[0], appName);
+//				openInsightNounValue.put(this.keysToGet[1], rdbmsId);
+//				openInsightNounValue.put("recipe", fullRecipe);
+//				openInsightNounValue.put("errorData", lastResult.get("output"));
+//				NounMetadata newLastNoun = new NounMetadata(openInsightNounValue, PixelDataType.CUSTOM_DATA_STRUCTURE, opTypes);
+//				
+//				Map<String, Object> newLastResult = PixelUtility.processNounMetadata(newLastNoun);
+//				newLastResult.put("pixelExpression", lastResult.get("pixelExpression"));
+//				newLastResult.put("isMeta", lastResult.get("isMeta"));
+//
+//				returns.remove(returns.size()-1);
+//				returns.add(newLastResult);
+//			}
+//		}
 		
-		Map<String, Object> insightMap = new HashMap<String, Object>();
-		// return to the FE the recipe
-		insightMap.put("name", newInsight.getInsightName());
-		// keys below match those in solr
-		insightMap.put("core_engine", newInsight.getEngineName());
-		insightMap.put("core_engine_id", newInsight.getRdbmsId());
-		insightMap.put("insightData", insightData);
-		insightMap.put("params", params);
+//		Map<String, Object> insightMap = new HashMap<String, Object>();
+//		// return to the FE the recipe
+//		insightMap.put("name", newInsight.getInsightName());
+//		// keys below match those in solr
+//		insightMap.put("core_engine", newInsight.getEngineName());
+//		insightMap.put("core_engine_id", newInsight.getRdbmsId());
+//		insightMap.put("insightData", insightData);
+//		insightMap.put("params", params);
 
 		// update the solr universal view count
 		try {
@@ -142,7 +143,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appName, rdbmsId, newInsight.getInsightName());
 		
 		// return the recipe steps
-		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_SAVED_INSIGHT);
+		return new NounMetadata(runner, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
 	}
 
 	private List<String> getAdditionalPixels() {

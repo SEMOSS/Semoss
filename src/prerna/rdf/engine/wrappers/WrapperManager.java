@@ -29,7 +29,6 @@ package prerna.rdf.engine.wrappers;
 
 import org.apache.log4j.Logger;
 
-import prerna.ds.QueryStruct;
 import prerna.ds.TinkerHeadersDataRowIterator2;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.ds.datastax.DataStaxGraphIterator;
@@ -49,7 +48,6 @@ import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SolrInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
-import prerna.rdf.query.builder.IQueryInterpreter;
 
 public class WrapperManager {
 
@@ -74,7 +72,7 @@ public class WrapperManager {
 		}
 		return manager;
 	}
-	
+
 	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct2 qs) {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
@@ -95,61 +93,46 @@ public class WrapperManager {
 			returnWrapper = new RawImpalaSelectWrapper(qs);
 			break;
 		}
-//		case SEMOSS_SESAME_REMOTE : {
-//			//TODO: need to build out RemoteSesameSelectWrapper
-//			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//			 */
-//			returnWrapper = new RemoteSesameSelectWrapper();
-//			break;
-//		}
+		case R : {
+			returnWrapper = new RawRSelectWrapper();
+			break;
+		}
+		case JSON : {
+			returnWrapper = new JsonWrapper();
+			break;
+		}
+		case JSON2 : {
+			returnWrapper = new JsonWrapper2();
+			break;
+		}
+		case WEB : {
+			returnWrapper = new WebWrapper();
+			break;
+		}
 		case TINKER : {
+			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
 			GremlinInterpreter2 interpreter = new GremlinInterpreter2( ((TinkerEngine) engine).getGraph());
 			interpreter.setQueryStruct(qs);
-			return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
+			returnWrapper = new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
 		}
 		case DATASTAX_GRAPH : {
+			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
 			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
 			interpreter.setTypeMap(((DataStaxGraphEngine) engine).getTypeMap());
 			interpreter.setQueryStruct(qs);
-			return new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
+			returnWrapper = new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
 		}
-		case R : {
-			returnWrapper = new RawRSelectWrapper();
-			break;
-		}
-
 		case SOLR : {
+			genQueryString = false;
 			SolrInterpreter2 solrInterp = new SolrInterpreter2();
 			solrInterp.setQueryStruct(qs);
 			SolrEngine solrEngine = (SolrEngine) engine;
 			SolrIterator it = new SolrIterator(solrEngine.execSolrQuery(solrInterp.composeSolrQuery()), qs);
-			return new QueryStructExpressionIterator(it, qs);
-		}
-		case JSON : {
-			
-			// wrapper
-			returnWrapper = new JsonWrapper();
-			break;
-			
-		}
-		case JSON2 : {
-			
-			// wrapper
-			returnWrapper = new JsonWrapper2();
-			break;
-		}
-		case WEB : {
-			
-			// wrapper
-			returnWrapper = new WebWrapper();
-			break;
+			returnWrapper = new QueryStructExpressionIterator(it, qs);
 		}
 		default: {
 
@@ -168,15 +151,10 @@ public class WrapperManager {
 			long end = System.currentTimeMillis();
 			LOGGER.info("Engine execution time = " + (end-start) + "ms");
 		} 
-//		else {
-//			returnWrapper.setEngine(engine);
-//			returnWrapper.setQueryStruct(qs);
-//			returnWrapper.execute();
-//		}
 
 		return returnWrapper;
 	}
-	
+
 	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) {
 		IRawSelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
@@ -196,20 +174,22 @@ public class WrapperManager {
 			returnWrapper = new RawImpalaSelectWrapper();
 			break;
 		}
-//		case SEMOSS_SESAME_REMOTE : {
-//			//TODO: need to build out RemoteSesameSelectWrapper
-//			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//			System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-//			 */
-//			returnWrapper = new RemoteSesameSelectWrapper();
-//			break;
-//		}
-//		case TINKER : {
-//			returnWrapper = new RawTinkerSelectWrapper();
-//			break;
-//		}
+		case R : {
+			returnWrapper = new RawRSelectWrapper();
+			break;
+		}
+		case JSON : {
+			returnWrapper = new JsonWrapper();
+			break;
+		}
+		case JSON2 : {
+			returnWrapper = new JsonWrapper2();
+			break;
+		}
+		case WEB : {
+			returnWrapper = new WebWrapper();
+			break;
+		}
 		default: {
 
 		}
@@ -224,65 +204,7 @@ public class WrapperManager {
 	}
 
 	@Deprecated
-	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct qs) {
-		IRawSelectWrapper returnWrapper = null;
-		boolean genQueryString = true;
-		switch(engine.getEngineType()) {
-		case SESAME : {
-			returnWrapper = new RawSesameSelectWrapper();
-			break;
-		}
-		case JENA : {
-			returnWrapper = new RawJenaSelectWrapper();
-			break;
-		}
-		case RDBMS : {
-			returnWrapper = new RawRDBMSSelectWrapper();
-			break;
-		}
-		case SEMOSS_SESAME_REMOTE : {
-			//TODO: need to build out RemoteSesameSelectWrapper
-			/*System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-				System.err.println("NEED TO IMPLEMENT RAW QUERY FOR REMOTE SESAME SELECT WRAPPER!!!!!");
-			 */
-			returnWrapper = new RemoteSesameSelectWrapper();
-			break;
-		}
-//		case TINKER : {
-//			genQueryString = false;
-//			returnWrapper = new RawTinkerSelectWrapper();
-//			break;
-//		}
-//		case SOLR : {
-//			genQueryString = false;
-//			returnWrapper = new RawSolrSelectWrapper();
-//		}
-		default: {
-
-		}
-		}
-
-		if(genQueryString) {
-			IQueryInterpreter interpreter = engine.getQueryInterpreter();
-			interpreter.setQueryStruct(qs);
-			String query = interpreter.composeQuery();
-			LOGGER.debug("Executing query on engine " + engine.getEngineName());
-			returnWrapper.setEngine(engine);
-			returnWrapper.setQuery(query);
-			returnWrapper.execute();
-		} else {
-			returnWrapper.setEngine(engine);
-//			returnWrapper.setQueryStruct(qs);
-			returnWrapper.execute();
-		}
-
-		return returnWrapper;
-	}
-
-	public ISelectWrapper getSWrapper(IEngine engine, String query)
-	{
+	public ISelectWrapper getSWrapper(IEngine engine, String query) {
 		ISelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
 		case SESAME : {
@@ -300,7 +222,6 @@ public class WrapperManager {
 		case RDBMS : {
 			returnWrapper = new RDBMSSelectWrapper();
 			break;
-			//TBD
 		}
 		default: {
 
@@ -313,12 +234,11 @@ public class WrapperManager {
 		returnWrapper.execute();
 		returnWrapper.getDisplayVariables();
 		returnWrapper.getPhysicalVariables();
-
 		return returnWrapper;
 	}
 
-	public IConstructWrapper getCWrapper(IEngine engine, String query)
-	{
+	@Deprecated
+	public IConstructWrapper getCWrapper(IEngine engine, String query) {
 		IConstructWrapper returnWrapper = null;
 		switch(engine.getEngineType())
 		{
@@ -345,12 +265,11 @@ public class WrapperManager {
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
 		returnWrapper.execute();
-
 		return returnWrapper;
 	}
 
-	public IConstructWrapper getChWrapper(IEngine engine, String query)
-	{
+	@Deprecated
+	public IConstructWrapper getChWrapper(IEngine engine, String query) {
 		IConstructWrapper returnWrapper = null;
 		switch(engine.getEngineType())
 		{
@@ -370,7 +289,6 @@ public class WrapperManager {
 			returnWrapper = new RDBMSSelectCheater();
 			break;
 		}
-
 		default: {
 
 		}
@@ -378,9 +296,6 @@ public class WrapperManager {
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
 		returnWrapper.execute();
-		//ISelectWrapper doh = (ISelectWrapper)returnWrapper;
-		//returnWrapper.getVariables();
-
 		return returnWrapper;
 	}
 
