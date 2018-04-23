@@ -37,7 +37,8 @@ public enum PixelDataType {
 	PANEL ("PANEL"),
 	R_CONNECTION("R_CONNECTION"),
 	R_ENGINE("R_ENGINE"),
-	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE");
+	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE"),
+	PIXEL_RUNNER ("PIXEL_RUNNER");
 	private final String strValue;
 	
 	private PixelDataType(String strValue) {

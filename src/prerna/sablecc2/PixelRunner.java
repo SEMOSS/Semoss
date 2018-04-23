@@ -36,57 +36,15 @@ public class PixelRunner {
 	 * @param frame					The data maker to run the pixel expression on
 	 */
 	
+	private Insight insight = null;
 	private List<NounMetadata> results = new Vector<NounMetadata>();
 	private List<String> pixelExpression = new Vector<String>();
 	private List<Boolean> isMeta = new Vector<Boolean>();
 	private Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 	private boolean invalidSyntax = false;
 	
-	public static void main(String[] args) throws Exception {
-		String pixel = "A = 10; B = \"Apple\";";
-		List<String> x = parsePixel(pixel);
-		System.out.println(x);
-	}
-	
-	/**
-	 * 
-	 * @param expression
-	 * @return
-	 * 
-	 * Method to take a string and return the parsed value of the pixel
-	 */
-	public static List<String> parsePixel(String expression) throws ParserException, LexerException, IOException {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-		Start tree = p.parse();
-
-		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
-
-		List<String> pixelList = new ArrayList<>();
-		for(PRoutine script : configNode.getRoutine()) {
-			pixelList.add(script.toString());
-		}
-		return pixelList;
-	}	
-	
-	/**
-	 * 
-	 * @param expression
-	 * @return
-	 * 
-	 * returns set of reactors that are not implemented
-	 * throws exception if pixel cannot be parsed
-	 */
-	public static Set<String> validatePixel(String expression) throws ParserException, LexerException, IOException {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-		ValidatorTranslation translation = new ValidatorTranslation();
-		// parsing the pixel - this process also determines if expression is syntactically correct
-		Start tree = p.parse();
-		// apply the translation.
-		tree.apply(translation);
-		return translation.getUnimplementedReactors();
-	}
-
 	public void runPixel(String expression, Insight insight) {
+		this.insight = insight;
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodedTextToOriginal);
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
@@ -154,5 +112,59 @@ public class PixelRunner {
 
 	public boolean isInvalidSyntax() {
 		return invalidSyntax;
+	}
+	
+	public Insight getInsight() {
+		return this.insight;
+	}
+	
+	////////////////////////////////////////////////////////
+	
+	/*
+	 * Other methods here
+	 */
+	
+	public static void main(String[] args) throws Exception {
+		String pixel = "A = 10; B = \"Apple\";";
+		List<String> x = parsePixel(pixel);
+		System.out.println(x);
+	}
+	
+	/**
+	 * 
+	 * @param expression
+	 * @return
+	 * 
+	 * Method to take a string and return the parsed value of the pixel
+	 */
+	public static List<String> parsePixel(String expression) throws ParserException, LexerException, IOException {
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+		Start tree = p.parse();
+
+		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
+
+		List<String> pixelList = new ArrayList<>();
+		for(PRoutine script : configNode.getRoutine()) {
+			pixelList.add(script.toString());
+		}
+		return pixelList;
+	}	
+	
+	/**
+	 * 
+	 * @param expression
+	 * @return
+	 * 
+	 * returns set of reactors that are not implemented
+	 * throws exception if pixel cannot be parsed
+	 */
+	public static Set<String> validatePixel(String expression) throws ParserException, LexerException, IOException {
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+		ValidatorTranslation translation = new ValidatorTranslation();
+		// parsing the pixel - this process also determines if expression is syntactically correct
+		Start tree = p.parse();
+		// apply the translation.
+		tree.apply(translation);
+		return translation.getUnimplementedReactors();
 	}
 }
