@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.task.transformation.map;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User2;
 import prerna.engine.api.IHeadersDataRow;
 
 public interface IMapTransformation {
@@ -27,4 +28,9 @@ public interface IMapTransformation {
 	 * @param columns
 	 */
 	void init(List<Map<String, Object>> headerInfo, List<String> columns);
+	
+	/**
+	 * Set the user within the transformation
+	 */
+	void setUser2(User2 user);
 }
