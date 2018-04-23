@@ -37,7 +37,7 @@ import java.util.Vector;
  */
 public interface IEngine extends IExplorable {
 	
-	public enum ENGINE_TYPE {APP, JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, IMPALA, TINKER, SOLR, R, DATASTAX_GRAPH, JSON, JSON2};
+	public enum ENGINE_TYPE {APP, JENA, SESAME, SEMOSS_SESAME_REMOTE, RDBMS, IMPALA, TINKER, SOLR, R, DATASTAX_GRAPH, JSON, JSON2, WEB};
 	
 	public enum ACTION_TYPE {
 		ADD_STATEMENT, // this is for rdf
@@ -89,6 +89,17 @@ public interface IEngine extends IExplorable {
 	public void insertData(String query);
 	
 	/**
+	 * Runs a delete query on the database
+	 * @param query delete query
+	 */
+	public void removeData(String query);
+	
+	/**
+	 * Commit the database. Commits the active transaction.  This operation ends the active transaction. Saves the db to a file
+	 */
+	public void commit();
+	
+	/**
 	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries against the 
 	 * engine.
 	 * @return the type of the engine 
@@ -122,17 +133,6 @@ public interface IEngine extends IExplorable {
 	 */
 	public String getEngineName();
 
-	/**
-	 * Runs a delete query on the database
-	 * @param query delete query
-	 */
-	public void removeData(String query);
-	
-	/**
-	 * Commit the database. Commits the active transaction.  This operation ends the active transaction. Saves the db to a file
-	 */
-	public void commit();
-	
 	/**
 	 * Performs a specific action with the given args
 	 * @param actionType The type of action to perform
