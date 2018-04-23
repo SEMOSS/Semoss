@@ -7,12 +7,30 @@ import java.util.Map;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 
-public class ToNumericTypeTransformation implements IMapTransformation {
+public class ToNumericTypeTransformation extends AbstractMapTransformation {
 
 	private int numCols;
 	private List<Integer> colIndices;
-	private List<Map<String, Object>> headerInfo;
 
+	@Override
+	public IHeadersDataRow process(IHeadersDataRow row) {
+		String[] headers = row.getHeaders();
+		Object[] values = row.getValues();
+		for(int i = 0; i < numCols; i++) {
+			int indexToGet = colIndices.get(i).intValue();
+			// try to convert it
+			String val = values[indexToGet].toString();
+			try {
+				Double doubleVal = Double.parseDouble(val);
+				values[indexToGet] = doubleVal;
+			} catch(NumberFormatException e) {
+				values[indexToGet] = null;
+			}
+		}
+		
+		return new HeadersDataRow(headers, values);
+	}
+	
 	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
 		this.headerInfo = headerInfo;
@@ -42,27 +60,4 @@ public class ToNumericTypeTransformation implements IMapTransformation {
 		this.numCols = colIndices.size();
 	}
 	
-	@Override
-	public IHeadersDataRow process(IHeadersDataRow row) {
-		String[] headers = row.getHeaders();
-		Object[] values = row.getValues();
-		for(int i = 0; i < numCols; i++) {
-			int indexToGet = colIndices.get(i).intValue();
-			// try to convert it
-			String val = values[indexToGet].toString();
-			try {
-				Double doubleVal = Double.parseDouble(val);
-				values[indexToGet] = doubleVal;
-			} catch(NumberFormatException e) {
-				values[indexToGet] = null;
-			}
-		}
-		
-		return new HeadersDataRow(headers, values);
-	}
-
-	@Override
-	public List<Map<String, Object>> getModifiedHeaderInfo() {
-		return this.headerInfo;
-	}
 }

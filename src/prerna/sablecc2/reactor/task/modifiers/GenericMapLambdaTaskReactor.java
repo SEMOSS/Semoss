@@ -27,6 +27,7 @@ public class GenericMapLambdaTaskReactor extends AbstractLambdaTaskReactor {
 		GenericMapTransformation transformation = new GenericMapTransformation();
 		try {
 			transformation.init(code, imports);
+			transformation.setUser2(this.insight.getUser2());
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with creating generic lambda!");			

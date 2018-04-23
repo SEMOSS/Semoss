@@ -7,7 +7,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.reactor.ClassMaker;
 import prerna.util.Utility;
 
-public class GenericMapTransformation implements IMapTransformation {
+public class GenericMapTransformation extends AbstractMapTransformation {
 
 	private static final String CLASS_NAME = BaseMapTransformation.class.getName();
 	private IMapTransformation generatedClass;
@@ -48,13 +48,6 @@ public class GenericMapTransformation implements IMapTransformation {
 	}
 
 	@Override
-	public List<Map<String, Object>> getModifiedHeaderInfo() {
-		// can not modify the header information with the map routine
-		// would need to use other operation
-		return null;
-	}
-
-	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
 		// do nothing
 		// uses the above int function
@@ -67,7 +60,7 @@ public class GenericMapTransformation implements IMapTransformation {
  * Cannot use the interface or will get an error
  *
  */
-class BaseMapTransformation implements IMapTransformation {
+class BaseMapTransformation extends AbstractMapTransformation {
 
 	public BaseMapTransformation() {
 		
@@ -76,11 +69,6 @@ class BaseMapTransformation implements IMapTransformation {
 	@Override
 	public IHeadersDataRow process(IHeadersDataRow row) {
 		return row;
-	}
-
-	@Override
-	public List<Map<String, Object>> getModifiedHeaderInfo() {
-		return null;
 	}
 
 	@Override
