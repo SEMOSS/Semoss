@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.om.Insight;
+import prerna.sablecc2.PixelRunner;
 
 public class JobThread extends Thread {
 
@@ -12,6 +13,7 @@ public class JobThread extends Thread {
 	List<String> pixel = null;
 	JobStatus status = JobStatus.CREATED;
 	Map<String, Object> output = null;
+	PixelRunner runner = null;
 	String jobId;
 
 	// need to make provision for preprocess and post process side effects
@@ -33,6 +35,18 @@ public class JobThread extends Thread {
 			//hold();
 			status = JobStatus.INPROGRESS;
 			output = insight.runPixel(pixel);
+			//hold();
+			status = JobStatus.COMPLETE;
+		}catch (Exception ex) {
+			status = JobStatus.ERROR;
+		}
+	}
+	
+	public void run2() {
+		try {
+			//hold();
+			status = JobStatus.INPROGRESS;
+			runner = insight.runPixel2(pixel);
 			//hold();
 			status = JobStatus.COMPLETE;
 		}catch (Exception ex) {
@@ -77,6 +91,10 @@ public class JobThread extends Thread {
 
 	public Map<String, Object> getOutput() {
 		return output;
+	}
+	
+	public PixelRunner getRunner() {
+		return runner;
 	}
 
 	public String getStatus() {
