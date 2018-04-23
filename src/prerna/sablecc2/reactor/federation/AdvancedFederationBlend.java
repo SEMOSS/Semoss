@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.federation;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -13,7 +12,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -43,65 +42,64 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		// get all inputs
 		String joinType = this.keyValue.get(this.keysToGet[0]);
 		String frameCol = this.keyValue.get(this.keysToGet[1]);
 		String newDb = this.keyValue.get(this.keysToGet[2]);
 		String newTable = this.keyValue.get(this.keysToGet[3]);
 		String newCol = this.keyValue.get(this.keysToGet[4]);
-		List<Object> allMatches = getMaxDist();
+		List<String> allMatches = getMatches();
 		String columns = this.keyValue.get(this.keysToGet[6]);
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
 		final String rCol1 = "ADVANCED_FEDERATION_FRAME_COL1";
 		final String rCol2 = "ADVANCED_FEDERATION_FRAME_COL2";
+		final String matchesFrame = "ADVANCED_FEDERATION_FRAME";
 		final String trg = "FED_TARGET";
 
 		// check if packages are installed
 		String[] packages = {"jsonlite", "stringdist"};
 		this.rJavaTranslator.checkPackages(packages);
 
-		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
+
+		// execute the link script to generate base frame of 0 distance matches
+		// and merge with LinkFrame built in BestMatches
+		String linkScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
+				+ "BaseLinkFrame <- best_match_maxdist(" + rCol1 + "," + rCol2 + ", 0 ); LinkFrame <- rbind(LinkFrame, BaseLinkFrame);";
+		linkScript = linkScript.replace("\\", "/");
+		this.rJavaTranslator.runR(linkScript);
 		
+		// lookup all matches data and generate script to blend
 		StringBuilder col1Builder = new StringBuilder();
 		StringBuilder col2Builder = new StringBuilder();
 		StringBuilder col3Builder = new StringBuilder();
-		
-		// get max distance
-		int finalMax = 0;
+		String rand = Utility.getRandomString(8);
 		if (allMatches != null && !(allMatches.isEmpty())) {
 			for (int i = 0; i < allMatches.size(); i++) {
-				Map match = (HashMap) allMatches.get(i);
-				int dist = Integer.parseInt(match.get("distance") + "");
 				if (i != 0) {
 					col1Builder.append(",");
 					col2Builder.append(",");
 					col3Builder.append(",");
 				}
-				col1Builder.append("\"" + (match.get("col1") + "") + "\"");
-				col2Builder.append("\"" + (match.get("col2") + "") + "\"");
-				col3Builder.append(match.get("distance") + "");
-				if (dist > finalMax) {
-					finalMax = dist;
-				}
+				String match = (String) allMatches.get(i);
+				String col1 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col1)");
+				String col2 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col2)");
+				int dist = Integer.parseInt(this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$distance)"));
+				col1Builder.append("\"" + col1 + "\"");
+				col2Builder.append("\"" + col2 + "\"");
+				col3Builder.append(dist);
 			}
+			
+			// add all matches provided
+			String script =  rand + " <- data.frame(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
+			this.rJavaTranslator.runR(script);
 		}
-
-		// execute the link script to generate base table of 0 distance
-		String linkScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
-				+ "LinkFrame <- best_match_maxdist(" + rCol1 + "," + rCol2 + ", 0 ); ";
-		linkScript = linkScript.replace("\\", "/");
-		this.rJavaTranslator.runR(linkScript);
 		
-		// add all matches provided
-		String rand = Utility.getRandomString(8);
-		String script =  rand + " <- data.frame(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
-		this.rJavaTranslator.runR(script);
-
 		// get R Frame
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getTableName();
 
-		// get all columns to federate in
+		// get all columns to federate on
 		ArrayList<String> columnArray = new ArrayList<String>();
 		columnArray.add(newCol);
 		List<String> inputCols = new ArrayList<String>();
@@ -126,23 +124,22 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 			typesMap.put(col, semossType);
 			// update meta data in frame
+			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 			metaData.addProperty(frameName, frameName + "__" + col);
 			metaData.setAliasToProperty(frameName + "__" + col, col);
 			metaData.setDataTypeToProperty(frameName + "__" + col, semossType.toString());
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/"
-				+ Utility.getRandomString(6) + ".csv";
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
 		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap);
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath());
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 
 		// execute blend
-		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\""
-				+ newCol + "\", LinkFrame , \"" + joinType + "\")";
+		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\"" + newCol + "\", LinkFrame , \"" + joinType + "\")";
 		this.rJavaTranslator.runR(blendedFrameScript);
 
 		// remove columns from frame that are temporary
@@ -153,7 +150,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		this.getFrame().syncHeaders();
 
 		// delete advanced Fed frame in R, done with it
-		this.rJavaTranslator.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + "," + rand + ",LinkFrame, ADVANCED_FEDERATION_FRAME)");
+		this.rJavaTranslator.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + "," + rand + ", BaseLinkFrame, LinkFrame, ADVANCED_FEDERATION_FRAME)");
 
 		// TODO: what happens if the new headers coming in are the same as
 		// existing headers?
@@ -176,7 +173,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			}
 		}
 
-		// else, we assume it is column values in the curRow
+		// else, we assume it is values in the curRow
 		List<Object> values = this.curRow.getAllValues();
 		List<String> strValues = new Vector<String>();
 		for (Object obj : values) {
@@ -185,18 +182,17 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		return strValues;
 	}
 
-	private List<Object> getMaxDist() {
+	private List<String> getMatches() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[5]);
+		GenRowStruct columnGrs = this.store.getNoun(MATCHES);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
+				List<String> values = columnGrs.getAllStrValues();
 				return values;
 			}
 		}
-
-		// else, we assume it is column values in the curRow
-		List<Object> values = this.curRow.getAllValues();
+		// else, we assume it is values in the curRow
+		List<String> values = this.curRow.getAllStrValues();
 		return values;
 	}
 
