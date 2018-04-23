@@ -10,9 +10,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class TaskReactor extends AbstractReactor {
+public class TaskLookupReactor extends AbstractReactor {
 	
-	public TaskReactor() {
+	public TaskLookupReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK_ID.getKey()};
 	}
 	
