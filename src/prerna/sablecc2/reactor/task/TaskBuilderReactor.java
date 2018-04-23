@@ -26,8 +26,8 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 	
 	public NounMetadata execute() {
 		this.task = getTask(); //initialize the task
-		buildTask(); //build the task
-		return new NounMetadata(task, PixelDataType.TASK); //return the data
+		buildTask(); // append onto the task
+		return new NounMetadata(this.task, PixelDataType.TASK); //return the task
 	}
 	
 	@Override
@@ -44,6 +44,10 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		return outputs;
 	}
 	
+	/**
+	 * Get the task for the task builder
+	 * @return
+	 */
 	protected ITask getTask() {
 		ITask task = null;
 		
@@ -67,6 +71,10 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		return task;
 	}
 	
+	/**
+	 * Generate the task from the query struct
+	 * @return
+	 */
 	private ITask constructTaskFromQs() {
 		QueryStruct2 qs = null;
 
