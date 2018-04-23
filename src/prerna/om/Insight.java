@@ -183,7 +183,7 @@ public class Insight {
 		runner.runPixel(pixelString, this);
 		return collectPixelData(runner);
 	}
-
+	
 	// run a new list of pixel routines
 	public synchronized Map<String, Object> runPixel(List<String> pixelList) {
 		PixelRunner runner = getPixelRunner();
@@ -201,6 +201,23 @@ public class Insight {
 		}
 		return collectPixelData(runner);
 	}
+	
+	public synchronized PixelRunner runPixel2(List<String> pixelList) {
+		PixelRunner runner = getPixelRunner();
+		int size = pixelList.size();
+		for(int i = 0; i < size; i++) {
+			String pixelString = pixelList.get(i);
+			LOGGER.info("Running >>> " + pixelString);
+			try {
+				runner.runPixel(pixelString, this);
+			} catch(SemossPixelException e) {
+				if(!e.isContinueThreadOfExecution()) {
+					break;
+				}
+			}
+		}
+		return runner;
+	}
 
 	/**
 	 * 
@@ -216,14 +233,12 @@ public class Insight {
 		List<Boolean> isMeta = runner.isMeta();
 		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
 		boolean invalidSyntax = runner.isInvalidSyntax();
-		System.out.println("");
 		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
-		String expression = null;
 		for (int i = 0; i < pixelStrings.size(); i++) {
 			NounMetadata noun = resultList.get(i);
 			Map<String, Object> ret = PixelUtility.processNounMetadata(noun);
 			// get the expression which created this return
-			expression = pixelStrings.get(i);
+			String expression = pixelStrings.get(i);
 			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
 			ret.put("pixelExpression", expression);
 			// save the expression for future use
@@ -657,7 +672,7 @@ public class Insight {
 		return runPixel(newList);
 	}
 	
-	public Map<String, Object> reRunPixelInsight() {
+	public PixelRunner reRunPixelInsight() {
 		// just clear the varStore
 		// TODO: need to do better clean up
 		// like actually removing the data makers so we do not 
@@ -685,7 +700,7 @@ public class Insight {
 		// clear the panels
 		this.insightPanels.clear();
 		
-		return runPixel(newList);
+		return runPixel2(newList);
 	}
 	
 	/**

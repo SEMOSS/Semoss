@@ -179,7 +179,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		Map<String, Object> returnData = new Hashtable<String, Object>();
 		returnData.put("values", dataValues);
 		returnData.put("headers", new String[]{label, value});
-		task.setOutputObject(returnData);
+		task.setOutputData(returnData);
 		
 		//create maps to set the task options
 		//main map that will be passed into the setTaskOptions method
