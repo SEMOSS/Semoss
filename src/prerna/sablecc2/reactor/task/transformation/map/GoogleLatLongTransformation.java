@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.task.transformation.map;
 
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.google.GoogleLatLongGetter;
+import prerna.om.GeoLocation;
 import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
@@ -33,10 +35,19 @@ public class GoogleLatLongTransformation extends AbstractMapTransformation {
 		newHeaders[this.totalCols] = "lat";
 		newHeaders[this.totalCols+1] = "long";
 		
-		// add new values
-		GoogleLatLongGetter goog = new GoogleLatLongGetter();
-		goog.execute(this.user, null);
+		Hashtable params = new Hashtable();
+		params.put("address", values[colIndex]);
 		
+		// add new values
+		try {
+			GoogleLatLongGetter goog = new GoogleLatLongGetter();
+			// geo location object flushes the JSON return into something for getters and setters
+			GeoLocation location = (GeoLocation) goog.execute(this.user, params);
+			newValues[this.totalCols] = location.getLatitude();
+			newValues[this.totalCols+1] = location.getLongitude();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 		return new HeadersDataRow(newHeaders, newValues);
 	}
 	
