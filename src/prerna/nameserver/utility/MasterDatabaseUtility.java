@@ -937,9 +937,10 @@ public class MasterDatabaseUtility {
 			throw new IllegalArgumentException("Must define engineName");
 		}
 		
-		String propQuery = "select distinct e.enginename, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
-				+ "from engineconcept ec, concept c, engine e where ec.parentphysicalid in "
-				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in ('" +  conceptString + "')) )" 
+		String propQuery = "select distinct ec.physicalname, ec.property "
+				+ "from engineconcept ec, concept c, engine e "
+				+ "where ec.parentphysicalid in (select physicalnameid from engineconcept ec "
+				+ "where localconceptid in (select localconceptid from concept where conceptualname in ('" +  conceptString + "')) )" 
 				+ engineString
 				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
 		
@@ -949,13 +950,13 @@ public class MasterDatabaseUtility {
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		ResultSet rs = null;
-		ArrayList<String> properties = new ArrayList<String>();
+		List<String> properties = new ArrayList<String>();
 		
 		try {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(propQuery);
 			while(rs.next()) {
-				String propName = rs.getString(2);
+				String propName = rs.getString(1);
 				properties.add(propName);
 			}
 		} catch (SQLException e) {

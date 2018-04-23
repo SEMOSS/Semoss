@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.federation;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -13,7 +13,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -21,6 +21,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -31,55 +32,70 @@ import prerna.util.Utility;
 public class AdvancedFederationBlend extends AbstractRFrameReactor {
 	public static final String JOIN_TYPE = "joinType";
 	public static final String FRAME_COLUMN = "frameCol";
-	public static final String DB_TABLE_COL = "dbTableCol";
-	public static final String MAX_DISTANCE = "maxDist";
+	public static final String MATCHES = "matches";
 	public static final String ADDITIONAL_COLS = "additionalCols";
 
 	public AdvancedFederationBlend() {
-		this.keysToGet = new String[] { JOIN_TYPE, FRAME_COLUMN, DB_TABLE_COL, MAX_DISTANCE, ADDITIONAL_COLS };
+		this.keysToGet = new String[] { JOIN_TYPE, FRAME_COLUMN, ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), MATCHES, ADDITIONAL_COLS };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		
 		init();
 		organizeKeys();
 		String joinType = this.keyValue.get(this.keysToGet[0]);
 		String frameCol = this.keyValue.get(this.keysToGet[1]);
-		String dbTableCol = this.keyValue.get(this.keysToGet[2]);
-		String maxDist = this.keyValue.get(this.keysToGet[3]);
-		String columns = this.keyValue.get(this.keysToGet[4]);
+		String newDb = this.keyValue.get(this.keysToGet[2]);
+		String newTable = this.keyValue.get(this.keysToGet[3]);
+		String newCol = this.keyValue.get(this.keysToGet[4]);
+		List<Object> allMatches = getMaxDist();
+		String columns = this.keyValue.get(this.keysToGet[6]);
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
-		List<String> dbTabColList = Arrays.asList(dbTableCol.split("__"));
-		String newDb = dbTabColList.get(dbTabColList.size() - 3);
-		String newTable = dbTabColList.get(dbTabColList.size() - 2);
-		String newCol = dbTabColList.get(dbTabColList.size() - 1);
+		final String rCol1 = "ADVANCED_FEDERATION_FRAME_COL1";
+		final String rCol2 = "ADVANCED_FEDERATION_FRAME_COL2";
+		final String trg = "FED_TARGET";
+
+		// check if packages are installed
+		String[] packages = {"jsonlite", "stringdist"};
+		this.rJavaTranslator.checkPackages(packages);
+
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
+		
+		StringBuilder col1Builder = new StringBuilder();
+		StringBuilder col2Builder = new StringBuilder();
+		StringBuilder col3Builder = new StringBuilder();
+		
 		// get max distance
 		int finalMax = 0;
-		if (maxDist != null && !(maxDist.isEmpty())) {
-			List<String> allMaxs = getMaxDist();
-			for (int i = 0; i < allMaxs.size(); i++) {
-				List<String> maxs = Arrays.asList(maxDist.split("___"));
-				int distInstance = Integer.parseInt(maxs.get(maxs.size() - 1));
-				if (distInstance > finalMax) {
-					finalMax = distInstance;
+		if (allMatches != null && !(allMatches.isEmpty())) {
+			for (int i = 0; i < allMatches.size(); i++) {
+				Map match = (HashMap) allMatches.get(i);
+				int dist = Integer.parseInt(match.get("distance") + "");
+				if (i != 0) {
+					col1Builder.append(",");
+					col2Builder.append(",");
+					col3Builder.append(",");
+				}
+				col1Builder.append("\"" + (match.get("col1") + "") + "\"");
+				col2Builder.append("\"" + (match.get("col2") + "") + "\"");
+				col3Builder.append(match.get("distance") + "");
+				if (dist > finalMax) {
+					finalMax = dist;
 				}
 			}
 		}
 
-		String rCol1 = "ADVANCED_FEDERATION_FRAME_COL1";
-		String rCol2 = "ADVANCED_FEDERATION_FRAME_COL2";
-		String trg = "FED_TARGET";
-		IEngine newColEngine = Utility.getEngine(newDb);
-
-		// execute the link script to generate final table of links allowed
-		String linkScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_fedeartion_blend.r\") ; "
-				+ "LinkFrame <- best_match_maxdist(" + rCol1 + "," + rCol2 + ", " + finalMax + "); ";
+		// execute the link script to generate base table of 0 distance
+		String linkScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
+				+ "LinkFrame <- best_match_maxdist(" + rCol1 + "," + rCol2 + ", 0 ); ";
 		linkScript = linkScript.replace("\\", "/");
-
 		this.rJavaTranslator.runR(linkScript);
+		
+		// add all matches provided
+		String rand = Utility.getRandomString(8);
+		String script =  rand + " <- data.frame(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
+		this.rJavaTranslator.runR(script);
 
 		// get R Frame
 		RDataTable frame = (RDataTable) getFrame();
@@ -94,6 +110,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			columnArray.addAll(inputCols);
 		}
 
+		IEngine newColEngine = Utility.getEngine(newDb);
 		Map typesMap = new HashMap<String, SemossDataType>();
 		QueryStruct2 qs = new QueryStruct2();
 		qs.setEngine(newColEngine);
@@ -115,15 +132,17 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/"
+				+ Utility.getRandomString(6) + ".csv";
 		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap);
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath());
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 
 		// execute blend
-		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\"" + newCol + "\", LinkFrame , \"" + joinType + "\")";
+		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\""
+				+ newCol + "\", LinkFrame , \"" + joinType + "\")";
 		this.rJavaTranslator.runR(blendedFrameScript);
 
 		// remove columns from frame that are temporary
@@ -134,8 +153,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		this.getFrame().syncHeaders();
 
 		// delete advanced Fed frame in R, done with it
-		this.rJavaTranslator
-				.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + "," + "LinkFrame, ADVANCED_FEDERATION_FRAME)");
+		this.rJavaTranslator.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + "," + rand + ",LinkFrame, ADVANCED_FEDERATION_FRAME)");
 
 		// TODO: what happens if the new headers coming in are the same as
 		// existing headers?
@@ -146,7 +164,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 
 	private List<String> getColumns() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[4]);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[6]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
@@ -167,27 +185,19 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		return strValues;
 	}
 
-	private List<String> getMaxDist() {
+	private List<Object> getMaxDist() {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct columnGrs = this.store.getNoun(keysToGet[5]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for (Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
+				return values;
 			}
 		}
 
 		// else, we assume it is column values in the curRow
 		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
-		for (Object obj : values) {
-			strValues.add(obj.toString());
-		}
-		return strValues;
+		return values;
 	}
 
 	///////////////////////// KEYS /////////////////////////////////////
@@ -198,10 +208,8 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			return "The join type for federating (inner, outer, left, etc.)";
 		} else if (key.equals(FRAME_COLUMN)) {
 			return "The column from the existing frame to use for joining.";
-		} else if (key.equals(DB_TABLE_COL)) {
-			return "The target database to join with.";
-		} else if (key.equals(MAX_DISTANCE)) {
-			return "The maximum distance between join elements (ex. abc = abcd -- distance is 1).";
+		} else if (key.equals(MATCHES)) {
+			return "The matches of columns that are selected by the user.";
 		} else if (key.equals(ADDITIONAL_COLS)) {
 			return "Additional columns to pull join with the existing frame.";
 		} else {
