@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -695,8 +694,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			Iterator<IHeadersDataRow> iterator = frame.query(qs);
     			ITask task = new BasicIteratorTask(qs, iterator);
     			this.insight.getTaskStore().addTask(task);
-    			Map<String, Object> data = task.collect(500, false);
-    			this.planner.addVariable("$RESULT", new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+    			this.planner.addVariable("$RESULT", new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
     		}
     	}
     }
