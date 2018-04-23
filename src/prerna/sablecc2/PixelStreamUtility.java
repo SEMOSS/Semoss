@@ -23,7 +23,7 @@ public class PixelStreamUtility {
 	}
 	
 	
-	public static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner) {
+	public static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner, boolean ignoreFirst) {
 		// get the values we need from the runner
 		Insight in = runner.getInsight();
 		List<NounMetadata> resultList = runner.getResults();
@@ -47,7 +47,12 @@ public class PixelStreamUtility {
 		// BUT FE DOENS'T RESPOND TO IT AND NEED TO REMOVE IT
 		// HOWEVER, IF THE SIZE IS JUST 1, IT MEANS THAT THERE WAS
 		// AN ERROR THAT OCCURED
-		int startIndex = 1;
+		// but when we run a saved insight within a pixel
+		// we do not want to shift the index
+		int startIndex = 0;
+		if(ignoreFirst) {
+			startIndex = 1;
+		}
 		if(size == 1) {
 			startIndex = 0;
 		}
@@ -214,7 +219,7 @@ public class PixelStreamUtility {
 			ps.flush();
 			ps.print(",\"insightData\":");
 			// process the inner recipe
-			processPixelRunner(ps, gson, runner);
+			processPixelRunner(ps, gson, runner, false);
 			ps.print("}");
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
