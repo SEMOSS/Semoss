@@ -220,7 +220,7 @@ import prerna.sablecc2.reactor.task.ResetTaskReactor;
 import prerna.sablecc2.reactor.task.TaskFormatReactor;
 import prerna.sablecc2.reactor.task.TaskMetaCollectorReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
-import prerna.sablecc2.reactor.task.TaskReactor;
+import prerna.sablecc2.reactor.task.TaskLookupReactor;
 import prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.GenericMapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.MapLambdaTaskReactor;
@@ -456,7 +456,7 @@ public class ReactorFactory {
 
 		// Task Reactors
 		reactorHash.put("Iterate", IterateReactor.class);
-		reactorHash.put("Task", TaskReactor.class); // defines the task
+		reactorHash.put("Task", TaskLookupReactor.class); // defines the task
 		reactorHash.put("ResetTask", ResetTaskReactor.class); // reset a task
 		reactorHash.put("ResetAll", ResetPanelTasksReactor.class); // reset all panel tasks
 		reactorHash.put("RemoveTask", RemoveTaskReactor.class);

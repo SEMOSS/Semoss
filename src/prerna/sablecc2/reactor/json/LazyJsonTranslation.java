@@ -595,49 +595,6 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 //    }
 
     @Override
-    public void inADotcol(ADotcol node)
-    {
-    	defaultIn(node);
-    	processColumnReference(node.getColumnName().toString().trim());
-    }
-
-    @Override
-    public void inARcol(ARcol node)
-    {
-    	defaultIn(node);
-    	processColumnReference(node.getColumnName().toString().trim());
-    }
-
-    private void processColumnReference(String colName) {
-    	ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
-    	if(frame != null) {
-    		String tableName = frame.getTableName();
-    		if(curReactor != null) {
-    			String qsName = null;
-    			if(tableName != null) {
-    				qsName = tableName + "__" + colName;
-    			} else {
-    				qsName = colName;
-    			}
-    			curReactor.getCurRow().addColumn(qsName);
-    		} else {
-    			// well, this means the person just typed f$Title (for example)
-    			// i guess we should just return the first 500 records of the column...
-    			QueryStruct2 qs = new QueryStruct2();
-    			QueryColumnSelector col = new QueryColumnSelector();
-    			col.setTable(tableName);
-    			col.setColumn(colName);
-    			qs.addSelector(col);
-    			Iterator<IHeadersDataRow> iterator = frame.query(qs);
-    			ITask task = new BasicIteratorTask(qs, iterator);
-    			this.insight.getTaskStore().addTask(task);
-    			Map<String, Object> data = task.collect(500, false);
-    			this.planner.addVariable("$RESULT", new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
-    		}
-    	}
-    }
-
-    @Override
     public void inAProp(AProp node)
     {
     	defaultIn(node);
