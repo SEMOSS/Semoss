@@ -18,6 +18,7 @@ public class MapTransformations {
 	private static void init() {
 		transformations.put("TONUMERIC", ToNumericTypeTransformation.class);
 		transformations.put("TOURL", ToUrlTypeTransformation.class);
+		transformations.put("GOOGLELATLONG", GoogleLatLongTransformation.class);
 	}
 
 	public static IMapTransformation getTransformation(String transType) {
