@@ -46,8 +46,11 @@ import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
+import prerna.sablecc2.reactor.export.DropBoxUploaderReactor;
+import prerna.sablecc2.reactor.export.GoogleUploaderReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
 import prerna.sablecc2.reactor.export.IterateReactor;
+import prerna.sablecc2.reactor.export.OneDriveUploaderReactor;
 import prerna.sablecc2.reactor.export.ToCsvReactor;
 import prerna.sablecc2.reactor.export.ToDatabaseReactor;
 import prerna.sablecc2.reactor.expression.IfError;
@@ -196,13 +199,19 @@ import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
 import prerna.sablecc2.reactor.qs.source.APIReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
+import prerna.sablecc2.reactor.qs.source.DropBoxFileRetrieverReactor;
+import prerna.sablecc2.reactor.qs.source.DropBoxListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
+import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
+import prerna.sablecc2.reactor.qs.source.GoogleListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
 import prerna.sablecc2.reactor.qs.source.ListGoogleDriveFilesReactor;
 import prerna.sablecc2.reactor.qs.source.ListGoogleSheetsReactor;
+import prerna.sablecc2.reactor.qs.source.OneDriveFileRetrieverReactor;
+import prerna.sablecc2.reactor.qs.source.OneDriveListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
@@ -446,7 +455,18 @@ public class ReactorFactory {
 		reactorHash.put("GoogleSheetSource", GoogleSheetSourceReactor.class);
 		reactorHash.put("ListGoogleSheets", ListGoogleSheetsReactor.class);
 		reactorHash.put("ListGoogleDriveFiles", ListGoogleDriveFilesReactor.class);
+		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
+		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
+		reactorHash.put("DropBoxFileRetiever", DropBoxFileRetrieverReactor.class);
+		reactorHash.put("OneDriveUploader", OneDriveUploaderReactor.class);
+		reactorHash.put("OneDriveListFiles", OneDriveListFilesReactor.class);
+		reactorHash.put("OneDriveFileRetiever", OneDriveFileRetrieverReactor.class);
+		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
+		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
+		reactorHash.put("GoogleFileRetiever", GoogleFileRetrieverReactor.class);
 
+
+		
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
@@ -689,6 +709,10 @@ public class ReactorFactory {
 		//LSA
 		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
 		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class); 
+		//reactorHash.put("LSADescriptionAdd", LSADescriptionAddReactor.class); 
+		//reactorHash.put("CreateCriteriaFromText", CreateCriteriaFromTextReactor.class); 
+		//reactorHash.put("LSASpaceColumn", LSASpaceColumnReactor.class); 
+		//reactorHash.put("RunLSI", RunLSIReactor.class); 
 		
 		// General Code Execution
 		reactorHash.put("CodeExec", CodeExecReactor.class);
