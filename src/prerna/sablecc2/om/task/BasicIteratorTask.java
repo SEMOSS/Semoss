@@ -66,6 +66,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.iterator == null) {
 			throw new NoSuchElementException("Could not find additional elements for iterator");
 		}
+		this.internalOffset++;
 		return iterator.next();
 	}
 	
