@@ -129,17 +129,17 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 
 		// generate script based on what george wants - empty list of selected
 		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
-				+ matchesFrame + " <- best_match_mindist(" + rCol1 + "," + rCol2 + ", 1); "
-				+ "library(jsonlite);";
+				+ matchesFrame + " <- best_match_nonzero(" + rCol1 + "," + rCol2 + ");";
 		bestMatchScript = bestMatchScript.replace("\\", "/");
 
+		System.out.println("");
 		// execute script
 		this.rJavaTranslator.runR(bestMatchScript);
 
 		String combineScript = matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame + "$col2, sep=\" == \");"
 				+ matchesFrame + "$distance <- as.numeric(" + matchesFrame + "$dist);" + matchesFrame + "<-" + matchesFrame
-				+ "[,c(\"col1\",\"col2\",\"distance\",\"combined\")]; ADVANCED_FEDFRAME_JSON <- toJSON(" + matchesFrame
-				+ ", byrow = TRUE, colNames = TRUE);";
+				+ "[,c(\"col1\",\"col2\",\"distance\",\"combined\")]; library(jsonlite); ADVANCED_FEDFRAME_JSON <- toJSON(" + matchesFrame
+				+ "[order(" + matchesFrame + "$dist),], byrow = TRUE, colNames = TRUE);";
 		
 		this.rJavaTranslator.runR(combineScript);
 		

@@ -1,19 +1,18 @@
-
-best_match_mindist<-function(col1,col2,mindist){
+best_match_zero<-function(col1,col2){
 	z<-best_match(col1,col2)
-	z<-z[z$dist >= mindist,]
+	z<-z[z$dist == 0,]
 	gc()
 	return(z)
 }
 
-best_match_maxdist<-function(col1,col2,maxdist){
+best_match_nonzero<-function(col1,col2){
 	z<-best_match(col1,col2)
-	z<-z[z$dist <= maxdist,]
+	z<-z[z$dist != 0,]
 	gc()
 	return(z)
 }
 
-best_match<-function(col1,col2){
+best_match<-function(col1,col2,method="jw",p=0.1){
 	# Returns the best match for each instance and the respected distance
 	# Arguments
 	# col1 - an array of instances of the column to be matched
@@ -21,12 +20,12 @@ best_match<-function(col1,col2){
 	# minimum distance allowed
 	
 	library(stringdist)
-	dist<-stringdistmatrix(col1,col2)
+	dist<-stringdistmatrix(col1,col2,method=method,p=p)
 	mins<-apply(dist,1,function(x)return(array(which.min(x))))
 	z<-data.frame(col1);
 	z$col2<-col2[mins]
 	z$dist<-apply(dist,1,function(x)return(array(min(x))))
-	z$dist<-as.character(z$dist)
+	z$dist<-round(z$dist,4)
 	gc()
 	return(z)
 }
