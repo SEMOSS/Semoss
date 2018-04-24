@@ -12,6 +12,7 @@ public class GeoLocation
 	
 	String address = null;
 	String city = null;
+	String county = null;
 	String state = null;
 	String postalCode = null;
 	String country = null;
@@ -59,6 +60,16 @@ public class GeoLocation
 	}
 	public void setLongitude(float longitude) {
 		this.longitude = longitude;
+	}
+	
+	public void setCounty(String county)
+	{
+		this.county = county;
+	}
+
+	public String getCounty()
+	{
+		return this.county;
 	}
 
 }
