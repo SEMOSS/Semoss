@@ -21,9 +21,13 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	 * @param meta
 	 * @return
 	 */
-	Map<String, Object> collect(int numRecordsToGet, boolean meta);
+	Map<String, Object> collect(boolean meta);
 	
 	Map<String, Object> getMeta();
+	
+	void setNumCollect(int numCollect);
+	
+	int getNumCollect();
 	
 	void setId(String taskId);
 	

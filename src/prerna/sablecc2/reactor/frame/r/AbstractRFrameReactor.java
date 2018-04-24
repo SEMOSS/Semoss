@@ -224,7 +224,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		formatMap.put("type", "TABLE");
 		task.setFormatMap(formatMap);
 		
-		return task.collect(0, true);
+		return task.collect(true);
 	}
 	
 	protected void storeVariable(String varName, NounMetadata noun) {
