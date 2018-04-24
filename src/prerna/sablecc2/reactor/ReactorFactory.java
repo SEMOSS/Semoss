@@ -488,6 +488,7 @@ public class ReactorFactory {
 		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
 		
 		// NEW FEDERATE
+		reactorHash.put("GetDatabaseConnections", DatabaseTableStructureReactor.class);
 		reactorHash.put("GetDatabaseTableStructure", DatabaseTableStructureReactor.class);
 		reactorHash.put("GetSpecificConceptProperties", DatabaseSpecificConceptPropertiesReactor.class);
 		reactorHash.put("FederationBlend", AdvancedFederationBlend.class);
