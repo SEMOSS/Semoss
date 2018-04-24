@@ -18,7 +18,7 @@ import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.AlgorithmQueryStruct;
+import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardQueryStruct;
@@ -133,8 +133,8 @@ public class ImportUtility {
 			parseExcelFileQsToFlatTable(dataframe, (ExcelQueryStruct) qs, frameTableName);
 		} 
 		// from algorithm routine
-		else if(qsType == QUERY_STRUCT_TYPE.ALGORITHM) {
-			parseAlgorithmQsToFlatTable(dataframe, (AlgorithmQueryStruct) qs, frameTableName);
+		else if(qsType == QUERY_STRUCT_TYPE.LAMBDA) {
+			parseLambdaQsToFlatTable(dataframe, (LambdaQueryStruct) qs, frameTableName);
 		}
 		// throw error
 		else {
@@ -310,9 +310,9 @@ public class ImportUtility {
 		}
 	}
 	
-	private static void parseAlgorithmQsToFlatTable(ITableDataFrame dataframe, AlgorithmQueryStruct qs, String frameTableName) {
+	private static void parseLambdaQsToFlatTable(ITableDataFrame dataframe, LambdaQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String source = "ALGORITHM";
+		String source = "LAMBDA";
 		Map<String, String> dataTypes = qs.getColumnTypes();
 
 		// define the frame table name as a primary key within the meta
@@ -765,15 +765,15 @@ public class ImportUtility {
 			return getMetaDataFromCsvQs((CsvQueryStruct)qs);
 		} else if (qsType == QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			return getMetaDataFromExcelQs((ExcelQueryStruct)qs);
-		} else if(qsType == QUERY_STRUCT_TYPE.ALGORITHM) {
-			return getMetaDataFromAlgorithmQs((AlgorithmQueryStruct)qs);
+		} else if(qsType == QUERY_STRUCT_TYPE.LAMBDA) {
+			return getMetaDataFromLambdaQs((LambdaQueryStruct)qs);
 		}
 		else {
 			throw new IllegalArgumentException("Haven't implemented this in ImportUtility yet...");
 		}
 	}
 	
-	private static Map<String, SemossDataType> getMetaDataFromAlgorithmQs(AlgorithmQueryStruct qs) {
+	private static Map<String, SemossDataType> getMetaDataFromLambdaQs(LambdaQueryStruct qs) {
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		Map<String, String> dataTypes = qs.getColumnTypes();
 		for(String hName : dataTypes.keySet()) {
