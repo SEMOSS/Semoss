@@ -81,7 +81,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			Map<String, Set<String>> conceptProps = new HashMap<String, Set<String>>();
+			Map<String, HashMap<String, String>> conceptProps = new HashMap<String, HashMap<String,String>>();
 			Map<String, ArrayList<String>> edgeMap = new HashMap<>();
 
 			if (g != null) {
@@ -91,8 +91,15 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 					Vertex v = vert.next();
 					if (v.keys().contains(type)) {
 						String concept = v.value(type);
+						HashMap<String, String> propTypes = new HashMap<String, String>();
 						Set<String> props = v.keys();
-						conceptProps.put(concept, props);
+						for(String property: props) {
+							// TODO get vertex property types
+							String propertyType = "STRING";
+							propTypes.put(property, propertyType);
+						}
+						
+						conceptProps.put(concept, propTypes);
 					}
 				}
 			}
@@ -116,7 +123,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 				}
 			}
 			
-			retMap.put("nodes", conceptProps);
+			retMap.put("vertices", conceptProps);
 			retMap.put("edges", edgeMap);
 		}
 
