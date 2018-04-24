@@ -24,7 +24,6 @@ import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Utility;
 
 public class OwlTemporalEngineMeta {
 
@@ -39,7 +38,8 @@ public class OwlTemporalEngineMeta {
 	private static final String IS_DERIVED_PRED = "http://semoss.org/ontologies/Relation/Contains/IsDerived";
 	private static final String QUERY_STRUCT_PRED = "http://semoss.org/ontologies/Relation/Contains/QueryStructName";
 	private static final String ALIAS_PRED = "http://semoss.org/ontologies/Relation/Contains/Alias";
-
+	private static final String ORDERING_PRED = "http://semoss.org/ontologies/Relation/Contains/Ordering";
+	
 	// if opaque selector, need to store it
 	private static final String QUERY_SELECTOR_COMPLEX_PRED = "http://semoss.org/ontologies/Relation/Contains/IsComplex";
 	private static final String QUERY_SELECTOR_TYPE_PRED = "http://semoss.org/ontologies/Relation/Contains/QuerySelectorType";
@@ -309,6 +309,18 @@ public class OwlTemporalEngineMeta {
 		sub = SEMOSS_PROPERTY_PREFIX + "/" + oropertyName;
 		pred = ALIAS_PRED;
 		obj = alias;
+		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
+	}
+	
+	public void setOrderingToProperty(String propertyName, String orderedLevels) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+		
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
+		pred = ORDERING_PRED;
+		obj = orderedLevels;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
@@ -645,6 +657,37 @@ public class OwlTemporalEngineMeta {
 					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
 					+ "}";
 		}
+	
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			return row[1].toString();
+		}
+		
+		return null;
+	}
+	
+	public String getOrderingAsString(String uniqueName) {
+		String parent = null;
+		if(uniqueName.contains("__")) {
+			parent = uniqueName.split("__")[0];
+		}
+		return getOrderingAsString(uniqueName, parent);
+	}
+	
+	public String getOrderingAsString(String uniqueName, String parentUniqueName) {
+		String query = null;
+		
+		// we have a property
+		query = "select distinct ?header ?orderedLevels where {"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+				+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "{?header <" + ORDERING_PRED + "> ?orderedLevels}"
+				+ "}";
+
 	
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		while(it.hasNext()) {
