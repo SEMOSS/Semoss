@@ -2,8 +2,10 @@ package prerna.sablecc2.reactor.imports;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -14,6 +16,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -24,6 +27,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ga.GATracker;
 
@@ -40,14 +44,37 @@ public class MergeDataReactor extends AbstractReactor {
 		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);
 		
-		// this is greedy execution
-		// will not return anything
-		// but will update the frame in the pixel planner
-		QueryStruct2 qs = getQueryStruct();
-		List<Join> joins = this.curRow.getAllJoins();
 		// first convert the join to use the physical frame name in the selector
+		List<Join> joins = this.curRow.getAllJoins();
 		joins = convertJoins(joins, frame.getMetaData());
-
+		
+		// we could either be merging from a QS that we want to convert into a task
+		// or it is a task already and we want to merge
+		// in either case, we will not return anything but just update the frame
+		
+		QueryStruct2 qs = getQueryStruct();
+		if(qs != null) {
+			frame = mergeFromQs(frame, qs, joins);
+		} else {
+			ITask task = getTask();
+			if(task != null) {
+				frame = mergeFromTask(frame, task, joins);
+			} else {
+				throw new IllegalArgumentException("Could not find any data input to merge into the frame");
+			}
+		}
+		
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+	}
+	
+	/**
+	 * Merge via a QS that we will execute into an iterator
+	 * @param frame
+	 * @param qs
+	 * @param joins
+	 * @return
+	 */
+	private ITableDataFrame mergeFromQs(ITableDataFrame frame, QueryStruct2 qs, List<Join> joins) {
 		// track GA data
 		GATracker.getInstance().trackDataImport(this.insight, qs);
 		
@@ -121,34 +148,77 @@ public class MergeDataReactor extends AbstractReactor {
 			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 		}
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return frame;
 	}
 	
-	private ITableDataFrame getFrame() {
-		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(keysToGet[0]);
-		if(frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
+	/**
+	 * Merge via a Task
+	 * @param frame
+	 * @param task
+	 * @param joins
+	 */
+	private ITableDataFrame mergeFromTask(ITableDataFrame frame, ITask task, List<Join> joins) {
+		LambdaQueryStruct qs = new LambdaQueryStruct();
+		
+		// go through the metadata on the task
+		// and add it to the qs
+		Map<String, String> dataTypes = new HashMap<String, String>();
+		List<Map<String, Object>> taskHeaders = task.getHeaderInfo();
+		for(Map<String, Object> headerInfo : taskHeaders) {
+			String alias = (String) headerInfo.get("alias");
+			String type = (String) headerInfo.get("type");
+			qs.addSelector(new QueryColumnSelector(alias));
+			dataTypes.put(alias, type);
+		}
+		qs.setColumnTypes(dataTypes);
+		
+		IImporter importer = ImportFactory.getImporter(frame, qs, task);
+		// we reassign the frame because it might have changed
+		// this only happens for native frame
+		frame = importer.mergeData(joins);
+		this.insight.setDataMaker(frame);
+		// need to clear the unique col count used by FE for determining the need for math
+		frame.clearCachedInfo();
+		
+		return frame;
+	}
+	
+	
+	/**
+	 * Convert the frame join name from the alias to the physical table__column name
+	 * @param joins
+	 * @param meta
+	 * @return
+	 */
+	private List<Join> convertJoins(List<Join> joins, OwlTemporalEngineMeta meta) {
+		List<Join> convertedJoins = new Vector<Join>();
+		for(Join j : joins) {
+			String origLCol = j.getSelector();
+			String newLCol = meta.getUniqueNameFromAlias(origLCol);
+			if(newLCol == null) {
+				// nothing to do
+				// add the original back
+				convertedJoins.add(j);
+				continue;
+			}
+			// or an alias was used
+			// so make a new Join and add it to the list
+			Join newJ = new Join(newLCol, j.getJoinType(), j.getQualifier(), j.getJoinRelName());
+			convertedJoins.add(newJ);
 		}
 		
-		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(frameCur != null && !frameCur.isEmpty()) {
-			return (ITableDataFrame) frameCur.get(0).getValue();
-		}
 		
-		return (ITableDataFrame) this.insight.getDataMaker();
+		return convertedJoins;
 	}
-
-	private QueryStruct2 getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
-		QueryStruct2 queryStruct = null;
-		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return (QueryStruct2)object.getValue();
-		} 
-
-		return queryStruct;
-	}
+	
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Store the file if used
+	 */
 	
 	private void storeCsvFileMeta(CsvQueryStruct qs, List<Join> joins) {
 		if(qs.getSource() == CsvQueryStruct.ORIG_SOURCE.FILE_UPLOAD) {
@@ -182,30 +252,49 @@ public class MergeDataReactor extends AbstractReactor {
 		this.insight.addFileUsedInInsight(fileMeta);
 	}
 	
-	/**
-	 * Convert the frame join name from the alias to the physical table__column name
-	 * @param joins
-	 * @param meta
-	 * @return
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Getters for the reactor
 	 */
-	private List<Join> convertJoins(List<Join> joins, OwlTemporalEngineMeta meta) {
-		List<Join> convertedJoins = new Vector<Join>();
-		for(Join j : joins) {
-			String origLCol = j.getSelector();
-			String newLCol = meta.getUniqueNameFromAlias(origLCol);
-			if(newLCol == null) {
-				// nothing to do
-				// add the original back
-				convertedJoins.add(j);
-				continue;
-			}
-			// or an alias was used
-			// so make a new Join and add it to the list
-			Join newJ = new Join(newLCol, j.getJoinType(), j.getQualifier(), j.getJoinRelName());
-			convertedJoins.add(newJ);
+	
+	private ITableDataFrame getFrame() {
+		// try specific key
+		GenRowStruct frameGrs = this.store.getNoun(keysToGet[0]);
+		if(frameGrs != null && !frameGrs.isEmpty()) {
+			return (ITableDataFrame) frameGrs.get(0);
 		}
 		
+		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
+		if(frameCur != null && !frameCur.isEmpty()) {
+			return (ITableDataFrame) frameCur.get(0).getValue();
+		}
 		
-		return convertedJoins;
+		return (ITableDataFrame) this.insight.getDataMaker();
+	}
+
+	private QueryStruct2 getQueryStruct() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.name());
+		QueryStruct2 queryStruct = null;
+		if(allNouns != null) {
+			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
+			return (QueryStruct2)object.getValue();
+		} 
+
+		return queryStruct;
+	}
+	
+	private ITask getTask() {
+		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.TASK.name());
+		ITask task = null;
+		if(allNouns != null) {
+			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
+			return (ITask)object.getValue();
+		} 
+
+		return task;
 	}
 }
