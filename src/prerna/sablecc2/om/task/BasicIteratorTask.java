@@ -35,6 +35,7 @@ public class BasicIteratorTask extends AbstractTask {
 		// within the query optimization
 		this.startLimit = this.qs.getLimit();
 		this.startOffset = this.qs.getOffset();
+		setQsMetadata(this.qs);
 	}
 	
 	public BasicIteratorTask(Iterator<IHeadersDataRow> iterator) {
@@ -119,9 +120,7 @@ public class BasicIteratorTask extends AbstractTask {
 			optimizeFrame(frame, qs.getOrderBy());
 			iterator = frame.query(qs);
 		}
-		setHeaderInfo(qs.getHeaderInfo());
-		setSortInfo(qs.getSortInfo());
-		setFilterInfo(qs.getExplicitFilters());
+		setQsMetadata(qs);
 	}
 	
 	private void optimizeFrame(ITableDataFrame dataframe, List<QueryColumnOrderBySelector> orderBys) {
@@ -139,7 +138,7 @@ public class BasicIteratorTask extends AbstractTask {
 			}
 		}
 	}
-
+	
 	public void optimizeQuery(int collectNum) {
 		// already have a limit defined
 		// just continue;
@@ -180,6 +179,12 @@ public class BasicIteratorTask extends AbstractTask {
 				setSortInfo(qs.getSortInfo());
 			}
 		}
+	}
+	
+	private void setQsMetadata(QueryStruct2 qs) {
+		setHeaderInfo(qs.getHeaderInfo());
+		setSortInfo(qs.getSortInfo());
+		setFilterInfo(qs.getExplicitFilters());
 	}
 	
 	public QueryStruct2 getQueryStruct() {
