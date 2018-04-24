@@ -691,6 +691,15 @@ public class Utility {
 		}
 		return false;
 	}
+	
+	public static boolean isFactorType(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.startsWith("FACTOR")) {
+			return true;
+		}
+
+		return false;
+	}
 
 	/**
 	 * Changes a value within the SMSS file for a given key

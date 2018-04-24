@@ -78,7 +78,57 @@ public class RSyntaxHelper {
 		str.append(")");
 		return str.toString();
 	}
+	
+	/**
+	 * Convert a java object[] into a r ordered factor col
+	 * @param row					The object[] to convert
+	 * @param orderedLevels			The ordering of the factor
+	 * @return						String containing the equivalent r column vector
+	 */
+	public static String createOrderedRFactor(Object[] row, String orderedLevels) {
+		StringBuilder str = new StringBuilder();
+		String vectorParameter = createStringRColVec(row);
+		Object[] orderedLevelsSplit = orderedLevels.split("+++");
+		if (orderedLevelsSplit.length < 2) {
+			throw new RuntimeException("Ordered levels of a factor must contain 2 or more items.");
+		} else {
+			String orderLevelsVector = createStringRColVec(orderedLevelsSplit);
+			str.append("factor(" + vectorParameter + ", ordered = TRUE, levels = " + orderLevelsVector + ");");
 
+		}
+		return str.toString();
+	}
+	
+	/**
+	 * Convert a java object[] into a r ordered factor col
+	 * @param row					The object[] to convert
+	 * @param orderedLevels			The ordering of the factor
+	 * @param orderedLevelLabels	Corresponding labels of the ordered levels of the factor
+	 * @return						String containing the equivalent r column vector
+	 */
+	public static String createOrderedRFactor(Object[] row, String orderedLevels, String orderedLevelLabels) {
+		StringBuilder str = new StringBuilder();
+		String vectorParameter = createStringRColVec(row);
+		Object[] orderedLevelsSplit = orderedLevels.split("+++");
+		Object[] orderedLevelLabelsSplit = orderedLevelLabels.split("+++");
+		if (orderedLevelsSplit.length != orderedLevelLabelsSplit.length) {
+			throw new RuntimeException("Counts of ordered levels and the corresponding labels must be equal.");
+		} else if (orderedLevelsSplit.length < 2) {
+			throw new RuntimeException("Ordered levels/labels of a factor must contain 2 or more items.");
+		} else {
+			String orderLevelsVector = createStringRColVec(orderedLevelsSplit);
+			str.append("factor(" + vectorParameter + ", ordered = TRUE, levels = " + orderLevelsVector + "), labels = " + orderedLevelLabelsSplit +");");
+		}
+		return str.toString();
+	}
+	
+
+	public static String getOrderedLevelsFromRFactorCol(String tableName, String colName) {
+		StringBuilder str = new StringBuilder();
+		str.append("paste(levels("+ tableName + "$" + colName + "), collapse = '+++');");		
+		return str.toString();
+	}
+	
 	public static String alterColumnTypeToCharacter(String tableName, String colName) {
 		// will generate a string similar to
 		// "datatable$Revenue_International <- as.numeric(as.character(datatable$Revenue_International))"
