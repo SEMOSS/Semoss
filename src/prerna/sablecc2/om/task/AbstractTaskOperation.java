@@ -35,6 +35,7 @@ public abstract class AbstractTaskOperation extends AbstractTask {
 	@Override
 	public IHeadersDataRow next() {
 		// base implementation
+		this.internalOffset++;
 		return this.innerTask.next();
 	}
 	

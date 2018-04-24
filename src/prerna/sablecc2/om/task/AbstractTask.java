@@ -99,7 +99,6 @@ public abstract class AbstractTask implements ITask {
 			this.formatter.addData(next);
 			count++;
 		}
-		this.internalOffset += count;
 		return formatter.getFormattedData();
 	}
 	
