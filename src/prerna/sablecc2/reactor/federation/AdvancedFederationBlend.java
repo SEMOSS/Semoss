@@ -65,7 +65,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		// execute the link script to generate base frame of 0 distance matches
 		// and merge with LinkFrame built in BestMatches
 		String linkScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
-				+ "BaseLinkFrame <- best_match_maxdist(" + rCol1 + "," + rCol2 + ", 0 ); LinkFrame <- rbind(LinkFrame, BaseLinkFrame);";
+				+ "BaseLinkFrame <- best_match_zero(" + rCol1 + "," + rCol2 + "); LinkFrame <- rbind(LinkFrame, BaseLinkFrame);";
 		linkScript = linkScript.replace("\\", "/");
 		this.rJavaTranslator.runR(linkScript);
 		
@@ -84,7 +84,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 				String match = (String) allMatches.get(i);
 				String col1 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col1)");
 				String col2 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col2)");
-				int dist = Integer.parseInt(this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$distance)"));
+				String dist = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$distance)");
 				col1Builder.append("\"" + col1 + "\"");
 				col2Builder.append("\"" + col2 + "\"");
 				col3Builder.append(dist);
