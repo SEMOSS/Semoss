@@ -94,14 +94,8 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 		}
 
 		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.GOOGLE_DRIVE_LIST);
-
-
-
+				PixelOperationType.CLOUD_FILE_LIST);
 
 	}
-
-
-
 
 }
