@@ -20,7 +20,7 @@ public class ConstantDataTask extends AbstractTask {
 		collectedData.put("data", outputData);
 		if(meta) {
 			collectedData.put("format", getFormatMap());
-			collectedData.put("taskOptions", getTaskOptions());
+			collectedData.put("taskOptions", getTaskOptions().getOptions());
 			collectedData.put("headerInfo", getHeaderInfo());
 			collectedData.put("sortInfo", getSortInfo());
 			collectedData.put("filterInfo", getFilterInfo());
