@@ -15,7 +15,7 @@ public class ConstantDataTask extends AbstractTask {
 	 * Or return defined outputData
 	 */
 	@Override
-	public Map<String, Object> collect(int num, boolean meta) {
+	public Map<String, Object> collect(boolean meta) {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", outputData);
 		if(meta) {
@@ -26,7 +26,7 @@ public class ConstantDataTask extends AbstractTask {
 			collectedData.put("filterInfo", getFilterInfo());
 		}
 		collectedData.put("taskId", this.id);
-		collectedData.put("numCollected", num);
+		collectedData.put("numCollected", this.numCollect);
 		return collectedData;
 	}
 	

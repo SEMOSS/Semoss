@@ -23,8 +23,8 @@ public class CollectReactor extends TaskBuilderReactor {
 	}
 	
 	public NounMetadata execute() {
-		this.limit = getTotalToCollect();
 		this.task = getTask();
+		this.task.setNumCollect(getTotalToCollect());
 		buildTask();
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA); //return the data
 //		Object data = this.task.collect(this.limit, collectMeta());
@@ -55,23 +55,6 @@ public class CollectReactor extends TaskBuilderReactor {
 		return 500;
 	}
 	
-	//return if we should get the metadata for the task
-	private boolean collectMeta() {
-		// try the key
-		GenRowStruct includeMetaGrs = store.getNoun(keysToGet[2]);
-		if(includeMetaGrs != null && !includeMetaGrs.isEmpty()) {
-			return (boolean) includeMetaGrs.get(0);
-		}
-		
-		// try the cur row
-		List<NounMetadata> booleanNouns = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
-		if(booleanNouns != null && !booleanNouns.isEmpty()) {
-			return (boolean) booleanNouns.get(0).getValue();
-		}
-		
-		return true;
-	}
-	
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
@@ -82,7 +65,6 @@ public class CollectReactor extends TaskBuilderReactor {
 		outputs.add(output);
 		return outputs;
 	}
-	
 	
 	///////////////////////// KEYS /////////////////////////////////////
 
