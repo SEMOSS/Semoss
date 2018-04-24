@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.AlgorithmQueryStruct;
+import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
@@ -23,7 +23,7 @@ public class AlgorithmMergeHelper {
 		// set the headers in the result so the iterator it generates is accurate
 		String[] cleanHeaders = new String[2];
 		//merge data to frame
-		AlgorithmQueryStruct qs = new AlgorithmQueryStruct();
+		LambdaQueryStruct qs = new LambdaQueryStruct();
 		// fill in QS with new header info
 		Map<String, String> dataTypes = new HashMap<String, String>();
 		QueryColumnSelector instanceSelector = new QueryColumnSelector();
