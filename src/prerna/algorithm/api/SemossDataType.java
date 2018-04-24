@@ -8,7 +8,8 @@ public enum SemossDataType {
 	DOUBLE,
 	STRING, 
 	DATE,
-	TIMESTAMP;
+	TIMESTAMP,
+	FACTOR;
 	
 	public static String convertDataTypeToString(SemossDataType type) {
 		if(SemossDataType.INT == type) { 
@@ -19,6 +20,8 @@ public enum SemossDataType {
 			return "date";
 		} else if(SemossDataType.TIMESTAMP == type) {
 			return "timestamp";
+		} else if (SemossDataType.FACTOR == type) {
+			return "factor";
 		} else {
 			return "varchar(800)";
 		}
@@ -37,6 +40,8 @@ public enum SemossDataType {
 			return SemossDataType.DATE;
 		} else if(Utility.isTimeStamp(dataType)) {
 			return SemossDataType.TIMESTAMP;
+		} else if (Utility.isFactorType(dataType)) {
+			return SemossDataType.FACTOR;
 		} else {
 			return SemossDataType.STRING;
 		}

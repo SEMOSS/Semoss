@@ -1,15 +1,12 @@
 discretizeColumnsDt <- function(dt, inputList=NULL){
 	#inputList = list(colName=list(breaks=..., labels=...), colName2=list(breaks2=..., labels2=...))
 	lapply(list('arules', 'dplyr', 'data.table'), require, character.only = TRUE)
-	
-	dt <- data.frame(dt)
-	
+
 	#vector of indexes of requested-columns containing NAs
-	naColVector<- sapply(dt[,names(inputList)], function(x) any(is.na(x) | is.nan(x) |is.infinite(x)))
-	naColList.index <- as.vector(grep("TRUE", naColVector))
-	if (length(naColList.index) > 0) {
+	naColVector<- apply(dt[,names(inputList), with=FALSE], 2, function(x) any(is.na(x) | is.nan(x) |is.infinite(x))) 
+	naColVector <- names(subset(naColVector, naColVector == TRUE))
+	if (length(naColVector) > 0) {
 		dt$generated_uuid99 <- seq.int(nrow(dt))
-		naColVector <- names(inputList)[naColList.index]
 	}
 
 	#validate requested breaks
@@ -21,7 +18,7 @@ discretizeColumnsDt <- function(dt, inputList=NULL){
 			if(!is.null(getElement(inputList, requestedColName)$breaks)) {
 				unique(getElement(inputList, requestedColName)$breaks)
 			} else {
-				bin <- length(hist(dt[, requestedColName], plot=FALSE)$counts)
+				bin <- length(hist(dt[[requestedColName]], plot=FALSE)$counts)
 				inputList[[requestedColName]]["breaks"] <- bin
 			}
 		
@@ -42,21 +39,33 @@ discretizeColumnsDt <- function(dt, inputList=NULL){
 				}
 				str <- substr(str,1,nchar(str)-2)
 			
-				newColName <- paste0(requestedColName, "_Discretized")
-				if (length(grep(requestedColName, naColVector)) == 0) { #requestedCol has no NAs
-					dt[, newColName] <- eval(parse(text = paste0("discretize(dt[,'", requestedColName, "'],", str, ",include.lowest = TRUE, right=TRUE)")))
-				} else { #requestedCol has NAs
-					subsetDt <- dt[complete.cases(dt[, requestedColName]), c("generated_uuid99", requestedColName)]
-					subsetDt[, newColName] <- eval(parse(text = paste0("discretize(subsetDt[,'", requestedColName, "'],", str, ",include.lowest = TRUE, right=TRUE)")))
-					subsetDt[, requestedColName] <- NULL
-					dt <- merge(x = dt, y = subsetDt, by = "generated_uuid99", all.x = TRUE)
+				newColName <- {
+					proposedColName <- paste0(requestedColName, "_Discretized")
+					nameGrepVec <- grep(proposedColName, names(dt))
+					if (length(nameGrepVec) == 0) {
+						proposedColName
+					} else {
+						existingColNames <- names(dt)[nameGrepVec]
+						if (length(existingColNames) == 1) {
+							paste0(requestedColName, "_Discretized_1")
+						} else {
+							largestIndex <- strsplit(existingColNames, '_Discretized_') %>% unlist(lapply(1:length(existingColNames), function(i) paste0(.[[i]][2]))) %>% as.integer(.) %>% max(., na.rm=TRUE) 
+							paste0(requestedColName, "_Discretized_", largestIndex+1)
+						}
+					}
 				}
 				
+				if (length(grep(requestedColName, naColVector)) == 0) { #requestedCol has no NAs
+					dt[, (newColName):=eval(parse(text = paste0("discretize(dt[['", requestedColName, "']],", str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))]
+				} else { #requestedCol has NAs
+					subsetDt <- dt[complete.cases(dt[[requestedColName]]),c("generated_uuid99", requestedColName), with=FALSE]
+					subsetDt[, (newColName):=eval(parse(text = paste0("discretize(subsetDt[['", requestedColName, "']],", 	str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))][, eval(requestedColName):=NULL]
+					dt <- merge(x = dt, y = subsetDt, by = "generated_uuid99", all.x = TRUE)
+				}
 			}
 		}
 	}
-	#dt <- dt %>% mutate_if(is.factor, as.character) %>% select(-one_of("generated_uuid99"))
-	dt <- dt %>% select(-one_of("generated_uuid99"))
+	dt[, generated_uuid99 := NULL]
 
-	return (setDT(dt))
+	return (dt)
 }
