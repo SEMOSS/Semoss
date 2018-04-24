@@ -72,7 +72,7 @@ public class ResetPanelTasksReactor extends AbstractReactor {
 				
 				logger.info("Success! Starting to collect data");
 				// we add at index 0 since we are going in reverse
-				taskOutput.add(0, new NounMetadata(task.collect(500, true), PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+				taskOutput.add(0, new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
 				logger.info("Done collecting data");
 			} catch(Exception e) {
 				logger.info("Failed to reset task = " + id);

@@ -31,8 +31,10 @@ public abstract class AbstractTask implements ITask {
 	protected transient Formatter formatter = null;
 	// logger
 	protected transient Logger logger;
-	// protected
+	// internal offset
 	protected long internalOffset = 0;
+	// num to collect
+	protected int numCollect = 500;
 	
 	public AbstractTask() {
 		this.sortInfo = new ArrayList<Map<String, Object>>();
@@ -46,9 +48,9 @@ public abstract class AbstractTask implements ITask {
 	 * Or return defined outputData
 	 */
 	@Override
-	public Map<String, Object> collect(int num, boolean meta) {
+	public Map<String, Object> collect(boolean meta) {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
-		collectedData.put("data", getData(num));
+		collectedData.put("data", getData());
 		if(meta) {
 			collectedData.put("headerInfo", this.headerInfo);
 			if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
@@ -59,7 +61,7 @@ public abstract class AbstractTask implements ITask {
 			}
 		}
 		collectedData.put("taskId", this.id);
-		collectedData.put("numCollected", num);
+		collectedData.put("numCollected", this.numCollect);
 		return collectedData;
 	}
 	
@@ -67,6 +69,7 @@ public abstract class AbstractTask implements ITask {
 	public Map<String, Object> getMeta() {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("headerInfo", this.headerInfo);
+		collectedData.put("numCollected", this.numCollect);
 		if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
 			collectedData.put("format", getFormatMap());
 			collectedData.put("taskOptions", this.taskOptions.getOptions());
@@ -83,15 +86,15 @@ public abstract class AbstractTask implements ITask {
 	 * 	headers: headers of my data 
 	 * }
 	 */
-	public Object getData(int num) {
+	public Object getData() {
 		this.formatter.clear();
 		boolean collectAll = false;
-		if(num == -1) {
+		if(this.numCollect == -1) {
 			collectAll = true;
 		}
 		int count = 0;
 		// recall, a task is also an iterator!
-		while(this.hasNext() && (collectAll || count < num)) {
+		while(this.hasNext() && (collectAll || count < this.numCollect)) {
 			IHeadersDataRow next = this.next();
 			this.formatter.addData(next);
 			count++;
@@ -190,6 +193,16 @@ public abstract class AbstractTask implements ITask {
 	@Override
 	public void setLogger(Logger logger) {
 		this.logger = logger;
+	}
+	
+	@Override
+	public int getNumCollect() {
+		return this.numCollect;
+	}
+	
+	@Override
+	public void setNumCollect(int numCollect) {
+		this.numCollect = numCollect;
 	}
 	
 	@Override
