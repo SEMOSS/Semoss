@@ -5,6 +5,7 @@ import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
@@ -17,12 +18,17 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.http.Consts;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -326,7 +332,6 @@ public abstract class AbstractHttpHelper
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type","application/json; charset=utf-8");
-
 			Hashtable params = null;
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			if(!json)
@@ -343,15 +348,13 @@ public abstract class AbstractHttpHelper
 					paramList.add(new BasicNameValuePair(key, value));
 					paramIndex++;
 				}
-				
 				httppost.setEntity(new UrlEncodedFormEntity(paramList));
 
 			}
 			else // this is a json input
 			{
 				String inputJson = mapper.writeValueAsString(input);
-				
-				httppost.setEntity(new StringEntity(inputJson));								
+				httppost.setEntity(new StringEntity(inputJson));
 			}
 			
 			ResponseHandler<String> handler = new BasicResponseHandler();
@@ -375,6 +378,109 @@ public abstract class AbstractHttpHelper
 			ex.printStackTrace();
 		}
 		
+		return null;
+
+	}
+	
+	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName,  String localPath){
+			
+			try {
+				CloseableHttpClient httpclient = HttpClients.createDefault();
+				HttpPut httpput = new HttpPut(url);
+				httpput.addHeader("Authorization", "Bearer " + accessToken);
+				httpput.addHeader("Content-Type","application/json; charset=utf-8");
+				File fileupload = new File(localPath);
+				httpput.setEntity(new FileEntity(fileupload));
+				ResponseHandler<String> handler = new BasicResponseHandler();
+				CloseableHttpResponse response = httpclient.execute(httpput);
+				
+				System.out.println("Response Code " + response.getStatusLine().getStatusCode());
+				
+				int status = response.getStatusLine().getStatusCode();
+				
+				BufferedReader rd = new BufferedReader(
+				        new InputStreamReader(response.getEntity().getContent()));
+
+				StringBuffer result = new StringBuffer();
+				String line = "";
+				while ((line = rd.readLine()) != null) {
+					result.append(line);
+				}
+				return result.toString();
+			}catch(Exception ex)
+			{
+				ex.printStackTrace();
+			}
+			
+			return null;
+
+		}
+	
+	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath)
+	{
+		
+		try {
+			CloseableHttpClient httpclient = HttpClients.createDefault();
+			HttpPost httppost = new HttpPost(url);
+			httppost.addHeader("Authorization", "Bearer " + accessToken);
+			httppost.addHeader("Content-Type","application/octet-stream");
+			httppost.addHeader("Dropbox-API-Arg","{\"path\": \"/"+filename+"\",\"mode\": \"add\",\"autorename\": true,\"mute\": false}");
+			File fileupload = new File(filepath);
+			httppost.setEntity(new FileEntity(fileupload));
+			ResponseHandler<String> handler = new BasicResponseHandler();
+			CloseableHttpResponse response = httpclient.execute(httppost);
+			
+			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
+			
+			int status = response.getStatusLine().getStatusCode();
+			
+			BufferedReader rd = new BufferedReader(
+			        new InputStreamReader(response.getEntity().getContent()));
+
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
+			return result.toString();
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		return null;
+
+	}
+	
+	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath)
+	{
+		
+		try {
+			CloseableHttpClient httpclient = HttpClients.createDefault();
+			HttpPatch httppatch = new HttpPatch(url);
+			httppatch.addHeader("Authorization", "Bearer " + accessToken);
+
+			File fileupload = new File(filepath);
+			httppatch.setEntity(new FileEntity(fileupload));
+			ResponseHandler<String> handler = new BasicResponseHandler();
+			CloseableHttpResponse response = httpclient.execute(httppatch);
+			
+			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
+			
+			int status = response.getStatusLine().getStatusCode();
+			
+			BufferedReader rd = new BufferedReader(
+			        new InputStreamReader(response.getEntity().getContent()));
+
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
+			return result.toString();
+		}catch(Exception ex)
+		{
+			ex.printStackTrace();
+		}
 		return null;
 
 	}
