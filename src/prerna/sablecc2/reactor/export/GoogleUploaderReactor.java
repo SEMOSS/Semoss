@@ -8,11 +8,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
-
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessToken;
@@ -22,7 +19,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.RemoteItem;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.security.AbstractHttpHelper;
@@ -56,13 +52,10 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 		User2 user = this.insight.getUser2();
 		try{
 		if(user==null){
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 		else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE.name());
@@ -70,13 +63,10 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 			}
 		}
 		catch (Exception e) {
-				SemossPixelException exception = new SemossPixelException();
-				exception.setContinueThreadOfExecution(false);
-				Map<String, Object> retMap = new HashMap<String, Object>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-				throw exception;
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("type", "google");
+			retMap.put("message", "Please login to your Google account");
+			throwLoginError(retMap);
 		}
 
 

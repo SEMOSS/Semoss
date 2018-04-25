@@ -56,13 +56,10 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 		User2 user = this.insight.getUser2();
 		try{
 			if(user==null){
-				SemossPixelException exception = new SemossPixelException();
-				exception.setContinueThreadOfExecution(false);
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
-				exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-				throw exception;
+				throwLoginError(retMap);
 			}
 			else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE.name());
@@ -70,13 +67,10 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			}
 		}
 		catch (Exception e) {
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 
 		//Initialize variables
