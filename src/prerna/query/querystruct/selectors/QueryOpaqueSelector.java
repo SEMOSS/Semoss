@@ -8,6 +8,8 @@ import prerna.poi.main.HeadersException;
 
 public class QueryOpaqueSelector extends AbstractQuerySelector {
 
+	private static final IQuerySelector.SELECTOR_TYPE SELECTOR_TYPE = IQuerySelector.SELECTOR_TYPE.OPAQUE;
+	
 	private String querySelectorSyntax;
 	private String table;
 	
@@ -21,7 +23,7 @@ public class QueryOpaqueSelector extends AbstractQuerySelector {
 	
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.OPAQUE;
+		return SELECTOR_TYPE;
 	}
 
 	@Override

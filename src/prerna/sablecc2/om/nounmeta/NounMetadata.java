@@ -98,6 +98,7 @@ public class NounMetadata {
 		GsonBuilder gsonBuilder = new GsonBuilder()
 				.disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.TRANSIENT)
+				.excludeFieldsWithModifiers(Modifier.STATIC)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter());
 
