@@ -1,5 +1,6 @@
 package prerna.nameserver.utility;
 
+import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,9 +15,15 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -167,6 +174,121 @@ public class MasterDatabaseUtility {
 		}
 		
 		return data;
+	}
+	
+	/**
+	 * Get a list of arrays containing 
+	 * @param engineName
+	 * @return
+	 */
+	public static List<Object[]> getDatabaseConnections(List<String> logicalNames) {
+		StringBuilder sb = new StringBuilder();
+		int size = logicalNames.size();
+		for(int i = 0; i < size; i++) {
+			sb.append("'").append(logicalNames.get(i)).append("'");
+			if( (i+1) < size) {
+				sb.append(",");
+			}
+		}
+		
+		/*
+		 * Grab all the matching tables and columns based on the logical names
+		 * Once we have those, we will grab all the relationships for the tables
+		 * and all the other columns that we can traverse to
+		 */
+		
+		// this will store the equivalent concept ids to the table and column
+		Map<String, String[]> equivMap = new HashMap<String, String[]>();
+		
+		// this will store the parent physical name ids
+		List<String> tablePhysicalIds = new Vector<String>();
+		
+		
+		// this will give me all the tables that have the logical name or 
+		// have a column with the logical name 
+		
+		String query = "select distinct ec.parentphysicalid as table, ec2.physicalnameid as equivconceptid, c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName" 
+				+ " from engineconcept ec, engineconcept ec2, concept c, concept c2"
+				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"
+				+ " and ec.localconceptid = c.localconceptid"
+				+ " and ec.parentphysicalid = ec2.physicalnameid"
+				+ " and ec2.localconceptid = c2.localconceptid";
+		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String tableId = rs.getString(1);
+				tablePhysicalIds.add(tableId);
+
+				String equivConceptId = rs.getString(2);
+				String equivConceptTable = rs.getString(3);
+				String equivConceptColumn = rs.getString(4);
+				equivMap.put(equivConceptId, new String[]{equivConceptTable, equivConceptColumn});
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		// now that we have the list
+		// we will go ahead and create a filter string since we will be using this often
+		sb = new StringBuilder();
+		size = tablePhysicalIds.size();
+		for(int i = 0; i < size; i++) {
+			sb.append("'").append(tablePhysicalIds.get(i)).append("'");
+			if( (i+1) < size) {
+				sb.append(",");
+			}
+		}
+		String idFilter = sb.toString();
+		
+		
+		// let us first go ahead and get the properties we can connect to
+		query = "select e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
+				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
+				+ " where ec2.physicalnameid in (" + idFilter + ")"
+				+ " and e.id = ec.engine"
+				+ " and ec.localconceptid = c.localconceptid"
+				+ " and ec.parentphysicalid = ec2.physicalnameid"
+				+ " and ec2.localconceptid = c2.localconceptid"
+				+ " order by table, pk desc, column, type";
+		
+		List<Object[]> returnData = new Vector<Object[]>();
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String engineName = rs.getString(1);
+				String table = rs.getString(2);
+				String column = rs.getString(3);
+				String type = rs.getString(4);
+				boolean pk = rs.getBoolean(5);
+				String equivId = rs.getString(6);
+				
+				String[] equivTableCol = equivMap.get(equivId);
+				
+				// above query will return the actual match columns as well
+				if(equivTableCol[0].equals(table) && equivTableCol[1].equals(column)) {
+					continue;
+				}
+				
+				// if we passed the above test, add the valid connection
+				returnData.add(new Object[]{engineName, table, column, type, pk, equivTableCol[0], equivTableCol[1]});
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return returnData;
 	}
 
 	public static Map<String, Object[]> getMetamodelRDBMS(String engineName) {
@@ -1234,6 +1356,26 @@ public class MasterDatabaseUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static void main(String[] args) {
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+		IEngine coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+		
+		List<String> logicalNames = new Vector<String>();
+		logicalNames.add("MovieBudget");
+		
+		Gson gson = new GsonBuilder()
+				.disableHtmlEscaping()
+				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
+				.setPrettyPrinting()
+				.create();
+		
+		System.out.println(gson.toJson(getDatabaseConnections(logicalNames)));
 	}
 	
 }
