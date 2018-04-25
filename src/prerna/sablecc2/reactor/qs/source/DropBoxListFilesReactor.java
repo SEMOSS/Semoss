@@ -2,22 +2,17 @@
 package prerna.sablecc2.reactor.qs.source;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
-import prerna.io.connector.IConnectorIOp;
 import prerna.om.RemoteItem;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.security.AbstractHttpHelper;
@@ -48,13 +43,10 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 		User2 user = this.insight.getUser2();
 		try{
 			if(user==null){
-				SemossPixelException exception = new SemossPixelException();
-				exception.setContinueThreadOfExecution(false);
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "dropbox");
 				retMap.put("message", "Please login to your DropBox account");
-				exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-				throw exception;
+				throwLoginError(retMap);
 			}
 			else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX.name());
@@ -62,13 +54,10 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 			}
 		}
 		catch (Exception e) {
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "dropbox");
 			retMap.put("message", "Please login to your DropBox account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 
 

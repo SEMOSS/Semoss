@@ -55,7 +55,7 @@ public class PixelRunner {
 			// apply the translation.
 			tree.apply(translation);
 		} catch(SemossPixelException e) {
-			addResult(expression, e.getAdditionalReturn(), false);
+			addResult(expression, e.getNoun(), false);
 			if(!e.isContinueThreadOfExecution()) {
 				throw e;
 			}

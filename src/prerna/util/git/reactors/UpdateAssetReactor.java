@@ -43,7 +43,7 @@ public class UpdateAssetReactor extends AbstractReactor {
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "git");
 			retMap.put("message", "Please login to your Git account");
-			throwError(retMap);
+			throwLoginError(retMap);
 		}
 
 		// check for minmum

@@ -42,13 +42,10 @@ public class ListGoogleSheetsReactor extends AbstractReactor {
 		}
 
 		if(gc == null) {
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 
 		Sheets sheetsService = new Sheets.Builder(TRANSPORT, JSON_FACTORY, gc).setApplicationName("SEMOSS").build();

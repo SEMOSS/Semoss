@@ -18,7 +18,6 @@ import prerna.auth.User2;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.security.AbstractHttpHelper;
@@ -48,13 +47,10 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 				User2 user = this.insight.getUser2();
 				try{
 				if(user==null){
-					SemossPixelException exception = new SemossPixelException();
-					exception.setContinueThreadOfExecution(false);
 					Map<String, Object> retMap = new HashMap<String, Object>();
 					retMap.put("type", "dropbox");
 					retMap.put("message", "Please login to your DropBox account");
-					exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-					throw exception;
+					throwLoginError(retMap);
 				}
 				else if (user != null) {
 						AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX.name());
@@ -62,13 +58,10 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 					}
 				}
 				catch (Exception e) {
-						SemossPixelException exception = new SemossPixelException();
-						exception.setContinueThreadOfExecution(false);
-						Map<String, Object> retMap = new HashMap<String, Object>();
-						retMap.put("type", "dropbox");
-						retMap.put("message", "Please login to your DropBox account");
-						exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-						throw exception;
+					Map<String, Object> retMap = new HashMap<String, Object>();
+					retMap.put("type", "dropbox");
+					retMap.put("message", "Please login to your DropBox account");
+					throwLoginError(retMap);
 				}
 
 		logger = getLogger(CLASS_NAME);
