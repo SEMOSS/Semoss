@@ -139,7 +139,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		// nothing special
         		// just add the error to the return
         		if(ex.isContinueThreadOfExecution()) {
-        			planner.addVariable("$RESULT", ex.getAdditionalReturn());
+        			planner.addVariable("$RESULT", ex.getNoun());
             		postProcess(e.toString().trim());
         		} else {
         			// if we do want to stop

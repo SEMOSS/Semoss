@@ -106,16 +106,7 @@ public class NounMetadata {
 		Gson gson = gsonBuilder.create();
 		
 		Class<? extends Object> valueClass = value.getClass();
-		String jsonStr = gson.toJson(value);
-		Object cloneValue = null;
-		
-		// we need some crazy stuff for query selectors as they are recursive
-		if(this.noun == PixelDataType.COLUMN) {
-			IQuerySelector.SELECTOR_TYPE type = ((IQuerySelector) this.value).getSelectorType();
-			cloneValue = (IQuerySelector) IQuerySelector.getGson().fromJson(jsonStr, IQuerySelector.getQuerySelectorClassFromType(type));
-		} else {
-			cloneValue = gson.fromJson(jsonStr, valueClass);
-		}
+		Object cloneValue = cloneValue = gson.fromJson(gson.toJson(value), valueClass);
 		
 		return new NounMetadata(cloneValue, this.noun, this.opType);
 	}
