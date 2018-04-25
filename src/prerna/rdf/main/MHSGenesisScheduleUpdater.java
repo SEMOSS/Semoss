@@ -44,6 +44,13 @@ public class MHSGenesisScheduleUpdater {
 		// do the wave to year-quarter
 		addWaveToYearQuarter(coreEngine);
 		
+		String q = "SELECT DISTINCT ?Wave ?StartDate ?EndDate WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} {?StartDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/BeginsOn> ?StartDate} {?EndDate <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Year-Quarter>} {?Wave <http://semoss.org/ontologies/Relation/EndsOn> ?EndDate} }";
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, q);
+		while(it.hasNext()) {
+			Object[] uriRow = it.next().getRawValues();
+			System.out.println("This should return " + Arrays.toString(uriRow));
+		}
+		
 		coreEngine.commit();
 	}
 
@@ -155,30 +162,30 @@ public class MHSGenesisScheduleUpdater {
 		
 		// add EndsOn
 		Map<String, String> endOn = new HashMap<String, String>();
-		addOn.put("IOC", 	"Q2FY2016");
-		addOn.put("1", 		"Q3FY2019");
-		addOn.put("4", 		"Q2FY2019");
-		addOn.put("5", 		"Q3FY2019");
-		addOn.put("3", 		"Q1FY2019");
-		addOn.put("2", 		"Q2FY2019");
-		addOn.put("6", 		"Q4FY2020");
-		addOn.put("8", 		"Q2FY2022");
-		addOn.put("7", 		"Q1FY2021");
-		addOn.put("12", 	"Q1FY2023");
-		addOn.put("10", 	"Q4FY2022");
-		addOn.put("9", 		"Q3FY2022");
-		addOn.put("11", 	"Q4FY2022");
-		addOn.put("17",		"Q3FY2021");
-		addOn.put("13",		"Q4FY2020");
-		addOn.put("14", 	"Q1FY2020");
-		addOn.put("15", 	"Q2FY2024");
-		addOn.put("18", 	"Q4FY2021");
-		addOn.put("16", 	"Q2FY2021");
-		addOn.put("19",		"Q2FY2023");
-		addOn.put("20", 	"Q3FY2023");
-		addOn.put("22", 	"Q1FY2024");
-		addOn.put("21", 	"Q4FY2023");
-		addOn.put("23", 	"Q2FY2024");
+		endOn.put("IOC", 	"Q2FY2018");
+		endOn.put("1", 		"Q3FY2019");
+		endOn.put("4", 		"Q2FY2019");
+		endOn.put("5", 		"Q3FY2019");
+		endOn.put("3", 		"Q1FY2019");
+		endOn.put("2", 		"Q2FY2019");
+		endOn.put("6", 		"Q4FY2020");
+		endOn.put("8", 		"Q2FY2022");
+		endOn.put("7", 		"Q1FY2021");
+		endOn.put("12", 	"Q1FY2023");
+		endOn.put("10", 	"Q4FY2022");
+		endOn.put("9", 		"Q3FY2022");
+		endOn.put("11", 	"Q4FY2022");
+		endOn.put("17",		"Q3FY2021");
+		endOn.put("13",		"Q4FY2020");
+		endOn.put("14", 	"Q1FY2020");
+		endOn.put("15", 	"Q2FY2024");
+		endOn.put("18", 	"Q4FY2021");
+		endOn.put("16", 	"Q2FY2021");
+		endOn.put("19",		"Q2FY2023");
+		endOn.put("20", 	"Q3FY2023");
+		endOn.put("22", 	"Q1FY2024");
+		endOn.put("21", 	"Q4FY2023");
+		endOn.put("23", 	"Q2FY2024");
 		processWaveYear(coreEngine, endOn, "EndsOn");
 
 	}
@@ -198,7 +205,7 @@ public class MHSGenesisScheduleUpdater {
 			
 			rel = new Object[3];
 			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
-			rel[1] = "http://health.mil/ontologies/Relation/" + relName;
+			rel[1] = "http://semoss.org/ontologies/Relation/" + relName;
 			rel[2] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
 			
 			System.out.println("Add wave to year quarter " + Arrays.toString(rel));
@@ -206,7 +213,7 @@ public class MHSGenesisScheduleUpdater {
 			
 			rel = new Object[3];
 			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
-			rel[1] = "http://health.mil/ontologies/Relation";
+			rel[1] = "http://semoss.org/ontologies/Relation";
 			rel[2] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
 			
 			System.out.println("Add wave to year quarter " + Arrays.toString(rel));
