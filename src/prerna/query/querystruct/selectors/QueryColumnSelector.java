@@ -7,6 +7,8 @@ import prerna.query.querystruct.QueryStruct2;
 
 public class QueryColumnSelector extends AbstractQuerySelector {
 
+	private static final IQuerySelector.SELECTOR_TYPE SELECTOR_TYPE = IQuerySelector.SELECTOR_TYPE.COLUMN;
+	
 	private String column;
 	private String table;
 	private String tableAlias;
@@ -29,7 +31,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.COLUMN;
+		return SELECTOR_TYPE;
 	}
 
 	@Override

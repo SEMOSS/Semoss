@@ -7,6 +7,8 @@ import prerna.util.Utility;
 
 public class QueryConstantSelector extends AbstractQuerySelector {
 
+	private static final IQuerySelector.SELECTOR_TYPE SELECTOR_TYPE = IQuerySelector.SELECTOR_TYPE.CONSTANT;
+
 	private Object constant;
 	
 	public QueryConstantSelector() {
@@ -15,7 +17,7 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.CONSTANT;
+		return SELECTOR_TYPE;
 	}
 
 	@Override
