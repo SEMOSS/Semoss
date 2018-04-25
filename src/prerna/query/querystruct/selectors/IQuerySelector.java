@@ -69,6 +69,15 @@ public interface IQuerySelector {
 		return gson.create();
 	}
 	
+	static GsonBuilder appendQueryAdapters(GsonBuilder gson) {
+		gson.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter());
+		gson.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter());
+		gson.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter());
+		gson.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter());
+		gson.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter());
+		return gson;
+	}
+	
 	/**
 	 * Convert string to SELECTOR_TYPE
 	 * @param s
