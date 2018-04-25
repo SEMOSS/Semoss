@@ -253,7 +253,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  		
  		mapOptions.put(panelId, keyMap);
  		//the final mapping looks like this:
- 		//taskOptions={0={layout=Column, alignment={tooltip=[], labels=[col1, col2, col3]}}}
+ 		//taskOptions={0={layout=Column, alignment={tooltip=[], labels=[col1], value=[col2]}}}
  		
  		//set task options
  		task.setTaskOptions(new TaskOptions(mapOptions));
@@ -285,7 +285,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  	 * This method allows us to create a grid view from the data values object[][] created with the breaks and counts
  	 * @param panelId - panel id
  	 * @param labels - column names of data table
- 	 * @param dataValues
+ 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
  	 */
  	public Map<String, Object> getGridData(String panelId, String[] labels, Object dataValues) {
  		// create the weird object the FE needs to paint a bar chart
@@ -311,7 +311,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  		
  		mapOptions.put(panelId, keyMap);
  		//the final mapping looks like this:
- 		//taskOptions={0={layout=Column, alignment={tooltip=[], label=[MovieBudget], value=[Frequency]}}}
+ 		//taskOptions={0={layout=GRID, alignment={label=[Col1, Col2, Col3]}}}
  		
  		//set task options
  		task.setTaskOptions(new TaskOptions(mapOptions));
@@ -333,6 +333,18 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  		
  		return task.collect(true);
  	}
-     
+ 	
+ 	/**
+ 	 * This method allows us to create a grid view from the data values object[][] created with the breaks and counts
+ 	 * @param panelId - panel id
+ 	 * @param x - x axis
+ 	 * @param y - y axis
+ 	 * @param heat - heat for heat map
+ 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
+ 	 */
+ 	public Map<String, Object> getHeatMapData(String panelId, String x, String y, String heat, Object dataValues) {
+ 		
+ 		return null;
+ 	}
 
 }
