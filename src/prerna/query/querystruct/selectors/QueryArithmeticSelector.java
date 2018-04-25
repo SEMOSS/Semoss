@@ -5,6 +5,8 @@ import java.util.Vector;
 
 public class QueryArithmeticSelector extends AbstractQuerySelector {
 
+	private static final IQuerySelector.SELECTOR_TYPE SELECTOR_TYPE = IQuerySelector.SELECTOR_TYPE.ARITHMETIC;
+	
 	private IQuerySelector leftSelector;
 	private String mathExpr;
 	private IQuerySelector rightSelector;
@@ -16,7 +18,7 @@ public class QueryArithmeticSelector extends AbstractQuerySelector {
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.ARITHMETIC;
+		return SELECTOR_TYPE;
 	}
 
 	@Override

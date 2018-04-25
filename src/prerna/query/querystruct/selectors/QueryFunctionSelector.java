@@ -6,6 +6,8 @@ import java.util.Vector;
 
 public class QueryFunctionSelector extends AbstractQuerySelector {
 
+	private static final IQuerySelector.SELECTOR_TYPE SELECTOR_TYPE = IQuerySelector.SELECTOR_TYPE.FUNCTION;
+	
 	private List<IQuerySelector> innerSelectors;
 	private String functionName;
 	private boolean isDistinct;
@@ -20,7 +22,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {
-		return SELECTOR_TYPE.FUNCTION;
+		return SELECTOR_TYPE;
 	}
 
 	@Override
