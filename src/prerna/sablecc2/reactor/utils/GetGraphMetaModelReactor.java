@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -29,23 +29,26 @@ import prerna.util.MyGraphIoRegistry;
 public class GetGraphMetaModelReactor extends AbstractReactor {
 
 	public GetGraphMetaModelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), "type" };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		/*
+		 * Get Inputs
+		 */
 		organizeKeys();
 		String fileName = this.keyValue.get(this.keysToGet[0]);
-		String type = this.keyValue.get(this.keysToGet[1]);
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
-
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
 		if (fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
 			tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
 		}
 		Graph g = null;
-
+		/*
+		 * Open Graph
+		 */
 		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 			g = Neo4jGraph.open(fileName);
 		} else {
@@ -81,49 +84,65 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			Map<String, HashMap<String, String>> conceptProps = new HashMap<String, HashMap<String, String>>();
 			Map<String, ArrayList<String>> edgeMap = new HashMap<>();
-
+			Map<String, HashMap<String, String>> nodes = new HashMap<>();
+			
+			/*
+			 * Get Nodes and Edges
+			 */
 			if (g != null) {
 				// get concepts and properties
-				Iterator<Vertex> vert = g.vertices();
-				while (vert.hasNext()) {
-					Vertex v = vert.next();
-					if (v.keys().contains(type)) {
-						String concept = v.value(type);
-						HashMap<String, String> propTypes = new HashMap<String, String>();
-						Set<String> props = v.keys();
-						for (String property : props) {
-							// TODO get vertex property types
-							String propertyType = "STRING";
-							propTypes.put(property, propertyType);
-						}
+				GraphTraversal gtTest = g.traversal().V().label().dedup();
 
-						conceptProps.put(concept, propTypes);
+				while (gtTest.hasNext()) {
+					String vLabel = (String) gtTest.next();
+					GraphTraversal propTraversal = g.traversal().V().hasLabel(vLabel).valueMap();
+					HashMap<String, String> propMap = new HashMap<>();
+					int i = 0;
+					int limit = 25;
+					boolean next = true;
+					while (propTraversal.hasNext() && next) {
+						Map<Object, Object> propsList = (Map<Object, Object>) propTraversal.next();
+						for (Object key : propsList.keySet()) {
+							// TODO get type of property
+							Object value = propsList.get(key);
+							String propType = "String";
+							propMap.put((String) key, propType);
+						}
+						i++;
+						if (i <= limit) {
+							if (!propTraversal.hasNext()) {
+								next = false;
+							}
+						}
+						if (i == limit) {
+							next = false;
+
+						}
 					}
+					nodes.put(vLabel, propMap);
 				}
-			}
-			Iterator<Edge> edges = g.edges();
-			while (edges.hasNext()) {
-				Edge e = edges.next();
-				String edgeLabel = e.label();
-				Vertex outV = e.outVertex();
-				Set<String> outVKeys = outV.keys();
-				Vertex inV = e.inVertex();
-				Set<String> inVKeys = inV.keys();
-				if (outVKeys.contains(type) && inVKeys.contains(type)) {
-					String outVLabel = outV.value(type);
-					String inVLabel = inV.value(type);
+
+				Iterator<Edge> edges = g.edges();
+				while (edges.hasNext()) {
+					Edge e = edges.next();
+					String edgeLabel = e.label();
+					Vertex outV = e.outVertex();
+					Vertex inV = e.inVertex();
+					String outVLabel = outV.label();
+					String inVLabel = inV.label();
 					if (!edgeMap.containsKey(edgeLabel)) {
 						ArrayList<String> vertices = new ArrayList<>();
 						vertices.add(outVLabel);
 						vertices.add(inVLabel);
-						edgeMap.put(edgeLabel, vertices);
+						// check if edge nodes is added to node map
+						if (nodes.keySet().contains(outVLabel) && nodes.keySet().contains(inVLabel)) {
+							edgeMap.put(edgeLabel, vertices);
+						}
 					}
 				}
 			}
-
-			retMap.put("nodes", conceptProps);
+			retMap.put("nodes", nodes);
 			retMap.put("edges", edgeMap);
 		}
 
