@@ -21,7 +21,7 @@ public class MapLambdaFactory {
 		mapLambdas.put("GOOGLELATLONG", GoogleLatLongLambda.class);
 	}
 
-	public static IMapLambda getTransformation(String transType) {
+	public static IMapLambda getLambda(String transType) {
 		IMapLambda newClass = null;
 		
 		transType = transType.toUpperCase();
