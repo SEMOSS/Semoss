@@ -25,29 +25,61 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 			return null;
 		}
 
-		String mapStr = in.nextString();
-		Map<String, Object> map = GSON.fromJson(mapStr, Map.class);
-		
 		QueryArithmeticSelector value = new QueryArithmeticSelector();
-		value.setMathExpr(map.get("mathExpr") + "");
+
+		Map<String, Object> LHS = new HashMap<String, Object>();
+		Map<String, Object> RHS = new HashMap<String, Object>();
+
+		in.beginObject();
+		while(in.hasNext()) {
+			if(in.peek() == JsonToken.STRING) {
+				// this will be when we say this is a ARITHMATIC
+			} else if(in.peek() == JsonToken.NAME){
+				String key = in.nextName();
+				if(key.equals("selectorType")) {
+					// this will be when we say this is a ARITHMATIC
+					in.nextString();
+				} else if(key.equals("alias")) {
+					value.setAlias(in.nextString());
+				} else if(key.equals("mathExpr")) {
+					value.setMathExpr(in.nextString());
+				} else if(key.equals("lhs")) {
+					in.beginObject();
+					while(in.hasNext()) {
+						String name = in.nextName();
+						if(name.equals("selector")) {
+							LHS.put("selector", in.nextString());
+						} else if(name.equals("selectorType")) {
+							LHS.put("selectorType", in.nextString());
+						}
+					}
+					in.endObject();
+				} else if(key.equals("rhs")) {
+					in.beginObject();
+					while(in.hasNext()) {
+						String name = in.nextName();
+						if(name.equals("selector")) {
+							RHS.put("selector", in.nextString());
+						} else if(name.equals("selectorType")) {
+							RHS.put("selectorType", in.nextString());
+						}
+					}
+					in.endObject();
+				}
+			}
+		}
+		in.endObject();
 		
 		// get the left selector
-		Map<String, Object> leftMap = (Map<String, Object>) map.get("lhs");
-		String leftSelector = leftMap.get("selector").toString();
-		SELECTOR_TYPE leftSelectorType = IQuerySelector.convertStringToSelectorType(leftMap.get("selectorType").toString());
+		String leftSelector = LHS.get("selector").toString();
+		SELECTOR_TYPE leftSelectorType = IQuerySelector.convertStringToSelectorType(LHS.get("selectorType").toString());
 		value.setLeftSelector( (IQuerySelector) IQuerySelector.getGson().fromJson(leftSelector, IQuerySelector.getQuerySelectorClassFromType(leftSelectorType)) );
 		
 		// now the right selector
-		Map<String, Object> rightMap = (Map<String, Object>) map.get("rhs");
-		String rightSelector = rightMap.get("selector").toString();
-		SELECTOR_TYPE rightSelectorType = IQuerySelector.convertStringToSelectorType(rightMap.get("selectorType").toString());
+		String rightSelector = RHS.get("selector").toString();
+		SELECTOR_TYPE rightSelectorType = IQuerySelector.convertStringToSelectorType(RHS.get("selectorType").toString());
 		value.setRightSelector( (IQuerySelector) IQuerySelector.getGson().fromJson(rightSelector, IQuerySelector.getQuerySelectorClassFromType(rightSelectorType)) );
 		
-		// optional setters
-		if(map.containsKey("alias")) {
-			value.setAlias(map.get("alias") + "");
-		}
-
 		return value;
 	}
 
