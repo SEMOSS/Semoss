@@ -197,8 +197,11 @@ public class MasterDatabaseUtility {
 		 * and all the other columns that we can traverse to
 		 */
 		
-		// this will store the equivalent concept ids to the table and column
-		Map<String, String[]> equivMap = new HashMap<String, String[]>();
+		// this will store the equivalent table ids to the table and column
+		Map<String, String[]> parentEquivMap = new HashMap<String, String[]>();
+		
+		// this will store the ids for the columns we have
+		List<String> equivIds = new Vector<String>();
 		
 		// this will store the parent physical name ids
 		List<String> tablePhysicalIds = new Vector<String>();
@@ -207,7 +210,7 @@ public class MasterDatabaseUtility {
 		// this will give me all the tables that have the logical name or 
 		// have a column with the logical name 
 		
-		String query = "select distinct ec.parentphysicalid as table, ec2.physicalnameid as equivconceptid, c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName" 
+		String query = "select distinct ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId, c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName" 
 				+ " from engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"
 				+ " and ec.localconceptid = c.localconceptid"
@@ -225,10 +228,18 @@ public class MasterDatabaseUtility {
 				String tableId = rs.getString(1);
 				tablePhysicalIds.add(tableId);
 
-				String equivConceptId = rs.getString(2);
-				String equivConceptTable = rs.getString(3);
-				String equivConceptColumn = rs.getString(4);
-				equivMap.put(equivConceptId, new String[]{equivConceptTable, equivConceptColumn});
+				String equivTableId = rs.getString(2);
+				String equivColumnId = rs.getString(3);
+				String equivTableName = rs.getString(4);
+				String equivColumnName = rs.getString(5);
+				
+				// store parent table to what we are joining on
+				// so we can extend from one property to other properties within the same table
+				parentEquivMap.put(equivTableId, new String[]{equivTableName, equivColumnName});
+				
+				// store the physical id for the table or column
+				// so we can find relaitonships from this
+				equivIds.add(equivColumnId);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -270,7 +281,7 @@ public class MasterDatabaseUtility {
 				boolean pk = rs.getBoolean(5);
 				String equivId = rs.getString(6);
 				
-				String[] equivTableCol = equivMap.get(equivId);
+				String[] equivTableCol = parentEquivMap.get(equivId);
 				
 				// above query will return the actual match columns as well
 				if(equivTableCol[0].equals(table) && equivTableCol[1].equals(column)) {
@@ -299,17 +310,13 @@ public class MasterDatabaseUtility {
 		
 		// yay, we are done adding the properties
 		// let us now go and add the relationships
-		
-		Set<String> equivConcepts = equivMap.keySet();
 		sb = new StringBuilder();
-		size = equivConcepts.size();
-		int counter = 0;
-		for(String equivId : equivConcepts) {
-			sb.append("'").append(equivId).append("'");
-			if( (counter+1) < size) {
+		size = equivIds.size();
+		for(int i = 0; i < size; i++) {
+			sb.append("'").append(equivIds.get(i)).append("'");
+			if( (i+1) < size) {
 				sb.append(",");
 			}
-			counter++;
 		}
 		
 		// let me find up and downstream connections for my equivalent concepts
