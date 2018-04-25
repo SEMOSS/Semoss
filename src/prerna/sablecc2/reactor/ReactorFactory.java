@@ -121,6 +121,7 @@ import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseConnectionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseSpecificConceptPropertiesReactor;
@@ -227,9 +228,9 @@ import prerna.sablecc2.reactor.task.RemoveTaskReactor;
 import prerna.sablecc2.reactor.task.ResetPanelTasksReactor;
 import prerna.sablecc2.reactor.task.ResetTaskReactor;
 import prerna.sablecc2.reactor.task.TaskFormatReactor;
+import prerna.sablecc2.reactor.task.TaskLookupReactor;
 import prerna.sablecc2.reactor.task.TaskMetaCollectorReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
-import prerna.sablecc2.reactor.task.TaskLookupReactor;
 import prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.GenericMapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.MapLambdaTaskReactor;
@@ -508,7 +509,7 @@ public class ReactorFactory {
 		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
 		
 		// NEW FEDERATE
-		reactorHash.put("GetDatabaseConnections", DatabaseTableStructureReactor.class);
+		reactorHash.put("GetDatabaseConnections", DatabaseConnectionsReactor.class);
 		reactorHash.put("GetDatabaseTableStructure", DatabaseTableStructureReactor.class);
 		reactorHash.put("GetSpecificConceptProperties", DatabaseSpecificConceptPropertiesReactor.class);
 		reactorHash.put("FederationBlend", AdvancedFederationBlend.class);
