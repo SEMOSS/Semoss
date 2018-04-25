@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -442,24 +441,25 @@ public abstract class AbstractReactor implements IReactor {
 		}
 	}
 	
-	public void checkMin(int numKey)
-	{
+	public void checkMin(int numKey) {
 		// checks to see if the minmum number of keys are present else
 		// will throw an error
-		if(keyValue.size() < numKey)
-		{
+		if(keyValue.size() < numKey) {
 			Hashtable details = new Hashtable();
 			details.put("error", "Parameters are not present: was expecting " + numKey + " but found only " + keyValue.size());
 			details.put("message", "please try help on this command for more details");
-			throwError(details);
+			throwLoginError(details);
 		}
 	}
 	
-	public void throwError(Map details)
-	{
-		SemossPixelException exception = new SemossPixelException();
+	/**
+	 * 
+	 * @param details
+	 */
+	public void throwLoginError(Map details) {
+		NounMetadata  noun = new NounMetadata(details, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR);
+		SemossPixelException exception = new SemossPixelException(noun);
 		exception.setContinueThreadOfExecution(false);
-		exception.setAdditionalReturn(new NounMetadata(details, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
 		throw exception;
 	}
 }

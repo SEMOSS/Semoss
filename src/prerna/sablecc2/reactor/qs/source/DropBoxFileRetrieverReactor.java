@@ -7,7 +7,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -15,16 +14,11 @@ import org.apache.commons.io.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
-import prerna.io.connector.IConnectorIOp;
 import prerna.om.RemoteItem;
 import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
@@ -56,13 +50,10 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		User2 user = this.insight.getUser2();
 		try{
 			if(user==null){
-				SemossPixelException exception = new SemossPixelException();
-				exception.setContinueThreadOfExecution(false);
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "dropbox");
 				retMap.put("message", "Please login to your DropBox account");
-				exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-				throw exception;
+				throwLoginError(retMap);
 			}
 			else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX.name());
@@ -70,13 +61,10 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 			}
 		}
 		catch (Exception e) {
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "dropbox");
 			retMap.put("message", "Please login to your DropBox account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 
 		//
