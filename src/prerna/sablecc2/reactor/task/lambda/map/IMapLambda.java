@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.transformation.map;
+package prerna.sablecc2.reactor.task.lambda.map;
 
 import java.util.List;
 import java.util.Map;
@@ -6,7 +6,7 @@ import java.util.Map;
 import prerna.auth.User2;
 import prerna.engine.api.IHeadersDataRow;
 
-public interface IMapTransformation {
+public interface IMapLambda {
 
 	/**
 	 * Process one row and output the row again
