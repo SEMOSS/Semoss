@@ -18,26 +18,26 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 	 */
 	
 	public MapLambdaTaskReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TRANSFORMATION.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.LAMBDA.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
 	}
 	
 	@Override
 	protected void buildTask() {
-		String transformationName = getTransformation();
+		String lambda = getLambda();
 		List<String> columns = getColumns();
 		
-		IMapLambda trans = MapLambdaFactory.getTransformation(transformationName);
-		if(trans == null) {
+		IMapLambda mapLambda = MapLambdaFactory.getLambda(lambda);
+		if(mapLambda == null) {
 			throw new IllegalArgumentException("Unknown transformation type");
 		}
-		trans.setUser2(this.insight.getUser2());
-		trans.init(this.task.getHeaderInfo(), columns);
+		mapLambda.setUser2(this.insight.getUser2());
+		mapLambda.init(this.task.getHeaderInfo(), columns);
 		
 		// create a new task and add to stores
 		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
-		newTask.setTransformation(trans);
-		newTask.setHeaderInfo(trans.getModifiedHeaderInfo());
+		newTask.setLambda(mapLambda);
+		newTask.setHeaderInfo(mapLambda.getModifiedHeaderInfo());
 
 		this.task = newTask;
 		this.insight.getTaskStore().addTask(this.task);
@@ -47,7 +47,7 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 	
 	// inputs
 	
-	private String getTransformation() {
+	private String getLambda() {
 		GenRowStruct colGrs = this.store.getNoun(keysToGet[0]);
 		if(colGrs != null && !colGrs.isEmpty()) {
 			return colGrs.get(0).toString();
