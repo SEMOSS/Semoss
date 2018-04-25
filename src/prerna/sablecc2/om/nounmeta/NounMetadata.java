@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.date.SemossDate;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.util.gson.NumberAdapter;
@@ -100,8 +101,18 @@ public class NounMetadata {
 				.registerTypeAdapter(Double.class, new NumberAdapter())
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				.create();
+
 		Class<? extends Object> valueClass = value.getClass();
-		Object cloneValue = gson.fromJson(gson.toJson(value), valueClass);
+		String jsonStr = gson.toJson(value);
+		Object cloneValue = null;
+		// we need some crazy stuff for query selectors as they are recursive
+		if(this.noun == PixelDataType.COLUMN) {
+			IQuerySelector.SELECTOR_TYPE type = ((IQuerySelector) this.value).getSelectorType();
+			cloneValue = (IQuerySelector) IQuerySelector.getGson().fromJson(jsonStr, IQuerySelector.getQuerySelectorClassFromType(type));
+		} else {
+			cloneValue = gson.fromJson(jsonStr, valueClass);
+		}
+		
 		return new NounMetadata(cloneValue, this.noun, this.opType);
 	}
 }
