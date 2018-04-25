@@ -177,11 +177,11 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
-	 * Get a list of arrays containing 
+	 * Get a list of connections for a given logical name
 	 * @param engineName
 	 * @return
 	 */
-	public static List<Object[]> getDatabaseConnections(List<String> logicalNames) {
+	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames) {
 		StringBuilder sb = new StringBuilder();
 		int size = logicalNames.size();
 		for(int i = 0; i < size; i++) {
@@ -237,7 +237,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// now that we have the list
-		// we will go ahead and create a filter string since we will be using this often
+		// we will go ahead and create a filter string
 		sb = new StringBuilder();
 		size = tablePhysicalIds.size();
 		for(int i = 0; i < size; i++) {
@@ -246,20 +246,18 @@ public class MasterDatabaseUtility {
 				sb.append(",");
 			}
 		}
-		String idFilter = sb.toString();
-		
 		
 		// let us first go ahead and get the properties we can connect to
 		query = "select e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
 				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
-				+ " where ec2.physicalnameid in (" + idFilter + ")"
+				+ " where ec2.physicalnameid in (" + sb.toString() + ")"
 				+ " and e.id = ec.engine"
 				+ " and ec.localconceptid = c.localconceptid"
 				+ " and ec.parentphysicalid = ec2.physicalnameid"
 				+ " and ec2.localconceptid = c2.localconceptid"
 				+ " order by table, pk desc, column, type";
 		
-		List<Object[]> returnData = new Vector<Object[]>();
+		List<Map<String, Object>> returnData = new Vector<Map<String, Object>>();
 		
 		try {
 			stmt = conn.createStatement();
@@ -280,7 +278,109 @@ public class MasterDatabaseUtility {
 				}
 				
 				// if we passed the above test, add the valid connection
-				returnData.add(new Object[]{engineName, table, column, type, pk, equivTableCol[0], equivTableCol[1]});
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put("app", engineName);
+				row.put("table", table);
+				row.put("column", column);
+				row.put("pk", pk);
+				row.put("dataType", type);
+				row.put("type", "property");
+				row.put("equivTable", equivTableCol[0]);
+				row.put("equivColumn", equivTableCol[1]);
+
+				returnData.add(row);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		
+		// yay, we are done adding the properties
+		// let us now go and add the relationships
+		
+		Set<String> equivConcepts = equivMap.keySet();
+		sb = new StringBuilder();
+		size = equivConcepts.size();
+		int counter = 0;
+		for(String equivId : equivConcepts) {
+			sb.append("'").append(equivId).append("'");
+			if( (counter+1) < size) {
+				sb.append(",");
+			}
+			counter++;
+		}
+		
+		// let me find up and downstream connections for my equivalent concepts
+		query = "select e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
+				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
+				+ " where er.sourceconceptid in (" + sb.toString() + ")"
+				+ " and e.id = er.engine "
+				+ " and er.sourceconceptid = ec.physicalnameid "
+				+ " and ec.localconceptid = c.localconceptid "
+				+ " and er.targetconceptid = ec2.physicalnameid "
+				+ " and ec2.localconceptid = c2.localconceptid";
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String engineName = rs.getString(1);
+				String upstream = rs.getString(2);
+				String downstream = rs.getString(3);
+				String type = rs.getString(4);
+				
+				// the downstream nodes
+				// mean that the source is the equivalent concept
+				
+				// if we passed the above test, add the valid connection
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put("app", engineName);
+				row.put("equiv", upstream);
+				row.put("table", downstream);
+				row.put("dataType", type);
+				row.put("type", "downstream");
+
+				returnData.add(row);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		// let me repeat for my upstream
+		query = "select e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
+				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
+				+ " where er.targetconceptid in (" + sb.toString() + ")"
+				+ " and e.id = er.engine "
+				+ " and er.sourceconceptid = ec.physicalnameid "
+				+ " and ec.localconceptid = c.localconceptid "
+				+ " and er.targetconceptid = ec2.physicalnameid "
+				+ " and ec2.localconceptid = c2.localconceptid";
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String engineName = rs.getString(1);
+				String upstream = rs.getString(2);
+				String downstream = rs.getString(3);
+				String type = rs.getString(4);
+				
+				// the downstream nodes
+				// mean that the source is the equivalent concept
+				
+				// if we passed the above test, add the valid connection
+				Map<String, Object> row = new HashMap<String, Object>();
+				row.put("app", engineName);
+				row.put("equiv", downstream);
+				row.put("table", upstream);
+				row.put("dataType", type);
+				row.put("type", "upstream");
+
+				returnData.add(row);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
