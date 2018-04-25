@@ -246,6 +246,7 @@ import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
+import prerna.sablecc2.reactor.utils.ExternalGraphDBReactor;
 import prerna.sablecc2.reactor.utils.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
 import prerna.sablecc2.reactor.utils.GetWebTableHeader;
@@ -728,8 +729,9 @@ public class ReactorFactory {
 		reactorHash.put("GetTableHeader", GetWebTableHeader.class);
 		reactorHash.put("GetNumTable", GetWebTableNum.class);
 		
-		// graph engine
+		// external graph engine
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
+		reactorHash.put("CreateExternalGraphDatabase", ExternalGraphDBReactor.class);
 		
 		
 		// Tax specific handles
