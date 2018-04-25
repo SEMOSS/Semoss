@@ -94,7 +94,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 			// create empty link table
 			this.rJavaTranslator.runR("LinkFrame <- data.frame(\"col1\" = character(), \"col2\" = character(), \"dist\"= integer(), stringsAsFactors=FALSE);");
 			
-		} else if(matches == null || matches.isEmpty()) {
+		} else if(matches != null && !(matches.isEmpty())) {
 			// get all matches and generate script to add matches to link table
 			StringBuilder col1Builder = new StringBuilder();
 			StringBuilder col2Builder = new StringBuilder();
@@ -110,7 +110,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 					String match = (String) matches.get(i);
 					String col1 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col1)");
 					String col2 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col2)");
-					int dist = Integer.parseInt(this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$distance)"));
+					String dist = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$distance)");
 					col1Builder.append("\"" + col1 + "\"");
 					col2Builder.append("\"" + col2 + "\"");
 					col3Builder.append(dist);
@@ -132,7 +132,6 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 				+ matchesFrame + " <- best_match_nonzero(" + rCol1 + "," + rCol2 + ");";
 		bestMatchScript = bestMatchScript.replace("\\", "/");
 
-		System.out.println("");
 		// execute script
 		this.rJavaTranslator.runR(bestMatchScript);
 
