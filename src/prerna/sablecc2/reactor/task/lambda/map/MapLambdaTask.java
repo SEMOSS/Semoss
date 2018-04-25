@@ -1,11 +1,11 @@
-package prerna.sablecc2.reactor.task.transformation.map;
+package prerna.sablecc2.reactor.task.lambda.map;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.task.AbstractTaskOperation;
 
-public class MapTransformationTask extends AbstractTaskOperation {
+public class MapLambdaTask extends AbstractTaskOperation {
 
-	private IMapTransformation transform;
+	private IMapLambda transform;
 
 	@Override
 	public IHeadersDataRow next() {
@@ -13,7 +13,7 @@ public class MapTransformationTask extends AbstractTaskOperation {
 		return transform.process(row);
 	}
 
-	public void setTransformation(IMapTransformation transformation) {
+	public void setTransformation(IMapLambda transformation) {
 		this.transform = transformation;
 	}
 	
