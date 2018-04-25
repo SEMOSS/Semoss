@@ -95,16 +95,19 @@ public class NounMetadata {
 			return this;
 		}
 
-		Gson gson = new GsonBuilder()
+		GsonBuilder gsonBuilder = new GsonBuilder()
 				.disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.TRANSIENT)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
-				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
-				.create();
+				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter());
 
+		gsonBuilder = IQuerySelector.appendQueryAdapters(gsonBuilder);		
+		Gson gson = gsonBuilder.create();
+		
 		Class<? extends Object> valueClass = value.getClass();
 		String jsonStr = gson.toJson(value);
 		Object cloneValue = null;
+		
 		// we need some crazy stuff for query selectors as they are recursive
 		if(this.noun == PixelDataType.COLUMN) {
 			IQuerySelector.SELECTOR_TYPE type = ((IQuerySelector) this.value).getSelectorType();
