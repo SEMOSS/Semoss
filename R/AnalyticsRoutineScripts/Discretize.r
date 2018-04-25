@@ -1,13 +1,17 @@
 discretizeColumnsDt <- function(dt, inputList=NULL){
 	#inputList = list(colName=list(breaks=..., labels=...), colName2=list(breaks2=..., labels2=...))
-	lapply(list('arules', 'dplyr', 'data.table'), require, character.only = TRUE)
-
+	lapply(list('dplyr', 'data.table'), require, character.only = TRUE)
+	if("arules" %in% (.packages()))  detach("package:arules", unload=TRUE) 
+	
 	#vector of indexes of requested-columns containing NAs
-	naColVector<- apply(dt[,names(inputList), with=FALSE], 2, function(x) any(is.na(x) | is.nan(x) |is.infinite(x))) 
+	naColVector<- sapply(dt[,names(inputList), with=FALSE], function(x) any(is.na(x) | is.nan(x) |is.infinite(x))) 
 	naColVector <- names(subset(naColVector, naColVector == TRUE))
 	if (length(naColVector) > 0) {
 		dt$generated_uuid99 <- seq.int(nrow(dt))
 	}
+	
+	#get max value from each requested-columns
+	maxValues <- sapply(dt[,names(inputList), with=FALSE], function(x) ceiling(max(x, na.rm = TRUE)))
 
 	#validate requested breaks
 	for (requestedColName in names(inputList)) {
@@ -26,8 +30,13 @@ discretizeColumnsDt <- function(dt, inputList=NULL){
 		(length(breaksItem) == 1 && (breaksItem > 1L && eval(parse(text=paste0("is.integer(", breaksItem ,"L)"))))) ||
 		(length(breaksItem) > 1))) {
 			labels <- inputList[[requestedColName]][["labels"]]
-			if (is.null(labels) || (!is.null(labels) && length(labels) == length(breaksItem) - 1)) {
+			if (is.null(labels) || (!is.null(labels) && ( (length(breaksItem) > 1 && length(labels) == length(breaksItem) - 1) || 
+			(length(breaksItem) == 1 && length(labels) == breaksItem) ))) {
 				if (length(breaksItem) > 1) inputList[[requestedColName]][["method"]] <- "'fixed'"
+				
+				if (is.null(inputList[[requestedColName]][["dig.lab"]])){
+					inputList[[requestedColName]][["dig.lab"]] <- nchar(maxValues[[requestedColName]]) + 3
+				}
 				
 				for (name in names(inputList[[requestedColName]])) {
 					valuesToSTring <- {
@@ -39,25 +48,12 @@ discretizeColumnsDt <- function(dt, inputList=NULL){
 				}
 				str <- substr(str,1,nchar(str)-2)
 			
-				newColName <- {
-					proposedColName <- paste0(requestedColName, "_Discretized")
-					nameGrepVec <- grep(proposedColName, names(dt))
-					if (length(nameGrepVec) == 0) {
-						proposedColName
-					} else {
-						existingColNames <- names(dt)[nameGrepVec]
-						if (length(existingColNames) == 1) {
-							paste0(requestedColName, "_Discretized_1")
-						} else {
-							largestIndex <- strsplit(existingColNames, '_Discretized_') %>% unlist(lapply(1:length(existingColNames), function(i) paste0(.[[i]][2]))) %>% as.integer(.) %>% max(., na.rm=TRUE) 
-							paste0(requestedColName, "_Discretized_", largestIndex+1)
-						}
-					}
-				}
+				newColName <- getNewColumnName(requestedColName, names(dt))
 				
-				if (length(grep(requestedColName, naColVector)) == 0) { #requestedCol has no NAs
+				if (length(grep(requestedColName, naColVector)) == 0) { 
 					dt[, (newColName):=eval(parse(text = paste0("discretize(dt[['", requestedColName, "']],", str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))]
-				} else { #requestedCol has NAs
+				} else { 
+					#requestedCol has NAs
 					subsetDt <- dt[complete.cases(dt[[requestedColName]]),c("generated_uuid99", requestedColName), with=FALSE]
 					subsetDt[, (newColName):=eval(parse(text = paste0("discretize(subsetDt[['", requestedColName, "']],", 	str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))][, eval(requestedColName):=NULL]
 					dt <- merge(x = dt, y = subsetDt, by = "generated_uuid99", all.x = TRUE)
@@ -68,4 +64,21 @@ discretizeColumnsDt <- function(dt, inputList=NULL){
 	dt[, generated_uuid99 := NULL]
 
 	return (dt)
+}
+
+
+getNewColumnName <- function(requestedColName, allColNames, colSuffix="_Discretized"){
+	proposedColName <- paste0(requestedColName, colSuffix)
+	nameGrepVec <- grep(proposedColName, allColNames)
+	if (length(nameGrepVec) == 0) {
+		proposedColName
+	} else {
+		existingColNames <- allColNames[nameGrepVec]
+		if (length(existingColNames) == 1) {
+			paste0(requestedColName, colSuffix, "_1")
+		} else {
+			largestIndex <- strsplit(existingColNames, paste0(colSuffix,'_')) %>% unlist(lapply(1:length(existingColNames), function(i) paste0(.[[i]][2]))) %>% as.integer(.) %>% max(., na.rm=TRUE) 
+			paste0(requestedColName, colSuffix, "_", largestIndex+1)
+		}
+	}
 }

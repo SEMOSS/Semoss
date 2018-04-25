@@ -94,6 +94,9 @@ import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.RNumericalCorrelationReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RClassificationAlgorithmRReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RClusteringAlgorithmRReactor;
 import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
@@ -807,6 +810,11 @@ public class ReactorFactory {
 		
 		// algorithms
 		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
+		rFrameHash.put("RunClustering", RClusteringAlgorithmRReactor.class);
+		rFrameHash.put("RunClassification", RClassificationAlgorithmRReactor.class);
+//		rFrameHash.put("RunRandomForest", RandomForestAlgorithmRReactor.class);
+		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
+
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
