@@ -24,15 +24,42 @@ public class QueryColumnSelectorAdapter extends TypeAdapter<QueryColumnSelector>
 			return null;
 		}
 		
-		String mapStr = in.nextString();
-
-		Map<String, String> map = GSON.fromJson(mapStr, Map.class);
 		QueryColumnSelector value = new QueryColumnSelector();
 		
-		value.setTable(map.get("table"));
-		value.setTableAlias(map.get("tableAlias"));
-		value.setColumn(map.get("column"));
-		value.setAlias(map.get("alias"));
+		/*
+		 * Sometimes, this comes in as an object, and other times as a string...
+		 * Need to come back and figure out why
+		 */
+		if(in.peek() == JsonToken.BEGIN_OBJECT) {
+			in.beginObject();
+			while(in.hasNext()) {
+				if(in.peek() == JsonToken.STRING) {
+					// this will be when we say this is a COLUMN
+				} else if(in.peek() == JsonToken.NAME) {
+					String key = in.nextName();
+					if(key.equals("selectorType")) {
+						// this will be when we say this is a COLUMN
+					} else if(key.equals("table")) {
+						value.setTable(in.nextString());
+					} else if(key.equals("tableAlias")) {
+						value.setTableAlias(in.nextString());
+					} else if(key.equals("column")) {
+						value.setColumn(in.nextString());
+					} else if(key.equals("alias")) {
+						value.setAlias(in.nextString());
+					}
+				}
+			}
+			in.endObject();
+		} else {
+			String mapStr = in.nextString();
+
+			Map<String, String> map = GSON.fromJson(mapStr, Map.class);
+			value.setTable(map.get("table"));
+			value.setTableAlias(map.get("tableAlias"));
+			value.setColumn(map.get("column"));
+			value.setAlias(map.get("alias"));
+		}
 		return value;
 	}
 
