@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.transformation.map;
+package prerna.sablecc2.reactor.task.lambda.map;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.Map;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 
-public class ToNumericTypeTransformation extends AbstractMapTransformation {
+public class ToUrlTypeLambda extends AbstractMapLambda {
 
 	private int numCols;
 	private List<Integer> colIndices;
@@ -19,16 +19,10 @@ public class ToNumericTypeTransformation extends AbstractMapTransformation {
 		for(int i = 0; i < numCols; i++) {
 			int indexToGet = colIndices.get(i).intValue();
 			// try to convert it
-			String val = values[indexToGet].toString();
-			try {
-				Double doubleVal = Double.parseDouble(val);
-				values[indexToGet] = doubleVal;
-			} catch(NumberFormatException e) {
-				values[indexToGet] = null;
-			}
+			values[indexToGet] = values[indexToGet].toString();
 		}
 		
-		return new HeadersDataRow(headers, values);
+		return new HeadersDataRow(headers, values);		
 	}
 	
 	@Override
@@ -39,7 +33,7 @@ public class ToNumericTypeTransformation extends AbstractMapTransformation {
 		List<Integer> indices = new ArrayList<Integer>();
 		int totalCols = headerInfo.size();
 		int inputCols = columns.size();
-
+		
 		// this modifies the header info map by reference
 		NEXT_COLUMN : for(int i = 0; i < inputCols; i++) {
 			String headerToConvert = columns.get(i);
@@ -50,7 +44,7 @@ public class ToNumericTypeTransformation extends AbstractMapTransformation {
 					// add the index to convert
 					// modify the type to double
 					indices.add(new Integer(j));
-					headerMap.put("type", "NUMBER");
+					headerMap.put("type", "URL");
 					continue NEXT_COLUMN;
 				}
 			}
@@ -59,5 +53,4 @@ public class ToNumericTypeTransformation extends AbstractMapTransformation {
 		this.colIndices = indices;
 		this.numCols = colIndices.size();
 	}
-	
 }

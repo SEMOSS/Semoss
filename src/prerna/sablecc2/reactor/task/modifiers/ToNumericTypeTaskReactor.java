@@ -6,8 +6,8 @@ import java.util.List;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
-import prerna.sablecc2.reactor.task.transformation.map.MapTransformationTask;
-import prerna.sablecc2.reactor.task.transformation.map.ToNumericTypeTransformation;
+import prerna.sablecc2.reactor.task.lambda.map.MapLambdaTask;
+import prerna.sablecc2.reactor.task.lambda.map.ToNumericTypeLambda;
 
 public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 
@@ -21,9 +21,9 @@ public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 		List<String> cols = getColumns();
 		
 		// create a new task and add to stores
-		MapTransformationTask newTask = new MapTransformationTask();
+		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
-		ToNumericTypeTransformation transformation = new ToNumericTypeTransformation();
+		ToNumericTypeLambda transformation = new ToNumericTypeLambda();
 		transformation.init(this.task.getHeaderInfo(), cols);
 		newTask.setTransformation(transformation);
 		newTask.setHeaderInfo(transformation.getModifiedHeaderInfo());
