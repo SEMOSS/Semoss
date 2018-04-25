@@ -27,29 +27,49 @@ public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelec
 			return null;
 		}
 
-		String mapStr = in.nextString();
-		Map<String, Object> map = GSON.fromJson(mapStr, Map.class);
-		
 		QueryFunctionSelector value = new QueryFunctionSelector();
-		value.setFunction(map.get("function") + "");
+
+		List<String> gsonInnerSelectors = new Vector<String>();
+		List<String> innerSelectorTypes = new Vector<String>();
 		
-		List<String> gsonInnerSelectors = (List<String>) map.get("innerSelectors");
-		List<String> innerSelectorTypes = (List<String>) map.get("innerSelectorTypes");
+		in.beginObject();
+		while(in.hasNext()) {
+			if(in.peek() == JsonToken.STRING) {
+				// this will be when we say this is a FUNCTION
+			} else if(in.peek() == JsonToken.NAME){
+				String key = in.nextName();
+				if(key.equals("selectorType")) {
+					// this will be when we say this is a FUNCTION
+					in.nextString();
+				} else if(key.equals("alias")) {
+					value.setAlias(in.nextString());
+				} else if(key.equals("distinct")) {
+					value.setDistinct(in.nextBoolean());
+				} else if(key.equals("colCast")) {
+					value.setColCast(in.nextString());
+				} else if(key.equals("function")) {
+					value.setFunction(in.nextString());
+				} else if(key.equals("innerSelectors")) {
+					in.beginArray();
+					while(in.hasNext()) {
+						gsonInnerSelectors.add(in.nextString());
+					}
+					in.endArray();
+				} else if(key.equals("innerSelectorTypes")) {
+					in.beginArray();
+					while(in.hasNext()) {
+						innerSelectorTypes.add(in.nextString());
+					}
+					in.endArray();
+				}
+			}
+		}
+		in.endObject();
+		
 		for(int iSelectorIndex = 0; iSelectorIndex < gsonInnerSelectors.size(); iSelectorIndex++) {
 			String gsonInnerSelector = gsonInnerSelectors.get(iSelectorIndex);
 			SELECTOR_TYPE type = IQuerySelector.convertStringToSelectorType(innerSelectorTypes.get(iSelectorIndex));
 			value.addInnerSelector( (IQuerySelector) IQuerySelector.getGson().fromJson(gsonInnerSelector, IQuerySelector.getQuerySelectorClassFromType(type)) );
-		}
-
-		// optional setters
-		if(map.containsKey("alias")) {
-			value.setAlias(map.get("alias") + "");
-		}
-		if(map.containsKey("distinct")) {
-			value.setDistinct( (boolean) map.get("distinct"));
-		}
-		if(map.containsKey("colCast")) {
-			value.setColCast(map.get("colCast") + "");
 		}
 
 		return value;

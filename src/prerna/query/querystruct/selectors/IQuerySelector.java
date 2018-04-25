@@ -5,6 +5,7 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.query.querystruct.selectors.adapters.IQuerySelectorAdaper;
 import prerna.query.querystruct.selectors.adapters.QueryArithmeticSelectorAdapter;
 import prerna.query.querystruct.selectors.adapters.QueryColumnSelectorAdapter;
 import prerna.query.querystruct.selectors.adapters.QueryConstantSelectorAdapter;
@@ -61,20 +62,18 @@ public interface IQuerySelector {
 
 	static Gson getGson() {
 		GsonBuilder gson = new GsonBuilder();
-		gson.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter());
-		gson.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter());
-		gson.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter());
-		gson.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter());
-		gson.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter());
+		appendQueryAdapters(gson);
 		return gson.create();
 	}
 	
 	static GsonBuilder appendQueryAdapters(GsonBuilder gson) {
+		gson.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdaper());
 		gson.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter());
 		gson.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter());
 		gson.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter());
 		gson.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter());
 		gson.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter());
+//		gson.registerTypeAdapter(QueryStruct2.class, new QueryStructAdapter());
 		return gson;
 	}
 	
