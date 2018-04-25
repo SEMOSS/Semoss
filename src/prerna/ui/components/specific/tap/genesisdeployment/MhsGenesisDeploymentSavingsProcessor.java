@@ -628,10 +628,16 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					case "FY24" : position = 10; break;
 					case "FY25" : position = 11; break;
 					case "FY26" : position = 12; break;
+					case "FY27" : position = 13; break;
+					case "FY28" : position = 14; break;
+					case "FY29" : position = 15; break;
+					case "FY30" : position = 16; break;
+					case "FY31" : position = 17; break;
+					case "FY32" : position = 18; break;
 					}
 
 					// if anything older than FY15, just ignore it
-					if(position == -1) {
+					if(position == -1 || position >= systemSustainmentFrameSize) {
 						continue;
 					}
 
@@ -841,10 +847,16 @@ public class MhsGenesisDeploymentSavingsProcessor {
 							case "FY24" : position = 11; break;
 							case "FY25" : position = 12; break;
 							case "FY26" : position = 13; break;
+							case "FY27" : position = 14; break;
+							case "FY28" : position = 15; break;
+							case "FY29" : position = 16; break;
+							case "FY30" : position = 17; break;
+							case "FY31" : position = 18; break;
+							case "FY32" : position = 19; break;
 							}
 
 							// if anything older than FY15, just ignore it
-							if(position == -1) {
+							if(position == -1 || position >= systemSustainmentFrameSize) {
 								continue;
 							}
 

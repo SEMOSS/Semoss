@@ -149,7 +149,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 
 		ArrayList<String> fysQueryString = new ArrayList<String>(); // FY15
 		ArrayList<String> fysLabel = new ArrayList<String>(); // 2015
-		for (int i = 15; i <= 26; i++) {
+		for (int i = 15; i < (15+this.numColumns); i++) {
 			fysQueryString.add("FY" + i);
 			fysLabel.add("20" + i);
 		}
@@ -367,7 +367,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	private ArrayList<String> createSytemHeaders() {
 		ArrayList systemHeaders = new ArrayList<>();
 		systemHeaders.add("System");
-		for(int i = 15; i <=25; i++) {
+		for(int i = 15; i < (15+this.numColumns); i++) {
 			systemHeaders.add("FY"+i);
 		}
 		systemHeaders.add("Total");
@@ -392,7 +392,7 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	private ArrayList<String> createSiteQueryHeaders() {
 		ArrayList siteHeaders = new ArrayList<>();
 		siteHeaders.add("Site");
-		for(int i = 15; i <=25; i++) {
+		for(int i = 15; i < (15+this.numColumns); i++) {
 			siteHeaders.add("FY"+i);
 		}
 		siteHeaders.add("Total");
