@@ -24,10 +24,10 @@ public class GenericMapLambdaTaskReactor extends AbstractLambdaTaskReactor {
 
 		// create the transformation
 		// TODO: do this by reflection?
-		GenericMapLambda transformation = new GenericMapLambda();
+		GenericMapLambda lambda = new GenericMapLambda();
 		try {
-			transformation.init(code, imports);
-			transformation.setUser2(this.insight.getUser2());
+			lambda.init(code, imports);
+			lambda.setUser2(this.insight.getUser2());
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with creating generic lambda!");			
@@ -36,7 +36,7 @@ public class GenericMapLambdaTaskReactor extends AbstractLambdaTaskReactor {
 		// create a new task and add to stores
 		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
-		newTask.setTransformation(transformation);
+		newTask.setLambda(lambda);
 		this.task = newTask;
 		this.insight.getTaskStore().addTask(this.task);
 	}

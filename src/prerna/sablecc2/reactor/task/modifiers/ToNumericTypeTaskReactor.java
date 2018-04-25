@@ -25,7 +25,7 @@ public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 		newTask.setInnerTask(this.task);
 		ToNumericTypeLambda transformation = new ToNumericTypeLambda();
 		transformation.init(this.task.getHeaderInfo(), cols);
-		newTask.setTransformation(transformation);
+		newTask.setLambda(transformation);
 		newTask.setHeaderInfo(transformation.getModifiedHeaderInfo());
 		this.task = newTask;
 		this.insight.getTaskStore().addTask(this.task);
