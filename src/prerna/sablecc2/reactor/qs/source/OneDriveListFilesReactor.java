@@ -10,11 +10,9 @@ import java.util.Map;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
-import prerna.io.connector.IConnectorIOp;
 import prerna.om.RemoteItem;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.security.AbstractHttpHelper;
@@ -44,13 +42,10 @@ public class OneDriveListFilesReactor extends AbstractReactor{
 
 		try{
 			if(user==null){
-				SemossPixelException exception = new SemossPixelException();
-				exception.setContinueThreadOfExecution(false);
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "microsoft");
 				retMap.put("message", "Please login to your Microsoft account");
-				exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-				throw exception;
+				throwLoginError(retMap);
 			}
 			else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.AZURE_GRAPH.name());
@@ -58,13 +53,10 @@ public class OneDriveListFilesReactor extends AbstractReactor{
 			}
 		}
 		catch (Exception e) {
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "microsoft");
 			retMap.put("message", "Please login to your Microsoft account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 
 		//add in params for the get call

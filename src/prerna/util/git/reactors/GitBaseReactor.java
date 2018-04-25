@@ -32,7 +32,7 @@ public abstract class GitBaseReactor extends AbstractReactor {
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "git");
 			retMap.put("message", "Please login to your Git account");
-			throwError(retMap);
+			throwLoginError(retMap);
 		}
 
 		return gitAccess.getAccess_token();

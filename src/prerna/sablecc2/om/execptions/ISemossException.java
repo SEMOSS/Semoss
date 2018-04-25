@@ -22,11 +22,6 @@ public interface ISemossException {
 	 * Get additional metadata to send to the FE when this exception occurs
 	 * @return
 	 */
-	NounMetadata getAdditionalReturn();
+	NounMetadata getNoun();
 	
-	/**
-	 * Set additional metadata to send to the FE when this exception occurs
-	 * @param noun
-	 */
-	void setAdditionalReturn(NounMetadata noun);
 }

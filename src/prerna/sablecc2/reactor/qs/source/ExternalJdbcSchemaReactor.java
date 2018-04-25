@@ -47,7 +47,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		try {
 			con = RdbmsConnectionHelper.buildConnection(driver, host, port, username, password, schema, additionalProperties);
 		} catch (SQLException e) {
-			throw new SemossPixelException("Unable to establish connection");
+			throw new SemossPixelException(new NounMetadata("Unable to establish connection given the connection details", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
 		// tablename
@@ -58,14 +58,14 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		try {
 			meta = con.getMetaData();
 		} catch (SQLException e) {
-			throw new SemossPixelException("Unable to get database metadata");
+			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
 		ResultSet tablesRs;
 		try {
 			tablesRs = meta.getTables(null, null, null, new String[] { "TABLE" });
 		} catch (SQLException e) {
-			throw new SemossPixelException("Unable to get tables from database metadata");
+			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
 		final String TABLE_KEY = "table";

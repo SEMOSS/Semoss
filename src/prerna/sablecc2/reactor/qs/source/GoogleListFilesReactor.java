@@ -9,14 +9,11 @@ import java.util.Map;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
-import prerna.io.connector.IConnectorIOp;
 import prerna.om.RemoteItem;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
 
@@ -55,13 +52,10 @@ public class GoogleListFilesReactor extends AbstractReactor{
 		User2 user = this.insight.getUser2();
 		try{
 			if(user==null){
-				SemossPixelException exception = new SemossPixelException();
-				exception.setContinueThreadOfExecution(false);
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
-				exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-				throw exception;
+				throwLoginError(retMap);
 			}
 			else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE.name());
@@ -69,13 +63,10 @@ public class GoogleListFilesReactor extends AbstractReactor{
 			}
 		}
 		catch (Exception e) {
-			SemossPixelException exception = new SemossPixelException();
-			exception.setContinueThreadOfExecution(false);
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
-			exception.setAdditionalReturn(new NounMetadata(retMap, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR));
-			throw exception;
+			throwLoginError(retMap);
 		}
 
 
