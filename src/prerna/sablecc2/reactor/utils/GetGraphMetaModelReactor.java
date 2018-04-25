@@ -85,7 +85,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 			Map<String, ArrayList<String>> edgeMap = new HashMap<>();
-			Map<String, HashMap<String, String>> nodes = new HashMap<>();
+			Map<String, HashMap<String, Map<String, Object>>> nodes = new HashMap<>();
 			
 			/*
 			 * Get Nodes and Edges
@@ -97,17 +97,20 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 				while (gtTest.hasNext()) {
 					String vLabel = (String) gtTest.next();
 					GraphTraversal propTraversal = g.traversal().V().hasLabel(vLabel).valueMap();
-					HashMap<String, String> propMap = new HashMap<>();
+					HashMap<String, Map<String, Object>> propMap = new HashMap<>();
 					int i = 0;
 					int limit = 25;
 					boolean next = true;
 					while (propTraversal.hasNext() && next) {
 						Map<Object, Object> propsList = (Map<Object, Object>) propTraversal.next();
+
 						for (Object key : propsList.keySet()) {
+							Map<String, Object> propHash = new HashMap<>();
 							// TODO get type of property
 							Object value = propsList.get(key);
 							String propType = "String";
-							propMap.put((String) key, propType);
+							propHash.put("type", propType);
+							propMap.put((String) key, propHash);
 						}
 						i++;
 						if (i <= limit) {
