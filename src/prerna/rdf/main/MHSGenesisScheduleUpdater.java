@@ -91,6 +91,22 @@ public class MHSGenesisScheduleUpdater {
 			
 			System.out.println("Add wave to dc site " + Arrays.toString(rel));
 			addRel(engine, rel);
+			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
+			rel[1] = "http://semoss.org/ontologies/Relation/" + relName;
+			rel[2] = "http://health.mil/ontologies/Concept/DCSite/" + dcSite;
+			
+			System.out.println("Add wave to dc site " + Arrays.toString(rel));
+			addRel(engine, rel);
+			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
+			rel[1] = "http://semoss.org/ontologies/Relation";
+			rel[2] = "http://health.mil/ontologies/Concept/DCSite/" + dcSite;
+			
+			System.out.println("Add wave to dc site " + Arrays.toString(rel));
+			addRel(engine, rel);
 		}
 	}
 
@@ -180,6 +196,22 @@ public class MHSGenesisScheduleUpdater {
 			System.out.println("Add wave to year quarter " + Arrays.toString(rel));
 			addRel(engine, rel);
 			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
+			rel[1] = "http://health.mil/ontologies/Relation/" + relName;
+			rel[2] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
+			
+			System.out.println("Add wave to year quarter " + Arrays.toString(rel));
+			addRel(engine, rel);
+			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
+			rel[1] = "http://health.mil/ontologies/Relation";
+			rel[2] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
+			
+			System.out.println("Add wave to year quarter " + Arrays.toString(rel));
+			addRel(engine, rel);
+			
 			// add wave in case it doesn't exist as a concept
 			rel = new Object[3];
 			rel[0] = "http://health.mil/ontologies/Concept/Wave/" + wave;
@@ -212,6 +244,23 @@ public class MHSGenesisScheduleUpdater {
 			System.out.println("Add year quarter to year " + Arrays.toString(rel));
 			addRel(engine, rel);
 			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
+			rel[1] = "http://semoss.org/ontologies/Relation/has";
+			rel[2] = "http://health.mil/ontologies/Concept/Year/" + year;
+			
+			System.out.println("Add year quarter to year " + Arrays.toString(rel));
+			addRel(engine, rel);
+
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
+			rel[1] = "http://semoss.org/ontologies/Relation";
+			rel[2] = "http://health.mil/ontologies/Concept/Year/" + year;
+			
+			System.out.println("Add year quarter to year " + Arrays.toString(rel));
+			addRel(engine, rel);
+
+			
 			// add year in case it doesn't exist
 			rel = new Object[3];
 			rel[0] = "http://health.mil/ontologies/Concept/Year/" + year;
@@ -229,6 +278,24 @@ public class MHSGenesisScheduleUpdater {
 			
 			System.out.println("Add year quarter to year " + Arrays.toString(rel));
 			addRel(engine, rel);
+			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
+			rel[1] = "http://semoss.org/ontologies/Relation/has";
+			rel[2] = "http://health.mil/ontologies/Concept/Quarter/" + quarter;
+			
+			System.out.println("Add year quarter to year " + Arrays.toString(rel));
+			addRel(engine, rel);
+
+			
+			rel = new Object[3];
+			rel[0] = "http://health.mil/ontologies/Concept/Year-Quarter/" + yearQuarter;
+			rel[1] = "http://semoss.org/ontologies/Relation";
+			rel[2] = "http://health.mil/ontologies/Concept/Quarter/" + quarter;
+			
+			System.out.println("Add year quarter to year " + Arrays.toString(rel));
+			addRel(engine, rel);
+
 			
 			// add quarter in case it doesn't exist
 			rel = new Object[3];
@@ -256,7 +323,7 @@ public class MHSGenesisScheduleUpdater {
 		del[1] = rel[1];
 		del[2] = rel[2];
 		del[3] = true;
-		engine.doAction(ACTION_TYPE.REMOVE_STATEMENT, del);
+		engine.doAction(ACTION_TYPE.ADD_STATEMENT, del);
 	}
 	
 }
