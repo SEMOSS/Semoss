@@ -30,6 +30,9 @@ package prerna.ui.components;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -43,9 +46,13 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.AbstractCSVFileReader;
 import prerna.poi.main.AbstractFileReader;
 import prerna.poi.main.CSVReader;
@@ -295,6 +302,20 @@ public class ImportDataProcessor {
 		default : String errorMessage = "Import type, " + importType + ", in a RDF database format is not supported";
 				  throw new IOException(errorMessage);
 		}	
+		
+		// write type map to tinker prop file
+		if (engine.getEngineType() == IEngine.ENGINE_TYPE.TINKER) {
+			Map<String, String> typeMap = ((TinkerEngine) engine).getTypeMap();
+			Gson gson = new GsonBuilder().create();
+			String json = gson.toJson(typeMap);
+			String mapProp = "TYPE_MAP" + "\t" + json + "\n";
+			try {
+				Files.write(Paths.get(options.getSMSSLocation()), mapProp.getBytes(), StandardOpenOption.APPEND);
+			} catch (IOException e) {
+				throw new IOException("Unable to add type map to smms.");
+			}
+		}
+		
 		return engine;
 	}
 
