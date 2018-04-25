@@ -6,9 +6,9 @@ import java.util.List;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
-import prerna.sablecc2.reactor.task.transformation.map.IMapTransformation;
-import prerna.sablecc2.reactor.task.transformation.map.MapTransformationTask;
-import prerna.sablecc2.reactor.task.transformation.map.MapTransformations;
+import prerna.sablecc2.reactor.task.lambda.map.IMapLambda;
+import prerna.sablecc2.reactor.task.lambda.map.MapLambdaFactory;
+import prerna.sablecc2.reactor.task.lambda.map.MapLambdaTask;
 
 public class MapLambdaTaskReactor extends TaskBuilderReactor {
 
@@ -26,7 +26,7 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 		String transformationName = getTransformation();
 		List<String> columns = getColumns();
 		
-		IMapTransformation trans = MapTransformations.getTransformation(transformationName);
+		IMapLambda trans = MapLambdaFactory.getTransformation(transformationName);
 		if(trans == null) {
 			throw new IllegalArgumentException("Unknown transformation type");
 		}
@@ -34,7 +34,7 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 		trans.init(this.task.getHeaderInfo(), columns);
 		
 		// create a new task and add to stores
-		MapTransformationTask newTask = new MapTransformationTask();
+		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
 		newTask.setTransformation(trans);
 		newTask.setHeaderInfo(trans.getModifiedHeaderInfo());
