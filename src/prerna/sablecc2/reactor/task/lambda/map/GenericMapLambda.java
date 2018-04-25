@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.transformation.map;
+package prerna.sablecc2.reactor.task.lambda.map;
 
 import java.util.List;
 import java.util.Map;
@@ -7,18 +7,18 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.reactor.ClassMaker;
 import prerna.util.Utility;
 
-public class GenericMapTransformation extends AbstractMapTransformation {
+public class GenericMapLambda extends AbstractMapLambda {
 
-	private static final String CLASS_NAME = BaseMapTransformation.class.getName();
-	private IMapTransformation generatedClass;
+	private static final String CLASS_NAME = BaseMapLambda.class.getName();
+	private IMapLambda generatedClass;
 
-	public GenericMapTransformation() {
+	public GenericMapLambda() {
 		
 	}
 	
 	public void init(String code, List<String> imports) throws InstantiationException, IllegalAccessException {
 		// class maker will help us compile our new lambda function 
-		ClassMaker myClass = new ClassMaker("prerna.sablecc2.reactor.task.transformation.map", "c" + Utility.getRandomString(12));
+		ClassMaker myClass = new ClassMaker("prerna.sablecc2.reactor.task.lambda.map", "c" + Utility.getRandomString(12));
 		// extends the map transformation interface
 		myClass.addSuper(CLASS_NAME);
 		// add all the imports
@@ -39,7 +39,7 @@ public class GenericMapTransformation extends AbstractMapTransformation {
 		
 		// now generate the new transformation class
 		// which will override the process method
-		this.generatedClass = (BaseMapTransformation) myClass.toClass().newInstance();
+		this.generatedClass = (BaseMapLambda) myClass.toClass().newInstance();
 	}
 	
 	@Override
@@ -60,9 +60,9 @@ public class GenericMapTransformation extends AbstractMapTransformation {
  * Cannot use the interface or will get an error
  *
  */
-class BaseMapTransformation extends AbstractMapTransformation {
+class BaseMapLambda extends AbstractMapLambda {
 
-	public BaseMapTransformation() {
+	public BaseMapLambda() {
 		
 	}
 	

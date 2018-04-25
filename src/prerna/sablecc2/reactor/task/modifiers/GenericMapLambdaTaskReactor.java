@@ -2,8 +2,8 @@ package prerna.sablecc2.reactor.task.modifiers;
 
 import java.util.List;
 
-import prerna.sablecc2.reactor.task.transformation.map.GenericMapTransformation;
-import prerna.sablecc2.reactor.task.transformation.map.MapTransformationTask;
+import prerna.sablecc2.reactor.task.lambda.map.GenericMapLambda;
+import prerna.sablecc2.reactor.task.lambda.map.MapLambdaTask;
 
 public class GenericMapLambdaTaskReactor extends AbstractLambdaTaskReactor {
 
@@ -24,7 +24,7 @@ public class GenericMapLambdaTaskReactor extends AbstractLambdaTaskReactor {
 
 		// create the transformation
 		// TODO: do this by reflection?
-		GenericMapTransformation transformation = new GenericMapTransformation();
+		GenericMapLambda transformation = new GenericMapLambda();
 		try {
 			transformation.init(code, imports);
 			transformation.setUser2(this.insight.getUser2());
@@ -34,7 +34,7 @@ public class GenericMapLambdaTaskReactor extends AbstractLambdaTaskReactor {
 		}
 
 		// create a new task and add to stores
-		MapTransformationTask newTask = new MapTransformationTask();
+		MapLambdaTask newTask = new MapLambdaTask();
 		newTask.setInnerTask(this.task);
 		newTask.setTransformation(transformation);
 		this.task = newTask;

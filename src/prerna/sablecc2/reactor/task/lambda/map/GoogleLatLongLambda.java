@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.transformation.map;
+package prerna.sablecc2.reactor.task.lambda.map;
 
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -13,7 +13,7 @@ import prerna.om.GeoLocation;
 import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
-public class GoogleLatLongTransformation extends AbstractMapTransformation {
+public class GoogleLatLongLambda extends AbstractMapLambda {
 
 	// col index we care about to get lat/long from
 	private int colIndex;
