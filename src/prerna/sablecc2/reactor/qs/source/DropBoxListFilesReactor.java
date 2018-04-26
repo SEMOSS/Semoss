@@ -33,7 +33,7 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 
 		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
 		String [] beanProps = {"name", "path"}; // add is done when you have a list
-		String jsonPattern = "matches[].[metadata.name, metadata.path_lower]";
+		String jsonPattern = "matches[].{name:metadata.name, path:metadata.path_lower}";
 
 		//api string
 		String url_str = "https://api.dropboxapi.com/2/files/search";
@@ -49,8 +49,8 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX.name());
-				accessToken=msToken.getAccess_token();
+				AccessToken dropToken = user.getAccessToken(AuthProvider.DROPBOX.name());
+				accessToken=dropToken.getAccess_token();
 			}
 		}
 		catch (Exception e) {
