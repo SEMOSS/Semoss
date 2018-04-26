@@ -97,8 +97,8 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		
 		// we need to know the length of the table 
 		int dataLength = this.rJavaTranslator.getNumRows(resultsList + "[[2]]");
-		Object[][] retDataOutput = new Object[dataLength][2];
-		String[] dataTableHeaders = new String[]{"Actual", "Fitted"};
+		Object[][] retDataOutput = new Object[dataLength][3];
+		String[] dataTableHeaders = new String[]{"ROW_ID", "Actual", "Fitted"};
 		
 		// query for retrieving the second item of the list - the Actuals vs Fitted
 		String queryDataPoints = resultsList + "[[2]]";
@@ -109,7 +109,7 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		}
 		
 		// create and return a task for the Actuals vs Fitted scatterplot
-		Map<String, Object> taskData = getScatterPlotData(panelId, "Actual", "Fitted", retDataOutput);
+		Map<String, Object> taskData = getScatterPlotData(panelId, "ROW_ID", "Actual", "Fitted", retDataOutput);
 		
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + resultsList + "); gc();");
