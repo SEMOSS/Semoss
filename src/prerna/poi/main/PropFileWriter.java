@@ -69,7 +69,8 @@ public class PropFileWriter {
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	SQLQueryUtil queryUtil;
 
-	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default 
+	// additional tinker props
+	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default
 
 	// TODO Change variable names, should we change default.properties to default.smss?
 	public void runWriter(String dbName, String dbPropFile, ImportOptions.DB_TYPE dbType) throws IllegalArgumentException, FileNotFoundException, IOException 
@@ -247,15 +248,15 @@ public class PropFileWriter {
 				// tinker-specific properties
 				// neo4j does not have an extension
 				// basefolder/db/engine/engine
+				String tinkerPath = " @BaseFolder@" + System.getProperty("file.separator") + "db"
+						+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
+						+ "@ENGINE@";
+
 				if (this.tinkerDriverType == TINKER_DRIVER.NEO4J) {
-					pw.write(Constants.TINKER_FILE + " @BaseFolder@" + System.getProperty("file.separator") + "db"
-							+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
-							+ "@ENGINE@\n");
+					pw.write(Constants.TINKER_FILE + tinkerPath + "\n");
 				} else {
 					// basefolder/db/engine/engine.driverTypeExtension
-					pw.write(Constants.TINKER_FILE + " @BaseFolder@" + System.getProperty("file.separator") + "db"
-							+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
-							+ "@ENGINE@." + this.tinkerDriverType + "\n");
+					pw.write(Constants.TINKER_FILE + tinkerPath + "." + this.tinkerDriverType + "\n");
 				}
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultTinkerEngine + "\n");
 				pw.write(Constants.TINKER_DRIVER + "\t" + this.tinkerDriverType + "\n");
