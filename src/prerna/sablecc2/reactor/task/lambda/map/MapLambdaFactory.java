@@ -19,6 +19,7 @@ public class MapLambdaFactory {
 		mapLambdas.put("TONUMERIC", ToNumericTypeLambda.class);
 		mapLambdas.put("TOURL", ToUrlTypeLambda.class);
 		mapLambdas.put("GOOGLELATLONG", GoogleLatLongLambda.class);
+		mapLambdas.put("TWITTERSEARCH", TwitterSearchLambda.class);
 	}
 
 	public static IMapLambda getLambda(String transType) {
