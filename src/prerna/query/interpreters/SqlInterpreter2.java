@@ -570,30 +570,23 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
 		QueryStruct2 subQs = (QueryStruct2) rightComp.getValue();
-		SqlInterpreter2 innerInterpreter;
-		try {
-			innerInterpreter = this.getClass().newInstance();
-			if(this.frame != null) {
-				subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
-			}
-			innerInterpreter.setQueryStruct(subQs);
-			innerInterpreter.setLogger(this.logger);
-			String innerQuery = innerInterpreter.composeQuery();
-			
-			StringBuilder filterBuilder = new StringBuilder(leftSelectorExpression);
-			if(thisComparator.trim().equals("==")) {
-				filterBuilder .append(" IN ( ").append(innerQuery).append(" ) ");
-			} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append(" NOT IN ( ").append(innerQuery).append(" ) ");
-			} else {
-				filterBuilder.append(" ").append(thisComparator).append(" (").append(innerQuery).append(")");
-			}
-			return filterBuilder;
-		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+		SqlInterpreter2 innerInterpreter = new SqlInterpreter2();
+		if(this.frame != null) {
+			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
 		}
-	
-		return null;
+		innerInterpreter.setQueryStruct(subQs);
+		innerInterpreter.setLogger(this.logger);
+		String innerQuery = innerInterpreter.composeQuery();
+		
+		StringBuilder filterBuilder = new StringBuilder(leftSelectorExpression);
+		if(thisComparator.trim().equals("==")) {
+			filterBuilder .append(" IN ( ").append(innerQuery).append(" ) ");
+		} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+			filterBuilder.append(" NOT IN ( ").append(innerQuery).append(" ) ");
+		} else {
+			filterBuilder.append(" ").append(thisComparator).append(" (").append(innerQuery).append(")");
+		}
+		return filterBuilder;
 	}
 
 	/**
