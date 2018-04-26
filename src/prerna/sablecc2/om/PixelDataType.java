@@ -16,7 +16,7 @@ public enum PixelDataType {
 	JOIN ("JOIN"),									// join object
 	CODE ("CODE"),									// code block
 	VARIABLE ("VARIABLE"),							// name of existing variable
-	QUERY_STRUCT ("QUERYSTRUCT"),					// qs
+	QUERY_STRUCT ("QUERY_STRUCT"),					// qs
 	RAW_DATA_SET ("DATA"),							// raw data - usually from job
 	FORMATTED_DATA_SET ("FDATA"),					// formatted data - for FE
 	TASK ("TASK"),									// task
