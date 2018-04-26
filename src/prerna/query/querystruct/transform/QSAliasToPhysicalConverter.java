@@ -22,6 +22,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.gson.GsonUtility;
 
 public class QSAliasToPhysicalConverter {
 
@@ -189,7 +190,7 @@ public class QSAliasToPhysicalConverter {
 			// position 1 is the query type
 			// position 2 is the json
 			IQuerySelector.SELECTOR_TYPE type = IQuerySelector.convertStringToSelectorType(selectorData[1].toString());
-			IQuerySelector selector = (IQuerySelector) IQuerySelector.getGson().fromJson(selectorData[2].toString(), IQuerySelector.getQuerySelectorClassFromType(type));
+			IQuerySelector selector = (IQuerySelector) GsonUtility.getDefaultGson().fromJson(selectorData[2].toString(), IQuerySelector.getQuerySelectorClassFromType(type));
 			return selector;
 		}
 		

@@ -18,10 +18,10 @@ import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -29,6 +29,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
 public class ImportUtility {
 
@@ -692,7 +693,7 @@ public class ImportUtility {
 				// so i will go ahead and generate the original selector
 				metaData.setSelectorComplex(alias, true);
 				metaData.setSelectorTypeToVertex(alias, selector.getSelectorType());
-				metaData.setSelectorObject(alias, IQuerySelector.getGson().toJson(selector));
+				metaData.setSelectorObject(alias, GsonUtility.getDefaultGson().toJson(selector));
 			}
 		}
 		

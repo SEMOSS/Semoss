@@ -2,6 +2,12 @@ package prerna.query.querystruct.filters;
 
 import java.util.Set;
 
+import com.google.gson.TypeAdapter;
+
+import prerna.util.gson.QueryColumnSelectorAdapter;
+import prerna.util.gson.QueryFunctionSelectorAdapter;
+import prerna.util.gson.SimpleQueryFilterAdapter;
+
 public interface IQueryFilter {
 
 	enum QUERY_FILTER_TYPE {AND, OR, SIMPLE, SUBQUERY};
@@ -140,5 +146,62 @@ public interface IQueryFilter {
 		}
 		return false;
 	}
+
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+
+	/*
+	 * 
+	 * Methods around serialization
+	 * 
+	 */
+
+	
+	static TypeAdapter getAdapterForFilter(QUERY_FILTER_TYPE type) {
+		if(type == QUERY_FILTER_TYPE.SIMPLE) {
+			return new SimpleQueryFilterAdapter();
+		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
+			return new QueryColumnSelectorAdapter();
+		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
+			return new QueryFunctionSelectorAdapter();
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Convert string to SELECTOR_TYPE
+	 * @param s
+	 * @return
+	 */
+	static QUERY_FILTER_TYPE convertStringToFilterType(String s) {
+		if(s.equals(QUERY_FILTER_TYPE.SIMPLE.toString())) {
+			return QUERY_FILTER_TYPE.SIMPLE;
+		} else if(s.equals(QUERY_FILTER_TYPE.OR.toString())) {
+			return QUERY_FILTER_TYPE.OR;
+		} else if(s.equals(QUERY_FILTER_TYPE.AND.toString())) {
+			return QUERY_FILTER_TYPE.AND;
+		} else if(s.equals(QUERY_FILTER_TYPE.SUBQUERY.toString())) {
+			return QUERY_FILTER_TYPE.SUBQUERY;
+		}
+		
+		return null;
+	}
+	
+//	static TypeAdapter getAdapterForSelector(QUERY_FILTER_TYPE type) {
+//		if(type == QUERY_FILTER_TYPE.SIMPLE) {
+//			return new QueryOpaqueSelectorAdapter();
+//		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
+//			return new QueryColumnSelectorAdapter();
+//		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
+//			return new QueryFunctionSelectorAdapter();
+//		}
+//		
+//		return null;
+//	}
+//	
+//	
+
 
 }

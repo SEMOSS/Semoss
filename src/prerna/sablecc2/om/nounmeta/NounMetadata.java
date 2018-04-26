@@ -1,18 +1,13 @@
 package prerna.sablecc2.om.nounmeta;
 
-import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Vector;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
-import prerna.date.SemossDate;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SemossDateAdapter;
+import prerna.util.gson.GsonUtility;
 
 public class NounMetadata {
 	
@@ -94,18 +89,13 @@ public class NounMetadata {
 		if(this.noun == PixelDataType.NULL_VALUE) {
 			return this;
 		}
-
-		GsonBuilder gsonBuilder = new GsonBuilder()
-				.disableHtmlEscaping()
-				.excludeFieldsWithModifiers(Modifier.TRANSIENT)
-				.excludeFieldsWithModifiers(Modifier.STATIC)
-				.registerTypeAdapter(Double.class, new NumberAdapter())
-				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter());
-
-		gsonBuilder = IQuerySelector.appendQueryAdapters(gsonBuilder);		
-		Gson gson = gsonBuilder.create();
+		
+		Gson gson = GsonUtility.getDefaultGson();
+		String str = gson.toJson(this);
+		NounMetadata n = gson.fromJson(str, NounMetadata.class);
 		
 		Class<? extends Object> valueClass = value.getClass();
+		System.out.println(valueClass);
 		Object cloneValue = cloneValue = gson.fromJson(gson.toJson(value), valueClass);
 		
 		return new NounMetadata(cloneValue, this.noun, this.opType);
