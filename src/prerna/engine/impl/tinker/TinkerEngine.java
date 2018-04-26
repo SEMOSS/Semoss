@@ -1,5 +1,6 @@
 package prerna.engine.impl.tinker;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -62,6 +63,10 @@ public class TinkerEngine extends AbstractEngine {
 			}
 		}
 		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
+			File neoDir = new File(fileName);
+			if(!neoDir.exists()) {
+				neoDir.mkdirs();
+			}
 			g = Neo4jGraph.open(fileName);
 		} else {
 			g = TinkerGraph.open();
@@ -98,7 +103,7 @@ public class TinkerEngine extends AbstractEngine {
 					yes.readGraph(fileName);
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		}
 	}

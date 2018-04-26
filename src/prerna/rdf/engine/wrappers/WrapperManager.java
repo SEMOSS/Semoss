@@ -30,6 +30,7 @@ package prerna.rdf.engine.wrappers;
 import org.apache.log4j.Logger;
 
 import prerna.ds.TinkerHeadersDataRowIterator2;
+import prerna.ds.TinkerHeadersDataRowIteratorMap;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.ds.datastax.DataStaxGraphIterator;
 import prerna.engine.api.IConstructWrapper;
@@ -44,6 +45,7 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.web.WebWrapper;
 import prerna.query.interpreters.DataStaxInterpreter;
 import prerna.query.interpreters.GremlinInterpreter2;
+import prerna.query.interpreters.GremlinMapInterp;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SolrInterpreter2;
 import prerna.query.querystruct.QueryStruct2;
@@ -113,9 +115,10 @@ public class WrapperManager {
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
-			GremlinInterpreter2 interpreter = new GremlinInterpreter2( ((TinkerEngine) engine).getGraph());
+			GremlinMapInterp interpreter = new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap());
 			interpreter.setQueryStruct(qs);
-			returnWrapper = new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interpreter.composeIterator(), qs), qs);
+			returnWrapper = new QueryStructExpressionIterator(new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getTypeMap()), qs);
+			break;
 		}
 		case DATASTAX_GRAPH : {
 			genQueryString = false;
@@ -125,6 +128,7 @@ public class WrapperManager {
 			interpreter.setTypeMap(((DataStaxGraphEngine) engine).getTypeMap());
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
+			break;
 		}
 		case SOLR : {
 			genQueryString = false;
@@ -133,6 +137,7 @@ public class WrapperManager {
 			SolrEngine solrEngine = (SolrEngine) engine;
 			SolrIterator it = new SolrIterator(solrEngine.execSolrQuery(solrInterp.composeSolrQuery()), qs);
 			returnWrapper = new QueryStructExpressionIterator(it, qs);
+			break;
 		}
 		default: {
 
