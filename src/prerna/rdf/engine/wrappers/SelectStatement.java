@@ -30,6 +30,7 @@ package prerna.rdf.engine.wrappers;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 
 public class SelectStatement  implements ISelectStatement {
@@ -168,6 +169,18 @@ public class SelectStatement  implements ISelectStatement {
 
 	@Override
 	public String[] getRawHeaders() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void addFields(String[] addHeaders, Object[] addValues) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IHeadersDataRow copy() {
 		// TODO Auto-generated method stub
 		return null;
 	}

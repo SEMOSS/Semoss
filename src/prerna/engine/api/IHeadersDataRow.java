@@ -2,28 +2,65 @@ package prerna.engine.api;
 
 public interface IHeadersDataRow{
 
-	public int getRecordLength();
-	
-	public String[] getHeaders();
+	/**
+	 * Get the headers corresponding to the values by index
+	 * @return
+	 */
+	String[] getHeaders();
 
-	public String[] getRawHeaders();
+	/**
+	 * Get the raw headers
+	 * This is useful when we alias headers to be unique during loops
+	 * @return
+	 */
+	String[] getRawHeaders();
 
-	public Object[] getValues();
+	/**
+	 * Get the values of the row
+	 * @return
+	 */
+	Object[] getValues();
 	
-	public Object[] getRawValues();
+	/**
+	 * Get the raw values
+	 * This is useful if you want to see full URIs from a RDF engine
+	 * @return
+	 */
+	Object[] getRawValues();
+
+	/**
+	 * Get the number of records in the row
+	 * @return
+	 */
+	int getRecordLength();
+
+	/**
+	 * This is really only for testing purposes
+	 * @return
+	 */
+	String toRawString();
+
+	/**
+	 * Add new values into an existing headers data row
+	 * @param addHeaders
+	 * @param addValues
+	 */
+	void addFields(String[] addHeaders, Object[] addValues);
 	
-	public String toRawString();
+	IHeadersDataRow copy();
+	
+	
 	// <<<<<<< Methods to be used for other purposes
 	
-	public String toJson();	
+	String toJson();	
 	
 	// gets a particular value
-	public void open();
+	void open();
 		
 	// add a tuple
-	public void addField(String fieldName, Object value);
+	void addField(String fieldName, Object value);
 	
 	// gets a particular field
-	public Object getField(String fieldName);
+	Object getField(String fieldName);
 	
 }
