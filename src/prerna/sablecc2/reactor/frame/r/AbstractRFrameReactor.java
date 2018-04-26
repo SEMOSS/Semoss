@@ -342,9 +342,57 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  	 * @param heat - heat for heat map
  	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
  	 */
- 	public Map<String, Object> getHeatMapData(String panelId, String x, String y, String heat, Object dataValues) {
- 		
- 		return null;
- 	}
+	public Map<String, Object> getHeatMapData(String panelId, String x, String y, String heat, Object dataValues) {
 
+		// create the object the FE needs to paint a bar chart
+		ConstantDataTask task = new ConstantDataTask();
+		task.setId("TEMP_ID");
+		Map<String, Object> returnData = new Hashtable<String, Object>();
+		returnData.put("values", dataValues);
+
+		String[] labels = new String[] { x, y, heat };
+
+		returnData.put("headers", labels);
+		task.setOutputData(returnData);
+
+		// create maps to set the task options
+		// main map that will be passed into the setTaskOptions method
+		Map<String, Object> mapOptions = new HashMap<String, Object>();
+
+		// this map (keyMap) comprises the mapping of both layout and alignment
+		Map<String, Object> keyMap = new HashMap<String, Object>();
+		keyMap.put("layout", "Heat");
+
+		// within keyMap, we need a map to store the maps that comprise
+		// alignment
+		Map<String, Object> alignmentMap = new HashMap<String, Object>();
+		alignmentMap.put("x", "[" + x + "]");
+		alignmentMap.put("y", "[" + y + "]");
+		alignmentMap.put("heat", "[" + heat + "]");
+		keyMap.put("alignment", alignmentMap);
+
+		mapOptions.put(panelId, keyMap);
+		// the final mapping looks like this:
+		// taskOptions={0={layout=Heat, alignment={label=[x, y, heat]}}}
+
+		// set task options
+		task.setTaskOptions(new TaskOptions(mapOptions));
+
+		List<Map<String, Object>> vizHeaders = new Vector<Map<String, Object>>();
+		for (int i = 0; i < labels.length; i++) {
+			Map<String, Object> labelMap = new Hashtable<String, Object>();
+			labelMap.put("header", labels[i]);
+			labelMap.put("alias", labels[i]);
+			labelMap.put("derived", true);
+			labelMap.put("type", "STRING");
+			vizHeaders.add(labelMap);
+		}
+		task.setHeaderInfo(vizHeaders);
+
+		Map<String, Object> formatMap = new Hashtable<String, Object>();
+		formatMap.put("type", "TABLE");
+		task.setFormatMap(formatMap);
+
+		return task.collect(true);
+	}
 }
