@@ -361,14 +361,14 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 
 		// this map (keyMap) comprises the mapping of both layout and alignment
 		Map<String, Object> keyMap = new HashMap<String, Object>();
-		keyMap.put("layout", "Heat");
+		keyMap.put("layout", "HeatMap");
 
 		// within keyMap, we need a map to store the maps that comprise
 		// alignment
 		Map<String, Object> alignmentMap = new HashMap<String, Object>();
-		alignmentMap.put("x", "[" + x + "]");
-		alignmentMap.put("y", "[" + y + "]");
-		alignmentMap.put("heat", "[" + heat + "]");
+		alignmentMap.put("x", new Object[]{x});
+		alignmentMap.put("y", new Object[]{y});
+		alignmentMap.put("heat", new Object[]{heat});
 		keyMap.put("alignment", alignmentMap);
 
 		mapOptions.put(panelId, keyMap);
