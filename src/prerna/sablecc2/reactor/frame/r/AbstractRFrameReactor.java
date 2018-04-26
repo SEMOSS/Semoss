@@ -405,7 +405,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
  	 * @param heat - heat for heat map
  	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
  	 */
-	public Map<String, Object> getScatterPlotData(String panelId, String x, String y, Object dataValues) {
+	public Map<String, Object> getScatterPlotData(String panelId, String label, String x, String y, Object dataValues) {
 
 		// create the object the FE needs to paint a bar chart
 		ConstantDataTask task = new ConstantDataTask();
@@ -413,7 +413,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		Map<String, Object> returnData = new Hashtable<String, Object>();
 		returnData.put("values", dataValues);
 
-		String[] labels = new String[] { x, y};
+		String[] labels = new String[] {label, x, y};
 
 		returnData.put("headers", labels);
 		task.setOutputData(returnData);
@@ -429,13 +429,12 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		// within keyMap, we need a map to store the maps that comprise
 		// alignment
 		Map<String, Object> alignmentMap = new HashMap<String, Object>();
-		alignmentMap.put("x", "[" + x + "]");
-		alignmentMap.put("y", "[" + y + "]");
+		alignmentMap.put("label", new Object[]{label});
+		alignmentMap.put("x", new Object[]{x});
+		alignmentMap.put("y", new Object[]{y});
 		keyMap.put("alignment", alignmentMap);
 
 		mapOptions.put(panelId, keyMap);
-		// the final mapping looks like this:
-		// taskOptions={0={layout=Scatter, alignment={label=[x, y]}}}
 
 		// set task options
 		task.setTaskOptions(new TaskOptions(mapOptions));
@@ -446,7 +445,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 			labelMap.put("header", labels[i]);
 			labelMap.put("alias", labels[i]);
 			labelMap.put("derived", true);
-			labelMap.put("type", "STRING");
+			labelMap.put("type", "NUMBER");
 			vizHeaders.add(labelMap);
 		}
 		task.setHeaderInfo(vizHeaders);
