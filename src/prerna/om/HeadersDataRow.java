@@ -4,18 +4,25 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import com.google.gson.Gson;
+
 import prerna.engine.api.IHeadersDataRow;
+import prerna.util.gson.GsonUtility;
 
 public class HeadersDataRow implements IHeadersDataRow{
 
-	String[] headers;
-	String[] rawHeaders;
-	Object[] values;
-	Object[] rawValues;
+	/**
+	 * Base componenents corresponding to a header row
+	 */
+	private String[] headers;
+	private String[] rawHeaders;
+	private Object[] values;
+	private Object[] rawValues;
+	private int recordLength;
 	
-	Vector <Object> vecValues = null;
-	Vector <String> vecHeaders = null;
-	Hashtable <String, Integer> headerCardinalityHash = new Hashtable <String, Integer>();
+	private Vector <Object> vecValues = null;
+	private Vector <String> vecHeaders = null;
+	private Hashtable <String, Integer> headerCardinalityHash = new Hashtable <String, Integer>();
 	
 	public HeadersDataRow(String[] headers, Object[] values) {
 		this(headers, headers, values, values);
@@ -33,6 +40,7 @@ public class HeadersDataRow implements IHeadersDataRow{
 		if(headers.length != values.length && values.length != rawValues.length) {
 			throw new IllegalArgumentException("Length of parameters not equal");
 		}
+		
 		this.headers = headers;
 		this.rawHeaders = rawHeaders;
 		if(this.rawHeaders == null) {
@@ -40,11 +48,13 @@ public class HeadersDataRow implements IHeadersDataRow{
 		}
 		this.values = values;
 		this.rawValues = rawValues;
+		
+		this.recordLength = headers.length;
 	}
 
 	@Override
 	public int getRecordLength() {
-		return headers.length;
+		return this.recordLength;
 	}
 
 	@Override
@@ -62,6 +72,7 @@ public class HeadersDataRow implements IHeadersDataRow{
 		return rawValues;
 	}
 	
+	@Override
 	public String toString() {
 		StringBuilder ret = new StringBuilder();
 		int size = headers.length;
@@ -88,6 +99,56 @@ public class HeadersDataRow implements IHeadersDataRow{
 		
 		return ret.toString();
 	}
+	
+	@Override
+	public void addFields(String[] addHeaders, Object[] addValues) {
+		int newValuesLength = addHeaders.length;
+		if(newValuesLength != addValues.length) {
+			throw new IllegalArgumentException("Length of parameters not equal");
+		}
+		
+		// we will make new arrays and copy over the values
+		int totalLength = this.recordLength + newValuesLength;
+		String[] newHeaders = new String[totalLength];
+		Object[] newValues = new Object[totalLength];
+		
+		System.arraycopy(this.headers, 0, newHeaders, 0, this.recordLength);
+		System.arraycopy(this.values, 0, newValues, 0, this.recordLength);
+		
+		// add the new values into the new headers / values
+		int counter = 0;
+		for(int i = 0; i < newValuesLength; i++) {
+			newHeaders[this.recordLength + i] = addHeaders[counter];
+			newValues[this.recordLength + i] = addValues[counter];
+			counter++;
+		}
+		
+		// adjust references
+		this.headers = newHeaders;
+		this.values = newValues;
+		// TODO: expose raw headers and raw values as well
+		this.rawHeaders = this.headers;
+		this.rawValues = this.values;
+	}
+	
+	@Override
+	public IHeadersDataRow copy() {
+		// convert the main portions and return new
+		Gson gson = GsonUtility.getDefaultGson();
+		String[] cHeaders = gson.fromJson(gson.toJson(this.headers), String[].class);
+		String[] cRawHeaders = gson.fromJson(gson.toJson(this.rawHeaders), String[].class);
+		Object[] cValues = gson.fromJson(gson.toJson(this.values), Object[].class);
+		Object[] cRawValues = gson.fromJson(gson.toJson(this.rawValues), Object[].class);
+		
+		return new HeadersDataRow(cHeaders, cRawHeaders, cValues, cRawValues);
+	}
+	
+	
+	
+	
+	
+	
+	/////////////////////////////////////////////
 
 
 	@Override
