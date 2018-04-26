@@ -2,15 +2,13 @@ package prerna.query.querystruct.selectors;
 
 import java.util.List;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 
-import prerna.query.querystruct.selectors.adapters.IQuerySelectorAdaper;
-import prerna.query.querystruct.selectors.adapters.QueryArithmeticSelectorAdapter;
-import prerna.query.querystruct.selectors.adapters.QueryColumnSelectorAdapter;
-import prerna.query.querystruct.selectors.adapters.QueryConstantSelectorAdapter;
-import prerna.query.querystruct.selectors.adapters.QueryFunctionSelectorAdapter;
-import prerna.query.querystruct.selectors.adapters.QueryOpaqueSelectorAdapter;
+import prerna.util.gson.QueryArithmeticSelectorAdapter;
+import prerna.util.gson.QueryColumnSelectorAdapter;
+import prerna.util.gson.QueryConstantSelectorAdapter;
+import prerna.util.gson.QueryFunctionSelectorAdapter;
+import prerna.util.gson.QueryOpaqueSelectorAdapter;
 
 public interface IQuerySelector {
 
@@ -60,22 +58,32 @@ public interface IQuerySelector {
 	 */
 	List<QueryColumnSelector> getAllQueryColumns();
 
-	static Gson getGson() {
-		GsonBuilder gson = new GsonBuilder();
-		appendQueryAdapters(gson);
-		return gson.create();
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+
+	/*
+	 * 
+	 * Methods around serialization
+	 * 
+	 */
+	
+	static TypeAdapter getAdapterForSelector(SELECTOR_TYPE type) {
+		if(type == SELECTOR_TYPE.OPAQUE) {
+			return new QueryOpaqueSelectorAdapter();
+		} else if(type == SELECTOR_TYPE.COLUMN) {
+			return new QueryColumnSelectorAdapter();
+		} else if(type == SELECTOR_TYPE.FUNCTION) {
+			return new QueryFunctionSelectorAdapter();
+		} else if(type == SELECTOR_TYPE.ARITHMETIC) {
+			return new QueryArithmeticSelectorAdapter();
+		} else if(type == SELECTOR_TYPE.CONSTANT) {
+			return new QueryConstantSelectorAdapter();
+		}
+		
+		return null;
 	}
 	
-	static GsonBuilder appendQueryAdapters(GsonBuilder gson) {
-		gson.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdaper());
-		gson.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter());
-		gson.registerTypeAdapter(QueryFunctionSelector.class, new QueryFunctionSelectorAdapter());
-		gson.registerTypeAdapter(QueryArithmeticSelector.class, new QueryArithmeticSelectorAdapter());
-		gson.registerTypeAdapter(QueryConstantSelector.class, new QueryConstantSelectorAdapter());
-		gson.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter());
-//		gson.registerTypeAdapter(QueryStruct2.class, new QueryStructAdapter());
-		return gson;
-	}
 	
 	/**
 	 * Convert string to SELECTOR_TYPE
@@ -119,9 +127,4 @@ public interface IQuerySelector {
 	}
 	
 }
-
-
-
-
-
 

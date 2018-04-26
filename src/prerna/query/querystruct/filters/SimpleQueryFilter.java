@@ -429,7 +429,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	
 	@Override
 	public IQueryFilter copy() {
-		IQueryFilter copy = new SimpleQueryFilter(lComparison.copy(), comparator, rComparison.copy());
+		SimpleQueryFilter copy = new SimpleQueryFilter(lComparison.copy(), comparator, rComparison.copy());
 		return copy;
 	}
 	
