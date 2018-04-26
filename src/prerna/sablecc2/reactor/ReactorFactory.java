@@ -235,6 +235,7 @@ import prerna.sablecc2.reactor.task.TaskLookupReactor;
 import prerna.sablecc2.reactor.task.TaskMetaCollectorReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
 import prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor;
+import prerna.sablecc2.reactor.task.modifiers.FlatMapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.GenericMapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.MapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeTaskReactor;
@@ -498,6 +499,7 @@ public class ReactorFactory {
 		
 		// Task Operations
 		reactorHash.put("CodeLambda", GenericMapLambdaTaskReactor.class);
+		reactorHash.put("FlatMapLambda", FlatMapLambdaTaskReactor.class);
 		reactorHash.put("MapLambda", MapLambdaTaskReactor.class);
 		reactorHash.put("FilterLambda", FilterLambdaTaskReactor.class);
 		reactorHash.put("ToNumericType", ToNumericTypeTaskReactor.class);
