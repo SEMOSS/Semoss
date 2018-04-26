@@ -1,7 +1,6 @@
-package prerna.query.querystruct.selectors.adapters;
+package prerna.util.gson;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -41,12 +40,12 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 			return;
 		}
 		
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("selectorType", IQuerySelector.SELECTOR_TYPE.OPAQUE.toString());
-		map.put("alias", value.getAlias());
-		map.put("table", value.getTable());
-		map.put("querySyntax", value.getQuerySelectorSyntax());
+		out.value(IQuerySelector.SELECTOR_TYPE.OPAQUE.toString());
 
-		out.value(GSON.toJson(map));
+		out.beginObject();
+		out.name("alias").value(value.getAlias());
+		out.name("table").value(value.getTable());
+		out.name("querySyntax").value(value.getQuerySelectorSyntax());
+		out.endObject();
 	}
 }
