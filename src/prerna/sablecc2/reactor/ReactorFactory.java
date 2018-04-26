@@ -92,6 +92,7 @@ import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
+import prerna.sablecc2.reactor.frame.r.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.RNumericalCorrelationReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
@@ -816,6 +817,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunClassification", RClassificationAlgorithmRReactor.class);
 //		rFrameHash.put("RunRandomForest", RandomForestAlgorithmRReactor.class);
 		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
+		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
 
 	}
 
