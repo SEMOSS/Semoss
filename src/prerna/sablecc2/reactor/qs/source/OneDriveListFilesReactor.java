@@ -34,7 +34,7 @@ public class OneDriveListFilesReactor extends AbstractReactor{
 		// name of the object to return
 		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
 		String [] beanProps = {"name", "id"}; // add is done when you have a list
-		String jsonPattern = "value[].[name,id]";
+		String jsonPattern = "value[].{name:name,id:id}";
 
 		//get access token
 		String accessToken=null;
