@@ -35,7 +35,7 @@ public class GoogleListFilesReactor extends AbstractReactor{
 		// name of the object to return
 		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
 		String [] beanProps = {"id", "name", "type"}; // add is done when you have a list
-		String jsonPattern = "files[].[id, name, mimeType]";
+		String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
 
 		// possible properties that can be passed
 		//https://developers.google.com/drive/v2/web/search-parameters
