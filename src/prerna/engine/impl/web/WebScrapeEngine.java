@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.lang3.math.NumberUtils;
@@ -96,8 +97,9 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			}
 			
 			// now I need to collect the header and rows and then return it
-			String [] headers = collectHeaders(thisTable.getElementsByTag("th"));
-			List <String []> values = collectValues(thisTable.getElementsByTag("td"), headers);
+			String [] headers = getHeaders(url, prop);
+			
+			List <String []> values = collectValues(thisTable.getElementsByTag("tr"), headers);
 			
 			String [] types = getWebTypes(values);
 
@@ -115,7 +117,10 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		return retHash;
 	}
 	
-	public String [] getHeaders(String url, HashMap aliasMap)
+	
+	
+	
+	public String [] getHeaders(String url, Map aliasMap)
 	{
 		String [] headers = null;
 		try {
@@ -163,7 +168,13 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			}
 			
 			// now I need to collect the header and rows and then return it
-			headers = collectHeaders(thisTable.getElementsByTag("th"));
+			// see if there are rows
+			Elements allRows = thisTable.getElementsByTag("tr");
+			if(allRows != null && allRows.size() > 0)
+			{
+				Elements firstRow = allRows.get(0).getElementsByTag("th");
+				headers = collectHeaders(firstRow);
+			}
 		}catch (Exception ex)
 		{
 			ex.printStackTrace();
@@ -214,8 +225,89 @@ public class WebScrapeEngine extends JsonAPIEngine{
 	{
 		int rowIndex = 0;
 		
+		// need to get the td inside of each tr
+		// and then paint it
+		// I also need to account for table spans
+		
+		// along with row span.. need to accomodate for column spans as well
+		// basically we fill the same value for each of the pieces
+		
+		
 		List <String []> valueList = new Vector();
-		while(rowIndex < values.size())
+		
+		// start from 1 since the first one is the header
+		Hashtable rowColValue = new Hashtable();
+		Hashtable rowSpanCount = new Hashtable();
+
+		for(rowIndex = 1;rowIndex < values.size();rowIndex++)
+		{
+			Element thisRow = values.get(rowIndex);
+			// get the TD on this row
+			// some of these are TH still.. thank you so much
+			Elements cols = thisRow.children();
+			
+			// get the attribute to see 
+			// I need to keep the index
+			// and I need to keep for how much I need to do that
+			String [] oneRow = new String[headerList.length];
+			
+			int colIndex = 0;
+			//int colspancount = -1;
+			//String colSpanData = null;
+			
+			for(int headerIndex = 0;headerIndex < headerList.length;headerIndex++)
+			{
+				if(rowColValue.containsKey(headerIndex))
+				{
+					// need to use this value for the header
+					oneRow[headerIndex] = (String)rowColValue.get(headerIndex);
+					int numrows = (Integer)rowSpanCount.get(headerIndex);
+					numrows--;
+					if(numrows == 0)
+					{
+						rowColValue.remove(headerIndex);
+						rowSpanCount.remove(headerIndex);
+					}
+					else
+						rowSpanCount.put(headerIndex, numrows);
+					// move the header forward
+					//headerIndex++;
+				}
+				/*if(headerIndex < colspancount)
+				{
+					// when a actual data comes need to see what is coming
+					oneRow[headerIndex] = colSpanData;
+				}*/
+				else
+				{
+					Element thisCol = cols.get(colIndex);
+					colIndex++;
+					oneRow[headerIndex] = thisCol.text();
+					
+					// get the attribute to see if it a row span
+					String rowspan = thisCol.attr("rowspan");
+					if(rowspan != null && rowspan.length() > 0)
+					{
+						int numrows = Integer.parseInt(rowspan);
+						// remove for this row we just saw
+						numrows--;
+						rowColValue.put(headerIndex, thisCol.text());
+						rowSpanCount.put(headerIndex, numrows);
+					}
+					
+					// get the attribute to see if it a row span
+					/*String colspan = thisCol.attr("colspan");
+					if(colspan != null && colspan.length() > 0)
+					{
+						colspancount = Integer.parseInt(colspan);
+					}*/
+
+				}
+			}
+			
+			valueList.add(oneRow);				
+		}
+/*		while(rowIndex < values.size())
 		{
 			String [] oneRow = new String[headerList.length];
 			for(int headerIndex = 0;headerIndex < headerList.length;headerIndex++)
@@ -225,7 +317,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			}
 			valueList.add(oneRow);
 		}
-		//valueList.set(0, headerList);
+*/		//valueList.set(0, headerList);
 		return valueList;
 		
 	}
@@ -283,8 +375,4 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		
 		return typeList;
 	}
-	
-	
-	
-	
 }
