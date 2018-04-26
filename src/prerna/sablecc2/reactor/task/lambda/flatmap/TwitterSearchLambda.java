@@ -28,15 +28,30 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 		params.put("q", row.getValues()[colIndex]);
 		params.put("lang", "en");
 		params.put("count", "10");
-
+		params.put("result_type", "mixed");
+		
 		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
 		// add new values
 		try {
 			// loop through the results
 			TwitterSearcher ts = new TwitterSearcher();
-			List<Viewpoint> results = (List<Viewpoint>) ts.execute(this.user, params);
-			for(int i = 0; i < results.size(); i++) {
-				Viewpoint view = results.get(i);
+			Object resultObj = ts.execute(this.user, params);
+			if(resultObj instanceof List) {
+				List<Viewpoint> results = (List<Viewpoint>) resultObj;
+				for(int i = 0; i < results.size(); i++) {
+					Viewpoint view = results.get(i);
+					
+					newValues[0] = view.getReview();
+					newValues[1] = view.getAuthorId();
+					newValues[2] = view.getRepeatCount();
+					
+					// copy the row so we dont mess up references
+					IHeadersDataRow rowCopy = row.copy();
+					rowCopy.addFields(newHeaders, newValues);
+					retList.add(rowCopy);
+				}
+			} else {
+				Viewpoint view = (Viewpoint) resultObj;
 				
 				newValues[0] = view.getReview();
 				newValues[1] = view.getAuthorId();
