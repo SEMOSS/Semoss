@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
@@ -25,21 +27,22 @@ import prerna.util.Utility;
 
 public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 
+	private static final String CLASS_NAME = OneDriveFileRetrieverReactor.class.getName();
+
 	public OneDriveFileRetrieverReactor() {
-		this.keysToGet = new String[] { "name", "id" };
+		this.keysToGet = new String[] { "id" };
 	}
 
 
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
-		String fileName = this.curRow.get(0).toString();
-		if (fileName == null || fileName.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify file name");
-		}
-		String msID = this.curRow.get(1).toString();
+		//get keys
+		Logger logger = getLogger(CLASS_NAME);
+		organizeKeys();
+		String msID = this.keyValue.get(this.keysToGet[0]);
 		if (msID == null || msID.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify file path");
+			throw new IllegalArgumentException("Need to specify file id");
 		}
 
 		//get access token
@@ -65,7 +68,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			throwLoginError(retMap);
 		}
 
-		
+
 		Hashtable params = new Hashtable();
 		CsvQueryStruct qs = new CsvQueryStruct();
 
