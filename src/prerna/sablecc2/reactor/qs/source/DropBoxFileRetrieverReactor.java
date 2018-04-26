@@ -10,6 +10,7 @@ import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -29,21 +30,25 @@ import prerna.util.Utility;
 public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 
 	//private String[] keysToGet;
+	private static final String CLASS_NAME = DropBoxFileRetrieverReactor.class.getName();
+
 
 	public DropBoxFileRetrieverReactor() {
-		this.keysToGet = new String[] { "name", "path" };
+		this.keysToGet = new String[] { "path" };
 	}
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
-		String fileName = this.curRow.get(0).toString();
-		if (fileName == null || fileName.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify file name");
-		}
-		String dropboxPath = this.curRow.get(1).toString();
+
+		//get keys
+		Logger logger = getLogger(CLASS_NAME);
+		organizeKeys();
+		String dropboxPath = this.keyValue.get(this.keysToGet[0]);
 		if (dropboxPath == null || dropboxPath.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file path");
 		}
+
+
 
 		//get access token
 		String accessToken = null;

@@ -71,15 +71,29 @@ public class GoogleListFilesReactor extends AbstractReactor{
 
 
 		// you fill what you want to send on the API call
+		//text/csv call
 		Hashtable params = new Hashtable();
 		params.put("access_token", accessToken);
+		params.put("pageSize", "1000");
+		params.put("q=mimeType", "'text/csv'");
+	
 
 		String output = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, false);
+		
+		Hashtable params2 = new Hashtable();
+		params.put("access_token", accessToken);
+		params.put("pageSize", "1000");
+		params.put("q=mimeType", "'application/vnd.google-apps.spreadsheet'");
+		
+		String output2 = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, false);
+
 
 		// fill the bean with the return
 		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
+
 		for(RemoteItem entry : fileList){
-			if((entry.getType().toString().contains("google-apps.spreadsheet"))||((entry.getType().toString().equalsIgnoreCase("text/csv")&&(entry.getName().toString().contains(".csv"))))){
+			if(((entry.getType().toString().equalsIgnoreCase("text/csv")&&(entry.getName().toString().contains(".csv"))))){
 				HashMap<String, Object> tempMap = new HashMap<String, Object>();
 				tempMap.put("name", entry.getName());
 				tempMap.put("id", entry.getId());
@@ -88,6 +102,13 @@ public class GoogleListFilesReactor extends AbstractReactor{
 			}
 
 		}
+		for(RemoteItem entry : fileList2){
+			HashMap<String, Object> tempMap = new HashMap<String, Object>();
+			tempMap.put("name", entry.getName());
+			tempMap.put("id", entry.getId());
+			tempMap.put("type", entry.getType());
+			masterList.add(tempMap);		
+			}
 
 		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 				PixelOperationType.CLOUD_FILE_LIST);	}
