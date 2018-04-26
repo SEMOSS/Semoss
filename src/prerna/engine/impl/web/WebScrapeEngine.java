@@ -242,6 +242,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		for(rowIndex = 1;rowIndex < values.size();rowIndex++)
 		{
 			Element thisRow = values.get(rowIndex);
+			System.out.println("Processing row.. " + thisRow);
 			// get the TD on this row
 			// some of these are TH still.. thank you so much
 			Elements cols = thisRow.children();
@@ -254,7 +255,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			int colIndex = 0;
 			//int colspancount = -1;
 			//String colSpanData = null;
-			
+			boolean dataFilled = false;
 			for(int headerIndex = 0;headerIndex < headerList.length;headerIndex++)
 			{
 				if(rowColValue.containsKey(headerIndex))
@@ -278,8 +279,9 @@ public class WebScrapeEngine extends JsonAPIEngine{
 					// when a actual data comes need to see what is coming
 					oneRow[headerIndex] = colSpanData;
 				}*/
-				else
+				else if(cols.size() > colIndex)
 				{
+					dataFilled = true;
 					Element thisCol = cols.get(colIndex);
 					colIndex++;
 					oneRow[headerIndex] = thisCol.text();
@@ -304,8 +306,8 @@ public class WebScrapeEngine extends JsonAPIEngine{
 
 				}
 			}
-			
-			valueList.add(oneRow);				
+			if(dataFilled)
+				valueList.add(oneRow);				
 		}
 /*		while(rowIndex < values.size())
 		{
