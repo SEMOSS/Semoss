@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
@@ -29,23 +31,24 @@ import prerna.util.Utility;
 
 public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 
+	private static final String CLASS_NAME = GoogleFileRetrieverReactor.class.getName();
+
+	
 	public GoogleFileRetrieverReactor() {
-		this.keysToGet = new String[] { "name", "id", "type"};
+		this.keysToGet = new String[] { "id", "type"};
 	}
 
 	@Override
 	protected QueryStruct2 createQueryStruct() {
 
 		//get keys
-		String fileName = this.curRow.get(0).toString();
-		if (fileName == null || fileName.length() <= 0) {
-			throw new IllegalArgumentException("Need to specify file name");
-		}
-		String fileID = this.curRow.get(1).toString();
+		Logger logger = getLogger(CLASS_NAME);
+		organizeKeys();
+		String fileID = this.keyValue.get(this.keysToGet[0]);
 		if (fileID == null || fileID.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file id");
 		}
-		String type = this.curRow.get(1).toString();
+		String type= this.keyValue.get(this.keysToGet[1]);
 		if (type == null || type.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file type");
 		}
