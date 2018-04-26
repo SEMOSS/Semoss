@@ -1,15 +1,12 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.HashMap;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
 import org.apache.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -35,6 +32,9 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		dataFrame.setLogger(logger);
 		
 		// figure out inputs
+		// need the panelId for passing the task to the FE
+		String panelId = getPanelId();
+
 		List<String> numericalCols = getColumns();
 		int numCols = numericalCols.size();
 		if(numCols == 0) {
@@ -44,184 +44,86 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		}
 		//double missingVal = getDefaultValue();
 
-		// I need to return back headers
-		// and the actual data rows
-		// and a dataTableAlign object
-		// in addition to the specific correlation data
+		// need the headers as a list of strings
 		String[] retHeaders = new String[numCols];
-		//List<double[]> rowData = new ArrayList<double[]>();;
-		Map<String, String> dataTableAlign = new HashMap<String, String>();
 		
-		QueryStruct2 qs = new QueryStruct2();
 		for(int i = 0; i < numCols; i++) {
 			String header = numericalCols.get(i);
-			QueryColumnSelector qsHead = new QueryColumnSelector();
 			if(header.contains("__")) {
 				String[] split = header.split("__");
-				qsHead.setTable(split[0]);
-				qsHead.setColumn(split[1]);
 				retHeaders[i] = split[1];
 			} else {
-				qsHead.setTable(header);
 				retHeaders[i] = header;
 			}
-			dataTableAlign.put("dim " + i, retHeaders[i]);
-			qs.addSelector(qsHead);
 		}
-		qs.mergeImplicitFilters(dataFrame.getFrameFilters());
 		
-		//Iterator<IHeadersDataRow> it = dataFrame.query(qs);
+		// get the correlation data from the run r correlation algorithm
 		logger.info("Start iterating through data to determine correlation");
-		//double[][] correlationData = runCorrelation(it, rowData, numCols, missingVal, logger);
-		
-		
-		double[][] correlationData = runRCorrelation(frameName, retHeaders);
-		
+		String correlationDataTable = runRCorrelation(frameName, retHeaders);
 		logger.info("Done iterating through data to determine correlation");
-
-		// mock the data output
-		Map<String, Object> vizData = new HashMap<String, Object>();
-		//vizData.put("data", rowData);
-		//vizData.put("headers", retHeaders);
-		vizData.put("layout", "ScatterplotMatrix");
-		vizData.put("panelId", getPanelId());
-		vizData.put("dataTableAlign", dataTableAlign);
-		// finally, i send the correlation data
-		Map<String, double[][]> correlationMap = new HashMap<String, double[][]>();
-		correlationMap.put("correlations", correlationData);
-		vizData.put("specificData", correlationMap);
 		
 		// track GA data
 		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
 		
+		// create the object to return to the FE
+		// the length of the object will be numCols^2
+		// there will always be three rows x,y,cor
+		int length = numCols * numCols;
+		Object[][] retOutput = new Object[length][3];
 		
-		
-		// now return this object
-		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
-	}
-	
-	private double[][] runRCorrelation(String frameName, String[] retHeaders) {
-		
-		// create a data frame with just the columns that we need
-		String df = "df" + Utility.getRandomString(10);
-		StringBuilder sb = new StringBuilder();
-		
-		sb.append(df + "<-");
-		sb.append(frameName + "[, c(");
-		
-		for (int i = 0; i < retHeaders.length; i++) {
-			sb.append("\"" + retHeaders[i] + "\"");
-			
-			if (i < retHeaders.length - 1) {
-				sb.append(", ");
-			}
+		// need to fill in the object with the data values
+		// retrieve data using getBulkDataRow
+		String[] heatMapHeaders = new String[]{"Column Header X", "Column Header Y", "Correlation"};
+		String query = correlationDataTable + "[" + 1 + ":" + length + "]";
+		List<Object[]> bulkRow = this.rJavaTranslator.getBulkDataRow(query, heatMapHeaders);
+		// each entry into the list is a row - we need to put this in the form of Object[][]
+		for (int i = 0; i < bulkRow.size(); i++) {
+			retOutput[i] = bulkRow.get(i);
 		}
 		
-		sb.append(")];");
-	
+		// create and return a task
+		Map<String, Object> taskData = getHeatMapData(panelId, "Column Header X", "Column Header Y", "Correlation", retOutput);
 		
-		String createFrame = sb.toString();
-		this.rJavaTranslator.runR(createFrame);
-		
-		// now that we have our frame in r we need to get the rows
-//		int rows = this.rJavaTranslator.getNumRows(df);
-//		for (int i = 0 ; i < rows; i++) {
-//			String rowScript = df + "[" + i + ", ]";
-//		}
-		
-		
-		// we need to have the correct dataframe with our numerical columns in r before we can run it through the correlation function
-		// r syntax for numerical correlation looks like cor(df, use = "all.obs");
-		
-		//generate a frame with a random name for the results
-		String resultsFrame = "ResultsTable" + Utility.getRandomString(10);
-		String runCorrelation = resultsFrame + "<-cor(" + df + ", use = \"all.obs\");";
-		// get a double matrix from the string builder to return
-		double[][] retMatrix = this.rJavaTranslator.getDoubleMatrix(runCorrelation);
-		return retMatrix;
-		// r returns a new dataframe containing the correlation values
-	}
+		// variable cleanup
+		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");
 
-//	private double[][] runCorrelation(
-//			Iterator<IHeadersDataRow> it, 
-//			List<double[]> rowData, 
-//			int numHeaders, 
-//			double defaultVal,
-//			Logger logger) {
-//		// sum of x
-//		double[] sx = new double[numHeaders];
-//		// sum of x^2
-//		double[] sxx = new double[numHeaders];
-//		// sum of x * y
-//		double[][] sxy = new double[numHeaders][numHeaders];
+		// now return this object
+		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
+		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+	}
+	
+	private String runRCorrelation(String frameName, String[] retHeaders) {
+		
+		// create a column vector to pass as an input into our R script
+		String colVector = RSyntaxHelper.createStringRColVec(retHeaders);
+		
+		// the name of the results table is what we will be passing to the FE
+		String resultsFrameName = "ResultsTable" + Utility.getRandomString(10);
+		
+		// create a stringbuilder for our r syntax
+		StringBuilder rsb = new StringBuilder();
+		// source the r script that will run the numerical correlation routine
+		String correlationScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\NumericalCorrelation.R";
+		correlationScriptFilePath = correlationScriptFilePath.replace("\\", "/");
+		rsb.append("source(\"" + correlationScriptFilePath + "\");");
+        // R syntax for the routine: ResultsTableName <- getCorrelationTable(frameName, c("col1", "col2"))
+		rsb.append(resultsFrameName + "<- getCorrelationTable(" + frameName + ", " + colVector + ")");
+
+		// run the script
+		this.rJavaTranslator.runR(rsb.toString());
+		
+//		// check to verify output
+//		String[] colNames = this.rJavaTranslator.getColumns(resultsFrameName);
+//		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(resultsFrameName, colNames);
 //		
-//		int n = 0;
-//		while(it.hasNext()) {
-//			Object[] row = it.next().getValues();
-//			// get a clean version so we can return this for view
-//			double[] doubleRow = new double[numHeaders];
+//		for (int i=0; i < data.size(); i++){
+//			Object[] val = data.get(i);
+//			System.out.println(val[0]);
 //			
-//			// i want to compare all the values together
-//			// value compared to itself is 1
-//			// so i can just ignore that
-//			for(int i = 0; i < numHeaders; i++) {
-//				double x = getDouble(row[i], defaultVal);
-//				// add value to sum of this column
-//				sx[i] += x;
-//				// add square of this value to sum of this column squared
-//				sxx[i] += x*x;
-//				
-//				// only need to do half of this
-//				for(int j = i+1; j < numHeaders; j++) {
-//					double y = getDouble(row[j], defaultVal);
-//					// add product of this column to every other column;
-//					sxy[i][j] += x*y;
-//					sxy[j][i] = sxy[i][j];
-//				}
-//
-//				// dont forget we need to store this value
-//				doubleRow[i] = x;
-//			}
-//			
-//			// logging
-//			if(n % 100 == 0) {
-//				logger.setLevel(Level.INFO);
-//				logger.info("Finished row number = " + n);
-//				logger.setLevel(Level.OFF);
-//			}
-//			// we are done with this row
-//			n++;
-//			// store it as well
-//			rowData.add(doubleRow);
 //		}
-//		logger.setLevel(Level.INFO);
-//		
-//		double[][] retMatrix = new double[numHeaders][numHeaders];
-//		for(int i = 0; i < numHeaders; i++) {
-//			for(int j = i; j < numHeaders; j++) {
-//				if(i == j) {
-//					retMatrix[i][j] = 1;
-//					retMatrix[j][i] = 1;
-//				} else {
-//					double cov = sxy[i][j] / n - sx[i] * sx[j] / n / n;
-//					double sigmax = Math.sqrt(sxx[i] / n - sx[i] * sx[i] / n / n );
-//					double sigmay = Math.sqrt(sxx[j] / n - sx[j] * sx[j] / n / n );
-//					
-//					retMatrix[i][j] = cov / sigmax / sigmay;
-//					retMatrix[j][i] = retMatrix[i][j];
-//				}
-//			}
-//		}
-//		
-//		return retMatrix;
-//	}
-//	
-//	private double getDouble(Object obj, double defaultVal) {
-//		if(obj instanceof Number) {
-//			return ((Number) obj).doubleValue();
-//		}
-//		return defaultVal;
-//	}
+		// return the name of the table that sits in r to the FE
+		return resultsFrameName;
+	}
 
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -252,26 +154,6 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 			strValues.add(obj.toString());
 		}
 		return strValues;
-	}
-	
-	private double getDefaultValue() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(keysToGet[1]);
-		if(columnGrs != null) {
-			List<Object> columns = columnGrs.getAllNumericColumns();
-			if(columns.size() > 0) {
-				return ((Number) columns.get(0)).doubleValue();
-			}
-		}
-		
-		// else, we assume it is column values in the curRow
-		List<Object> columns = this.curRow.getAllNumericColumns();
-		if(columns.size() > 0) {
-			return ((Number) columns.get(0)).doubleValue();
-		}
-		
-		// return 0 by default;
-		return 0.0;
 	}
 	
 	private String getPanelId() {
