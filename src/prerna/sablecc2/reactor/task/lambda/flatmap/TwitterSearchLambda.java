@@ -1,16 +1,16 @@
-package prerna.sablecc2.reactor.task.lambda.map;
+package prerna.sablecc2.reactor.task.lambda.flatmap;
 
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.twitter.TwitterSearcher;
-import prerna.om.HeadersDataRow;
 import prerna.om.Viewpoint;
 
-public class TwitterSearchLambda extends AbstractMapLambda {
+public class TwitterSearchLambda extends AbstractFlatMapLambda {
 
 	// col index we care about to get lat/long from
 	private int colIndex;
@@ -18,41 +18,40 @@ public class TwitterSearchLambda extends AbstractMapLambda {
 	private int totalCols;
 	
 	@Override
-	public IHeadersDataRow process(IHeadersDataRow row) {
-		String[] headers = row.getHeaders();
-		Object[] values = row.getValues();
-		
-		String[] newHeaders = new String[this.totalCols+3];
-		Object[] newValues = new Object[this.totalCols+3];
-		
-		System.arraycopy(headers, 0, newHeaders, 0, this.totalCols);
-		System.arraycopy(values, 0, newValues, 0, this.totalCols);
-
+	public List<IHeadersDataRow> process(IHeadersDataRow row) {
+		// construct new values to append onto the row
 		// add new headers
-		newHeaders[this.totalCols] = "review";
-		newHeaders[this.totalCols+1] = "author";
-		newHeaders[this.totalCols+2] = "retweet_count";
-
+		String[] newHeaders = new String[]{"review", "author", "retweet_count"};
+		Object[] newValues = new Object[3];
+		
 		Hashtable params = new Hashtable();
-		params.put("q", values[colIndex]);
+		params.put("q", row.getValues()[colIndex]);
 		params.put("lang", "en");
-		params.put("count", "1");
+		params.put("count", "10");
 
+		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
 		// add new values
 		try {
+			// loop through the results
 			TwitterSearcher ts = new TwitterSearcher();
 			List<Viewpoint> results = (List<Viewpoint>) ts.execute(this.user, params);
-			Viewpoint view = results.get(0);
-			System.out.println(view);
-			
-			newValues[this.totalCols] = view.getReview();
-			newValues[this.totalCols+1] = view.getAuthorId();
-			newValues[this.totalCols+2] = view.getRepeatCount();
-
+			for(int i = 0; i < results.size(); i++) {
+				Viewpoint view = results.get(i);
+				
+				newValues[0] = view.getReview();
+				newValues[1] = view.getAuthorId();
+				newValues[2] = view.getRepeatCount();
+				
+				// copy the row so we dont mess up references
+				IHeadersDataRow rowCopy = row.copy();
+				rowCopy.addFields(newHeaders, newValues);
+				retList.add(rowCopy);
+			}
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		return new HeadersDataRow(newHeaders, newValues);
+		
+		return retList;
 	}
 	
 	@Override

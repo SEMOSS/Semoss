@@ -10,7 +10,6 @@ import prerna.auth.AuthProvider;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.google.GoogleLatLongGetter;
 import prerna.om.GeoLocation;
-import prerna.om.HeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -24,33 +23,27 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 	
 	@Override
 	public IHeadersDataRow process(IHeadersDataRow row) {
-		String[] headers = row.getHeaders();
-		Object[] values = row.getValues();
-		
-		String[] newHeaders = new String[this.totalCols+2];
-		Object[] newValues = new Object[this.totalCols+2];
-		
-		System.arraycopy(headers, 0, newHeaders, 0, this.totalCols);
-		System.arraycopy(values, 0, newValues, 0, this.totalCols);
-
-		// add new headers
-		newHeaders[this.totalCols] = "lat";
-		newHeaders[this.totalCols+1] = "long";
-		
+		// grab the column index we want to use as the address
 		Hashtable params = new Hashtable();
-		params.put("address", values[colIndex]);
+		params.put("address", row.getValues()[colIndex]);
 		
+		// construct new values to append onto the row
+		// add new headers
+		String[] newHeaders = new String[]{"lat", "long"};
+		Object[] newValues = new Object[2];
 		// add new values
 		try {
 			GoogleLatLongGetter goog = new GoogleLatLongGetter();
 			// geo location object flushes the JSON return into something for getters and setters
 			GeoLocation location = (GeoLocation) goog.execute(this.user, params);
-			newValues[this.totalCols] = location.getLatitude();
-			newValues[this.totalCols+1] = location.getLongitude();
+			newValues[0] = location.getLatitude();
+			newValues[1] = location.getLongitude();
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		return new HeadersDataRow(newHeaders, newValues);
+		
+		row.addFields(newHeaders, newValues);
+		return row;
 	}
 	
 	@Override
