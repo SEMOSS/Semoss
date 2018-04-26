@@ -6,10 +6,21 @@ import java.util.Vector;
 
 import prerna.om.AbstractValueObject;
 
-public class User2 extends AbstractValueObject{
+public class AppTokens extends AbstractValueObject{
 	
 	// name of this user in the SEMOSS system if there is one
 	
+	public static AppTokens app = new AppTokens();
+	
+	private AppTokens()
+	{
+		
+	}
+	
+	public static AppTokens getInstance()
+	{
+		return app;
+	}
 	
 	// need to have an access token store
 	Hashtable <String, AccessToken> accessTokens = new Hashtable<String, AccessToken>();
