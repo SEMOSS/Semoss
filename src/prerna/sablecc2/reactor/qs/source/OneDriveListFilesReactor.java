@@ -66,13 +66,27 @@ public class OneDriveListFilesReactor extends AbstractReactor{
 		String output = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, true);
 
 		// fill the bean with the return
-		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		for(RemoteItem entry : fileList){
+		//fill an object
+		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		//check if the object if a remote item or a vector
+		//if its a remote item add it to the master list
+		System.out.println(C.getClass().getName());
+		if(C instanceof RemoteItem){
+			RemoteItem fileList= (RemoteItem) C;
 			HashMap<String, Object> tempMap = new HashMap<String, Object>();
-			tempMap.put("name", entry.getName());
-			tempMap.put("id", entry.getId());
+			tempMap.put("name", fileList.getName());
+			tempMap.put("id", fileList.getId());
 			masterList.add(tempMap);
-
+		}
+		//if its a list, iterate through it and add it to the master list
+		else{
+			List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+			for(RemoteItem entry : fileList){
+				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+				tempMap.put("name", entry.getName());
+				tempMap.put("id", entry.getId());
+				masterList.add(tempMap);
+			}
 		}
 
 		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
