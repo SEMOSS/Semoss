@@ -360,7 +360,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			if(!script.endsWith(";")) {
 				script = script +";";
 			}
-			script = "sink(\"" + outputLoc + "\", append = TRUE); " + script + " sink();";
+			script = "con <- file(\"" + outputLoc + "\"); sink(con, append=TRUE, type=\"output\"); sink(con, append=TRUE, type=\"message\"); " + script + " sink();";
 			FileUtils.writeStringToFile(f, script);
 		} catch (IOException e1) {
 			System.out.println("Error in writing R script for execution!");
@@ -382,6 +382,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 		
 		// return the final output
-		return scriptOutput;
+		return scriptOutput.trim();
 	}
 }
