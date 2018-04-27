@@ -98,21 +98,16 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		////////////////////////Actuals vs Fitted Object/////////////////////////////
 		////////////////////////////////////////////////////////////////////////////
 		
-		// we need to know the length of the table 
-		int dataLength = this.rJavaTranslator.getNumRows(resultsList + "[[2]]");
-		Object[][] retDataOutput = new Object[dataLength][3];
+		// we need to add a unique row id
 		String[] dataTableHeaders = new String[]{"ROW_ID", "Actual", "Fitted"};
 		
 		// query for retrieving the second item of the list - the Actuals vs Fitted
 		String queryDataPoints = resultsList + "[[2]]";
+		this.rJavaTranslator.executeEmptyR(queryDataPoints + "$ROW_ID <- seq.int(nrow(" + queryDataPoints + "))");
 		List<Object[]> bulkRowDataPoints = this.rJavaTranslator.getBulkDataRow(queryDataPoints, dataTableHeaders);
-		// each entry into the list is a row - we need to put this in the form of Object[][]
-		for (int i = 0; i < bulkRowDataPoints.size(); i++) {
-			retDataOutput[i] = bulkRowDataPoints.get(i);
-		}
 		
 		// create and return a task for the Actuals vs Fitted scatterplot
-		ITask taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, "ROW_ID", "Actual", "Fitted", retDataOutput);
+		ITask taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, "ROW_ID", "Actual", "Fitted", bulkRowDataPoints);
 		
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + resultsList + "); gc();");
