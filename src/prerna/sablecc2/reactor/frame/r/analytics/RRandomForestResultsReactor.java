@@ -2,9 +2,7 @@ package prerna.sablecc2.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -13,6 +11,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
@@ -53,7 +52,7 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 		sb.append("source(\"" + scriptFilePath + "\");");
 
 		String temp_R = "tempVar" + Utility.getRandomString(8);
-		Map<String, Object> taskData = new HashMap<String,Object>();
+		ITask taskData = null;
 		switch(requestItem.toLowerCase()) {
 		case "varimp" :
 			sb.append(temp_R + " <- getRFResults( RF_VARIABLE_999988888877777, 'varimp', sortBy=" + sortBy + ");");
@@ -89,7 +88,7 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
-		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 
 	//////////////////////////////////////////////////////////////

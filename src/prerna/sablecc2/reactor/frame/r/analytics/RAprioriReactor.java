@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.frame.r.analytics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
@@ -11,6 +10,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
@@ -135,8 +135,8 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Assocation Learning Algorithm ran successfully, but no results were found.");
 		} else {
 			//task data includes task options
-			Map<String, Object> taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
-			return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+			ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
+			return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		}
 	}
 

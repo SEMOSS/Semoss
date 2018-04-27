@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -12,6 +11,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
@@ -112,13 +112,13 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		}
 		
 		// create and return a task for the Actuals vs Fitted scatterplot
-		Map<String, Object> taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, "ROW_ID", "Actual", "Fitted", retDataOutput);
+		ITask taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, "ROW_ID", "Actual", "Fitted", retDataOutput);
 		
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + resultsList + "); gc();");
 
 		// now return this object - for the Scatterplot of Actuals vs Fitted
-		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
 	////////////////////////////////////////////////////////////
