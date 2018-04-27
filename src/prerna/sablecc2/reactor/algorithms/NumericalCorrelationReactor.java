@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.algorithms;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.Level;
@@ -17,6 +16,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.ga.GATracker;
@@ -71,14 +71,14 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		}
 		
 		// create and return a task
-		Map<String, Object> taskData = ConstantTaskCreationHelper.getHeatMapData(getPanelId(), "Column Header X", "Column Header Y", "Correlation", data);
+		ITask taskData = ConstantTaskCreationHelper.getHeatMapData(getPanelId(), "Column Header X", "Column Header Y", "Correlation", data);
 
 		// track GA data
 		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
 		
 		// now return this object
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
-		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 
 	private double[][] runCorrelation(
