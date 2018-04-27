@@ -66,20 +66,30 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 		params.put("path","");
 		params.put("query", ".csv");
 		params.put("start", 0);
-		params.put("max_results", 200);
+		params.put("max_results", 1000);
 		params.put("mode", "filename");
 
 
 		String output = AbstractHttpHelper.makePostCall(url_str, accessToken, params, true);
 
 		// fill the bean with the return
-		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		for(RemoteItem entry : fileList){
+		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		System.out.println(C.getClass().getName());
+		if(C instanceof RemoteItem){
+			RemoteItem fileList= (RemoteItem) C;
 			HashMap<String, Object> tempMap = new HashMap<String, Object>();
-			tempMap.put("name", entry.getName());
-			tempMap.put("path", entry.getPath());
+			tempMap.put("name", fileList.getName());
+			tempMap.put("path", fileList.getPath());
 			masterList.add(tempMap);
-
+		}
+		else{
+			List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+			for(RemoteItem entry : fileList){
+				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+				tempMap.put("name", entry.getName());
+				tempMap.put("path", entry.getPath());
+				masterList.add(tempMap);
+			}
 		}
 
 		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
