@@ -26,7 +26,7 @@ public class GitCollaboratorUtils {
 	
 	public static void addCollaborator(String remoteRepositoryName, String username, String password, String collaborator) 
 	{
-		addCollaborator(remoteRepositoryName, username, password, collaborator, 3);
+		addCollaborator(remoteRepositoryName, username, password, collaborator, 1);
 	}
 
 	/**
@@ -267,7 +267,7 @@ public class GitCollaboratorUtils {
 	
 	public static void addCollaborator(String remoteRepositoryName, String collaborator, String token) 
 	{
-		addCollaborator(remoteRepositoryName, collaborator, token, 3);
+		addCollaborator(remoteRepositoryName, collaborator, token, 1);
 	}
 
 	/**
