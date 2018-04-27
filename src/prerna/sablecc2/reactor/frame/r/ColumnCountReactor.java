@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 
 public class ColumnCountReactor extends AbstractRFrameReactor {
@@ -112,7 +113,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		}
 
 		// create and return a task
-		Map<String, Object> taskData = getBarChartInfo(panelId, column, "Frequency", retOutput);
+		Map<String, Object> taskData = ConstantTaskCreationHelper.getBarChartInfo(panelId, column, "Frequency", retOutput);
 
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + tempName + "); gc();");

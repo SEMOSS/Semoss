@@ -4,7 +4,9 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
 import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -12,6 +14,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 import prerna.util.ga.GATracker;
 
@@ -82,7 +85,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		}
 		
 		// create and return a task
-		Map<String, Object> taskData = getHeatMapData(panelId, "Column Header X", "Column Header Y", "Correlation", retOutput);
+		Map<String, Object> taskData = ConstantTaskCreationHelper.getHeatMapData(panelId, "Column Header X", "Column Header Y", "Correlation", retOutput);
 		
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");

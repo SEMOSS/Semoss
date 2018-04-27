@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 
 public class RAprioriReactor extends AbstractRFrameReactor {
@@ -134,7 +135,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Assocation Learning Algorithm ran successfully, but no results were found.");
 		} else {
 			//task data includes task options
-			Map<String, Object> taskData = getGridData(panelId, rulesDtColNames, data);
+			Map<String, Object> taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
 			return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
 		}
 	}
