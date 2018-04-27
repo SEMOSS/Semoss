@@ -104,12 +104,13 @@ public class GoogleListFilesReactor extends AbstractReactor{
 			for(RemoteItem entry : fileList){
 				HashMap<String, Object> tempMap = new HashMap<String, Object>();
 				tempMap.put("name", entry.getName());
-				tempMap.put("path", entry.getPath());
+				tempMap.put("id", entry.getId());
+				tempMap.put("type", entry.getType());
 				masterList.add(tempMap);
 			}
 		}
 		
-		Object D = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		Object D = BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
 		System.out.println(D.getClass().getName());
 		if(D instanceof RemoteItem){
 			RemoteItem fileList2= (RemoteItem) D;
@@ -120,11 +121,12 @@ public class GoogleListFilesReactor extends AbstractReactor{
 			masterList.add(tempMap);
 		}
 		else{
-			List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+			List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
 			for(RemoteItem entry : fileList2){
 				HashMap<String, Object> tempMap = new HashMap<String, Object>();
 				tempMap.put("name", entry.getName());
-				tempMap.put("path", entry.getPath());
+				tempMap.put("id", entry.getId());
+				tempMap.put("type", entry.getType());
 				masterList.add(tempMap);
 			}
 		}
