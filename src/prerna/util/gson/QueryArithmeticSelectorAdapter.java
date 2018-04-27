@@ -35,13 +35,31 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 				} else if(key.equals("mathExpr")) {
 					value.setMathExpr(in.nextString());
 				} else if(key.equals("left")) {
-					IQuerySelectorAdapter leftAdapter = new IQuerySelectorAdapter();
-					IQuerySelector leftSelector = leftAdapter.read(in);
-					value.setLeftSelector(leftSelector);
-				} else if(key.equals("rhs")) {
-					IQuerySelectorAdapter rightAdapter = new IQuerySelectorAdapter();
-					IQuerySelector rightSelector = rightAdapter.read(in);
-					value.setRightSelector(rightSelector);
+					in.beginArray();
+					while(in.hasNext()) {
+						if(in.peek() == JsonToken.STRING) {
+							// this is the type of the left selector
+							in.nextString();
+						} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
+							IQuerySelectorAdapter leftAdapter = new IQuerySelectorAdapter();
+							IQuerySelector leftSelector = leftAdapter.read(in);
+							value.setLeftSelector(leftSelector);
+						}
+					}
+					in.endArray();
+				} else if(key.equals("right")) {
+					in.beginArray();
+					while(in.hasNext()) {
+						if(in.peek() == JsonToken.STRING) {
+							// this is the type of the left selector
+							in.nextString();
+						} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
+							IQuerySelectorAdapter rightAdapter = new IQuerySelectorAdapter();
+							IQuerySelector rightSelector = rightAdapter.read(in);
+							value.setRightSelector(rightSelector);
+						}
+					}
+					in.endArray();
 				}
 			}
 		}
@@ -66,15 +84,18 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 		out.name("mathExpr").value(value.getMathExpr());
 		
 		out.name("left");
+		out.beginArray();
 		IQuerySelector left = value.getLeftSelector();
 		TypeAdapter leftOutput = IQuerySelector.getAdapterForSelector(left.getSelectorType());
 		leftOutput.write(out, left);
+		out.endArray();
 		
 		out.name("right");
+		out.beginArray();
 		IQuerySelector right = value.getRightSelector();
 		TypeAdapter rightOutput = IQuerySelector.getAdapterForSelector(right.getSelectorType());
 		rightOutput.write(out, right);
-		
+		out.endArray();
 		out.endObject();
 	}
 }
