@@ -95,7 +95,6 @@ public class NounMetadata {
 		NounMetadata n = gson.fromJson(str, NounMetadata.class);
 		
 		Class<? extends Object> valueClass = value.getClass();
-		System.out.println(valueClass);
 		Object cloneValue = cloneValue = gson.fromJson(gson.toJson(value), valueClass);
 		
 		return new NounMetadata(cloneValue, this.noun, this.opType);
