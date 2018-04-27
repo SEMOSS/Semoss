@@ -9,6 +9,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 
 public class HistogramReactor extends AbstractRFrameReactor {
 
@@ -102,7 +103,7 @@ public class HistogramReactor extends AbstractRFrameReactor {
 		}
 		
 		//task data includes task options
-		Map<String, Object> taskData = getBarChartInfo(panelId, column, "Frequency", data);
+		Map<String, Object> taskData = ConstantTaskCreationHelper.getBarChartInfo(panelId, column, "Frequency", data);
 		
 		//return metadata
 		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
