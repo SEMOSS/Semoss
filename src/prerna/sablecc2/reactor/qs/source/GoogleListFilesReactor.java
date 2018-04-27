@@ -58,8 +58,8 @@ public class GoogleListFilesReactor extends AbstractReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE.name());
-				accessToken=msToken.getAccess_token();
+				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE.name());
+				accessToken=googleToken.getAccess_token();
 			}
 		}
 		catch (Exception e) {
@@ -89,6 +89,46 @@ public class GoogleListFilesReactor extends AbstractReactor{
 
 
 		// fill the bean with the return
+		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		System.out.println(C.getClass().getName());
+		if(C instanceof RemoteItem){
+			RemoteItem fileList= (RemoteItem) C;
+			HashMap<String, Object> tempMap = new HashMap<String, Object>();
+			tempMap.put("name", fileList.getName());
+			tempMap.put("id", fileList.getId());
+			tempMap.put("type", fileList.getType());
+			masterList.add(tempMap);
+		}
+		else{
+			List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+			for(RemoteItem entry : fileList){
+				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+				tempMap.put("name", entry.getName());
+				tempMap.put("path", entry.getPath());
+				masterList.add(tempMap);
+			}
+		}
+		
+		Object D = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		System.out.println(D.getClass().getName());
+		if(D instanceof RemoteItem){
+			RemoteItem fileList2= (RemoteItem) D;
+			HashMap<String, Object> tempMap = new HashMap<String, Object>();
+			tempMap.put("name", fileList2.getName());
+			tempMap.put("id", fileList2.getId());
+			tempMap.put("type", fileList2.getType());
+			masterList.add(tempMap);
+		}
+		else{
+			List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+			for(RemoteItem entry : fileList2){
+				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+				tempMap.put("name", entry.getName());
+				tempMap.put("path", entry.getPath());
+				masterList.add(tempMap);
+			}
+		}
+/*
 		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
 		List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
 
@@ -109,6 +149,7 @@ public class GoogleListFilesReactor extends AbstractReactor{
 			tempMap.put("type", entry.getType());
 			masterList.add(tempMap);		
 			}
+			*/
 
 		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
 				PixelOperationType.CLOUD_FILE_LIST);	}
