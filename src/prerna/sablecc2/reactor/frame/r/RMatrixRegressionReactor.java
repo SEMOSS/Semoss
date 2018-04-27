@@ -68,7 +68,7 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		logger.info("Done iterating through data to determine regression");
 		
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "MatrixRegression");
 		
 		
 		/////////////////////////////////////////////////////////////////////////////
