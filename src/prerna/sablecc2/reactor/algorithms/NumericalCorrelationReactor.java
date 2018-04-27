@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.algorithms;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +18,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.ga.GATracker;
 
 public class NumericalCorrelationReactor extends AbstractReactor {
@@ -46,59 +45,44 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		}
 		double missingVal = getDefaultValue();
 
-		// I need to return back headers
-		// and the actual data rows
-		// and a dataTableAlign object
-		// in addition to the specific correlation data
-		String[] retHeaders = new String[numCols];
-		List<double[]> rowData = new ArrayList<double[]>();;
-		Map<String, String> dataTableAlign = new HashMap<String, String>();
-		
 		QueryStruct2 qs = new QueryStruct2();
 		for(int i = 0; i < numCols; i++) {
 			String header = numericalCols.get(i);
-			QueryColumnSelector qsHead = new QueryColumnSelector();
-			if(header.contains("__")) {
-				String[] split = header.split("__");
-				qsHead.setTable(split[0]);
-				qsHead.setColumn(split[1]);
-				retHeaders[i] = split[1];
-			} else {
-				qsHead.setTable(header);
-				retHeaders[i] = header;
-			}
-			dataTableAlign.put("dim " + i, retHeaders[i]);
+			QueryColumnSelector qsHead = new QueryColumnSelector(header);
 			qs.addSelector(qsHead);
 		}
 		qs.mergeImplicitFilters(dataFrame.getFrameFilters());
 		
 		Iterator<IHeadersDataRow> it = dataFrame.query(qs);
 		logger.info("Start iterating through data to determine correlation");
-		double[][] correlationData = runCorrelation(it, rowData, numCols, missingVal, logger);
+		double[][] correlationData = runCorrelation(it, numCols, missingVal, logger);
 		logger.info("Done iterating through data to determine correlation");
 
-		// mock the data output
-		Map<String, Object> vizData = new HashMap<String, Object>();
-		vizData.put("data", rowData);
-		vizData.put("headers", retHeaders);
-		vizData.put("layout", "ScatterplotMatrix");
-		vizData.put("panelId", getPanelId());
-		vizData.put("dataTableAlign", dataTableAlign);
-		// finally, i send the correlation data
-		Map<String, double[][]> correlationMap = new HashMap<String, double[][]>();
-		correlationMap.put("correlations", correlationData);
-		vizData.put("specificData", correlationMap);
+		List<Object[]> data = new Vector<Object[]>();
+		for(int i = 0; i < numCols; i++) {
+			String numColName = numericalCols.get(i);
+			for(int j = 0; j < numCols; j++) {
+				Object[] dataRow = new Object[3];
+				dataRow[0] = numColName;
+				dataRow[1] = numericalCols.get(j);
+				dataRow[2] = correlationData[i][j];
+				data.add(dataRow);
+			}
+		}
 		
+		// create and return a task
+		Map<String, Object> taskData = ConstantTaskCreationHelper.getHeatMapData(getPanelId(), "Column Header X", "Column Header Y", "Correlation", data);
+
 		// track GA data
 		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
 		
 		// now return this object
-		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
+		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
+		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
 	}
 
 	private double[][] runCorrelation(
 			Iterator<IHeadersDataRow> it, 
-			List<double[]> rowData, 
 			int numHeaders, 
 			double defaultVal,
 			Logger logger) {
@@ -145,8 +129,6 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 			}
 			// we are done with this row
 			n++;
-			// store it as well
-			rowData.add(doubleRow);
 		}
 		logger.setLevel(Level.INFO);
 		

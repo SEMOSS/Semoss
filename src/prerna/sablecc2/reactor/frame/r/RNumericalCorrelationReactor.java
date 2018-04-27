@@ -65,9 +65,6 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		String correlationDataTable = runRCorrelation(frameName, retHeaders);
 		logger.info("Done iterating through data to determine correlation");
 		
-		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
-		
 		// create the object to return to the FE
 		// the length of the object will be numCols^2
 		// there will always be three rows x,y,cor
@@ -90,6 +87,9 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");
 
+		// track GA data
+		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
+		
 		// now return this object
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
 		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
