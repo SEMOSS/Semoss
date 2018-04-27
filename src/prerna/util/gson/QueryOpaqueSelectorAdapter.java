@@ -1,9 +1,7 @@
 package prerna.util.gson;
 
 import java.io.IOException;
-import java.util.Map;
 
-import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -14,8 +12,6 @@ import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 
 public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector> {
 
-	private static final Gson GSON = new Gson();
-	
 	@Override 
 	public QueryOpaqueSelector read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
@@ -23,15 +19,25 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 			return null;
 		}
 
-		String mapStr = in.nextString();
-		Map<String, String> map = GSON.fromJson(mapStr, Map.class);
-
 		QueryOpaqueSelector value = new QueryOpaqueSelector();
-		value.setQuerySelectorSyntax(map.get("querySyntax"));
-		value.setAlias(map.get("alias"));
-		value.setTable(map.get("table"));
+		in.beginObject();
+		while(in.hasNext()) {
+			if(in.peek() == JsonToken.NAME) {
+				String key = in.nextName();
+				if(key.equals("table")) {
+					value.setTable(in.nextString());
+				} else if(key.equals("alias")) {
+					value.setAlias(in.nextString());
+				} else if(key.equals("querySyntax")) {
+					value.setQuerySelectorSyntax(in.nextString());
+				}
+			}
+		}
+		in.endObject();
+
 		return value;
 	}
+
 
 	@Override 
 	public void write(JsonWriter out, QueryOpaqueSelector value) throws IOException {
@@ -39,7 +45,7 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 			out.nullValue();
 			return;
 		}
-		
+
 		out.value(IQuerySelector.SELECTOR_TYPE.OPAQUE.toString());
 
 		out.beginObject();
