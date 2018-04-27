@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 
 public class RRandomForestResultsReactor extends AbstractRFrameReactor{
@@ -63,7 +64,7 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 			//label,x,y,z,series
 			String[] varImpAlignment= this.rJavaTranslator.getStringArray(temp_R + "$alignmentInfo");
 			
-			taskData = getScatterPlotData(panelId, varImpCols, varImpData, varImpAlignment[0], varImpAlignment[1],
+			taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, varImpCols, varImpData, varImpAlignment[0], varImpAlignment[1],
 					varImpAlignment[2], varImpAlignment[3], varImpAlignment[0], null);
 			break;
 		case "confmatrix":
@@ -78,7 +79,7 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 			String[] confMatrixCols = this.rJavaTranslator.getColumns(temp_R);
 			List<Object[]> confMatrixData = this.rJavaTranslator.getBulkDataRow(temp_R, confMatrixCols);
 			
-			taskData = getGridData(panelId, confMatrixCols, confMatrixData);			
+			taskData = ConstantTaskCreationHelper.getGridData(panelId, confMatrixCols, confMatrixData);			
 			break;
 		}
 
