@@ -1,13 +1,12 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.Map;
-
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 
 public class DescriptiveStatsReactor extends AbstractRFrameReactor {
@@ -92,8 +91,8 @@ public class DescriptiveStatsReactor extends AbstractRFrameReactor {
 		retOutput[7][0] = "Standard Deviation";
 		retOutput[7][1] = sd;
 
-		Map<String, Object> taskData = ConstantTaskCreationHelper.getBarChartInfo(panelId, column, "StatOutput", retOutput);
-		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+		ITask taskData = ConstantTaskCreationHelper.getBarChartInfo(panelId, column, "StatOutput", retOutput);
+		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

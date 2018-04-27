@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.r;
 
 
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -14,6 +13,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 import prerna.util.ga.GATracker;
@@ -82,7 +82,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		}
 		
 		// create and return a task
-		Map<String, Object> taskData = ConstantTaskCreationHelper.getHeatMapData(panelId, "Column Header X", "Column Header Y", "Correlation", retOutput);
+		ITask taskData = ConstantTaskCreationHelper.getHeatMapData(panelId, "Column Header X", "Column Header Y", "Correlation", retOutput);
 		
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");
@@ -92,7 +92,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		
 		// now return this object
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
-		return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);
+		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
 	private String runRCorrelation(String frameName, String[] retHeaders) {

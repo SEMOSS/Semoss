@@ -28,7 +28,7 @@ public class ConstantTaskCreationHelper {
 	 * @param value - for the histogram this is "Frequency"
 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
 	 */
-	public static Map<String, Object> getBarChartInfo(String panelId, String label, String value, Object dataValues) {
+	public static ConstantDataTask getBarChartInfo(String panelId, String label, String value, Object dataValues) {
 		// create the weird object the FE needs to paint a bar chart
 		ConstantDataTask task = new ConstantDataTask();
 		task.setId("TEMP_ID");
@@ -80,7 +80,7 @@ public class ConstantTaskCreationHelper {
 		formatMap.put("type", "TABLE");
 		task.setFormatMap(formatMap);
 		
-		return task.collect(true);
+		return task;
 	}
 	
 	/**
@@ -89,7 +89,7 @@ public class ConstantTaskCreationHelper {
 	 * @param labels - column names of data table
 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
 	 */
-	public static Map<String, Object> getGridData(String panelId, String[] labels, Object dataValues) {
+	public static ConstantDataTask getGridData(String panelId, String[] labels, Object dataValues) {
 		// create the weird object the FE needs to paint a bar chart
 		ConstantDataTask task = new ConstantDataTask();
 		task.setId("TEMP_ID");
@@ -133,7 +133,7 @@ public class ConstantTaskCreationHelper {
 		formatMap.put("type", "TABLE");
 		task.setFormatMap(formatMap);
 		
-		return task.collect(true);
+		return task;
 	}
 	
 	/**
@@ -144,7 +144,7 @@ public class ConstantTaskCreationHelper {
 	 * @param heat - heat for heat map
 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
 	 */
-	public static Map<String, Object> getHeatMapData(String panelId, String x, String y, String heat, Object dataValues) {
+	public static ConstantDataTask getHeatMapData(String panelId, String x, String y, String heat, Object dataValues) {
 
 		// create the object the FE needs to paint a bar chart
 		ConstantDataTask task = new ConstantDataTask();
@@ -195,7 +195,7 @@ public class ConstantTaskCreationHelper {
 		formatMap.put("type", "TABLE");
 		task.setFormatMap(formatMap);
 
-		return task.collect(true);
+		return task;
 	}
 	
 	
@@ -207,7 +207,7 @@ public class ConstantTaskCreationHelper {
 	 * @param heat - heat for heat map
 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
 	 */
-	public static Map<String, Object> getScatterPlotData(String panelId, String label, String x, String y, Object dataValues) {
+	public static ConstantDataTask getScatterPlotData(String panelId, String label, String x, String y, Object dataValues) {
 
 		// create the object the FE needs to paint a bar chart
 		ConstantDataTask task = new ConstantDataTask();
@@ -256,7 +256,7 @@ public class ConstantTaskCreationHelper {
 		formatMap.put("type", "TABLE");
 		task.setFormatMap(formatMap);
 
-		return task.collect(true);
+		return task;
 	}
 	
 	/**
@@ -267,7 +267,7 @@ public class ConstantTaskCreationHelper {
 	 * @param heat - heat for heat map
 	 * @param dataValues - this better be a List<Object[]> or Object[][] since the serialization to JSON is the same
 	 */
-	public static Map<String, Object> getScatterPlotData(String panelId, String[] labels, Object dataValues, String series, 
+	public static ConstantDataTask getScatterPlotData(String panelId, String[] labels, Object dataValues, String series, 
 			String x, String y, String z, String label, String[] facet) {
 		// create the weird object the FE needs to paint a bar chart
 		ConstantDataTask task = new ConstantDataTask();
@@ -337,7 +337,7 @@ public class ConstantTaskCreationHelper {
 		formatMap.put("type", "TABLE");
 		task.setFormatMap(formatMap);
 
-		return task.collect(true);
+		return task;
 	}
 	
 }
