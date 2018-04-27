@@ -78,7 +78,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		}
 		List<String> recipe = insight.getPixelRecipe();
 		if(!hasParam(recipe)) {
-			String cmd = getCmd(feUrl, insight);
+			String[] cmd = getCmdArray(feUrl, insight);
 			Process p = null;
 			try {
 				p = Runtime.getRuntime().exec(cmd);
@@ -133,6 +133,42 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		
 		// isn't a param
 		return false;
+	}
+	
+	private static String[] getCmdArray(String feUrl, Insight in) {
+		String id = in.getRdbmsId();
+		String engine = in.getEngineName();
+
+		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
+				DIR_SEPARATOR + "db" + 
+				DIR_SEPARATOR + engine + 
+				DIR_SEPARATOR + "version" +
+				DIR_SEPARATOR + id;
+		
+		File imageDir = new File(imageDirStr);
+		if(!imageDir.exists()) {
+			imageDir.mkdirs();
+		}
+
+		String googleHome = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_HOME);
+		if(googleHome == null) {
+			googleHome = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+		}
+		
+		String insecure = "";
+		if(feUrl.contains("localhost") && feUrl.contains("https")) {
+			insecure = "--allow-insecure-localhost ";
+		}
+		if(insecure.equals("")){
+			String[] cmd = {googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
+					"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000"};
+			return cmd;
+		}
+		else{
+			String[] cmd = {googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
+					"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000"};
+			return cmd;
+		}
 	}
 
 	private static String getCmd(String feUrl, Insight in) {
