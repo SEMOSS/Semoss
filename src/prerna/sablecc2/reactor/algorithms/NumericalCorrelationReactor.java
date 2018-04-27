@@ -61,7 +61,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		List<Object[]> data = new Vector<Object[]>();
 		for(int i = 0; i < numCols; i++) {
 			String numColName = numericalCols.get(i);
-			for(int j = i; j < numCols; j++) {
+			for(int j = 0; j < numCols; j++) {
 				Object[] dataRow = new Object[3];
 				dataRow[0] = numColName;
 				dataRow[1] = numericalCols.get(j);
