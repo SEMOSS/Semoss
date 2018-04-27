@@ -16,7 +16,6 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 	
-	
 	@Override
 	public SimpleQueryFilter read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
