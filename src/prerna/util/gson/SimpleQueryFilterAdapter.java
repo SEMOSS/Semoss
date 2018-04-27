@@ -2,7 +2,6 @@ package prerna.util.gson;
 
 import java.io.IOException;
 
-import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -13,8 +12,6 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
-	
-	private static final Gson GSON = GsonUtility.getDefaultGson();
 	
 	@Override
 	public SimpleQueryFilter read(JsonReader in) throws IOException {
@@ -28,6 +25,8 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 			in.nextString();
 		}
 		
+		NounMetadataAdapter adapter = new NounMetadataAdapter();
+
 		NounMetadata left = null;
 		NounMetadata right = null;
 		String comparator = null;
@@ -36,13 +35,11 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 		while(in.hasNext()) {
 			String name = in.nextName();
 			if(name.equals("left")) {
-				String lString = in.nextString();
-				left = GSON.fromJson(lString, NounMetadata.class);
+				left = adapter.read(in);
 			} else if(name.equals("comparator")) {
 				comparator =in.nextString();
 			} else if(name.equals("right")) {
-				String rightStr = in.nextString();
-				right = GSON.fromJson(rightStr, NounMetadata.class);
+				right = adapter.read(in); 
 			}
 		}
 		in.endObject();
@@ -63,10 +60,14 @@ public class SimpleQueryFilterAdapter extends TypeAdapter<SimpleQueryFilter> {
 		NounMetadata right = value.getRComparison();
 		String comp = value.getComparator();
 		
+		NounMetadataAdapter adapter = new NounMetadataAdapter();
+		
 		out.beginObject();
-		out.name("left").value(GSON.toJson(left));
+		out.name("left");
+		adapter.write(out, left);
 		out.name("comparator").value(comp);
-		out.name("right").value(GSON.toJson(right));
+		out.name("right");
+		adapter.write(out, right);
 		out.endObject();
 	}
 
