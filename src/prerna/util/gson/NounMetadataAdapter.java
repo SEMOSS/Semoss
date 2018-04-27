@@ -25,27 +25,46 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 			return null;
 		}
 		
-		String typeStr = in.nextString();
-		String className = in.nextString();
-		String objStr = in.nextString();
-		
-		// should start with the type
-		PixelDataType type = PixelDataType.valueOf(typeStr);
+		String className;
 		Class c = null;
-		try {
-			c = Class.forName(className);
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-		Object obj = GSON.fromJson(objStr, c);
-		
-		List<PixelOperationType> ops = new Vector<PixelOperationType>();
-		in.beginArray();
-		while(in.hasNext()) {
-			ops.add(PixelOperationType.valueOf(in.nextString()));
-		}
-		in.endArray();
 
+		// components of noun meta
+		Object obj = null;
+		PixelDataType type = null;
+		List<PixelOperationType> ops = new Vector<PixelOperationType>();
+
+		in.beginObject();
+		while(in.hasNext()) {
+			if(in.peek() == JsonToken.NAME) {
+				String name = in.nextName();
+				if(name.equals("pixelType")) {
+					String typeStr = in.nextString();
+					type = PixelDataType.valueOf(typeStr);
+				} else if(name.equals("class")) {
+					className = in.nextString();
+					// get the class
+					try {
+						c = Class.forName(className);
+					} catch (ClassNotFoundException e) {
+						e.printStackTrace();
+					}
+				} else if(name.equals("value")) {
+					in.beginArray();
+					while(in.hasNext()) {
+						TypeAdapter adapter = GSON.getAdapter(c);
+						obj = adapter.read(in);
+					}
+					in.endArray();
+				} else if(name.equals("opType")) {
+					in.beginArray();
+					while(in.hasNext()) {
+						ops.add(PixelOperationType.valueOf(in.nextString()));
+					}
+					in.endArray();
+				}
+			}
+		}
+		
 		return new NounMetadata(obj, type, ops);
 	}
 	
@@ -59,15 +78,23 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		PixelDataType type = value.getNounType();
 		Object obj = value.getValue();
 		
-		out.value(type.toString());
-		out.value(obj.getClass().getName());
-		out.value(GSON.toJson(value.getValue()));
+		out.beginObject();
+		out.name("pixelType").value(type.toString());
+		out.name("class").value(obj.getClass().getName());
+		out.name("value");
 		out.beginArray();
-		List<PixelOperationType> ops = value.getOpType();
-		for(PixelOperationType t : ops) {
-			out.value(t.toString());
+		TypeAdapter adapter = GSON.getAdapter(obj.getClass());
+		adapter.write(out, obj);
+		out.endArray();
+		
+		out.name("opType");
+		out.beginArray();
+		List<PixelOperationType> opTypes = value.getOpType();
+		for(PixelOperationType opType : opTypes) {
+			out.value(opType.toString());
 		}
 		out.endArray();
+		out.endObject();
 	}
 
 }
