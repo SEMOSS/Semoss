@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -37,7 +36,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 	private List<String> lhsVarList;
 
 	/**
-	 * RunAssociatedLearningR(attributes = ["Class_1", "Sex", "Survived","Age"], conf = [0.8],support = [0.005], rhsAttribute=["Survived"], panel=[999]);
+	 * RunAssociatedLearning(attributes = ["Class_1", "Sex", "Survived","Age"], conf = [0.8],support = [0.005], rhsAttribute=["Survived"], panel=[999]);
 	 */
 
 	public RAprioriReactor() {
@@ -51,7 +50,6 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		String[] packages = new String[] { "data.table", "dplyr", "arules" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
-		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 		String dtName = frame.getTableName();
 		List<String> colNames = Arrays.asList(frame.getColumnNames());
 		String panelId = getPanelId();
@@ -82,12 +80,8 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("RHS attribut is an invalid column name.");
 		}
 		
-		// dt, attrList, transactionIdList = NULL, support = NULL, confidence =
-		// NULL, maxlen = NULL, sortBy = "lift", lhsSpecified = NULL,
-		// rhsSpecified = NULL
 		String attrList_R = "attrList" + Utility.getRandomString(8);
 		String attrListStr  = "'" + this.attributesList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
-		System.out.println(attrListStr);
 		sb.append(attrList_R + " <- c(" + attrListStr + ");");
 		
 		StringBuilder substr = new StringBuilder();
@@ -104,7 +98,6 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 			String lhsVarListStr  = "'" + this.lhsVarList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
 			substr.append(",lhsSpecified = c(" + lhsVarListStr + ")");
 		}
-		System.out.println(substr.toString());
 
 		// apriori r script
 		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\Apriori.R";
@@ -125,15 +118,21 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		sb.append(rulesDt_R + "<-" + temp_R + "$rulesDt;");
 		
 		// execute R
-		System.out.println(sb.toString());
 		this.rJavaTranslator.runR(sb.toString());
 		
 		int ruleslength = this.rJavaTranslator.getInt(rulesLength_R);
+		String[] rulesDtColNames = this.rJavaTranslator.getColumns(rulesDt_R);
+		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(rulesDt_R, rulesDtColNames);
+		
+		// clean up r temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + attrList_R + "," + temp_R + "," + rulesLength_R + "," + rulesDt_R + ",runApriori);");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());
+
 		if (ruleslength == 0) {
 			throw new IllegalArgumentException("Assocation Learning Algorithm ran successfully, but no results were found.");
 		} else {
-			String[] rulesDtColNames = this.rJavaTranslator.getColumns(rulesDt_R);
-			List<Object[]> data = this.rJavaTranslator.getBulkDataRow(rulesDt_R, rulesDtColNames);
 			//task data includes task options
 			Map<String, Object> taskData = getGridData(panelId, rulesDtColNames, data);
 			return new NounMetadata(taskData, PixelDataType.TASK, PixelOperationType.TASK_DATA);

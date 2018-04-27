@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r.analytics;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,21 +18,20 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
 import prerna.util.ga.GATracker;
 
-public class RClassificationAlgorithmRReactor extends AbstractRFrameReactor {
+public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 	/**
-	 * RunClassificationR(classify=[Species],attributes=["PetalLength","PetalWidth","SepalLength","SepalWidth"], panel=[0])
-	 * RunClassificationR(classify=[race],attributes=["age","workclass","education","marital_status","relationship","sex","capital_gain","capital_loss","income"], panel=[0])
+	 * RunClassification(classify=[Species],attributes=["PetalLength","PetalWidth","SepalLength","SepalWidth"], panel=[0])
+	 * RunClassification(classify=[race],attributes=["age","workclass","education","marital_status","relationship","sex","capital_gain","capital_loss","income"], panel=[0])
 	 */
-	private static final String CLASS_NAME = RClassificationAlgorithmRReactor.class.getName();
+	private static final String CLASS_NAME = RClassificationAlgorithmReactor.class.getName();
 
 	private static final String CLASSIFICATION_COLUMN = "classify";
 
-	public RClassificationAlgorithmRReactor() {
+	public RClassificationAlgorithmReactor() {
 		this.keysToGet = new String[] { CLASSIFICATION_COLUMN, ReactorKeysEnum.ATTRIBUTES.getKey(),
 				ReactorKeysEnum.PANEL.getKey() };
 	}
@@ -76,24 +74,23 @@ public class RClassificationAlgorithmRReactor extends AbstractRFrameReactor {
 		// set call to R function
 		rsb.append(outputList_R + " <- getCTree( " + dtName + "," + predictionCol_R + "," + attributes_R + ");");
 		
-		String probDtTable_R = "probDT" + Utility.getRandomString(8);
-		rsb.append(probDtTable_R + "<-" + outputList_R + "$predictedProbDt;");
-		String predictors_R = "predictors" + Utility.getRandomString(8);
-		rsb.append(predictors_R + "<-" + outputList_R + "$predictors;");
-		String cTree_R = "ctree" + Utility.getRandomString(8);
-		rsb.append(cTree_R + "<-" + outputList_R + "$tree;");
-		String accuracy_R = "accuracy" + Utility.getRandomString(8);
-		rsb.append(accuracy_R + "<-" + outputList_R + "$accuracy;");
-
+		//if at a later time, we want to retrieve the predicted probability per terminal node - do so via:
+		//String[] probDtCols = this.rJavaTranslator.getColumns(outputList_R + "$predictedProbDt");
+		//this.rJavaTranslator.getBulkDataRow(outputList_R + "$predictedProbDt", probDtCols);
+		
 		// execute R
-		System.out.println("hello");
-		System.out.println(rsb.toString());
 		this.rJavaTranslator.runR(rsb.toString());
 		
-		String[] predictors = this.rJavaTranslator.getStringArray(predictors_R);
-		String accuracy = this.rJavaTranslator.getString(accuracy_R);
-		String[] ctreeArray = this.rJavaTranslator.getStringArray(cTree_R);
-	
+		String[] predictors = this.rJavaTranslator.getStringArray(outputList_R + "$predictors;");
+		String accuracy = this.rJavaTranslator.getString(outputList_R + "$accuracy;");
+		String[] ctreeArray = this.rJavaTranslator.getStringArray(outputList_R + "$tree;");
+
+		//// clean up r temp variables
+		StringBuilder cleanUpScript = new StringBuilder();
+		cleanUpScript.append("rm(" + outputList_R + "," + predictionCol_R + "," + attributes_R + ",getCTree);");
+		cleanUpScript.append("gc();");
+		this.rJavaTranslator.runR(cleanUpScript.toString());	
+
 		Map<String, Object> vizData = new HashMap<String, Object>();
 		vizData.put("name", "Decision Tree For " + predictionCol);
 		vizData.put("layout", "Dendrogram");
