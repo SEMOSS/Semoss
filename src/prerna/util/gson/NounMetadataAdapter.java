@@ -64,6 +64,7 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 				}
 			}
 		}
+		in.endObject();
 		
 		return new NounMetadata(obj, type, ops);
 	}
