@@ -464,13 +464,13 @@ public class ReactorFactory {
 		reactorHash.put("ListGoogleDriveFiles", ListGoogleDriveFilesReactor.class);
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
-		reactorHash.put("DropBoxFileRetiever", DropBoxFileRetrieverReactor.class);
+		reactorHash.put("DropBoxFileRetriever", DropBoxFileRetrieverReactor.class);
 		reactorHash.put("OneDriveUploader", OneDriveUploaderReactor.class);
 		reactorHash.put("OneDriveListFiles", OneDriveListFilesReactor.class);
-		reactorHash.put("OneDriveFileRetiever", OneDriveFileRetrieverReactor.class);
+		reactorHash.put("OneDriveFileRetriever", OneDriveFileRetrieverReactor.class);
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
-		reactorHash.put("GoogleFileRetiever", GoogleFileRetrieverReactor.class);
+		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
 
 
 		
