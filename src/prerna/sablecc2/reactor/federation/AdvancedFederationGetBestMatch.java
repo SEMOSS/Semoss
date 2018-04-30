@@ -42,7 +42,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		final String rCol2 = "ADVANCED_FEDERATION_FRAME_COL2";
 
 		// check if packages are installed
-		String[] packages = {"jsonlite", "stringdist"};
+		String[] packages = {"jsonlite", "stringdist", "data.table"};
 		this.rJavaTranslator.checkPackages(packages);
 		
 		// for the first iteration we have to build the inputs, second iteration
@@ -52,7 +52,8 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		String newCol = this.keyValue.get(this.keysToGet[2]);
 		String frameCol = this.keyValue.get(this.keysToGet[3]);
 		boolean firstIt = getFirstItFlag();
-		List<String> matches = getMatches();
+
+		List<String> allMatches = getMatches();
 
 		// if matches is empty then its the first iteration, so create all DFs
 		// otherwise we assume all resources are created already so just add matches 
@@ -91,23 +92,23 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 			this.rJavaTranslator.executeR(rTable1);
 			this.rJavaTranslator.executeR(rTable2.toString());
 
-			// create empty link table
-			this.rJavaTranslator.runR("LinkFrame <- data.frame(\"col1\" = character(), \"col2\" = character(), \"dist\"= integer(), stringsAsFactors=FALSE);");
+			// create empty LinkTable - its lazy loaded with all exact matches in the blend reactor,
+			// using rCol1 and rCol2 variables, in case the user ends up backing out before blending
+			this.rJavaTranslator.runR("library(data.table); LinkFrame <- data.table(\"col1\" = character(), \"col2\" = character(), \"dist\"= integer(), stringsAsFactors=FALSE);");
 			
-		} else if(matches != null && !(matches.isEmpty())) {
-			// get all matches and generate script to add matches to link table
+		} else if (allMatches != null && !(allMatches.isEmpty())){
 			StringBuilder col1Builder = new StringBuilder();
 			StringBuilder col2Builder = new StringBuilder();
 			StringBuilder col3Builder = new StringBuilder();
-			if (matches != null && !(matches.isEmpty())) {
-				for (int i = 0; i < matches.size(); i++) {
+			String rand = Utility.getRandomString(8);
+			if (allMatches != null && !(allMatches.isEmpty())) {
+				for (int i = 0; i < allMatches.size(); i++) {
 					if (i != 0) {
 						col1Builder.append(",");
 						col2Builder.append(",");
 						col3Builder.append(",");
 					}
-					// lookup match values from match frame
-					String match = (String) matches.get(i);
+					String match = (String) allMatches.get(i);
 					String col1 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col1)");
 					String col2 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$col2)");
 					String dist = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match + "\"), ]$distance)");
@@ -116,15 +117,21 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 					col3Builder.append(dist);
 				}
 			}
+				
+				// add all matches provided
+				String script =  rand + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
+				this.rJavaTranslator.runR(script);
 			
-			// add matches to link table (assuming link table exists)
-			String rand = Utility.getRandomString(8);
-			String script =  rand + " <- data.frame(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
-			this.rJavaTranslator.runR(script);
-			
-			// remove matches from rcol1 and rcol2
+			// remove all selected matches from the input rCol1 and rCol2 so they dont see them again
 			this.rJavaTranslator.runR(rCol1 + " <- " + rCol1 + "[!" + rCol1 + " %in% c(" + col1Builder + ")]");
-			this.rJavaTranslator.runR(rCol2 + " <- " + rCol2 + "[!" + rCol2 + " %in% c(" + col2Builder + ")]");			
+			this.rJavaTranslator.runR(rCol2 + " <- " + rCol2 + "[!" + rCol2 + " %in% c(" + col2Builder + ")]");
+
+			// run a check if either column is empty, if so, throw a warning and stop matching
+			String r1empty = this.rJavaTranslator.getString("all.equal(" + rCol1 + ",character(0))");
+			String r2empty = this.rJavaTranslator.getString("all.equal(" + rCol2 + ",character(0))");
+			if (r1empty == null || r2empty == null){
+				throw new IllegalArgumentException("All values have matches, blend now.");
+			}
 		}
 
 		// generate script based on what george wants - empty list of selected
@@ -132,13 +139,14 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 				+ matchesFrame + " <- best_match_nonzero(" + rCol1 + "," + rCol2 + ");";
 		bestMatchScript = bestMatchScript.replace("\\", "/");
 
-		// execute script
 		this.rJavaTranslator.runR(bestMatchScript);
 
+		// add a unique combined col1 == col2, remove extra columns, 
+		// order by distance, and convert to json so we can get it back in java
 		String combineScript = matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame + "$col2, sep=\" == \");"
 				+ matchesFrame + "$distance <- as.numeric(" + matchesFrame + "$dist);" + matchesFrame + "<-" + matchesFrame
-				+ "[,c(\"col1\",\"col2\",\"distance\",\"combined\")]; library(jsonlite); ADVANCED_FEDFRAME_JSON <- toJSON(" + matchesFrame
-				+ "[order(" + matchesFrame + "$dist),], byrow = TRUE, colNames = TRUE);";
+				+ "[,c(\"col1\",\"col2\",\"distance\",\"combined\")]; " + matchesFrame + "<-" + matchesFrame + "[order(" + matchesFrame + "$dist),] ; library(jsonlite); ADVANCED_FEDFRAME_JSON <- toJSON(head(unique(" + matchesFrame
+				+ "), 500), byrow = TRUE, colNames = TRUE);";
 		
 		this.rJavaTranslator.runR(combineScript);
 		
