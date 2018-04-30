@@ -86,6 +86,7 @@ public class PostRequestReactor extends AbstractReactor {
 		try {
 			retString = handler.handleResponse(response);
 		} catch (IOException e) {
+			e.printStackTrace();
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 		
