@@ -33,12 +33,16 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import com.google.gson.internal.StringMap;
 
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -899,6 +903,24 @@ public class UserPermissionsMasterDB {
 				 rowValues[i] = sjss.getVar(names[i]).toString();
 			}
 			ret.add(rowValues);
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Returns a list of values given a query with one column/variable.
+	 * 
+	 * @param query		Query to be executed to retrieve engine names
+	 * @return			List of engine names
+	 */
+	private List<Object[]> runQuery2(String query) {
+		System.out.println("Executing security query: " + query);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		List<Object[]> ret = new ArrayList<Object[]>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			ret.add(row.getValues());
 		}
 		
 		return ret;
