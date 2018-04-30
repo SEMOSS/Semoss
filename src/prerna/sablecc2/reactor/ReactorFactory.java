@@ -1,12 +1,8 @@
 package prerna.sablecc2.reactor;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -259,6 +255,7 @@ import prerna.sablecc2.reactor.utils.GetWebTableNum;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
+import prerna.sablecc2.reactor.utils.PostRequestReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
@@ -411,6 +408,7 @@ public class ReactorFactory {
 		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
 		reactorHash.put("GetRequest", GetRequestReactor.class);
+		reactorHash.put("PostRequest", PostRequestReactor.class);
 		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
 
 		// Semantic blending
@@ -981,29 +979,4 @@ public class ReactorFactory {
 		}
 	}
 	
-	public static void main(String[] args) {
-//		writeHashToFile(ReactorFactory.reactorHash, ReactorFactory.REACTOR_PROP_PATH);
-//		writeHashToFile(ReactorFactory.expressionHash, ReactorFactory.EXPRESSION_PROP_PATH);
-//		writeHashToFile(ReactorFactory.rFrameHash, ReactorFactory.R_FRAME_PROP_PATH);
-//		writeHashToFile(ReactorFactory.h2FrameHash, ReactorFactory.H2_FRAME_PROP_PATH);
-//		writeHashToFile(ReactorFactory.tinkerFrameHash, ReactorFactory.TINKER_FRAME_PROP_PATH);
-//		writeHashToFile(ReactorFactory.nativeFrameHash, ReactorFactory.NATIVE_FRAME_PROP_PATH);
-	}
-	
-	private static void writeHashToFile (Map<String, Class> hash, String path) {
-		try {
-			PrintWriter pw = new PrintWriter(new File(path));
-			StringBuilder sb = new StringBuilder();
-			Object[] keys = hash.keySet().toArray();
-			Arrays.sort(keys);
-			for (Object operation: keys) {
-				Class reactor = hash.get(operation);
-				sb.append(operation + " " + reactor.getName() + "\n");
-			}
-			pw.write(sb.toString());
-			pw.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
 }
