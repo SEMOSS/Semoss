@@ -25,34 +25,40 @@ public class SEMOSSVertexAdapter extends TypeAdapter<SEMOSSVertex> {
 		// flush out properties
 		for(Object key : propHash.keySet()) {
 			out.name(key.toString());
-			
 			Object innerObj = propHash.get(key);
-			if(innerObj instanceof Map) {
-				out.beginObject();
-				Map inner = (Map) propHash.get(key);
-				for(Object innerKey : inner.keySet()) {
-					out.name(innerKey.toString());
-					Object innerValue = inner.get(innerKey);
-					if(innerValue instanceof Number){
-						out.value((Number) innerValue);
-					} else {
-						out.value(innerValue.toString());
-					}
-				}
-				out.endObject();
-			} else if(innerObj instanceof Number){
-				Number num = (Number) innerObj;
-				if(Double.isNaN(num.doubleValue())) {
-					out.value(0);
-				} else {
-					out.value((Number) innerObj);
-				}
-			} else {
-				out.value(innerObj.toString());
-			}
+			writePropHash(out, innerObj);
 		}
 		out.endObject();
 		out.endObject();
+	}
+	
+	private void writePropHash(JsonWriter out, Object obj) throws IOException {
+		if(obj instanceof Map) {
+			out.beginObject();
+			Map mapObj = (Map) obj;
+			for(Object key : mapObj.keySet()) {
+				out.name(key.toString());
+				Object value = mapObj.get(key);
+				if(value instanceof Map) {
+					// make it recursive
+					writePropHash(out, value);
+				} else if(value instanceof Number){
+					out.value((Number) value);
+				} else {
+					out.value(value.toString());
+				}
+			}
+			out.endObject();
+		} else if(obj instanceof Number){
+			Number num = (Number) obj;
+			if(Double.isNaN(num.doubleValue())) {
+				out.value(0);
+			} else {
+				out.value((Number) obj);
+			}
+		} else {
+			out.value(obj.toString());
+		}
 	}
 
 	@Override
