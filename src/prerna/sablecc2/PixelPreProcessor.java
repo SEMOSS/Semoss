@@ -1,8 +1,7 @@
 package prerna.sablecc2;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -20,25 +19,30 @@ public class PixelPreProcessor {
 	public static String preProcessPixel(String expression, Map<String, String> encodedTextToOriginal) {
 		expression = expression.trim();
 
+		Map<String, String> encodeChanges = new HashMap<String, String>();
+		
 		// we need to be able to save insights
 		// which have an embedded encode wtihin the recipe step
 		// so to do this, i have added another encode operator
 		// which is the master one
-		Pattern p = Pattern.compile("<sEncode>.+?</sEncode>");
+		Pattern p = Pattern.compile("<sEncode>.+?</sEncode>", Pattern.DOTALL);
 		Matcher m = p.matcher(expression);
 		while(m.find()) {
 			String originalText = m.group(0);
 			String encodedText = originalText.replace("<sEncode>", "").replace("</sEncode>", "");
-			try {
-				encodedText = URLEncoder.encode(encodedText, "UTF-8").replaceAll("\\+", "%20");
-			} catch (UnsupportedEncodingException e) {
-				// well, you are kinda screwed...
-				// this replacement will definitley fail
-				e.printStackTrace();
-			}
-			expression = expression.replace(originalText, encodedText);
+			encodedText = Utility.encodeURIComponent(encodedText);
+			encodeChanges.put(originalText, encodedText);
+			// DO NOT DO BELOW BECAUSE IT UPDATES THE MATCHER
+			// AND THEN CAN LEAD TO STACK OVERFLOW
+//			expression = expression.replace(originalText, encodedText);
 		}
 
+		// if there are sEncode blocks
+		// we will encode the expression to make a new one now
+		for(String originalText : encodeChanges.keySet()) {
+			expression = expression.replace(originalText, encodeChanges.get(originalText));
+		}
+		
 		// <encode> </encode>
 		String newExpression = encodeExpression(expression, encodedTextToOriginal);
 		if(newExpression != null) {
