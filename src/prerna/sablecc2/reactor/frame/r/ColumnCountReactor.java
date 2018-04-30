@@ -82,7 +82,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		String[] uniqueColumns = null;
 		if (colType.equalsIgnoreCase("date")) {
 			String dateFormat = "%Y-%m-%d";
-			uniqueColumns = this.rJavaTranslator.getStringArray("format(" + table + "$" + column + ", format='" + dateFormat + "')");
+			uniqueColumns = this.rJavaTranslator.getStringArray("format(" + script + ", format='" + dateFormat + "')");
 		} else {
 			uniqueColumns = this.rJavaTranslator.getStringArray(script);
 		}
