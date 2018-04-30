@@ -5,8 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +23,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
 
@@ -190,12 +189,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		int size = recipe.length;
 		String[] decodedRecipe = new String[size];
 		for (int i = 0; i < size; i++) {
-			try {
-				decodedRecipe[i] = URLDecoder.decode(recipe[i], "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				// you are kinda screwed at this point...
-				e.printStackTrace();
-			}
+			decodedRecipe[i] = Utility.decodeURIComponent(recipe[i]);
 		}
 		return decodedRecipe;
 	}
