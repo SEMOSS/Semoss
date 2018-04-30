@@ -31,7 +31,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class PostRequestReactor extends AbstractReactor {
 
 	public PostRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "body"};
+		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), "headersMap", "bodyMap"};
 	}
 	
 	@Override
