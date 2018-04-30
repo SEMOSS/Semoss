@@ -10,7 +10,6 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -58,7 +57,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		final String trg = "FED_TARGET";
 
 		// check if packages are installed
-		String[] packages = {"jsonlite", "stringdist"};
+		String[] packages = {"jsonlite", "stringdist", "data.table"};
 		this.rJavaTranslator.checkPackages(packages);
 
 
@@ -91,8 +90,11 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			}
 			
 			// add all matches provided
-			String script =  rand + " <- data.frame(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
+			String script =  rand + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder + "), \"dist\"=c(" + col3Builder + ")); LinkFrame <- rbind(LinkFrame," + rand + ");";
 			this.rJavaTranslator.runR(script);
+			
+			// make linkframe unique
+			this.rJavaTranslator.runR("LinkFrame <- unique(LinkFrame);");
 		}
 		
 		// get R Frame
@@ -100,6 +102,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		String frameName = frame.getTableName();
 
 		// get all columns to federate on
+		ArrayList<String> cleanColumns = new ArrayList<String>();
 		ArrayList<String> columnArray = new ArrayList<String>();
 		columnArray.add(newCol);
 		List<String> inputCols = new ArrayList<String>();
@@ -117,24 +120,32 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			QueryColumnSelector selector = new QueryColumnSelector();
 			selector.setTable(newTable);
 			selector.setColumn(col);
-			selector.setAlias(col);
 			qs.addSelector(selector);
+			// set alias with clean column name in case the frame already that header
+			String name = getCleanNewColName(frame.getTableName(), col);
+			// update newCol variable in case it gets updated
+			if(col.equals(newCol)){
+				newCol = name;
+			}
+			cleanColumns.add(name);
+			selector.setAlias(name);
 			// get semoss type, update meta data and keep track
 			String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, col, newTable);
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 			typesMap.put(col, semossType);
 			// update meta data in frame
 			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-			metaData.addProperty(frameName, frameName + "__" + col);
-			metaData.setAliasToProperty(frameName + "__" + col, col);
-			metaData.setDataTypeToProperty(frameName + "__" + col, semossType.toString());
+			metaData.addProperty(frameName, frameName + "__" + name);
+			metaData.setAliasToProperty(frameName + "__" + name, name);
+			metaData.setDataTypeToProperty(frameName + "__" + name, semossType.toString());
+			metaData.setQueryStructNameToProperty(frameName + "__" + name, newDb, newTable + "__" + col);
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
-		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap);
-		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath());
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
+		String loadFileRScript = trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 
@@ -143,17 +154,15 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(blendedFrameScript);
 
 		// remove columns from frame that are temporary
-		String removeExtras = frameName + " <- " + frameName + "[,-c(\"id\",\"col1\",\"col2\",\"dist.y\",\"dist.x\")]";
+		String removeExtras = frameName + " <- " + frameName + "[,-c(\"i.and.d\",\"col1\",\"col2\",\"dist.y\",\"dist.x\")]";
 		this.rJavaTranslator.runR(removeExtras);
 
 		// reset the frame headers
 		this.getFrame().syncHeaders();
 
 		// delete advanced Fed frame in R, done with it
-		this.rJavaTranslator.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + "," + rand + ", BaseLinkFrame, LinkFrame, ADVANCED_FEDERATION_FRAME)");
+		this.rJavaTranslator.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + "," + rand + ", BaseLinkFrame, LinkFrame, ADVANCED_FEDERATION_FRAME, best_match_zero, best_match, blend, best_match_nonzero)");
 
-		// TODO: what happens if the new headers coming in are the same as
-		// existing headers?
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata((inputCols)));
 		return retNoun;

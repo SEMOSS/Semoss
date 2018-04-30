@@ -3009,6 +3009,10 @@ public class Utility {
 	}
 	
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
+		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
+	}
+	
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator) {
 		long start = System.currentTimeMillis();
 		
 		// make sure file is empty so we are only inserting the new values
@@ -3053,7 +3057,7 @@ public class Utility {
 				for(; i < size; i++) {
 					builder.append("\"").append(headers[i]).append("\"");
 					if( (i+1) != size) {
-						builder.append(",");
+						builder.append(seperator);
 					}
 					typesArr[i] = typesMap.get(headers[i]);
 				}
@@ -3071,7 +3075,7 @@ public class Utility {
 						builder.append(dataRow[i]);
 					}
 					if( (i+1) != size) {
-						builder.append(",");
+						builder.append(seperator);
 					}
 				}
 				// write row to file
@@ -3092,7 +3096,7 @@ public class Utility {
 						builder.append(dataRow[i]);
 					}
 					if( (i+1) != size) {
-						builder.append(",");
+						builder.append(seperator);
 					}
 				}
 				// write row to file
@@ -3119,6 +3123,7 @@ public class Utility {
 		
 		return f;
 	}
+
 	
 	public static String encodeURIComponent(String s) {
 		try {
