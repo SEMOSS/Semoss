@@ -6,6 +6,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
 import prerna.io.connector.IConnectorIOp;
+import prerna.om.EntityResolution;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
 
@@ -13,35 +14,26 @@ public class GoogleEntityResolver implements IConnectorIOp {
 
 	String url = "https://language.googleapis.com/v1/documents:analyzeEntities";
 	
-	// name of the object to return
-	String objectName = "prerna.auth.User2"; // it will fill this object and return the data
-	String [] beanProps = {"name", "gender", "locale"}; // add is done when you have a list
-	String jsonPattern = "[name, gender, locale]";
+	String [] beanProps = {"entity_name", "entity_type", "wiki_url"}; //, "content", "content_subtype"}; 
+	String jsonPattern = "entities[].{entity_name : name, entity_type : type, wiki_url : metadata.wikipedia_url}"; //, content : mentions[].text.content, content_subtype : mentions[].type}";
 	
 	@Override
-	public String execute(User2 user, Hashtable params) 
-	{
-		if(params == null)
+	public Object execute(User2 user, Hashtable params) {
+		// if no input, unsure what you will get...
+		if(params == null) {
 			params = new Hashtable();
-		// TODO Auto-generated method stub
+		}
 		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE.name());
-				
 		String accessToken = googToken.getAccess_token();
 		
-		// you fill what you want to send on the API call
-		Object input = params.remove("input");
-		
 		// make the API call
-		String output = AbstractHttpHelper.makePostCall(url, accessToken, input , true);
+		String jsonString = AbstractHttpHelper.makePostCall(url, accessToken, params , true);
+//		System.out.println("Output >>>>> " + jsonString);
 		
-		//System.out.println("Output >>>>> " + output);
-		
-		// fill the bean with the return
-		googToken = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanProps, googToken);
-		
-		user.setAccessToken(googToken);
-		
-		return output;
+		EntityResolution entity = new EntityResolution();
+//		// fill the bean with the return
+		Object returnObj = BeanFiller.fillFromJson(jsonString, jsonPattern, beanProps, entity);
+		return returnObj;
 	}
 
 }
