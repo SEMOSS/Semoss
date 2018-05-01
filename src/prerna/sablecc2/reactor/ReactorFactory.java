@@ -246,8 +246,11 @@ import prerna.sablecc2.reactor.utils.BackupAppReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
+import prerna.sablecc2.reactor.utils.ExternalDSEGraphDBReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.ExternalGraphDBReactor;
+import prerna.sablecc2.reactor.utils.GetDSEGraphMetaModelReactor;
+import prerna.sablecc2.reactor.utils.GetDSEGraphPropertiesReactor;
 import prerna.sablecc2.reactor.utils.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.utils.GetGraphPropertiesReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
@@ -736,7 +739,10 @@ public class ReactorFactory {
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
 		reactorHash.put("CreateExternalGraphDatabase", ExternalGraphDBReactor.class);
-		
+		// datastax graph reactors
+		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
+		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
+		reactorHash.put("CreateExternalDSEGraphDatabase", ExternalDSEGraphDBReactor.class);
 		
 		// Tax specific handles
 		reactorHash.put("LoadClient", LoadGraphClient.class);
