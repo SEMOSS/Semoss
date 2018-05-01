@@ -3,11 +3,10 @@ package prerna.sablecc2.reactor.utils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
@@ -21,6 +20,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoRegistry;
 
 public class GetGraphPropertiesReactor extends AbstractReactor {
@@ -41,7 +41,7 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 			tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
 		}
 		Graph g = null;
-		ArrayList<String> properties = new ArrayList<>();
+		List<String> properties = new ArrayList<>();
 		/*
 		 * Open Graph
 		 */
@@ -86,13 +86,8 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 
 			// get graph properties
 			if (g != null) {
-				GraphTraversal<Vertex, String> x = g.traversal().V().properties().key().dedup();
-				while (x.hasNext()) {
-					String prop = x.next();
-					properties.add(prop);
-				}
+				properties = GraphUtility.getAllNodeProperties(g.traversal());
 			}
-
 		}
 		return new NounMetadata(properties, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
