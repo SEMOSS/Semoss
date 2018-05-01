@@ -35,9 +35,10 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 	public static final String MATCHES = "matches";
 	public static final String NONMATCHES = "nonMatches";
 	public static final String PROP_MAX = "propagation";
+	public static final String FED_FRAME = "fedFrame";
 
 	public AdvancedFederationBlend() {
-		this.keysToGet = new String[] { JOIN_TYPE, FRAME_COLUMN, ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ADDITIONAL_COLS, MATCHES, NONMATCHES, PROP_MAX };
+		this.keysToGet = new String[] { JOIN_TYPE, FRAME_COLUMN, ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ADDITIONAL_COLS, MATCHES, NONMATCHES, FED_FRAME, PROP_MAX };
 	}
 
 	@Override
@@ -53,14 +54,10 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		String columns = this.keyValue.get(this.keysToGet[5]);
 		List<String> allMatches = getInputList(MATCHES);
 		List<String> nonMatches = getInputList(NONMATCHES);
-		String propValue = this.keyValue.get(this.keysToGet[8]);
+		String matchesFrame = this.keyValue.get(this.keysToGet[8]);
+		String propValue = this.keyValue.get(this.keysToGet[9]);
 
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-		final String matchesFrame = "advanced_fed_frame";
-		final String rCol1 = "advanced_fed_frame_col1";
-		final String rCol2 = "advanced_fed_frame_col2";
-		final String linkFrame = "ad_fed_link";
+		final String linkFrame =  matchesFrame + "link";
 		String rand = Utility.getRandomString(8);
 		final String trg = "trg_" + rand;
 
@@ -68,26 +65,18 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		String[] packages = { "stringdist", "data.table" };
 		this.rJavaTranslator.checkPackages(packages);
 
-		// make empty link table
-		this.rJavaTranslator.runR("library(data.table); " + linkFrame
-				+ " <- data.table(\"col1\" = character(), \"col2\" = character(), \"dist\"= integer(), stringsAsFactors=FALSE);");
-
 		// add propagation values to link frame if its not null
 		if (propValue != null && !(propValue.isEmpty())) {
 			Float intVal = (100 - Float.parseFloat(propValue)) / 100;
 			String formattedString = String.format("%.08f", intVal);
-			propValue = ", " + formattedString;
+			propValue = formattedString;
 		} else {
-			propValue = "";
+			propValue = "0";
 		}
-
-		// add all zero exact matches and propagation values to link table
-		String linkScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
-				+ "BaseLinkFrame <- best_match_lessthan(" + rCol1 + "," + rCol2 + propValue + "); " + linkFrame
-				+ " <- rbind(" + linkFrame + ", BaseLinkFrame);";
-		// rm(BaseLinkFrame)
-		linkScript = linkScript.replace("\\", "/");
-		this.rJavaTranslator.runR(linkScript);
+		
+		// create link table by filtering for propagation value or less from fed frame
+		this.rJavaTranslator.runR("library(data.table); " + linkFrame
+				+ " <- " + matchesFrame + "[" + matchesFrame + "$distance <= " + propValue + ",]");
 
 		// add combined lookup column
 		this.rJavaTranslator.runR(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame
@@ -141,7 +130,6 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 					+ "$col2, sep=\" == \");");
 
 			// remove all non matches from LinkFrame
-			String abc = "<- " + linkFrame + "[!" + linkFrame + "$combined %in% c(" + nonMatchCombo + ")]";
 			this.rJavaTranslator.runR("" + linkFrame + " <- " + linkFrame + "[!" + linkFrame + "$combined %in% c("
 					+ nonMatchCombo + ")]");
 
@@ -224,9 +212,9 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		this.getFrame().syncHeaders();
 
 		// delete advanced Fed frame in R, done with it
-		this.rJavaTranslator.runR("rm(" + trg + "," + rCol1 + "," + rCol2 + ", " + matchesFrame + ", BaseLinkFrame, "
-				+ linkFrame + ", best_match_zero, best_match, blend, best_match_lessthan)");
-
+		this.rJavaTranslator.runR("rm(" + trg + "," + matchesFrame + ", BaseLinkFrame, " + linkFrame
+				+ ", best_match_zero, best_match, blend, best_match_lessthan)");
+		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata((inputCols)));
 		return retNoun;
