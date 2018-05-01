@@ -18,10 +18,9 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -33,11 +32,12 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
 
-public class ExternalGraphDBReactor extends AbstractReactor {
-	private static final String CLASS_NAME = ExternalGraphDBReactor.class.getName();
+public class ExternalDSEGraphDBReactor extends AbstractReactor {
+	private static final String CLASS_NAME = ExternalDSEGraphDBReactor.class.getName();
 
-	public ExternalGraphDBReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+	public ExternalDSEGraphDBReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.HOST.getKey(),
+				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.GRAPH_NAME.getKey(),
 				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
 	}
 
@@ -48,8 +48,12 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String databaseName = this.keyValue.get(this.keysToGet[0]);
-		String fileName = this.keyValue.get(this.keysToGet[1]);
-		String nodeType = this.keyValue.get(this.keysToGet[2]);
+		String host = this.keyValue.get(this.keysToGet[1]);
+		String port = this.keyValue.get(this.keysToGet[2]);
+		String graphName = this.keyValue.get(this.keysToGet[3]);
+		String graphTypeId = this.keyValue.get(this.keysToGet[4]);
+
+		// meta model
 		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
 		Map<String, Object> metaMap = (Map<String, Object>) mapInput.get(0);
 		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
@@ -57,11 +61,6 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		Set<String> concepts = nodes.keySet();
 		Map<String, String> conceptTypes = new HashMap<String, String>();
 		Set<String> edgeLabels = edges.keySet();
-		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
-		if (fileName.contains(".")) {
-			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
-			tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
-		}
 
 		// create db folder
 		logger.info("Start generating app folder");
@@ -82,9 +81,9 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 			Map<String, Object> propMap = (Map) nodes.get(concept);
 			for (String prop : propMap.keySet()) {
 				// get concept type
-				if (prop.equals(nodeType)) {
-					conceptTypes.put(concept, propMap.get(nodeType).toString());
-					typeMap.put(concept, nodeType);
+				if (prop.equals(graphTypeId)) {
+					conceptTypes.put(concept, propMap.get(graphTypeId).toString());
+					typeMap.put(concept, graphTypeId);
 					break;
 				}
 			}
@@ -94,7 +93,7 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		String tempSmssLocation = null;
 		logger.info("Start generating temp smss");
 		try {
-			tempSmssLocation = generateTempSmss(databaseName, fileName, typeMap, tinkerDriver);
+			tempSmssLocation = generateTempSmss(databaseName, host, port, graphName, typeMap);
 			DIHelper.getInstance().getCoreProp().setProperty(databaseName + "_" + Constants.STORE, tempSmssLocation);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -122,7 +121,7 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
 			// add properties
 			for (String prop : propMap.keySet()) {
-				if (!prop.equals(nodeType)) {
+				if (!prop.equals(graphTypeId)) {
 					String propType = propMap.get(prop).toString();
 					owler.addProp(concept, prop, propType);
 				}
@@ -156,15 +155,16 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		logger.info("Done replacing .temp smss file with .smss ");
 		logger.info("Finalizing adding external graph engine ");
 		Utility.synchronizeEngineMetadata(databaseName);
-		TinkerEngine tinkerEng = new TinkerEngine();
-		tinkerEng.setEngineName(databaseName);
-		tinkerEng.setInsightDatabase(insightDb);
-		tinkerEng.openDB(smssFile.getAbsolutePath());
+		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
+		dseEngine.setEngineName(databaseName);
+		dseEngine.setInsightDatabase(insightDb);
+		dseEngine.openDB(smssFile.getAbsolutePath());
 		// only at end do we add to DIHelper
-		DIHelper.getInstance().setLocalProperty(databaseName, tinkerEng);
+		DIHelper.getInstance().setLocalProperty(databaseName, dseEngine);
 		String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 		appNames = appNames + ";" + databaseName;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
@@ -178,8 +178,8 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 	 * @return
 	 * @throws IOException
 	 */
-	private String generateTempSmss(String appName, String tinkerFilePath, Map tinkerTypeMap,
-			TINKER_DRIVER tinkerDriverType) throws IOException {
+	private String generateTempSmss(String appName, String host, String port, String graphName, Map tinkerTypeMap)
+			throws IOException {
 		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String smssFileLocation = baseFolder + FILE_SEP + "db" + FILE_SEP + appName + ".temp";
@@ -193,7 +193,7 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 			// base properties
 			pw.write("Base Properties \n");
 			pw.write(Constants.ENGINE + "\t" + appName + "\n");
-			pw.write(Constants.ENGINE_TYPE + "\tprerna.engine.impl.tinker.TinkerEngine\n");
+			pw.write(Constants.ENGINE_TYPE + "\tprerna.ds.datastax.DataStaxGraphEngine\n");
 			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@engine@"
 					+ System.getProperty("file.separator") + "insights_database" + "\n");
 			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
@@ -201,9 +201,10 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 			pw.write(Constants.OWL + "\tdb" + System.getProperty("file.separator") + "@engine@"
 					+ System.getProperty("file.separator") + "@engine@_OWL.OWL" + "\n");
 
-			// custom tinker props
-			pw.write(Constants.TINKER_FILE + "\t" + tinkerFilePath + " \n");
-			pw.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
+			// custom dse props
+			pw.write("HOST" + "\t" + host + " \n");
+			pw.write("PORT" + "\t" + port + " \n");
+			pw.write("GRAPH_NAME" + "\t" + graphName + " \n");
 			// add type map
 			Gson gson = new GsonBuilder().create();
 			String json = gson.toJson(tinkerTypeMap);
