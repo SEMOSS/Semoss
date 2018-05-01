@@ -11,6 +11,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.google.GoogleLatLongGetter;
 import prerna.om.GeoLocation;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -49,13 +50,13 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
 		if(this.user == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING));
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
 		AccessToken googleAccess = this.user.getAccessToken(AuthProvider.GOOGLE.name());
 		if(googleAccess == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING));
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}

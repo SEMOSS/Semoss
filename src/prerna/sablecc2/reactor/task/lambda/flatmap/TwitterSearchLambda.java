@@ -22,7 +22,6 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 		// construct new values to append onto the row
 		// add new headers
 		String[] newHeaders = new String[]{"review", "author", "retweet_count"};
-		Object[] newValues = new Object[3];
 		
 		Hashtable params = new Hashtable();
 		params.put("q", row.getValues()[colIndex]);
@@ -40,27 +39,11 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 				List<Viewpoint> results = (List<Viewpoint>) resultObj;
 				for(int i = 0; i < results.size(); i++) {
 					Viewpoint view = results.get(i);
-					
-					newValues[0] = view.getReview();
-					newValues[1] = view.getAuthorId();
-					newValues[2] = view.getRepeatCount();
-					
-					// copy the row so we dont mess up references
-					IHeadersDataRow rowCopy = row.copy();
-					rowCopy.addFields(newHeaders, newValues);
-					retList.add(rowCopy);
+					processView(view, newHeaders, row, retList);
 				}
 			} else {
 				Viewpoint view = (Viewpoint) resultObj;
-				
-				newValues[0] = view.getReview();
-				newValues[1] = view.getAuthorId();
-				newValues[2] = view.getRepeatCount();
-				
-				// copy the row so we dont mess up references
-				IHeadersDataRow rowCopy = row.copy();
-				rowCopy.addFields(newHeaders, newValues);
-				retList.add(rowCopy);
+				processView(view, newHeaders, row, retList);
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -68,6 +51,26 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 		
 		return retList;
 	}
+	
+	/**
+	 * Process a view point
+	 * @param view
+	 * @param newHeaders
+	 * @param curRow
+	 * @param retList
+	 */
+	private void processView(Viewpoint view, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
+		Object[] newValues = new Object[3];
+		newValues[0] = view.getReview();
+		newValues[1] = view.getAuthorId();
+		newValues[2] = view.getRepeatCount();
+		
+		// copy the row so we dont mess up references
+		IHeadersDataRow rowCopy = curRow.copy();
+		rowCopy.addFields(newHeaders, newValues);
+		retList.add(rowCopy);
+	}
+	
 	
 	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {

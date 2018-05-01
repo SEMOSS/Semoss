@@ -14,9 +14,7 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 
 	String url = "https://language.googleapis.com/v1/documents:analyzeSentiment";
 	
-	// name of the object to return
-	String objectName = "prerna.auth.User2"; // it will fill this object and return the data
-	String [] beanProps = {"sentence", "magnitude", "score"}; // add is done when you have a list
+	String [] beanProps = {"sentence", "magnitude", "score"};
 	String jsonPattern = "sentences[].{sentence: text.content, magnitude: sentiment.magnitude, score:sentiment.score}";
 	
 	@Override
@@ -30,7 +28,7 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 		
 		// make the API call
 		String jsonString = AbstractHttpHelper.makePostCall(url, accessToken, params , true);
-		System.out.println("Output >>>>> " + jsonString);
+//		System.out.println("Output >>>>> " + jsonString);
 		
 		SentimentAnalysis sentiment = new SentimentAnalysis();
 //		// fill the bean with the return
