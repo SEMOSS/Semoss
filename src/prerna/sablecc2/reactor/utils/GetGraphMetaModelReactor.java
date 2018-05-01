@@ -102,7 +102,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 		 */
 		if (g != null) {
 			// get concepts and properties
-			GraphTraversal<Vertex, Map<Object, Object>> gtTest = g.traversal().V().group().by(__.values(prop));
+			GraphTraversal<Vertex, Map<Object, Object>> gtTest = g.traversal().V().has(prop).group().by(__.values(prop));
 
 			// get the types from the specified prop key
 			Set<Object> types = null;
@@ -118,6 +118,23 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 					while (x.hasNext()) {
 						String nodeProp = x.next();
 						// TODO get type
+//						GraphTraversal<Vertex, Object> testType = g.traversal().V().has(prop, t).has(nodeProp).values();
+//						int i = 0;
+//						int limit = 10;
+//						boolean next = true;
+//						while (testType.hasNext() && next) {
+//							Object value = testType.next();
+//							System.out.println(value);
+//							if (i <= limit) {
+//								if (!testType.hasNext()) {
+//									next = false;
+//								}
+//							}
+//							if (i == limit) {
+//								next = false;
+//							}
+//							i++;
+//						}
 						String nodePropType = "STRING";
 						propMap.put(nodeProp, nodePropType);
 					}
