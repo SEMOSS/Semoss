@@ -26,11 +26,11 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		organizeKeys();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		// 4 column results df with matches, distance, and combined column
-		final String matchesFrame = "advanced_fed_frame";
+		final String matchesFrame = Utility.getRandomString(8) + "adFed";
 		// 1 column df of all data in frame join column
-		final String rCol1 = "advanced_fed_frame_col1";
+		final String rCol1 = matchesFrame + "col1";
 		// 1 column df of all data in the incoming join column
-		final String rCol2 = "advanced_fed_frame_col2";
+		final String rCol2 = matchesFrame + "col2";
 
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
@@ -91,8 +91,21 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 
 		this.rJavaTranslator.runR(combineScript + matchesFrame + " <- as.data.table(" + matchesFrame + ");");
 
+		// remove all garbage 
+		this.rJavaTranslator.runR("rm(" + rCol1 + "," + rCol2 + ")");
+		
 		RDataTable returnTable = createFrameFromVaraible(matchesFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
+		
+		// get count of exact matches
+		String exactMatchCount = this.rJavaTranslator.getString("as.character(nrow(" + matchesFrame + "[" + matchesFrame + "$distance == 0,]))");
+		if (exactMatchCount != null){
+			int val = Integer.parseInt(exactMatchCount);
+			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
+		} else{
+			retNoun.addAdditionalReturn(new NounMetadata(0, PixelDataType.CONST_INT));
+		}
+		
 		this.insight.getVarStore().put(matchesFrame, retNoun);
 		
 		return retNoun;
