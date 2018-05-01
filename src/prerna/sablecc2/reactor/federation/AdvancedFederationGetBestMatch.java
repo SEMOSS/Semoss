@@ -91,7 +91,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 
 		this.rJavaTranslator.runR(combineScript);
 
-		RDataTable returnTable = new RDataTable(matchesFrame);
+		RDataTable returnTable = createFrameFromVaraible(matchesFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		this.insight.getVarStore().put(matchesFrame, retNoun);
 		
