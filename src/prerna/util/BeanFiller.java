@@ -1,9 +1,5 @@
 package prerna.util;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +11,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.jackson.JacksonRuntime;
 
 public class BeanFiller {
 
@@ -150,58 +150,72 @@ public class BeanFiller {
 		
 	}
 
+	/**
+	 * Fill an object based on a map input
+	 * @param result
+	 * @param beanProps
+	 * @param bean
+	 * @return
+	 */
 	public static Object fillSingleObjectFromMap(JsonNode result, String [] beanProps, Object bean)
 	{
-		try
-		{
-			for(int inputIndex = 0;result != null && inputIndex < beanProps.length;inputIndex++)
-			{
-				String thisInput = result.get(beanProps[inputIndex]).asText();
-				if(result.size() > inputIndex)
-				{
-					String beanProp = beanProps[inputIndex];
-					if(beanProp.startsWith("add_"))
-					{
-						beanProp = beanProp.replaceAll("add_", "");
-						List thisList = null;
-						Object listObj = BeanUtils.getProperty(bean, beanProp);
-						if(listObj != null)
-							thisList = (List)listObj;
-						else
-							thisList = new ArrayList();
-						thisList.add(thisInput);
-						
-						BeanUtils.setProperty(bean, beanProp, listObj);
-					}
-					else
-					{
-						BeanUtils.setProperty(bean, beanProp, thisInput);
-					}
-				}	
-				// add to the other data
-				else
-				{
-					BeanUtils.setProperty(bean, "extra", thisInput);
-				}
+		try {
+			for(int inputIndex = 0;result != null && inputIndex < beanProps.length;inputIndex++) {
+				// grab the bean
+				String beanProp = beanProps[inputIndex];
 				
+				JsonNode thisInputObj = result.get(beanProp);
+				if(thisInputObj.isArray()) {
+					//TODO: i should really be doign this as an array
+					//TODO: i should really be doign this as an array
+
+					StringBuilder concat = new StringBuilder();
+					int innerArraySize = thisInputObj.size();
+					concat.append( thisInputObj.get(0).asText() );
+					for(int innerArrayIndex = 1; innerArrayIndex < innerArraySize; innerArrayIndex++) {
+						concat.append(", ").append(thisInputObj.get(innerArrayIndex));
+					}
+					// this is adding as a string
+					BeanUtils.setProperty(bean, beanProp, concat.toString());
+				} else {
+					// grab as string
+					String thisInput = thisInputObj.asText();
+					if(result.size() > inputIndex) {
+						// WHEN DO I WANT THIS??? WHY CAN'T I RETURN AN ARRAY VIA THE PATH
+						if(beanProp.startsWith("add_")) {
+							beanProp = beanProp.replaceAll("add_", "");
+							List<Object> thisList = null;
+							Object listObj = BeanUtils.getProperty(bean, beanProp);
+							if(listObj != null) {
+								thisList = (List<Object>) listObj;
+							} else {
+								thisList = new ArrayList<Object>();
+							} 
+							thisList.add(thisInput);
+							BeanUtils.setProperty(bean, beanProp, listObj);
+						} 
+						// normal, just add it
+						else {
+							BeanUtils.setProperty(bean, beanProp, thisInput);
+						}
+					}	
+					// add to the other data
+					else {
+						BeanUtils.setProperty(bean, "extra", thisInput);
+					}
+				}
 			}
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvocationTargetException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 		
 		return bean;
-		
 	}
 
-	
-	
 	public static String getJson(Object object) throws Exception
 	{
 		return mapper.writeValueAsString(object);

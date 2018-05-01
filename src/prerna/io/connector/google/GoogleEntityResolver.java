@@ -14,8 +14,8 @@ public class GoogleEntityResolver implements IConnectorIOp {
 
 	String url = "https://language.googleapis.com/v1/documents:analyzeEntities";
 	
-	String [] beanProps = {"entity_name", "entity_type", "wiki_url"}; //, "content", "content_subtype"}; 
-	String jsonPattern = "entities[].{entity_name : name, entity_type : type, wiki_url : metadata.wikipedia_url}"; //, content : mentions[].text.content, content_subtype : mentions[].type}";
+	String [] beanProps = {"entity_name", "entity_type", "wiki_url", "content", "content_subtype"}; 
+	String jsonPattern = "entities[].{entity_name : name, entity_type : type, wiki_url : metadata.wikipedia_url, content : mentions[].text.content, content_subtype : mentions[].type}";
 	
 	@Override
 	public Object execute(User2 user, Hashtable params) {
