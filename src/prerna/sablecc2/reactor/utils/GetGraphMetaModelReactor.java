@@ -22,12 +22,14 @@ import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.MyGraphIoRegistry;
+import prerna.util.Utility;
 
 public class GetGraphMetaModelReactor extends AbstractReactor {
 
@@ -117,26 +119,54 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 					Map<String, String> propMap = new HashMap<>();
 					while (x.hasNext()) {
 						String nodeProp = x.next();
-						// TODO get type
-//						GraphTraversal<Vertex, Object> testType = g.traversal().V().has(prop, t).has(nodeProp).values();
-//						int i = 0;
-//						int limit = 10;
-//						boolean next = true;
-//						while (testType.hasNext() && next) {
-//							Object value = testType.next();
-//							System.out.println(value);
-//							if (i <= limit) {
-//								if (!testType.hasNext()) {
-//									next = false;
-//								}
-//							}
-//							if (i == limit) {
-//								next = false;
-//							}
-//							i++;
-//						}
-						String nodePropType = "STRING";
-						propMap.put(nodeProp, nodePropType);
+						// determine data types
+						GraphTraversal<Vertex, Object> testType = g.traversal().V().has(prop, t).has(nodeProp).values(nodeProp);
+						int i = 0;
+						int limit = 50;
+						SemossDataType[] smssTypes = new SemossDataType[limit];
+						// might need to default to string
+						boolean isString = false;
+						boolean next = true;
+						while (testType.hasNext() && next) {
+							Object value = testType.next();
+							Object[] valueType = Utility.findTypes(value.toString());
+							SemossDataType smssType = SemossDataType.convertStringToDataType(valueType[0].toString().toUpperCase());
+							if (smssType == SemossDataType.STRING) {
+								isString = true;
+								break;
+							}
+							smssTypes[i] = smssType;
+							i++;
+							if (i <= limit) {
+								if (!testType.hasNext()) {
+									next = false;
+								}
+							}
+							if (i == limit) {
+								next = false;
+							}
+						}
+
+						if (isString) {
+							propMap.put(nodeProp, SemossDataType.STRING.toString());
+						} else {
+							SemossDataType defaultType = smssTypes[0];
+							boolean useDefault = true;
+							// check type array if all types are the same
+							for (SemossDataType tempType : smssTypes) {
+								if (tempType != null) {
+									if (tempType != defaultType) {
+										// if different types treat all as String
+										propMap.put(nodeProp, SemossDataType.STRING.toString());
+										useDefault = false;
+										break;
+									}
+								}
+							}
+							if (useDefault) {
+								propMap.put(nodeProp, defaultType.toString());
+							}
+						}
 					}
 					nodes.put(t.toString(), propMap);
 				}
