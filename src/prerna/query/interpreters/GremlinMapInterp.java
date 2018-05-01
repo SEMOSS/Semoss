@@ -179,7 +179,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				this.gt.hasLabel(getNodeType(selector)).as(selector);
+				this.gt.has(typeMap.get(selector), getNodeType(selector)).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(selector));
@@ -252,7 +252,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
-		this.gt = this.gt.hasLabel(getNodeType(startNode)).as(startNode);
+		this.gt = this.gt.has(typeMap.get(startNode), getNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
 		addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(startNode));
 
@@ -393,7 +393,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 						}
 					}
 
-					twoStepT = twoStepT.out(edgeKey).hasLabel(getNodeType(downstreamNodeType)).as(downstreamNodeType);
+					twoStepT = twoStepT.out(edgeKey).has(typeMap.get(downstreamNodeType), getNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(downstreamNodeType));
@@ -448,7 +448,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in(edgeKey).hasLabel(getNodeType(upstreamNodeType)).as(upstreamNodeType);
+					twoStepT = twoStepT.in(edgeKey).has(typeMap.get(upstreamNodeType), getNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
