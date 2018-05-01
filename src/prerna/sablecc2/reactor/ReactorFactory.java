@@ -249,6 +249,7 @@ import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.ExternalGraphDBReactor;
 import prerna.sablecc2.reactor.utils.GetGraphMetaModelReactor;
+import prerna.sablecc2.reactor.utils.GetGraphPropertiesReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
 import prerna.sablecc2.reactor.utils.GetWebTableHeader;
 import prerna.sablecc2.reactor.utils.GetWebTableNum;
@@ -732,6 +733,7 @@ public class ReactorFactory {
 		reactorHash.put("GetNumTable", GetWebTableNum.class);
 		
 		// external graph engine
+		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
 		reactorHash.put("CreateExternalGraphDatabase", ExternalGraphDBReactor.class);
 		
