@@ -470,8 +470,6 @@ public class ReactorFactory {
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
 
-
-		
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
