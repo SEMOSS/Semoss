@@ -79,7 +79,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 
 		// generate script based on what george wants - empty list of selected
 		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
-				+ matchesFrame + " <- best_match_nonzero(" + rCol1 + "," + rCol2 + ");";
+				+ matchesFrame + " <- best_match(" + rCol1 + "," + rCol2 + ");";
 		bestMatchScript = bestMatchScript.replace("\\", "/");
 
 		this.rJavaTranslator.runR(bestMatchScript);
