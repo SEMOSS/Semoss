@@ -38,8 +38,7 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 	private static final String CLASS_NAME = GenerateEmptyAppReactor.class.getName();
 
 	public ExternalGraphDBReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				"graphMetamodel" };
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), "type", "graphMetamodel" };
 	}
 
 	@Override
@@ -50,6 +49,7 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String databaseName = this.keyValue.get(this.keysToGet[0]);
 		String fileName = this.keyValue.get(this.keysToGet[1]);
+		String nodeType = this.keyValue.get(this.keysToGet[2]);
 		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
 		Map<String, Object> metaMap = (Map<String, Object>) mapInput.get(0);
 		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
@@ -57,7 +57,6 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		Set<String> concepts = nodes.keySet();
 		Map<String, String> conceptTypes = new HashMap<String, String>();
 		Set<String> edgeLabels = edges.keySet();
-
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
 		if (fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
@@ -78,24 +77,22 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 
 		// create smss
 		Map<String, String> typeMap = new HashMap<>();
-		// get primKey and concept type
+		// create typeMap for smms
 		for (String concept : concepts) {
 			Map<String, Object> propMap = (Map) nodes.get(concept);
 			for (String prop : propMap.keySet()) {
-				if (typeMap.containsKey(concept)) {
+				// get concept type
+				if (prop.equals(nodeType)) {
+					conceptTypes.put(concept, propMap.get(nodeType).toString());
+					typeMap.put(concept, nodeType);
 					break;
-				}
-				Map propHash = (Map) propMap.get(prop);
-				if (propHash.containsKey("primKey")) {
-					conceptTypes.put(concept, (String) propHash.get("type"));
-					typeMap.put(concept, prop);
 				}
 			}
 		}
 
 		// add to DIHelper so we dont auto load with the file watcher
 		String tempSmssLocation = null;
-		logger.info("Start generating temp  smss");
+		logger.info("Start generating temp smss");
 		try {
 			tempSmssLocation = generateTempSmss(databaseName, fileName, typeMap, tinkerDriver);
 			DIHelper.getInstance().getCoreProp().setProperty(databaseName + "_" + Constants.STORE, tempSmssLocation);
@@ -122,12 +119,13 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		for (String concept : concepts) {
 			String conceptType = conceptTypes.get(concept);
 			owler.addConcept(concept, conceptType);
-			Map<String, Map> propMap = (Map<String, Map>) nodes.get(concept);
+			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
 			// add properties
 			for (String prop : propMap.keySet()) {
-				Map propHash = propMap.get(prop);
-				String propType = (String) propHash.get("type");
-				owler.addProp(concept, prop, propType);
+				if (!prop.equals(nodeType)) {
+					String propType = propMap.get(prop).toString();
+					owler.addProp(concept, prop, propType);
+				}
 			}
 		}
 		// add relationships
@@ -143,10 +141,8 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		}
 		owler.closeOwl();
 		logger.info("Done creating owl");
-
+		// rename .temp to .smss
 		logger.info("Replacing .temp smss file with .smm ");
-
-		// and rename .temp to .smss
 		File tempFile = new File(tempSmssLocation);
 		File smssFile = new File(tempSmssLocation.replace(".temp", ".smss"));
 		try {
@@ -161,6 +157,8 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		logger.info("Finalizing adding external graph engine ");
 		Utility.synchronizeEngineMetadata(databaseName);
 		TinkerEngine tinkerEng = new TinkerEngine();
+		tinkerEng.setEngineName(databaseName);
+		tinkerEng.setInsightDatabase(insightDb);
 		tinkerEng.openDB(smssFile.getAbsolutePath());
 		// only at end do we add to DIHelper
 		DIHelper.getInstance().setLocalProperty(databaseName, tinkerEng);
@@ -205,11 +203,8 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 
 			// custom tinker props
 			pw.write(Constants.TINKER_FILE + "\t" + tinkerFilePath + " \n");
-
 			pw.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
-
 			// add type map
-
 			Gson gson = new GsonBuilder().create();
 			String json = gson.toJson(tinkerTypeMap);
 			pw.write("TYPE_MAP" + "\t" + json + "\n");
