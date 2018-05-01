@@ -48,6 +48,11 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 	
 	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
+		if(this.user == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		AccessToken googleAccess = this.user.getAccessToken(AuthProvider.GOOGLE.name());
 		if(googleAccess == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING));
