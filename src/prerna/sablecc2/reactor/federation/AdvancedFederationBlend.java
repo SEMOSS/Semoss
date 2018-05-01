@@ -28,6 +28,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class AdvancedFederationBlend extends AbstractRFrameReactor {
+	
 	public static final String JOIN_TYPE = "joinType";
 	public static final String FRAME_COLUMN = "frameCol";
 	public static final String ADDITIONAL_COLS = "additionalCols";
@@ -56,10 +57,10 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
-		final String matchesFrame = "advanced__fed__frame";
-		final String rCol1 = "advanced__fed__frame__col1";
-		final String rCol2 = "advanced__fed__frame__col2";
-		final String linkFrame = "ad__fed__link";
+		final String matchesFrame = "advanced_fed_frame";
+		final String rCol1 = "advanced_fed_frame_col1";
+		final String rCol2 = "advanced_fed_frame_col2";
+		final String linkFrame = "ad_fed_link";
 		String rand = Utility.getRandomString(8);
 		final String trg = "trg_" + rand;
 
@@ -104,8 +105,6 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 					col3Builder.append(",");
 				}
 				String match = (String) allMatches.get(i);
-				String test = "as.character(" + matchesFrame + "[" + matchesFrame + "$combined %in% c(\"" + match
-						+ "\"), ]$col1)";
 				String col1 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame
 						+ "$combined %in% c(\"" + match + "\"), ]$col1)");
 				String col2 = this.rJavaTranslator.getString("as.character(" + matchesFrame + "[" + matchesFrame
