@@ -26,11 +26,11 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		organizeKeys();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		// 4 column results df with matches, distance, and combined column
-		final String matchesFrame = "advanced__fed__frame";
+		final String matchesFrame = "advanced_fed_frame";
 		// 1 column df of all data in frame join column
-		final String rCol1 = "advanced__fed__frame__col1";
+		final String rCol1 = "advanced_fed_frame_col1";
 		// 1 column df of all data in the incoming join column
-		final String rCol2 = "advanced__fed__frame__col2";
+		final String rCol2 = "advanced_fed_frame_col2";
 
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
@@ -89,7 +89,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 				+ "<-" + matchesFrame + "[,c(\"col1\",\"col2\",\"distance\")]; " + matchesFrame + "<-" + matchesFrame
 				+ "[order(unique(" + matchesFrame + ")$distance),] ;";
 
-		this.rJavaTranslator.runR(combineScript);
+		this.rJavaTranslator.runR(combineScript + matchesFrame + " <- as.data.table(" + matchesFrame + ");");
 
 		RDataTable returnTable = createFrameFromVaraible(matchesFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
