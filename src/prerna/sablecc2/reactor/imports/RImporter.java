@@ -11,6 +11,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RFrameBuilder;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.QueryStruct2;
@@ -60,48 +61,63 @@ public class RImporter implements IImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
-		System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
-		System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
+		RFrameBuilder builder = this.dataframe.getBuilder();
+		String tableName = this.dataframe.getTableName();
 		
-		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, this.dataframe.getTableName(), this.it, joins);
+		System.out.println(Arrays.toString(builder.getColumnNames()));
+		System.out.println(Arrays.toString(builder.getColumnTypes()));
+		
+		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, tableName, this.it, joins);
 		
 		// define new temporary table with random name
 		// we will flush out the iterator into a CSV file
 		// and use fread() into the temp name
 		String tempTableName = Utility.getRandomString(6);
-		Map<String, SemossDataType> types = ImportUtility.getTypesFromQs(this.qs);
-		this.dataframe.addRowsViaIterator(this.it, tempTableName, types);
+		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs);
+		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
 	
-		System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
-		System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
-		
-		//define parameters that we will pass into mergeSyntax method to get the R command
-		String returnTable = this.dataframe.getTableName();
-		String leftTableName = returnTable;
-		String rightTableName = tempTableName;
-		
-		// only a single join type can be passed at a time
-		String joinType = null;
-		List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
-		for(Join joinItem : joins) {
-			joinType = joinItem.getJoinType();
-			// in R, the existing column is referenced as frame__column
-			// but the R syntax only wants the col
-			Map<String, String> joinColMapping = new HashMap<String, String>();
-			joinColMapping.put(joinItem.getSelector().split("__")[1], joinItem.getQualifier());
-			joinCols.add(joinColMapping);
+		if(!builder.isEmpty(tempTableName)) {
+			if(joins.get(0).getJoinType().equals("inner.join")) {
+				// clear the fake table
+				builder.evalR("rm(" + tempTableName + ");");
+				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
+			}
+			// we are merging w/ no data
+			// just add an empty column with the column name
+			RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
+		} else {
+			
+			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
+			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
+			
+			//define parameters that we will pass into mergeSyntax method to get the R command
+			String returnTable = this.dataframe.getTableName();
+			String leftTableName = returnTable;
+			String rightTableName = tempTableName;
+			
+			// only a single join type can be passed at a time
+			String joinType = null;
+			List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
+			for(Join joinItem : joins) {
+				joinType = joinItem.getJoinType();
+				// in R, the existing column is referenced as frame__column
+				// but the R syntax only wants the col
+				Map<String, String> joinColMapping = new HashMap<String, String>();
+				joinColMapping.put(joinItem.getSelector().split("__")[1], joinItem.getQualifier());
+				joinCols.add(joinColMapping);
+			}
+			
+			//execute r command
+			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
+			this.dataframe.executeRScript(mergeString);
+			this.dataframe.syncHeaders();
+			
+			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
+			System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
+			
+			// clean r temp table name
+			this.dataframe.executeRScript("rm("+tempTableName+")");
 		}
-		
-		//execute r command
-		String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
-		this.dataframe.executeRScript(mergeString);
-		this.dataframe.syncHeaders();
-		
-		System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
-		System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
-		
-		// clean r temp table name
-		this.dataframe.executeRScript("rm("+tempTableName+")");
 		
 		return this.dataframe;
 	}
