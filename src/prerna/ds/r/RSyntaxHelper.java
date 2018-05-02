@@ -9,6 +9,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.sablecc2.om.Join;
 
 public class RSyntaxHelper {
 
@@ -210,34 +211,33 @@ public class RSyntaxHelper {
 
 		StringBuilder builder = new StringBuilder();
 		if (joinType.equals("inner.join")) {
-			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
-			.append(rightTableName).append(", ").append("by.x").append(" = c(");
+			builder.append(returnTable).append(" <- merge(").append(leftTableName).append(", ")
+			.append(rightTableName).append(", by.x = c(");
 			getLeftMergeCols(builder, joinCols);
-			builder.append("), by.y").append(" = c(");
+			builder.append("), by.y = c(");
 			getRightMergeCols(builder, joinCols);
 			builder.append("), all = FALSE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("left.outer.join")) {
 			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
-			.append(rightTableName).append(", ").append("by.x").append(" = c(");
+			.append(rightTableName).append(", by.x = c(");
 			getLeftMergeCols(builder, joinCols);
-			builder.append("), by.y").append(" = c(");
+			builder.append("), by.y = c(");
 			getRightMergeCols(builder, joinCols);
-			builder.append("), all.x")
-			.append(" = TRUE,").append(" all.y").append(" = FALSE, allow.cartesian = TRUE)");
+			builder.append("), all.x = TRUE, all.y = FALSE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("right.outer.join")) {
 			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
 			.append(rightTableName).append(", ").append("by.x").append(" = c("); 
 			getLeftMergeCols(builder, joinCols);
 			builder.append("), by.y").append(" = c(");
 			getRightMergeCols(builder, joinCols);
-			builder.append("), all.x").append(" = FALSE,").append(" all.y").append(" = TRUE, allow.cartesian = TRUE)");
+			builder.append("), all.x = FALSE, all.y = TRUE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("outer.join")) {
 			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
 			.append(rightTableName).append(", ").append("by.x").append(" = c(");
 			getLeftMergeCols(builder, joinCols);
 			builder.append("), by.y").append(" = c(");
 			getRightMergeCols(builder, joinCols);
-			builder.append("), all.x").append(" = FALSE,").append(" all.y").append(" = FALSE, allow.cartesian = TRUE)");
+			builder.append("), all = TRUE, allow.cartesian = TRUE)");
 		}
 
 		return builder.toString();
@@ -414,6 +414,76 @@ public class RSyntaxHelper {
 			expr = parsedRegex[0] + "\\\"" + regex + "\\\"" + parsedRegex[parsedRegex.length - 1];
 		}
 		return expr;
+	}
+	
+	/**
+	 * Generate an alter statement to add new columns, taking into consideration joins
+	 * and new column alias's
+	 * @param tableName
+	 * @param existingColumns
+	 * @param newColumns
+	 * @param joins
+	 * @param newColumnAlias
+	 * @return
+	 */
+	public static String alterMissingColumns(String tableName, 
+			Map<String, SemossDataType> newColumnsToTypeMap, 
+			List<Join> joins,
+			Map<String, String> newColumnAlias) {
+		
+		List<String> newColumnsToAdd = new Vector<String>();
+		List<SemossDataType> newColumnsToAddTypes = new Vector<SemossDataType>();
+		
+		// get all the join columns
+		List<String> joinColumns = new Vector<String>();
+		for(Join j : joins) {
+			String columnName = j.getQualifier();
+			if(columnName.contains("__")) {
+				columnName = columnName.split("__")[1];
+			}
+			joinColumns.add(columnName);
+		}
+		
+		for(String newColumn : newColumnsToTypeMap.keySet()) {
+			SemossDataType newColumnType = newColumnsToTypeMap.get(newColumn);
+			// modify the header
+			if(newColumn.contains("__")) {
+				newColumn = newColumn.split("__")[1];
+			}
+			// if its a join column, ignore it
+			if(joinColumns.contains(newColumn)) {
+				continue;
+			}
+			// not a join column
+			// check if it has an alias
+			// and then add
+			if(newColumnAlias.containsKey(newColumn)) {
+				newColumnsToAdd.add(newColumnAlias.get(newColumn));
+			} else {
+				newColumnsToAdd.add(newColumn);
+			}
+			// and store the type at the same index 
+			// in its list
+			newColumnsToAddTypes.add(newColumnType);
+		}
+		
+		StringBuilder rExec = new StringBuilder();
+		for(int i = 0; i < newColumnsToAdd.size(); i++) {
+			String newCol = newColumnsToAdd.get(i);
+			SemossDataType newColType = newColumnsToAddTypes.get(i);
+			
+			String newColSyntax = tableName + "$" + newCol;
+			
+			if(newColType == SemossDataType.DOUBLE) {
+				rExec.append(newColSyntax).append(" <- as.numeric(").append(newColSyntax).append(");");
+			} else if(newColType == SemossDataType.INT) {
+				rExec.append(newColSyntax).append(" <- as.integer(").append(newColSyntax).append(");");
+			} else {
+				rExec.append(newColSyntax).append(" <- as.character(").append(newColSyntax).append(");");
+			}
+		}
+		
+		return rExec.toString();
 	}
 
 	public static void main(String[] args) {

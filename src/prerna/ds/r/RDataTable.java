@@ -43,6 +43,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder = new RFrameBuilder(rTableVarName, retCon, port);
 	}
 	
+	public RFrameBuilder getBuilder() {
+		return this.builder;
+	}
+	
 	public RConnection getConnection() {
 		return this.builder.getConnection();
 	}
@@ -170,6 +174,11 @@ public class RDataTable extends AbstractTableDataFrame {
 
 		RScaledUniqueFrameIterator iterator = new RScaledUniqueFrameIterator(this, this.builder, columnName, max, min, dataTypes, attributeUniqueHeaderName);
 		return iterator;
+	}
+	
+	public void addColumnIndex(String columnHeader) {
+		String tableName = this.builder.getTableName();
+		this.builder.evalR("setindex(" + tableName + ", \"" + columnHeader + "\")");
 	}
 	
 	@Override
@@ -329,6 +338,5 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-	
 	
 }
