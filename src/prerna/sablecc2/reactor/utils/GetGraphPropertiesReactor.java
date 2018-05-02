@@ -14,6 +14,8 @@ import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
@@ -101,11 +103,20 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 
-			// get graph properties
-			if (g != null) {
-				properties = GraphUtility.getAllNodeProperties(g.traversal());
+		
+		}
+		
+		// get graph properties
+		if (g != null) {
+			properties = GraphUtility.getAllNodeProperties(g.traversal());
+			try {
+				g.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
+
 		return new NounMetadata(properties, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 

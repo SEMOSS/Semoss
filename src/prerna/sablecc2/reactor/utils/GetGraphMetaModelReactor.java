@@ -111,15 +111,14 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 		
 		if (g != null) {
 			retMap = GraphUtility.getMetamodel(g.traversal(), graphTypeId);
-		}
-		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 			try {
 				g.close();
-			} catch (Exception e1) {
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				e.printStackTrace();
 			}
 		}
+
 		return new NounMetadata(retMap, PixelDataType.MAP);
 	}
 
