@@ -1,5 +1,6 @@
 package prerna.util.git.reactors;
 
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,7 @@ import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitSynchronizer;
 
-public class SyncApp extends AbstractReactor {
+public class SyncApp extends GitBaseReactor {
 
 	public SyncApp() {
 		this.keysToGet = new String[]{
@@ -58,7 +59,12 @@ public class SyncApp extends AbstractReactor {
 				// remove the app
 				Utility.getEngine(appName).closeDB();
 				DIHelper.getInstance().removeLocalProperty(appName);
-				GitSynchronizer.syncDatabases(appName, repository, username, password, logger);
+				if (keyValue.size() == 6) {
+					GitSynchronizer.syncDatabases(appName, repository, username, password, logger);
+				} else {
+					String token = getToken();
+					GitSynchronizer.syncDatabases(appName, repository, token, logger);
+				}
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
@@ -69,7 +75,13 @@ public class SyncApp extends AbstractReactor {
 
 		// if it is null or true dont worry
 		logger.info("Synchronizing Insights Now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronize(appName, repository, username, password, dual);
+		Map<String, List<String>> filesChanged = new HashMap<String, List<String>>();
+		if (keyValue.size() == 6) {
+			filesChanged = GitSynchronizer.synchronize(appName, repository, username, password, dual);
+		} else {
+			String token = getToken();
+			filesChanged = GitSynchronizer.synchronize(appName, repository, token, dual);
+		}
 		logger.info("Synchronize Insights Complete");
 
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");
