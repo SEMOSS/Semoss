@@ -1,8 +1,14 @@
 package prerna.sablecc2.reactor.federation;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.QueryStruct2;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -10,6 +16,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -56,26 +63,24 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		selector.setTable(newTable);
 		selector.setColumn(newCol);
 		qs.addSelector(selector);
-		StringBuilder rTable2 = new StringBuilder();
 
-		rTable2.append(rCol2 + " <- as.character(unique(c(");
 		IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		int count = 0;
-		while (it2.hasNext()) {
-			Object[] values = it2.next().getValues();
-			if (count != 0) {
-				rTable2.append(",");
-			}
-			rTable2.append("\"");
-			rTable2.append(values[0] + "");
-			rTable2.append("\"");
-			count++;
-		}
-		rTable2.append(")))");
-
+		
+		Map typesMap = new HashMap<String, SemossDataType>();
+		String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newCol, newTable);
+		SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
+		typesMap.put(newCol, semossType);
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/"
+				+ Utility.getRandomString(6) + ".tsv";
+		File newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
+		String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/")
+				+ "\", sep=\"\t\");";
+		this.rJavaTranslator.runR(loadFileRScript);
+		this.rJavaTranslator.runR(rCol2 + " <- as.character(" + rCol2 + "$" + newCol + ")");
+		newFile.delete();
+		
 		// execute the scripts
 		this.rJavaTranslator.executeR(rTable1);
-		this.rJavaTranslator.executeR(rTable2.toString());
 
 		// generate script based on what george wants - empty list of selected
 		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "
@@ -103,11 +108,10 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 			int val = Integer.parseInt(exactMatchCount);
 			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
 		} else{
-			retNoun.addAdditionalReturn(new NounMetadata(0, PixelDataType.CONST_INT));
+			throw new IllegalArgumentException("No matches found.");
 		}
 		
 		this.insight.getVarStore().put(matchesFrame, retNoun);
-		
 		return retNoun;
 	}
 
