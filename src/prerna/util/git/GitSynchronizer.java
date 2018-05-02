@@ -297,6 +297,61 @@ public class GitSynchronizer {
 
 		return files;
 	}
+	
+	public static Map<String, List<String>> synchronize(String localAppName, String remoteAppName, String token, boolean dual)
+	{
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String versionFolder = baseFolder+ "/db/" + localAppName + "/version";
+
+		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
+		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
+		// get everything
+		String repoName = "";
+		if(remoteAppName.contains("/")) {
+			String[] remoteLocationSplit = remoteAppName.split("/");
+			String accountName = remoteLocationSplit[0];
+			repoName = remoteLocationSplit[1];
+		} else {
+			repoName = remoteAppName;
+		}
+
+		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
+		// add the files we need to
+		GitPushUtils.addAllFiles(versionFolder, false);
+		// drop the files that are missing / deleted
+		GitDestroyer.removeFiles(versionFolder, false, true);
+		// commit
+		GitPushUtils.commitAddedFiles(versionFolder);
+
+		GitRepoUtils.fetchRemote(versionFolder, repoName, token);
+
+		// need to get a list of files to process
+		String thisMaster = "refs/heads/master";
+		String remoteMaster = "refs/remotes/" + repoName +"/master";
+		Hashtable <String, List<String>> files = getFilesToAdd(versionFolder, thisMaster, remoteMaster);
+
+		// check to see if there are conflicts
+		// it is now done as part of merge
+		// merge everything
+		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
+
+		List<String> conflicted = getConflictedFiles(versionFolder);
+		// TODO: need to return back conflicted files
+		// TODO: need to have conversation with front end on it
+		if(conflicted.size() > 0) {
+			// we cannot proceed with merging.. until the conflicts are resolved
+			// so abort!
+			GitMergeHelper.abortMerge(versionFolder);
+		}
+		// only push back if there are no conflicts
+		// and the user wants to push as well as pull
+		else if(dual) {
+			GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
+			GitPushUtils.push(versionFolder, repoName, "master", token);
+		}
+
+		return files;
+	}
 
 	/**
 	 * Get the conflicted files
