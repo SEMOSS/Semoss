@@ -1,17 +1,22 @@
 package prerna.util.git.reactors;
 
+import java.util.Hashtable;
+
 import org.apache.log4j.Logger;
 
+import prerna.auth.AccessToken;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.security.AbstractHttpHelper;
+import prerna.util.BeanFiller;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitCreator;
 
-public class InitAppRepo extends AbstractReactor {
+public class InitAppRepo extends GitBaseReactor {
 
 	/**
 	 * Synchronize an existing app to a specified remote
@@ -39,11 +44,11 @@ public class InitAppRepo extends AbstractReactor {
 			throw new IllegalArgumentException("Need to specify the repository to publish the app");
 		}
 		String username = this.keyValue.get(this.keysToGet[2]);
-		if(username == null || username.isEmpty()) {
+		if(this.keyValue.size() == 5 && (username == null || username.isEmpty())) {
 			throw new IllegalArgumentException("Need to specify the username for the remote app");
 		}
 		String password = this.keyValue.get(this.keysToGet[3]);
-		if(password == null || password.isEmpty()) {
+		if(this.keyValue.size() == 5 &&  (password == null || password.isEmpty())) {
 			throw new IllegalArgumentException("Need to password for the remote app");
 		}
 		String databaseStr = this.keyValue.get(this.keysToGet[4]);
@@ -67,7 +72,23 @@ public class InitAppRepo extends AbstractReactor {
 				DIHelper.getInstance().removeLocalProperty(appName);
 			}
 			// make app to remote
-			GitCreator.makeRemoteFromApp(appName, repository, username, password, syncDatabase);
+			if (this.keyValue.size() == 5) {
+				GitCreator.makeRemoteFromApp(appName, repository, username, password, syncDatabase, "");
+			} else {
+				String token = getToken();
+				String url = "https://api.github.com/user";
+				String [] beanProps = {"name", "profile"};
+				String jsonPattern = "[name,login]";
+				Hashtable params = new Hashtable();
+				params.put("access_token", token);
+				
+				String output = AbstractHttpHelper.makeGetCall(url, token, params, false);
+				AccessToken accessToken2 = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new AccessToken());
+
+				username = accessToken2.getProfile();
+
+				GitCreator.makeRemoteFromApp(appName, repository, username, "", syncDatabase, token);
+			}
 			logger.info("Congratulations! You have successfully created your app " + repository);
 		} finally {
 			// open it back up
