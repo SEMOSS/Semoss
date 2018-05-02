@@ -219,7 +219,7 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 					+ System.getProperty("file.separator") + "@engine@_OWL.OWL" + "\n");
 
 			// custom tinker props
-			pw.write(Constants.TINKER_FILE + "\t" + tinkerFilePath + " \n");
+			pw.write(Constants.TINKER_FILE + "\t" + tinkerFilePath + "\n");
 			pw.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
 			// add type map
 			Gson gson = new GsonBuilder().create();
