@@ -73,7 +73,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		
 		// need to fill in the object with the data values
 		// retrieve data using getBulkDataRow
-		String[] heatMapHeaders = new String[]{"Column Header X", "Column Header Y", "Correlation"};
+		String[] heatMapHeaders = new String[]{"Column_Header_X", "Column_Header_Y", "Correlation"};
 		String query = correlationDataTable + "[" + 1 + ":" + length + "]";
 		List<Object[]> bulkRow = this.rJavaTranslator.getBulkDataRow(query, heatMapHeaders);
 		// each entry into the list is a row - we need to put this in the form of Object[][]
@@ -82,7 +82,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		}
 		
 		// create and return a task
-		ITask taskData = ConstantTaskCreationHelper.getHeatMapData(panelId, "Column Header X", "Column Header Y", "Correlation", retOutput);
+		ITask taskData = ConstantTaskCreationHelper.getHeatMapData(panelId, "Column_Header_X", "Column_Header_Y", "Correlation", retOutput);
 		
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");
