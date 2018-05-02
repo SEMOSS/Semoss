@@ -165,7 +165,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 		// execute R
 		this.rJavaTranslator.runR(sb.toString());
 
-		// add new columns to meta
+		// retrieve new columns to add to meta
 		List<String> updatedDtColumns = Arrays.asList(this.rJavaTranslator.getColumns(dtName));
 		List<String> updatedDtColsSubset = new ArrayList<String>(CollectionUtils.removeAll(updatedDtColumns, colNames));
 
@@ -188,7 +188,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + inputList_R + "," + colLevels_R + ",discretizeColumnsDt, discretize);");
+		cleanUpScript.append("rm(" + inputList_R + "," + colLevels_R + ",discretizeColumnsDt, discretize, getNewColumnName);");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 
