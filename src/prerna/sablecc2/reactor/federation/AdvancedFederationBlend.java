@@ -60,6 +60,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		final String linkFrame =  matchesFrame + "link";
 		String rand = Utility.getRandomString(8);
 		final String trg = "trg_" + rand;
+		String origNewCol = newCol;
 
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
@@ -140,7 +141,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			}
 
 			// drop combined column
-			this.rJavaTranslator.runR("" + linkFrame + " <- " + linkFrame + "[,-c(\"combined\")]");
+			this.rJavaTranslator.runR(linkFrame + " <- " + linkFrame + "[,-c(\"combined\")]");
 		}
 
 		// get R Frame
@@ -148,7 +149,6 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		String frameName = frame.getTableName();
 
 		// get all columns to federate on
-		ArrayList<String> cleanColumns = new ArrayList<String>();
 		ArrayList<String> columnArray = new ArrayList<String>();
 		columnArray.add(newCol);
 		List<String> inputCols = new ArrayList<String>();
@@ -174,12 +174,12 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			if (col.equals(newCol)) {
 				newCol = name;
 			}
-			cleanColumns.add(name);
 			selector.setAlias(name);
 			// get semoss type, update meta data and keep track
 			String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, col, newTable);
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 			typesMap.put(col, semossType);
+			
 			// update meta data in frame
 			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 			metaData.addProperty(frameName, frameName + "__" + name);
@@ -198,6 +198,14 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 
+		// if join on column is a number convert link table to numbers
+		if (typesMap.get(origNewCol).equals(SemossDataType.DOUBLE)
+				|| typesMap.get(origNewCol).equals(SemossDataType.INT)) {
+			this.rJavaTranslator.runR(linkFrame + "$col1 <- as.character(" + linkFrame + "$col1);" + linkFrame
+					+ "$col2 <- as.character(" + linkFrame + "$col2);");
+			this.rJavaTranslator.runR(linkFrame + "$col1 <- as.numeric(" + linkFrame + "$col1);" + linkFrame
+					+ "$col2 <- as.numeric(" + linkFrame + "$col2);");
+		}
 		// execute blend
 		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\""
 				+ newCol + "\", " + linkFrame + " , \"" + joinType + "\")";
@@ -205,7 +213,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 
 		// remove columns from frame that are temporary
 		String removeExtras = frameName + " <- " + frameName
-				+ "[,-c(\"i.and.d\",\"col1\",\"col2\",\"dist.y\",\"dist.x\")]";
+				+ "[,-c(\"i.and.d\",\"col1\",\"col2\",\"distance.y\",\"distance.x\")]";
 		this.rJavaTranslator.runR(removeExtras);
 
 		// reset the frame headers
@@ -213,9 +221,9 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 
 		// delete advanced Fed frame in R, done with it
 		this.rJavaTranslator.runR("rm(" + trg + "," + matchesFrame + ", BaseLinkFrame, " + linkFrame
-				+ ", best_match_zero, best_match, blend, best_match_lessthan)");
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,PixelOperationType.FRAME_DATA_CHANGE);
+				+ ", best_match_zero, best_match, blend, best_match_lessthan, best_match_nonzero)");
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata((inputCols)));
 		return retNoun;
 	}
