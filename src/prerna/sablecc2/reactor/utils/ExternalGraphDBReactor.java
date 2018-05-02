@@ -23,7 +23,9 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrUtility;
@@ -48,8 +50,23 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String databaseName = this.keyValue.get(this.keysToGet[0]);
+		if (databaseName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires database name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		String fileName = this.keyValue.get(this.keysToGet[1]);
+		if (fileName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires file name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		String nodeType = this.keyValue.get(this.keysToGet[2]);
+		if (nodeType == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
 		Map<String, Object> metaMap = (Map<String, Object>) mapInput.get(0);
 		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");

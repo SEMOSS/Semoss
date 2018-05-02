@@ -15,6 +15,10 @@ import com.datastax.dse.graph.api.DseGraph;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.DataStaxInterpreter;
 import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class DataStaxGraphEngine extends AbstractEngine {
@@ -29,20 +33,37 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		this.prop = Utility.loadProperties(propFile);
 		String host = this.prop.getProperty("HOST");
 		String port = this.prop.getProperty("PORT");
+		String username = this.prop.getProperty("USERNAME");
+		String password = this.prop.getProperty("PASSWORD");
 		String graphName = this.prop.getProperty("GRAPH_NAME");
-		//  node type to property value map
+		// node type to property value map
 		String typeMapStr = this.prop.getProperty("TYPE_MAP");
-		
-		DseCluster dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
-		DseSession dseSession = dseCluster.connect();
-		if(typeMapStr != null && !typeMapStr.trim().isEmpty()) {
-			try {
-				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+
+		DseCluster dseCluster = null;
+		if (username != null && password != null) {
+			dseCluster = DseCluster.builder().addContactPoint(host).withCredentials(username, password)
+					.withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName))
+					.build();
+		} else {
+			dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port))
+					.withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
 		}
-		this.graphTraversalSession = DseGraph.traversal(dseSession);
+		if (dseCluster != null) {
+			DseSession dseSession = dseCluster.connect();
+			if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
+				try {
+					this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			this.graphTraversalSession = DseGraph.traversal(dseSession);
+		} else {
+			NounMetadata noun = new NounMetadata("Unable to establish connection", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 	}
 	
 	public GraphTraversalSource getGraphTraversalSource() {
