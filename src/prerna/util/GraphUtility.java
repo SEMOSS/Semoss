@@ -19,7 +19,7 @@ public class GraphUtility {
 
 	public static HashMap<String, Object> getMetamodel(GraphTraversalSource gts, String graphTypeId) {
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
-		Map<String, ArrayList<String>> edgeMap = new HashMap<>();
+		Map<String, ArrayList<String>> edges = new HashMap<>();
 		Map<String, Map<String, String>> nodes = new HashMap<>();
 		
 		GraphTraversal<Vertex, Map<Object, Object>> gtTest = gts.V().has(graphTypeId).group().by(__.values(graphTypeId));
@@ -89,31 +89,37 @@ public class GraphUtility {
 			}
 		}
 		// get edges
-		Iterator<Edge> edges = gts.E();
-		while (edges.hasNext()) {
-			Edge e = edges.next();
-			String edgeLabel = e.label();
-			Vertex outV = e.outVertex();
-			Set<String> outVKeys = outV.keys();
-			Vertex inV = e.inVertex();
-			Set<String> inVKeys = inV.keys();
-			if (outVKeys.contains(graphTypeId) && inVKeys.contains(graphTypeId)) {
-				Object outVLabel = outV.value(graphTypeId);
-				Object inVLabel = inV.value(graphTypeId);
-				if (!edgeMap.containsKey(edgeLabel)) {
-					ArrayList<String> vertices = new ArrayList<>();
-					vertices.add(outVLabel.toString());
-					vertices.add(inVLabel.toString());
-					edgeMap.put(edgeLabel, vertices);
+		Iterator<String> edgeLabels = gts.E().label().dedup();
+		while (edgeLabels.hasNext()) {
+			String edgeLabel = edgeLabels.next();
+			Iterator<Edge> it = gts.V().outE(edgeLabel);
+			while (it.hasNext()) {
+				Edge edge = it.next();
+				Vertex outV = edge.outVertex();
+				Set<String> outVKeys = outV.keys();
+				Vertex inV = edge.inVertex();
+				Set<String> inVKeys = inV.keys();
+				if (outVKeys.contains(graphTypeId) && inVKeys.contains(graphTypeId)) {
+					Object outVLabel = outV.value(graphTypeId);
+					Object inVLabel = inV.value(graphTypeId);
+					if (!edges.containsKey(edgeLabel)) {
+						ArrayList<String> vertices = new ArrayList<>();
+						vertices.add(outVLabel.toString());
+						vertices.add(inVLabel.toString());
+						edges.put(edgeLabel, vertices);
+					} else {
+						break;
+					}
 				}
 			}
 		}
 		if (!nodes.isEmpty()) {
 			retMap.put("nodes", nodes);
+			if (!edges.isEmpty()) {
+				retMap.put("edges", edges);
+			}
 		}
-		if (!edgeMap.isEmpty()) {
-			retMap.put("edges", edgeMap);
-		}
+
 		return retMap;
 
 	}
