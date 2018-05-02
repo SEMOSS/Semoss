@@ -17,7 +17,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GraphUtility;
@@ -35,6 +37,11 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 		 */
 		organizeKeys();
 		String fileName = this.keyValue.get(this.keysToGet[0]);
+		if (fileName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires fileName to get graph properties.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
 		if (fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
@@ -49,10 +56,20 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 			File f = new File(fileName);
 			if (f.exists() && f.isDirectory()) {
 				g = Neo4jGraph.open(fileName);
+			} else {
+				SemossPixelException exception = new SemossPixelException(new NounMetadata("Invalid Neo4j path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
 			}
 		} else {
 			g = TinkerGraph.open();
 			try {
+				File f = new File(fileName);
+				if (!f.exists() ) {
+					SemossPixelException exception = new SemossPixelException(new NounMetadata("Invalid graph path", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
 				if (tinkerDriver == TINKER_DRIVER.TG) {
 					// user kyro to de-serialize the cached graph
 					Builder<GryoIo> builder = IoCore.gryo();

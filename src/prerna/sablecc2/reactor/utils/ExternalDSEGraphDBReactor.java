@@ -22,7 +22,9 @@ import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrUtility;
@@ -37,8 +39,9 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 
 	public ExternalDSEGraphDBReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.HOST.getKey(),
-				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.GRAPH_NAME.getKey(),
-				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
+				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
+				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
 	}
 
 	@Override
@@ -48,10 +51,37 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String databaseName = this.keyValue.get(this.keysToGet[0]);
+		if (databaseName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires database name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		String host = this.keyValue.get(this.keysToGet[1]);
+		if (host == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires host to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		String port = this.keyValue.get(this.keysToGet[2]);
-		String graphName = this.keyValue.get(this.keysToGet[3]);
-		String graphTypeId = this.keyValue.get(this.keysToGet[4]);
+		if (port == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires port to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		String username = this.keyValue.get(this.keysToGet[3]);
+		String password = this.keyValue.get(this.keysToGet[4]);
+		String graphName = this.keyValue.get(this.keysToGet[5]);
+		if (graphName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		String graphTypeId = this.keyValue.get(this.keysToGet[6]);
+		if (graphTypeId == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// meta model
 		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
@@ -93,7 +123,7 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 		String tempSmssLocation = null;
 		logger.info("Start generating temp smss");
 		try {
-			tempSmssLocation = generateTempSmss(databaseName, host, port, graphName, typeMap);
+			tempSmssLocation = generateTempSmss(databaseName, host, port, username, password, graphName, typeMap);
 			DIHelper.getInstance().getCoreProp().setProperty(databaseName + "_" + Constants.STORE, tempSmssLocation);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -172,13 +202,15 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 	 * Generate the SMSS for the db
 	 * 
 	 * @param appName
+	 * @param graphName2 
+	 * @param password 
 	 * @param tinkerFilePath
 	 * @param tinkerTypeMap
 	 * @param tinkerDriverType
 	 * @return
 	 * @throws IOException
 	 */
-	private String generateTempSmss(String appName, String host, String port, String graphName, Map tinkerTypeMap)
+	private String generateTempSmss(String appName, String host, String port, String username, String password, String graphName, Map tinkerTypeMap)
 			throws IOException {
 		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -204,6 +236,10 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 			// custom dse props
 			pw.write("HOST" + "\t" + host + " \n");
 			pw.write("PORT" + "\t" + port + " \n");
+			if(username != null && password != null){
+				pw.write("USERNAME" + "\t" + username + " \n");
+				pw.write("PASSWORD" + "\t" + password + " \n");
+			}
 			pw.write("GRAPH_NAME" + "\t" + graphName + " \n");
 			// add type map
 			Gson gson = new GsonBuilder().create();
