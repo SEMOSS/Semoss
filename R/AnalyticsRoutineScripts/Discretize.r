@@ -56,7 +56,9 @@ discretizeColumnsDt <- function(dt, inputList=NULL){
 					#requestedCol has NAs
 					subsetDt <- dt[complete.cases(dt[[requestedColName]]),c("generated_uuid99", requestedColName), with=FALSE]
 					subsetDt[, (newColName):=eval(parse(text = paste0("discretize(subsetDt[['", requestedColName, "']],", 	str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))][, eval(requestedColName):=NULL]
-					dt <- merge(x = dt, y = subsetDt, by = "generated_uuid99", all.x = TRUE)
+					setindex(dt, generated_uuid99)
+					setindex(subsetDt, generated_uuid99)
+					dt <- merge(x = dt, y = subsetDt, all.x = TRUE)
 				}
 			}
 		}
