@@ -61,13 +61,12 @@ public class RImporter implements IImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
+		boolean updateMeta = false;
 		RFrameBuilder builder = this.dataframe.getBuilder();
 		String tableName = this.dataframe.getTableName();
 		
 		System.out.println(Arrays.toString(builder.getColumnNames()));
 		System.out.println(Arrays.toString(builder.getColumnTypes()));
-		
-		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, tableName, this.it, joins);
 		
 		// define new temporary table with random name
 		// we will flush out the iterator into a CSV file
@@ -76,15 +75,17 @@ public class RImporter implements IImporter {
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
 	
-		if(!builder.isEmpty(tempTableName)) {
+		if(builder.isEmpty(tempTableName)) {
 			if(joins.get(0).getJoinType().equals("inner.join")) {
 				// clear the fake table
 				builder.evalR("rm(" + tempTableName + ");");
 				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
 			}
+			updateMeta = true;
 			// we are merging w/ no data
 			// just add an empty column with the column name
-			RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
+			String alterTable = RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
+			this.dataframe.executeRScript(alterTable);
 		} else {
 			
 			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
@@ -108,6 +109,7 @@ public class RImporter implements IImporter {
 			}
 			
 			//execute r command
+			updateMeta = true;
 			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 			this.dataframe.executeRScript(mergeString);
 			this.dataframe.syncHeaders();
@@ -117,6 +119,10 @@ public class RImporter implements IImporter {
 			
 			// clean r temp table name
 			this.dataframe.executeRScript("rm("+tempTableName+")");
+		}
+		
+		if(updateMeta) {
+			ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, tableName, this.it, joins);
 		}
 		
 		return this.dataframe;
