@@ -25,7 +25,7 @@ getCorrelationTable <- function(frameName, colVector) {
 	}
 
 	retTable <- as.data.table(matrix(unlist(l), ncol = 3, byrow=T),stringsAsFactors=FALSE)
-	names(retTable) <- c("Column Header X", "Column Header Y", "Correlation")
+	names(retTable) <- c("Column_Header_X", "Column_Header_Y", "Correlation")
 	return (retTable)
 }
 
