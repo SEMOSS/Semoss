@@ -296,7 +296,7 @@ public class H2Importer implements IImporter {
 				// continue the message up
 				// if we have an inner join and no data
 				// result will be null and we dont want that
-				throw new IllegalArgumentException(e.getMessage());
+				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
 			}
 		}
 		catch(Exception e) {

@@ -77,7 +77,7 @@ public class RFrameBuilder {
 	 * Method to run a r script and not need to process output
 	 * @param r
 	 */
-	protected void evalR(String r) {
+	public void evalR(String r) {
 		this.rJavaTranslator.executeEmptyR(r);
 	}
 	
@@ -87,7 +87,7 @@ public class RFrameBuilder {
 	 * @param rscript			The R script to execute
 	 * @return					The R script wrapped in a try-eval statement
 	 */
-	protected String addTryEvalToScript(String rscript) {
+	public String addTryEvalToScript(String rscript) {
 		return "try(eval(" + rscript + "), silent=FALSE)";
 	}
 
@@ -96,7 +96,7 @@ public class RFrameBuilder {
 	 * @param it					The iterator to flush into a r data table
 	 * @param typesMap				The data type of each column
 	 */
-	protected void createTableViaIterator(String tableName, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
+	public void createTableViaIterator(String tableName, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		/*
 		 * We have an iterator that comes for 3 main sources
 		 * 1) some kind of resultset (i.e. engine/endpoint) -> we flush this out to a csv file and load it
@@ -264,8 +264,7 @@ public class RFrameBuilder {
 		return newFilter;
 	}
 	
-	protected void genRowId(String dataTableName, String rowIdName)
-	{
+	public void genRowId(String dataTableName, String rowIdName) {
 		// syntax
 		//id <- rownames(arAmgXk);
 		//d <- cbind(id=id, arAmgXk)
@@ -331,39 +330,43 @@ public class RFrameBuilder {
 		}
 	}
 	
-	protected Object[] getDataRow(String rScript, String[] headerOrdering) {
+	public Object[] getDataRow(String rScript, String[] headerOrdering) {
 		return this.rJavaTranslator.getDataRow(rScript, headerOrdering);
 	}
 	
-	protected List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
 		return this.rJavaTranslator.getBulkDataRow(rScript, headerOrdering);
 	}
 
-	protected boolean isEmpty() {
+	public boolean isEmpty() {
 		return this.rJavaTranslator.isEmpty(this.dataTableName);
 	}
+	
+	public boolean isEmpty(String frameName) {
+		return this.rJavaTranslator.isEmpty(frameName);
+	}
 
-	protected int getNumRows() {
+	public int getNumRows() {
 		return getNumRows(this.dataTableName);
 	}
 	
-	protected int getNumRows(String varName) {
+	public int getNumRows(String varName) {
 		return this.rJavaTranslator.getNumRows(varName);
 	}
 	
-	protected String[] getColumnNames() {
+	public String[] getColumnNames() {
 		return getColumnNames(this.dataTableName);
 	}
 
-	protected String[] getColumnNames(String varName) {
+	public String[] getColumnNames(String varName) {
 		return this.rJavaTranslator.getColumns(this.dataTableName);
 	}
 
-	protected String[] getColumnTypes() {
+	public String[] getColumnTypes() {
 		return getColumnTypes(this.dataTableName);
 	}
 	
-	protected String[] getColumnTypes(String varName) {
+	public String[] getColumnTypes(String varName) {
 		return this.rJavaTranslator.getColumnTypes(varName);
 	}
 
