@@ -28,9 +28,14 @@ public class GitCreator {
 	 * @param username
 	 * @param password
 	 */
-	public static void makeRemoteFromApp(String appName, String remoteAppName, String username, String password, boolean syncDatabase) {
+	public static void makeRemoteFromApp(String appName, String remoteAppName, String username, String password, boolean syncDatabase, String token) {
 		// first, need to login
-		GitHub git = GitUtils.login(username, password);
+		GitHub git = null;
+		if (!token.isEmpty()) {
+			git = GitUtils.login(token);
+		} else {
+			git = GitUtils.login(username, password);
+		}
 
 		// need to get the database folder
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -86,11 +91,22 @@ public class GitCreator {
 
 		// now set the remote to the local
 		GitRepoUtils.addRemote(versionFolder, username, repoName);
-		// now fetch it
-		// this will shift us from our local to the master
-		GitRepoUtils.fetchRemote(versionFolder, repoName, username, password);
-		// now push our local to the remote repo
-		GitPushUtils.push(versionFolder, repoName, "master", username, password);
+
+		if (!token.isEmpty()) {
+			// now fetch it
+			// this will shift us from our local to the master
+			GitRepoUtils.fetchRemote(versionFolder, repoName, token);
+			// now push our local to the remote repo
+			GitPushUtils.push(versionFolder, repoName, "master", token);
+		} else {
+			// now fetch it
+			// this will shift us from our local to the master
+			GitRepoUtils.fetchRemote(versionFolder, repoName, username, password);
+
+			// now push our local to the remote repo
+			GitPushUtils.push(versionFolder, repoName, "master", username, password);
+		}
+
 	}
 	
 	private static void pushFilesToVersionFolder(String appFolder, String gitFolder) {
