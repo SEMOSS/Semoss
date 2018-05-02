@@ -72,7 +72,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 
 			// for right now, assuming it is just a single vertex to return
 			if(data instanceof Vertex) {
-				TinkerVertex vertex = (TinkerVertex) data;
+				Vertex vertex = (Vertex) data;
 				String node = this.headerOrdering[0];
 				String name = this.typeMap.get(node);
 				retObject = new Object[]{vertex.value(name)};
