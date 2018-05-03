@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -28,12 +28,12 @@ public class QSRenameColumnConverter {
 
 	}
 
-	public static QueryStruct2 convertQs(QueryStruct2 qs, Map<String, String> transformationMap, boolean keepOrigAlias) {
+	public static SelectQueryStruct convertQs(SelectQueryStruct qs, Map<String, String> transformationMap, boolean keepOrigAlias) {
 		if(qs instanceof HardQueryStruct) {
 			return qs;
 		}
 		// need to modify and re-add all the selectors
-		QueryStruct2 convertedQs = qs.getNewBaseQueryStruct();
+		SelectQueryStruct convertedQs = qs.getNewBaseQueryStruct();
 		convertedQs.setLimit(qs.getLimit());
 		convertedQs.setOffSet(qs.getOffset());
 

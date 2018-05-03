@@ -7,7 +7,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -526,7 +526,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
 			
 			String orderByName = null;
-			if(columnName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+			if(columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				orderByName = tableName;
 			} else {
 				orderByName = columnName;
@@ -579,7 +579,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 	}
 
 	public static void main(String[] args) {
-		QueryStruct2 qsTest = new QueryStruct2();
+		SelectQueryStruct qsTest = new SelectQueryStruct();
 		qsTest.addSelector("Title", null);
 		qsTest.addSelector("Other2", null);
 		//qsTest.addSelector("Movie_Budget", null);

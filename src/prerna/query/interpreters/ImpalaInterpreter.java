@@ -17,7 +17,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -442,7 +442,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		if(engine != null && !engine.isBasic()) {
 			// if the colName is the primary key placeholder
 			// we will go ahead and grab the primary key from the table
-			if(colName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+			if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
 				physicalColName = getPrimKey4Table(table);
 				// the display name is defaulted to the table name
 			} else {
@@ -706,7 +706,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
-		QueryStruct2 subQs = (QueryStruct2) rightComp.getValue();
+		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
 		ImpalaInterpreter innerInterpreter;
 		try {
 			innerInterpreter = this.getClass().newInstance();
@@ -1052,7 +1052,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
 
 			boolean origPrim = false;
-			if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+			if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
 				origPrim = true;
 				columnConceptualName = getPrimKey4Table(tableConceptualName);
 			} else {
@@ -1121,7 +1121,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 				String tableConceptualName = groupBySelector.getTable();
 				String columnConceptualName = groupBySelector.getColumn();
 
-				if(columnConceptualName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
 					columnConceptualName = getPrimKey4Table(tableConceptualName);
 				} else {
 					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);

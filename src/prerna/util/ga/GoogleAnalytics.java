@@ -19,8 +19,8 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -70,7 +70,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 	}
 
 	@Override
-	public void trackDataImport(Insight in, QueryStruct2 qs) {
+	public void trackDataImport(Insight in, SelectQueryStruct qs) {
 		final String exprStart = "{\"dataquery\":[";
 		final String exprEnd = "]}";
 
@@ -114,7 +114,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 					String columnName = selector.getColumn();
 					// retrieve join data from the joinHash
 					String[] joinData;
-					if (columnName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+					if (columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 						joinData = joinHash.get(tableName);
 					} else {
 						joinData = joinHash.get(columnName);
@@ -219,7 +219,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 	}
 
 	@Override
-	public void trackViz(TaskOptions taskOptions, Insight in, QueryStruct2 qs) {
+	public void trackViz(TaskOptions taskOptions, Insight in, SelectQueryStruct qs) {
 		List kickOffColumns = new ArrayList<>();
 		try {
 			if (taskOptions == null || taskOptions.isEmpty()) {
@@ -295,7 +295,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 							String db = engineQs[0];
 							String conceptProp = engineQs[1];
 							String table = conceptProp;
-							String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+							String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
 							if (conceptProp.contains("__")) {
 								String[] conceptPropSplit = conceptProp.split("__");
 								table = conceptPropSplit[0];
@@ -317,7 +317,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 										String queryCol = column;
 										// prim key placeholder cant be queried in the owl
 										// so we convert it back to the display name of the concept
-										if (column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)){
+										if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
 											queryCol = table;
 										}
 										String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
@@ -454,7 +454,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 				String db = engineQs[0];
 				String conceptProp = engineQs[1];
 				String tableName = conceptProp;
-				String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
 				if (conceptProp.contains("__")) {
 					String[] conceptPropSplit = conceptProp.split("__");
 					tableName = conceptPropSplit[0];

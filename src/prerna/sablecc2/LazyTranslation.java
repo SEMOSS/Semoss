@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.node.AAsop;
@@ -472,7 +472,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     					s.setColumn(split[1]);
     				} else {
     					s.setTable(idInput);
-    					s.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+    					s.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
     				}
     				curReactor.getCurRow().addColumn(s);
     			} else {
@@ -689,7 +689,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		} else {
     			// well, this means the person just typed f$Title (for example)
     			// i guess we should just return the first 500 records of the column...
-    			QueryStruct2 qs = new QueryStruct2();
+    			SelectQueryStruct qs = new SelectQueryStruct();
     			qs.addSelector(colSelector);
     			Iterator<IHeadersDataRow> iterator = frame.query(qs);
     			ITask task = new BasicIteratorTask(qs, iterator);

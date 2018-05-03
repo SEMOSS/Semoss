@@ -43,7 +43,7 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -71,8 +71,8 @@ public class SqlParser {
 		this.columnAlias = new Hashtable <String, String>();
 	}
 
-	public QueryStruct2 processQuery(String query) throws Exception {
-		QueryStruct2 qs = new QueryStruct2();
+	public SelectQueryStruct processQuery(String query) throws Exception {
+		SelectQueryStruct qs = new SelectQueryStruct();
 		// parse the sql
 		Statement stmt = CCJSqlParserUtil.parse(query);
 		Select select = ((Select)stmt);
@@ -125,7 +125,7 @@ public class SqlParser {
 	 * @param qs
 	 * @param selects
 	 */
-	public void fillSelects(QueryStruct2 qs, List<SelectItem> selects) {
+	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects) {
 		for(int selectIndex = 0;selectIndex < selects.size();selectIndex++) {
 			SelectItem si = selects.get(selectIndex);
 			if(si instanceof SelectExpressionItem) {
@@ -400,7 +400,7 @@ public class SqlParser {
 	 * @param tableName
 	 * @param joins
 	 */
-	public void fillJoins(QueryStruct2 qs, String tableName, List <Join> joins) {
+	public void fillJoins(SelectQueryStruct qs, String tableName, List <Join> joins) {
 		// if there are no joins
 		// nothing to do
 		if(joins == null || joins.isEmpty()) {
@@ -477,7 +477,7 @@ public class SqlParser {
 	// Once complete, there is nothing to change, since at this point it is all done
 	// everytime I finish up with the expression which is a simple one like equals etc. 
 
-	public void fillFilters(QueryStruct2 qs, IQueryFilter curFilter, Expression expr) {
+	public void fillFilters(SelectQueryStruct qs, IQueryFilter curFilter, Expression expr) {
 		// this is a simple one just go ahead and process it like anything else
 		// this should go first.. 
 		// if unable to process it is only then we should attempt to create other pieces
@@ -704,7 +704,7 @@ public class SqlParser {
 	 * @param qs
 	 * @param limit
 	 */
-	public void fillLimitOffset(QueryStruct2 qs, Limit limit) {
+	public void fillLimitOffset(SelectQueryStruct qs, Limit limit) {
 		if(limit == null) {
 			return;
 		}
@@ -726,7 +726,7 @@ public class SqlParser {
 	 * @param qs
 	 * @param orders
 	 */
-	public void fillOrder(QueryStruct2 qs, List <OrderByElement> orders) {
+	public void fillOrder(SelectQueryStruct qs, List <OrderByElement> orders) {
 		if(orders == null || orders.isEmpty()) {
 			return;
 		}
@@ -757,7 +757,7 @@ public class SqlParser {
 	 * @param qs
 	 * @param groups
 	 */
-	public void fillGroups(QueryStruct2 qs, List <Expression> groups) {
+	public void fillGroups(SelectQueryStruct qs, List <Expression> groups) {
 		if(groups == null || groups.isEmpty()) {
 			return;
 		}

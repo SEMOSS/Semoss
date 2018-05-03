@@ -13,7 +13,7 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
@@ -172,7 +172,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		// build qs to pull the target data
 		IEngine newColEngine = Utility.getEngine(newDb);
 		Map typesMap = new HashMap<String, SemossDataType>();
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
 		for (int i = 0; i < columnArray.size(); i++) {
 			String col = columnArray.get(i);

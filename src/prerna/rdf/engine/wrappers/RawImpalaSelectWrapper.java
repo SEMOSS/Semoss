@@ -14,14 +14,14 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.ConnectionUtils;
 
 public class RawImpalaSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 	
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Connection conn = null;
 	private Statement stmt = null;
 	private ResultSet rs = null;
@@ -42,7 +42,7 @@ public class RawImpalaSelectWrapper extends AbstractWrapper implements IRawSelec
 		
 	}
 	
-	public RawImpalaSelectWrapper(QueryStruct2 qs) {
+	public RawImpalaSelectWrapper(SelectQueryStruct qs) {
 		this.qs = qs;
 	}
 

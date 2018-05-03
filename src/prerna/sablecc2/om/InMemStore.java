@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public interface InMemStore<K, V> {
 
@@ -19,7 +19,7 @@ public interface InMemStore<K, V> {
 	 * @param qs
 	 * @return
 	 */
-	public Iterator<IHeadersDataRow> getIterator(QueryStruct2 qs);
+	public Iterator<IHeadersDataRow> getIterator(SelectQueryStruct qs);
 
 	/**
 	 * Insert data to be stored

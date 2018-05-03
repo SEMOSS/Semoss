@@ -14,24 +14,24 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RFrameBuilder;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
 public class RImporter implements IImporter {
 
 	private RDataTable dataframe;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public RImporter(RDataTable dataframe, QueryStruct2 qs) {
+	public RImporter(RDataTable dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
 		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 	}
 	
-	public RImporter(RDataTable dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+	public RImporter(RDataTable dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator

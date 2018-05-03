@@ -25,8 +25,8 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.SqlInterpreter2;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc.PKQLEnum;
@@ -213,7 +213,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		SqlInterpreter2 interp = new SqlInterpreter2(this);
 		interp.setQueryStruct(qs);
@@ -604,14 +604,14 @@ public class H2Frame extends AbstractTableDataFrame {
 		// logic to flush out qs -> qs2
 		QueryStruct qs = component.getQueryStruct();
 		// the component will either have a qs or a query string, account for that here
-		QueryStruct2 qs2 = null;
+		SelectQueryStruct qs2 = null;
 		if (qs == null) {
 			String query = component.getQuery();
 			qs2 = new HardQueryStruct();
 			((HardQueryStruct) qs2).setQuery(query);
 			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
-			qs2 = new QueryStruct2();
+			qs2 = new SelectQueryStruct();
 			// add selectors
 			Map<String, List<String>> qsSelectors = qs.getSelectors();
 			for (String key : qsSelectors.keySet()) {

@@ -6,7 +6,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -16,7 +16,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 public class JsonInterpreter implements IQueryInterpreter2{
 
 	
-	QueryStruct2 qs = null;
+	SelectQueryStruct qs = null;
 	StringBuffer selectors = null;
 	StringBuffer filters = null;
 	// for fda this is a +
@@ -50,7 +50,7 @@ public class JsonInterpreter implements IQueryInterpreter2{
 	}
 
 	@Override
-	public void setQueryStruct(QueryStruct2 qs) {
+	public void setQueryStruct(SelectQueryStruct qs) {
 		this.qs = qs;
 		
 	}

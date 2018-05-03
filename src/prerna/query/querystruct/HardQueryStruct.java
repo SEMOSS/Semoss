@@ -1,6 +1,6 @@
 package prerna.query.querystruct;
 
-public class HardQueryStruct extends QueryStruct2 {
+public class HardQueryStruct extends SelectQueryStruct {
 
 	private String hardQuery;
 	
@@ -17,7 +17,7 @@ public class HardQueryStruct extends QueryStruct2 {
 	}
 	
 	@Override
-	public QueryStruct2 getNewBaseQueryStruct() {
+	public SelectQueryStruct getNewBaseQueryStruct() {
 		HardQueryStruct newQs = new HardQueryStruct();
 		newQs.setQsType(getQsType());
 		newQs.setEngineName(getEngineName());

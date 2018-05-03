@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.panel.rules;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -17,11 +17,11 @@ public class RetrievePanelColorByValueReactor extends AbstractPanelColorByValueR
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
-		QueryStruct2 qs = insightPanel.getColorByValue().get(getCbvId(1));
+		SelectQueryStruct qs = insightPanel.getColorByValue().get(getCbvId(1));
 		// make a copy
 		// so that the original QS is not modified if additional changes
 		// are added to the rule
-		QueryStruct2 newQs = new QueryStruct2();
+		SelectQueryStruct newQs = new SelectQueryStruct();
 		newQs.merge(qs);
 		newQs.setDistinct(qs.isDistinct());
 		newQs.setOverrideImplicit(qs.isOverrideImplicit());

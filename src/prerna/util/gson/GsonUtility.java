@@ -8,7 +8,7 @@ import com.google.gson.GsonBuilder;
 import prerna.date.SemossDate;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -35,7 +35,7 @@ public class GsonUtility {
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				
 				// qs
-				.registerTypeAdapter(QueryStruct2.class, new QueryStructAdapter())
+				.registerTypeAdapter(SelectQueryStruct.class, new QueryStructAdapter())
 				
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())

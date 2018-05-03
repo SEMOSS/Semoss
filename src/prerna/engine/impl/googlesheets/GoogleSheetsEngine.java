@@ -23,7 +23,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.util.CsvFileIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -109,7 +109,7 @@ public class GoogleSheetsEngine extends AbstractEngine {
 		
 		// this method returns the information
 		// assuming that the engine is actually loaded
-		QueryStruct2 dbQs = getDatabaseQueryStruct();
+		SelectQueryStruct dbQs = getDatabaseQueryStruct();
 		// but we will shift the info to be a CSV query struct
 		CsvQueryStruct csvQs = new CsvQueryStruct();
 		// this is a flat db, so only need selectors

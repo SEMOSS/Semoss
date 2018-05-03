@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -30,12 +30,12 @@ public class QSAliasToPhysicalConverter {
 
 	}
 
-	public static QueryStruct2 getPhysicalQs(QueryStruct2 qs, OwlTemporalEngineMeta meta) {
+	public static SelectQueryStruct getPhysicalQs(SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
 		if(qs instanceof HardQueryStruct) {
 			return qs;
 		}
 		// need to modify and re-add all the selectors
-		QueryStruct2 convertedQs = qs.getNewBaseQueryStruct();
+		SelectQueryStruct convertedQs = qs.getNewBaseQueryStruct();
 		convertedQs.setLimit(qs.getLimit());
 		convertedQs.setOffSet(qs.getOffset());
 
@@ -177,7 +177,7 @@ public class QSAliasToPhysicalConverter {
 			newS.setColumn(split[1]);
 		} else {
 			newS.setTable(newQsName);
-			newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			newS.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 		}
 		newS.setAlias(selector.getAlias());
 		newS.setTableAlias(selector.getTableAlias());
@@ -244,7 +244,7 @@ public class QSAliasToPhysicalConverter {
 			newS.setColumn(split[1]);
 		} else {
 			newS.setTable(newQsName);
-			newS.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			newS.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 		}
 		newS.setSortDir(selector.getSortDirString());
 		newS.setAlias(selector.getAlias());

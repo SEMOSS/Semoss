@@ -14,7 +14,7 @@ import com.hp.hpl.jena.vocabulary.XSD;
 
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -208,7 +208,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		// add the node to the where statement
 		addNodeSelectorTriple(cleanVarName, concept);
 		// and the property if it is a prop
-		if(!property.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+		if(!property.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 			// make unique based on property
 			cleanVarName += "__" + Utility.cleanVariableString(property);
 			addNodePropertySelectorTriple(cleanVarName, property, concept);
@@ -673,7 +673,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 				this.groupByClause.append(" ?").append(alias);
 			} else {
 				String varName = Utility.cleanVariableString(tableName);
-				if(!columnName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					varName += "__" + Utility.cleanVariableString(columnName);
 				}
 				this.groupByClause.append(" ?").append(varName);
@@ -700,7 +700,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION sortDirection = gSelect.getSortDir();
 			
 			String varName = Utility.cleanVariableString(tableName);
-			if(!columnName.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+			if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				varName += "__" + Utility.cleanVariableString(columnName);
 			}
 

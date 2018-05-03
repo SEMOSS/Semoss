@@ -9,7 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
@@ -223,7 +223,7 @@ public class SparkDataFrame extends AbstractTableDataFrame{
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
 		// TODO Auto-generated method stub
 		return null;
 	}

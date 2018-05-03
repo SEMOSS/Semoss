@@ -15,7 +15,7 @@ import com.google.gson.GsonBuilder;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelUtility;

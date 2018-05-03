@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.qs.selectors;
 
 import java.util.List;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -23,7 +23,7 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 		IQuerySelector rightSelector = getSelector(qsInputs.getNoun(1));
 		QueryArithmeticSelector newSelector = combineSelectorsModingForOOO(this.mathExpr, leftSelector, rightSelector);
 		newSelector.setEncapsulated(this.encapsulated);
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(newSelector);
 		return new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 	}
@@ -47,7 +47,7 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 			// remember, if it is an embedded selector
 			// we return a full QueryStruct even if it has just one selector
 			// inside of it
-			QueryStruct2 qs = (QueryStruct2) input.getValue();
+			SelectQueryStruct qs = (SelectQueryStruct) input.getValue();
 			List<IQuerySelector> selectors = qs.getSelectors();
 			if(selectors.isEmpty()) {
 				// umm... merge the other QS stuff
