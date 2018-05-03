@@ -238,13 +238,13 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 					+ System.getProperty("file.separator") + "@engine@_OWL.OWL" + "\n");
 
 			// custom dse props
-			pw.write("HOST" + "\t" + host + " \n");
-			pw.write("PORT" + "\t" + port + " \n");
+			pw.write("HOST" + "\t" + host + "\n");
+			pw.write("PORT" + "\t" + port + "\n");
 			if(username != null && password != null){
-				pw.write("USERNAME" + "\t" + username + " \n");
-				pw.write("PASSWORD" + "\t" + password + " \n");
+				pw.write("USERNAME" + "\t" + username + "\n");
+				pw.write("PASSWORD" + "\t" + password + "\n");
 			}
-			pw.write("GRAPH_NAME" + "\t" + graphName + " \n");
+			pw.write("GRAPH_NAME" + "\t" + graphName + "\n");
 			// add type map
 			Gson gson = new GsonBuilder().create();
 			String json = gson.toJson(tinkerTypeMap);
