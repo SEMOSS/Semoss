@@ -1,12 +1,12 @@
 package prerna.query.interpreters.verifiers;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public interface IQueryStructValidator {
 
 	boolean isValid();
 	
-	QueryStruct2 getQueryableQueryStruct();
+	SelectQueryStruct getQueryableQueryStruct();
 	
-	QueryStruct2 getNonQueryableQueryStruct();
+	SelectQueryStruct getNonQueryableQueryStruct();
 }

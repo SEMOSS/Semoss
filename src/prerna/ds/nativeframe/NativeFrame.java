@@ -11,7 +11,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -27,11 +27,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	
 	public NativeFrame() {
 		super();
-		this.qs = new QueryStruct2();
+		this.qs = new SelectQueryStruct();
 		this.qs.setFrame(this);
 		this.grf = this.qs.getExplicitFilters();
 	}
@@ -49,7 +49,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			selector.addInnerSelector(innerSelector);
 			selector.setFunction(QueryFunctionHelper.MAX);
 
-			QueryStruct2 mQs = new QueryStruct2();
+			SelectQueryStruct mQs = new SelectQueryStruct();
 			mQs.addSelector(selector);
 			// merge the base filters
 			mQs.mergeExplicitFilters(qs.getExplicitFilters());
@@ -73,7 +73,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			selector.addInnerSelector(innerSelector);
 			selector.setFunction(QueryFunctionHelper.MIN);
 
-			QueryStruct2 mQs = new QueryStruct2();
+			SelectQueryStruct mQs = new SelectQueryStruct();
 			mQs.addSelector(selector);
 			// merge the base filters
 			mQs.mergeExplicitFilters(qs.getExplicitFilters());
@@ -90,7 +90,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
-		QueryStruct2 newQs = new QueryStruct2();
+		SelectQueryStruct newQs = new SelectQueryStruct();
 		QueryColumnSelector selector = new QueryColumnSelector();
 		String[] split = columnHeader.split("__");
 		selector.setTable(split[0]);
@@ -113,7 +113,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Object[] getColumn(String columnHeader) {
-		QueryStruct2 newQs = new QueryStruct2();
+		SelectQueryStruct newQs = new SelectQueryStruct();
 		QueryColumnSelector selector = new QueryColumnSelector();
 		String[] split = columnHeader.split("__");
 		selector.setTable(split[0]);
@@ -139,7 +139,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return DATA_MAKER_NAME;
 	}
 	
-	public void mergeQueryStruct(QueryStruct2 qs) {
+	public void mergeQueryStruct(SelectQueryStruct qs) {
 		this.qs.merge(qs);
 	}
 	
@@ -147,7 +147,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return qs.getEngineName();
 	}
 	
-	public QueryStruct2 getQueryStruct() {
+	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
 	
@@ -164,7 +164,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
 		// we need to merge everything with the current qs
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());

@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
@@ -16,7 +16,7 @@ public class OrderByReactor extends AbstractQueryStructReactor {
 		this.keysToGet = new String[]{COLUMNS_KEY, DIRECTION_KEY};
 	}
 	
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		List<String> colInputs = getOrderByColumns();
 		List<String> sortDirs = getSortDirections();
 		int colSize = colInputs.size();
@@ -32,9 +32,9 @@ public class OrderByReactor extends AbstractQueryStructReactor {
 				}
 			} else {
 				if(sortDirSize > selectIndex) {
-					qs.addOrderBy(newSelector, QueryStruct2.PRIM_KEY_PLACEHOLDER, sortDirs.get(selectIndex));
+					qs.addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, sortDirs.get(selectIndex));
 				} else {
-					qs.addOrderBy(newSelector, QueryStruct2.PRIM_KEY_PLACEHOLDER, "ASC");
+					qs.addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, "ASC");
 				}
 			}
 		}

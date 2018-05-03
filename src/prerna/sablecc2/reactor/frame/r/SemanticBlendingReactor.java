@@ -10,7 +10,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -91,7 +91,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		
 		// build a query struct so that we can query and limit the number of values being passed into the method
 		// this will also keep track of the columns
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setLimit(((Number) Double.parseDouble(randomValsString)).longValue());
 		for (int i = 0; i < columns.length; i++) {
 			qs.addSelector(new QueryColumnSelector(columns[i]));

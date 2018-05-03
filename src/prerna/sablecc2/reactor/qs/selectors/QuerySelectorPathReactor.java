@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.qs.selectors;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -24,7 +24,7 @@ public class QuerySelectorPathReactor extends AbstractQueryStructReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey()};
 	}
 	
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
 			List<IQuerySelector> selectors = new Vector<IQuerySelector>();

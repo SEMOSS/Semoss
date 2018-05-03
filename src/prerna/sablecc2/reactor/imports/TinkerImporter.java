@@ -12,7 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
@@ -20,17 +20,17 @@ import prerna.util.Utility;
 public class TinkerImporter implements IImporter {
 
 	private TinkerFrame dataframe;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs) {
+	public TinkerImporter(TinkerFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
 		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 	}
 	
-	public TinkerImporter(TinkerFrame dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+	public TinkerImporter(TinkerFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator

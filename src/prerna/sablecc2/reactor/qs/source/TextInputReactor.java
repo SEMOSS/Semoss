@@ -8,7 +8,7 @@ import java.util.Date;
 import java.util.Map;
 
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -34,7 +34,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 	 */
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		CsvQueryStruct qs = null;
 
 		// get inputs

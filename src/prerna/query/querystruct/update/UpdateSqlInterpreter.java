@@ -1,7 +1,6 @@
 package prerna.query.querystruct.update;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -12,11 +11,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.SqlInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -31,13 +27,9 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.SqlJoinList;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.test.TestUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class UpdateSqlInterpreter {
@@ -363,7 +355,7 @@ public class UpdateSqlInterpreter {
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
-		QueryStruct2 subQs = (QueryStruct2) rightComp.getValue();
+		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
 		SqlInterpreter2 innerInterpreter = new SqlInterpreter2();
 		innerInterpreter.setQueryStruct(subQs);
 		if(this.frame != null) {
@@ -789,19 +781,19 @@ public class UpdateSqlInterpreter {
 	
 	public static void main(String[] args) {
 		// load engine
-		TestUtilityMethods.loadDIHelper("C:/Users/laurlai/workspace/Semoss/RDF_Map.prop");
-		
-		String engineProp = "C:/Users/laurlai/workspace/Semoss/db/LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
-
-		engineProp = "C:/Users/laurlai/workspace/Semoss/db/MovieDB.smss";
-		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("MovieDB");
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty("MovieDB", coreEngine);
+//		TestUtilityMethods.loadDIHelper("C:/Users/laurlai/workspace/Semoss/RDF_Map.prop");
+//		
+//		String engineProp = "C:/Users/laurlai/workspace/Semoss/db/LocalMasterDatabase.smss";
+//		IEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+//
+//		engineProp = "C:/Users/laurlai/workspace/Semoss/db/MovieDB.smss";
+//		coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineName("MovieDB");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("MovieDB", coreEngine);
 		
 		
 		// Create qs object
@@ -810,54 +802,54 @@ public class UpdateSqlInterpreter {
 		/**
 		 * Update one column on one table
 		 */
-//		qs.addSelector("Nominated", "Nominated");
-//		List<Object> values = new ArrayList<Object>();
-//		values.add("N");
-//		qs.setValues(values);
-//		QueryColumnSelector tab = new QueryColumnSelector("Nominated__Title_FK");
-//		NounMetadata fil1 = new NounMetadata(tab, PixelDataType.COLUMN);
-//		NounMetadata fil2 = new NounMetadata("Chocolat", PixelDataType.CONST_STRING);
-//		SimpleQueryFilter filter1 = new SimpleQueryFilter(fil2, "=", fil1);
-//		qs.addExplicitFilter(filter1);
+		qs.addSelector("Nominated", "Nominated");
+		List<Object> values = new ArrayList<Object>();
+		values.add("N");
+		qs.setValues(values);
+		QueryColumnSelector tab = new QueryColumnSelector("Nominated__Title_FK");
+		NounMetadata fil1 = new NounMetadata(tab, PixelDataType.COLUMN);
+		NounMetadata fil2 = new NounMetadata("Chocolat", PixelDataType.CONST_STRING);
+		SimpleQueryFilter filter1 = new SimpleQueryFilter(fil2, "=", fil1);
+		qs.addExplicitFilter(filter1);
 		
 		/**
 		 * Update one table using values of another for reference
 		 * UPDATE Genre SET Genre.Genre='Comedy' WHERE Genre.Title_FK IN (SELECT Title.Title FROM Title WHERE Title = 'Avatar')
 		 */
-		qs.addSelector("Genre", "Genre");
-		List<Object> values = new ArrayList<Object>();
-		values.add("Drama");
-		qs.setValues(values);
-		
-		// Making subquery
-		QueryStruct2 subQuery = new QueryStruct2();
-		QueryColumnSelector title = new QueryColumnSelector("Title__Title");
-		subQuery.addSelector(title);
-		NounMetadata fil3 = new NounMetadata(title, PixelDataType.COLUMN);
-		NounMetadata fil4 = new NounMetadata("Avatar", PixelDataType.CONST_STRING);
-		SimpleQueryFilter subQueryFilter = new SimpleQueryFilter(fil3, "=", fil4);
-		subQuery.addExplicitFilter(subQueryFilter);
-		
-//		// Add to qs
-		NounMetadata col = new NounMetadata(new QueryColumnSelector("Genre__Title_FK"), PixelDataType.COLUMN);
-		NounMetadata filquery = new NounMetadata(subQuery, PixelDataType.QUERY_STRUCT);
-		SimpleQueryFilter filter5 = new SimpleQueryFilter(col, "==", filquery);
-		qs.addExplicitFilter(filter5);
-				
+//		qs.addSelector("Genre", "Genre");
+//		List<Object> values = new ArrayList<Object>();
+//		values.add("Drama");
+//		qs.setValues(values);
+//		
+//		// Making subquery
+//		QueryStruct2 subQuery = new QueryStruct2();
+//		QueryColumnSelector title = new QueryColumnSelector("Title__Title");
+//		subQuery.addSelector(title);
+//		NounMetadata fil3 = new NounMetadata(title, PixelDataType.COLUMN);
+//		NounMetadata fil4 = new NounMetadata("Avatar", PixelDataType.CONST_STRING);
+//		SimpleQueryFilter subQueryFilter = new SimpleQueryFilter(fil3, "=", fil4);
+//		subQuery.addExplicitFilter(subQueryFilter);
+//		
+////		// Add to qs
+//		NounMetadata col = new NounMetadata(new QueryColumnSelector("Genre__Title_FK"), PixelDataType.COLUMN);
+//		NounMetadata filquery = new NounMetadata(subQuery, PixelDataType.QUERY_STRUCT);
+//		SimpleQueryFilter filter5 = new SimpleQueryFilter(col, "==", filquery);
+//		qs.addExplicitFilter(filter5);
+//				
 		// Create interpreter and compose query
 		UpdateSqlInterpreter interpreter = new UpdateSqlInterpreter(qs);
 		String s = interpreter.composeQuery();
 		System.out.println(s);
 		
 		// run query on engine
-		coreEngine.insertData(s);
-		
-		// viewing results
-//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Nominated");
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Genre");
-		while(it.hasNext()) {
-			System.out.println(Arrays.toString(it.next().getValues()));
-		}
+//		coreEngine.insertData(s);
+//		
+//		// viewing results
+////		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Nominated");
+//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(coreEngine, "select * from Genre");
+//		while(it.hasNext()) {
+//			System.out.println(Arrays.toString(it.next().getValues()));
+//		}
 	}
 	
 	

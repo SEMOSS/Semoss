@@ -19,7 +19,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -136,7 +136,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// to the unique count of a column
 		
 		// calculate the count of a column
-		QueryStruct2 qs1 = new QueryStruct2();
+		SelectQueryStruct qs1 = new SelectQueryStruct();
 		{
 			QueryFunctionSelector countSelector = new QueryFunctionSelector();
 			countSelector.setFunction(QueryFunctionHelper.COUNT);
@@ -147,7 +147,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setColumn(split[1]);
 			} else {
 				innerSelector.setTable(columnName);
-				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			countSelector.addInnerSelector(innerSelector);
 			qs1.addSelector(countSelector);
@@ -156,7 +156,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		long nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
 
 		// calculate the unique count of a column
-		QueryStruct2 qs2 = new QueryStruct2();
+		SelectQueryStruct qs2 = new SelectQueryStruct();
 		{
 			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
 			uniqueCountSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
@@ -168,7 +168,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				innerSelector.setColumn(split[1]);
 			} else {
 				innerSelector.setTable(columnName);
-				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			uniqueCountSelector.addInnerSelector(innerSelector);
 			qs2.addSelector(uniqueCountSelector);
@@ -227,7 +227,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public Object[] getColumn(String columnHeader) {
 		QueryColumnSelector colSelector = new QueryColumnSelector(columnHeader);
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(colSelector);
 		// dont forget about filters
 		qs.setExplicitFilters(this.grf);
@@ -244,7 +244,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		QueryColumnSelector colSelector = new QueryColumnSelector(columnHeader);
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(colSelector);
 		qs.setExplicitFilters(this.grf);
 		Iterator<IHeadersDataRow> it = query(qs);
@@ -290,7 +290,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MAX);
 
-			QueryStruct2 mathQS = new QueryStruct2();
+			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 			// dont forget to add the current frame filters!
 			mathQS.setExplicitFilters(this.grf);
@@ -336,7 +336,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
 
-			QueryStruct2 mathQS = new QueryStruct2();
+			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 			// dont forget to add the current frame filters!
 			mathQS.setExplicitFilters(this.grf);
@@ -471,7 +471,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// get a flat QS
 		// which contains all the selectors 
 		// and all the joins as inner 
-		QueryStruct2 qs = this.metaData.getFlatTableQs();
+		SelectQueryStruct qs = this.metaData.getFlatTableQs();
 		// add the frame filters
 		qs.mergeImplicitFilters(this.grf);
 		
@@ -488,7 +488,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// get a flat QS
 		// which contains all the selectors 
 		// and all the joins as inner 
-		QueryStruct2 qs = this.metaData.getFlatTableQs();
+		SelectQueryStruct qs = this.metaData.getFlatTableQs();
 		// add the frame filters
 		qs.mergeImplicitFilters(this.grf);
 		
@@ -521,7 +521,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public int getUniqueInstanceCount(String columnName) {
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector count = new QueryFunctionSelector();
 		count.setDistinct(true);
 		count.setFunction(QueryFunctionHelper.UNIQUE_COUNT);

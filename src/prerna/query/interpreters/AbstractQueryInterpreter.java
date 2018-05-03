@@ -3,14 +3,14 @@ package prerna.query.interpreters;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public abstract class AbstractQueryInterpreter implements IQueryInterpreter2 {
 
 	protected Logger logger = null;
 	
 	protected int performCount;
-	protected QueryStruct2 qs;
+	protected SelectQueryStruct qs;
 	protected boolean isDistinct;
 
 	public AbstractQueryInterpreter() {
@@ -18,7 +18,7 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter2 {
 	}
 	
 	@Override
-	public void setQueryStruct(QueryStruct2 qs) {
+	public void setQueryStruct(SelectQueryStruct qs) {
 		this.qs = qs;
 	}
 

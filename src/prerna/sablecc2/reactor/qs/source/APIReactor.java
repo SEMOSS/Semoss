@@ -8,7 +8,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonAPIEngine2;
 import prerna.engine.impl.web.WebScrapeEngine;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.DIHelper;
@@ -21,16 +21,16 @@ public class APIReactor extends AbstractQueryStructReactor {
 	}
 	
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		
 		createTemporalStruct();
 		// I am hoping this is almost always engine
 		// need to account if this is a hard query struct
-		if(this.qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
-				this.qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			this.qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
+				this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
-			this.qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
+			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		}
 
 		return this.qs;

@@ -22,7 +22,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.GraphDataModel;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public class JoinTransformation extends AbstractTransformation {
 
@@ -99,7 +99,7 @@ public class JoinTransformation extends AbstractTransformation {
 			// if stringmap already contains the filters, then it is a hard filter
 			// otherwise, add based on what is currently in the tree
 			if (qs != null && !qs.hasFiltered(props.get(COLUMN_TWO_KEY) + "")) {
-				QueryStruct2 qs2 = new QueryStruct2();
+				SelectQueryStruct qs2 = new SelectQueryStruct();
 				Iterator<IHeadersDataRow> rowIt = null;
 				if (dm instanceof H2Frame) {
 					qs2.addSelector(((ITableDataFrame) dm).getTableName(), props.get(COLUMN_TWO_KEY).toString());

@@ -22,8 +22,8 @@ import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -42,18 +42,18 @@ public class ImportUtility {
 	 * @param qs
 	 * @return
 	 */
-	public static Iterator<IHeadersDataRow> generateIterator(QueryStruct2 qs, ITableDataFrame frame) {
+	public static Iterator<IHeadersDataRow> generateIterator(SelectQueryStruct qs, ITableDataFrame frame) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
-		if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE) {
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} 
 		// engine with hard coded query
-		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardQueryStruct) qs).getQuery());
 		} 
 		// frame with qs
-		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME) {
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			ITableDataFrame qsFrame = qs.getFrame();
 			if(qsFrame != null) {
 				return qsFrame.query(qs);
@@ -62,7 +62,7 @@ public class ImportUtility {
 			}
 		} 
 		// frame with hard coded query
-		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY){
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY){
 			ITableDataFrame qsFrame = qs.getFrame();
 			if(qsFrame != null) {
 				return qsFrame.query( ((HardQueryStruct) qs).getQuery());
@@ -71,13 +71,13 @@ public class ImportUtility {
 			}
 		}
 		// csv file (really, any delimited file
-		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			CsvQueryStruct csvQs = (CsvQueryStruct) qs;
 			CsvFileIterator it = new CsvFileIterator(csvQs);
 			return it;
 		} 
 		// excel file
-		else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			ExcelQueryStruct xlQS = (ExcelQueryStruct) qs;
 			ExcelFileIterator it = new ExcelFileIterator(xlQS);
 			return it;
@@ -104,7 +104,7 @@ public class ImportUtility {
 	 * This is used for both H2 (any rdbms really) and R
 	 */
 	
-	public static void parseQueryStructToFlatTable(ITableDataFrame dataframe, QueryStruct2 qs, String frameTableName, Iterator<IHeadersDataRow> it) {
+	public static void parseQueryStructToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, Iterator<IHeadersDataRow> it) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE) {
@@ -149,7 +149,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	private static void parseEngineQsToFlatTable(ITableDataFrame dataframe, QueryStruct2 qs, String frameTableName) {
+	private static void parseEngineQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineName();
 		
@@ -180,7 +180,7 @@ public class ImportUtility {
 				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
 					metaData.setDataTypeToProperty(uniqueHeader, type);
 				} else {
@@ -193,7 +193,7 @@ public class ImportUtility {
 		}
 	}
 	
-	private static void parseRawQsToFlatTable(ITableDataFrame dataframe, QueryStruct2 qs, String frameTableName, IRawSelectWrapper it, String source) {
+	private static void parseRawQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, IRawSelectWrapper it, String source) {
 		String[] types = it.getTypes();
 		String[] columns = it.getDisplayVariables();
 		// define the frame table name as a primary key within the meta
@@ -223,7 +223,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	private static void parseFrameQsToFlatTable(ITableDataFrame dataframe, QueryStruct2 qs, String frameTableName) {
+	private static void parseFrameQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String source = "FRAME_QUERY";
 		
@@ -296,7 +296,7 @@ public class ImportUtility {
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
 				// this only happens when we have a column selector
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					metaData.setQueryStructNameToProperty(uniqueHeader, csvFileName, table);
 					String type = dataTypes.get(table);
 					metaData.setDataTypeToProperty(uniqueHeader, type);
@@ -371,7 +371,7 @@ public class ImportUtility {
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
 				// this only happens when we have a column selector
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					metaData.setQueryStructNameToProperty(uniqueHeader, excelFileName, table);
 					String type = dataTypes.get(table);
 					metaData.setDataTypeToProperty(uniqueHeader, type);
@@ -441,7 +441,7 @@ public class ImportUtility {
 	 * @param edgeHash 
 	 * @param frameTableName
 	 */
-	public static void parseQueryStructAsGraph(ITableDataFrame dataframe, QueryStruct2 qs, Map<String, Set<String>> edgeHash) {
+	public static void parseQueryStructAsGraph(ITableDataFrame dataframe, SelectQueryStruct qs, Map<String, Set<String>> edgeHash) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineName();
 		
@@ -474,7 +474,7 @@ public class ImportUtility {
 				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
 					metaData.setDataTypeToVertex(alias, type);
 				} else {
@@ -536,7 +536,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @return
 	 */
-	public static Map<String, Set<String>> getEdgeHash(QueryStruct2 qs) {
+	public static Map<String, Set<String>> getEdgeHash(SelectQueryStruct qs) {
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
 		
 		// go through all the selectors
@@ -560,7 +560,7 @@ public class ImportUtility {
 			String table = cSelector.getTable();
 			String column = cSelector.getColumn();
 			
-			if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				if(!edgeHash.containsKey(table)) {
 					// we already know the alias, easy to do
 					edgeHash.put(aliasMapping.get(table), new HashSet<String>());
@@ -641,7 +641,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, QueryStruct2 qs) {
+	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, SelectQueryStruct qs) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineName();
 		
@@ -660,7 +660,7 @@ public class ImportUtility {
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
 				
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					metaData.addVertex(table);
 					metaData.setQueryStructNameToVertex(table, engineName, qsName);
 					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
@@ -756,7 +756,7 @@ public class ImportUtility {
 
 	// get the data types based on the QueryStruct
 
-	public static Map<String, SemossDataType> getTypesFromQs(QueryStruct2 qs) {
+	public static Map<String, SemossDataType> getTypesFromQs(SelectQueryStruct qs) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE) {
 			return getMetaDataFromEngineQs(qs);
@@ -787,7 +787,7 @@ public class ImportUtility {
 		return metaData;
 	}
 
-	private static Map<String, SemossDataType> getMetaDataFromEngineQs(QueryStruct2 qs) {
+	private static Map<String, SemossDataType> getMetaDataFromEngineQs(SelectQueryStruct qs) {
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineName();
@@ -803,7 +803,7 @@ public class ImportUtility {
 				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					dataType = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
 				} else {
 					dataType = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
@@ -815,7 +815,7 @@ public class ImportUtility {
 		return metaData;
 	}
 
-	private static Map<String, SemossDataType> getMetaDataFromFrameQs(QueryStruct2 qs) {
+	private static Map<String, SemossDataType> getMetaDataFromFrameQs(SelectQueryStruct qs) {
 		Map <String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		OwlTemporalEngineMeta owlMeta = qs.getFrame().getMetaData();
 		List<IQuerySelector> selectors = qs.getSelectors();
@@ -856,7 +856,7 @@ public class ImportUtility {
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
 				// this only happens when we have a column selector
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					dataType = dataTypes.get(table);
 				} else {
 					dataType = dataTypes.get(column);
@@ -884,7 +884,7 @@ public class ImportUtility {
 				String table = cSelect.getTable();
 				String column = cSelect.getColumn();
 				// this only happens when we have a column selector
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					dataType = dataTypes.get(table);
 				} else {
 					dataType = dataTypes.get(column);
@@ -907,21 +907,21 @@ public class ImportUtility {
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	public static void parseQueryStructToFlatTableWithJoin(ITableDataFrame dataframe, QueryStruct2 qs, String tableName, Iterator<IHeadersDataRow> it, List<Join> joins) {
-		QueryStruct2.QUERY_STRUCT_TYPE qsType = qs.getQsType();
-		if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+	public static void parseQueryStructToFlatTableWithJoin(ITableDataFrame dataframe, SelectQueryStruct qs, String tableName, Iterator<IHeadersDataRow> it, List<Join> joins) {
+		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, qs.getEngineName());
-		} else if(qsType == QueryStruct2.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, "RAW_FRAME_QUERY");
 		} else {
 			parseQsToFlatTableWithJoin(dataframe, qs, tableName, it, joins);
 		}
 	}
 
-	private static void parseQsToFlatTableWithJoin(ITableDataFrame dataframe, QueryStruct2 qs, String tableName, Iterator<IHeadersDataRow> it, List<Join> joins) {
+	private static void parseQsToFlatTableWithJoin(ITableDataFrame dataframe, SelectQueryStruct qs, String tableName, Iterator<IHeadersDataRow> it, List<Join> joins) {
 		// this will get a new QS with the base details copied for the original qs
 		// but does not have any selector/relationship/filter options
-		QueryStruct2 updatedQsForJoins = qs.getNewBaseQueryStruct();
+		SelectQueryStruct updatedQsForJoins = qs.getNewBaseQueryStruct();
 		
 		List<IQuerySelector> newSelectors = qs.getSelectors();
 		int numNewSelectors = newSelectors.size();

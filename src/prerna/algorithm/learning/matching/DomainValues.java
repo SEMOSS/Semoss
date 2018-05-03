@@ -22,7 +22,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -413,7 +413,7 @@ public class DomainValues {
 	 */
 	public HashMap<String, String> exportRelationInstanceValues(IEngine engine, String outputFolder, int instancesThreshold) {
 		String engineName = engine.getEngineName();
-		QueryStruct2 engineQS = engine.getDatabaseQueryStruct();
+		SelectQueryStruct engineQS = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = engineQS.getRelations();
 		HashMap<String, String> totalCount = new HashMap<String, String>();
 		List<Object[]> allSourceInstances = null;

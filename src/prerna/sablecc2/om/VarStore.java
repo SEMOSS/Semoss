@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.storage.MapHeaderDataRowIterator;
@@ -85,7 +85,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> getIterator(QueryStruct2 qs) {
+	public Iterator<IHeadersDataRow> getIterator(SelectQueryStruct qs) {
 		//TODO: figure out how to use a qs with this
 		return new MapHeaderDataRowIterator(this);
 	}

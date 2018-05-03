@@ -8,7 +8,7 @@ import java.util.Map;
 import prerna.algorithm.api.SemossDataType;
 import prerna.algorithm.learning.matching.DomainValues;
 import prerna.engine.api.IEngine;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,7 +30,7 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 		}
 		IEngine engine = Utility.getEngine(engineName);
 		List<String> concepts = DomainValues.getConceptList(engine);
-		QueryStruct2 qs = engine.getDatabaseQueryStruct();
+		SelectQueryStruct qs = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = qs.getRelations();
 		// get relations
 		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();

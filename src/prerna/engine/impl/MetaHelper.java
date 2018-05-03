@@ -22,7 +22,7 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.SEMOSSParam;
 import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
@@ -470,7 +470,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public QueryStruct2 getDatabaseQueryStruct() {
+	public SelectQueryStruct getDatabaseQueryStruct() {
 		// TODO Auto-generated method stub
 		return null;
 	}

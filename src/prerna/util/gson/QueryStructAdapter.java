@@ -12,26 +12,26 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 
-public class QueryStructAdapter  extends TypeAdapter<QueryStruct2> {
+public class QueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 
 	private static final Gson SIMPLE_GSON = new Gson();
 
 	@Override
-	public QueryStruct2 read(JsonReader in) throws IOException {
+	public SelectQueryStruct read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
 			in.nextNull();
 			return null;
 		}
 
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 
 		in.beginObject();
 		while(in.hasNext()) {
@@ -133,7 +133,7 @@ public class QueryStructAdapter  extends TypeAdapter<QueryStruct2> {
 	}
 
 	@Override
-	public void write(JsonWriter out, QueryStruct2 value) throws IOException {
+	public void write(JsonWriter out, SelectQueryStruct value) throws IOException {
 		if (value == null) {
 			out.nullValue();
 			return;

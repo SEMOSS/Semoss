@@ -2,13 +2,13 @@ package prerna.query.interpreters;
 
 import org.apache.log4j.Logger;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public interface IQueryInterpreter2 {
 	
 	String SEARCH_COMPARATOR = "?like";
 
-	void setQueryStruct(QueryStruct2 qs);
+	void setQueryStruct(SelectQueryStruct qs);
 
 	String composeQuery();
 

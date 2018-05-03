@@ -23,7 +23,7 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 import prerna.auth.User;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -46,7 +46,7 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String fileId = this.keyValue.get(this.keysToGet[0]);

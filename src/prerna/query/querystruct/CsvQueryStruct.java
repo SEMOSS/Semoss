@@ -3,7 +3,7 @@ package prerna.query.querystruct;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CsvQueryStruct extends QueryStruct2 {
+public class CsvQueryStruct extends SelectQueryStruct {
 
 	public enum ORIG_SOURCE {FILE_UPLOAD, API_CALL}
 	
@@ -67,7 +67,7 @@ public class CsvQueryStruct extends QueryStruct2 {
 	}
 	
 	@Override
-	public QueryStruct2 getNewBaseQueryStruct() {
+	public SelectQueryStruct getNewBaseQueryStruct() {
 		CsvQueryStruct newQs = new CsvQueryStruct();
 		newQs.setQsType(this.getQsType());
 		newQs.setCsvFilePath(this.getCsvFilePath());

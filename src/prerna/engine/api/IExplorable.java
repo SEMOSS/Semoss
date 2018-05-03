@@ -34,7 +34,7 @@ import java.util.Vector;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.query.builder.IQueryInterpreter;
 
 public interface IExplorable {
@@ -173,7 +173,7 @@ public interface IExplorable {
 	List<String> getParentOfProperty2(String property);
 	
 	// 
-	QueryStruct2 getDatabaseQueryStruct();
+	SelectQueryStruct getDatabaseQueryStruct();
 	
 	
 	// REFAC: Change this to engine - this should be local master

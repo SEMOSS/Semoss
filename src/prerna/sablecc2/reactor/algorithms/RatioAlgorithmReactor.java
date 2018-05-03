@@ -21,7 +21,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -322,7 +322,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 			csvHeaders.put(this.ratioFrameHeaders[i], dataTypes[i]);
 		}
 		csvQS.setColumnTypes(csvHeaders);
-		csvQS.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE);
+		csvQS.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE);
 		RImporter importer = new RImporter(newFrame, csvQS);
 		importer.insertData();
 
@@ -346,7 +346,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 	}
 
 	private List<Object> getInstanceValues( ITableDataFrame frame, String instanceColumn) {
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector colSelector = new QueryColumnSelector();
 		if (instanceColumn.contains("__")) {
 			String[] split = instanceColumn.split("__");
@@ -372,7 +372,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 
 	private List<String> getAttributeValuesForInstance(ITableDataFrame frame, String instanceColumn, Object sourceInstance, String attributeCol) {
 		List<String> uniqueAttributes = new ArrayList<String>();
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector colSelector = new QueryColumnSelector();
 		if (attributeCol.contains("__")) {
 			String[] split = attributeCol.split("__");

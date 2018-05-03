@@ -13,7 +13,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -118,8 +118,8 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		// column name
 		retRow[1] = primKey;
 		// num of blanks
-		QueryStruct2 qs2 = new QueryStruct2();
-		QueryStruct2 qs_nulls = new QueryStruct2();
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+		SelectQueryStruct qs_nulls = new SelectQueryStruct();
 		{
 			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
 			uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
@@ -166,8 +166,8 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		// # of blanks
 		retRow[2] = 0 + "";
 		// create qs
-		QueryStruct2 qs2 = new QueryStruct2();
-		QueryStruct2 qs_nulls = new QueryStruct2();
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+		SelectQueryStruct qs_nulls = new SelectQueryStruct();
 		{
 			// inner selector
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
@@ -208,7 +208,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			qs_nulls.addExplicitFilter(nulls);
 
 		}
-		qs2.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
+		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		while (it.hasNext()) {
 			IHeadersDataRow iRow = it.next();
@@ -232,7 +232,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 	}
 
 	private Object getValue(IEngine engine, String concept, String prop, String functionName, boolean distinct) {
-		QueryStruct2 qs2 = new QueryStruct2();
+		SelectQueryStruct qs2 = new SelectQueryStruct();
 		{
 			QueryFunctionSelector funSelector = new QueryFunctionSelector();
 			funSelector.setFunction(functionName);
@@ -243,7 +243,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			funSelector.setDistinct(distinct);
 			qs2.addSelector(funSelector);
 		}
-		qs2.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
+		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		Object value = it.next().getValues()[0];
 		return value;

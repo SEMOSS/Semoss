@@ -3,7 +3,7 @@ package prerna.query.querystruct.selectors;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public class QueryColumnSelector extends AbstractQuerySelector {
 
@@ -25,7 +25,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 			this.column = split[1];
 		} else {
 			this.table = qsValue;
-			this.column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+			this.column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
 		}
 	}
 
@@ -53,7 +53,7 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getQueryStructName() {
-		if(this.column == null || QueryStruct2.PRIM_KEY_PLACEHOLDER.equals(this.column) || this.column.trim().isEmpty()) {
+		if(this.column == null || SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(this.column) || this.column.trim().isEmpty()) {
 			return this.table;
 		} else {
 			return this.table + "__" + this.column;

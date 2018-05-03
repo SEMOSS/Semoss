@@ -10,7 +10,7 @@ import org.apache.solr.common.SolrDocumentList;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 
 public class SolrIterator implements Iterator<IHeadersDataRow> {
@@ -19,11 +19,11 @@ public class SolrIterator implements Iterator<IHeadersDataRow> {
 	private long totalCount = 0;
 	private int returnSize = 0;
 	private int curIndex = 0;
-	private QueryStruct2 qs2;
+	private SelectQueryStruct qs2;
 	protected String[] headers = null;
 	private boolean returnCount;
 
-	public SolrIterator(SolrDocumentList list, QueryStruct2 qs2) {
+	public SolrIterator(SolrDocumentList list, SelectQueryStruct qs2) {
 		this.list = list;
 		this.qs2 = qs2;
 		this.returnCount = false;

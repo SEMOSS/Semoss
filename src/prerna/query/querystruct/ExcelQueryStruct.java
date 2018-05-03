@@ -3,7 +3,7 @@ package prerna.query.querystruct;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ExcelQueryStruct extends QueryStruct2 {
+public class ExcelQueryStruct extends SelectQueryStruct {
 
 	private String excelFilePath;
 	private Map<String, String> columnTypes = new HashMap<String, String>();
@@ -47,7 +47,7 @@ public class ExcelQueryStruct extends QueryStruct2 {
 	}
 	
 	@Override
-	public QueryStruct2 getNewBaseQueryStruct() {
+	public SelectQueryStruct getNewBaseQueryStruct() {
 		ExcelQueryStruct newQs = new ExcelQueryStruct();
 		newQs.setQsType(this.getQsType());
 		newQs.setExcelFilePath(this.getExcelFilePath());
