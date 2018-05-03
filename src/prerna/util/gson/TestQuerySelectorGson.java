@@ -1,7 +1,7 @@
 package prerna.util.gson;
 
 import prerna.query.interpreters.SqlInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,10 +11,10 @@ public class TestQuerySelectorGson {
 
 	public static void main(String[] args) {
 		
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("Title"));
 		
-		QueryStruct2 subQs = new QueryStruct2();
+		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("Genre__Title_FK"));
 		
 		NounMetadata sublhs = new NounMetadata(new QueryColumnSelector("Title__MovieBudget"), PixelDataType.COLUMN);

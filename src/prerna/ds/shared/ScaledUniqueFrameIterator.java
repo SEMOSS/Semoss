@@ -9,7 +9,7 @@ import java.util.NoSuchElementException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -21,7 +21,7 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 
 	private ITableDataFrame frame;
 	private String uniqueColumnName;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Iterator<Object> valueIterator;
 	
 	public ScaledUniqueFrameIterator(
@@ -38,7 +38,7 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		this.valueIterator = Arrays.asList(column).iterator();
 		
 		// create the QS being used for querying
-		this.qs = new QueryStruct2();
+		this.qs = new SelectQueryStruct();
 		
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
@@ -51,7 +51,7 @@ public class ScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 				sColumn.setColumn(sSplit[1]);
 			} else {
 				sColumn.setTable(unqiueSelectorName);
-				sColumn.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				sColumn.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			
 			if(maxArr[i] != null && minArr[i] != null) {

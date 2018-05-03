@@ -20,7 +20,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -95,7 +95,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 				if(key.equals(PixelDataType.QUERY_STRUCT.toString())) {
 					List<Object> inputs = paramMap.get(key);
 					// i am 99.999999% positve this will always be size 1
-					QueryStruct2 inputQs = (QueryStruct2) inputs.get(0);
+					SelectQueryStruct inputQs = (SelectQueryStruct) inputs.get(0);
 					// grab the unique set of selectors
 					Set<String> uniqueCols = new HashSet<String>();
 					List<IQuerySelector> selectors = inputQs.getSelectors();

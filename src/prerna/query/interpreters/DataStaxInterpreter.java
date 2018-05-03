@@ -18,7 +18,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -119,7 +119,7 @@ public class DataStaxInterpreter extends AbstractQueryInterpreter {
 
 				// are we trying to grab a vertex
 				// or are we grabbing a property on the vertex
-				if(column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					// add the vertex
 					this.selectors.add(table);
 				} else {

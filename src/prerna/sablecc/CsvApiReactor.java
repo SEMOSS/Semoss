@@ -9,7 +9,7 @@ import prerna.ds.util.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -47,7 +47,7 @@ public class CsvApiReactor extends AbstractApiReactor {
 			this.newHeaders = (Map<String, String>) this.mapOptions.get(NEW_HEADERS_KEY);
 		}
 		
-		this.qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE);
+		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE);
 		CsvQueryStruct csvQs = new CsvQueryStruct();
 		//copy qs values to csvQS
 		csvQs.merge(this.qs);

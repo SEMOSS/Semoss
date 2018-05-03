@@ -48,7 +48,7 @@ import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.GremlinMapInterp;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SolrInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 
 public class WrapperManager {
@@ -75,7 +75,7 @@ public class WrapperManager {
 		return manager;
 	}
 
-	public IRawSelectWrapper getRawWrapper(IEngine engine, QueryStruct2 qs) {
+	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs) {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
 		switch(engine.getEngineType()) {

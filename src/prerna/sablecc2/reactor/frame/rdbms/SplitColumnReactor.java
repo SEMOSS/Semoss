@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -43,7 +43,7 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 
 		for(int i = 1; i < cols.size(); i++) {
 			String column = cols.get(i);
-			QueryStruct2 qs = new QueryStruct2();
+			SelectQueryStruct qs = new SelectQueryStruct();
 			QueryColumnSelector selector = new QueryColumnSelector(column);
 			qs.addSelector(selector);
 

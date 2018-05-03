@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
@@ -18,7 +18,7 @@ public class JdbcEngineConnectorReactor extends AbstractQueryStructReactor {
 	}
 	
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		organizeKeys();
 		String connectionUrl = this.keyValue.get(this.keysToGet[0]);
 		String driver = this.keyValue.get(this.keysToGet[1]);
@@ -48,7 +48,7 @@ public class JdbcEngineConnectorReactor extends AbstractQueryStructReactor {
 		fakeEngine.setBasic(true);
 		
 		this.qs.setEngine(fakeEngine);
-		this.qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.ENGINE);
+		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		return this.qs;
 	}
 	

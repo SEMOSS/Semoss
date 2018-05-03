@@ -7,7 +7,7 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.LambdaQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.reactor.imports.IImporter;
@@ -39,7 +39,7 @@ public class AlgorithmMergeHelper {
 			cleanHeaders[0] = split[1];
 		} else {
 			instanceSelector.setTable(existingUniqueColName);
-			instanceSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			instanceSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			dataTypes.put(existingUniqueColName, dataFrame.getMetaData().getHeaderTypeAsString(existingUniqueColName, null));
 			cleanHeaders[0] = existingUniqueColName;
 		}
@@ -53,7 +53,7 @@ public class AlgorithmMergeHelper {
 			cleanHeaders[1] = split[1];
 		} else {
 			instanceClusterSelector.setTable(algorithmColName);
-			instanceClusterSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+			instanceClusterSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			dataTypes.put(algorithmColName, algorithmColType);
 			cleanHeaders[1] = algorithmColName;
 		}

@@ -16,7 +16,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -244,7 +244,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 * @param qs
 	 * @return rFrame name
 	 */
-	public String generateRDataTableVariable(ITableDataFrame frame, QueryStruct2 qs) {
+	public String generateRDataTableVariable(ITableDataFrame frame, SelectQueryStruct qs) {
 		String dfName = "f_" + Utility.getRandomString(10);
 
 		// use an iterator to get the instance values from the qs

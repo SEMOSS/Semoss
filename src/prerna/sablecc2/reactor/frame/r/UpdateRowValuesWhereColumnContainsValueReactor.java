@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -68,7 +68,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		///////////////////////////////////////////////////////////////////
 		
 		// the third noun will be a filter; we can get the qs from this
-		QueryStruct2 qs = getQueryStruct();
+		SelectQueryStruct qs = getQueryStruct();
 		// get all of the filters from this querystruct
 		GenRowFilters grf = qs.getExplicitFilters();
 		Set<String> filteredColumns = grf.getAllFilteredColumns();
@@ -175,11 +175,11 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		return value;
 	}
 	
-	private QueryStruct2 getQueryStruct() {
+	private SelectQueryStruct getQueryStruct() {
 		NounMetadata filterNoun = this.getCurRow().getNoun(2);
 		// filter is query struct pksl type
 		// the qs is the value of the filterNoun
-		QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
+		SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
 		if (qs == null) {
 			throw new IllegalArgumentException("Need to define filter condition");
 		}

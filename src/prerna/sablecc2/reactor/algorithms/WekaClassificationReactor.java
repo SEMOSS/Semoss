@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -66,7 +66,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 		String[] retHeaders = new String[numCols+1];
 		boolean[] isNumeric = new boolean[numCols+1];
 		
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		// add the predictor column
 		QueryColumnSelector predictorHead = new QueryColumnSelector();
 		if(predictionCol.contains("__")) {
@@ -186,7 +186,7 @@ public class WekaClassificationReactor extends AbstractReactor {
 	}
 	
 	private int getNumRows(ITableDataFrame frame, QueryColumnSelector predictorCol) {
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector math = new QueryFunctionSelector();
 		math.addInnerSelector(predictorCol);
 		math.setFunction(QueryFunctionHelper.COUNT);

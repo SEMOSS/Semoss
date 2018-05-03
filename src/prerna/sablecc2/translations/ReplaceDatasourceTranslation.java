@@ -18,7 +18,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.query.querystruct.transform.QsToPixelConverter;
 import prerna.sablecc2.PixelPreProcessor;
@@ -51,7 +51,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 	private Map<String, String> headerMods = null;
 	
 	// contain the query struct
-	private QueryStruct2 importQs;
+	private SelectQueryStruct importQs;
 	private String importStr;
 	
 	// this is for the special case
@@ -173,13 +173,13 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 			NounStore nouns = prevReactor.getNounStore();
 			GenRowStruct grs = nouns.getNoun(PixelDataType.QUERY_STRUCT.toString());
 			if(grs != null && !grs.isEmpty()) {
-				this.importQs = (QueryStruct2) grs.get(0);
+				this.importQs = (SelectQueryStruct) grs.get(0);
 			} else {
 				grs = prevReactor.getCurRow();
 				if(grs != null && !grs.isEmpty()) {
 					List<Object> qsList = grs.getValuesOfType(PixelDataType.QUERY_STRUCT);
 					if(qsList != null && !qsList.isEmpty()) {
-						this.importQs = (QueryStruct2) qsList.get(0);
+						this.importQs = (SelectQueryStruct) qsList.get(0);
 					}
 				}
 			}

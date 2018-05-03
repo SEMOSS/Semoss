@@ -9,7 +9,7 @@ import org.apache.solr.client.solrj.SolrQuery.ORDER;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -115,7 +115,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 			String key = columnSelector.getAlias();
 			String orderByCol = null;
 			String sort = columnSelector.getSortDir().toString();
-			if (sort.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+			if (sort.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				orderByCol = key;
 			} else {
 				orderByCol = sort;
@@ -153,7 +153,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 			// List<String> fields = selectorData.get(uniqueKey);
 			List<String> fields = new Vector<>();
 			for (String field : fields) {
-				if (field.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+				if (field.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					continue;
 				}
 				selectorValues.add(field);
@@ -169,7 +169,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 		engine.setEngineName("insightCore");
 		// solr.openDB(null);
 		System.out.println("Active " + engine.serverActive());
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector("id", null);
 		qs.addSelector("id", "core_engine");
 		qs.addSelector("id", "layout");

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.ds.h2.H2Frame;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -25,7 +25,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 		NounMetadata filterNoun = inputsGRS.getNoun(0);
 		PixelDataType filterNounType = filterNoun.getNounType();
 		if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
-			QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
+			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
 			GenRowFilters grf = qs.getExplicitFilters();
 			Set<String> filteredColumns = grf.getAllFilteredColumns();
 			for (String filColumn : filteredColumns) {

@@ -9,7 +9,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,7 +33,7 @@ public class ImportDataReactor extends AbstractReactor {
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pixel planner
-		QueryStruct2 qs = getQueryStruct();
+		SelectQueryStruct qs = getQueryStruct();
 		ITableDataFrame frame = getFrame();
 		// setting a default frame of native
 		if(frame == null) {
@@ -53,9 +53,9 @@ public class ImportDataReactor extends AbstractReactor {
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
 		
-		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
+		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs);
-		} else if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			storeExcelFileMeta((ExcelQueryStruct) qs);
 		}
 		
@@ -64,16 +64,16 @@ public class ImportDataReactor extends AbstractReactor {
 		return retNoun;
 	}
 
-	private QueryStruct2 getQueryStruct() {
+	private SelectQueryStruct getQueryStruct() {
 		GenRowStruct allNouns = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
-		QueryStruct2 queryStruct = null;
+		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return (QueryStruct2)object.getValue();
+			return (SelectQueryStruct)object.getValue();
 		} else {
 			NounMetadata result = this.planner.getVariableValue("$RESULT");
 			if(result.getNounType().equals("QUERYSTRUCT")) {
-				queryStruct = (QueryStruct2)result.getValue();
+				queryStruct = (SelectQueryStruct)result.getValue();
 			}
 		}
 		return queryStruct;

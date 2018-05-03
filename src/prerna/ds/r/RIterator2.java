@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Utility;
 
 public class RIterator2 implements Iterator<IHeadersDataRow>{
@@ -17,7 +17,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 	private static final Logger LOGGER = LogManager.getLogger(RIterator2.class.getName());
 	
 	private RFrameBuilder builder;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 
 	private String tempVarName;
 	private int numRows;
@@ -30,7 +30,7 @@ public class RIterator2 implements Iterator<IHeadersDataRow>{
 	private int rowIndex = 1;
 	private int bulkRowSize = 5000;
 
-	public RIterator2(RFrameBuilder builder, String rQuery, QueryStruct2 qs) {
+	public RIterator2(RFrameBuilder builder, String rQuery, SelectQueryStruct qs) {
 		this.builder = builder;
 		this.qs = qs;
 		//Validate user input won't break R and crash JVM

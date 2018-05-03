@@ -21,23 +21,22 @@ public class BeanFiller {
 	// takes the data that is coming in from the json
 	// gets a list of properties
 	// and then fills it
-	static ObjectMapper mapper = new ObjectMapper();
-	static JmesPath<JsonNode> jmespath = new JacksonRuntime();
+	private static ObjectMapper mapper = new ObjectMapper();
+	private static JmesPath<JsonNode> jmespath = new JacksonRuntime();
+	
+	private BeanFiller() {
+		
+	}
 	
 	// get the jsonNode for input
-	public static JsonNode getJmesResult(String json, String jsonPattern)
-	{
+	public static JsonNode getJmesResult(String json, String jsonPattern) {
 		try {
-			
 			Expression<JsonNode> expression = jmespath.compile(jsonPattern);
-
-			//AccessToken tok = mapper.readValue(json, AccessToken.class);
 			JsonNode input = mapper.readTree(json);
 			JsonNode result = expression.search(input);
 			
 			return result;
-		}catch(Exception ex)
-		{
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
 		return null;
@@ -58,14 +57,10 @@ public class BeanFiller {
 			JsonNode input = mapper.readTree(json);
 			JsonNode result = expression.search(input);
 			
-			System.out.println("Is array  " + (result instanceof ArrayNode));
-			if((result instanceof ArrayNode) && result.get(0) instanceof ObjectNode) // this is a multiple value
-			{
+			if((result instanceof ArrayNode) && result.get(0) instanceof ObjectNode) {
+				// this is a multiple value
 				List <Object> retList = new Vector();
-
-				
-				for(int resIndex = 0;resIndex < result.size();resIndex++)
-				{
+				for(int resIndex = 0; resIndex < result.size(); resIndex++) {
 					// I should possibly create a new instance everytime as well
 					Object newBean = bean.getClass().newInstance();
 					Object newObject = null;
@@ -75,74 +70,71 @@ public class BeanFiller {
 					retList.add(newObject);
 				}
 				retObject = retList;
-			}
-			else
+			} else {
 				retObject = fillSingleObject(result, beanProps, bean);
-		}catch(Exception ex)
-		{
+			}
+		} catch(Exception ex) {
 			ex.printStackTrace();
 		}
 		return retObject;
 	}
 	
-	public static boolean isJsonArray(JsonNode node)
-	{
+	/**
+	 * 
+	 * @param node
+	 * @return
+	 */
+	public static boolean isJsonArray(JsonNode node) {
 		boolean array = false;
 		// get the first element
 		// if it is an array then proceed with that.. 
-		if(node.size() > 0)
-		{
+		if(node.size() > 0) {
 			JsonNode firstNode = node.get(0);
-			if(firstNode instanceof ArrayNode)
+			if(firstNode instanceof ArrayNode) {
 				array = true;
+			}
 		}
 		return array;
 	}
 	
-	
-	public static Object fillSingleObject(JsonNode result, String [] beanProps, Object bean)
-	{
-		try
-		{
-			for(int inputIndex = 0;result != null && inputIndex < result.size();inputIndex++)
-			{
+	/**
+	 * 
+	 * @param result
+	 * @param beanProps
+	 * @param bean
+	 * @return
+	 */
+	public static Object fillSingleObject(JsonNode result, String [] beanProps, Object bean) {
+		try {
+			for(int inputIndex = 0;result != null && inputIndex < result.size();inputIndex++) {
 				String thisInput = result.get(inputIndex).asText();
-				if(beanProps.length > inputIndex)
-				{
+				if(beanProps.length > inputIndex) {
 					String beanProp = beanProps[inputIndex];
-					if(beanProp.startsWith("add_"))
-					{
+					if(beanProp.startsWith("add_")) {
 						beanProp = beanProp.replaceAll("add_", "");
 						List thisList = null;
 						Object listObj = BeanUtils.getProperty(bean, beanProp);
-						if(listObj != null)
+						if(listObj != null) {
 							thisList = (List)listObj;
-						else
+						} else {
 							thisList = new ArrayList();
+						}
 						thisList.add(thisInput);
-						
 						BeanUtils.setProperty(bean, beanProp, listObj);
-					}
-					else
-					{
+					} else {
 						BeanUtils.setProperty(bean, beanProp, thisInput);
 					}
 				}	
 				// add to the other data
-				else
-				{
+				else {
 					BeanUtils.setProperty(bean, "extra", thisInput);
 				}
-				
 			}
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvocationTargetException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
 		
@@ -157,8 +149,7 @@ public class BeanFiller {
 	 * @param bean
 	 * @return
 	 */
-	public static Object fillSingleObjectFromMap(JsonNode result, String [] beanProps, Object bean)
-	{
+	public static Object fillSingleObjectFromMap(JsonNode result, String [] beanProps, Object bean) {
 		try {
 			for(int inputIndex = 0;result != null && inputIndex < beanProps.length;inputIndex++) {
 				// grab the bean
@@ -216,8 +207,8 @@ public class BeanFiller {
 		return bean;
 	}
 
-	public static String getJson(Object object) throws Exception
-	{
+	
+	public static String getJson(Object object) throws Exception {
 		return mapper.writeValueAsString(object);
 	}
 	

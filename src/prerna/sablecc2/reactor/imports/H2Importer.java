@@ -14,7 +14,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.Join;
 import prerna.util.ArrayUtilityMethods;
@@ -23,16 +23,16 @@ import prerna.util.Utility;
 public class H2Importer implements IImporter {
 
 	private H2Frame dataframe;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public H2Importer(H2Frame dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+	public H2Importer(H2Frame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		this.it = it;
 	}
 	
-	public H2Importer(H2Frame dataframe, QueryStruct2 qs) {
+	public H2Importer(H2Frame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
