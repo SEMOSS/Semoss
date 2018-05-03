@@ -7,8 +7,9 @@ public enum PixelDataType {
 	CONST_STRING ("CONST_STRING"), 					// constant string
 	CONST_DATE ("CONST_DATE"), 						// constant date
 	NULL_VALUE ("NULL_VALUE"), 						// null input
-
-	COLUMN ("COLUMN"), 								// column name in table
+	COLUMN ("COLUMN"), 								// column name in database or frame
+	REMOVE_VARIABLE ("REMOVE_VARIABLE"),			// variable to be removed
+	
 	SQLE ("SQLE"), 									// sql expression
 	E ("E"), 										// some other expression
 	FILTER ("FILTER"), 								// filter object

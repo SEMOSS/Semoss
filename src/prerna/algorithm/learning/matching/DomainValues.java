@@ -423,14 +423,14 @@ public class DomainValues {
 				Vector<String> concepts = (Vector) joins.get(join);
 				for (String endConcept : concepts) {
 					HashSet<String> uniqueConceptValues = new HashSet<String>();
-					Insight insightSource = InsightUtility.createInsight(engineName);
+					Insight insightSource = new Insight();
 					StringBuilder pkqlCommand = new StringBuilder();
 					pkqlCommand.append("data.frame('grid'); ");
 					pkqlCommand.append("data.import ( api: " + engineName + " ");
 					pkqlCommand.append(". query ( [ c: "+ fromConcept + " ,c:" + endConcept + "], " );
 					//pkqlCommand.append(". query ( [ c:" + endConcept + "], ");
 					pkqlCommand.append("([ c: " + fromConcept + " , " + join + " , c:" + endConcept + " ])));");
-					InsightUtility.runPkql(insightSource, pkqlCommand.toString());
+//					InsightUtility.runPkql(insightSource, pkqlCommand.toString());
 					ITableDataFrame data = (ITableDataFrame) insightSource.getDataMaker();
 					allSourceInstances = data.getData();
 					String[] headers = data.getColumnHeaders();

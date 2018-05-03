@@ -118,6 +118,10 @@ public class PixelRunner {
 		return this.insight;
 	}
 	
+	public void setInsight(Insight insight) {
+		this.insight = insight;
+	}
+	
 	////////////////////////////////////////////////////////
 	
 	/*
