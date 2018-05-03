@@ -112,8 +112,8 @@ public class RFrameBuilder {
 			// get the fread() notation for that csv file
 			// and read it back in
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
-			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap);
-			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath());
+			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
+			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\t");
 			evalR(loadFileRScript);
 			newFile.delete();
 		}
