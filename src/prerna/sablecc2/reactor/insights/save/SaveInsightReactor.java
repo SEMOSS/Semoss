@@ -75,7 +75,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		IEngine engine = Utility.getEngine(engineName);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find engine = " + engineName);
+			throw new IllegalArgumentException("Cannot find app = " + engineName);
 		}
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
