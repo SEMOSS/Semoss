@@ -20,6 +20,8 @@ import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.impl.app.reactor.GenerateEmptyAppReactor;
 import prerna.forms.FormsReactor;
+import prerna.query.querystruct.update.reactors.ExecUpdateReactor;
+import prerna.query.querystruct.update.reactors.QueryUpdateReactor;
 import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.GenericRReactor;
@@ -452,6 +454,10 @@ public class ReactorFactory {
 		reactorHash.put("ImplicitFilterOverride", OverrideImplicitFiltersReactor.class);
 		reactorHash.put("QueryAll", QueryAllReactor.class);
 
+		reactorHash.put("Update", QueryUpdateReactor.class);
+		reactorHash.put("ExecQuery", ExecUpdateReactor.class);
+
+		
 		// If is in its own category
 		reactorHash.put("if", IfReactor.class);
 
