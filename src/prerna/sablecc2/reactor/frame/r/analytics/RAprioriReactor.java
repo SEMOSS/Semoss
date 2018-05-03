@@ -16,6 +16,21 @@ import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 
 public class RAprioriReactor extends AbstractRFrameReactor {
+	/**
+	 * RunAssociatedLearning(attributes = ["Class_1", "Sex", "Survived","Age"], conf = [0.8],support = [0.005], rhsAttribute=["Survived"], panel=[999]);
+	 * RunAssociatedLearning(attributes = ["itemDescription"], idAttributes = ["Member_number","Date_1"], panel=[99]);
+	 * RunAssociatedLearning(attributes = ["itemDescription"], idAttributes = ["Member_number","Date_1"], conf = [0.1],support = [0.001], panel=[99]);
+	 * Input keys: 
+	 * 		1. attributes (required) 
+	 * 		2. idAttributes (required)
+	 * 		3. conf (optional) - must be within (0,1] range (default: 0.8)
+	 * 		4. support (optional) - must be within (0,1] range (default: 0.1)
+	 * 		5. maxlen (optional) - an integer value for the maximal number of items per item set (default: 10 items)
+	 * 		6. sortby (optional) - must be either "confidence" or "lift" (default: lift) 
+	 * 		7. lhsAttributes (optional) - list of attributes (1 or many) being requested to appear on the left hand side of the rules 
+	 * 		8. rhsAttribute (optional) - 1 attribute being requested to appear on the right hand side of the rules 
+	 * 
+	 */
 	
 	private static final String CLASS_NAME = RAprioriReactor.class.getName();
 
@@ -35,10 +50,6 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 	private String sortBy;
 	private String rhsVar;
 	private List<String> lhsVarList;
-
-	/**
-	 * RunAssociatedLearning(attributes = ["Class_1", "Sex", "Survived","Age"], conf = [0.8],support = [0.005], rhsAttribute=["Survived"], panel=[999]);
-	 */
 
 	public RAprioriReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.ATTRIBUTES.getKey(), IDATTRIBUTES, CONFIDENCE, 
@@ -60,13 +71,8 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		this.conf = getInputDouble(CONFIDENCE);
 		this.supp = getInputDouble(SUPPORT);
 		this.maxlen = getInputDouble(MAXLEN);
-
 		this.attributesList = getInputList("0");
 		this.idAttributesList = getInputList(IDATTRIBUTES);
-		if (idAttributesList != null && idAttributesList.size() > 0 && attributesList.size() != 1) {
-			throw new IllegalArgumentException(
-					"Expecting only 1 column as attribute, which will serve as transaction items");
-		}
 		this.lhsVarList = getInputList(LHSATTRIBUTES);
 		if (lhsVarList != null & lhsVarList.size() > 0) {
 			for (int i = 0; i < lhsVarList.size(); i++) {
@@ -74,13 +80,14 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 					throw new IllegalArgumentException("LHS attribute(s) contain invalid column name(s).");
 			}
 		}
-
 		this.sortBy = getInputString(SORTBY);
 		this.rhsVar = getInputString(RHSATTRIBUTE);
-		if (!colNames.contains(this.rhsVar)) {
-			throw new IllegalArgumentException("RHS attribut is an invalid column name.");
+		if (this.rhsVar != null && this.rhsVar != ""){
+			if (!colNames.contains(this.rhsVar)) {
+				throw new IllegalArgumentException("RHS attribut is an invalid column name.");
+			}
 		}
-		
+
 		String attrList_R = "attrList" + Utility.getRandomString(8);
 		String attrListStr  = "'" + this.attributesList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
 		sb.append(attrList_R + " <- c(" + attrListStr + ");");
@@ -90,7 +97,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 			String idAttributesListStr  = "'" + this.idAttributesList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
 			substr.append(",transactionIdList = c(" + idAttributesListStr + ")");
 		}
-		if (this.conf > 0) substr.append("confidence = " + this.conf);
+		if (this.conf > 0) substr.append(",confidence = " + this.conf);
 		if (this.supp > 0) substr.append(",support = " + this.supp);
 		if (this.maxlen > 0) substr.append(",maxlen = " + this.maxlen);
 		if (this.sortBy != null && this.sortBy != "") substr.append(",sortBy = '" + this.sortBy.toLowerCase() + "'");
@@ -106,7 +113,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		sb.append("source(\"" + scriptFilePath + "\");");
 		
 		// set call to R function
-		String temp_R = "temp" + Utility.getRandomString(8);
+		String temp_R = "temp_R" + Utility.getRandomString(8);
 		if (substr == null) {
 			sb.append(temp_R + " <- runApriori( " + dtName + "," + attrList_R + ");");
 		} else {
@@ -119,25 +126,28 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		sb.append(rulesDt_R + "<-" + temp_R + "$rulesDt;");
 		
 		// execute R
+		System.out.println(sb.toString());
 		this.rJavaTranslator.runR(sb.toString());
 		
 		int ruleslength = this.rJavaTranslator.getInt(rulesLength_R);
-		String[] rulesDtColNames = this.rJavaTranslator.getColumns(rulesDt_R);
-		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(rulesDt_R, rulesDtColNames);
 		
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + attrList_R + "," + temp_R + "," + rulesLength_R + "," + rulesDt_R + ",runApriori);");
+		cleanUpScript.append("rm(" + attrList_R + "," + temp_R + "," + rulesLength_R + ",runApriori);");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
-
+				
 		if (ruleslength == 0) {
 			throw new IllegalArgumentException("Assocation Learning Algorithm ran successfully, but no results were found.");
-		} else {
-			//task data includes task options
-			ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
-			return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		}
+		
+		String[] rulesDtColNames = this.rJavaTranslator.getColumns(rulesDt_R);
+		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(rulesDt_R, rulesDtColNames);
+		this.rJavaTranslator.runR("rm(" + rulesDt_R + ");gc();");
+		
+		//task data includes task options
+		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
+		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 
 	///////////////////////////////////////////////////////////////////////
