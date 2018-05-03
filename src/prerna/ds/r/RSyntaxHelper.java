@@ -185,8 +185,20 @@ public class RSyntaxHelper {
 	 * @return
 	 */
 	public static String getFReadSyntax(String tableName, String absolutePath) {
+		return getFReadSyntax(tableName, absolutePath, ",");
+	}
+	
+	/**
+	 * Generate the syntax to perform a fRead to ingest a file
+	 * @param tableName
+	 * @param absolutePath
+	 * @param delimiter
+	 * @return
+	 */
+	public static String getFReadSyntax(String tableName, String absolutePath, String delimiter) {
 		StringBuilder builder = new StringBuilder();
-		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/")).append("\")");
+		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/"))
+			.append("\", sep=\"").append(delimiter).append("\")");
 		return builder.toString();
 	}
 
