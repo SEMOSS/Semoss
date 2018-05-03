@@ -1,6 +1,6 @@
 package prerna.sablecc2;
 
-import java.util.Map;
+import com.google.gson.Gson;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -9,6 +9,7 @@ import prerna.om.Insight;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.gson.GsonUtility;
 
 public class Compiler
 {
@@ -244,7 +245,8 @@ public class Compiler
 
 		// Apply the translation.
 		Insight in = new Insight();
-		Map<String, Object> reuslts = in.runPixel(expression);
-		System.out.println(reuslts);
+		PixelRunner runner = in.runPixel(expression);
+		Gson gson = GsonUtility.getDefaultGson();
+		System.out.println(gson.toJson(runner.getResults()));
 	}
 }

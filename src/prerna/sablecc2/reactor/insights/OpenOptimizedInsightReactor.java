@@ -15,6 +15,7 @@ import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -83,32 +84,16 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		// set user 
 		newInsight.setUser(this.insight.getUser());
 		// get the insight output
-		Map<String, Object> insightData = null;
+		PixelRunner runner = null;
 		// add additional pixels if necessary
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			// just add it directly to the pixel list
 			// and the reRunPiexelInsight will do its job
 			newInsight.getPixelRecipe().addAll(additionalPixels);
-			// get the insight data
-			// note, we do not cache when there are the additional pixels
-			insightData = newInsight.reRunOptimizedPixelInsight();
-		} else {
-//			insightData = getCachedData(appName, rdbmsId);
-//			if(insightData == null) {
-				insightData = newInsight.reRunOptimizedPixelInsight();
-//				cacheInsightData(appName, rdbmsId, insightData);
-//			}
 		}
+		// rerun the insight
+		runner = newInsight.reRunOptimizedPixelInsight();
 		
-		Map<String, Object> insightMap = new HashMap<String, Object>();
-		// return to the FE the recipe
-		insightMap.put("name", newInsight.getInsightName());
-		// keys below match those in solr
-		insightMap.put("core_engine", newInsight.getEngineName());
-		insightMap.put("core_engine_id", newInsight.getRdbmsId());
-		insightMap.put("insightData", insightData);
-		insightMap.put("params", params);
-
 		// update the solr universal view count
 		try {
 			SolrIndexEngine.getInstance().updateViewedInsight(appName + "_" + rdbmsId);
@@ -121,7 +106,11 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appName, rdbmsId, newInsight.getInsightName());
 		
 		// return the recipe steps
-		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_SAVED_INSIGHT);
+		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		runnerWraper.put("runner", runner);
+		runnerWraper.put("params", params);
+		runnerWraper.put("additionalPixels", additionalPixels);
+		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
 	}
 
 	private List<String> getAdditionalPixels() {
