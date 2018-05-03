@@ -60,8 +60,24 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		final String linkFrame =  matchesFrame + "link";
 		String rand = Utility.getRandomString(8);
 		final String trg = "trg_" + rand;
-		String origNewCol = newCol;
+		String origNewCol = this.keyValue.get(this.keysToGet[4]);
 
+		// SUMMARY: The blend R script uses a link table of all matches selected:
+		//
+		// Build the base link table using the matchesFrame from best matches reactor using a max distance filter (prop value)
+		//
+		// Add any specific matches the user selected in the UI
+		//
+		// Remove any specific non-matches the user selected in UI
+		//
+		// Build the target table - join column and additional columns to bring in (account for duplicate headers)
+		//
+		// Convert data types of frame join col and target join col to chr if they are numbers because the link frame will only match chr values
+		//
+		// Execute blend script
+		//
+		// Convert data types back to num if they were converted
+		
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
 		this.rJavaTranslator.checkPackages(packages);
@@ -81,7 +97,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 
 		// add combined lookup column
 		this.rJavaTranslator.runR(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame
-				+ "$col2, sep=\" == \");");
+				+ "$col2, sep=\"==\");");
 
 		// add all matches
 		if (allMatches != null && !(allMatches.isEmpty())) {
@@ -105,7 +121,6 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 				col2Builder.append("\"" + col2 + "\"");
 				col3Builder.append(dist);
 			}
-			// build link frame with all exact matches
 			// add all matches provided
 			String script = rand + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder
 					+ "), \"dist\"=c(" + col3Builder + ")); " + linkFrame + " <- rbind(" + linkFrame + "," + rand
@@ -113,7 +128,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(script);
 		}
 		// make linkframe unique
-		this.rJavaTranslator.runR("" + linkFrame + " <- unique(" + linkFrame + ");");
+		this.rJavaTranslator.runR(linkFrame + " <- unique(" + linkFrame + ");");
 
 		// remove all non-matches
 		if (nonMatches != null && !(nonMatches.isEmpty())) {
@@ -126,12 +141,8 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 				nonMatchCombo.append("\"" + match + "\"");
 			}
 
-			// add combined lookup column
-			this.rJavaTranslator.runR("" + linkFrame + "$combined <- paste(" + linkFrame + "$col1, " + linkFrame
-					+ "$col2, sep=\" == \");");
-
 			// remove all non matches from LinkFrame
-			this.rJavaTranslator.runR("" + linkFrame + " <- " + linkFrame + "[!" + linkFrame + "$combined %in% c("
+			this.rJavaTranslator.runR(linkFrame + " <- " + linkFrame + "[!" + linkFrame + "$combined %in% c("
 					+ nonMatchCombo + ")]");
 
 			// run a check if linkframe is empty, no data will result
@@ -157,6 +168,8 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			columnArray.addAll(inputCols);
 		}
 
+		// update frame meta for new cols being added
+		// build qs to pull the target data
 		IEngine newColEngine = Utility.getEngine(newDb);
 		Map typesMap = new HashMap<String, SemossDataType>();
 		QueryStruct2 qs = new QueryStruct2();
@@ -167,10 +180,9 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			selector.setTable(newTable);
 			selector.setColumn(col);
 			qs.addSelector(selector);
-			// set alias with clean column name in case the frame already that
-			// header
+			// set alias with clean column name in case it exists in the frame
 			String name = getCleanNewColName(frame.getTableName(), col);
-			// update newCol variable in case it gets updated
+			// update newCol variable if changed
 			if (col.equals(newCol)) {
 				newCol = name;
 			}
@@ -178,7 +190,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			// get semoss type, update meta data and keep track
 			String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, col, newTable);
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
-			typesMap.put(col, semossType);
+			typesMap.put(newCol, semossType);
 			
 			// update meta data in frame
 			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
@@ -198,18 +210,51 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 
-		// if join on column is a number convert link table to numbers
-		if (typesMap.get(origNewCol).equals(SemossDataType.DOUBLE)
-				|| typesMap.get(origNewCol).equals(SemossDataType.INT)) {
-			this.rJavaTranslator.runR(linkFrame + "$col1 <- as.character(" + linkFrame + "$col1);" + linkFrame
-					+ "$col2 <- as.character(" + linkFrame + "$col2);");
-			this.rJavaTranslator.runR(linkFrame + "$col1 <- as.numeric(" + linkFrame + "$col1);" + linkFrame
-					+ "$col2 <- as.numeric(" + linkFrame + "$col2);");
+		// get frame join column data type
+		OwlTemporalEngineMeta frameMeta = frame.getMetaData();
+		String unique = frameMeta.getUniqueNameFromAlias(frameCol);
+		String uniqueMetaName = frameMeta.getPhysicalName(unique);
+		String frameColType = frameMeta.getHeaderTypeAsString(uniqueMetaName);
+
+		boolean linkColWasNum = false;
+		boolean frameColWasNum = false;
+
+		// if either join columns are numbers, update the frames so it joins
+		// properly
+		if (SemossDataType.convertStringToDataType(frameColType).equals(SemossDataType.DOUBLE)
+				|| SemossDataType.convertStringToDataType(frameColType).equals(SemossDataType.INT)) {
+			// convert frame col to chr
+			this.rJavaTranslator.runR(frameName + "$" + frameCol + " <- as.character(" + frameName + "$" + frameCol + ");");
+
+			// make note for later to convert back to num
+			linkColWasNum = true;
+
 		}
+		if (typesMap.get(newCol).equals(SemossDataType.DOUBLE)
+				|| typesMap.get(newCol).equals(SemossDataType.INT)) {
+			// convert trg table col to chr
+			this.rJavaTranslator.runR(trg + "$" + newCol + " <- as.character(" + trg + "$" + newCol + ");");
+
+			// make note for later to convert back to num
+			frameColWasNum = true;
+		}
+
 		// execute blend
 		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\""
 				+ newCol + "\", " + linkFrame + " , \"" + joinType + "\")";
 		this.rJavaTranslator.runR(blendedFrameScript);
+
+		// if columns were num before convert them back so
+		// the data types are the same as they started with
+		if (linkColWasNum) {
+			this.rJavaTranslator.runR(
+					frameName + "$" + frameCol + " <- as.numeric(as.character(" + frameName + "$" + frameCol + "));");
+		}
+
+		if (frameColWasNum) {
+			this.rJavaTranslator
+					.runR(frameName + "$" + newCol + " <- as.numeric(as.character(" + frameName + "$" + newCol + "));");
+		}
 
 		// remove columns from frame that are temporary
 		String removeExtras = frameName + " <- " + frameName
