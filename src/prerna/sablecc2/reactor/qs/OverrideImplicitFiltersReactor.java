@@ -1,11 +1,11 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public class OverrideImplicitFiltersReactor extends AbstractQueryStructReactor {
 	
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		boolean overrideImplicitFilters = true;
 		if(!this.curRow.isEmpty()) {
 			overrideImplicitFilters = (boolean) this.curRow.get(0);

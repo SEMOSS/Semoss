@@ -9,7 +9,7 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,7 +57,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		String rTable1 = rCol1 + " <- as.character(" + frameName + "$" + frameCol + ");";
 
 		// create script to generate col2 from table to be joined
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
 		QueryColumnSelector selector = new QueryColumnSelector();
 		selector.setTable(newTable);

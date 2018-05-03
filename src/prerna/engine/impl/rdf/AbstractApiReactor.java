@@ -15,7 +15,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.UserPermissionsMasterDB;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
@@ -41,7 +41,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 	// these are the params that are parsed from the abstract that is used by the specific instances
 	// of abstract api reactor
 	protected String engineName = null;
-	protected QueryStruct2 qs = null;
+	protected SelectQueryStruct qs = null;
 	protected Map<Object, Object> mapOptions = null;
 	protected boolean useCheater = false;
 	
@@ -220,7 +220,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 			this.useCheater  = true;
 		}
 
-		this.qs = new QueryStruct2();
+		this.qs = new SelectQueryStruct();
 		this.qs.setEngineName(this.engineName);
 		this.put(PKQLEnum.QUERY_STRUCT, this.qs);
 		processQueryStruct(selectors, filters, joins, limit, offset);

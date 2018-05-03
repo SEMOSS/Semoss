@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.InMemStore;
@@ -46,7 +46,7 @@ public class IterateReactor extends AbstractReactor {
 		// ... not everything has a qs
 		// ... primarily a key-value pair
 		// ... TODO: should figure out a better way to bifurcate
-		QueryStruct2 queryStruct = getQueryStruct();
+		SelectQueryStruct queryStruct = getQueryStruct();
 		boolean useFrameFilters = useFrameFilters();
 		
 		// try to get an in memory store being used
@@ -68,8 +68,8 @@ public class IterateReactor extends AbstractReactor {
 			// okay, we want to query an engine or a frame
 			// do this based on if the key is defined in the QS
 			Iterator<IHeadersDataRow> iterator = null;
-			if(queryStruct.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE ||
-					queryStruct.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			if(queryStruct.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
+					queryStruct.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				iterator = WrapperManager.getInstance().getRawWrapper(queryStruct.retrieveQueryStructEngine(), queryStruct);
 			} else {
 				ITableDataFrame frame = queryStruct.getFrame();
@@ -113,11 +113,11 @@ public class IterateReactor extends AbstractReactor {
 	 * Get the query struct that is defined 
 	 * @return
 	 */
-	private QueryStruct2 getQueryStruct() {
+	private SelectQueryStruct getQueryStruct() {
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
-		QueryStruct2 queryStruct = null;
+		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {
-			queryStruct = (QueryStruct2) allNouns.get(0);
+			queryStruct = (SelectQueryStruct) allNouns.get(0);
 		}
 		return queryStruct;
 	}

@@ -9,7 +9,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -37,7 +37,7 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		// this is greedy execution
 		// will not return anything
 		// but will update the frame in the pixel planner
-		QueryStruct2 qs = getQueryStruct();
+		SelectQueryStruct qs = getQueryStruct();
 		List<Join> joins = this.curRow.getAllJoins();
 		// first convert the join to use the physical frame name in the selector
 		joins = convertJoins(joins, frame.getMetaData());
@@ -81,9 +81,9 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		this.insight.setDataMaker(frame);
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
-		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
+		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
-		} else if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 		}
 		
@@ -105,12 +105,12 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 
-	private QueryStruct2 getQueryStruct() {
+	private SelectQueryStruct getQueryStruct() {
 		GenRowStruct allNouns = getNounStore().getNoun("QUERYSTRUCT");
-		QueryStruct2 queryStruct = null;
+		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return (QueryStruct2)object.getValue();
+			return (SelectQueryStruct)object.getValue();
 		} 
 
 		return queryStruct;

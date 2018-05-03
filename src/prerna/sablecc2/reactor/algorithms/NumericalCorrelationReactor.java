@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -45,7 +45,7 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		}
 		double missingVal = getDefaultValue();
 
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		for(int i = 0; i < numCols; i++) {
 			String header = numericalCols.get(i);
 			QueryColumnSelector qsHead = new QueryColumnSelector(header);

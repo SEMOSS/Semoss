@@ -11,8 +11,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.parsers.OpaqueSqlParser;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
@@ -20,9 +20,9 @@ import prerna.util.Utility;
 public class NativeFrameImporter implements IImporter {
 
 	private NativeFrame dataframe;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	
-	public NativeFrameImporter(NativeFrame dataframe, QueryStruct2 qs) {
+	public NativeFrameImporter(NativeFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 	}
@@ -37,7 +37,7 @@ public class NativeFrameImporter implements IImporter {
 //			SqlParser parser = new SqlParser();
 			String query = ((HardQueryStruct) this.qs).getQuery();
 			try {
-				QueryStruct2 newQs = this.qs.getNewBaseQueryStruct();
+				SelectQueryStruct newQs = this.qs.getNewBaseQueryStruct();
 				newQs.merge(parser.processQuery(query));
 				// we were able to parse successfully
 				// override the reference
@@ -81,7 +81,7 @@ public class NativeFrameImporter implements IImporter {
 	 */
 	private ITableDataFrame generateNewFrame(List<Join> joins) {
 		// first, load the entire native frame into rframe
-		QueryStruct2 nativeQs = this.dataframe.getQueryStruct();
+		SelectQueryStruct nativeQs = this.dataframe.getQueryStruct();
 		// need to convert the native QS to properly form the RDataTable
 		nativeQs = QSAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
 		Iterator<IHeadersDataRow> nativeFrameIt = this.dataframe.query(nativeQs);

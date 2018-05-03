@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.qs.filter;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AbstractListFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -17,7 +17,7 @@ public class QueryHavingFilterReactor extends QueryFilterReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey()};
 	}
 
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		List<Object> filters = this.curRow.getValuesOfType(PixelDataType.FILTER);
 		if(filters.isEmpty()) {
 			throw new IllegalArgumentException("No filter founds to append into the query");
@@ -75,8 +75,8 @@ public class QueryHavingFilterReactor extends QueryFilterReactor {
 		NounMetadata rComp = filter.getRComparison();
 		
 		NounMetadata newL = null;
-		if(lComp.getValue() instanceof QueryStruct2) {
-			QueryStruct2 query = (QueryStruct2) lComp.getValue();
+		if(lComp.getValue() instanceof SelectQueryStruct) {
+			SelectQueryStruct query = (SelectQueryStruct) lComp.getValue();
 			if(query.getCombinedFilters().isEmpty() && query.getRelations().isEmpty() && query.getSelectors().size() == 1) {
 				newL = new NounMetadata(query.getSelectors().get(0), PixelDataType.COLUMN);
 			} else {
@@ -87,8 +87,8 @@ public class QueryHavingFilterReactor extends QueryFilterReactor {
 		}
 		
 		NounMetadata newR = null;
-		if(rComp.getValue() instanceof QueryStruct2) {
-			QueryStruct2 query = (QueryStruct2) rComp.getValue();
+		if(rComp.getValue() instanceof SelectQueryStruct) {
+			SelectQueryStruct query = (SelectQueryStruct) rComp.getValue();
 			if(query.getCombinedFilters().isEmpty() && query.getRelations().isEmpty() && query.getSelectors().size() == 1) {
 				newR = new NounMetadata(query.getSelectors().get(0), PixelDataType.COLUMN);
 			} else {

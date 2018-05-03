@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -16,7 +16,7 @@ public class WithReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		InsightPanel panel = getPanel();
 		GenRowFilters panelFilters = panel.getPanelFilters();
 		qs.mergeImplicitFilters(panelFilters);

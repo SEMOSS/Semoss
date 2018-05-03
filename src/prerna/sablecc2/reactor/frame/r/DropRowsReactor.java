@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import prerna.ds.r.RDataTable;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -44,7 +44,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 			PixelDataType filterNounType = filterNoun.getNounType();
 			if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
 				// the first noun will be a query struct - the filter
-				QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
+				SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
 				// get the filters from the query struct 
 				// and iterate through each filtered column
 				GenRowFilters grf = qs.getExplicitFilters();

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,11 +25,11 @@ import prerna.sablecc2.reactor.AbstractReactor;
  */
 public abstract class AbstractQueryStructReactor extends AbstractReactor {
 
-	protected QueryStruct2 qs;
+	protected SelectQueryStruct qs;
 	protected String[] selectorAlias;
 	
 	// method to override in the specific qs classes
-	protected abstract QueryStruct2 createQueryStruct();
+	protected abstract SelectQueryStruct createQueryStruct();
 
 	@Override
 	public Object Out() {
@@ -40,7 +40,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		init();
 		//build the query struct
-		QueryStruct2 qs = createQueryStruct();
+		SelectQueryStruct qs = createQueryStruct();
 		setAlias(qs.getSelectors(), selectorAlias);
 		//create the output and return
 		NounMetadata noun = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
@@ -60,7 +60,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 			int numInputs = qsInputParams.size();
 			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
 				NounMetadata qsNoun = (NounMetadata)qsInputParams.getNoun(inputIdx);
-				QueryStruct2 qs = (QueryStruct2) qsNoun.getValue();
+				SelectQueryStruct qs = (SelectQueryStruct) qsNoun.getValue();
 				mergeQueryStruct(qs);
 			}
 		}
@@ -73,7 +73,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		// the selector reactor will handle putting the studio and the sum(mb)
 		
 		if(this.qs == null) {
-			this.qs = new QueryStruct2();
+			this.qs = new SelectQueryStruct();
 			if(this.insight != null) {
 				this.qs.setFrame((ITableDataFrame) this.insight.getDataMaker());
 			}
@@ -81,7 +81,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	}
 	
 	//method to merge an outside query struct with this query struct
-	protected void mergeQueryStruct(QueryStruct2 queryStruct) {
+	protected void mergeQueryStruct(SelectQueryStruct queryStruct) {
 		if(this.qs == null) {
 			this.qs = queryStruct;
 		} else {

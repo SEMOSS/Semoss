@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
@@ -35,7 +35,7 @@ public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 	
 	private Map<String, Object> generateGridTaskOptions(String panelId) {
 		if(this.task instanceof BasicIteratorTask) {
-			QueryStruct2 qs = ((BasicIteratorTask) this.task).getQueryStruct();
+			SelectQueryStruct qs = ((BasicIteratorTask) this.task).getQueryStruct();
 			List<IQuerySelector> selectors = qs.getSelectors();
 			int size = selectors.size();
 			String[] aliasArr = new String[size];

@@ -18,7 +18,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -63,7 +63,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	// set the parameters we care about
 	public List<String> inputsToParameterize;
 	
-	private QueryStruct2 importQs;
+	private SelectQueryStruct importQs;
 	private String sourceStr;
 	private String importStr;
 	private Map<String, Map<String, String>> paramToSource = new HashMap<String, Map<String, String>>();
@@ -251,7 +251,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 			
 		} else if(isImport) {
 			GenRowStruct grs = thisPrevReactor.getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
-			this.importQs = (QueryStruct2) grs.get(0);
+			this.importQs = (SelectQueryStruct) grs.get(0);
 		}
 	}
 	

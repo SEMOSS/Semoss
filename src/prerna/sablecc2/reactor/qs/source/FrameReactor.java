@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.qs.source;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -14,10 +14,10 @@ public class FrameReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		ITableDataFrame frame = getFrameInput();
 		qs.setFrame(frame);
-		qs.setQsType(QueryStruct2.QUERY_STRUCT_TYPE.FRAME);
+		qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 		return qs;
 	}
 	

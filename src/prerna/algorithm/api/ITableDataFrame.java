@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -140,7 +140,7 @@ public interface ITableDataFrame extends IDataMaker {
 
 	Iterator<IHeadersDataRow> query(String query);
 	
-	Iterator<IHeadersDataRow> query(QueryStruct2 qs);
+	Iterator<IHeadersDataRow> query(SelectQueryStruct qs);
 	
 	// gets the table name
 	String getTableName();

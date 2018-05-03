@@ -6,7 +6,7 @@ import java.util.Set;
 
 import prerna.ds.h2.H2Frame;
 import prerna.poi.main.HeadersException;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
@@ -58,7 +58,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		NounMetadata filterNoun = inputsGRS.getNoun(2);
 		PixelDataType filterNounType = filterNoun.getNounType();
 		if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
-			QueryStruct2 qs = (QueryStruct2) filterNoun.getValue();
+			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
 			GenRowFilters grf = qs.getExplicitFilters();
 			Set<String> filteredColumns = grf.getAllFilteredColumns();
 			for (String column : filteredColumns) {

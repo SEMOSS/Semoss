@@ -18,7 +18,7 @@ import prerna.io.connector.IConnectorIOp;
 import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -39,7 +39,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 	}
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 
 		//get keys
 		Logger logger = getLogger(CLASS_NAME);

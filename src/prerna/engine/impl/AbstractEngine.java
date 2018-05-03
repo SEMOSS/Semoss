@@ -71,7 +71,7 @@ import prerna.om.SEMOSSVertex;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SparqlInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -971,8 +971,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * get all the data within the engine.  Will currently assume all joins to be inner.join
 	 * @return
 	 */
-	public QueryStruct2 getDatabaseQueryStruct() {
-		QueryStruct2 qs = new QueryStruct2();
+	public SelectQueryStruct getDatabaseQueryStruct() {
+		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// query to get all the concepts and properties for selectors
 		String getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?conceptualProperty WHERE { "
@@ -1053,7 +1053,7 @@ public abstract class AbstractEngine implements IEngine {
 		retObj.put("edges", edges);
 
 		// create this from the query struct
-		QueryStruct2 qs = getDatabaseQueryStruct();
+		SelectQueryStruct qs = getDatabaseQueryStruct();
 
 		// need to store the edges in a way that we can easily get them
 		Map<String, SEMOSSVertex> vertStore = new Hashtable<String, SEMOSSVertex>();
@@ -1082,7 +1082,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 			
 			// see if we need to add the property
-			if(!prop.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+			if(!prop.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				vert.setProperty("http://semoss.org/ontologies/Relation/Contains/" + prop, prop);
 			}
 		}

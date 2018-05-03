@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -31,7 +31,7 @@ public abstract class AbstractPanelSortReactor extends AbstractInsightPanelReact
 				selector.setColumn(selectorSplit[1]);
 			} else {
 				selector.setTable(newSelector);
-				selector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				selector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			if(sortDirSize > selectIndex) {
 				selector.setSortDir(sortDirs.get(selectIndex));

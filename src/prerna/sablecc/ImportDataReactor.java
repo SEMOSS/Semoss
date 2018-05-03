@@ -17,7 +17,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.sablecc.meta.ImportDataMetadata;
 import prerna.sablecc2.reactor.imports.IImporter;
@@ -146,7 +146,7 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		 */
 
 		LOGGER.info("STARTING TO PROCESS INFORMATION FOR DATA LOADING....");
-		QueryStruct2 qs = getQueryStruct();
+		SelectQueryStruct qs = getQueryStruct();
 		// 1) grab the frame
 		ITableDataFrame frame = (ITableDataFrame) myStore.get("G");
 
@@ -356,9 +356,9 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		return null;
 	}
 
-	private QueryStruct2 getQueryStruct() {
+	private SelectQueryStruct getQueryStruct() {
 		if(myStore.containsKey(PKQLEnum.API + "_" + PKQLEnum.QUERY_STRUCT)) {
-			return (QueryStruct2) myStore.get(PKQLEnum.API + "_" + PKQLEnum.QUERY_STRUCT);
+			return (SelectQueryStruct) myStore.get(PKQLEnum.API + "_" + PKQLEnum.QUERY_STRUCT);
 		}
 		return null;
 	}

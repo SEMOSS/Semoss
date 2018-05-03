@@ -10,31 +10,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IEngine;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.util.Utility;
 
-public class QueryStruct2 {
+public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, RAW_ENGINE_QUERY, RAW_FRAME_QUERY, LAMBDA};
-	
-	public final static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
-
 	private QUERY_STRUCT_TYPE qsType = QUERY_STRUCT_TYPE.FRAME;
-	protected String engineName;
-	
-	protected transient ITableDataFrame frame;
-	protected transient IEngine engine;
-	
+
 	protected boolean isDistinct = true;
-	protected boolean overrideImplicit = false;
+	
 	/*
 	 * 3 main parts to a query
 	 * 
@@ -55,20 +44,6 @@ public class QueryStruct2 {
 	 */
 	
 	protected List<IQuerySelector> selectors = new ArrayList<>();
-	// filters on existing data
-	protected GenRowFilters explicitFilters = new GenRowFilters();
-	protected GenRowFilters implicitFilters = new GenRowFilters();
-	// filters on derived calculations
-	protected GenRowFilters havingFilters = new GenRowFilters();
-	
-	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
-	// relations are of the form
-	// item = <relation vector>
-	// concept = type of join toCol
-	// Movie	 InnerJoin Studio, Genre
-	//			 OuterJoin Nominated
-	protected Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
-	
 	protected List<QueryColumnOrderBySelector> orderBySelectors = new ArrayList<>();
 	protected List<QueryColumnSelector> groupBy = new ArrayList<>();
 
@@ -101,125 +76,6 @@ public class QueryStruct2 {
 		return this.selectors;
 	}
 	
-	////////////////////////////////////////////////////
-	//////////////////// FILTERING /////////////////////
-	////////////////////////////////////////////////////
-
-	public void addExplicitFilter(IQueryFilter newFilter) {
-		GenRowFilters newGrf = new GenRowFilters();
-		newGrf.addFilters(newFilter);
-		this.explicitFilters.merge(newGrf);
-	}
-	
-	public GenRowFilters getExplicitFilters() {
-		return this.explicitFilters;
-	}
-	
-	public void setExplicitFilters(GenRowFilters filters) {
-		this.explicitFilters = filters;
-	}
-	
-	public void addImplicitFilter(IQueryFilter newFilter) {
-		GenRowFilters newGrf = new GenRowFilters();
-		newGrf.addFilters(newFilter);
-		this.implicitFilters.merge(newGrf);
-	}
-	
-	public GenRowFilters getImplicitFilters() {
-		return this.implicitFilters;
-	}
-	
-	public void setImplicitFilters(GenRowFilters filters) {
-		this.implicitFilters = filters;
-	}
-	
-	public void addHavingFilter(IQueryFilter newFilter) {
-		GenRowFilters newGrf = new GenRowFilters();
-		newGrf.addFilters(newFilter);
-		this.havingFilters.merge(newGrf);
-	}
-	
-	public GenRowFilters getHavingFilters() {
-		return this.havingFilters;
-	}
-	
-	public void setHavingFilters(GenRowFilters filters) {
-		this.havingFilters = filters;
-	}
-	
-	public GenRowFilters getCombinedFilters() {
-		GenRowFilters combinedFilters = new GenRowFilters();
-		combinedFilters.merge(this.explicitFilters.copy());
-		if(this.overrideImplicit) {
-			// if the user already filtered the column
-			// do not try to merge the other filters
-			// that are held on the data source
-			Set<String> explicitFilteredColumn = combinedFilters.getAllFilteredColumns();
-			int numFilters = this.implicitFilters.size();
-			List<IQueryFilter> implicitFilterVec = this.implicitFilters.getFilters();
-			for(int i = 0; i < numFilters; i++) {
-				IQueryFilter f = implicitFilterVec.get(i);
-				if(!containsAny(f.getAllUsedColumns(), explicitFilteredColumn)) {
-					// user didn't choose a different filter value for the column
-					// so we can add it
-					combinedFilters.addFilters(f);
-				}
-			}
-		} else {
-			combinedFilters.merge(this.implicitFilters.copy());
-		}
-		return combinedFilters;
-	}
-	
-	private boolean containsAny(Set<String> valuesToFind, Set<String> allValues) {
-		for(String valToFind : valuesToFind) {
-			if(allValues.contains(valToFind)) {
-				return true;
-			}
-		}
-			
-		return false;
-	}
-	
-	////////////////////////////////////////////////////
-	///////////////////// JOINING //////////////////////
-	////////////////////////////////////////////////////
-
-
-	public void setRelations(Map<String, Map<String, List>> relations) {
-		this.relations = relations;
-	}
-	
-	public void addRelation(String fromConcept, String toConcept, String joinType)
-	{
-		// I need pick the keys from the table based on relationship and then add that to the relation
-		// need to figure out type of 
-		// find if this property is there
-		// ok if the logical name stops being unique this will have some weird results
-		
-		
-		Map <String, List> compHash = new Hashtable<String, List>();
-		if(relations.containsKey(fromConcept))
-			compHash = relations.get(fromConcept);
-		
-		List curData = new Vector();
-		// next piece is to see if we have the comparator
-		if(compHash.containsKey(joinType))
-			curData = compHash.get(joinType);
-		
-		curData.add(toConcept);
-		
-		// put it back
-		compHash.put(joinType, curData);	
-		
-		// put it back
-		relations.put(fromConcept, compHash);
-	}
-	
-	public Map<String, Map<String, List>> getRelations(){
-		return this.relations;
-	}
-
 	////////////////////////////////////////////////////
 	///////////////////// ORDERING /////////////////////
 	////////////////////////////////////////////////////	
@@ -580,7 +436,7 @@ public class QueryStruct2 {
 	 * 
 	 * This method is responsible for merging "incomingQS's" data with THIS querystruct
 	 */
-	public void merge(QueryStruct2 incomingQS) {
+	public void merge(SelectQueryStruct incomingQS) {
 		mergeSelectors(incomingQS.selectors);
 		mergeExplicitFilters(incomingQS.explicitFilters);
 		mergeImplicitFilters(incomingQS.implicitFilters);
@@ -712,54 +568,6 @@ public class QueryStruct2 {
 	}
 	
 	////////////////////////////////////////////////////
-	////////////// SETTERS & GETTERS ///////////////////
-	////////////////////////////////////////////////////
-	
-	public void setQsType(QUERY_STRUCT_TYPE qsType) {
-		this.qsType = qsType;
-	}
-	
-	public QUERY_STRUCT_TYPE getQsType() {
-		return this.qsType;
-	}
-	
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
-	}
-	
-	public String getEngineName() {
-		if(this.engineName != null) {
-			return this.engineName;
-		} else if(this.engine != null) {
-			return this.engine.getEngineName();
-		}
-		return null;
-	}
-	
-	public void setEngine(IEngine engine) {
-		this.engine = engine;
-	}
-	
-	public IEngine getEngine() {
-		return this.engine;
-	}
-	
-	public IEngine retrieveQueryStructEngine() {
-		if(this.engine == null) {
-			this.engine = Utility.getEngine(this.engineName);
-		}
-		return this.engine;
-	}
-	
-	public ITableDataFrame getFrame() {
-		return frame;
-	}
-
-	public void setFrame(ITableDataFrame frame) {
-		this.frame = frame;
-	}
-	
-	////////////////////////////////////////////////////
 	////////////// For Task Meta Info //////////////////
 	////////////////////////////////////////////////////
 
@@ -824,13 +632,13 @@ public class QueryStruct2 {
 	 * Note csv/excel qs overrides this method
 	 * @return
 	 */
-	public QueryStruct2 getNewBaseQueryStruct() {
-		QueryStruct2 newQs = new QueryStruct2();
+	public SelectQueryStruct getNewBaseQueryStruct() {
+		SelectQueryStruct newQs = new SelectQueryStruct();
 		newQs.setQsType(this.qsType);
-		if(this.qsType == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE) {
+		if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			newQs.setEngineName(this.engineName);
 			newQs.setEngine(this.engine);
-		} else if(this.qsType == QueryStruct2.QUERY_STRUCT_TYPE.FRAME) {
+		} else if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			newQs.setFrame(this.frame);
 		}
 		newQs.setDistinct(this.isDistinct);
@@ -838,4 +646,11 @@ public class QueryStruct2 {
 		return newQs;
 	}
 
+	public void setQsType(QUERY_STRUCT_TYPE qsType) {
+		this.qsType = qsType;
+	}
+	
+	public QUERY_STRUCT_TYPE getQsType() {
+		return this.qsType;
+	}
 }

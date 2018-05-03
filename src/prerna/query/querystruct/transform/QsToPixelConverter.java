@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -33,7 +33,7 @@ public class QsToPixelConverter {
 		return b.toString();
 	}
 
-	public static String getPixel(QueryStruct2 qs) {
+	public static String getPixel(SelectQueryStruct qs) {
 		if(qs instanceof HardQueryStruct) {
 			return getHardQsPixel((HardQueryStruct) qs);
 		}

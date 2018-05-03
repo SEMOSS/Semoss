@@ -20,7 +20,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -1021,8 +1021,8 @@ public class OwlTemporalEngineMeta {
 		return metamodel;
 	}
 	
-	public QueryStruct2 getFlatTableQs() {
-		QueryStruct2 qs = new QueryStruct2();
+	public SelectQueryStruct getFlatTableQs() {
+		SelectQueryStruct qs = new SelectQueryStruct();
 		
 		// set all the headers
 		List<String> allHeaders = this.getFrameSelectors();
@@ -1037,7 +1037,7 @@ public class OwlTemporalEngineMeta {
 			} else {
 				QueryColumnSelector qsSelector = new QueryColumnSelector();
 				qsSelector.setTable(header);
-				qsSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 				qsSelector.setAlias(header);
 				qs.addSelector(qsSelector);
 			}

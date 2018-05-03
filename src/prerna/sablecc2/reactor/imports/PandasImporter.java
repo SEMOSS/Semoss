@@ -7,23 +7,23 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
 
 public class PandasImporter implements IImporter {
 
 	private PandasFrame dataframe;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public PandasImporter(PandasFrame dataframe, QueryStruct2 qs) {
+	public PandasImporter(PandasFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
 		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
 	}
 	
-	public PandasImporter(PandasFrame dataframe, QueryStruct2 qs, Iterator<IHeadersDataRow> it) {
+	public PandasImporter(PandasFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator

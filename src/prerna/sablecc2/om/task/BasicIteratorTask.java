@@ -9,11 +9,12 @@ import java.util.Set;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -23,12 +24,12 @@ import prerna.util.Utility;
 
 public class BasicIteratorTask extends AbstractTask {
 
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private long startLimit = -1;
 	private long startOffset = -1;
 	private transient Iterator<IHeadersDataRow> iterator;
 	
-	public BasicIteratorTask(QueryStruct2 qs) {
+	public BasicIteratorTask(SelectQueryStruct qs) {
 		this.qs = qs;
 		// this is important so we dont override
 		// the existing limit of the query
@@ -42,7 +43,7 @@ public class BasicIteratorTask extends AbstractTask {
 		this.iterator = iterator;
 	}
 	
-	public BasicIteratorTask(QueryStruct2 qs, Iterator<IHeadersDataRow> iterator) {
+	public BasicIteratorTask(SelectQueryStruct qs, Iterator<IHeadersDataRow> iterator) {
 		this(qs);
 		this.iterator = iterator;
 	}
@@ -108,9 +109,9 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 	}
 	
-	private void generateIterator(QueryStruct2 qs, boolean overrideImplicitFilters) {
-		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.ENGINE || 
-				qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) {
+		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || 
+				qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
@@ -133,10 +134,22 @@ public class BasicIteratorTask extends AbstractTask {
 				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
 				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
 				String col = convertedOrderByS.getColumn();
-				if(!QueryStruct2.PRIM_KEY_PLACEHOLDER.equals(col) && !indexedCols.contains(col)) {
+				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !indexedCols.contains(col)) {
 					hFrame.addColumnIndex(col);
 				}
 			}
+		} else if(dataframe instanceof RDataTable) {
+			//TODO: come back to this for testing
+//			RDataTable rFrame = (RDataTable) dataframe;
+//			OwlTemporalEngineMeta meta = rFrame.getMetaData();
+//			for(int i = 0; i < orderBys.size(); i++) {
+//				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
+//				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
+//				String col = convertedOrderByS.getColumn();
+//				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col)) {
+//					rFrame.addColumnIndex(col);
+//				}
+//			}
 		}
 	}
 	
@@ -182,13 +195,13 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 	}
 	
-	private void setQsMetadata(QueryStruct2 qs) {
+	private void setQsMetadata(SelectQueryStruct qs) {
 		setHeaderInfo(qs.getHeaderInfo());
 		setSortInfo(qs.getSortInfo());
 		setFilterInfo(qs.getExplicitFilters());
 	}
 	
-	public QueryStruct2 getQueryStruct() {
+	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
 	
