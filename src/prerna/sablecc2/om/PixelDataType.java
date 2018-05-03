@@ -8,8 +8,13 @@ public enum PixelDataType {
 	CONST_DATE ("CONST_DATE"), 						// constant date
 	NULL_VALUE ("NULL_VALUE"), 						// null input
 	COLUMN ("COLUMN"), 								// column name in database or frame
-	REMOVE_VARIABLE ("REMOVE_VARIABLE"),			// variable to be removed
 	
+	TASK ("TASK"),									// task
+	TASK_LIST ("TASK_LIST"),						// task
+
+	REMOVE_VARIABLE ("REMOVE_VARIABLE"),			// variable to be removed
+	REMOVE_TASK ("REMOVE_TASK"),					// task to be removed
+
 	SQLE ("SQLE"), 									// sql expression
 	E ("E"), 										// some other expression
 	FILTER ("FILTER"), 								// filter object
@@ -20,8 +25,6 @@ public enum PixelDataType {
 	QUERY_STRUCT ("QUERY_STRUCT"),					// qs
 	RAW_DATA_SET ("DATA"),							// raw data - usually from job
 	FORMATTED_DATA_SET ("FDATA"),					// formatted data - for FE
-	TASK ("TASK"),									// task
-	TASK_LIST ("TASK_LIST"),						// task
 	ITERATOR ("ITERATOR"),							// iterator
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),
