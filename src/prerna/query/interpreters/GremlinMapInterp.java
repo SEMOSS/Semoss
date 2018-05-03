@@ -164,6 +164,8 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 			// but is this traversal, to get a vertex
 			// or a property on the vertex
 			if(props != null) {
+				this.gt.has(typeMap.get(selector), getNodeType(selector)).as(selector);
+
 				// it is for a property on a vertex
 				GraphTraversal twoStepT = __.as(selector);
 
