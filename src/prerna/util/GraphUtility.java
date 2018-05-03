@@ -12,6 +12,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import prerna.algorithm.api.SemossDataType;
 
@@ -96,19 +97,31 @@ public class GraphUtility {
 			while (it.hasNext()) {
 				Edge edge = it.next();
 				Vertex outV = edge.outVertex();
-				Set<String> outVKeys = outV.keys();
+				GraphTraversal<Vertex, Vertex> outTraversal = gts.V(outV.id());
+				Set<String> outVKeys = null;
+				while(outTraversal.hasNext()) {
+					outV = outTraversal.next();
+					outVKeys = outV.keys();
+				}
 				Vertex inV = edge.inVertex();
-				Set<String> inVKeys = inV.keys();
-				if (outVKeys.contains(graphTypeId) && inVKeys.contains(graphTypeId)) {
-					Object outVLabel = outV.value(graphTypeId);
-					Object inVLabel = inV.value(graphTypeId);
-					if (!edges.containsKey(edgeLabel)) {
-						ArrayList<String> vertices = new ArrayList<>();
-						vertices.add(outVLabel.toString());
-						vertices.add(inVLabel.toString());
-						edges.put(edgeLabel, vertices);
-					} else {
-						break;
+				GraphTraversal<Vertex, Vertex> inTraversal = gts.V(inV.id());
+				Set<String> inVKeys = null;
+				while(inTraversal.hasNext()) {
+					inV = inTraversal.next();
+					inVKeys = inV.keys();
+				}
+				if (outVKeys != null && inVKeys != null) {
+					if (outVKeys.contains(graphTypeId) && inVKeys.contains(graphTypeId)) {
+						Object outVLabel = outV.value(graphTypeId);
+						Object inVLabel = inV.value(graphTypeId);
+						if (!edges.containsKey(edgeLabel)) {
+							ArrayList<String> vertices = new ArrayList<>();
+							vertices.add(outVLabel.toString());
+							vertices.add(inVLabel.toString());
+							edges.put(edgeLabel, vertices);
+						} else {
+							break;
+						}
 					}
 				}
 			}
