@@ -13,7 +13,7 @@ import org.openrdf.query.TupleQueryResult;
 import com.hp.hpl.jena.vocabulary.XSD;
 
 import prerna.engine.api.IEngine;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -78,8 +78,8 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	@Override
 	public String composeQuery() {
-		if(this.qs instanceof HardQueryStruct) {
-			return ((HardQueryStruct) this.qs).getQuery();
+		if(this.qs instanceof HardSelectQueryStruct) {
+			return ((HardSelectQueryStruct) this.qs).getQuery();
 		}
 		
 		String baseUri = "http://semoss.org/ontologies";

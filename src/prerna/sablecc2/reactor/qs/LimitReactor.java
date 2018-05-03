@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
@@ -10,10 +11,10 @@ public class LimitReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		if(curRow.get(0) instanceof Number) {
 			Long limit = ( (Number) curRow.get(0)).longValue();
-			qs.setLimit(limit);
+			((SelectQueryStruct) qs).setLimit(limit);
 		}
 		return qs;
 	}

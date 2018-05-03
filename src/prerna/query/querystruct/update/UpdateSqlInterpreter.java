@@ -118,27 +118,27 @@ public class UpdateSqlInterpreter {
 	
 	//////////////////////////////////////////// Add Selectors //////////////////////////////////////////////
 	public void addSelectors() {
-		List<QueryColumnSelector> selectors = qs.getSelectors();
+		List<IQuerySelector> selectors = qs.getSelectors();
 		int numSelectors = selectors.size();
 		
 		for(int i = 0; i < numSelectors; i++) {
 			if(i != 0) {
 				selectorBuilder.append(", ");
 			}
-			QueryColumnSelector t = selectors.get(i);
+			QueryColumnSelector t = (QueryColumnSelector) selectors.get(i);
 			selectorBuilder.append(t.getTable());
 		}
 	}
 	
 	private void addSets() {
-		List<QueryColumnSelector> selectors = qs.getSelectors();
+		List<IQuerySelector> selectors = qs.getSelectors();
 		List<Object> values = qs.getValues();
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			if(i != 0) {
 				sets.append(", ");
 			}
-			QueryColumnSelector s = selectors.get(i);
+			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
 			Object v = values.get(i);
 			if(v instanceof String) {
 				sets.append(s.getTable() + "." + s.getColumn() + "=" + "'" + v + "'");

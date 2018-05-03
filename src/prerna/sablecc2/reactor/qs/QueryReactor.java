@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
@@ -11,18 +12,21 @@ public class QueryReactor extends AbstractQueryStructReactor {
 	}
 	
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		//grab the query
 		String query = (String) curRow.get(0);
 		
 		//create a new query struct
-		HardQueryStruct hardQs = new HardQueryStruct();
-		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-			hardQs.setEngineName(qs.getEngineName());
-			hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-		} else {
-			hardQs.setFrame(qs.getFrame());
-			hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
+		HardSelectQueryStruct hardQs = new HardSelectQueryStruct();
+		if(this.qs instanceof SelectQueryStruct) {
+			SelectQueryStruct sQs = ((SelectQueryStruct) qs);
+			if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+				hardQs.setEngineName(qs.getEngineName());
+				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+			} else {
+				hardQs.setFrame(qs.getFrame());
+				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
+			}
 		}
 		hardQs.setQuery(query);
 		

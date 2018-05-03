@@ -10,9 +10,9 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.parsers.OpaqueSqlParser;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
@@ -35,7 +35,7 @@ public class NativeFrameImporter implements IImporter {
 			// lets see what happens
 			OpaqueSqlParser parser = new OpaqueSqlParser();
 //			SqlParser parser = new SqlParser();
-			String query = ((HardQueryStruct) this.qs).getQuery();
+			String query = ((HardSelectQueryStruct) this.qs).getQuery();
 			try {
 				SelectQueryStruct newQs = this.qs.getNewBaseQueryStruct();
 				newQs.merge(parser.processQuery(query));

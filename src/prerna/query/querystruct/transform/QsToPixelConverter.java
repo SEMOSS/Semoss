@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -26,7 +26,7 @@ public class QsToPixelConverter {
 
 	}
 	
-	public static String getHardQsPixel(HardQueryStruct qs) {
+	public static String getHardQsPixel(HardSelectQueryStruct qs) {
 		StringBuilder b = new StringBuilder();
 		b.append("Database(").append(qs.getEngineName()).append(") | Query(")
 			.append(qs.getQuery().replace("\"", "\\\"")).append(")");
@@ -34,8 +34,8 @@ public class QsToPixelConverter {
 	}
 
 	public static String getPixel(SelectQueryStruct qs) {
-		if(qs instanceof HardQueryStruct) {
-			return getHardQsPixel((HardQueryStruct) qs);
+		if(qs instanceof HardSelectQueryStruct) {
+			return getHardQsPixel((HardSelectQueryStruct) qs);
 		}
 
 		// grab all the selectors
