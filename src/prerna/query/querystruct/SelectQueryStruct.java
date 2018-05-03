@@ -60,7 +60,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public void addSelector(String concept, String property) {
 		if(property == null) {
-			property = PRIM_KEY_PLACEHOLDER; 
+			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
 		}
 		QueryColumnSelector selector = new QueryColumnSelector();
 		selector.setTable(concept);
@@ -86,7 +86,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public void addOrderBy(String concept, String property, String sortDir) {
 		if(property == null) {
-			property = PRIM_KEY_PLACEHOLDER; 
+			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
 		}
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector();
 		selector.setTable(concept);
@@ -123,7 +123,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	
 	public void addGroupBy(String concept, String property) {
 		if(property == null) {
-			property = PRIM_KEY_PLACEHOLDER; 
+			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
 		}
 		QueryColumnSelector selector = new QueryColumnSelector();
 		selector.setTable(concept);
@@ -214,7 +214,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 			String table = selector.getTable();
 			edgeHash.putIfAbsent(table, new HashSet<String>());
 			
-			boolean isPrimKey = PRIM_KEY_PLACEHOLDER.equals(column);
+			boolean isPrimKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER.equals(column);
 			if(!isPrimKey) {
 				edgeHash.put(table+"__"+column, new HashSet<String>()); //add the property as a key pointing to nothing
 				edgeHash.get(table).add(table+"__"+column);  //add the property as a child of the table				
