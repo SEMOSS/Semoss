@@ -10,13 +10,42 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Utility;
 
 public abstract class AbstractQueryStruct {
 	
+	// Creating shared objects between SelectQueryStruct and UpdateQueryStruct
+	
 	public final static String PRIM_KEY_PLACEHOLDER = "PRIM_KEY_PLACEHOLDER";
 	
-	// Creating shared objects between SelectQueryStruct and UpdateQueryStruct
+	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, RAW_ENGINE_QUERY, RAW_FRAME_QUERY, LAMBDA};
+	
+	// qs type
+	public QUERY_STRUCT_TYPE qsType = QUERY_STRUCT_TYPE.FRAME;
+	
+	/*
+	 * 3 main parts to a query
+	 * 
+	 * selectors:
+	 * 		table name (equivalent to the name of a vertex for graphs)
+	 * 		column name (equivalent to the property name on a vertex for graphs)
+	 * 		alias
+	 * 		single math operation
+	 * 
+	 * filters:
+	 * 		column to column filtering
+	 * 		column to values filtering
+	 * 		values to column filtering
+	 * 
+	 * relationships:
+	 * 		start column -> joinType -> end column
+	 * 
+	 */
+	
+	// For selectors
+	protected List<IQuerySelector> selectors = new Vector<IQuerySelector>();
 	
 	// For filters
 	// filters on existing data
@@ -32,7 +61,7 @@ public abstract class AbstractQueryStruct {
 	// concept = type of join toCol
 	// Movie	 InnerJoin Studio, Genre
 	//			 OuterJoin Nominated
-	protected Map <String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
+	protected Map<String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
 	
 	protected boolean overrideImplicit = false;
 
@@ -40,6 +69,31 @@ public abstract class AbstractQueryStruct {
 	protected transient ITableDataFrame frame;
 	protected transient IEngine engine;
 	protected String engineName;
+	
+	
+	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
+	
+	public void setSelectors(List<IQuerySelector> selectors) {
+		this.selectors = selectors;
+	}
+	
+	public void addSelector(String concept, String property) {
+		if(property == null) {
+			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
+		}
+		QueryColumnSelector selector = new QueryColumnSelector();
+		selector.setTable(concept);
+		selector.setColumn(property);
+		this.selectors.add(selector);
+	}
+	
+	public void addSelector(IQuerySelector selector) {
+		this.selectors.add(selector);
+	}
+	
+	public List<IQuerySelector> getSelectors(){
+		return this.selectors;
+	}
 	
 	//////////////////////////////////////////// FILTERING /////////////////////////////////////////////////
 
@@ -196,5 +250,114 @@ public abstract class AbstractQueryStruct {
 	
 	public boolean isOverrideImplicit() {
 		return this.overrideImplicit;
+	}
+	
+	public void setQsType(QUERY_STRUCT_TYPE qsType) {
+		this.qsType = qsType;
+	}
+	
+	public QUERY_STRUCT_TYPE getQsType() {
+		return this.qsType;
+	}
+	
+	//////////////////////////////////////////// MERGING /////////////////////////////////////////////////////
+	
+	/**
+	 * 
+	 * @param incomingQS
+	 * 
+	 * This method is responsible for merging "incomingQS's" data with THIS querystruct
+	 */
+	public void merge(AbstractQueryStruct incomingQS) {
+		mergeSelectors(incomingQS.selectors);
+		mergeExplicitFilters(incomingQS.explicitFilters);
+		mergeImplicitFilters(incomingQS.implicitFilters);
+		mergeRelations(incomingQS.relations);
+		if(incomingQS.getEngineName() != null) {
+			setEngineName(incomingQS.getEngineName());
+		}
+		
+		if(incomingQS.getEngine() != null) {
+			setEngine(incomingQS.getEngine());
+		}
+	}
+	
+	public void mergeSelectors(List<IQuerySelector> incomingSelectors) {
+		//add selectors only if we don't aleady have them as selectors
+		for(IQuerySelector incomingSelector : incomingSelectors) {
+			if(!this.selectors.contains(incomingSelector)) {
+				this.selectors.add(incomingSelector);
+			}
+		}
+	}
+	
+	/**
+	 * This is meant for filters defined by the user on the QS being sent
+	 * @param incomingFilters
+	 */
+	public void mergeExplicitFilters(GenRowFilters incomingFilters) {
+		//merge the filters
+		this.explicitFilters.merge(incomingFilters);
+	}
+	
+	/**
+	 * This is meant for filters that are stored within the frame
+	 * @param incomingFilters
+	 */
+	public void mergeImplicitFilters(GenRowFilters incomingFilters) {
+		//merge the filters
+		this.implicitFilters.merge(incomingFilters);
+	}
+	
+	/**
+	 * 
+	 * @param incomingRelations
+	 * merges incomingRelations with this relations
+	 */
+	public void mergeRelations(Map<String, Map<String, List>> incomingRelations) {
+		
+		//for each concept in the new relations
+		for(String conceptName : incomingRelations.keySet()) {
+			
+			//Grab the relationships for that concept
+			Map<String, List> incomingHash = incomingRelations.get(conceptName);
+			
+			//if we already have relationships for the same concept we need to merge
+			if(this.relations.containsKey(conceptName)) {
+				
+				//grab this relations for concept
+				Map<String, List> thisHash = this.relations.get(conceptName);
+				
+				//relationKey is inner.join, outer.join, etc.
+				//so we want to merge relationships that have the same relationKey
+				for(String relationKey : incomingHash.keySet()) {
+					List v;
+					if(thisHash.containsKey(relationKey)) {
+						v = thisHash.get(relationKey);
+					} else {
+						v = new Vector();
+					}
+					
+					//merge the this vector with new data and add to thisHash
+					List mergeList = incomingHash.get(relationKey);
+					for(Object newRel : mergeList) {
+						if(!v.contains(newRel)) {
+							v.add(newRel);
+						}
+					}
+					thisHash.put(relationKey, v);
+				}
+			} else {
+				
+				//we don't have the relationship described in the incoming relations so just copy them to this relations
+				Map<String, List> newHash = new Hashtable<>();
+				for(String relationKey : incomingHash.keySet()) {
+					List v = new Vector();
+					v.addAll(incomingHash.get(relationKey));
+					newHash.put(relationKey, v);
+				}
+				this.relations.put(conceptName, newHash);
+			}
+		}
 	}
 }

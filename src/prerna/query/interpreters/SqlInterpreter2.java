@@ -15,7 +15,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -101,8 +101,8 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	@Override
 	public String composeQuery()
 	{
-		if(this.qs instanceof HardQueryStruct) {
-			return ((HardQueryStruct)this.qs).getQuery();
+		if(this.qs instanceof HardSelectQueryStruct) {
+			return ((HardSelectQueryStruct)this.qs).getQuery();
 		}
 		/*
 		 * Need to create the query... 

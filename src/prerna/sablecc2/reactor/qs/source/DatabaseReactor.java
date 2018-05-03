@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.qs.source;
 
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -11,7 +12,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 	}
 	
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		//get the selectors
 		String engineName = (String) this.curRow.get(0);
 		this.qs.setEngineName(engineName);

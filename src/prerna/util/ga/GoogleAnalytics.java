@@ -18,9 +18,9 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -78,7 +78,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		String engineName = qs.getEngineName();
 		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			// person has entered their own query
-			String query = ((HardQueryStruct) qs).getQuery();
+			String query = ((HardSelectQueryStruct) qs).getQuery();
 			String expression = exprStart + "{\"dbName\":\"" + engineName + 
 					"\",\"tableName\":\"null\",\"columnName\":\"\",	\"joinType\": \"\",\"joinColumn\": \"\", \"query\":\"" 
 					+ query + "\"}" + exprEnd;

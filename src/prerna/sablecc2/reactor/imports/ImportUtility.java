@@ -18,12 +18,12 @@ import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -50,7 +50,7 @@ public class ImportUtility {
 		} 
 		// engine with hard coded query
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardQueryStruct) qs).getQuery());
+			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardSelectQueryStruct) qs).getQuery());
 		} 
 		// frame with qs
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
@@ -65,9 +65,9 @@ public class ImportUtility {
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY){
 			ITableDataFrame qsFrame = qs.getFrame();
 			if(qsFrame != null) {
-				return qsFrame.query( ((HardQueryStruct) qs).getQuery());
+				return qsFrame.query( ((HardSelectQueryStruct) qs).getQuery());
 			} else {
-				return frame.query( ((HardQueryStruct) qs).getQuery());
+				return frame.query( ((HardSelectQueryStruct) qs).getQuery());
 			}
 		}
 		// csv file (really, any delimited file
