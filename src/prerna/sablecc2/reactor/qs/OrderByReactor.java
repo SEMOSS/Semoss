@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -16,7 +17,7 @@ public class OrderByReactor extends AbstractQueryStructReactor {
 		this.keysToGet = new String[]{COLUMNS_KEY, DIRECTION_KEY};
 	}
 	
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		List<String> colInputs = getOrderByColumns();
 		List<String> sortDirs = getSortDirections();
 		int colSize = colInputs.size();
@@ -26,15 +27,15 @@ public class OrderByReactor extends AbstractQueryStructReactor {
 			if(newSelector.contains("__")) {
 				String[] selectorSplit = newSelector.split("__");
 				if(sortDirSize > selectIndex) {
-					qs.addOrderBy(selectorSplit[0], selectorSplit[1], sortDirs.get(selectIndex));
+					((SelectQueryStruct) qs).addOrderBy(selectorSplit[0], selectorSplit[1], sortDirs.get(selectIndex));
 				} else {
-					qs.addOrderBy(selectorSplit[0], selectorSplit[1], "ASC");
+					((SelectQueryStruct) qs).addOrderBy(selectorSplit[0], selectorSplit[1], "ASC");
 				}
 			} else {
 				if(sortDirSize > selectIndex) {
-					qs.addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, sortDirs.get(selectIndex));
+					((SelectQueryStruct) qs).addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, sortDirs.get(selectIndex));
 				} else {
-					qs.addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, "ASC");
+					((SelectQueryStruct) qs).addOrderBy(newSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER, "ASC");
 				}
 			}
 		}
