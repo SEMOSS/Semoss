@@ -335,6 +335,15 @@ public class PixelUtility {
 		}
 		
 		List<String> newRecipe = translation.getPixels();
+		// since i am already adding a AddPanel(0) at the start of this recipe
+		// if it is contained as the first index inside newRecipe
+		// i will remove it
+		String first = newRecipe.get(0);
+		first = first.replace(" ", "").trim();
+		if(first.equals("AddPanel(0);")) {
+			newRecipe.remove(0);
+		}
+		
 		StringBuilder fullRecipe = new StringBuilder();
 		for(String s : newRecipe) {
 			fullRecipe.append(s.trim());
