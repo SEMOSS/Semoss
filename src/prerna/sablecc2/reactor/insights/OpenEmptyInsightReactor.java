@@ -33,11 +33,12 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		for(String r : recipe) {
 			newRecipe.add(Utility.decodeURIComponent(r));
 		}
-		Map<String, Object> insightMap = new HashMap<String, Object>();
-		insightMap.put("insightData", newInsight.runPixel(newRecipe));
-		insightMap.put("params", getExecutionParams());
-
-		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.NEW_EMPTY_INSIGHT);
+		
+		// return the recipe steps
+		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+		runnerWraper.put("runner", newInsight.runPixel(newRecipe));
+		runnerWraper.put("params", getExecutionParams());
+		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
 	}
 	
 }

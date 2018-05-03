@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.Vector;
 
+import prerna.sablecc2.PixelRunner;
+
 public class JobManager {
 	
 	static JobManager manager = new JobManager();
@@ -174,8 +176,8 @@ public class JobManager {
 		((Thread)threadPool.get(jobId)).interrupt();
 	}
 	
-	public Object getOutput(String jobId) {
+	public PixelRunner getOutput(String jobId) {
 		JobThread jt = threadPool.get(jobId);
-		return jt.output;
+		return jt.runner;
 	}
 }

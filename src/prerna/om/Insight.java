@@ -47,7 +47,6 @@ import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
-import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
@@ -175,90 +174,102 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
-
-	// run a new pixel routine
-	public synchronized Map<String, Object> runPixel(String pixelString) {
+	public synchronized PixelRunner runPixel(String pixelString) {
 		PixelRunner runner = getPixelRunner();
 		LOGGER.info("Running >>> " + pixelString);
 		runner.runPixel(pixelString, this);
-		return collectPixelData(runner);
+		return runner;
 	}
-	
-	// run a new list of pixel routines
-	public synchronized Map<String, Object> runPixel(List<String> pixelList) {
+
+	public synchronized PixelRunner runPixel(List<String> pixelList) {
 		PixelRunner runner = getPixelRunner();
 		int size = pixelList.size();
-		for(int i = 0; i < size; i++) {
-			String pixelString = pixelList.get(i);
-			LOGGER.info("Running >>> " + pixelString);
-			try {
-				runner.runPixel(pixelString, this);
-			} catch(SemossPixelException e) {
-				if(!e.isContinueThreadOfExecution()) {
-					break;
-				}
-			}
-		}
-		return collectPixelData(runner);
-	}
-	
-	public synchronized PixelRunner runPixel2(List<String> pixelList) {
-		PixelRunner runner = getPixelRunner();
-		int size = pixelList.size();
-		for(int i = 0; i < size; i++) {
-			String pixelString = pixelList.get(i);
-			LOGGER.info("Running >>> " + pixelString);
-			try {
-				runner.runPixel(pixelString, this);
-			} catch(SemossPixelException e) {
-				if(!e.isContinueThreadOfExecution()) {
-					break;
+		if(size == 0) {
+			// set the insight in the runner as it is used
+			// to flush to FE
+			runner.setInsight(this);
+		} else {
+			for(int i = 0; i < size; i++) {
+				String pixelString = pixelList.get(i);
+				LOGGER.info("Running >>> " + pixelString);
+				try {
+					runner.runPixel(pixelString, this);
+				} catch(SemossPixelException e) {
+					if(!e.isContinueThreadOfExecution()) {
+						break;
+					}
 				}
 			}
 		}
 		return runner;
 	}
 
-	/**
-	 * 
-	 * @param runner
-	 * @return
-	 */
-	private Map<String, Object> collectPixelData(PixelRunner runner) {
-		// get the return values
-		List<NounMetadata> resultList = runner.getResults();
-		// get the expression which created the return
-		// this matches with the above by index
-		List<String> pixelStrings = runner.getPixelExpressions();
-		List<Boolean> isMeta = runner.isMeta();
-		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
-		boolean invalidSyntax = runner.isInvalidSyntax();
-		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
-		for (int i = 0; i < pixelStrings.size(); i++) {
-			NounMetadata noun = resultList.get(i);
-			Map<String, Object> ret = PixelUtility.processNounMetadata(noun);
-			// get the expression which created this return
-			String expression = pixelStrings.get(i);
-			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
-			ret.put("pixelExpression", expression);
-			// save the expression for future use
-			// only if it is not meta
-			// and if it is not invalid syntax
-			if (!isMeta.get(i) && !invalidSyntax) {
-				ret.put("isMeta", false);
-				this.pixelList.add(expression);
-			} else {
-				ret.put("isMeta", true);
-			}
-			// add it to the list
-			retValues.add(ret);
-		}
-		
-		Map<String, Object> retData = new Hashtable<String, Object>();
-		retData.put("pixelReturn", retValues);
-		retData.put("insightID", this.insightId);
-		return retData;
-	}
+	// run a new pixel routine
+//	public synchronized Map<String, Object> runPixel(String pixelString) {
+//		PixelRunner runner = getPixelRunner();
+//		LOGGER.info("Running >>> " + pixelString);
+//		runner.runPixel(pixelString, this);
+//		return collectPixelData(runner);
+//	}
+//	
+//	// run a new list of pixel routines
+//	public synchronized Map<String, Object> runPixel(List<String> pixelList) {
+//		PixelRunner runner = getPixelRunner();
+//		int size = pixelList.size();
+//		for(int i = 0; i < size; i++) {
+//			String pixelString = pixelList.get(i);
+//			LOGGER.info("Running >>> " + pixelString);
+//			try {
+//				runner.runPixel(pixelString, this);
+//			} catch(SemossPixelException e) {
+//				if(!e.isContinueThreadOfExecution()) {
+//					break;
+//				}
+//			}
+//		}
+//		return collectPixelData(runner);
+//	}
+	
+//	/**
+//	 * 
+//	 * @param runner
+//	 * @return
+//	 */
+//	private Map<String, Object> collectPixelData(PixelRunner runner) {
+//		// get the return values
+//		List<NounMetadata> resultList = runner.getResults();
+//		// get the expression which created the return
+//		// this matches with the above by index
+//		List<String> pixelStrings = runner.getPixelExpressions();
+//		List<Boolean> isMeta = runner.isMeta();
+//		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
+//		boolean invalidSyntax = runner.isInvalidSyntax();
+//		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
+//		for (int i = 0; i < pixelStrings.size(); i++) {
+//			NounMetadata noun = resultList.get(i);
+//			Map<String, Object> ret = PixelUtility.processNounMetadata(noun);
+//			// get the expression which created this return
+//			String expression = pixelStrings.get(i);
+//			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
+//			ret.put("pixelExpression", expression);
+//			// save the expression for future use
+//			// only if it is not meta
+//			// and if it is not invalid syntax
+//			if (!isMeta.get(i) && !invalidSyntax) {
+//				ret.put("isMeta", false);
+//				this.pixelList.add(expression);
+//			} else {
+//				ret.put("isMeta", true);
+//			}
+//			// add it to the list
+//			retValues.add(ret);
+//		}
+//		
+//		Map<String, Object> retData = new Hashtable<String, Object>();
+//		retData.put("pixelReturn", retValues);
+//		retData.put("insightID", this.insightId);
+//		return retData;
+//	}
 
 	/**
 	 * 
@@ -645,7 +656,7 @@ public class Insight {
 	 * re-run the optimized version of the pixel recipe
 	 * @return runPixel(newList) -- returns pixel data
 	 */
-	public Map<String, Object> reRunOptimizedPixelInsight() {
+	public PixelRunner reRunOptimizedPixelInsight() {
 		Set<String> keys = this.varStore.getKeys();
 		for(String key : keys) {
 			NounMetadata noun = this.varStore.get(key);
@@ -700,7 +711,7 @@ public class Insight {
 		// clear the panels
 		this.insightPanels.clear();
 		
-		return runPixel2(newList);
+		return runPixel(newList);
 	}
 	
 	/**

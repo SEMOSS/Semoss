@@ -2,7 +2,6 @@ package prerna.sablecc2.comm;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
@@ -12,7 +11,6 @@ public class JobThread extends Thread {
 	Insight insight = null;
 	List<String> pixel = null;
 	JobStatus status = JobStatus.CREATED;
-	Map<String, Object> output = null;
 	PixelRunner runner = null;
 	String jobId;
 
@@ -34,7 +32,7 @@ public class JobThread extends Thread {
 		try {
 			//hold();
 			status = JobStatus.INPROGRESS;
-			output = insight.runPixel(pixel);
+			runner = insight.runPixel(pixel);
 			//hold();
 			status = JobStatus.COMPLETE;
 		}catch (Exception ex) {
@@ -42,18 +40,6 @@ public class JobThread extends Thread {
 		}
 	}
 	
-	public void run2() {
-		try {
-			//hold();
-			status = JobStatus.INPROGRESS;
-			runner = insight.runPixel2(pixel);
-			//hold();
-			status = JobStatus.COMPLETE;
-		}catch (Exception ex) {
-			status = JobStatus.ERROR;
-		}
-	}
-
 	/*public void hold()
 	{
 		try {
@@ -89,10 +75,6 @@ public class JobThread extends Thread {
 		return this.jobId;
 	}
 
-	public Map<String, Object> getOutput() {
-		return output;
-	}
-	
 	public PixelRunner getRunner() {
 		return runner;
 	}
