@@ -137,7 +137,7 @@ public class RFrameBuilder {
 			long start = System.currentTimeMillis();
 			logger.info("Loading R table via CSV File");
 			// get you the fread notation with the csv file within the iterator
-			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, it.getFileLocation());
+			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, it.getFileLocation(), it.getDelimiter() + "");
 			evalR(loadFileRScript);
 
 			// fread will use the original headers, even if there are duplicates
