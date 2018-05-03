@@ -10,7 +10,7 @@ import java.util.Vector;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -30,7 +30,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	private int processedDataPosition;
 	
 	private Iterator<IHeadersDataRow> mainIterator;
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	
 	// keep track of the math that is needed
 	private List<String> uniqueSelectorNames;
@@ -41,7 +41,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	/**
 	 * Constructor
 	 */
-	public QueryStructExpressionIterator(Iterator<IHeadersDataRow> mainIterator, QueryStruct2 qs) {
+	public QueryStructExpressionIterator(Iterator<IHeadersDataRow> mainIterator, SelectQueryStruct qs) {
 		this.mainIterator = mainIterator;
 		this.qs = qs;
 		init();

@@ -9,27 +9,27 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow> {
 
-	private QueryStruct2 qs;
+	private SelectQueryStruct qs;
 	private Iterator baseIterator;
 	private String[] headerAlias;
 	private String[] header;
 	private String[] headerOrdering;
 	private Map<String,String> typeMap;
 
-	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, QueryStruct2 qs, Map<String, String> typeMap) {
+	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> typeMap) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		this.typeMap = typeMap;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
 	
-	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, QueryStruct2 qs, OwlTemporalEngineMeta meta) {
+	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		flushOutHeaders(this.qs.getSelectors(), meta);
@@ -135,7 +135,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 		return meta.getPhysicalName(node);
 	}
 
-	public QueryStruct2 getQueryStruct() {
+	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
 }

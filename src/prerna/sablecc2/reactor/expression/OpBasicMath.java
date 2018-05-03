@@ -5,7 +5,7 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -125,7 +125,7 @@ public abstract class OpBasicMath extends OpReactor {
 		QueryFunctionSelector opFunction = new QueryFunctionSelector();
 		opFunction.setFunction(operation);
 		opFunction.addInnerSelector(columnSelector);
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(opFunction);
 		Iterator<IHeadersDataRow> it = frame.query(qs);
 		if(it.hasNext()) {

@@ -14,7 +14,7 @@ import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -90,7 +90,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 
 		int numCols = this.attributesList.size();
 		String[] retHeaders = new String[numCols];
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		this.isNumeric = new boolean[numCols];
 
 		// create a qs with selected columns
@@ -345,7 +345,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 	}
 
 	private int getNumRows(ITableDataFrame frame, QueryColumnSelector predictorCol) {
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector math = new QueryFunctionSelector();
 		math.addInnerSelector(predictorCol);
 		math.setFunction(QueryFunctionHelper.COUNT);

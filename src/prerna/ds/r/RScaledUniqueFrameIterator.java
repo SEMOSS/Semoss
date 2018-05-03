@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.query.interpreters.RInterpreter2;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
@@ -50,7 +50,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		this.valueIterator = Arrays.asList(column).iterator();
 		
 		// create the QS being used for querying
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			String unqiueSelectorName = selectors.get(i);
@@ -62,7 +62,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 				sColumn.setColumn(sSplit[1]);
 			} else {
 				sColumn.setTable(unqiueSelectorName);
-				sColumn.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				sColumn.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			
 			if(maxArr[i] != null && minArr[i] != null) {

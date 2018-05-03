@@ -58,7 +58,7 @@ import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -1410,7 +1410,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			throws JsonGenerationException, JsonMappingException, IOException {
 		IEngine engine = Utility.getEngine(engineName);
 		List<String> concepts = DomainValues.getConceptList(engine);
-		QueryStruct2 qs = engine.getDatabaseQueryStruct();
+		SelectQueryStruct qs = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = qs.getRelations();
 		// get relations
 		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();

@@ -19,7 +19,7 @@ import prerna.om.RemoteItem;
 import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
@@ -38,7 +38,7 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 	}
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 
 		//get keys
 		Logger logger = getLogger(CLASS_NAME);

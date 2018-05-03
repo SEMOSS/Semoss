@@ -2,12 +2,12 @@ package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public class AsReactor extends AbstractQueryStructReactor {
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		//add the inputs from the store as well as this operation
 		// first is all the inputs
 		// really has one job pick the parent.. 

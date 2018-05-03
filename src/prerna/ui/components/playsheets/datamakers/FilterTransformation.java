@@ -22,7 +22,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.Utility;
 
@@ -62,7 +62,7 @@ public class FilterTransformation extends AbstractTransformation {
 		if (values == null) {
 			LOGGER.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
 			if (dm instanceof ITableDataFrame) {
-				QueryStruct2 qs2 = new QueryStruct2();
+				SelectQueryStruct qs2 = new SelectQueryStruct();
 				Iterator<IHeadersDataRow> uniqIterator = null;
 				if (dm instanceof H2Frame) {
 					qs2.addSelector(((ITableDataFrame) dm).getTableName(), props.get(COLUMN_HEADER_KEY).toString());

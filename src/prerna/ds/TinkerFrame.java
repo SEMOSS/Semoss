@@ -33,8 +33,8 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.querystruct.HardQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -559,7 +559,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if(isNumeric(columnHeader)) {
 			GremlinInterpreter2 interp = new GremlinInterpreter2(this.g);
-			QueryStruct2 qs = new QueryStruct2();
+			SelectQueryStruct qs = new SelectQueryStruct();
 			// add selector
 			QueryColumnSelector selector = new QueryColumnSelector();
 			selector.setTable(columnHeader);
@@ -1087,7 +1087,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(QueryStruct2 qs) {
+	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
 		// right now
 		// BE is going to assume the user wants all the join information
 		// even if they are not returning all the headers
@@ -1158,7 +1158,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// we need to know how to traverse
 		List<String[]> tinkerRelationships = this.metaData.getAllRelationships();
 
-		QueryStruct2 qs1 = new QueryStruct2();
+		SelectQueryStruct qs1 = new SelectQueryStruct();
 		qs1.setDistinct(false);
 		qs1.mergeImplicitFilters(getFrameFilters());
 		for(String[] rel : tinkerRelationships) {
@@ -1178,7 +1178,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				innerSelector.setColumn(split[1]);
 			} else {
 				innerSelector.setTable(columnName);
-				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			countSelector.addInnerSelector(innerSelector);
 			qs1.addSelector(countSelector);
@@ -1186,7 +1186,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		Iterator<IHeadersDataRow> nRowIt = query(qs1);
 		long nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
 
-		QueryStruct2 qs2 = new QueryStruct2();
+		SelectQueryStruct qs2 = new SelectQueryStruct();
 		qs1.setDistinct(true);
 		for(String[] rel : tinkerRelationships) {
 			qs2.addRelation(rel[0], rel[1], rel[2]);
@@ -1201,7 +1201,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				innerSelector.setColumn(split[1]);
 			} else {
 				innerSelector.setTable(columnName);
-				innerSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 			qs2.addSelector(innerSelector);
 		}
@@ -1263,14 +1263,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		QueryStruct qs = component.getQueryStruct();
 		// the component will either have a qs or a query string, account for
 		// that here
-		QueryStruct2 qs2 = null;
+		SelectQueryStruct qs2 = null;
 		if (qs == null) {
 			String query = component.getQuery();
 			qs2 = new HardQueryStruct();
 			((HardQueryStruct) qs2).setQuery(query);
 			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
-			qs2 = new QueryStruct2();
+			qs2 = new SelectQueryStruct();
 			// add selectors
 			Map<String, List<String>> qsSelectors = qs.getSelectors();
 			for (String key : qsSelectors.keySet()) {

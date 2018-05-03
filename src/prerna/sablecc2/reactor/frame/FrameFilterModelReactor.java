@@ -11,7 +11,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -89,7 +89,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 		retMap.put("filterWord", filterWord);
 		
 		// set the base info in the query struct
-		QueryStruct2 qs = new QueryStruct2();
+		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector selector = new QueryColumnSelector(tableCol);
 		qs.addSelector(selector);
 		qs.setLimit(limit);
@@ -194,7 +194,7 @@ public class FrameFilterModelReactor extends AbstractReactor {
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
 			
-			QueryStruct2 mathQS = new QueryStruct2();
+			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 			
 			// get the absolute min when no filters are present

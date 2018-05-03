@@ -6,7 +6,7 @@ import java.util.Map;
 
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -42,8 +42,8 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected QueryStruct2 createQueryStruct() {
-		QueryStruct2 qs = null;
+	protected SelectQueryStruct createQueryStruct() {
+		SelectQueryStruct qs = null;
 
 		// get inputs
 		Map<String, String> dataTypes = getDataTypes(); 

@@ -30,9 +30,8 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 		String jsonString = AbstractHttpHelper.makePostCall(url, accessToken, params , true);
 //		System.out.println("Output >>>>> " + jsonString);
 		
-		SentimentAnalysis sentiment = new SentimentAnalysis();
 //		// fill the bean with the return
-		Object returnObj = BeanFiller.fillFromJson(jsonString, jsonPattern, beanProps, sentiment);
+		Object returnObj = BeanFiller.fillFromJson(jsonString, jsonPattern, beanProps, new SentimentAnalysis());
 		return returnObj;
 	}
 

@@ -6,7 +6,7 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class NullGoogleAnalytics implements IGoogleAnalytics {
@@ -48,7 +48,7 @@ public class NullGoogleAnalytics implements IGoogleAnalytics {
 	}
 
 	@Override
-	public void trackDataImport(Insight in, QueryStruct2 qs) {
+	public void trackDataImport(Insight in, SelectQueryStruct qs) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -79,7 +79,7 @@ public class NullGoogleAnalytics implements IGoogleAnalytics {
 	}
 
 	@Override
-	public void trackViz(TaskOptions taskOptions, Insight in, QueryStruct2 qs) {
+	public void trackViz(TaskOptions taskOptions, Insight in, SelectQueryStruct qs) {
 		// TODO Auto-generated method stub
 		
 	}

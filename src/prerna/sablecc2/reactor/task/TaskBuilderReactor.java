@@ -6,8 +6,8 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.QueryStruct2;
-import prerna.query.querystruct.QueryStruct2.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -76,16 +76,16 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 	 * @return
 	 */
 	private ITask constructTaskFromQs() {
-		QueryStruct2 qs = null;
+		SelectQueryStruct qs = null;
 
 		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
 		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(grsQs != null && !grsQs.isEmpty()) {
-			qs = (QueryStruct2) grsQs.get(0);
+			qs = (SelectQueryStruct) grsQs.get(0);
 		} else {
 			List<Object> qsList = this.curRow.getValuesOfType(PixelDataType.QUERY_STRUCT);
 			if(qsList != null && !qsList.isEmpty()) {
-				qs = (QueryStruct2) qsList.get(0);
+				qs = (SelectQueryStruct) qsList.get(0);
 			}
 		}
 		

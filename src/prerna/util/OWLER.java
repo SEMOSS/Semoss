@@ -23,7 +23,7 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.BaseDatabaseCreator;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -645,7 +645,7 @@ public class OWLER {
 		
 		// query for unique column values and dont 
 		// store it if it returns null
-		QueryStruct2 qs2 = new QueryStruct2();
+		SelectQueryStruct qs2 = new SelectQueryStruct();
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 		newSelector.setDistinct(true);

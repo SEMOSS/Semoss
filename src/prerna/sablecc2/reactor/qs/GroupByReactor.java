@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class GroupByReactor extends AbstractQueryStructReactor {
@@ -9,7 +9,7 @@ public class GroupByReactor extends AbstractQueryStructReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
 	}
 
-	protected QueryStruct2 createQueryStruct() {
+	protected SelectQueryStruct createQueryStruct() {
 		int size = curRow.size();
 		for(int selectIndex = 0;selectIndex < size; selectIndex++) {
 			Object newSelector = curRow.get(selectIndex);
@@ -18,7 +18,7 @@ public class GroupByReactor extends AbstractQueryStructReactor {
 				String[] selectorSplit = thisSelector.split("__");
 				qs.addGroupBy(selectorSplit[0], selectorSplit[1]);
 			} else {
-				qs.addGroupBy(thisSelector, QueryStruct2.PRIM_KEY_PLACEHOLDER);
+				qs.addGroupBy(thisSelector, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			}
 		}
 		return qs;

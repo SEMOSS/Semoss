@@ -22,36 +22,23 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 	@Override
 	public Object execute(User2 user, Hashtable params) 
 	{
-		if(params == null)
+		if(params == null) {
 			params = new Hashtable();
-		// TODO Auto-generated method stub
+		}
+
 		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP.name());
-				
 		String accessToken = googToken.getAccess_token();
-		
 		// you fill what you want to send on the API call
 		// the other thing it needs is an address
 		params.put("key", accessToken);
-		
+
 		// make the API call
 		String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
-		
 		//System.out.println("Output >>>>> " + output);
 		
 		// fill the bean with the return
-		GeoLocation retLocation = new GeoLocation();
-		
-		retLocation = (GeoLocation)BeanFiller.fillFromJson(output, jsonPattern, beanProps, retLocation);
-		
-		// need other methods for filling other things
-		System.out.println(" ");
+		GeoLocation retLocation = (GeoLocation)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new GeoLocation());
 		return retLocation;
-	}
-	
-	public static void main(String [] args)
-	{
-		GoogleLatLongGetter gl = new GoogleLatLongGetter();
-		
 	}
 
 }

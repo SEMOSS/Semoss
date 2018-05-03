@@ -17,7 +17,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -52,7 +52,7 @@ public class MergeDataReactor extends AbstractReactor {
 		// or it is a task already and we want to merge
 		// in either case, we will not return anything but just update the frame
 		
-		QueryStruct2 qs = getQueryStruct();
+		SelectQueryStruct qs = getQueryStruct();
 		if(qs != null) {
 			frame = mergeFromQs(frame, qs, joins);
 		} else {
@@ -74,7 +74,7 @@ public class MergeDataReactor extends AbstractReactor {
 	 * @param joins
 	 * @return
 	 */
-	private ITableDataFrame mergeFromQs(ITableDataFrame frame, QueryStruct2 qs, List<Join> joins) {
+	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
 		// track GA data
 		GATracker.getInstance().trackDataImport(this.insight, qs);
 		
@@ -101,7 +101,7 @@ public class MergeDataReactor extends AbstractReactor {
 				if(qs.hasFiltered(q)) {
 					continue;
 				}
-				QueryStruct2 filterQs = new QueryStruct2();
+				SelectQueryStruct filterQs = new SelectQueryStruct();
 				QueryColumnSelector column = new QueryColumnSelector(s);
 				filterQs.addSelector(column);
 				try {
@@ -115,7 +115,7 @@ public class MergeDataReactor extends AbstractReactor {
 					// the frame will auto convert to physical
 					QueryColumnSelector qSelector = new QueryColumnSelector();
 					qSelector.setTable(q);
-					qSelector.setColumn(QueryStruct2.PRIM_KEY_PLACEHOLDER);
+					qSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 					NounMetadata lNoun = new NounMetadata(qSelector, PixelDataType.COLUMN);
 					NounMetadata rNoun = null;
 					SemossDataType dataType = frame.getMetaData().getHeaderTypeAsEnum(s);
@@ -142,9 +142,9 @@ public class MergeDataReactor extends AbstractReactor {
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
 		
-		if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.CSV_FILE) {
+		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
-		} else if(qs.getQsType() == QueryStruct2.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+		} else if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 		}
 		
@@ -276,12 +276,12 @@ public class MergeDataReactor extends AbstractReactor {
 		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 
-	private QueryStruct2 getQueryStruct() {
+	private SelectQueryStruct getQueryStruct() {
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
-		QueryStruct2 queryStruct = null;
+		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {
 			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return (QueryStruct2)object.getValue();
+			return (SelectQueryStruct)object.getValue();
 		} 
 
 		return queryStruct;

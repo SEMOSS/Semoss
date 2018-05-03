@@ -17,7 +17,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -152,7 +152,7 @@ public class RFrameBuilder {
 			logger.info("Need to filter R table based on QS");
 			// we need to execute a script to modify the table to only contain the data based on the filters defined
 			//create a new querystruct object that will have header names in the format used for RInterpreter
-			QueryStruct2 modifiedQs = new QueryStruct2();
+			SelectQueryStruct modifiedQs = new SelectQueryStruct();
 			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
 
 			//add filters to the new qs
@@ -202,7 +202,7 @@ public class RFrameBuilder {
 			logger.info("Need to filter R table based on QS");
 			// we need to execute a script to modify the table to only contain the data based on the filters defined
 			//create a new querystruct object that will have header names in the format used for RInterpreter
-			QueryStruct2 modifiedQs = new QueryStruct2();
+			SelectQueryStruct modifiedQs = new SelectQueryStruct();
 			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
 
 			//add filters to the new qs
@@ -231,7 +231,7 @@ public class RFrameBuilder {
 		}
 	}
 
-	private QueryStruct2 updateFileSelectors(QueryStruct2 qs, String tableName, String[] colNames) {
+	private SelectQueryStruct updateFileSelectors(SelectQueryStruct qs, String tableName, String[] colNames) {
 		for (int i = 0; i < colNames.length; i++) {
 			qs.addSelector(tableName, colNames[i]);
 		}

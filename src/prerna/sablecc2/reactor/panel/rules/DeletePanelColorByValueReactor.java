@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.panel.rules;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -18,7 +18,7 @@ public class DeletePanelColorByValueReactor extends AbstractPanelColorByValueRea
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
 		String ruleId = getCbvId(1);
-		QueryStruct2 rule = insightPanel.getColorByValue().remove(ruleId);
+		SelectQueryStruct rule = insightPanel.getColorByValue().remove(ruleId);
 		boolean removedRule = true;
 		if(rule == null) {
 			removedRule = false;

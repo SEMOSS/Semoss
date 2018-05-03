@@ -16,7 +16,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -81,7 +81,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 				String db = engineQs[0];
 				String conceptProp = engineQs[1];
 				String table = conceptProp;
-				String column = QueryStruct2.PRIM_KEY_PLACEHOLDER;
+				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
 				if (conceptProp.contains("__")) {
 					String[] conceptPropSplit = conceptProp.split("__");
 					table = conceptPropSplit[0];
@@ -113,7 +113,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 					String queryCol = column;
 					// prim key placeholder cant be queried in the owl
 					// so we convert it back to the display name of the concept
-					if (column.equals(QueryStruct2.PRIM_KEY_PLACEHOLDER)) {
+					if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 						queryCol = table;
 					}
 					String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "

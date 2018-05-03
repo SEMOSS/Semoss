@@ -7,7 +7,7 @@ import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
-import prerna.query.querystruct.QueryStruct2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.task.options.TaskOptions;
 
 public interface IGoogleAnalytics {
@@ -49,7 +49,7 @@ public interface IGoogleAnalytics {
 	 * @param in
 	 * @param selectors
 	 */
-	void trackDataImport(Insight in, QueryStruct2 qs);
+	void trackDataImport(Insight in, SelectQueryStruct qs);
 	
 	/**
 	 * Track running and saving an existing insight
@@ -93,7 +93,7 @@ public interface IGoogleAnalytics {
 	 * @throws SQLException
 	 */
 
-	void trackViz(TaskOptions taskOptions, Insight in, QueryStruct2 qs);
+	void trackViz(TaskOptions taskOptions, Insight in, SelectQueryStruct qs);
 	
 	/**
 	 * Adds logical names from Semantic blending to lookup csv file for recommendations

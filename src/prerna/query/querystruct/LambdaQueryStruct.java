@@ -3,7 +3,7 @@ package prerna.query.querystruct;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LambdaQueryStruct extends QueryStruct2 {
+public class LambdaQueryStruct extends SelectQueryStruct {
 
 	private Map<String, String> columnTypes = new HashMap<String, String>();
 
@@ -20,7 +20,7 @@ public class LambdaQueryStruct extends QueryStruct2 {
 	}
 	
 	@Override
-	public QueryStruct2 getNewBaseQueryStruct() {
+	public SelectQueryStruct getNewBaseQueryStruct() {
 		LambdaQueryStruct newQs = new LambdaQueryStruct();
 		newQs.setQsType(this.getQsType());
 		newQs.setColumnTypes(this.getColumnTypes());
