@@ -51,7 +51,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		String newDb = this.keyValue.get(this.keysToGet[2]);
 		String newTable = this.keyValue.get(this.keysToGet[3]);
 		String newCol = this.keyValue.get(this.keysToGet[4]);
-		String columns = this.keyValue.get(this.keysToGet[5]);
+		List<String> columns = getColumns();
 		List<String> allMatches = getInputList(MATCHES);
 		List<String> nonMatches = getInputList(NONMATCHES);
 		String matchesFrame = this.keyValue.get(this.keysToGet[8]);
@@ -123,13 +123,16 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			}
 			// add all matches provided
 			String script = rand + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder
-					+ "), \"dist\"=c(" + col3Builder + ")); " + linkFrame + " <- rbind(" + linkFrame + "," + rand
+					+ "), \"distance\"=c(" + col3Builder + ")); " + linkFrame + " <- rbind(" + linkFrame + "," + rand
 					+ "); rm(" + rand + ");";
 			this.rJavaTranslator.runR(script);
 		}
 		// make linkframe unique
 		this.rJavaTranslator.runR(linkFrame + " <- unique(" + linkFrame + ");");
 
+		this.rJavaTranslator.runR(linkFrame + "$combined <- paste(" + linkFrame + "$col1, " + linkFrame
+				+ "$col2, sep=\"==\");");
+		
 		// remove all non-matches
 		if (nonMatches != null && !(nonMatches.isEmpty())) {
 			StringBuilder nonMatchCombo = new StringBuilder();
@@ -164,7 +167,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		columnArray.add(newCol);
 		List<String> inputCols = new ArrayList<String>();
 		if (columns != null && !(columns.isEmpty())) {
-			inputCols.addAll(getColumns());
+			inputCols.addAll(columns);
 			columnArray.addAll(inputCols);
 		}
 
@@ -190,7 +193,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			// get semoss type, update meta data and keep track
 			String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, col, newTable);
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
-			typesMap.put(newCol, semossType);
+			typesMap.put(name, semossType);
 			
 			// update meta data in frame
 			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
