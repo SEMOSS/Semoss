@@ -22,6 +22,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -67,8 +68,12 @@ public class ExternalGraphDBReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
-		Map<String, Object> metaMap = (Map<String, Object>) mapInput.get(0);
+		// get metamodel
+		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
+		Map<String, Object> metaMap = null;
+		if(grs != null && !grs.isEmpty()) {
+			metaMap = (Map<String, Object>) grs.get(0);
+		}
 		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
 		Map<String, Object> edges = (Map<String, Object>) metaMap.get("edges");
 		Set<String> concepts = nodes.keySet();

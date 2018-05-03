@@ -21,6 +21,7 @@ import com.google.gson.GsonBuilder;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -84,8 +85,11 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 		}
 
 		// meta model
-		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
-		Map<String, Object> metaMap = (Map<String, Object>) mapInput.get(0);
+		GenRowStruct grs = this.store.getNoun(keysToGet[7]);
+		Map<String, Object> metaMap = null;
+		if(grs != null && !grs.isEmpty()) {
+			metaMap = (Map<String, Object>) grs.get(0);
+		}
 		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
 		Map<String, Object> edges = (Map<String, Object>) metaMap.get("edges");
 		Set<String> concepts = nodes.keySet();
