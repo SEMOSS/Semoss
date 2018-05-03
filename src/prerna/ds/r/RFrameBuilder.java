@@ -359,7 +359,7 @@ public class RFrameBuilder {
 	}
 
 	public String[] getColumnNames(String varName) {
-		return this.rJavaTranslator.getColumns(this.dataTableName);
+		return this.rJavaTranslator.getColumns(varName);
 	}
 
 	public String[] getColumnTypes() {

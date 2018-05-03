@@ -61,7 +61,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 			int numInputs = qsInputParams.size();
 			for(int inputIdx = 0; inputIdx < numInputs; inputIdx++) {
 				NounMetadata qsNoun = (NounMetadata)qsInputParams.getNoun(inputIdx);
-				SelectQueryStruct qs = (SelectQueryStruct) qsNoun.getValue();
+				AbstractQueryStruct qs = (AbstractQueryStruct) qsNoun.getValue();
 				mergeQueryStruct(qs);
 			}
 		}
@@ -82,7 +82,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	}
 	
 	//method to merge an outside query struct with this query struct
-	protected void mergeQueryStruct(SelectQueryStruct queryStruct) {
+	protected void mergeQueryStruct(AbstractQueryStruct queryStruct) {
 		if(this.qs == null) {
 			this.qs = queryStruct;
 		} else {
