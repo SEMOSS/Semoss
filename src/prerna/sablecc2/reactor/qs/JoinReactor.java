@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.NounStore;
@@ -13,7 +13,7 @@ public class JoinReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		GenRowStruct joins = getNounStore().getNoun(NounStore.all);
 		for(int i = 0; i < joins.size(); i++) {
 			if(joins.get(i) instanceof Join) {

@@ -8,6 +8,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonAPIEngine2;
 import prerna.engine.impl.web.WebScrapeEngine;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -21,8 +22,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 	}
 	
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
-		
+	protected AbstractQueryStruct createQueryStruct() {
 		createTemporalStruct();
 		// I am hoping this is almost always engine
 		// need to account if this is a hard query struct

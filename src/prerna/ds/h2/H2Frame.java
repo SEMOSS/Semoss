@@ -24,9 +24,9 @@ import prerna.ds.QueryStruct;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.SqlInterpreter2;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc.PKQLEnum;
@@ -607,8 +607,8 @@ public class H2Frame extends AbstractTableDataFrame {
 		SelectQueryStruct qs2 = null;
 		if (qs == null) {
 			String query = component.getQuery();
-			qs2 = new HardQueryStruct();
-			((HardQueryStruct) qs2).setQuery(query);
+			qs2 = new HardSelectQueryStruct();
+			((HardSelectQueryStruct) qs2).setQuery(query);
 			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
 			qs2 = new SelectQueryStruct();

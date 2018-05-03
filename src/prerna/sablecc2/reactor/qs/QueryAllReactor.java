@@ -1,12 +1,12 @@
 package prerna.sablecc2.reactor.qs;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct;
 
 public class QueryAllReactor extends AbstractQueryStructReactor {
 	
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		ITableDataFrame frame = this.qs.getFrame();
 		if(frame == null) {
 			frame = (ITableDataFrame) this.insight.getDataMaker();

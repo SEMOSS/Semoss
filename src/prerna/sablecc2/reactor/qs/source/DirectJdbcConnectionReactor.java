@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -39,7 +39,7 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		fakeEngine.setConnection(con);
 		fakeEngine.setBasic(true);
 		
-		HardQueryStruct qs = new HardQueryStruct();
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		qs.setEngine(fakeEngine);
 		qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);

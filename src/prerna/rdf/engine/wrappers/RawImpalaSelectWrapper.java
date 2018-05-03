@@ -13,7 +13,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -180,7 +180,7 @@ public class RawImpalaSelectWrapper extends AbstractWrapper implements IRawSelec
 				displayVar[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				//IMPALA EDITS
 				//Remove the front appended math function and re-add it to address case issue due to impala returning lowercase only
-				if(qs != null && !(qs instanceof HardQueryStruct)) {
+				if(qs != null && !(qs instanceof HardSelectQueryStruct)) {
 					if((qs.getSelectors().get(colIndex-1).getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION)){
 						QueryFunctionSelector currentSelect= (QueryFunctionSelector) qs.getSelectors().get(colIndex-1);
 						String aggregate = currentSelect.getFunction();
