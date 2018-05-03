@@ -13,7 +13,7 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
@@ -159,7 +159,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.startLimit > 0) {
 			return;
 		}
-		if(this.qs != null && !(this.qs instanceof HardQueryStruct) ) {
+		if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
 			if(collectNum < 0) {
 				// from this point on
 				// we will just collect everything

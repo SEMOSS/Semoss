@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -31,7 +31,7 @@ public class QSAliasToPhysicalConverter {
 	}
 
 	public static SelectQueryStruct getPhysicalQs(SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
-		if(qs instanceof HardQueryStruct) {
+		if(qs instanceof HardSelectQueryStruct) {
 			return qs;
 		}
 		// need to modify and re-add all the selectors

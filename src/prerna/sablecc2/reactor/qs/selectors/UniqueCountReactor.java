@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.qs.selectors;
 
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -14,7 +14,7 @@ public class UniqueCountReactor extends QuerySelectReactor {
 	}
 
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {

@@ -4,13 +4,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -19,62 +17,13 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class SelectQueryStruct extends AbstractQueryStruct {
 	
-	public enum QUERY_STRUCT_TYPE {ENGINE, FRAME, CSV_FILE, EXCEL_FILE, RAW_ENGINE_QUERY, RAW_FRAME_QUERY, LAMBDA};
-	private QUERY_STRUCT_TYPE qsType = QUERY_STRUCT_TYPE.FRAME;
-
 	protected boolean isDistinct = true;
 	
-	/*
-	 * 3 main parts to a query
-	 * 
-	 * selectors:
-	 * 		table name (equivalent to the name of a vertex for graphs)
-	 * 		column name (equivalent to the property name on a vertex for graphs)
-	 * 		alias
-	 * 		single math operation
-	 * 
-	 * filters:
-	 * 		column to column filtering
-	 * 		column to values filtering
-	 * 		values to column filtering
-	 * 
-	 * relationships:
-	 * 		start column -> joinType -> end column
-	 * 
-	 */
-	
-	protected List<IQuerySelector> selectors = new ArrayList<>();
 	protected List<QueryColumnOrderBySelector> orderBySelectors = new ArrayList<>();
 	protected List<QueryColumnSelector> groupBy = new ArrayList<>();
 
 	protected long limit = -1;
 	protected long offset = -1;
-	
-	////////////////////////////////////////////////////
-	//////////////////// SELECTORS /////////////////////
-	////////////////////////////////////////////////////
-	
-	public void setSelectors(List<IQuerySelector> selectors) {
-		this.selectors = selectors;
-	}
-	
-	public void addSelector(String concept, String property) {
-		if(property == null) {
-			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
-		}
-		QueryColumnSelector selector = new QueryColumnSelector();
-		selector.setTable(concept);
-		selector.setColumn(property);
-		this.selectors.add(selector);
-	}
-	
-	public void addSelector(IQuerySelector selector) {
-		this.selectors.add(selector);
-	}
-	
-	public List<IQuerySelector> getSelectors(){
-		return this.selectors;
-	}
 	
 	////////////////////////////////////////////////////
 	///////////////////// ORDERING /////////////////////
@@ -436,105 +385,18 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	 * 
 	 * This method is responsible for merging "incomingQS's" data with THIS querystruct
 	 */
-	public void merge(SelectQueryStruct incomingQS) {
-		mergeSelectors(incomingQS.selectors);
-		mergeExplicitFilters(incomingQS.explicitFilters);
-		mergeImplicitFilters(incomingQS.implicitFilters);
-		mergeRelations(incomingQS.relations);
-		mergeGroupBy(incomingQS.groupBy);
-		mergeOrderBy(incomingQS.orderBySelectors);
-		if(incomingQS.limit > -1) {
-			setLimit(incomingQS.limit);
-		}
-		
-		if(incomingQS.offset > -1) {
-			setOffSet(incomingQS.offset);
-		}
-		
-		if(incomingQS.getEngineName() != null) {
-			setEngineName(incomingQS.getEngineName());
-		}
-		
-		if(incomingQS.getEngine() != null) {
-			setEngine(incomingQS.getEngine());
-		}
-	}
-	
-	public void mergeSelectors(List<IQuerySelector> incomingSelectors) {
-		//add selectors only if we don't aleady have them as selectors
-		for(IQuerySelector incomingSelector : incomingSelectors) {
-			if(!this.selectors.contains(incomingSelector)) {
-				this.selectors.add(incomingSelector);
+	public void merge(AbstractQueryStruct incomingQS) {
+		super.merge(incomingQS);
+		if(incomingQS instanceof SelectQueryStruct) {
+			SelectQueryStruct selectQS = (SelectQueryStruct) incomingQS;
+			mergeGroupBy(selectQS.groupBy);
+			mergeOrderBy(selectQS.orderBySelectors);
+			if(selectQS.limit > -1) {
+				setLimit(selectQS.limit);
 			}
-		}
-	}
-	
-	/**
-	 * This is meant for filters defined by the user on the QS being sent
-	 * @param incomingFilters
-	 */
-	public void mergeExplicitFilters(GenRowFilters incomingFilters) {
-		//merge the filters
-		this.explicitFilters.merge(incomingFilters);
-	}
-	
-	/**
-	 * This is meant for filters that are stored within the frame
-	 * @param incomingFilters
-	 */
-	public void mergeImplicitFilters(GenRowFilters incomingFilters) {
-		//merge the filters
-		this.implicitFilters.merge(incomingFilters);
-	}
-	
-	/**
-	 * 
-	 * @param incomingRelations
-	 * merges incomingRelations with this relations
-	 */
-	public void mergeRelations(Map<String, Map<String, List>> incomingRelations) {
-		
-		//for each concept in the new relations
-		for(String conceptName : incomingRelations.keySet()) {
 			
-			//Grab the relationships for that concept
-			Map<String, List> incomingHash = incomingRelations.get(conceptName);
-			
-			//if we already have relationships for the same concept we need to merge
-			if(this.relations.containsKey(conceptName)) {
-				
-				//grab this relations for concept
-				Map<String, List> thisHash = this.relations.get(conceptName);
-				
-				//relationKey is inner.join, outer.join, etc.
-				//so we want to merge relationships that have the same relationKey
-				for(String relationKey : incomingHash.keySet()) {
-					List v;
-					if(thisHash.containsKey(relationKey)) {
-						v = thisHash.get(relationKey);
-					} else {
-						v = new Vector();
-					}
-					
-					//merge the this vector with new data and add to thisHash
-					List mergeList = incomingHash.get(relationKey);
-					for(Object newRel : mergeList) {
-						if(!v.contains(newRel)) {
-							v.add(newRel);
-						}
-					}
-					thisHash.put(relationKey, v);
-				}
-			} else {
-				
-				//we don't have the relationship described in the incoming relations so just copy them to this relations
-				Map<String, List> newHash = new Hashtable<>();
-				for(String relationKey : incomingHash.keySet()) {
-					List v = new Vector();
-					v.addAll(incomingHash.get(relationKey));
-					newHash.put(relationKey, v);
-				}
-				this.relations.put(conceptName, newHash);
+			if(selectQS.offset > -1) {
+				setOffSet(selectQS.offset);
 			}
 		}
 	}
@@ -542,7 +404,6 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	/**
 	 * 
 	 * @param groupBys
-	 * 
 	 * Merge the group by selectors
 	 */
 	public void mergeGroupBy(List<QueryColumnSelector> groupBys) {
@@ -556,7 +417,6 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	/**
 	 * 
 	 * @param orderBys
-	 * 
 	 * Merge the order by selectors
 	 */
 	public void mergeOrderBy(List<QueryColumnOrderBySelector> orderBys) {
@@ -644,13 +504,5 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		newQs.setDistinct(this.isDistinct);
 		newQs.setOverrideImplicit(this.overrideImplicit);
 		return newQs;
-	}
-
-	public void setQsType(QUERY_STRUCT_TYPE qsType) {
-		this.qsType = qsType;
-	}
-	
-	public QUERY_STRUCT_TYPE getQsType() {
-		return this.qsType;
 	}
 }

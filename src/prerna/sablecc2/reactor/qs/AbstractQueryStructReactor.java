@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -25,11 +26,11 @@ import prerna.sablecc2.reactor.AbstractReactor;
  */
 public abstract class AbstractQueryStructReactor extends AbstractReactor {
 
-	protected SelectQueryStruct qs;
+	protected AbstractQueryStruct qs;
 	protected String[] selectorAlias;
 	
 	// method to override in the specific qs classes
-	protected abstract SelectQueryStruct createQueryStruct();
+	protected abstract AbstractQueryStruct createQueryStruct();
 
 	@Override
 	public Object Out() {
@@ -40,7 +41,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		init();
 		//build the query struct
-		SelectQueryStruct qs = createQueryStruct();
+		AbstractQueryStruct qs = createQueryStruct();
 		setAlias(qs.getSelectors(), selectorAlias);
 		//create the output and return
 		NounMetadata noun = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);

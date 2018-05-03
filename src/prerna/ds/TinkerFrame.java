@@ -32,9 +32,9 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.interpreters.GremlinInterpreter2;
-import prerna.query.querystruct.HardQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -1266,8 +1266,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		SelectQueryStruct qs2 = null;
 		if (qs == null) {
 			String query = component.getQuery();
-			qs2 = new HardQueryStruct();
-			((HardQueryStruct) qs2).setQuery(query);
+			qs2 = new HardSelectQueryStruct();
+			((HardSelectQueryStruct) qs2).setQuery(query);
 			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
 			qs2 = new SelectQueryStruct();

@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.qs;
 
 import java.util.List;
+
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -16,12 +18,12 @@ public class WithReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		InsightPanel panel = getPanel();
 		GenRowFilters panelFilters = panel.getPanelFilters();
 		qs.mergeImplicitFilters(panelFilters);
 		List<QueryColumnOrderBySelector> orderBys = panel.getPanelOrderBys();
-		qs.mergeOrderBy(orderBys);
+		((SelectQueryStruct) qs).mergeOrderBy(orderBys);
 		return qs;
 	}
 

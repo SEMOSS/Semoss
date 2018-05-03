@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.qs;
 
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
@@ -10,10 +11,10 @@ public class OffsetReactor extends AbstractQueryStructReactor{
 	}
 
 	@Override
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		if(curRow.get(0) instanceof Number) {
 			Long offset = ( (Number) curRow.get(0)).longValue();
-			qs.setOffSet(offset);
+			((SelectQueryStruct) qs).setOffSet(offset);
 		}
 		return qs;
 	}

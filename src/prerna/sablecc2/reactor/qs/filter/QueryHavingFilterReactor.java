@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.qs.filter;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AbstractListFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -17,7 +18,7 @@ public class QueryHavingFilterReactor extends QueryFilterReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey()};
 	}
 
-	protected SelectQueryStruct createQueryStruct() {
+	protected AbstractQueryStruct createQueryStruct() {
 		List<Object> filters = this.curRow.getValuesOfType(PixelDataType.FILTER);
 		if(filters.isEmpty()) {
 			throw new IllegalArgumentException("No filter founds to append into the query");
