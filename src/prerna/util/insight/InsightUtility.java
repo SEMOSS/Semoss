@@ -3,9 +3,11 @@ package prerna.util.insight;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.om.Insight;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.PixelPlanner;
 
 public class InsightUtility {
@@ -57,7 +59,20 @@ public class InsightUtility {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
-	
+	/**
+	 * 
+	 * @param insight
+	 * @param taskId
+	 * @return
+	 */
+	public static ITask removeTask(Insight insight, String taskId) {
+		// get the task object
+		ITask task = insight.getTaskStore().getTask(taskId);
+		// remove the task id
+		insight.getTaskStore().removeTask(taskId);
+		// return the task object so we know what was removed
+		return task;
+	}
 	
 
 }
