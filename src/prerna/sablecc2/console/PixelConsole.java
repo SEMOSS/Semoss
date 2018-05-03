@@ -3,11 +3,8 @@ package prerna.sablecc2.console;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Modifier;
-import java.util.Map;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -18,18 +15,15 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.sablecc2.PixelRunner;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.gson.GsonUtility;
 
 public class PixelConsole {
 
-	private static Gson gson = new GsonBuilder()
-			.disableHtmlEscaping()
-			.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-			.registerTypeAdapter(Double.class, new NumberAdaptor())
-			.setPrettyPrinting()
-			.create();
+	private static Gson gson = GsonUtility.getDefaultGson();
 	
 	public static void main(String[] args){
 		TestUtilityMethods.loadDIHelper();
@@ -61,8 +55,8 @@ public class PixelConsole {
 //						pixel = pixel + ";";
 //					}
 					long start = System.currentTimeMillis();
-					Map<String, Object> returnData = run(insight, pixel);
-					System.out.println(gson.toJson(returnData));
+					PixelRunner returnData = run(insight, pixel);
+					System.out.println(gson.toJson(returnData.getResults()));
 					long time2 = System.currentTimeMillis();
 					System.out.println("Execution time : " + (time2 - start )+ " ms");
 				} else {
@@ -76,7 +70,7 @@ public class PixelConsole {
 		}
 	}
 
-	public static Map<String, Object> run(Insight insight, String pixel) {
+	public static PixelRunner run(Insight insight, String pixel) {
 		return insight.runPixel(pixel);
 	}
 
