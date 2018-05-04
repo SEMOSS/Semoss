@@ -3,6 +3,7 @@ package prerna.poi.main;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
@@ -199,6 +201,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 	}
 
 	private void parseMetadata() {
+		Set<String> concepts = new HashSet<>();
 		if (rdfMap.get("RELATION") != null) {
 			String relationNames = rdfMap.get("RELATION");
 			StringTokenizer relationTokens = new StringTokenizer(relationNames, ";");
@@ -214,7 +217,9 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				String object = relation.substring(relation.lastIndexOf("@") + 1);
 				String predicate = relation.substring(relation.indexOf("@") + 1, relation.lastIndexOf("@"));
 				this.owler.addConcept(subject);
+				concepts.add(subject);
 				this.owler.addConcept(object);
+				concepts.add(object);
 				this.owler.addRelation(subject, object, predicate);
 				relationArrayList.add(relation);
 			}
@@ -236,6 +241,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				String property = relation.substring(relation.lastIndexOf("%") + 1);
 				nodePropArrayList.add(relation);
 				owler.addProp(concept, property, dataTypes[csvColumnToIndex.get(property)]);
+				concepts.add(concept);
 			}
 		}
 
@@ -256,6 +262,9 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				relPropArrayList.add(relation);
 				// TODO add relationship Property to owler
 			}
+		}
+		for(String c: concepts) {
+			owler.addProp(c, TinkerFrame.TINKER_NAME, dataTypes[csvColumnToIndex.get(c)]);
 		}
 	}
 
