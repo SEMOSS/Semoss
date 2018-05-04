@@ -53,7 +53,7 @@ import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.SqlInterpreter2;
+import prerna.query.interpreters.sql.SqlInterpreter2;
 import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.query.builder.SQLInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
@@ -756,6 +756,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	@Override
 	public IQueryInterpreter2 getQueryInterpreter2(){
+		// defualt ansi sql 
 		return new SqlInterpreter2(this);
 	}
 

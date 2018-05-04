@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.query.interpreters.SqlInterpreter2;
+import prerna.query.interpreters.sql.SqlInterpreter2;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -27,7 +27,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.query.builder.SqlJoinList;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -54,8 +53,6 @@ public class UpdateSqlInterpreter {
 	protected Logger logger = null;
 
 	private List<String[]> froms = new Vector<String[]>();
-	// store the joins in the object for easy use
-	private SqlJoinList relationList = new SqlJoinList();
 	
 	// Constructors
 	public UpdateSqlInterpreter() {
@@ -78,28 +75,8 @@ public class UpdateSqlInterpreter {
 		StringBuilder query = new StringBuilder("UPDATE ");
 		
 		// Add sets depending on...
-		List<String> startPoints = new Vector<String>();
-		if(relationList.isEmpty()) {
-			query.append(selectorBuilder);
-			query.append(" SET ").append(sets);
-		} else {
-			List<String[]> tablesToDefine = relationList.getTablesNotDefinedInJoinList();
-			int i = 0;
-			int size = tablesToDefine.size();
-			for(; i < size; i++) {
-				String[] startPoint = tablesToDefine.get(i);
-				if( (i+1) == size) {
-					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
-				} else {
-					query.append(startPoint[1]).append(" , ");
-				}
-				startPoints.add(startPoint[1]);
-				query.append(" SET ").append(sets);
-			}
-		}
-		
-		// add the join data
-		query.append(relationList.getJoinPath(startPoints));
+		query.append(selectorBuilder);
+		query.append(" SET ").append(sets);
 		
 		int numFilters = this.filterStatements.size();
 		for(int i = 0; i < numFilters; i++) {
@@ -199,9 +176,7 @@ public class UpdateSqlInterpreter {
 		// need to perform this check 
 		// if there are no joins
 		// we need to have a from table
-		if(this.relationList.isEmpty()) {
-			addFrom(table, tableAlias);
-		}
+		addFrom(table, tableAlias);
 		
 		// keep track of all the processed columns
 		if(notEmbeddedColumn) {
@@ -246,9 +221,7 @@ public class UpdateSqlInterpreter {
 	}
 	
 	private String processOpaqueSelector(QueryOpaqueSelector selector) {
-		if(this.relationList.isEmpty() && selector.getTable() != null) {
-			addFrom(selector.getTable(), selector.getTable());
-		}
+		addFrom(selector.getTable(), selector.getTable());
 		return selector.getQuerySelectorSyntax();
 	}
 	//////////////////////////////////////////// End Add Selectors //////////////////////////////////////////
