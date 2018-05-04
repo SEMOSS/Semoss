@@ -1,4 +1,4 @@
-package prerna.query.interpreters;
+package prerna.query.interpreters.sql;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,6 +15,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -32,8 +33,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.query.builder.SqlJoinList;
-import prerna.rdf.query.builder.SqlJoinObject;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.test.TestUtilityMethods;
@@ -78,7 +77,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	private List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
-	private SqlJoinList relationList = new SqlJoinList();
+	private SqlJoinStructList joinStructList = new SqlJoinStructList();
 	
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
@@ -128,7 +127,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		if(this.qs.isDistinct()) {
 			distinct = "DISTINCT ";
 		}
-		if(this.engine != null && !engine.isBasic() && relationList.isEmpty()) {
+		if(this.engine != null && !engine.isBasic() && joinStructList.isEmpty()) {
 			// if there are no joins, we know we are querying from a single table
 			// the vast majority of the time, there shouldn't be any duplicates if
 			// we are selecting all the columns
@@ -137,9 +136,9 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(table, false).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
-					query.append(selectors).append(" FROM ");
+					query.append(selectors);
 				} else {
-					query.append(distinct).append(selectors).append(" FROM ");
+					query.append(distinct).append(selectors);
 				}
 			} else {
 				// need a distinct
@@ -147,7 +146,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 			}
 		} else {
 			// default is to use a distinct
-			query.append(distinct).append(selectors).append(" FROM ");
+			query.append(distinct).append(selectors);
 		}
 		
 		// if there is a join
@@ -156,27 +155,15 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		// so get a good starting from table
 		// we can use any of the froms that is not part of the join
 		List<String> startPoints = new Vector<String>();
-		if(relationList.isEmpty()) {
+		if(joinStructList.isEmpty()) {
+			query.append(" FROM ");
 			String[] startPoint = froms.get(0);
 			query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
 			startPoints.add(startPoint[1]);
 		} else {
-			List<String[]> tablesToDefine = relationList.getTablesNotDefinedInJoinList();
-			int i = 0;
-			int size = tablesToDefine.size();
-			for(; i < size; i++) {
-				String[] startPoint = tablesToDefine.get(i);
-				if( (i+1) == size) {
-					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
-				} else {
-					query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" , ");
-				}
-				startPoints.add(startPoint[1]);
-			}
+			query.append(" ").append(joinStructList.getJoinSyntax());
 		}
 		
-		// add the join data
-		query.append(relationList.getJoinPath(startPoints));
 		// add where clause filters
 		int numFilters = this.filterStatements.size();
 		for(int i = 0; i < numFilters; i++) {
@@ -307,7 +294,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		// need to perform this check 
 		// if there are no joins
 		// we need to have a from table
-		if(this.relationList.isEmpty()) {
+		if(this.joinStructList.isEmpty()) {
 			addFrom(table, tableAlias);
 		}
 		
@@ -354,7 +341,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	}
 	
 	private String processOpaqueSelector(QueryOpaqueSelector selector) {
-		if(this.relationList.isEmpty() && selector.getTable() != null) {
+		if(this.joinStructList.isEmpty() && selector.getTable() != null) {
 			addFrom(selector.getTable(), selector.getTable());
 		}
 		return selector.getQuerySelectorSyntax();
@@ -418,57 +405,26 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * 									or table__column
 	 */
 	private void addJoin(String fromCol, String thisComparator, String toCol) {
-		SqlJoinObject thisJoin = null;
-		
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
-		String concept = relConProp[0];
-		String property = relConProp[1];
-		String toConcept = relConProp[2];
-		String toProperty = relConProp[3];
+		String targetTable = relConProp[0];
+		String targetColumn = relConProp[1];
+		String sourceTable = relConProp[2];
+		String sourceColumn = relConProp[3];
 		
-		// the unique key for the join will be the concept and type of join
-		// this is so we append the joins property
-		String key = toConcept;
+		String compName = thisComparator.replace(".", " ");
+		SqlJoinStruct jStruct = new SqlJoinStruct();
+		jStruct.setJoinType(compName);
+		// add source
+		jStruct.setSourceTable(sourceTable);
+		jStruct.setSourceTableAlias(getAlias(sourceTable));
+		jStruct.setSourceCol(sourceColumn);
+		// add target
+		jStruct.setTargetTable(targetTable);
+		jStruct.setTargetTableAlias(getAlias(targetTable));
+		jStruct.setTargetCol(targetColumn);
 		
-//		String queryString = "";
-		String compName = thisComparator.replace(".", "  ");
-		if(!relationList.doesJoinAlreadyExist(key)) {
-//			queryString = compName + "  " + toConcept+ " " + getAlias(toConcept) + " ON " + getAlias(concept) + "." + property + " = " + getAlias(toConcept) + "." + toProperty;
-			
-			thisJoin = new SqlJoinObject(key, relationList);
-			// if the concept is already defined
-			// we need to get a new alias for it
-			int counter = 1;
-			String toConceptAlias = getAlias(toConcept);
-			String usedToConceptAlias = toConceptAlias;
-			while(relationList.allDefinedTableAlias().contains(usedToConceptAlias)) {
-				usedToConceptAlias = toConceptAlias + "_" + counter;
-			}
-			// this method will determine everything required
-			// the defined table and the required table
-			thisJoin.setQueryString(compName, toConcept, usedToConceptAlias, toProperty, concept, getAlias(concept), property);
-
-			// add to the list
-			relationList.addSqlJoinObject(thisJoin);
-		} else {
-//			queryString = concept + " " + getAlias(concept) + " ON " + getAlias(concept) +  "." + property + " = " + getAlias(toConcept) + "." + toProperty;			
-
-			thisJoin = relationList.getExistingJoin(key);
-			
-			// if the concept is already defined
-			// we need to get a new alias for it
-			int counter = 1;
-			String conceptAlias = getAlias(concept);
-			String usedConceptAlias = conceptAlias;
-			while(relationList.allDefinedTableAlias().contains(usedConceptAlias)) {
-				usedConceptAlias = conceptAlias + "_" + counter;
-			}
-			
-			// this method will determine everything required
-			// the defined table and the required table
-			thisJoin.addQueryString(compName, concept, usedConceptAlias , property, toConcept, getAlias(toConcept), toProperty);
-		}
+		joinStructList.addJoin(jStruct);
 	}
 	
 	////////////////////////////////////////// end adding joins ///////////////////////////////////////
