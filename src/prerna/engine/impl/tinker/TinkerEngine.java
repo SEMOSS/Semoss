@@ -211,7 +211,7 @@ public class TinkerEngine extends AbstractEngine {
 		Vertex retVertex = null;
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TinkerFrame.TINKER_ID, type + ":" + data);
 		if(!this.typeMap.keySet().contains(type)) {
-			this.typeMap.put(type, TinkerFrame.TINKER_NAME);
+			this.typeMap.put(type, TinkerFrame.TINKER_TYPE);
 		}
 		if (gt.hasNext()) {
 			retVertex = gt.next();
