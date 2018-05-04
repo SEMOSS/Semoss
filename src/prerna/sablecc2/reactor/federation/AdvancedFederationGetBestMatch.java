@@ -59,12 +59,13 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		// create script to generate col2 from table to be joined
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
-		QueryColumnSelector selector = new QueryColumnSelector();
-		selector.setTable(newTable);
-		selector.setColumn(newCol);
+		QueryColumnSelector selector = new QueryColumnSelector(newCol);
 		qs.addSelector(selector);
 
 		IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+		if(newCol.contains("__")){
+			newCol = newCol.split("__")[1];
+		}
 		
 		Map typesMap = new HashMap<String, SemossDataType>();
 		String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newCol, newTable);

@@ -178,18 +178,21 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
 		for (int i = 0; i < columnArray.size(); i++) {
-			String col = columnArray.get(i);
-			QueryColumnSelector selector = new QueryColumnSelector();
-			selector.setTable(newTable);
-			selector.setColumn(col);
-			qs.addSelector(selector);
+			String fullCol = columnArray.get(i);
+			String col = fullCol;
+			if (fullCol.contains("__")){
+				col = fullCol.split("__")[1];
+			}
+			QueryColumnSelector selector = new QueryColumnSelector(fullCol);
 			// set alias with clean column name in case it exists in the frame
+			
+			
 			String name = getCleanNewColName(frame.getTableName(), col);
 			// update newCol variable if changed
-			if (col.equals(newCol)) {
+			if (fullCol.equals(newCol)) {
 				newCol = name;
 			}
-			selector.setAlias(name);
+
 			// get semoss type, update meta data and keep track
 			String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, col, newTable);
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
@@ -201,6 +204,8 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			metaData.setAliasToProperty(frameName + "__" + name, name);
 			metaData.setDataTypeToProperty(frameName + "__" + name, semossType.toString());
 			metaData.setQueryStructNameToProperty(frameName + "__" + name, newDb, newTable + "__" + col);
+			selector.setAlias(name);
+			qs.addSelector(selector);
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
