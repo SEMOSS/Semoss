@@ -2,7 +2,7 @@ package prerna.engine.impl.rdbms;
 
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.ImpalaInterpreter;
+import prerna.query.interpreters.sql.ImpalaInterpreter;
 
 public class ImpalaEngine extends RDBMSNativeEngine {
 

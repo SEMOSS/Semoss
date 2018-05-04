@@ -1,6 +1,6 @@
 package prerna.util.gson;
 
-import prerna.query.interpreters.SqlInterpreter2;
+import prerna.query.interpreters.sql.SqlInterpreter2;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
