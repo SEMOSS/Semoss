@@ -165,7 +165,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		} else {
 			curReactor.getCurRow().add(noun);
 		}
-	};
+	}
 	
 	@Override
 	public void inAOutputRoutine(AOutputRoutine node) {
