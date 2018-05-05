@@ -70,6 +70,15 @@ public class SqlJoinStruct {
 		targetTable = tempTargetTable;
 		targetTableAlias = tempTargetTableAlias;
 		targetCol = tempTargetCol;
+		
+		// if left -> switch to right
+		// if right -> switch to left
+		// else -> stay same
+		if(joinType.contains("left")) {
+			joinType = "right outer join";
+		} else if(joinType.contains("right")) {
+			joinType = "left outer join";
+		}
 	}
 	
 	/////////////////////////////////////////////////////////////////////
