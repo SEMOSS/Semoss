@@ -141,88 +141,71 @@ public class SqlJoinStructList {
 		// and see number of times what alias are defined 
 		// this is the set of source aliases we have
 		int numJoins = joins.size();
-		Map<String, Integer> definedAlias = new HashMap<String, Integer>();
-		for(int i = 0; i < numJoins; i++) {
-			SqlJoinStruct joinStruct = joins.get(i);
-			
-			String sourceAlias = joinStruct.getSourceTableAlias();
-			// defined is source
-			if(definedAlias.containsKey(sourceAlias)) {
-				int curNum = definedAlias.get(sourceAlias);
-				curNum++;
-				definedAlias.put(sourceAlias, new Integer(curNum));
-			} else {
-				definedAlias.put(sourceAlias, new Integer(1));
-			}
-		}
+		Map<String, Integer> definedAlias = getDefinedAliasCount();
 		
-		List<Integer> fromIndexRemoved = new Vector<Integer>();
-		int fromCounter = 0;
-		int numFroms = froms.size();
-		// let us loop through and try to switch the joins
-		RESTART : while(fromCounter < numFroms) {
+		// i will find the table that has the most definitions
+		// and i will switch it
+		// and try to recalculate
+		
+		int tryCount = 0;
+		final int tryLimit = 100;
+		REPEAT : while(froms.size() > 1 && tryCount < tryLimit) {
+			// find largest index
+			int largest = 1;
+			String aliasToTry = null;
+			for(String definedTable : definedAlias.keySet()) {
+				int val = definedAlias.get(definedTable);
+				if(val > largest) {
+					aliasToTry = definedTable;
+					largest = val;
+				}
+			}
 			
-			// break out of the loop once we have only 1 from
-			if( (numFroms - fromIndexRemoved.size())  == 1) {
+			if(aliasToTry == null) {
 				break;
 			}
 			
-			if(fromIndexRemoved.contains(new Integer(fromCounter))) {
-				fromCounter++;
-				continue;
-			}
+			// now loop through
+			// and try to switch a join
+			// if the source isn't defined
+			SqlJoinStruct attemptRandomSwitch = null;
 			
-			// since we are modifying what is defined
-			// and what is not
-			// we need to continue going through
-			String[] f = froms.get(fromCounter);
-			String aliasNeedsDefining = f[1];
 			for(int i = 0; i < numJoins; i++) {
-				
 				SqlJoinStruct j = joins.get(i);
 				// we need to modify this join
 				// if the from reflects the target that isn't defined
-				String targetTableAlias = j.getTargetTableAlias();
-				if(targetTableAlias.equals(aliasNeedsDefining)) {
-					// is the source defined
-					String sourceTableAlias = j.getSourceTableAlias();
-					// do we have multiple things defining the source?
-					int numDefined = definedAlias.get(sourceTableAlias);
-					if(numDefined > 1) {
-						// we can do a switch
+				String sourceTableAlias = j.getSourceTableAlias();
+				if(sourceTableAlias.equals(aliasToTry)) {
+					// is the target defined
+					String targetTableAlias = j.getTargetTableAlias();
+					// if it is not, try to switch it
+					if(!definedAlias.containsKey(targetTableAlias)) {
+						// candidate to switch
 						j.reverse();
+						froms = determineFromTables();
+						definedAlias = getDefinedAliasCount();
 						
-						// now add it as a defined alias
-						definedAlias.put(targetTableAlias, new Integer(1));
-						
-						// lower the number of the other one
-						int curNum = definedAlias.get(sourceTableAlias);
-						curNum--;
-						definedAlias.put(sourceTableAlias, new Integer(curNum));
-						
-						// store the from to remove
-						fromIndexRemoved.add(new Integer(fromCounter));
-						
-						// we also need to reset the loop
-						fromCounter = 0;
-						continue RESTART;
+						// update the count
+						tryCount++;
+						continue REPEAT;
+					} else {
+						attemptRandomSwitch = j;
 					}
 				}
 			}
 			
-			// if we get to this point
-			// we need to try the next from
-			fromCounter++;
-		}
-		
-		List<String[]> singleFrom = new Vector<String[]>();
-		for(int i = 0; i < numFroms; i++) {
-			if(!fromIndexRemoved.contains(new Integer(i))) {
-				singleFrom.add(froms.get(i));
+			// at this point
+			if(attemptRandomSwitch != null) {
+				attemptRandomSwitch.reverse();
+				froms = determineFromTables();
+				definedAlias = getDefinedAliasCount();
 			}
+			
+			// update the count
+			tryCount++;
 		}
 		
-		return singleFrom;
+		return froms;
 	}
 
 	/**
@@ -283,6 +266,29 @@ public class SqlJoinStructList {
 		}
 			
 		return fromTables;
+	}
+	
+	/**
+	 * Get the count of which alias is defined based on the joins
+	 * @return
+	 */
+	private Map<String, Integer> getDefinedAliasCount() {
+		int numJoins = joins.size();
+		Map<String, Integer> definedAlias = new HashMap<String, Integer>();
+		for(int i = 0; i < numJoins; i++) {
+			SqlJoinStruct joinStruct = joins.get(i);
+			
+			String sourceAlias = joinStruct.getSourceTableAlias();
+			// defined is source
+			if(definedAlias.containsKey(sourceAlias)) {
+				int curNum = definedAlias.get(sourceAlias);
+				curNum++;
+				definedAlias.put(sourceAlias, new Integer(curNum));
+			} else {
+				definedAlias.put(sourceAlias, new Integer(1));
+			}
+		}
+		return definedAlias;
 	}
 	
 	public boolean isEmpty() {
