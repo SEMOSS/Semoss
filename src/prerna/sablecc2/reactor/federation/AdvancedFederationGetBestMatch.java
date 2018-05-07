@@ -59,23 +59,39 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		// create script to generate col2 from table to be joined
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
-		QueryColumnSelector selector = new QueryColumnSelector(newCol);
+
+		// we will fill these once we figure out if it is a concept or property
+		QueryColumnSelector selector = null;
+		String conceptDataType = null;
+		// this is a hack
+		// since i dont know if it is a concept or a property
+		// if i get a valid data type, new col is a property for new table
+		// if i dont, then newtable is a concept with a prim key that i need to use
+		if(newColEngine.getParentOfProperty(newCol + "/" + newTable) == null) {
+			// we couldn't find a parent for this property
+			// this means it is a concept itself
+			// and we should only use table
+			selector = new QueryColumnSelector(newTable);
+			conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newTable, null);
+		} else {
+			selector = new QueryColumnSelector(newTable + "__" + newCol);
+			conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newCol, newTable);
+		}
+		// add the selector to the qs
 		qs.addSelector(selector);
 
-		IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		if(newCol.contains("__")){
-			newCol = newCol.split("__")[1];
-		}
-		
+		// get the info to write this data to a tsv
 		Map typesMap = new HashMap<String, SemossDataType>();
-		String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, newCol, newTable);
 		SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 		typesMap.put(newCol, semossType);
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/"
-				+ Utility.getRandomString(6) + ".tsv";
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+
+		// exec query
+		IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+
+		// write to file
 		File newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
-		String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/")
-				+ "\", sep=\"\t\");";
+		String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
 		this.rJavaTranslator.runR(loadFileRScript);
 		this.rJavaTranslator.runR(rCol2 + " <- as.character(" + rCol2 + "$" + newCol + ")");
 		newFile.delete();
