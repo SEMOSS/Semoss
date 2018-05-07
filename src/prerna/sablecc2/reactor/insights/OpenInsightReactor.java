@@ -73,6 +73,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		InsightStore.getInstance().put(newInsight);
 		// set user 
 		newInsight.setUser(this.insight.getUser());
+		newInsight.setUser2(this.insight.getUser2());
 		// get the insight output
 		PixelRunner runner = null;
 		// add additional pixels if necessary
