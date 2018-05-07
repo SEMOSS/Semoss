@@ -92,12 +92,10 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		}
 		
 		// create link table by filtering for propagation value or less from fed frame
-		this.rJavaTranslator.runR("library(data.table); " + linkFrame
-				+ " <- " + matchesFrame + "[" + matchesFrame + "$distance <= " + propValue + ",]");
+		this.rJavaTranslator.runR("library(data.table); " + linkFrame + " <- " + matchesFrame + "[" + matchesFrame + "$distance <= " + propValue + ",]");
 
 		// add combined lookup column
-		this.rJavaTranslator.runR(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame
-				+ "$col2, sep=\"==\");");
+		this.rJavaTranslator.runR(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame + "$col2, sep=\"==\");");
 
 		// add all matches
 		if (allMatches != null && !(allMatches.isEmpty())) {
@@ -129,10 +127,8 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		}
 		// make linkframe unique
 		this.rJavaTranslator.runR(linkFrame + " <- unique(" + linkFrame + ");");
-
-		this.rJavaTranslator.runR(linkFrame + "$combined <- paste(" + linkFrame + "$col1, " + linkFrame
-				+ "$col2, sep=\"==\");");
-		
+		this.rJavaTranslator.runR(linkFrame + "$combined <- paste(" + linkFrame + "$col1, " + linkFrame + "$col2, sep=\"==\");");
+					
 		// remove all non-matches
 		if (nonMatches != null && !(nonMatches.isEmpty())) {
 			StringBuilder nonMatchCombo = new StringBuilder();
@@ -145,31 +141,31 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			}
 
 			// remove all non matches from LinkFrame
-			this.rJavaTranslator.runR(linkFrame + " <- " + linkFrame + "[!" + linkFrame + "$combined %in% c("
-					+ nonMatchCombo + ")]");
+			this.rJavaTranslator.runR(linkFrame + " <- " + linkFrame + "[!" + linkFrame + "$combined %in% c(" + nonMatchCombo + ")]");
 
 			// run a check if linkframe is empty, no data will result
 			String link = this.rJavaTranslator.getString("all.equal(as.character(" + linkFrame + "),character(0))");
 			if (link == null) {
 				throw new IllegalArgumentException("No matching values left to blend.");
 			}
-
-			// drop combined column
-			this.rJavaTranslator.runR(linkFrame + " <- " + linkFrame + "[,-c(\"combined\")]");
 		}
+		// drop combined column
+		this.rJavaTranslator.runR(linkFrame + " <- " + linkFrame + "[,-c(\"combined\")]");
 
 		// get R Frame
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getTableName();
 
 		// get all columns to federate on
-		ArrayList<String> columnArray = new ArrayList<String>();
+		List<String> columnArray = new ArrayList<String>();
 		columnArray.add(newCol);
 		List<String> inputCols = new ArrayList<String>();
 		if (columns != null && !(columns.isEmpty())) {
 			inputCols.addAll(columns);
 			columnArray.addAll(inputCols);
 		}
+		
+		boolean convertJoinColFromNum = false;
 
 		// update frame meta for new cols being added
 		// build qs to pull the target data
@@ -177,44 +173,57 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		Map typesMap = new HashMap<String, SemossDataType>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(newColEngine);
+		
 		for (int i = 0; i < columnArray.size(); i++) {
-			String fullCol = columnArray.get(i);
-			String col = fullCol;
-			if (fullCol.contains("__")){
-				col = fullCol.split("__")[1];
-			}
-			QueryColumnSelector selector = new QueryColumnSelector(fullCol);
-			// set alias with clean column name in case it exists in the frame
+			String additionalColumnInput = columnArray.get(i);
 			
-			
-			String name = getCleanNewColName(frame.getTableName(), col);
-			// update newCol variable if changed
-			if (fullCol.equals(newCol)) {
-				newCol = name;
+			// we will fill these once we figure out if it is a concept or property
+			QueryColumnSelector selector = null;
+			String conceptDataType = null;
+			// this is a hack
+			// since i dont know if it is a concept or a property
+			// if i get a valid data type, new col is a property for new table
+			// if i dont, then newtable is a concept with a prim key that i need to use
+			if(newColEngine.getParentOfProperty(additionalColumnInput + "/" + newTable) == null) {
+				// we couldn't find a parent for this property
+				// this means it is a concept itself
+				// and we should only use table
+				selector = new QueryColumnSelector(newTable);
+				conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, selector.getTable(), null);
+			} else {
+				selector = new QueryColumnSelector(newTable + "__" + additionalColumnInput);
+				conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, selector.getColumn(), selector.getTable());
 			}
+			// add the selector to the qs
+			qs.addSelector(selector);
+			
+			String name = getCleanNewColName(frame.getTableName(), selector.getAlias());
 
 			// get semoss type, update meta data and keep track
-			String conceptDataType = MasterDatabaseUtility.getBasicDataType(newDb, col, newTable);
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 			typesMap.put(name, semossType);
+			
+			// do we need to convert the join col to a string?
+			if(selector.getAlias().equals(newCol)) {
+				if(semossType == SemossDataType.DOUBLE || semossType == SemossDataType.INT) {
+					convertJoinColFromNum = true;
+				}
+			}
 			
 			// update meta data in frame
 			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 			metaData.addProperty(frameName, frameName + "__" + name);
 			metaData.setAliasToProperty(frameName + "__" + name, name);
 			metaData.setDataTypeToProperty(frameName + "__" + name, semossType.toString());
-			metaData.setQueryStructNameToProperty(frameName + "__" + name, newDb, newTable + "__" + col);
+			metaData.setQueryStructNameToProperty(frameName + "__" + name, newDb, selector.getQueryStructName());
 			selector.setAlias(name);
-			qs.addSelector(selector);
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
-		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/"
-				+ Utility.getRandomString(6) + ".tsv";
+		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
-		String loadFileRScript = trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/")
-				+ "\", sep=\"\t\");";
+		String loadFileRScript = trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 
@@ -225,56 +234,41 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		String frameColType = frameMeta.getHeaderTypeAsString(uniqueMetaName);
 
 		boolean linkColWasNum = false;
-		boolean frameColWasNum = false;
-
-		// if either join columns are numbers, update the frames so it joins
-		// properly
-		if (SemossDataType.convertStringToDataType(frameColType).equals(SemossDataType.DOUBLE)
-				|| SemossDataType.convertStringToDataType(frameColType).equals(SemossDataType.INT)) {
+		// if either join columns are numbers, update the frames so it joins properly
+		if (SemossDataType.convertStringToDataType(frameColType).equals(SemossDataType.DOUBLE) || SemossDataType.convertStringToDataType(frameColType).equals(SemossDataType.INT)) {
 			// convert frame col to chr
 			this.rJavaTranslator.runR(frameName + "$" + frameCol + " <- as.character(" + frameName + "$" + frameCol + ");");
-
 			// make note for later to convert back to num
 			linkColWasNum = true;
 
 		}
-		if (typesMap.get(newCol).equals(SemossDataType.DOUBLE)
-				|| typesMap.get(newCol).equals(SemossDataType.INT)) {
+		if (convertJoinColFromNum) {
 			// convert trg table col to chr
 			this.rJavaTranslator.runR(trg + "$" + newCol + " <- as.character(" + trg + "$" + newCol + ");");
-
-			// make note for later to convert back to num
-			frameColWasNum = true;
 		}
 
 		// execute blend
-		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\""
-				+ newCol + "\", " + linkFrame + " , \"" + joinType + "\")";
+		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\"" + newCol + "\", " + linkFrame + " , \"" + joinType + "\")";
 		this.rJavaTranslator.runR(blendedFrameScript);
 
 		// if columns were num before convert them back so
 		// the data types are the same as they started with
 		if (linkColWasNum) {
-			this.rJavaTranslator.runR(
-					frameName + "$" + frameCol + " <- as.numeric(as.character(" + frameName + "$" + frameCol + "));");
+			this.rJavaTranslator.runR(frameName + "$" + frameCol + " <- as.numeric(as.character(" + frameName + "$" + frameCol + "));");
 		}
-
-		if (frameColWasNum) {
-			this.rJavaTranslator
-					.runR(frameName + "$" + newCol + " <- as.numeric(as.character(" + frameName + "$" + newCol + "));");
+		if (convertJoinColFromNum) {
+			this.rJavaTranslator.runR(frameName + "$" + newCol + " <- as.numeric(as.character(" + frameName + "$" + newCol + "));");
 		}
 
 		// remove columns from frame that are temporary
-		String removeExtras = frameName + " <- " + frameName
-				+ "[,-c(\"i.and.d\",\"col1\",\"col2\",\"distance.y\",\"distance.x\")]";
+		String removeExtras = frameName + " <- " + frameName + "[,-c(\"i.and.d\",\"col1\",\"col2\",\"distance.y\",\"distance.x\")]";
 		this.rJavaTranslator.runR(removeExtras);
 
 		// reset the frame headers
 		this.getFrame().syncHeaders();
 
 		// delete advanced Fed frame in R, done with it
-		this.rJavaTranslator.runR("rm(" + trg + "," + matchesFrame + ", BaseLinkFrame, " + linkFrame
-				+ ", best_match_zero, best_match, blend, best_match_lessthan, best_match_nonzero)");
+		this.rJavaTranslator.runR("rm(" + trg + "," + matchesFrame + ", BaseLinkFrame, " + linkFrame + ", best_match_zero, best_match, blend, best_match_lessthan, best_match_nonzero)");
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata((inputCols)));
