@@ -60,7 +60,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		final String linkFrame =  matchesFrame + "link";
 		String rand = Utility.getRandomString(8);
 		final String trg = "trg_" + rand;
-		String origNewCol = this.keyValue.get(this.keysToGet[4]);
+		String updatedNewCol = newCol;
 
 		// SUMMARY: The blend R script uses a link table of all matches selected:
 		//
@@ -203,6 +203,11 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 			typesMap.put(name, semossType);
 			
+			// update target join column name if it was cleaned
+			if(additionalColumnInput.equals(newCol)){
+				updatedNewCol = name;
+			}
+			
 			// do we need to convert the join col to a string?
 			if(selector.getAlias().equals(newCol)) {
 				if(semossType == SemossDataType.DOUBLE || semossType == SemossDataType.INT) {
@@ -244,11 +249,11 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		}
 		if (convertJoinColFromNum) {
 			// convert trg table col to chr
-			this.rJavaTranslator.runR(trg + "$" + newCol + " <- as.character(" + trg + "$" + newCol + ");");
+			this.rJavaTranslator.runR(trg + "$" + updatedNewCol + " <- as.character(" + trg + "$" + updatedNewCol + ");");
 		}
 
 		// execute blend
-		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\"" + newCol + "\", " + linkFrame + " , \"" + joinType + "\")";
+		String blendedFrameScript = frameName + " <- blend(" + frameName + ", \"" + frameCol + "\"," + trg + ",\"" + updatedNewCol + "\", " + linkFrame + " , \"" + joinType + "\")";
 		this.rJavaTranslator.runR(blendedFrameScript);
 
 		// if columns were num before convert them back so
@@ -257,7 +262,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(frameName + "$" + frameCol + " <- as.numeric(as.character(" + frameName + "$" + frameCol + "));");
 		}
 		if (convertJoinColFromNum) {
-			this.rJavaTranslator.runR(frameName + "$" + newCol + " <- as.numeric(as.character(" + frameName + "$" + newCol + "));");
+			this.rJavaTranslator.runR(frameName + "$" + updatedNewCol + " <- as.numeric(as.character(" + frameName + "$" + updatedNewCol + "));");
 		}
 
 		// remove columns from frame that are temporary
