@@ -1,8 +1,12 @@
 package prerna.ui.components.specific.tap.genesisdeployment;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.log4j.LogManager;
@@ -10,7 +14,10 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.TablePlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -350,7 +357,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		TestUtilityMethods.loadDIHelper();
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 		IEngine coreEngine = new BigDataEngine();
@@ -376,6 +383,60 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
 		MhsGenesisSiteDeploymentSavingsPlaySheet ps = new MhsGenesisSiteDeploymentSavingsPlaySheet(processor);
 		ps.processDataMakerComponent(null);
+		
+		Iterator<IHeadersDataRow> it2 = ps.systemSiteSustainmentFrame.iterator();
+		boolean f1 = true;
+		try{
+			PrintWriter writer = new PrintWriter("C:\\Users\\SEMOSS\\Desktop\\Datasets\\all_data.csv", "UTF-8");
+			while(it2.hasNext()) {
+				IHeadersDataRow row = it2.next();
+				if(f1) {
+					f1 = false;
+					for(Object val : row.getHeaders()) {
+						writer.print(val + ",");
+					}
+					writer.print("\n");
+				}
+				Object[] values = row.getValues();
+				for(Object val : values) {
+					writer.print(val + ",");
+				}
+				writer.print("\n");
+				System.out.println(">>> " + Arrays.toString( values ) );
+			}
+			writer.close();
+		} catch (IOException e) {
+			// do something
+		}
+		// iterate through the results for testing
+		
+		String fName = ps.siteDeploymentSavings.getTableName();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for(String head : ps.siteDeploymentSavingsHeaders) {
+			qs.addSelector(new QueryColumnSelector(fName + "__" + head));
+		}
+		LOGGER.info("Testing data...");
+		Iterator<IHeadersDataRow> it = ps.siteDeploymentSavings.query(qs);
+		System.out.println(">>> " + Arrays.toString( ps.siteDeploymentSavingsHeaders ) );
+		try{
+			PrintWriter writer = new PrintWriter("C:\\Users\\SEMOSS\\Desktop\\Datasets\\SAVINGS_SiteView_CIS_Essentris.csv", "UTF-8");
+			for(Object val : ps.siteDeploymentSavingsHeaders) {
+				writer.print(val + ",");
+			}
+			writer.print("\n");
+			while(it.hasNext()) {
+				Object[] values = it.next().getValues();
+				for(Object val : values) {
+					writer.print(val + ",");
+				}
+				writer.print("\n");
+				System.out.println(">>> " + Arrays.toString( values ) );
+			}
+			writer.close();
+		} catch (IOException e) {
+			// do something
+		}
+		LOGGER.info("Done iterating through system deployment savings data");
 	}
 
 
