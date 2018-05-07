@@ -41,18 +41,26 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 					String typeStr = in.nextString();
 					type = PixelDataType.valueOf(typeStr);
 				} else if(name.equals("class")) {
-					className = in.nextString();
-					// get the class
-					try {
-						c = Class.forName(className);
-					} catch (ClassNotFoundException e) {
-						e.printStackTrace();
+					if(in.peek() == JsonToken.NULL) {
+						in.nextNull();
+					} else {
+						className = in.nextString();
+						// get the class
+						try {
+							c = Class.forName(className);
+						} catch (ClassNotFoundException e) {
+							e.printStackTrace();
+						}
 					}
 				} else if(name.equals("value")) {
 					in.beginArray();
 					while(in.hasNext()) {
-						TypeAdapter adapter = GSON.getAdapter(c);
-						obj = adapter.read(in);
+						if(in.peek() == JsonToken.NULL) {
+							in.nextNull();
+						} else {
+							TypeAdapter adapter = GSON.getAdapter(c);
+							obj = adapter.read(in);
+						}
 					}
 					in.endArray();
 				} else if(name.equals("opType")) {
@@ -81,11 +89,19 @@ public class NounMetadataAdapter extends TypeAdapter<NounMetadata> {
 		
 		out.beginObject();
 		out.name("pixelType").value(type.toString());
-		out.name("class").value(obj.getClass().getName());
+		if(obj == null) {
+			out.name("class").nullValue();
+		} else {
+			out.name("class").value(obj.getClass().getName());
+		}
 		out.name("value");
 		out.beginArray();
-		TypeAdapter adapter = GSON.getAdapter(obj.getClass());
-		adapter.write(out, obj);
+		if(obj == null) {
+			out.nullValue();
+		} else {
+			TypeAdapter adapter = GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
 		out.endArray();
 		
 		out.name("opType");
