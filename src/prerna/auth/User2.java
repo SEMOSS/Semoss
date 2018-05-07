@@ -33,6 +33,7 @@ public class User2 extends AbstractValueObject{
 	public void dropAccessToken(String name)
 	{
 		accessTokens.remove(name);
+		loggedInProfiles.remove(name);
 	}
 	
 	public List getLogins()
