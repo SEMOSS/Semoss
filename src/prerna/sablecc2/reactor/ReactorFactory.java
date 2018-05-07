@@ -41,6 +41,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
+import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
@@ -645,6 +646,7 @@ public class ReactorFactory {
 		reactorHash.put("GetXLSchema", GetXLSchemaReactor.class);
 		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
 		reactorHash.put("GetExternalSchema", GetExternalDBSchemaReactor.class);
+		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
 		
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
