@@ -26,9 +26,12 @@ public class User2 extends AbstractValueObject{
 		accessTokens.put(name, value);
 	}
 	
-
-	public AccessToken getAccessToken(String name)
-	{
+	/**
+	 * Get the requested access token
+	 * @param name
+	 * @return
+	 */
+	public AccessToken getAccessToken(String name) {
 		return accessTokens.get(name);
 	}
 	
@@ -56,7 +59,5 @@ public class User2 extends AbstractValueObject{
 	public List<String> getLogins() {
 		return loggedInProfiles;
 	}
-	
-	
 
 }
