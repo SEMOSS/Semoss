@@ -206,7 +206,7 @@ public class AOAQueuingDashboard extends BrowserPlaySheet {
 		
 	}
 	
-	public Hashtable updateInfo(Hashtable<String, Object> userInputValues) { //get user input values 
+	public Hashtable updateInfo(Map<String, Object> userInputValues) { //get user input values 
 		Map<String, String> packagesSelected = (Map<String, String>) userInputValues.get("packages");
 		Map<String, Double> requirementsSelected = (Map<String, Double>) userInputValues.get("requirements");
 		Map<String, Boolean> stakeholdersSelected = (Map<String, Boolean>) userInputValues.get("stakeholders");
