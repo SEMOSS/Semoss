@@ -18,7 +18,7 @@ public enum ReactorKeysEnum {
 	COMMENT_ID_KEY("commentId", 							"Unique ID for the insight comment"),
 	CONCEPT("concept", 										"Concept name within an engine"),
 	CONCEPTS("concepts", 									"List of concept names within an engine"),
-	CONFIG_FILE("configFile",                               "The configuration file."),
+	CONFIG("config",                               			"The configuration settings."),
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
 	CONTENT("content", 									    "The actual content to be persisted on the file. Tab and Newline Separated"),
 	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams", 			"Additional JDBC connection params to perform connection"),
