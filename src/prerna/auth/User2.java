@@ -10,17 +10,19 @@ public class User2 extends AbstractValueObject{
 	
 	// name of this user in the SEMOSS system if there is one
 	
-	
 	// need to have an access token store
-	Hashtable <String, AccessToken> accessTokens = new Hashtable<String, AccessToken>();
-	List <String> loggedInProfiles = new ArrayList<String>();
+	Hashtable<String, AccessToken> accessTokens = new Hashtable<String, AccessToken>();
+	List<String> loggedInProfiles = new ArrayList<String>();
 	
-	
-	public void setAccessToken(AccessToken value)
-	{
+	/**
+	 * Set the access token for a given provider
+	 * @param value
+	 */
+	public void setAccessToken(AccessToken value) {
 		String name = value.getProvider();
-		if(!loggedInProfiles.contains(name))
+		if(!loggedInProfiles.contains(name)) {
 			loggedInProfiles.add(name);
+		}
 		accessTokens.put(name, value);
 	}
 	
@@ -30,14 +32,28 @@ public class User2 extends AbstractValueObject{
 		return accessTokens.get(name);
 	}
 	
-	public void dropAccessToken(String name)
-	{
-		accessTokens.remove(name);
+	/**
+	 * Drop the access token for a given provider
+	 * @param name			The name of the provider
+	 * @return				boolean if the provider was dropped
+	 */
+	public boolean dropAccessToken(String name) {
+		// remove from token map
+		AccessToken token = accessTokens.remove(name);
+		// remove from profiles list
 		loggedInProfiles.remove(name);
+		// return false if the token actually wasn't found
+		if(token == null) {
+			return false;
+		}
+		return true;
 	}
 	
-	public List getLogins()
-	{
+	/**
+	 * Get the list of logged in profiles
+	 * @return
+	 */
+	public List<String> getLogins() {
 		return loggedInProfiles;
 	}
 	
