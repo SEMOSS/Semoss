@@ -34,7 +34,9 @@ public class TaskStore {
 
 	public void removeTask(String taskId) {
 		ITask task = this.taskMap.remove(taskId);
-		task.cleanUp();
+		if(task != null) {
+			task.cleanUp();
+		}
 	}
 	
 	public void renameTask(String taskId) {
