@@ -6,8 +6,13 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.interpreters.RInterpreter2;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -37,6 +42,9 @@ public class RRandomForestAlgorithmReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		String dtName = frame.getTableName();
+		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
+		boolean implicitFilter = false;
+		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
 		StringBuilder sb = new StringBuilder();
 
 		// retrieve inputs
@@ -48,6 +56,31 @@ public class RRandomForestAlgorithmReactor extends AbstractRFrameReactor {
 		if (attributes.contains(instanceCol)) attributes.remove(instanceCol);
 		String attributes_R = "attributes" + Utility.getRandomString(8);
 		sb.append(attributes_R + "<- " + RSyntaxHelper.createStringRColVec(attributes.toArray()) + ";");
+		
+		// check if there are filters on the frame. if so then need to run algorithm on subsetted data
+		if(!frame.getFrameFilters().isEmpty()) {
+			// create a new qs to retrieve filtered frame
+			SelectQueryStruct qs = new SelectQueryStruct();
+			List<String> selectedCols = new ArrayList<String>(attributes);
+			selectedCols.add(instanceCol);
+			for(String s : selectedCols) {
+				qs.addSelector(new QueryColumnSelector(s));
+			}
+			qs.setImplicitFilters(frame.getFrameFilters());
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
+			RInterpreter2 interp = new RInterpreter2();
+			interp.setQueryStruct(qs);
+			interp.setDataTableName(dtName);
+			interp.setColDataTypes(meta.getHeaderToTypeMap());
+			String query = interp.composeQuery();
+			this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
+			implicitFilter = true;
+			
+			//cleanup the temp r variable in the query var
+			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
+		}
+		
+		String targetDt = implicitFilter ? dtNameIF : dtName;
 		
 		List<String> options = getInputList(2);
 		String options_R = "options" + Utility.getRandomString(8);
@@ -63,14 +96,14 @@ public class RRandomForestAlgorithmReactor extends AbstractRFrameReactor {
 		sb.append("source(\"" + scriptFilePath + "\");");
 
 		// set call to R function
-		sb.append(RF_VARIABLE + " <- getRF( " + dtName + "," + instanceCol_R + "," + attributes_R + ",options=" + options_R + ");");
+		sb.append(RF_VARIABLE + " <- getRF( " + targetDt + "," + instanceCol_R + "," + attributes_R + ",options=" + options_R + ");");
 
 		// execute R
 		this.rJavaTranslator.runR(sb.toString());
 		
 		//// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + instanceCol_R + "," + attributes_R + "," + options_R + ",getRF,getRFResults);");
+		cleanUpScript.append("rm(" + instanceCol_R + "," + attributes_R + "," + options_R + "," + dtNameIF + ",getRF,getRFResults);");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		

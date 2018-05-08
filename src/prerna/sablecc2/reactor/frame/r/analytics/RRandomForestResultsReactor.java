@@ -22,8 +22,17 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 	private static final String SORTBY = "sortBy";
 	private static final String REQUESTITEM = "requestItem";  //either 'VarImp' or 'ConfMatrix'
 	/**
-	 * GetRFResults(requestItem = ['VarImp'], panel = [99])
-	 * GetRFResults(requestItem = ['CONFMATRIX'], panel = [99])
+	 * GetRFResults(requestItem = [VarImp], panel = [99])
+	 * GetRFResults(requestItem = [CONFMATRIX], panel = [99])
+	 * 
+	 * This reactor will only run if the RRandomForestAlgorithmReactor created a variable RF_VARIABLE_999988888877777 
+	 * as it extracts/processes this variable.
+	 * Input keys: 
+	 * 		1. sortBy (optional) - for classification results, sorts the variable importance by either 
+	 * 							   MeanDecreaseAccuracy (1) or MeanDecreaseGini (2). for regression results, 
+	 * 							   sorts the variable importance by either %IncMSE (1) or IncNodePurity {2}. defaults = 1
+	 * 		2. requestItem (required) - return object - must be either varimp (variable importance) or confmatrix (confusion matrix)
+	 * 		3. panelID (required)
 	 */
 	public RRandomForestResultsReactor() {
 		this.keysToGet = new String[] { SORTBY, REQUESTITEM, ReactorKeysEnum.PANEL.getKey()};
