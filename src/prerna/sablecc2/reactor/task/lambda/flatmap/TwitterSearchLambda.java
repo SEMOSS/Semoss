@@ -61,7 +61,7 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 	 */
 	private void processView(Viewpoint view, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
 		Object[] newValues = new Object[3];
-		newValues[0] = view.getReview();
+		newValues[0] = view.getReview().replace("\n", " *LINE BREAK* ").replace("\r", " *LINE BREAK* ").replace("\t", " ");
 		newValues[1] = view.getAuthorId();
 		newValues[2] = view.getRepeatCount();
 		
