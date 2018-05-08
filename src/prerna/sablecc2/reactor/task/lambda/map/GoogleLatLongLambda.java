@@ -1,9 +1,17 @@
 package prerna.sablecc2.reactor.task.lambda.map;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -14,9 +22,35 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class GoogleLatLongLambda extends AbstractMapLambda {
 
+	// cahing of some results
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
+	private static String cache_file_loc = null;
+	private static Map<String, double[]> localcache = new HashMap<String, double[]>();
+
+	static {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		cache_file_loc = baseFolder + DIR_SEPARATOR + "geo" + DIR_SEPARATOR + "latlong.json";
+		File f = new File(cache_file_loc);
+		if(f.exists()) {
+			Map<String, double[]> mapData = null;
+			try {
+				mapData = new ObjectMapper().readValue(f.getAbsolutePath(), Map.class);
+			} catch (IOException e) {
+				// do noting
+			}
+			
+			if(mapData != null) {
+				localcache.putAll(mapData);
+			}
+		}
+	}
+	
 	// col index we care about to get lat/long from
 	private int colIndex;
 	// total number of columns
@@ -24,23 +58,50 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 	
 	@Override
 	public IHeadersDataRow process(IHeadersDataRow row) {
-		// grab the column index we want to use as the address
-		Hashtable params = new Hashtable();
-		params.put("address", row.getValues()[colIndex]);
-		
 		// construct new values to append onto the row
 		// add new headers
 		String[] newHeaders = new String[]{"lat", "long"};
 		Object[] newValues = new Object[2];
-		// add new values
-		try {
-			GoogleLatLongGetter goog = new GoogleLatLongGetter();
-			// geo location object flushes the JSON return into something for getters and setters
-			GeoLocation location = (GeoLocation) goog.execute(this.user, params);
-			newValues[0] = location.getLatitude();
-			newValues[1] = location.getLongitude();
-		} catch(Exception e) {
-			e.printStackTrace();
+					
+		// grab the column index we want to use as the address
+		String address = row.getValues()[colIndex].toString().toLowerCase().replace("_", " ");
+		if(localcache.containsKey(address)) {
+			double[] cacheValues = localcache.get(address);
+			newValues[0] = cacheValues[0]; 
+			newValues[1] = cacheValues[1];
+		} else {
+			Hashtable params = new Hashtable();
+			params.put("address", address);
+			
+			// add new values
+			try {
+				GoogleLatLongGetter goog = new GoogleLatLongGetter();
+				// geo location object flushes the JSON return into something for getters and setters
+				GeoLocation location = (GeoLocation) goog.execute(this.user, params);
+				newValues[0] = location.getLatitude();
+				newValues[1] = location.getLongitude();
+				
+				// cache it
+				localcache.put(address, new double[]{location.getLatitude(), location.getLongitude()});
+				
+//				File f = new File(cache_file_loc);
+//				if(!f.getParentFile().exists()) {
+//					f.getParentFile().mkdirs();
+//				}
+//				if(f.exists()) {
+//					f.delete();
+//				}
+//				try {
+//					Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//					// write json to file
+//					FileUtils.writeStringToFile(f, gson.toJson(localcache));
+//				} catch (IOException e1) {
+//					e1.printStackTrace();
+//				}
+				
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
 		
 		row.addFields(newHeaders, newValues);
