@@ -6,12 +6,9 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.io.FileUtils;
+import java.util.Vector;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -31,17 +28,18 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	private static String cache_file_loc = null;
-	private static Map<String, double[]> localcache = new HashMap<String, double[]>();
+	private static Map<String, List<Double>> localcache = new HashMap<String, List<Double>>();
 
 	static {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		cache_file_loc = baseFolder + DIR_SEPARATOR + "geo" + DIR_SEPARATOR + "latlong.json";
 		File f = new File(cache_file_loc);
 		if(f.exists()) {
-			Map<String, double[]> mapData = null;
+			Map<String, List<Double>> mapData = null;
 			try {
-				mapData = new ObjectMapper().readValue(f.getAbsolutePath(), Map.class);
+				mapData = new ObjectMapper().readValue(f, Map.class);
 			} catch (IOException e) {
+				e.printStackTrace();
 				// do noting
 			}
 			
@@ -66,9 +64,9 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 		// grab the column index we want to use as the address
 		String address = row.getValues()[colIndex].toString().toLowerCase().replace("_", " ");
 		if(localcache.containsKey(address)) {
-			double[] cacheValues = localcache.get(address);
-			newValues[0] = cacheValues[0]; 
-			newValues[1] = cacheValues[1];
+			List<Double> cacheValues = localcache.get(address);
+			newValues[0] = cacheValues.get(0); 
+			newValues[1] = cacheValues.get(1);
 		} else {
 			Hashtable params = new Hashtable();
 			params.put("address", address);
@@ -82,7 +80,10 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 				newValues[1] = location.getLongitude();
 				
 				// cache it
-				localcache.put(address, new double[]{location.getLatitude(), location.getLongitude()});
+				List<Double> cacheV = new Vector<Double>();
+				cacheV.add((double) location.getLatitude());
+				cacheV.add((double) location.getLongitude());
+				localcache.put(address, cacheV);
 				
 //				File f = new File(cache_file_loc);
 //				if(!f.getParentFile().exists()) {
