@@ -13,6 +13,10 @@ import org.apache.log4j.Logger;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.interpreters.RInterpreter2;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -45,6 +49,8 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 		String dtName = frame.getTableName();
+		boolean implicitFilter = false;
+		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
 		StringBuilder rsb = new StringBuilder();
 
 		// figure out inputs
@@ -57,28 +63,57 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 			attributes.remove(predictionCol);
 		String attributes_R = "attributes" + Utility.getRandomString(8);
 		rsb.append(attributes_R + "<- " + RSyntaxHelper.createStringRColVec(attributes.toArray()) + ";");
-
-		// TODO
-		// if(numCols == 0) {
-		// String errorString = "No columns were passed as attributes for the
-		// classification routine.";
-		// logger.info(errorString);
-		// throw new IllegalArgumentException(errorString);
-		// }
+		
+		// check if there are filters on the frame. if so then need to run algorithm on subsetted data
+		if(!frame.getFrameFilters().isEmpty()) {
+			// create a new qs to retrieve filtered frame
+			SelectQueryStruct qs = new SelectQueryStruct();
+			List<String> selectedCols = new ArrayList<String>(attributes);
+			selectedCols.add(predictionCol);
+			for(String s : selectedCols) {
+				qs.addSelector(new QueryColumnSelector(s));
+			}
+			qs.setImplicitFilters(frame.getFrameFilters());
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
+			RInterpreter2 interp = new RInterpreter2();
+			interp.setQueryStruct(qs);
+			interp.setDataTableName(dtName);
+			interp.setColDataTypes(meta.getHeaderToTypeMap());
+			String query = interp.composeQuery();
+			this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
+			implicitFilter = true;
+			
+			//cleanup the temp r variable in the query var
+			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
+		}
+		
+		String targetDt = implicitFilter ? dtNameIF : dtName;
+		
+		//validate that the count of unique values in the instance column != number of rows in the frame
+		int nrows  = frame.getNumRows(targetDt);
+		System.out.println("if (is.factor(" + targetDt + "$" + predictionCol + ")) "
+				+ "length(levels(" + targetDt + "$" + predictionCol + ")) else length(unique(" + targetDt + "$" + predictionCol + "));");
+		int uniqInstCount = this.rJavaTranslator.getInt("if (is.factor(" + targetDt + "$" + predictionCol + ")) "
+				+ "length(levels(" + targetDt + "$" + predictionCol + ")) else length(unique(" + targetDt + "$" + predictionCol + "));");
+		if (nrows == uniqInstCount) {
+			throw new IllegalArgumentException("Values in the column to classify are all unique; classification algorithm is not applicable.");
+		}
 				
 		// clustering r script
 		String classificationScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\Classification.R";
 		classificationScriptFilePath = classificationScriptFilePath.replace("\\", "/");
 		rsb.append("source(\"" + classificationScriptFilePath + "\");");
 		String outputList_R = "outputList" + Utility.getRandomString(8);
+		
 		// set call to R function
-		rsb.append(outputList_R + " <- getCTree( " + dtName + "," + predictionCol_R + "," + attributes_R + ");");
+		rsb.append(outputList_R + " <- getCTree( " + targetDt + "," + predictionCol_R + "," + attributes_R + ");");
 		
 		//if at a later time, we want to retrieve the predicted probability per terminal node - do so via:
 		//String[] probDtCols = this.rJavaTranslator.getColumns(outputList_R + "$predictedProbDt");
 		//this.rJavaTranslator.getBulkDataRow(outputList_R + "$predictedProbDt", probDtCols);
 		
 		// execute R
+		System.out.println(rsb.toString());
 		this.rJavaTranslator.runR(rsb.toString());
 		
 		String[] predictors = this.rJavaTranslator.getStringArray(outputList_R + "$predictors;");
@@ -87,7 +122,7 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 
 		//// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + outputList_R + "," + predictionCol_R + "," + attributes_R + ",getCTree);");
+		cleanUpScript.append("rm(" + outputList_R + "," + predictionCol_R + "," + attributes_R + "," + dtNameIF +  ",getCTree,getUsefulPredictors);");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());	
 
@@ -230,6 +265,8 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 				}
 				return strValues;
 			}
+		} else {
+			throw new IllegalArgumentException("Attribute columns must be specified.");
 		}
 
 		// else, we assume it is column values in the curRow

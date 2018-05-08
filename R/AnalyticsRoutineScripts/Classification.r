@@ -10,8 +10,7 @@ getCTree <- function(dt, instanceCol, attrColList, subsetPercent=0.8){
 	lapply(list('data.table', 'partykit', 'dplyr'), require, character.only = TRUE)
 	set.seed(123)	
 
-	tempDt <- setDT(dt)
-	tempDt <- tempDt[, c(instanceCol, attrColList), with=FALSE]
+	tempDt <- dt[, c(instanceCol, attrColList), with=FALSE]
 
 	#convert columns of character class to factor class
 	charCols <- colnames(tempDt)[which(as.vector(tempDt[,lapply(.SD, class)]) == "character")]
