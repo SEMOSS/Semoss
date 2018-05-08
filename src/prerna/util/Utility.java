@@ -3060,6 +3060,9 @@ public class Utility {
 						builder.append(seperator);
 					}
 					typesArr[i] = typesMap.get(headers[i]);
+					if(typesArr[i] == null) {
+						typesArr[i] = SemossDataType.STRING;
+					}
 				}
 				// write the header to the file
 				bufferedWriter.write(builder.append("\n").toString());
