@@ -15,11 +15,13 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.GsonUtility;
@@ -41,19 +43,21 @@ public class QSAliasToPhysicalConverter {
 
 		// grab all the selectors
 		// and need to recursively modify the column ones
+		Map<String, IQuerySelector> aliases = new HashMap<String, IQuerySelector>();
 		List<IQuerySelector> origSelectors = qs.getSelectors();
 		List<IQuerySelector> convertedSelectors = new Vector<IQuerySelector>();
 		for(int i = 0; i < origSelectors.size(); i++) {
 			IQuerySelector origS = origSelectors.get(i);
 			IQuerySelector convertedS = convertSelector(origS, meta);
 			convertedSelectors.add(convertedS);
+			aliases.put(convertedS.getAlias(), convertedS);
 		}
 		convertedQs.setSelectors(convertedSelectors);
 
 		// now go through the filters
 		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta));
 		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta));
-		convertedQs.setHavingFilters(convertGenRowFilters(qs.getHavingFilters(), meta));
+		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases));
 
 		// now go through the joins
 		Map<String, Map<String, List>> joins = qs.getRelations();
@@ -323,5 +327,108 @@ public class QSAliasToPhysicalConverter {
 
 		SimpleQueryFilter newF = new SimpleQueryFilter(newL, queryFilter.getComparator(), newR);
 		return newF;
+	}
+	
+	private static GenRowFilters convertHavingGenRowFilters(GenRowFilters grs, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+		List<IQueryFilter> origGrf = grs.getFilters();
+		if(origGrf != null && !origGrf.isEmpty()) {
+			GenRowFilters convertedGrf = new GenRowFilters();
+			for(int i = 0; i < origGrf.size(); i++) {
+				convertedGrf.addFilters(convertFilter(origGrf.get(i), meta, aliases));
+			}
+			return convertedGrf;
+		}
+		// return the empty grs
+		return grs;
+	}
+	
+	public static IQueryFilter convertFilter(IQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+		if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return convertSimpleQueryFilter((SimpleQueryFilter) queryFilter, meta, aliases);
+		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return convertAndQueryFilter((AndQueryFilter) queryFilter, meta, aliases);
+		} else if(queryFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return convertOrQueryFilter((OrQueryFilter) queryFilter, meta, aliases);
+		} else {
+			return null;
+		}
+	}
+	
+	private static IQueryFilter convertOrQueryFilter(OrQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+		OrQueryFilter newF = new OrQueryFilter();
+		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
+		for(IQueryFilter f : andFilterList) {
+			newF.addFilter(convertFilter(f, meta));
+		}
+		return newF;
+	}
+
+	private static IQueryFilter convertAndQueryFilter(AndQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+		AndQueryFilter newF = new AndQueryFilter();
+		List<IQueryFilter> andFilterList = queryFilter.getFilterList();
+		for(IQueryFilter f : andFilterList) {
+			newF.addFilter(convertFilter(f, meta));
+		}
+		return newF;
+	}
+
+	private static SimpleQueryFilter convertSimpleQueryFilter(SimpleQueryFilter queryFilter, OwlTemporalEngineMeta meta, Map<String, IQuerySelector> aliases) {
+		NounMetadata newL = null;
+		NounMetadata newR = null;
+
+		NounMetadata origL = queryFilter.getLComparison();
+		if(origL.getNounType() == PixelDataType.COLUMN) {
+			// need to convert
+			IQuerySelector selector = (IQuerySelector) origL.getValue();
+			try {
+				newL = new NounMetadata( convertSelector(selector, meta) , PixelDataType.COLUMN);
+			} catch(IllegalArgumentException e) {
+				IQuerySelector newS = getNewSelectorForAlias(selector, aliases);
+				if(newS == null) {
+					throw e;
+				}
+				newL = new NounMetadata(newS, PixelDataType.COLUMN);
+			}
+		} else {
+			newL = origL;
+		}
+		NounMetadata origR = queryFilter.getRComparison();
+		if(origR.getNounType() == PixelDataType.COLUMN) {
+			// need to convert
+			IQuerySelector selector = (IQuerySelector) origR.getValue();
+			try {
+				newR = new NounMetadata( convertSelector(selector, meta) , PixelDataType.COLUMN);
+			} catch(IllegalArgumentException e) {
+				IQuerySelector newS = getNewSelectorForAlias(selector, aliases);
+				if(newS == null) {
+					throw e;
+				}
+				newR = new NounMetadata(newS, PixelDataType.COLUMN);
+			}
+
+		} else {
+			newR = origR;
+		}
+
+		SimpleQueryFilter newF = new SimpleQueryFilter(newL, queryFilter.getComparator(), newR);
+		return newF;
+	}
+	
+	private static IQuerySelector getNewSelectorForAlias(IQuerySelector selector, Map<String, IQuerySelector> aliases) {
+		if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN && aliases.containsKey(selector.getAlias())) {
+			IQuerySelector actualSelector = aliases.get(selector.getAlias());
+			return actualSelector;
+//			if(actualSelector.getSelectorType() == SELECTOR_TYPE.FUNCTION) {
+//				List<IQuerySelector> inners = ((QueryFunctionSelector) actualSelector).getInnerSelector();
+//				if(inners.size() == 1 && inners.get(0).getSelectorType() == SELECTOR_TYPE.COLUMN) {
+//					QueryOpaqueSelector s = new QueryOpaqueSelector();
+//					s.setQuerySelectorSyntax(selector.getAlias());
+//					return s;
+//				}
+//			}
+		}
+		
+		return null;
+		
 	}
 }
