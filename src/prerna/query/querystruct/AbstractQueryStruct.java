@@ -272,6 +272,7 @@ public abstract class AbstractQueryStruct {
 		mergeSelectors(incomingQS.selectors);
 		mergeExplicitFilters(incomingQS.explicitFilters);
 		mergeImplicitFilters(incomingQS.implicitFilters);
+		mergeHavingFilters(incomingQS.havingFilters);
 		mergeRelations(incomingQS.relations);
 		if(incomingQS.getEngineName() != null) {
 			setEngineName(incomingQS.getEngineName());
@@ -307,6 +308,15 @@ public abstract class AbstractQueryStruct {
 	public void mergeImplicitFilters(GenRowFilters incomingFilters) {
 		//merge the filters
 		this.implicitFilters.merge(incomingFilters);
+	}
+	
+	/**
+	 * 
+	 * @param incomingFilters
+	 */
+	private void mergeHavingFilters(GenRowFilters incomingFilters) {
+		//merge the filters
+		this.havingFilters.merge(incomingFilters);		
 	}
 	
 	/**
