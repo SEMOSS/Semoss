@@ -835,6 +835,9 @@ public class ReactorFactory {
 		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
 		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
 		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
+		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
+        rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
+
 
 	}
 
