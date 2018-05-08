@@ -1,16 +1,15 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
@@ -35,7 +34,7 @@ public class XRayReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = XRayReactor.class.getName();
 
 	public XRayReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.CONFIG.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.CONFIG.getKey() };
 	}
 
 	@Override
@@ -45,37 +44,54 @@ public class XRayReactor extends AbstractRFrameReactor {
 
 		// need to make sure that the textreuse package is installed
 		logger.info("Checking if required R packages are installed to run X-ray...");
-		this.rJavaTranslator.checkPackages(new String[]{"textreuse", "digest", "memoise", "withr"});
+		this.rJavaTranslator.checkPackages(new String[] { "textreuse", "digest", "memoise", "withr" });
 
 		organizeKeys();
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		Map<String, Object> config = null;
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			config = (Map<String, Object>) grs.get(0);
 		} else {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.CONFIG.getKey());
 		}
-		
+
 		// output is written to this h2 frame
 		H2Frame frame = (H2Frame) getFrame();
 		Xray xray = new Xray(this.rJavaTranslator, getBaseFolder(), logger);
 		String rFrameName = xray.run(config);
-		// Synchronize from R
-		logger.info("Getting X-ray results into frame...");
-		GenerateH2FrameFromRVariableReactor sync = new GenerateH2FrameFromRVariableReactor();
-		sync.syncFromR(this.rJavaTranslator, rFrameName, frame);
-		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
 
-		//clean up r temp variables
+		// check if we have results from xray
+		String checkNull = "is.null(" + rFrameName + ")";
+		boolean nullResults = this.rJavaTranslator.getBoolean(checkNull);
+
+		// if we have results sync back SEMOSS
+		if (!nullResults) {
+			logger.info("Getting X-ray results into frame...");
+			GenerateH2FrameFromRVariableReactor sync = new GenerateH2FrameFromRVariableReactor();
+			sync.syncFromR(this.rJavaTranslator, rFrameName, frame);
+			NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.CODE_EXECUTION);
+
+			// clean up r temp variables
+			StringBuilder cleanUpScript = new StringBuilder();
+			cleanUpScript.append("rm(" + rFrameName + ");");
+			cleanUpScript.append("gc();");
+			this.rJavaTranslator.runR(cleanUpScript.toString());
+
+			// track GA data
+			GATracker.getInstance().trackAnalyticsPixel(this.insight, "XRay");
+			return noun;
+		}
+		
+		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + rFrameName + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
-		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "XRay");
-		
-		return noun;
+		NounMetadata noun = new NounMetadata("Unable to obtain X-ray results", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		SemossPixelException exception = new SemossPixelException(noun);
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
 	}
 
 }
