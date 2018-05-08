@@ -5,9 +5,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.interpreters.RInterpreter2;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -21,7 +27,7 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 	 * RunLOF(instance = [Studio], kNeighbors = [10], attributes = ["MovieBudget", "Revenue_Domestic"])
 	 * RunLOF(instance = [Studio], kNeighbors = [   "10:12, 5" ], attributes = ["MovieBudget", "Revenue_Domestic"])
 	 * RunLOF(instance = [Studio], kNeighbors = ["10,11,12"], attributes = ["MovieBudget", "Revenue_Domestic"])
-	 * RunLOF(instance = [Species], uniqInstPerRow = "false", kNeighbors =10, attributes = ["SepalLength", "SepalWidth","PetalLength", "PetalWidth"])
+	 * RunLOF(instance = [Species], uniqInstPerRow = ["false"], kNeighbors =[2], attributes = ["SepalLength", "SepalWidth","PetalLength", "PetalWidth"])
 	 * 
 	 * Input keys: 
 	 * 		1. instance (required) 
@@ -54,9 +60,12 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 		String dtName = frame.getTableName();
+		boolean implicitFilter = false;
+		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
+		String tempKeyCol = "tempGenUUID99SM_" + Utility.getRandomString(6);
 		StringBuilder sb = new StringBuilder();		
 
-		//retrieve inputs
+		// get first set of inputs in preparation for the first R function
 		this.instanceColumn = getInstanceColumn();
 		this.attributeNamesList = getAttrList();
 		for (String attr : this.attributeNamesList){
@@ -65,64 +74,115 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 				throw new IllegalArgumentException("Attribute columns must be of numeric type.");
 			}
 		}
-		String uniqInstPerRowStr = getUniqInstPerRow();
 		
+		// check if there are filters on the frame. if so then need to run algorithm on subsetted data and later join
+		if(!frame.getFrameFilters().isEmpty()) {
+			// prep the original frame by adding a temporary column, serving as row index
+			addUUIDColumnToOrigFrame(dtName, meta, tempKeyCol);
+			
+			// create a new qs to retrieve filtered frame
+			SelectQueryStruct qs = new SelectQueryStruct();
+			List<String> selectedCols = new ArrayList<String>(attributeNamesList);
+			selectedCols.add(instanceColumn);
+			selectedCols.add(tempKeyCol);
+			for(String s : selectedCols) {
+				qs.addSelector(new QueryColumnSelector(s));
+			}
+			qs.setImplicitFilters(frame.getFrameFilters());
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
+			RInterpreter2 interp = new RInterpreter2();
+			interp.setQueryStruct(qs);
+			interp.setDataTableName(dtName);
+			interp.setColDataTypes(meta.getHeaderToTypeMap());
+			String query = interp.composeQuery();
+			this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
+			implicitFilter = true;
+			
+			//cleanup the temp r variable in the query var
+			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
+		}
+		
+		// set R variables to run first R function 
+		String targetDt = implicitFilter ? dtNameIF : dtName;
+		String uniqInstPerRowStr = getUniqInstPerRow();
+		String uniqInstPerRow_R = "uniqInstPerRow" + Utility.getRandomString(8);
+		if (uniqInstPerRowStr != null && uniqInstPerRowStr.equalsIgnoreCase("TRUE")) {
+			sb.append(uniqInstPerRow_R + "<-TRUE;");
+		} else {
+			sb.append(uniqInstPerRow_R + "<-FALSE;");
+		}
 		String instCol_R = "instCol" + Utility.getRandomString(8);
 		sb.append(instCol_R + "<- \"" + this.instanceColumn + "\";");
 		String attrList_R = "attrList" + Utility.getRandomString(8);
 		sb.append(attrList_R + "<- " + RSyntaxHelper.createStringRColVec(this.attributeNamesList.toArray())+ ";");
+		String RLOFScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\LOF.R";
+		RLOFScriptFilePath = RLOFScriptFilePath.replace("\\", "/");
+		sb.append("source(\"" + RLOFScriptFilePath + "\");");
+		
 		int sbLength = sb.length();
-		String tempDt_R = "tempDt" + Utility.getRandomString(8);
-		if (uniqInstPerRowStr != null && uniqInstPerRowStr.equalsIgnoreCase("TRUE")) {
-			sb.append(tempDt_R + " <- " +  dtName + "[complete.cases(" +  dtName + "[[" +  instCol_R + "]]), ];");
-		} else {
-			sb.append(tempDt_R + " <- " +  dtName + "[complete.cases(" + dtName + "[[" + instCol_R + "]]), "
-					+ "lapply(.SD, mean, na.rm=TRUE), by = " + instCol_R + ", .SDcols = " + attrList_R + "];");
-		}
+		String scaleUniqueData_R = "scaleUniqueData" + Utility.getRandomString(8);
+		sb.append(scaleUniqueData_R + "<-scaleUniqueData(" + targetDt + "," + instCol_R + "," + attrList_R + "," + uniqInstPerRow_R + ");");
 		this.rJavaTranslator.runR(sb.toString());
 		sb.delete(sbLength, sb.length());
-		int nrows = this.rJavaTranslator.getInt("nrow(" + tempDt_R + ");");
+		int nrows = this.rJavaTranslator.getInt(scaleUniqueData_R + "$dtSubset[,.N];");
+		if (nrows == 1){
+			meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
+			this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instCol_R + "," + attrList_R + "," + uniqInstPerRow_R + 
+					"," + dtNameIF + ",scaleUniqueData,runLOF,getLOP,getNewColumnName);gc();");
+			throw new IllegalArgumentException("Instance column contains only 1 unique record.");
+		}
 		
 		String kStr = getK();
 		boolean intK = this.rJavaTranslator.getBoolean("all(" + "c(" + kStr + ") == floor( "+ "c(" + kStr + ")))");
 		this.kArray = this.rJavaTranslator.getDoubleArray("c(" + kStr + ")");
 		if (!intK || this.kArray == null || this.kArray.length == 0){
-			this.rJavaTranslator.runR("rm(" + tempDt_R + "," + instCol_R + "," + attrList_R + ");gc();");
+			meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
+			this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instCol_R + "," + attrList_R + "," + uniqInstPerRow_R + 
+					"," + dtNameIF + ",scaleUniqueData,runLOF,getLOP,getNewColumnName);gc();");
 			throw new IllegalArgumentException("K must be either a single integer or a list of integers only.");
 		}
 		for (double k : this.kArray){
 			if (k > nrows){
-				this.rJavaTranslator.runR("rm(" + tempDt_R + "," + instCol_R + "," + attrList_R + ");gc();");
+				meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
+				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instCol_R + "," + attrList_R + "," + uniqInstPerRow_R + 
+						"," + dtNameIF + ",scaleUniqueData,runLOF,getLOP,getNewColumnName);gc();");
 				throw new IllegalArgumentException("K must be less than the number of unique instances, " + nrows + ".");
 			}
 		}
 		String k_R = "kNeighbors" + Utility.getRandomString(8);
 		sb.append(k_R + "<- c(" + kStr + ");");
 		
-		// LOF r script
-		String RLOFScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\LOF.R";
-		RLOFScriptFilePath = RLOFScriptFilePath.replace("\\", "/");
-		sb.append("source(\"" + RLOFScriptFilePath + "\");");
-				
 		// set call to R function
-		sb.append(dtName + " <- runLOF( " + dtName + "," + tempDt_R + "," + instCol_R + "," + attrList_R + "," + k_R + ");");
+		sb.append(targetDt + " <- runLOF( " + scaleUniqueData_R + "," + instCol_R + "," + attrList_R + "," + k_R + 
+				"," + uniqInstPerRow_R + "," + RSyntaxHelper.createStringRColVec(frame.getColumnHeaders()) + ");");
 				
 		// execute R
 		this.rJavaTranslator.runR(sb.toString());
 
 		// retrieve new columns to add to meta
-		String[] updatedDfColumns = this.rJavaTranslator.getColumns(dtName);
+		String[] updatedDfColumns = this.rJavaTranslator.getColumns(targetDt);
 
 		// clean up r temp variables
-		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + tempDt_R + "," + instCol_R + "," + attrList_R + "," + k_R + ",runLOF, getLOP, getNewColumnName, normalizeCol);");
-		cleanUpScript.append("gc();");
-		this.rJavaTranslator.runR(cleanUpScript.toString());
+		this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instCol_R + "," + attrList_R + "," + uniqInstPerRow_R + 
+				"," + k_R + ",scaleUniqueData,runLOF,getLOP,getNewColumnNam);gc();");
 
 		Collection<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
 		Collection<String> updatedDfCols = new ArrayList<String>(Arrays.asList(updatedDfColumns));
 		updatedDfCols.removeAll(origDfCols);
+		
+		// drop the temporary column of row index from metadata
+		meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
+				
 		if (!updatedDfCols.isEmpty()) {
+			// if implicitFilter == true, then need to join the resulting column to the whole frame (dtName var) 
+			if (implicitFilter) {
+				this.rJavaTranslator.runR(dtName +  "<-merge(" + dtName + ", " + dtNameIF + 
+						"[,c('" + tempKeyCol + "'," + "'" + StringUtils.join(updatedDfCols,"','") + "'" +
+						"), with=FALSE],by ='" + tempKeyCol + "', all.x=TRUE);" + dtName + "[," + tempKeyCol + " := NULL] ;");
+			}
+			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()");
+			
+			// update metadata with the new column information 
 			for (String newColName : updatedDfCols) {
 				meta.addProperty(dtName, dtName + "__" + newColName);
 				meta.setAliasToProperty(dtName + "__" + newColName, newColName);
@@ -130,12 +190,21 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 			}
 		} else {
 			// no results
+			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()");
 			throw new IllegalArgumentException("LOF algorithm returned no results.");
 		}
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
+	private void addUUIDColumnToOrigFrame(String frameName, OwlTemporalEngineMeta meta, String tempKeyCol){
+		this.rJavaTranslator.executeEmptyR(frameName + "$" + tempKeyCol + "<- seq.int(nrow(" + frameName + "));");
+
+		meta.addProperty(frameName, frameName + "__" + tempKeyCol);
+		meta.setAliasToProperty(frameName + "__" + tempKeyCol, tempKeyCol);
+		meta.setDataTypeToProperty(frameName + "__" + tempKeyCol, "INT");
+	}
+	
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	////////////////////// Input Methods///////////////////////////
