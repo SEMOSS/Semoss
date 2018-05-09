@@ -38,7 +38,7 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 		// run script
 		this.rJavaTranslator.runR(script);
-		this.rJavaTranslator.runR(matchesTable + " <- self_match(" + col1 + ");");
+		this.rJavaTranslator.runR(matchesTable + " <- self_match(" + col1 + ",ignoreCase=FALSE);");
 
 		// add a unique combined col1 == col2, remove extra columns,
 		String combineScript = matchesTable + "$distance <- as.numeric(" + matchesTable + "$dist);" + matchesTable
