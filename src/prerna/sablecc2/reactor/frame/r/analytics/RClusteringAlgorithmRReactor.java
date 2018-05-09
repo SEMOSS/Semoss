@@ -27,11 +27,11 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 	/**
 	 * with specific cluster #
 	 * RunClustering ( algorithm = [kmeans], multiOption = [false], instance = [ Species ] , attributes = [ "SepalLength" , "SepalWidth" , "PetalLength" , 
-	 * "PetalWidth" ], numClusters = [ 3 ] ) ;
+	 * "PetalWidth" ], numClusters = [ 3 ], uniqInstPerRow = [Yes] ) ;
 	 * 
 	 * with min-max range of cluster #s
 	 * RunClustering ( algorithm = [kmeans], multiOption = [true], instance = [ Species ] , attributes = [ "SepalLength" , "SepalWidth" , "PetalLength" , 
-	 * "PetalWidth" ],  minNumClusters = [2], maxNumClusters = [10] ) ;
+	 * "PetalWidth" ],  minNumClusters = [2], maxNumClusters = [10] , uniqInstPerRow = [Yes]) ;
 	 * 
 	 * Input keys: 
 	 * 		1. algorithm (optional) - kmeans (numerical data only), pam (numerical data only), pamGower (categorical/numerical data). 
@@ -44,9 +44,9 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 	 * 		5. numClusters (optional) - can be specified if multioption = false. default = 5
 	 * 		6. minNumClusters (optional) - can be specified if multioption = true. default = 2
 	 *  	7. maxnNumClusters (optional) - can be specified if multioption = true. default = 20
-	 * 		8. uniqInstPerRow (optional; if not passed in, assumes false) - 
-	 * 			if true, then will treat each row in the frame as a unique instance/record; 
-	 * 			if false, then will aggregate the data in the attributes columns by the instance column first
+	 * 		8. uniqInstPerRow (optional; if not passed in, assumes no) - 
+	 * 			if yes, then will treat each row in the frame as a unique instance/record; 
+	 * 			if no, then will aggregate the data in the attributes columns by the instance column first
 	 */
 	
 	private static final String MIN_NUM_CLUSTERS = "minNumClusters";
@@ -331,8 +331,15 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 		GenRowStruct columnGrs = this.store.getNoun(UNIQUE_INSTANCE_PER_ROW);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString().toUpperCase();
+				String value = columnGrs.get(0).toString().toUpperCase();
+				if (value.equals("YES")) {
+					return "TRUE";
+				} else if (value.equals("NO")) {
+					return "FALSE";
+				}
 			}
+		} else {
+			return "FALSE";
 		}
 		return null;
 	}
