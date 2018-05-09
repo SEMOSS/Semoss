@@ -70,6 +70,13 @@ public class GoogleSentimentAnalyzerLambda extends AbstractFlatMapLambda {
 	private void processSentiment(SentimentAnalysis sentiment, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
 		Object[] newValues = new Object[3];
 		newValues[0] = sentiment.getSentence();
+		if(newValues[0] != null) {
+			newValues[0] = newValues[0].toString()
+					.replace("\n", " *LINE BREAK* ")
+					.replace("\r", " *LINE BREAK* ")
+					.replace("\t", " ")
+					.replace("\"", "");
+		}
 		newValues[1] = sentiment.getMagnitude();
 		newValues[2] = sentiment.getScore();
 		
