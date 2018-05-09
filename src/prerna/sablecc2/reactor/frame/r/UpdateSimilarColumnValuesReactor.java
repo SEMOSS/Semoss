@@ -40,8 +40,6 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		String col1 = matchesTable + "col1";
 		this.rJavaTranslator.runR(col1 + "<- as.character(" + frameName + "$" + column + ");");
 
-		// get data type and account for numerics
-
 		// iterate matches and create the link frame
 		List<String> allMatches = getInputList(MATCHES);
 		// add all matches
@@ -67,8 +65,7 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 				col3Builder.append("1");
 			}
 			// add all matches provided
-			String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder
-					+ ")); ";
+			String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder	+ ")); ";
 			this.rJavaTranslator.runR(script);
 		}
 		// make linkframe unique
@@ -87,20 +84,27 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		String resultFrame = Utility.getRandomString(8);
 		this.rJavaTranslator.runR(resultFrame + "<- curate(" + col1 + "," + linkFrame + ");");
 
-		// delete column from frame
-		this.rJavaTranslator.runR(frameName + " <- " + frameName + "[,-c(\"" + column + "\")]");
+		String tempColHeader = Utility.getRandomString(8);
 
-		// make resultFrame a DT and put column header back
-		this.rJavaTranslator.runR(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + column + "\";");
-
-		// rbind add new dataframe to frame
+		// make resultFrame a DT and update the header to a temp name
+		this.rJavaTranslator.runR(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + tempColHeader + "\";");
+		
+		// add new temp name column to frame
 		this.rJavaTranslator.runR(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
+		
+		// delete existing column from frame
+		this.rJavaTranslator.runR(frameName + " <- " + frameName + "[,-c(\"" + column + "\")]");
+		
+		// update temp column name to the original column name
+		this.rJavaTranslator.runR("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\"");
 
 		// return data type to original state
 		if (convertJoinColFromNum) {
 			this.rJavaTranslator.runR(frameName + "$" + column + " <- as.numeric(as.character(" + frameName + "$" + column + "));");
 		}
 
+		this.rJavaTranslator.runR("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
+		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 
 		return retNoun;
