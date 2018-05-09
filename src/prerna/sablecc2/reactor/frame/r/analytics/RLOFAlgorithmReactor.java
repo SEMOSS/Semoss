@@ -27,16 +27,16 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 	 * RunLOF(instance = [Studio], kNeighbors = [10], attributes = ["MovieBudget", "Revenue_Domestic"])
 	 * RunLOF(instance = [Studio], kNeighbors = [   "10:12, 5" ], attributes = ["MovieBudget", "Revenue_Domestic"])
 	 * RunLOF(instance = [Studio], kNeighbors = ["10,11,12"], attributes = ["MovieBudget", "Revenue_Domestic"])
-	 * RunLOF(instance = [Species], uniqInstPerRow = ["false"], kNeighbors =[2], attributes = ["SepalLength", "SepalWidth","PetalLength", "PetalWidth"])
+	 * RunLOF(instance = [Species], uniqInstPerRow = ["no"], kNeighbors =[2], attributes = ["SepalLength", "SepalWidth","PetalLength", "PetalWidth"])
 	 * 
 	 * Input keys: 
 	 * 		1. instance (required) 
 	 * 		2. kNeighbors (required) - can be one of 3 types: integer or a list of integers (if list then wrap the whole list in quotes)
 	 * 			example: kNeighbors = [10]; kNeighbors = ["5:7"]; kNeighbors = ["5, 6, 7"]
 	 * 		3. attributes (required) - must be columns of data type = numeric
-	 * 		4. uniqInstPerRow (optional; if not passed in, assumes false) - 
-	 * 			if true, then will treat each row in the frame as a unique instance/record; 
-	 * 			if false, then will aggregate the data in the attributes columns by the instance column first
+	 * 		4. uniqInstPerRow (optional; if not passed in, assumes no) - 
+	 * 			if yes, then will treat each row in the frame as a unique instance/record; 
+	 * 			if no, then will aggregate the data in the attributes columns by the instance column first
 	 */
 	private static final String CLASS_NAME = RLOFAlgorithmReactor.class.getName();
 	
@@ -233,8 +233,15 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 		GenRowStruct columnGrs = this.store.getNoun(UNIQUE_INSTANCE_PER_ROW);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString().toLowerCase();
+				String value = columnGrs.get(0).toString().toUpperCase();
+				if (value.equals("YES")) {
+					return "TRUE";
+				} else if (value.equals("NO")) {
+					return "FALSE";
+				}
 			}
+		} else {
+			return "FALSE";
 		}
 		return null;
 	}
