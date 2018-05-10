@@ -75,9 +75,14 @@ curate<-function(col,link){
 	# identify instance to be fixed
 	df<-as.data.frame(col)
 	names(df)<-"col"
+	df$i.and.d<-seq(1:nrow(df))
 	df1<-merge(df,link,by.x="col",by.y="col1",all.x=TRUE)
+
+	df1<-df1[,c("col","col2","i.and.d")]
+	df1$col<-as.character(df1$col)
+	df1$col2<-as.character(df1$col2)
 	# fix it
-	df1<-df1[order(match(df1[,1],col)),]
+	df1<-df1[order(df1$i.and.d),]
 	df1[!(is.na(df1$col2)),1]<-df1[!(is.na(df1$col2)),2]
 	gc()
 	return(as.character(df1[,1]))
