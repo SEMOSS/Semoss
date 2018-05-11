@@ -3,6 +3,7 @@ package prerna.algorithm.learning.util;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 public class Cluster {
@@ -343,21 +344,26 @@ public class Cluster {
 			}
 		}
 		
+		// since the attribute names includes the instance
+		// we need to appropriately calculate the similarity
+		// based on the number of categorical vs. numerical values
+		int totalAttributes = attributeNames.length-1;
+		
 		double categoricalSimVal = 0;
 		if(!categoricalValues.isEmpty()) {
 			if(isNumeric[instanceIndex]) {
-				categoricalSimVal = ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
+				categoricalSimVal = ((double) categoricalValues.size() / totalAttributes) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, -1);
 			} else {
-				categoricalSimVal = ((double) categoricalValues.size()/attributeNames.length) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
+				categoricalSimVal = ((double) (categoricalValues.size()-1) / totalAttributes) * getSimilarityFromCategoricalValues(categoricalValues, categoricalValueNames, indexToSkip);
 			}
 		}
 		
 		double numericalSimVal = 0;
 		if(!numericalValues.isEmpty()) {
 			if(isNumeric[instanceIndex]) {
-				numericalSimVal = ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
+				numericalSimVal = ((double) (numericalValues.size()-1) / totalAttributes) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, indexToSkip);
 			} else {
-				numericalSimVal = ((double) numericalValues.size()/attributeNames.length) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
+				numericalSimVal = ((double) numericalValues.size() / totalAttributes) * getSimilarityFromNumericalValues(numericalValues, numericalValueNames, -1);
 			}
 		}
 		
@@ -376,10 +382,18 @@ public class Cluster {
 		int numCategorical = 0;
 		int numNumeric = 0;
 		if(this.categoricalCluster.getWeights() != null) {
-			numCategorical = this.categoricalCluster.getWeights().keySet().size();
+			Set<String> catKeys = this.categoricalCluster.getWeights().keySet();
+			numCategorical = catKeys.size();
+			if(catKeys.contains(instanceType)) {
+				numCategorical--;
+			}
 		}
 		if(this.numericalCluster.getWeights() != null) {
-			numNumeric = this.numericalCluster.getWeights().keySet().size();
+			Set<String> numKeys = this.numericalCluster.getWeights().keySet();
+			numNumeric = numKeys.size();
+			if(numKeys.contains(instanceType)) {
+				numNumeric--;
+			}
 		}
 		int totalAttributes = numCategorical + numNumeric;
 		
