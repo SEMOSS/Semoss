@@ -235,8 +235,13 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 			expression.append("(na.omit(");
 			endExpr = "))";
 		} else if(QueryFunctionHelper.determineTypeOfFunction(function).equals("NUMBER")) {
-			expression.append("(as.numeric(na.omit(");
-			endExpr = ")))";
+			if(selector.isDistinct()) {
+				expression.append("(unique(as.numeric(na.omit(");
+				endExpr = "))))";
+			} else {
+				expression.append("(as.numeric(na.omit(");
+				endExpr = ")))";
+			}
 		} else {
 			expression.append("(");
 			endExpr = ")";

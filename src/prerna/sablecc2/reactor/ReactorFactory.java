@@ -52,6 +52,7 @@ import prerna.sablecc2.reactor.export.IterateReactor;
 import prerna.sablecc2.reactor.export.OneDriveUploaderReactor;
 import prerna.sablecc2.reactor.export.ToCsvReactor;
 import prerna.sablecc2.reactor.export.ToDatabaseReactor;
+import prerna.sablecc2.reactor.export.ToLoaderSheetReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
 import prerna.sablecc2.reactor.expression.OpAsString;
@@ -201,8 +202,10 @@ import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorPathReactor;
 import prerna.sablecc2.reactor.qs.selectors.StandardDeviationReactor;
 import prerna.sablecc2.reactor.qs.selectors.SumReactor;
+import prerna.sablecc2.reactor.qs.selectors.UniqueAverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueCountReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
+import prerna.sablecc2.reactor.qs.selectors.UniqueSumReactor;
 import prerna.sablecc2.reactor.qs.source.APIReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
@@ -432,7 +435,10 @@ public class ReactorFactory {
 		reactorHash.put("PCol", PathSelectorReactor.class);
 		reactorHash.put("Average", AverageReactor.class);
 		reactorHash.put("Mean", AverageReactor.class);
+		reactorHash.put("UniqueAverage", UniqueAverageReactor.class);
+		reactorHash.put("UniqueMean", UniqueAverageReactor.class);
 		reactorHash.put("Sum", SumReactor.class);
+		reactorHash.put("UniqueSum", UniqueSumReactor.class);
 		reactorHash.put("Max", MaxReactor.class);
 		reactorHash.put("Min", MinReactor.class);
 		reactorHash.put("Median", MedianReactor.class);
@@ -507,6 +513,7 @@ public class ReactorFactory {
 		reactorHash.put("AutoTaskOptions", AutoTaskOptionsReactor.class);
 		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
+		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
 		
 		// Task Operations
 		reactorHash.put("CodeLambda", GenericMapLambdaTaskReactor.class);
