@@ -15,7 +15,7 @@ public class UniqueAverageReactor extends QuerySelectReactor {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
 				NounMetadata input = qsInputs.getNoun(selectIndex);
 				IQuerySelector innerSelector = getSelector(input);
-				qs.addSelector(genFunctionSelector(QueryFunctionHelper.MEAN, innerSelector, true));
+				qs.addSelector(genFunctionSelector(QueryFunctionHelper.UNIQUE_MEAN, innerSelector, true));
 			}
 		}
 		return qs;
