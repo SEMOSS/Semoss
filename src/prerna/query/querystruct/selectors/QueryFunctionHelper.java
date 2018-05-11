@@ -5,10 +5,14 @@ public class QueryFunctionHelper {
 	public static final String MIN = "min";
 	public static final String MAX = "max";
 	public static final String MEAN = "mean";
+	public static final String UNIQUE_MEAN = "uniquemean";
 	public static final String AVERAGE_1 = "average";
+	public static final String UNIQUE_AVERAGE_1 = "uniqueaverage";
 	public static final String AVERAGE_2 = "avg";
+	public static final String UNIQUE_AVERAGE_2 = "uniqueavg";
 	public static final String MEDIAN = "median";
 	public static final String SUM = "sum";
+	public static final String UNIQUE_SUM = "uniquesum";
 	public static final String STDEV_1 = "standarddeviation";
 	public static final String STDEV_2 = "stdev";
 	public static final String COUNT = "count";
@@ -32,11 +36,12 @@ public class QueryFunctionHelper {
 			inputFunction = "MIN";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "MAX";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2) 
+				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
 			inputFunction = "AVG";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = "MEDIAN";
-		} else if(lowerfunction.equals(SUM)) {
+		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
 			inputFunction = "SUM";
 		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = "STDDEV_SAMP";
@@ -66,11 +71,12 @@ public class QueryFunctionHelper {
 			inputFunction = "min";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "max";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)
+				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
 			inputFunction = "mean";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = "median";
-		} else if(lowerfunction.equals(SUM)) {
+		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
 			inputFunction = "sum";
 		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = "sd";
@@ -100,11 +106,12 @@ public class QueryFunctionHelper {
 			inputFunction = "MIN";
 		} else if(lowerfunction.equals(MAX)) {
 			inputFunction = "MAX";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2) 
+				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
 			inputFunction = "AVG";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = null;
-		} else if(lowerfunction.equals(SUM)) {
+		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
 			inputFunction = "SUM";
 		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = null;
@@ -149,10 +156,14 @@ public class QueryFunctionHelper {
 			inputFunction = "Max";
 		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)) {
 			inputFunction = "Average";
+		} else if(lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+			inputFunction = "UniqueAverage";
 		} else if(lowerfunction.equals(MEDIAN)) {
 			inputFunction = "Median";
 		} else if(lowerfunction.equals(SUM)) {
 			inputFunction = "Sum";
+		} else if(lowerfunction.equals(UNIQUE_SUM)) {
+			inputFunction = "UniqueSum";
 		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
 			inputFunction = "StandardDeviation";
 		} else if(lowerfunction.equals(COUNT)) {
