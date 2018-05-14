@@ -104,6 +104,7 @@ import com.ibm.icu.text.DecimalFormat;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
@@ -1251,39 +1252,27 @@ public class Utility {
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String[]> getVectorArrayOfReturn(String query,IEngine engine, Boolean raw){
-		Vector<String[]> retString = new Vector<String[]>();
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
-		//		wrap.execute();
+	public static Vector<String[]> getVectorArrayOfReturn(String query, IEngine engine, Boolean raw){
+		Vector<String[]> retArray = new Vector<String[]>();
+		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
 
-		String[] names = wrap.getVariables();
-
-		while (wrap.hasNext()) {
-			String [] valArray = new String[names.length];
-			
-			ISelectStatement bs = wrap.next();
-			for(int nameIndex = 0;nameIndex < names.length;nameIndex++)
-			{
-				Object value = null;
-				if(raw){
-					value = bs.getRawVar(names[nameIndex]);
-				} else {
-					value = bs.getVar(names[nameIndex]);
-				}
-				String val = null;
-				if(value instanceof Binding){
-					val = ((Value)((Binding) value).getValue()).stringValue();
-				}
-				else{
-					val = value +"";
-				}
-				val = val.replace("\"", "");
-				valArray[nameIndex] = val;
-				retString.addElement(valArray);
+		while(wrap.hasNext()) {
+			Object[] values = null;
+			if(raw) {
+				values = wrap.next().getValues();
+			} else {
+				values = wrap.next().getValues();
 			}
+			
+			String[] valArray = new String[values.length];
+			for(int i = 0; i < values.length; i++) {
+				if(values[i] != null) {
+					valArray[i] = values[i] + "";
+				}
+			}
+			retArray.add(valArray);
 		}
-		return retString;
-
+		return retArray;
 	}
 
 	/**
