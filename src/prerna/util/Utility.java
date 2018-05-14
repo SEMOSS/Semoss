@@ -94,7 +94,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
@@ -915,7 +915,7 @@ public class Utility {
 	 * @param wb 		XSSFWorkbook to write to
 	 * @param fileLoc 	String containing the path to save the workbook
 	 */
-	public static void writeWorkbook(XSSFWorkbook wb, String fileLoc) {
+	public static void writeWorkbook(Workbook wb, String fileLoc) {
 		FileOutputStream newExcelFile = null;
 		try {
 			newExcelFile = new FileOutputStream(fileLoc);
