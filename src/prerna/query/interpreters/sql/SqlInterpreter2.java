@@ -43,43 +43,43 @@ import prerna.util.sql.SQLQueryUtil;
 public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	// this keeps the table aliases
-	private Hashtable<String, String> aliases = new Hashtable<String, String>();
+	protected Hashtable<String, String> aliases = new Hashtable<String, String>();
 	
 	// keep track of processed tables used to ensure we don't re-add tables into the from string
-	private Hashtable<String, String> tableProcessed = new Hashtable<String, String>();
+	protected Hashtable<String, String> tableProcessed = new Hashtable<String, String>();
 	
 	// we will keep track of the conceptual names to physical names so we don't re-query the owl multiple times
-	private transient Hashtable<String, String> conceptualConceptToPhysicalMap = new Hashtable<String, String>();
+	protected transient Hashtable<String, String> conceptualConceptToPhysicalMap = new Hashtable<String, String>();
 	// need to also keep track of the properties
-	private transient Hashtable<String, String> conceptualPropertyToPhysicalMap = new Hashtable<String, String>();
+	protected transient Hashtable<String, String> conceptualPropertyToPhysicalMap = new Hashtable<String, String>();
 	// need to keep track of the primary key for tables
-	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
+	protected transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 
 	// we can create a statement without an engine... 
 	// but everything needs to be the physical schema
-	private transient IEngine engine; 
-	private transient ITableDataFrame frame;
+	protected transient IEngine engine; 
+	protected transient ITableDataFrame frame;
 	
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
-	private List<String> filterStatements = new Vector<String>();
-	private List<String> havingFilterStatements = new Vector<String>();
+	protected List<String> filterStatements = new Vector<String>();
+	protected List<String> havingFilterStatements = new Vector<String>();
 	
-	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
+	protected transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 	
-	private String selectors = "";
-	private Set<String> selectorList = new HashSet<String>();
+	protected String selectors = "";
+	protected Set<String> selectorList = new HashSet<String>();
 	// keep selector alias
-	private List<String> selectorAliases = new Vector<String>();
+	protected List<String> selectorAliases = new Vector<String>();
 	// keep list of columns for tables
-	private Map<String, List<String>> retTableToCols = new HashMap<String, List<String>>();
+	protected Map<String, List<String>> retTableToCols = new HashMap<String, List<String>>();
 	
-	private List<String[]> froms = new Vector<String[]>();
+	protected List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
-	private SqlJoinStructList joinStructList = new SqlJoinStructList();
+	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
 	
-	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
+	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
 	public SqlInterpreter2() {
 		
@@ -217,7 +217,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private void addSelector(IQuerySelector selector) {
+	protected void addSelector(IQuerySelector selector) {
 		String alias = selector.getAlias();
 		String newSelector = processSelector(selector, true) + " AS " + "\""+alias+"\"";
 		
@@ -237,7 +237,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param selector
 	 * @return
 	 */
-	private String processSelector(IQuerySelector selector, boolean addProcessedColumn) {
+	protected String processSelector(IQuerySelector selector, boolean addProcessedColumn) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return processConstantSelector((QueryConstantSelector) selector);
@@ -253,7 +253,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return null;
 	}
 
-	private String processConstantSelector(QueryConstantSelector selector) {
+	protected String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
 		if(constant instanceof Number) {
 			return constant.toString();
@@ -268,7 +268,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param isTrueColumn
 	 * @return
 	 */
-	private String processColumnSelector(QueryColumnSelector selector, boolean notEmbeddedColumn) {
+	protected String processColumnSelector(QueryColumnSelector selector, boolean notEmbeddedColumn) {
 		String table = selector.getTable();
 		String colName = selector.getColumn();
 		String tableAlias = selector.getTableAlias();
@@ -307,7 +307,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return tableAlias + "." + physicalColName;
 	}
 	
-	private String processFunctionSelector(QueryFunctionSelector selector) {
+	protected String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		String function = selector.getFunction();
 		
@@ -328,7 +328,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return expression.toString();
 	}
 	
-	private String processArithmeticSelector(QueryArithmeticSelector selector) {
+	protected String processArithmeticSelector(QueryArithmeticSelector selector) {
 		IQuerySelector leftSelector = selector.getLeftSelector();
 		IQuerySelector rightSelector = selector.getRightSelector();
 		String mathExpr = selector.getMathExpr();
@@ -340,7 +340,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private String processOpaqueSelector(QueryOpaqueSelector selector) {
+	protected String processOpaqueSelector(QueryOpaqueSelector selector) {
 		if(this.joinStructList.isEmpty() && selector.getTable() != null) {
 			addFrom(selector.getTable(), selector.getTable());
 		}
@@ -357,7 +357,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * Adds the form statement for each table
 	 * @param conceptualTableName			The name of the table
 	 */
-	private void addFrom(String conceptualTableName, String alias) {
+	protected void addFrom(String conceptualTableName, String alias) {
 		// need to determine if we can have multiple froms or not
 		// we don't want to add the from table multiple times as this is invalid in sql
 		if(!tableProcessed.containsKey(conceptualTableName)) {
@@ -404,7 +404,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param toCol						The ending column, this can be just a table
 	 * 									or table__column
 	 */
-	private void addJoin(String fromCol, String thisComparator, String toCol) {
+	protected void addJoin(String fromCol, String thisComparator, String toCol) {
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
 		String targetTable = relConProp[0];
@@ -432,7 +432,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
 	
-	private void addHavingFilters() {
+	public void addHavingFilters() {
 		List<IQueryFilter> filters = qs.getHavingFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter);
@@ -452,7 +452,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		}
 	}
 	
-	private StringBuilder processFilter(IQueryFilter filter) {
+	protected StringBuilder processFilter(IQueryFilter filter) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
 		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 			return processSimpleQueryFilter((SimpleQueryFilter) filter);
@@ -464,7 +464,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return null;
 	}
 	
-	private StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+	protected StringBuilder processOrQueryFilter(OrQueryFilter filter) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -480,7 +480,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 
-	private StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+	protected StringBuilder processAndQueryFilter(AndQueryFilter filter) {
 		StringBuilder filterBuilder = new StringBuilder();
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
@@ -496,7 +496,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 
-	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+	protected StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
 		String thisComparator = filter.getComparator();
@@ -520,7 +520,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return null;
 	}
 	
-	private StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	protected StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, false);
@@ -552,7 +552,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	protected StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		thisComparator = thisComparator.trim();
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
@@ -626,7 +626,13 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 				newObjects.add(objects.get(i));
 				// always process as string
 				String myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
-				filterBuilder.append("( LOWER(").append(leftSelectorExpression);
+				filterBuilder.append("( LOWER(");
+				boolean cast = SemossDataType.convertStringToDataType(leftDataType) != SemossDataType.STRING;
+				if(cast) {
+					filterBuilder.append("CAST(").append(leftSelectorExpression).append(" as CHAR(50))");
+				} else {
+					filterBuilder.append(leftSelectorExpression);
+				}
 				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 				i++;
 				for(; i < size; i++) {
@@ -634,7 +640,12 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 					newObjects.add(objects.get(i));
 					// always process as string
 					myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
-					filterBuilder.append(" OR LOWER(").append(leftSelectorExpression);
+					filterBuilder.append(" OR LOWER(");
+					if(cast) {
+						filterBuilder.append("CAST(").append(leftSelectorExpression).append(" as CHAR(50))");
+					} else {
+						filterBuilder.append(leftSelectorExpression);
+					}
 					filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 				}
 				filterBuilder.append(")");
@@ -661,7 +672,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	protected StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
@@ -682,7 +693,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 	
-	private StringBuilder addValueToValueFilter(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
+	protected StringBuilder addValueToValueFilter(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
 		// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
 		// ... what is the point of this... this is a dumb thing... you are dumb
 
@@ -746,7 +757,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param comparator
 	 * @return
 	 */
-	private String getFormatedObject(String dataType, List<Object> objects, String comparator) {
+	protected String getFormatedObject(String dataType, List<Object> objects, String comparator) {
 		// this will hold the sql acceptable format of the object
 		StringBuilder myObj = new StringBuilder();
 		
@@ -983,7 +994,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param conceptualTableName
 	 * @return
 	 */
-	private String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
+	protected String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
 		// if engine present
 		// get the appropriate physical storage name for the table
 		if(engine != null && !engine.isBasic()) {
@@ -1020,7 +1031,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param columnConceptualName					The conceptual name of the property
 	 * @return										The physical name of the property
 	 */
-	private String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
+	protected String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
 		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
 			if(conceptualPropertyToPhysicalMap.containsKey(columnConceptualName)) {
@@ -1050,7 +1061,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @param table						The conceptual table name
 	 * @return							The physical table name
 	 */
-	private String getPrimKey4Table(String conceptualTableName){
+	protected String getPrimKey4Table(String conceptualTableName){
 		if(primaryKeyCache.containsKey(conceptualTableName)){
 			return primaryKeyCache.get(conceptualTableName);
 		}
@@ -1128,7 +1139,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @return							String[] of length 4 where the indices are
 	 * 									[startTable, startCol, endTable, endCol]
 	 */
-	private String[] getRelationshipConceptProperties(String fromString, String toString){
+	protected String[] getRelationshipConceptProperties(String fromString, String toString){
 		if(relationshipConceptPropertiesMap.containsKey(fromString + "__" + toString)) {
 			return relationshipConceptPropertiesMap.get(fromString + "__" + toString);
 		}
@@ -1255,7 +1266,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	 * @return								String[] containing the concept physical
 	 * 										at index 0 and property physical at index 1
 	 */
-	private String[] getConceptProperty(String concept_property) {
+	protected String[] getConceptProperty(String concept_property) {
 		String conceptPhysical = null;
 		String propertyPhysical = null;
 		
