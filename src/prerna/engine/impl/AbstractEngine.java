@@ -558,6 +558,10 @@ public abstract class AbstractEngine implements IEngine {
 		return owlHelper.getConcepts(conceptualNames);
 	}
 	
+	public Vector<String[]> getRelationships() {
+		return owlHelper.getRelationships();
+	}
+	
 	/**
 	 * Goes to the owl using a regex sparql query to get the physical uri
 	 * @param physicalName e.g. Studio
