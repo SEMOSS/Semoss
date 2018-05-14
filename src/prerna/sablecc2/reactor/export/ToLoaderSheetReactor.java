@@ -12,7 +12,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
-import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
@@ -64,7 +63,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			// we will create a frame
 			// and merge every property onto it
 			// using a left join
-			ITableDataFrame dataframe = new RDataTable();
+			ITableDataFrame dataframe = new H2Frame();
 			String conceptualName = Utility.getInstanceName(concept);
 			// first add the concept by itself
 			{
@@ -182,6 +181,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		// write the information for the headers and construct the query
 		// so it outputs in the same order
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.setDistinct(false);
 		String physicalNodeName = getPhysicalColumnHeader(engine, conceptualName);
 		Sheet sheet = workbook.createSheet(physicalNodeName + "_Props");
 
@@ -243,7 +243,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 
 		String testEngine = "MovieDatabase";
-		testEngine = "TAP_Core_Data";
+		testEngine = "TAP_Site_Data";
 		
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
 		coreEngine = new BigDataEngine();
