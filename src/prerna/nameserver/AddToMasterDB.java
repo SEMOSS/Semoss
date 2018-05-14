@@ -158,7 +158,7 @@ public class AddToMasterDB {
 		// get the list of all the physical names
 		// false denotes getting the physical names
 		Vector<String> concepts = helper.getConcepts(false);
-		Vector<String[]> relationships = helper.getRelationships();
+		Vector<String[]> relationships = helper.getRelationships(false);
 		LOGGER.info("For engine " + engineName + " : Total Concepts Found = " + concepts.size());
 		LOGGER.info("For engine " + engineName + " : Total Relationships Found = " + relationships.size());
 
