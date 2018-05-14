@@ -104,7 +104,11 @@ public class RImporter implements IImporter {
 				// in R, the existing column is referenced as frame__column
 				// but the R syntax only wants the col
 				Map<String, String> joinColMapping = new HashMap<String, String>();
-				joinColMapping.put(joinItem.getSelector().split("__")[1], joinItem.getQualifier());
+				String jSelector = joinItem.getSelector();
+				if(jSelector.contains("__")) {
+					jSelector = jSelector.split("__")[1];
+				}
+				joinColMapping.put(jSelector, joinItem.getQualifier());
 				joinCols.add(joinColMapping);
 			}
 			
