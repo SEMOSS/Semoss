@@ -285,6 +285,7 @@ public class MetaHelper implements IExplorable {
 				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
 				+ "{?start ?rel ?end}"
 				+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
+				+ "Filter(?rel != <http://semoss.org/ontologies/Relation>)"
 				+ "}";
 		
 		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
