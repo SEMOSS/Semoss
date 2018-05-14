@@ -558,8 +558,8 @@ public abstract class AbstractEngine implements IEngine {
 		return owlHelper.getConcepts(conceptualNames);
 	}
 	
-	public Vector<String[]> getRelationships() {
-		return owlHelper.getRelationships();
+	public Vector<String[]> getRelationships(boolean conceptualNames) {
+		return owlHelper.getRelationships(conceptualNames);
 	}
 	
 	/**

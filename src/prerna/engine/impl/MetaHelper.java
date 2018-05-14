@@ -278,8 +278,10 @@ public class MetaHelper implements IExplorable {
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 	
-	public Vector<String[]> getRelationships() {
-		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
+	public Vector<String[]> getRelationships(boolean conceptualNames) {
+		String query = "";
+		if(!conceptualNames) {
+			query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
 				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
 				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
@@ -287,6 +289,18 @@ public class MetaHelper implements IExplorable {
 				+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
 				+ "Filter(?rel != <http://semoss.org/ontologies/Relation>)"
 				+ "}";
+		} else {
+			query = "SELECT DISTINCT ?startC ?endC ?rel WHERE { "
+					+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}"
+					+ "{?start <http://semoss.org/ontologies/Relation/Conceptual> ?startC}"
+					+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>}"
+					+ "{?end <http://semoss.org/ontologies/Relation/Conceptual> ?endC}"
+					+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
+					+ "{?start ?rel ?end}"
+					+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
+					+ "Filter(?rel != <http://semoss.org/ontologies/Relation>)"
+					+ "}";
+		}
 		
 		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
 	}
