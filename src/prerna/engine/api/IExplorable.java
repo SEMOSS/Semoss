@@ -103,7 +103,7 @@ public interface IExplorable {
 	 */
 	Vector<String> getConcepts(boolean conceptualNames);
 
-	Vector<String[]> getRelationships();
+	Vector<String[]> getRelationships(boolean conceptualNames);
 	
 	/**
 	 * Returns the set of properties for a given concept
