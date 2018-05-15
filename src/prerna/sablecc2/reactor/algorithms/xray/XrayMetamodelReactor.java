@@ -32,14 +32,11 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		Logger logger = getLogger(CLASS_NAME);
-
 		// need to make sure that the textreuse package is installed
 		logger.info("Checking if required R packages are installed to run X-ray...");
 		this.rJavaTranslator.checkPackages(new String[] { "textreuse", "digest", "memoise", "withr", "jsonlite" });
-
 		organizeKeys();
 		// get metamodel
-		System.out.println("");
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		Map<String, Object> config = null;
 		if (grs != null && !grs.isEmpty()) {
@@ -47,7 +44,6 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 		} else {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.CONFIG.getKey());
 		}
-
 		Xray xray = new Xray(this.rJavaTranslator, getBaseFolder(), logger);
 		String rFrameName = xray.run(config);
 
@@ -57,7 +53,6 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 
 		// if we have results sync back SEMOSS
 		if (!nullResults) {
-
 			// format xray results into json
 			String jsonR = "json" + Utility.getRandomString(5);
 			String tempFrame = "temp" + Utility.getRandomString(8);
@@ -67,7 +62,6 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			formatScript += jsonR + " <- toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ";
 			this.rJavaTranslator.runR(formatScript);
 			String json = this.rJavaTranslator.getString(jsonR);
-
 			List<Map> jsonMap = new ArrayList<Map>();
 			if (json != null) {
 				try {
@@ -79,42 +73,37 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				throw new IllegalArgumentException("No collisions found");
 			}
 
-			// get database - concept list to get node properties for metamodel
-			Set<String> conceptHash = new HashSet<String>();
-			String dbConceptDelimiter = "%%%" + Utility.getRandomString(5) + "%%%";
+			Map<String, Object> dbMap = new HashMap<>();
 			for (Map map : jsonMap) {
 				for (Object key : map.keySet()) {
 					String sourceDB = (String) map.get("Source_Database");
 					String sourceTable = (String) map.get("Source_Table");
-					conceptHash.add(sourceDB + dbConceptDelimiter + sourceTable);
+					Map<String, Object> dbConcepts = null;
+					if (dbMap.containsKey(sourceDB)) {
+						dbConcepts = (Map<String, Object>) dbMap.get(sourceDB);
+						if (!dbConcepts.containsKey(sourceTable)) {
+							dbConcepts.put(sourceTable, MasterDatabaseUtility
+									.getSpecificConceptPropertiesRDBMS(sourceTable, sourceDB).get(sourceDB));
+						}
+					} else {
+						dbConcepts = new HashMap<>();
+						dbConcepts.put(sourceTable, MasterDatabaseUtility
+								.getSpecificConceptPropertiesRDBMS(sourceTable, sourceDB).get(sourceDB));
+					}
+					dbMap.put(sourceDB, dbConcepts);
 					String targetDB = (String) map.get("Target_Database");
 					String targetTable = (String) map.get("Target_Table");
-					conceptHash.add(targetDB + dbConceptDelimiter + targetTable);
-					String value = (String) map.get(key);
-					System.out.println(key + " : " + value);
-
+					if (dbMap.containsKey(targetDB)) {
+						dbConcepts = (Map<String, Object>) dbMap.get(targetDB);
+						if (!dbConcepts.containsKey(targetTable)) {
+							dbConcepts.put(targetTable, MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(targetTable, targetDB).get(targetDB));
+						}
+					} else {
+						dbConcepts = new HashMap<>();
+						dbConcepts.put(targetTable, MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(targetTable, targetDB).get(targetDB));
+					}
+					dbMap.put(targetDB, dbConcepts);
 				}
-				System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-			}
-			// get node properties
-			List<Map> nodeList = new ArrayList<>();
-
-			for (String conceptDBKey : conceptHash) {
-				Map<String, Object> nodeMap = new HashMap<>();
-				String db = conceptDBKey.split(dbConceptDelimiter)[0];
-				String concept = conceptDBKey.split(dbConceptDelimiter)[1];
-				System.out.println("DB: " + db);
-				System.out.println("Concept: " + concept);
-				nodeMap.put("keySet", new ArrayList<>());
-				nodeMap.put("conceptualName", concept);
-				nodeMap.put("database", db);
-				Map<String, List<String>> propsMap = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(concept,
-						db);
-				for (String key : propsMap.keySet()) {
-					List<String> props = propsMap.get(key);
-					nodeMap.put("propSet", props);
-				}
-				nodeList.add(nodeMap);
 			}
 			// clean up r temp variables
 			StringBuilder cleanUpScript = new StringBuilder();
@@ -125,9 +114,8 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("edges", jsonMap);
-			retMap.put("nodes", nodeList);
+			retMap.put("nodes", dbMap);
 			return new NounMetadata(retMap, PixelDataType.MAP);
-
 		}
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
