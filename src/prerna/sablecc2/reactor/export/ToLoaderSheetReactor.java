@@ -180,7 +180,8 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
 				} else {
 					row.createCell(i+1).setCellValue(data[i] + "");
-				}			}
+				}			
+			}
 			rowCounter++;
 		}
 	}
@@ -200,7 +201,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		// add row 2 - so we can add teh rel name
 		{
 			Row row = sheet.createRow(1);
-			row.createCell(0).setCellValue(rel[2]);
+			row.createCell(0).setCellValue(Utility.getInstanceName(rel[2]));
 			if(it.hasNext()) {
 				Object[] data = it.next().getValues();
 				for(int i = 0 ; i < data.length; i++) {
@@ -256,7 +257,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		String query = "select distinct ?start ?end where { "
 				+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
 				+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
-				+ "{?start <http://semoss.org/ontologies/Relation/" + relName + "> ?end}"
+				+ "{?start <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + "> ?end}"
 				+ "} order by ?start";
 		return query;
 	}
