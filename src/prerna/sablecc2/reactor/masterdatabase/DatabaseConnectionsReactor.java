@@ -22,7 +22,7 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<String> conceptualNames = getColumns();
 		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames);
-		 List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames);
+		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
 	
@@ -32,19 +32,31 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 	 */
 	private List<String> getColumns() {
 		// is it defined within store
-		GenRowStruct cGrs = this.store.getNoun(this.keysToGet[0]);
-		if(cGrs != null && !cGrs.isEmpty()) {
-			List<String> columns = new Vector<String>();
-			for(int i = 0; i < cGrs.size(); i++) {
-				columns.add(cGrs.get(0).toString());
+		{
+			GenRowStruct cGrs = this.store.getNoun(this.keysToGet[0]);
+			if(cGrs != null && !cGrs.isEmpty()) {
+				List<String> columns = new Vector<String>();
+				for(int i = 0; i < cGrs.size(); i++) {
+					String value = cGrs.get(0).toString();
+					if(value.contains("__")) {
+						columns.add(value.split("__")[1]);
+					} else {
+						columns.add(value);
+					}
+				}
+				return columns;
 			}
-			return columns;
 		}
-
+		
 		// is it inline w/ currow
 		List<String> columns = new Vector<String>();
 		for(int i = 0; i < this.curRow.size(); i++) {
-			columns.add(this.curRow.get(i).toString());
+			String value = this.curRow.get(i).toString();
+			if(value.contains("__")) {
+				columns.add(value.split("__")[1]);
+			} else {
+				columns.add(value);
+			}
 		}
 		return columns;
 	}
