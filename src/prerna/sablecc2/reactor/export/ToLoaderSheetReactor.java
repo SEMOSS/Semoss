@@ -121,8 +121,13 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
 			}
 		}
-		Utility.writeWorkbook(workbook, fileLoc);
+		
+		logger.info("Start writing loader sheet");
+		writeLoader(workbook);
+		logger.info("Finsihed Writing loader sheet");
 
+		logger.info("Start exporting");
+		Utility.writeWorkbook(workbook, fileLoc);
 		logger.info("Done exporting worksheet for engine = " + engineName);
 
 		String randomKey = UUID.randomUUID().toString();
@@ -221,6 +226,30 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			}
 			rowCounter++;
 		}
+	}
+	
+	public static void writeLoader(Workbook wb) {
+		int numSheets = wb.getNumberOfSheets();
+		List<String> sheetNames = new Vector<String>(numSheets);
+		for(int i = 0; i < numSheets; i++) {
+			sheetNames.add(wb.getSheetName(i));
+		}
+		
+		Sheet loader = wb.createSheet("Loader");
+		{
+			Row headerRow = loader.createRow(0);
+			headerRow.createCell(0).setCellValue("Sheet");
+			headerRow.createCell(1).setCellValue("Type");
+		}
+		
+		for(int i = 0; i < numSheets; i++) {
+			Row sheetRow = loader.createRow(i+1);
+			sheetRow.createCell(0).setCellValue(sheetNames.get(i));
+			sheetRow.createCell(1).setCellValue("Usual");
+		}
+		
+		// the loader sheet first
+		wb.setSheetOrder("Loader", 0);
 	}
 	
 	public static String generateSparqlQuery(IEngine engine, String startNode, String endNode, String relName) {
