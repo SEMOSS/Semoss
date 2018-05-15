@@ -128,28 +128,28 @@ public class BasicIteratorTask extends AbstractTask {
 	private void optimizeFrame(ITableDataFrame dataframe, List<QueryColumnOrderBySelector> orderBys) {
 		if (dataframe instanceof H2Frame) {
 			H2Frame hFrame = (H2Frame) dataframe;
-			Set<String> indexedCols = hFrame.getColumnsWithIndexes();
+			Set<String> hIndexedCols = hFrame.getColumnsWithIndexes();
 			OwlTemporalEngineMeta meta = hFrame.getMetaData();
 			for(int i = 0; i < orderBys.size(); i++) {
 				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
 				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
 				String col = convertedOrderByS.getColumn();
-				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !indexedCols.contains(col)) {
+				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !hIndexedCols.contains(col)) {
 					hFrame.addColumnIndex(col);
 				}
 			}
 		} else if(dataframe instanceof RDataTable) {
-			//TODO: come back to this for testing
-//			RDataTable rFrame = (RDataTable) dataframe;
-//			OwlTemporalEngineMeta meta = rFrame.getMetaData();
-//			for(int i = 0; i < orderBys.size(); i++) {
-//				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
-//				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
-//				String col = convertedOrderByS.getColumn();
-//				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col)) {
-//					rFrame.addColumnIndex(col);
-//				}
-//			}
+			RDataTable rFrame = (RDataTable) dataframe;
+			OwlTemporalEngineMeta meta = rFrame.getMetaData();
+			Set<String> rIndexedCols = rFrame.getColumnsWithIndexes();
+			for(int i = 0; i < orderBys.size(); i++) {
+				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
+				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
+				String col = convertedOrderByS.getColumn();
+				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !rIndexedCols.contains(col)) {
+					rFrame.addColumnIndex(col);
+				}
+			}
 		}
 	}
 	

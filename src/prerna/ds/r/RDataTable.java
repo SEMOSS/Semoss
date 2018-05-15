@@ -1,9 +1,11 @@
 package prerna.ds.r;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -176,11 +178,30 @@ public class RDataTable extends AbstractTableDataFrame {
 		return iterator;
 	}
 	
-	public void addColumnIndex(String columnHeader) {
-		String tableName = this.builder.getTableName();
-		this.builder.evalR("setindex(" + tableName + ", \"" + columnHeader + "\")");
+	public Set<String> getColumnsWithIndexes() {
+		Set<String> cols = new HashSet<String>();
+		for(String s : this.builder.columnIndexSet) {
+			// table name and col name are appended together with +++
+			cols.add(s.split("\\+\\+\\+")[1]);
+		}
+		return cols;
+	}
+
+	public void addColumnIndex(String columnName) {
+		if(columnName.contains("__")) {
+			String[] split = columnName.split("__");
+			this.builder.addColumnIndex(split[0], split[1]);
+		} else {
+			String tableName = getTableName();
+			this.builder.addColumnIndex(tableName, columnName);
+		}
 	}
 	
+	public void addColumnIndex(String[] columnName) {
+		String tableName = getTableName();
+		this.builder.addColumnIndex(tableName, columnName);
+	}
+
 	@Override
 	public void removeColumn(String columnHeader) {
 		String tableName = this.builder.getTableName();

@@ -1,11 +1,15 @@
 package prerna.ds.r;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -37,6 +41,9 @@ public class RFrameBuilder {
 	
 	// holds the name of the current data table
 	protected String dataTableName = "datatable";
+	
+	// keep track of the indices that exist in the table for optimal speed in sorting
+	protected Set<String> columnIndexSet = new HashSet<String>();
 
 	// holds the connection object to execute r
 	protected AbstractRJavaTranslator rJavaTranslator = null;
@@ -128,6 +135,9 @@ public class RFrameBuilder {
 		alterColumnsToNumeric(tableName, typesMap);
 		//modify columns such that they are date where needed
 		alterColumnsToDate(tableName, typesMap);
+		
+		//add indices
+		addColumnIndex(tableName, getColumnNames());
 	}
 	
 	private void createTableViaCsvFile(String tableName, CsvFileIterator it) {
@@ -330,6 +340,59 @@ public class RFrameBuilder {
 		}
 	}
 	
+	protected void addColumnIndex(String tableName, String colName) {
+		if (!columnIndexSet.contains(tableName + "+++" + colName)) {
+			long start = System.currentTimeMillis();
+			String rIndex = null;
+			logger.info("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN = " + colName);
+			try {
+				rIndex = "CREATE INDEX ON " + tableName + "(" + colName + ")";
+				this.rJavaTranslator.executeEmptyR("setindex(" + tableName + "," + colName + ");");
+				List<String> confirmedIndices = Arrays.asList(this.rJavaTranslator.getStringArray("indices(" + tableName + ");"));
+				if (confirmedIndices.contains(colName)) {
+					columnIndexSet.add(tableName + "+++" + colName);		
+				}
+				long end = System.currentTimeMillis();
+				logger.info("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+			} catch (Exception e) {
+				logger.info("ERROR WITH R INDEX !!! " + rIndex);
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	protected void addColumnIndex(String tableName, String[] colNames) {
+		HashSet<String> colNamesSet = new HashSet<>(Arrays.asList(colNames));
+		colNamesSet.removeAll(columnIndexSet);
+		
+		if (colNamesSet.size() > 0 ){
+			long start = System.currentTimeMillis();
+			String rIndex = null;
+			logger.info("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN(S) = " + StringUtils.join(colNamesSet,", "));
+			try {
+				rIndex = "CREATE INDEX ON " + tableName + "(" + StringUtils.join(colNamesSet,", ") + ")";
+				this.rJavaTranslator.executeEmptyR(
+						"invisible(lapply(c('" + StringUtils.join(colNamesSet,"','") + "')" + ", setindexv, x= " + tableName + "));");
+				List<String> confirmedIndices = Arrays.asList(this.rJavaTranslator.getStringArray("indices(" + tableName + ");"));
+				for (String c : colNamesSet) {
+					if (confirmedIndices.contains(c)) {
+						columnIndexSet.add(tableName + "+++" + c);
+					}
+				}
+				long end = System.currentTimeMillis();
+				logger.info("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+			} catch (Exception e) {
+				logger.info("ERROR WITH R INDEX !!! " + rIndex);
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
+	/*
+	 * Wrappers around existing emthods in rJavaTranslator
+	 */
+	
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
 		return this.rJavaTranslator.getDataRow(rScript, headerOrdering);
 	}
@@ -383,5 +446,4 @@ public class RFrameBuilder {
 		}
 		return null;
 	}
-	
 }
