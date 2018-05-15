@@ -1216,33 +1216,25 @@ public class Utility {
 	 * @param eng
 	 * @return Vector of uris associated with first variale returned from the query
 	 */
-	public static Vector<String> getVectorOfReturn(String query,IEngine engine, Boolean raw){
-		Vector<String> retString = new Vector<String>();
-		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(engine, query);
-		//		wrap.execute();
+	public static Vector<String> getVectorOfReturn(String query, IEngine engine, Boolean raw){
+		Vector<String> retArray = new Vector<String>();
+		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(engine, query);
 
-		String[] names = wrap.getVariables();
-
-		while (wrap.hasNext()) {
-			ISelectStatement bs = wrap.next();
-			Object value = null;
-			if(raw){
-				value = bs.getRawVar(names[0]);
+		while(wrap.hasNext()) {
+			Object[] values = null;
+			if(raw) {
+				values = wrap.next().getRawValues();
 			} else {
-				value = bs.getVar(names[0]);
+				values = wrap.next().getValues();
 			}
-			String val = null;
-			if(value instanceof Binding){
-				val = ((Value)((Binding) value).getValue()).stringValue();
+			
+			if(values[0] != null) {
+				retArray.add(values[0].toString());
+			} else {
+				retArray.add(null);
 			}
-			else{
-				val = value +"";
-			}
-			val = val.replace("\"", "");
-			retString.addElement(val);
 		}
-		return retString;
-
+		return retArray;
 	}
 
 	/**
@@ -1259,7 +1251,7 @@ public class Utility {
 		while(wrap.hasNext()) {
 			Object[] values = null;
 			if(raw) {
-				values = wrap.next().getValues();
+				values = wrap.next().getRawValues();
 			} else {
 				values = wrap.next().getValues();
 			}
