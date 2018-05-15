@@ -274,7 +274,7 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 		if(!this.addedSelectors.containsKey(propVarName)) {
 			String propUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_PROPERTY_PREFIX + "/" + property);
 			// add the pattern around the property
-			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+			this.selectorWhereClause.append("OPTIONAL{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
 			this.addedSelectors.put(propVarName, propUri);
 		}
 		return this.addedSelectors.get(propVarName);
