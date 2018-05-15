@@ -12,7 +12,7 @@ getRF <- function(dt, instanceCol, attrColList, options=NULL){
 	lapply(list('data.table', 'randomForest', 'dplyr'), require, character.only = TRUE)
 	set.seed(123)
 	
-	tempDt <- dt[, c(instanceCol, attrColList), with=FALSE]
+	tempDt <- dt[complete.cases(dt), c(instanceCol, attrColList), with=FALSE]
 
 	#convert columns of character class to factor class
 	charCols <- colnames(tempDt)[which(as.vector(tempDt[,lapply(.SD, class)]) == "character")]
