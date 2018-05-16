@@ -13,7 +13,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 
-public class JsonInterpreter implements IQueryInterpreter2{
+public class JsonInterpreter implements IQueryInterpreter{
 
 	
 	SelectQueryStruct qs = null;

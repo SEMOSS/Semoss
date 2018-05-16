@@ -33,7 +33,7 @@ import java.util.Vector;
 
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public interface IExplorable {
@@ -91,7 +91,7 @@ public interface IExplorable {
 	// get property
 	String getProperty(String key);
 	
-	IQueryInterpreter2 getQueryInterpreter2();
+	IQueryInterpreter getQueryInterpreter2();
 	
 	/**
 	 * Returns the list of concepts as defined by the OWL file

@@ -4,7 +4,7 @@ import org.apache.log4j.Logger;
 
 import prerna.query.querystruct.SelectQueryStruct;
 
-public interface IQueryInterpreter2 {
+public interface IQueryInterpreter {
 	
 	String SEARCH_COMPARATOR = "?like";
 

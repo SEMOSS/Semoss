@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.query.interpreters.sql.SqlInterpreter2;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -329,7 +329,7 @@ public class UpdateSqlInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
 		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
-		SqlInterpreter2 innerInterpreter = new SqlInterpreter2();
+		SqlInterpreter innerInterpreter = new SqlInterpreter();
 		innerInterpreter.setQueryStruct(subQs);
 		if(this.frame != null) {
 			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());

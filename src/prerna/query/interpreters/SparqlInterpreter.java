@@ -33,7 +33,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class SparqlInterpreter2 extends AbstractQueryInterpreter {
+public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	private static final String SEMOSS_CONCEPT_PREFIX = "http://semoss.org/ontologies/Concept";
 	private static final String SEMOSS_PROPERTY_PREFIX = "http://semoss.org/ontologies/Relation/Contains";
@@ -68,11 +68,11 @@ public class SparqlInterpreter2 extends AbstractQueryInterpreter {
 	// store the engine
 	private IEngine engine;
 	
-	public SparqlInterpreter2() {
+	public SparqlInterpreter() {
 		
 	}
 	
-	public SparqlInterpreter2(IEngine engine) {
+	public SparqlInterpreter(IEngine engine) {
 		this.engine = engine;
 	}
 	

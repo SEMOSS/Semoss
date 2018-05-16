@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.query.interpreters.RInterpreter2;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -90,7 +90,7 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 			}
 			qs.setImplicitFilters(frame.getFrameFilters());
 			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
-			RInterpreter2 interp = new RInterpreter2();
+			RInterpreter interp = new RInterpreter();
 			interp.setQueryStruct(qs);
 			interp.setDataTableName(dtName);
 			interp.setColDataTypes(meta.getHeaderToTypeMap());
