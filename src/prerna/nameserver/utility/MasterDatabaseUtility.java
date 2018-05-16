@@ -259,7 +259,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// let us first go ahead and get the properties we can connect to
-		query = "select e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
+		query = "select distinct e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
 				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec2.physicalnameid in (" + sb.toString() + ")"
 				+ " and e.id = ec.engine"
@@ -320,7 +320,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// let me find up and downstream connections for my equivalent concepts
-		query = "select e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
+		query = "select distinct e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
 				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where er.sourceconceptid in (" + sb.toString() + ")"
 				+ " and e.id = er.engine "
@@ -358,7 +358,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// let me repeat for my upstream
-		query = "select e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
+		query = "select distinct e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
 				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where er.targetconceptid in (" + sb.toString() + ")"
 				+ " and e.id = er.engine "
