@@ -196,7 +196,7 @@ public class MasterDatabaseUtility {
 		// NOTE ::: IMPORTANT THAT THIS MATCHES ALL THE BELOW QUERY NAMES!!!
 		String engineFilterStr = "";
 		if(engineFilter != null && !engineFilter.isEmpty()) {
-			engineFilterStr = "and e.enginename = '" + engineFilter + "'";
+			engineFilterStr = " and e.enginename = '" + engineFilter + "'";
 		}
 		
 		/*
@@ -206,7 +206,7 @@ public class MasterDatabaseUtility {
 		 */
 		
 		// this will store the equivalent table ids to the table and column
-		Map<String, String[]> parentEquivMap = new HashMap<String, String[]>();
+		Map<String, Object[]> parentEquivMap = new HashMap<String, Object[]>();
 		
 		// this will store the ids for the columns we have
 		List<String> equivIds = new Vector<String>();
@@ -218,7 +218,8 @@ public class MasterDatabaseUtility {
 		// this will give me all the tables that have the logical name or 
 		// have a column with the logical name 
 		
-		String query = "select distinct ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId, c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName" 
+		String query = "select ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId,"
+				+ " c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName, ec.pk as pk" 
 				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"
 				+ engineFilterStr
@@ -242,10 +243,11 @@ public class MasterDatabaseUtility {
 				String equivColumnId = rs.getString(3);
 				String equivTableName = rs.getString(4);
 				String equivColumnName = rs.getString(5);
+				boolean equivPk = rs.getBoolean(6);
 				
 				// store parent table to what we are joining on
 				// so we can extend from one property to other properties within the same table
-				parentEquivMap.put(equivTableId, new String[]{equivTableName, equivColumnName});
+				parentEquivMap.put(equivTableId, new Object[]{equivTableName, equivColumnName, equivPk});
 				
 				// store the physical id for the table or column
 				// so we can find relaitonships from this
@@ -292,10 +294,10 @@ public class MasterDatabaseUtility {
 				boolean pk = rs.getBoolean(5);
 				String equivId = rs.getString(6);
 				
-				String[] equivTableCol = parentEquivMap.get(equivId);
+				Object[] equivTableCol = parentEquivMap.get(equivId);
 				
 				// above query will return the actual match columns as well
-				if(equivTableCol[0].equals(table) && equivTableCol[1].equals(column)) {
+				if(equivTableCol[0].toString().equals(table) && equivTableCol[1].toString().equals(column)) {
 					continue;
 				}
 				
@@ -309,7 +311,7 @@ public class MasterDatabaseUtility {
 				row.put("type", "property");
 				row.put("equivTable", equivTableCol[0]);
 				row.put("equivColumn", equivTableCol[1]);
-
+				row.put("equivPk", equivTableCol[2]);
 				returnData.add(row);
 			}
 		} catch (SQLException e) {
