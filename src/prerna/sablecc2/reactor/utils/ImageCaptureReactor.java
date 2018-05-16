@@ -37,7 +37,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey()};
 	}
 
 	@Override
@@ -46,7 +46,8 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		organizeKeys();
 		String engineName = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
-
+		String param = this.keyValue.get(this.keysToGet[2]);
+		
 		IEngine coreEngine = Utility.getEngine(engineName);
 		// loop through the insights
 		IEngine insightsEng = coreEngine.getInsightDatabase();
@@ -54,19 +55,19 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		while(wrapper.hasNext()) {
 			String id = wrapper.next().getValues()[0] + "";
 			logger.info("Start image capture for insight id = " + id);
-			runImageCapture(feUrl, engineName, id);
+			runImageCapture(feUrl, engineName, id, param);
 			logger.info("Done saving image for insight id = " + id);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String feUrl, String engineName, String id) {
+	public static void runImageCapture(String feUrl, String engineName, String id, String params) {
 		IEngine coreEngine = Utility.getEngine(engineName);
-		runImageCapture(feUrl, coreEngine, engineName, id);
+		runImageCapture(feUrl, coreEngine, engineName, id, params);
 	}
-
-	public static void runImageCapture(String feUrl, IEngine coreEngine, String engineName, String id) {
+	
+	public static void runImageCapture(String feUrl, IEngine coreEngine, String engineName, String id, String params) {
 		Insight insight = null;
 		try {
 			insight = coreEngine.getInsight(id).get(0);
@@ -77,8 +78,8 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			return;
 		}
 		List<String> recipe = insight.getPixelRecipe();
-		if(!hasParam(recipe)) {
-			String[] cmd = getCmdArray(feUrl, insight);
+		if(params != null || !hasParam(recipe)) {
+			String[] cmd = getCmdArray(feUrl, insight, params);
 			Process p = null;
 			try {
 				p = new ProcessBuilder(cmd).start();
@@ -135,7 +136,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		return false;
 	}
 	
-	private static String[] getCmdArray(String feUrl, Insight in) {
+	private static String[] getCmdArray(String feUrl, Insight in, String params) {
 		String id = in.getRdbmsId();
 		String engine = in.getEngineName();
 
@@ -144,6 +145,10 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				DIR_SEPARATOR + engine + 
 				DIR_SEPARATOR + "version" +
 				DIR_SEPARATOR + id;
+		
+		if(params != null) {
+			imageDirStr += params;
+		}
 		
 		File imageDir = new File(imageDirStr);
 		if(!imageDir.exists()) {
@@ -159,57 +164,27 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		if(feUrl.contains("localhost") && feUrl.contains("https")) {
 			insecure = "--allow-insecure-localhost ";
 		}
+		String[] cmd = null;
 		if(insecure.equals("")){
-			String[] cmd = {googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
-					"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000"};
-			return cmd;
-		}
-		else{
-			String[] cmd = {googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
-					"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000"};
-			return cmd;
-		}
-	}
+			if(params != null) {
+				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000"};	
 
-	private static String getCmd(String feUrl, Insight in) {
-		String id = in.getRdbmsId();
-		String engine = in.getEngineName();
-
-		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
-				DIR_SEPARATOR + "db" + 
-				DIR_SEPARATOR + engine + 
-				DIR_SEPARATOR + "version" +
-				DIR_SEPARATOR + id;
-		
-		File imageDir = new File(imageDirStr);
-		if(!imageDir.exists()) {
-			imageDir.mkdirs();
+			} else {
+				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
+			}
 		}
-
-		String googleHome = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_HOME);
-		if(googleHome == null) {
-			googleHome = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+		else {
+			if(params != null) {
+				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&parameters=" + params + "&hideMenu=true&panel=0&drop=1000"};				
+			} else {
+				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
+			}
 		}
-		
-		if(googleHome.contains(" ")) {
-			googleHome = "\"" + googleHome + "\"";
-		}
-		
-		String insecure = "";
-		if(feUrl.contains("localhost") && feUrl.contains("https")) {
-			insecure = "--allow-insecure-localhost ";
-		}
-		
-		String cmd = googleHome 
-				+ " "
-				+ "--headless "
-				+ "--disable-gpu "
-				+ "--window-size=1440,1440 "
-				+ "--virtual-time-budget=10000 "
-				+ insecure
-				+ "--screenshot=\"" + imageDirStr + DIR_SEPARATOR + "image.png\" "
-				+ "\"" + feUrl + "#!/insight?type=single&engine=" + engine + "&id=" + id + "&panel=0&drop=1000\"";
-
 		return cmd;
 	}
+
 }
