@@ -15,14 +15,15 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class DatabaseConnectionsReactor extends AbstractReactor {
 	
 	public DatabaseConnectionsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.APP.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
+		String dbFilter = getApp();
 		List<String> conceptualNames = getColumns();
 		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames);
-		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames);
+		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, dbFilter);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
 	
@@ -59,5 +60,13 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 			}
 		}
 		return columns;
+	}
+	
+	private String getApp() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		if(grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString();
+		}
+		return null;
 	}
 }
