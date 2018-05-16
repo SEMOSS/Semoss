@@ -11,8 +11,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -20,9 +22,17 @@ import org.apache.log4j.Logger;
 
 import au.com.bytecode.opencsv.CSVReader;
 import prerna.algorithm.learning.matching.DomainValues;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.helper.XLFileHelper;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -31,6 +41,14 @@ public class Xray {
 	private AbstractRJavaTranslator rJavaTranslator = null;
 	private String baseFolder = null;
 	private Logger logger = null;
+	
+	// variables used to create instance count frame
+	private boolean genCountFrame = false;
+	private String countDF = null;
+	private List<String> engineColumn = new Vector<String>();
+	private List<String> tableColumn = new Vector<String>();
+	private List<String> propColumn = new Vector<String>();
+	private List<Integer> countColumn = new Vector<Integer>();
 
 	public Xray(AbstractRJavaTranslator rJavaTranslator, String baseFolder, Logger logger) {
 		this.rJavaTranslator = rJavaTranslator;
@@ -85,6 +103,22 @@ public class Xray {
 					writeExcelToFile(sourceFile, dataSelection, connectorData, dataMode, dataFolder, semanticMode,
 							semanticFolder);
 				}
+			}
+		}
+		// build instance count data frame to join results
+		if(this.genCountFrame) { 
+			if (!this.engineColumn.isEmpty()) {
+				this.countDF = "countDF" + Utility.getRandomString(8);
+				StringBuilder countBuilder = new StringBuilder();
+				countBuilder
+						.append(this.countDF + "<- data.frame(engine="
+								+ RSyntaxHelper.createStringRColVec(engineColumn.toArray()) + ", table="
+								+ RSyntaxHelper.createStringRColVec(tableColumn.toArray()) + ", prop="
+								+ RSyntaxHelper.createStringRColVec(propColumn.toArray()) + ", count=" + RSyntaxHelper
+										.createStringRColVec(countColumn.toArray(new Integer[countColumn.size()]))
+								+ ")");
+				System.out.println(countBuilder);
+				this.rJavaTranslator.runR(countBuilder.toString());
 			}
 		}
 
@@ -157,6 +191,7 @@ public class Xray {
 		}
 		this.logger.info("Comparing data from datasources for X-ray data mode...");
 		this.rJavaTranslator.runR(rsb.toString());
+		System.out.println(rsb.toString());
 
 		String semanticComparisonFrame = "semantic.xray.df";
 
@@ -437,8 +472,7 @@ public class Xray {
 							e.printStackTrace();
 						}
 						// encode and write to file
-						this.logger.info("Querying " + column + " from " + table + " in " + newDBName
-								+ " for X-ray comparison...");
+						this.logger.info("Querying " + column + " from " + table + " in " + newDBName + " for X-ray comparison...");
 						encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						stmt.close();
 					} catch (SQLException e) {
@@ -490,6 +524,8 @@ public class Xray {
 					if (selectedValue) {
 						// write concept values
 						if (table.equals(column)) {
+							// get total instance count
+							getLocalEngineInstanceCount(engine, table, null, QueryFunctionHelper.COUNT, false);
 							// write txt file path of where instance data will
 							// be written to
 							// dataFolder/engineName;table;.txt
@@ -503,15 +539,17 @@ public class Xray {
 							} else {
 								instances = DomainValues.retrieveCleanConceptValues(table, engine);
 							}
-							this.logger
-									.info("Querying table " + table + " from " + engineName + " for X-ray comparison");
+							this.logger.info("Querying table " + table + " from " + engineName + " for X-ray comparison");
 							// encode and write to file
 							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						}
 						// write property values
 						else {
+							// get total instance count
+							getLocalEngineInstanceCount(engine, table, column, QueryFunctionHelper.COUNT, false);
 							// write txt file path of where data will be written
 							// to dataFolder/engineName;table;column.txt
+
 							String fileName = dataFolder + "\\" + engineName + ";" + table + ";" + column + ".txt";
 							fileName = fileName.replace("\\", "/");
 							// get instance data for property
@@ -523,8 +561,7 @@ public class Xray {
 							} else {
 								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
 							}
-							this.logger.info("Querying " + column + " from " + table + " in " + engineName
-									+ " for X-ray comparison");
+							this.logger.info("Querying " + column + " from " + table + " in " + engineName + " for X-ray comparison");
 							// encode and write to file
 							encodeInstances(instances, dataMode, fileName, semanticMode, semanticFolder);
 						}
@@ -605,7 +642,6 @@ public class Xray {
 			cleanUpScript.append("rm(" + dfName + ");");
 			if (semanticMode) {
 				cleanUpScript.append("rm(" + semanticResults + ");");
-
 			}
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 		}
@@ -770,5 +806,61 @@ public class Xray {
 			similarityThreshold = 0.01;
 		}
 		return similarityThreshold;
+	}
+	
+	/**
+	 * Get Local engine instance and save to lists to write to R dataframe if
+	 * xray generateCountFrame is enabled
+	 * 
+	 * @param engine
+	 * @param concept
+	 * @param prop
+	 * @param functionName
+	 * @param distinct
+	 * @return
+	 */
+	private void getLocalEngineInstanceCount(IEngine engine, String concept, String prop, String functionName, boolean distinct) {
+		if (this.genCountFrame) {
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			{
+				QueryFunctionSelector funSelector = new QueryFunctionSelector();
+				funSelector.setFunction(functionName);
+				QueryColumnSelector innerSelector = new QueryColumnSelector();
+				innerSelector.setTable(concept);
+				// concept
+				if (prop == null) {
+					innerSelector.setColumn(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER);
+				} else {
+					innerSelector.setColumn(prop);
+				}
+				funSelector.addInnerSelector(innerSelector);
+				funSelector.setDistinct(distinct);
+				qs2.addSelector(funSelector);
+			}
+			qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+
+			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			Integer count = 0;
+			if (it.hasNext()) {
+				count = ((Double) it.next().getValues()[0]).intValue();
+			}
+			engineColumn.add(engine.getEngineName());
+			tableColumn.add(concept);
+			if (prop == null) {
+				propColumn.add(concept);
+			} else {
+				propColumn.add(prop);
+			}
+			countColumn.add(count);
+		}
+	}
+	/**
+	 * @return get countDF
+	 */
+	public String getCountDF() {
+		return this.countDF;
+	}
+	public void setGenerateCountFrame(boolean countDF){
+		this.genCountFrame = countDF;
 	}
 }
