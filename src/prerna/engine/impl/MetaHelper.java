@@ -20,11 +20,9 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
-import prerna.om.SEMOSSParam;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -175,13 +173,6 @@ public class MetaHelper implements IExplorable {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 
 	@Override
 	public IEngine getInsightDatabase() {

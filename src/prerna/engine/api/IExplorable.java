@@ -35,7 +35,6 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.rdf.query.builder.IQueryInterpreter;
 
 public interface IExplorable {
 	
@@ -91,8 +90,6 @@ public interface IExplorable {
 	
 	// get property
 	String getProperty(String key);
-	
-	IQueryInterpreter getQueryInterpreter();
 	
 	IQueryInterpreter2 getQueryInterpreter2();
 	

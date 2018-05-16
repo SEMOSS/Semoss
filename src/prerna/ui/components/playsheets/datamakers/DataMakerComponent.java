@@ -11,9 +11,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.ds.QueryStruct;
+import prerna.ds.util.QueryStructConverter;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.rdf.query.builder.IQueryInterpreter;
+import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Utility;
 
 public class DataMakerComponent {
@@ -248,8 +250,9 @@ public class DataMakerComponent {
 	 * @return
 	 */
 	private String buildQuery() {
-		IQueryInterpreter builder = getEngine().getQueryInterpreter();
-		builder.setQueryStruct(qs);
+		SelectQueryStruct newQs = QueryStructConverter.convertOldQueryStruct(qs);
+		IQueryInterpreter2 builder = getEngine().getQueryInterpreter2();
+		builder.setQueryStruct(newQs);
 		return builder.composeQuery();
 	}
 	
