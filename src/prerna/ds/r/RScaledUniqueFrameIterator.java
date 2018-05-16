@@ -7,7 +7,7 @@ import java.util.NoSuchElementException;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.query.interpreters.RInterpreter2;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -96,7 +96,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		qs.mergeImplicitFilters(frame.getFrameFilters());
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		RInterpreter2 interp = new RInterpreter2();
+		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(frame.getTableName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());

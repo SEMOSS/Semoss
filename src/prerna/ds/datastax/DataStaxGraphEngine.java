@@ -14,7 +14,7 @@ import com.datastax.dse.graph.api.DseGraph;
 
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.DataStaxInterpreter;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -74,7 +74,7 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		return this.typeMap;
 	}
 	
-	public IQueryInterpreter2 getQueryInterpreter2() {
+	public IQueryInterpreter getQueryInterpreter2() {
 		return new DataStaxInterpreter(this.graphTraversalSession);
 	}
 	

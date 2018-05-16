@@ -51,8 +51,8 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.sql.SqlInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -559,7 +559,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		 * 4. Add the properties
 		 * 5. For every, type 
 		 */
-		IQueryInterpreter2 builder = getQueryInterpreter2();
+		IQueryInterpreter builder = getQueryInterpreter2();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(this);
 		
@@ -757,9 +757,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter2(){
 		// defualt ansi sql 
-		return new SqlInterpreter2(this);
+		return new SqlInterpreter(this);
 	}
 
 	public void setConnection(Connection engineConn) {

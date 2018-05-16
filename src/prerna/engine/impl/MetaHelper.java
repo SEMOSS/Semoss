@@ -20,7 +20,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
@@ -522,7 +522,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2() {
+	public IQueryInterpreter getQueryInterpreter2() {
 		// TODO Auto-generated method stub
 		return null;
 	}

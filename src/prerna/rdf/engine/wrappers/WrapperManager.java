@@ -44,10 +44,10 @@ import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.web.WebWrapper;
 import prerna.query.interpreters.DataStaxInterpreter;
-import prerna.query.interpreters.GremlinInterpreter2;
+import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.GremlinMapInterp;
-import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.SolrInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.SolrInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 
@@ -132,7 +132,7 @@ public class WrapperManager {
 		}
 		case SOLR : {
 			genQueryString = false;
-			SolrInterpreter2 solrInterp = new SolrInterpreter2();
+			SolrInterpreter solrInterp = new SolrInterpreter();
 			solrInterp.setQueryStruct(qs);
 			SolrEngine solrEngine = (SolrEngine) engine;
 			SolrIterator it = new SolrIterator(solrEngine.execSolrQuery(solrInterp.composeSolrQuery()), qs);
@@ -146,7 +146,7 @@ public class WrapperManager {
 
 		if(genQueryString) {
 			long start = System.currentTimeMillis();
-			IQueryInterpreter2 interpreter = engine.getQueryInterpreter2();
+			IQueryInterpreter interpreter = engine.getQueryInterpreter2();
 			interpreter.setQueryStruct(qs);
 			String query = interpreter.composeQuery();
 			LOGGER.debug("Executing query on engine " + engine.getEngineName());

@@ -14,7 +14,7 @@ import prerna.ds.QueryStruct;
 import prerna.ds.util.QueryStructConverter;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Utility;
 
@@ -251,7 +251,7 @@ public class DataMakerComponent {
 	 */
 	private String buildQuery() {
 		SelectQueryStruct newQs = QueryStructConverter.convertOldQueryStruct(qs);
-		IQueryInterpreter2 builder = getEngine().getQueryInterpreter2();
+		IQueryInterpreter builder = getEngine().getQueryInterpreter2();
 		builder.setQueryStruct(newQs);
 		return builder.composeQuery();
 	}

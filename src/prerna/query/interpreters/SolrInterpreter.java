@@ -19,14 +19,14 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class SolrInterpreter2 extends AbstractQueryInterpreter {
+public class SolrInterpreter extends AbstractQueryInterpreter {
 
 	public static final String QUERY_ALL = "*:*";
 
 	// Solr api to query docs
 	private SolrQuery query;
 
-	public SolrInterpreter2() {
+	public SolrInterpreter() {
 		this.query = new SolrQuery();
 	}
 
@@ -181,7 +181,7 @@ public class SolrInterpreter2 extends AbstractQueryInterpreter {
 		qs.addExplicitFilter(filter1);
 		// qs.addFilter("view_count", ">=", Arrays.asList(new Object[]{10}));
 
-		SolrInterpreter2 solrInterp = new SolrInterpreter2();
+		SolrInterpreter solrInterp = new SolrInterpreter();
 		solrInterp.setQueryStruct(qs);
 		SolrQuery query = solrInterp.composeSolrQuery();
 
