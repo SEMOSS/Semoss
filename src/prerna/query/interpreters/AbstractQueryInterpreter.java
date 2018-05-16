@@ -5,7 +5,7 @@ import org.apache.log4j.Logger;
 
 import prerna.query.querystruct.SelectQueryStruct;
 
-public abstract class AbstractQueryInterpreter implements IQueryInterpreter2 {
+public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 
 	protected Logger logger = null;
 	

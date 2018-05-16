@@ -29,7 +29,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GremlinInterpreter2 extends AbstractQueryInterpreter {
+public class GremlinInterpreter extends AbstractQueryInterpreter {
 
 	// reference to the graph which can execute gremlin
 	private Graph g;
@@ -46,12 +46,12 @@ public class GremlinInterpreter2 extends AbstractQueryInterpreter {
 	private Map<String, List<String>> propHash;
 	// store the unique name to the 
 
-	public GremlinInterpreter2(Graph g) {
+	public GremlinInterpreter(Graph g) {
 		this.g = g;
 		this.gt = g.traversal().V();
 	}
 	
-	public GremlinInterpreter2(Graph g, OwlTemporalEngineMeta meta) {
+	public GremlinInterpreter(Graph g, OwlTemporalEngineMeta meta) {
 		this.g = g;
 		this.gt = g.traversal().V();
 		this.meta = meta;

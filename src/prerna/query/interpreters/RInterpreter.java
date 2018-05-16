@@ -25,7 +25,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class RInterpreter2 extends AbstractQueryInterpreter {
+public class RInterpreter extends AbstractQueryInterpreter {
 
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
@@ -608,7 +608,7 @@ public class RInterpreter2 extends AbstractQueryInterpreter {
 		//filterData2.add(40000000);
 		//qs.addFilter("Movie_Budget", ">", filterData2);
 
-		RInterpreter2 rI = new RInterpreter2();
+		RInterpreter rI = new RInterpreter();
 		rI.setQueryStruct(qsTest);
 
 		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
