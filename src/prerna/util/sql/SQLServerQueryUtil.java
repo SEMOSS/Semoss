@@ -62,11 +62,6 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	public String getDialectAllIndexesInDB(String schema){
 		return super.getDialectAllIndexesInDB(); //dont plop schema into here
 	}
-	//SQL Server - USE_OUTER_JOINS_NO
-	@Override
-	public String getDefaultOuterJoins(){
-		return SQLQueryUtil.USE_OUTER_JOINS_TRUE;
-	}
 
 	//jdbc:sqlserver://127.0.0.1:1433;databaseName=dbname;user=username;Password=password;selectMethod=cursor
 	@Override
@@ -166,13 +161,6 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 		}
 		return query;
 
-	}
-
-	@Override
-	public String getEngineNameFromConnectionURL(String connectionURL) {
-		String splitConnectionURL[] = connectionURL.split("=");
-		String engineName[] = splitConnectionURL[1].split(";");
-		return engineName[0];
 	}
 
 	@Override

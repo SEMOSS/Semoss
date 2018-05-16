@@ -76,19 +76,6 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 
 	@Override
-	public String getEngineNameFromConnectionURL(String connectionURL) {
-		String splitConnectionURL[] = connectionURL.split("=");
-		String engineName[] = splitConnectionURL[1].split(";");
-		return engineName[0];
-	}
-
-	@Override
-	public String getDefaultOuterJoins() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public String getDialectIndexInfo(String indexName, String dbName) {
 		// TODO Auto-generated method stub
 		return null;
