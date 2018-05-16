@@ -28,10 +28,6 @@
 
 package prerna.util.sql;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import org.apache.log4j.Logger;
 
 import prerna.util.Constants;
@@ -40,49 +36,6 @@ import prerna.util.DIHelper;
 public class RDBMSUtility {
 	
 	static Logger LOGGER = Logger.getLogger(prerna.util.sql.RDBMSUtility.class);
-	
-	public static boolean isValidConnection(Connection con) {
-		boolean isValid = false;
-		
-		try {
-			if(con.isValid(5)) {
-				isValid = true;
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-			
-		return isValid;
-	}
-	
-	public static String getH2ConnectionURLAbsolutePath(String connectionURL) {
-		connectionURL = connectionURL.replace("jdbc:h2:nio:", "");
-		String [] urlParts = connectionURL.split(";");
-		System.out.println(urlParts[0]);
-		String returnURL = urlParts[0];
-		try
-		{
-			File file = new File(urlParts[0]);
-			returnURL = file.getParent();
-			file.delete();
-			
-			
-		}catch(Exception ex)
-		{
-			ex.printStackTrace();
-		}
-		
-		return returnURL;
-		/*
-		if(connectionURL.contains("database;")) {
-			return connectionURL.substring(0, connectionURL.indexOf("database;")-1);
-		} else {
-			return connectionURL.substring(0, connectionURL.indexOf("/database")-1);
-		}
-		*/
-	}
 	
 	public static String getH2BaseConnectionURL() {
 		return "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + "@" + Constants.ENGINE + "@"
