@@ -31,7 +31,7 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
-import prerna.query.interpreters.GremlinInterpreter2;
+import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -558,7 +558,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if(isNumeric(columnHeader)) {
-			GremlinInterpreter2 interp = new GremlinInterpreter2(this.g);
+			GremlinInterpreter interp = new GremlinInterpreter(this.g);
 			SelectQueryStruct qs = new SelectQueryStruct();
 			// add selector
 			QueryColumnSelector selector = new QueryColumnSelector();
@@ -1096,7 +1096,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 //		}
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		GremlinInterpreter2 interp = new GremlinInterpreter2(this.g, this.metaData);
+		GremlinInterpreter interp = new GremlinInterpreter(this.g, this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
 		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interp.composeIterator(), qs, this.metaData), qs);

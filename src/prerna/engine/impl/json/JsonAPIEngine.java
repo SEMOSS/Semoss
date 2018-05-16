@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
@@ -778,7 +778,7 @@ public class JsonAPIEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter2(){
 		return new JsonInterpreter(this);
 	}
 

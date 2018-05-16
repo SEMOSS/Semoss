@@ -18,7 +18,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.CsvFileIterator;
 import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.interpreters.RInterpreter2;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -175,7 +175,7 @@ public class RFrameBuilder {
 					modifiedQs.addExplicitFilter(updatedFilter);
 				}
 			}
-			RInterpreter2 interp = new RInterpreter2();
+			RInterpreter interp = new RInterpreter();
 			interp.setDataTableName(tableName);
 			interp.setQueryStruct(modifiedQs);
 			Map<String, String> strTypes = qs.getColumnTypes();
@@ -225,7 +225,7 @@ public class RFrameBuilder {
 					modifiedQs.addExplicitFilter(updatedFilter);
 				}
 			}
-			RInterpreter2 interp = new RInterpreter2();
+			RInterpreter interp = new RInterpreter();
 			interp.setDataTableName(tableName);
 			interp.setQueryStruct(modifiedQs);
 			Map<String, String> strTypes = qs.getColumnTypes();

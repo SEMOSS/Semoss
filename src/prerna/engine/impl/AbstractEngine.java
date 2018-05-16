@@ -69,8 +69,8 @@ import prerna.om.OldInsight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.poi.main.RDBMSEngineCreationHelper;
-import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.SparqlInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -525,8 +525,8 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2(){
-		return new SparqlInterpreter2(this);
+	public IQueryInterpreter getQueryInterpreter2(){
+		return new SparqlInterpreter(this);
 	}
 	
 	/**

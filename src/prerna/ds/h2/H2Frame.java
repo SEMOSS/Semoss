@@ -24,7 +24,7 @@ import prerna.ds.QueryStruct;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.interpreters.sql.SqlInterpreter2;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -215,7 +215,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		SqlInterpreter2 interp = new SqlInterpreter2(this);
+		SqlInterpreter interp = new SqlInterpreter(this);
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
 		String iteratorQuery = interp.composeQuery();

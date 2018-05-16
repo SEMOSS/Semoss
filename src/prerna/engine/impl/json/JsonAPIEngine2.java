@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.IQueryInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -250,7 +250,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	}
 	
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter2(){
 		return new JsonInterpreter(this);
 	}
 	

@@ -43,8 +43,8 @@ import prerna.ds.r.RIterator2;
 import prerna.ds.util.CsvFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.RInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.util.Constants;
@@ -237,8 +237,8 @@ public class RNativeEngine extends AbstractEngine {
 	}
 
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2(){
-		RInterpreter2 retInterp = new RInterpreter2();
+	public IQueryInterpreter getQueryInterpreter2(){
+		RInterpreter retInterp = new RInterpreter();
 		if(fakeHeader != null) {
 			retInterp.addHeaderToRemove(fakeHeader);
 		}

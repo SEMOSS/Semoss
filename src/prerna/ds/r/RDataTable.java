@@ -15,7 +15,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.interpreters.RInterpreter2;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
@@ -142,7 +142,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	@Override
 	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		RInterpreter2 interp = new RInterpreter2();
+		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getTableName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
