@@ -11,15 +11,20 @@ getCTree <- function(dt, instanceCol, attrColList, subsetPercent=0.8){
 	set.seed(123)	
 
 	tempDt <- dt[, c(instanceCol, attrColList), with=FALSE]
-
-	#convert columns of character class to factor class
-	charCols <- colnames(tempDt)[which(as.vector(tempDt[,lapply(.SD, class)]) == "character")]
-	if (length(charCols) > 0 ) {tempDt[,(charCols):= lapply(.SD, as.factor), .SDcols = charCols]}
+	tempDt[tempDt==''|tempDt==' '] <- NA 
+	tempDt <- tempDt[complete.cases(tempDt),]
 	
 	#split into training and test sets
 	tempDt[,"inTrain"]   <- ifelse(runif(nrow(tempDt))<subsetPercent,1,0)
 	trainset <- tempDt[inTrain==1][, inTrain:=NULL]
 	testset  <- tempDt[inTrain==0][, inTrain:=NULL]	
+	
+	#convert columns of character class to factor class in both the training and test sets
+	charCols <- colnames(tempDt)[which(as.vector(tempDt[,lapply(.SD, class)]) == "character")]
+	if (length(charCols) > 0 ) {
+		trainset[,(charCols):= lapply(.SD, as.factor), .SDcols = charCols]
+		testset[,(charCols):= lapply(.SD, as.factor), .SDcols = charCols]
+	}
 	
 	#build formula & get tree
 	formula <- paste0(instanceCol, " ~ .")
@@ -37,11 +42,11 @@ getCTree <- function(dt, instanceCol, attrColList, subsetPercent=0.8){
 	#accuracy (if method = classification then as % else if method = regression then as RMSE, root mean square error)
 	predict <- predict(tree,testset,type="response")
 	accuracy <- 
-		if (is.numeric(trainset[[instanceCol]])) {
-			rmse <- sqrt(mean((predict-testset[[instanceCol]])^2))
+		if (is.numeric((trainset[[instanceCol]]))) {
+			rmse <- sqrt(mean((as.numeric(predict)-(as.numeric(testset[[instanceCol]]))^2)))
 			paste0(round(rmse, digits = 2))
-	} else {
-			acc <- 100 * mean(predict==testset[[instanceCol]])
+		} else {
+			acc <- 100 * mean(as.character(predict)==as.character(testset[[instanceCol]]))
 			paste0(round(acc,digits = 2), "%")
 		}
 	
