@@ -113,9 +113,7 @@ public class MergeDataReactor extends AbstractReactor {
 					// create a selector
 					// just set the table to be the alias
 					// the frame will auto convert to physical
-					QueryColumnSelector qSelector = new QueryColumnSelector();
-					qSelector.setTable(q);
-					qSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+					QueryColumnSelector qSelector = new QueryColumnSelector(q);
 					NounMetadata lNoun = new NounMetadata(qSelector, PixelDataType.COLUMN);
 					NounMetadata rNoun = null;
 					SemossDataType dataType = frame.getMetaData().getHeaderTypeAsEnum(s);
