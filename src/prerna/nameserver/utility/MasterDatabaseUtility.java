@@ -178,10 +178,11 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Get a list of connections for a given logical name
+	 * @param engineFilter 
 	 * @param engineName
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames) {
+	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames, String engineFilter) {
 		StringBuilder sb = new StringBuilder();
 		int size = logicalNames.size();
 		for(int i = 0; i < size; i++) {
@@ -189,6 +190,13 @@ public class MasterDatabaseUtility {
 			if( (i+1) < size) {
 				sb.append(",");
 			}
+		}
+		
+		
+		// NOTE ::: IMPORTANT THAT THIS MATCHES ALL THE BELOW QUERY NAMES!!!
+		String engineFilterStr = "";
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			engineFilterStr = "and e.enginename = '" + engineFilter + "'";
 		}
 		
 		/*
@@ -211,8 +219,10 @@ public class MasterDatabaseUtility {
 		// have a column with the logical name 
 		
 		String query = "select distinct ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId, c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName" 
-				+ " from engineconcept ec, engineconcept ec2, concept c, concept c2"
+				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"
+				+ engineFilterStr
+				+ " and e.id = ec.engine"
 				+ " and ec.localconceptid = c.localconceptid"
 				+ " and ec.parentphysicalid = ec2.physicalnameid"
 				+ " and ec2.localconceptid = c2.localconceptid";
@@ -262,6 +272,7 @@ public class MasterDatabaseUtility {
 		query = "select distinct e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
 				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec2.physicalnameid in (" + sb.toString() + ")"
+				+ engineFilterStr
 				+ " and e.id = ec.engine"
 				+ " and ec.localconceptid = c.localconceptid"
 				+ " and ec.parentphysicalid = ec2.physicalnameid"
@@ -323,6 +334,7 @@ public class MasterDatabaseUtility {
 		query = "select distinct e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
 				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where er.sourceconceptid in (" + sb.toString() + ")"
+				+ engineFilterStr
 				+ " and e.id = er.engine "
 				+ " and er.sourceconceptid = ec.physicalnameid "
 				+ " and ec.localconceptid = c.localconceptid "
@@ -361,6 +373,7 @@ public class MasterDatabaseUtility {
 		query = "select distinct e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
 				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where er.targetconceptid in (" + sb.toString() + ")"
+				+ engineFilterStr
 				+ " and e.id = er.engine "
 				+ " and er.sourceconceptid = ec.physicalnameid "
 				+ " and ec.localconceptid = c.localconceptid "
@@ -1482,7 +1495,7 @@ public class MasterDatabaseUtility {
 				.setPrettyPrinting()
 				.create();
 		
-		System.out.println(gson.toJson(getDatabaseConnections(logicalNames)));
+		System.out.println(gson.toJson(getDatabaseConnections(logicalNames, null)));
 	}
 	
 }
