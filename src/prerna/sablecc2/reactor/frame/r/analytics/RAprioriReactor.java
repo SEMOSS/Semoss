@@ -81,37 +81,48 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		}
 		String sortBy = getInputString(SORTBY);
 		String rhsVar = getInputString(RHSATTRIBUTE);
-		if (rhsVar != null && rhsVar != ""){
+		if (rhsVar != null && rhsVar != "") {
 			if (!colNames.contains(rhsVar)) {
 				throw new IllegalArgumentException("RHS attribut is an invalid column name.");
 			}
 		}
 
 		String attrList_R = "attrList" + Utility.getRandomString(8);
-		String attrListStr  = "'" + attributesList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
+		String attrListStr = "'" + attributesList.toString().replace("[", "").replace("]", "").replace(" ", "").replace(",", "','")	+ "'";
 		sb.append(attrList_R + " <- c(" + attrListStr + ");");
 		StringBuilder substr = new StringBuilder();
 		if (idAttributesList != null && idAttributesList.size() > 0) {
-			String idAttributesListStr  = "'" + idAttributesList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
+			String idAttributesListStr = "'" + idAttributesList.toString().replace("[", "").replace("]", "").replace(" ", "").replace(",", "','") + "'";
 			substr.append(",transactionIdList = c(" + idAttributesListStr + ")");
 		}
-		if (conf > 0) substr.append(",confidence = " + conf);
-		if (supp > 0) substr.append(",support = " + supp);
-		if (maxlen > 0) substr.append(",maxlen = " + maxlen);
-		if (sortBy != null && sortBy != "") substr.append(",sortBy = '" + sortBy.toLowerCase() + "'");
-		if (rhsVar != null && rhsVar != "") substr.append(",rhsSpecified = '" + rhsVar + "'");
+		if (conf > 0) {
+			substr.append(",confidence = " + conf);
+		}
+		if (supp > 0) {
+			substr.append(",support = " + supp);
+		}
+		if (maxlen > 0) {
+			substr.append(",maxlen = " + maxlen);
+		}
+		if (sortBy != null && sortBy != "") {
+			substr.append(",sortBy = '" + sortBy.toLowerCase() + "'");
+		}
+		if (rhsVar != null && rhsVar != "") {
+			substr.append(",rhsSpecified = '" + rhsVar + "'");
+		}
 		if (lhsVarList != null && lhsVarList.size() > 0) {
-			String lhsVarListStr  = "'" + lhsVarList.toString().replace("[","").replace("]", "").replace(" ","").replace(",","','") + "'";
+			String lhsVarListStr = "'" + lhsVarList.toString().replace("[", "").replace("]", "").replace(" ", "").replace(",", "','") + "'";
 			substr.append(",lhsSpecified = c(" + lhsVarListStr + ")");
 		}
-		
-		// check if there are filters on the frame. if so then need to run algorithm on subsetted data
-		if(!frame.getFrameFilters().isEmpty()) {
+
+		// check if there are filters on the frame. if so then need to run
+		// algorithm on subsetted data
+		if (!frame.getFrameFilters().isEmpty()) {
 			// create a new qs to retrieve filtered frame
 			SelectQueryStruct qs = new SelectQueryStruct();
 			List<String> selectedCols = new ArrayList<String>(attributesList);
 			selectedCols.addAll(idAttributesList);
-			for(String s : selectedCols) {
+			for (String s : selectedCols) {
 				qs.addSelector(new QueryColumnSelector(s));
 			}
 			qs.setImplicitFilters(frame.getFrameFilters());
@@ -123,51 +134,52 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 			String query = interp.composeQuery();
 			this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
 			implicitFilter = true;
-			
-			//cleanup the temp r variable in the query var
+
+			// cleanup the temp r variable in the query var
 			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
 		}
-		
+
 		String targetDt = implicitFilter ? dtNameIF : dtName;
 
 		// apriori r script
 		String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\Apriori.R";
 		scriptFilePath = scriptFilePath.replace("\\", "/");
 		sb.append("source(\"" + scriptFilePath + "\");");
-		
+
 		// set call to R function
 		String temp_R = "temp_R" + Utility.getRandomString(8);
 		if (substr == null) {
 			sb.append(temp_R + " <- runApriori( " + targetDt + "," + attrList_R + ");");
 		} else {
-			if (substr.indexOf(",") == 0) substr.deleteCharAt(0);
+			if (substr.indexOf(",") == 0) {
+				substr.deleteCharAt(0);
+			}
 			sb.append(temp_R + " <- runApriori( " + targetDt + "," + attrList_R + "," + substr + ");");
 		}
 		String rulesLength_R = "rulesLength" + Utility.getRandomString(8);
 		sb.append(rulesLength_R + "<-" + temp_R + "$rulesLength;");
 		String rulesDt_R = "rulesDt" + Utility.getRandomString(8);
 		sb.append(rulesDt_R + "<-" + temp_R + "$rulesDt;");
-		
+
 		// execute R
 		this.rJavaTranslator.runR(sb.toString());
-		
 		int ruleslength = this.rJavaTranslator.getInt(rulesLength_R);
-		
+
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + attrList_R + "," + temp_R + "," + rulesLength_R + "," + dtNameIF + ",runApriori);");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
-				
+
 		if (ruleslength == 0) {
 			throw new IllegalArgumentException("Assocation Learning Algorithm ran successfully, but no results were found.");
 		}
-		
+
 		String[] rulesDtColNames = this.rJavaTranslator.getColumns(rulesDt_R);
 		List<Object[]> data = this.rJavaTranslator.getBulkDataRow(rulesDt_R, rulesDtColNames);
 		this.rJavaTranslator.runR("rm(" + rulesDt_R + ");gc();");
-		
-		//task data includes task options
+
+		// task data includes task options
 		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
@@ -191,10 +203,10 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		GenRowStruct grs = this.store.getNoun(inputName);
 		String value = "";
 		NounMetadata noun;
-		if (grs != null) {
+		if (grs != null && grs.size() > 0) {
 			noun = grs.getNoun(0);
 			value = noun.getValue().toString();
-			if (inputName == SORTBY && (value.toLowerCase() != "confidence" || value.toLowerCase() != "lift")) {
+			if (inputName == SORTBY && !value.equalsIgnoreCase("confidence") && !value.equalsIgnoreCase("lift")) {
 				throw new IllegalArgumentException("Sortby variable must be either 'confidence' or 'lift'.");
 			}
 		}
