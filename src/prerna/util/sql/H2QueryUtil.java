@@ -54,10 +54,6 @@ public class H2QueryUtil extends SQLQueryUtil {
 		return super.getDialectAllIndexesInDB(); //dont plop schema into here
 	}
 	@Override
-	public String getDefaultOuterJoins(){
-		return SQLQueryUtil.USE_OUTER_JOINS_FALSE;
-	}
-	@Override
 	public String getConnectionURL(String baseFolder, String dbname){
 		String engineDirectoryName = "db" + System.getProperty("file.separator") + dbname;
 		return "jdbc:h2:nio:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
@@ -119,16 +115,5 @@ public class H2QueryUtil extends SQLQueryUtil {
 
 		return query;
 	}
-
-	@Override
-	public String getEngineNameFromConnectionURL(String connectionURL) {
-		int indexOfSemiColon = connectionURL.indexOf(";");
-		String connUrlSubStr = connectionURL.substring(0, indexOfSemiColon);
-		int lastIndexOfSlashAfterEngineNm = connUrlSubStr.lastIndexOf("/");
-		connUrlSubStr = connUrlSubStr.substring(0, lastIndexOfSlashAfterEngineNm);
-		int lastIndexOfSlashBeforeEngineNm = connUrlSubStr.lastIndexOf("/");
-		String engineName = connectionURL.substring(lastIndexOfSlashBeforeEngineNm+1, lastIndexOfSlashAfterEngineNm);
-		return engineName;
-	}	
 	
 }

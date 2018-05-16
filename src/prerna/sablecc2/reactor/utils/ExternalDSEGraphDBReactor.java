@@ -28,6 +28,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -105,7 +106,7 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 
 		// create insights dbs
 		logger.info("Start generating insights database");
-		IEngine insightDb = generateInsightsDatabase(databaseName);
+		IEngine insightDb = UploadUtilities.generateInsightsDatabase(databaseName);
 		logger.info("Done generating insights database");
 
 		// create smss
@@ -265,69 +266,4 @@ public class ExternalDSEGraphDBReactor extends AbstractReactor {
 
 		return smssFileLocation;
 	}
-
-	/**
-	 * Generate the insights database TODO: TODO: TODO: NEED TO CONSOLIDATE THIS
-	 * WITH ABSTRACT ENGINE CREATOR ... TODO: LOTS OF CLEAN UP IN LOADING :(
-	 * TODO:
-	 * 
-	 * @param appName
-	 * @return
-	 */
-	private IEngine generateInsightsDatabase(String appName) {
-		H2QueryUtil queryUtil = new H2QueryUtil();
-		Properties prop = new Properties();
-
-		final String FILE_SEP = System.getProperty("file.separator");
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionURL = "jdbc:h2:" + baseFolder + FILE_SEP + "db" + FILE_SEP + appName + FILE_SEP
-				+ "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-		prop.put(Constants.CONNECTION_URL, connectionURL);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE, queryUtil.getDatabaseType().toString());
-		prop.put("TEMP", "TRUE");
-		RDBMSNativeEngine insightRdbmsEngine = new RDBMSNativeEngine();
-		insightRdbmsEngine.setProperties(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightRdbmsEngine.openDB(null);
-
-		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255),
-		// QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225),
-		// QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP
-		// CLOB, QUESTION_PROPERTIES CLOB, QUESTION_OWL CLOB,
-		// QUESTION_IS_DB_QUERY BOOLEAN, DATA_TABLE_ALIGN VARCHAR(500),
-		// QUESTION_PKQL ARRAY)
-		String questionTableCreate = "CREATE TABLE QUESTION_ID (" + "ID VARCHAR(50), " + "QUESTION_NAME VARCHAR(255), "
-				+ "QUESTION_PERSPECTIVE VARCHAR(225), " + "QUESTION_LAYOUT VARCHAR(225), " + "QUESTION_ORDER INT, "
-				+ "QUESTION_DATA_MAKER VARCHAR(225), " + "QUESTION_MAKEUP CLOB, " + "QUESTION_PROPERTIES CLOB, "
-				+ "QUESTION_OWL CLOB, " + "QUESTION_IS_DB_QUERY BOOLEAN, " + "DATA_TABLE_ALIGN VARCHAR(500), "
-				+ "HIDDEN_INSIGHT BOOLEAN, " + "QUESTION_PKQL ARRAY)";
-
-		insightRdbmsEngine.insertData(questionTableCreate);
-
-		// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL
-		// VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY
-		// VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS
-		// VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT
-		// BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255),
-		// PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-		String parameterTableCreate = "CREATE TABLE PARAMETER_ID (" + "PARAMETER_ID VARCHAR(255), "
-				+ "PARAMETER_LABEL VARCHAR(255), " + "PARAMETER_TYPE VARCHAR(225), "
-				+ "PARAMETER_DEPENDENCY VARCHAR(225), " + "PARAMETER_QUERY VARCHAR(2000), "
-				+ "PARAMETER_OPTIONS VARCHAR(2000), " + "PARAMETER_IS_DB_QUERY BOOLEAN, "
-				+ "PARAMETER_MULTI_SELECT BOOLEAN, " + "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
-				+ "PARAMETER_VIEW_TYPE VARCHAR(255), " + "QUESTION_ID_FK INT)";
-
-		insightRdbmsEngine.insertData(parameterTableCreate);
-
-		String feTableCreate = "CREATE TABLE UI (" + "QUESTION_ID_FK INT, " + "UI_DATA CLOB)";
-
-		insightRdbmsEngine.insertData(feTableCreate);
-
-		return insightRdbmsEngine;
-	}
-
 }

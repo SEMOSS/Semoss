@@ -64,7 +64,6 @@ public class PropFileWriter {
 	private String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
 	private String impalaEngine = "prerna.engine.impl.rdbms.ImpalaEngine";
 	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
-	private boolean hasMap = false;
 
 	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
 	SQLQueryUtil queryUtil;
@@ -226,13 +225,10 @@ public class PropFileWriter {
 				} else {
 					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
 				}
-				pw.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
 				//commenting out this item below by default
 				pw.write("# " + Constants.USE_CONNECTION_POOLING + "\t" + queryUtil.getDefaultConnectionPooling());
 			}
-			if (this.hasMap) {
-				pw.write("MAP" + "\t" + "db/" + dbname + "/" + dbname + "_Mapping.ttl" + "\n");
-			}
+
 			if (dbType == ImportOptions.DB_TYPE.RDF) {
 				fileRead = new FileReader(defaultName);
 				read = new BufferedReader(fileRead);
