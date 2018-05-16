@@ -1,8 +1,6 @@
 package prerna.poi.main;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
@@ -15,17 +13,16 @@ import org.openrdf.rio.RDFHandlerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
-import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.SQLQueryUtil;
 
 public class AbstractEngineCreator {
@@ -300,93 +297,9 @@ public class AbstractEngineCreator {
 		sqlHash.put("BOOLEAN", "BOOLEAN");
 	}
 	
-	/**
-	 * Creates the default insights rdbms engine
-	 * Also adds the explore an instance query
-	 * @param engineName
-	 * @return
-	 */
-	protected IEngine createNewInsightsDatabase(String engineName) {
-		H2QueryUtil queryUtil = new H2QueryUtil();
-		Properties prop = new Properties();
-		
-		final String FILE_SEP = System.getProperty("file.separator");
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionURL = "jdbc:h2:" + baseFolder + FILE_SEP + "db" + FILE_SEP + engineName + FILE_SEP + 
-				"insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-		prop.put(Constants.CONNECTION_URL, connectionURL);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
-		prop.put("TEMP", "TRUE");
-		RDBMSNativeEngine insightRDBMSEngine = new RDBMSNativeEngine();
-		insightRDBMSEngine.setProperties(prop);
-		// opening will work since we directly injected the prop map
-		// this way i do not need to write it to disk and then recreate it later
-		insightRDBMSEngine.openDB(null);
-		
-		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255), QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225), QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB, QUESTION_PROPERTIES CLOB, QUESTION_OWL CLOB, QUESTION_IS_DB_QUERY BOOLEAN, DATA_TABLE_ALIGN VARCHAR(500), QUESTION_PKQL ARRAY)
-		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
-				+ "ID VARCHAR(50), "
-				+ "QUESTION_NAME VARCHAR(255), "
-				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
-				+ "QUESTION_LAYOUT VARCHAR(225), "
-				+ "QUESTION_ORDER INT, "
-				+ "QUESTION_DATA_MAKER VARCHAR(225), "
-				+ "QUESTION_MAKEUP CLOB, "
-				+ "QUESTION_PROPERTIES CLOB, "
-				+ "QUESTION_OWL CLOB, "
-				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
-				+ "DATA_TABLE_ALIGN VARCHAR(500), "
-				+ "HIDDEN_INSIGHT BOOLEAN, "
-				+ "QUESTION_PKQL ARRAY)";
-
-		insightRDBMSEngine.insertData(questionTableCreate);
-
-		// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
-				+ "PARAMETER_ID VARCHAR(255), "
-				+ "PARAMETER_LABEL VARCHAR(255), "
-				+ "PARAMETER_TYPE VARCHAR(225), "
-				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
-				+ "PARAMETER_QUERY VARCHAR(2000), "
-				+ "PARAMETER_OPTIONS VARCHAR(2000), "
-				+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
-				+ "PARAMETER_MULTI_SELECT BOOLEAN, "
-				+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
-				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
-				+ "QUESTION_ID_FK INT)";
-
-		insightRDBMSEngine.insertData(parameterTableCreate);
-		
-		String feTableCreate = "CREATE TABLE UI ("
-				+ "QUESTION_ID_FK INT, "
-				+ "UI_DATA CLOB)";
-		
-		insightRDBMSEngine.insertData(feTableCreate);
-		
-		// let us automatically add the explore an instance query
-		InsightAdministrator admin = new InsightAdministrator(insightRDBMSEngine);
-		String insightName = "Explore an instance of a selected node type";
-		String layout = "Graph";
-		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
-		File exploreF = new File(exploreLoc);
-		if(exploreF.exists()) {
-			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
-			try {
-				newPixel += new String(Files.readAllBytes(exploreF.toPath()))
-						.replaceAll("\n|\r|\t", "")
-						.replaceAll("\\s\\s+", "")
-						.replace("<<ENGINE>>", engineName);
-				newPixel += "} </encode>\" ) ;";
-				String[] pkqlRecipeToSave = {newPixel};
-				admin.addInsight(insightName, layout, pkqlRecipeToSave);
-				insightRDBMSEngine.commit();
-			} catch (IOException e2) {
-				logger.error("Error creating the explore an instance query!");
-			}
-		}
-		return insightRDBMSEngine;
+	protected IEngine createNewInsightsDatabase(String dbName) {
+		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(dbName);
+		UploadUtilities.addExploreInstanceInsight(dbName, insightEngine);
+		return insightEngine;
 	}
 }
