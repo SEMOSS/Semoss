@@ -1,7 +1,6 @@
 package prerna.util.sql;
 
 import java.sql.SQLException;
-import java.util.List;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 
@@ -62,13 +61,6 @@ public class AnsiSqlQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getDialectIndexInfo(String indexName, String dbName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr,
-			List<String> leftJoinsArr, List<String> joinsArr, String filters, int limit, String groupBy) {
 		// TODO Auto-generated method stub
 		return null;
 	}
