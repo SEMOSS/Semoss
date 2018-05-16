@@ -81,7 +81,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			String[] cmd = getCmdArray(feUrl, insight);
 			Process p = null;
 			try {
-				p = Runtime.getRuntime().exec(cmd);
+				p = new ProcessBuilder(cmd).start();
 				while(p.isAlive()) {
 					try {
 						p.waitFor();
