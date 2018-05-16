@@ -75,8 +75,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.rdf.query.builder.SPARQLInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SPARQLQueryParser;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
@@ -524,11 +522,6 @@ public abstract class AbstractEngine implements IEngine {
 		if(owlHelper == null)
 			return null;
 		return owlHelper.getOWLDefinition();
-	}
-
-	@Override
-	public IQueryInterpreter getQueryInterpreter(){
-		return new SPARQLInterpreter(this);
 	}
 
 	@Override

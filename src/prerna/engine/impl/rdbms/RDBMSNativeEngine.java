@@ -49,15 +49,17 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.ds.QueryStruct;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.sql.SqlInterpreter2;
-import prerna.rdf.query.builder.IQueryInterpreter;
-import prerna.rdf.query.builder.SQLInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.rdf.util.SQLQueryParser;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -521,10 +523,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return rs;
 	}
 
-	public IQueryInterpreter getQueryInterpreter(){
-		return new SQLInterpreter(this);
-	}
-
 	public AbstractQueryParser getQueryParser() {
 		return new SQLQueryParser();
 	}
@@ -561,13 +559,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		 * 4. Add the properties
 		 * 5. For every, type 
 		 */
-		IQueryInterpreter builder = getQueryInterpreter();
-		QueryStruct qs = new QueryStruct();
+		IQueryInterpreter2 builder = getQueryInterpreter2();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.setEngine(this);
 		
 		String fromTableName = Utility.getInstanceName(fromType);
 		String toTableName = Utility.getInstanceName(toType);
-		qs.addSelector(fromTableName, QueryStruct.PRIM_KEY_PLACEHOLDER);
-		qs.addSelector(toTableName, QueryStruct.PRIM_KEY_PLACEHOLDER);
+		qs.addSelector(fromTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+		qs.addSelector(toTableName, SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 
 		// determine relationship order
 		String relationQuery = "SELECT ?relation WHERE {"
@@ -584,11 +583,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 		if(fromInstances != null) {
 			// convert instances to simple instance
-			Vector <String> simpleFromInstances = new Vector<String>();
+			List<String> simpleFromInstances = new Vector<String>();
 			for(int fromIndex = 0;fromIndex < fromInstances.size();fromIndex++) {
 				simpleFromInstances.add(Utility.getInstanceName(fromInstances.get(fromIndex)));
 			}
-			qs.addFilter(fromTableName, "=", simpleFromInstances);
+			NounMetadata lComparison = new NounMetadata(fromTableName, PixelDataType.COLUMN);
+			NounMetadata rComparison = new NounMetadata(simpleFromInstances, PixelDataType.CONST_STRING);
+			IQueryFilter simple = new SimpleQueryFilter(lComparison, "==", rComparison);
+			qs.addExplicitFilter(simple);
 		}
 		
 		String retQuery = builder.composeQuery();

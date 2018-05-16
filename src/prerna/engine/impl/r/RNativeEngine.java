@@ -46,7 +46,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.RInterpreter2;
 import prerna.query.querystruct.CsvQueryStruct;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -206,12 +205,6 @@ public class RNativeEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		dt.closeConnection();
-	}
-
-	public IQueryInterpreter getQueryInterpreter(){
-		RInterpreter retInterp = new RInterpreter();
-		retInterp.setDataTableName(rvarName);
-		return retInterp;
 	}
 
 	public AbstractQueryParser getQueryParser() {
