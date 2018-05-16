@@ -40,7 +40,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter2;
 import prerna.query.interpreters.SolrInterpreter2;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.OWLER;
@@ -197,11 +196,6 @@ public class SolrEngine extends AbstractEngine {
 		}
 	}
 
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		return new SolrInterpreter();
-	}
-	
 	@Override
 	public IQueryInterpreter2 getQueryInterpreter2() {
 		return new SolrInterpreter2();

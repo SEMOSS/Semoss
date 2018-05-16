@@ -74,11 +74,6 @@ public class QueryStruct {
 	public String getEngineName() {
 		return this.engineName;
 	}
-	
-	public void addCompoundSelector(String selector)
-	{
-		// need to break it and then add it
-	}
 
 	public void addSelector(String concept, String property)
 	{

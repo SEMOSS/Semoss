@@ -31,7 +31,6 @@ import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinInterpreter2;
 import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.rdf.query.builder.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MyGraphIoRegistry;
@@ -143,11 +142,6 @@ public class TinkerEngine extends AbstractEngine {
 	public void removeData(String query) {
 		// TODO Auto-generated method stub
 
-	}
-
-	@Override
-	public IQueryInterpreter getQueryInterpreter() {
-		return new TinkerQueryInterpreter(this);
 	}
 
 	@Override
