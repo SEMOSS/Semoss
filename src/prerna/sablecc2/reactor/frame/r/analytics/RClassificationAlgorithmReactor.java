@@ -91,8 +91,6 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		
 		//validate that the count of unique values in the instance column != number of rows in the frame
 		int nrows  = frame.getNumRows(targetDt);
-		System.out.println("if (is.factor(" + targetDt + "$" + predictionCol + ")) "
-				+ "length(levels(" + targetDt + "$" + predictionCol + ")) else length(unique(" + targetDt + "$" + predictionCol + "));");
 		int uniqInstCount = this.rJavaTranslator.getInt("if (is.factor(" + targetDt + "$" + predictionCol + ")) "
 				+ "length(levels(" + targetDt + "$" + predictionCol + ")) else length(unique(" + targetDt + "$" + predictionCol + "));");
 		if (nrows == uniqInstCount) {
@@ -113,7 +111,6 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		//this.rJavaTranslator.getBulkDataRow(outputList_R + "$predictedProbDt", probDtCols);
 		
 		// execute R
-		System.out.println(rsb.toString());
 		this.rJavaTranslator.runR(rsb.toString());
 		
 		String[] predictors = this.rJavaTranslator.getStringArray(outputList_R + "$predictors;");
@@ -124,7 +121,11 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + outputList_R + "," + predictionCol_R + "," + attributes_R + "," + dtNameIF +  ",getCTree,getUsefulPredictors);");
 		cleanUpScript.append("gc();");
-		this.rJavaTranslator.runR(cleanUpScript.toString());	
+		this.rJavaTranslator.runR(cleanUpScript.toString());
+		
+		if (ctreeArray == null || ctreeArray.length == 0) {
+			throw new IllegalArgumentException("A decision tree could not be constructed for the requested dataset. Please retry with different data points.");
+		}
 
 		Map<String, Object> vizData = new HashMap<String, Object>();
 		vizData.put("name", "Decision Tree For " + predictionCol);
@@ -138,9 +139,11 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		Map<String, String> statHash = new HashMap<String, String>();
 		statHash.put("Accuracy", accuracy);
 		statList.add(statHash);
-		statHash = new Hashtable<String, String>();
-		statHash.put("Predictors", String.join(", ", predictors));
-		statList.add(statHash);
+		if (predictors != null && predictors.length > 0){
+			statHash = new Hashtable<String, String>();
+			statHash.put("Predictors", String.join(", ", predictors));
+			statList.add(statHash);
+		}
 		vizData.put("stats", statList);
 
 		// track GA data
@@ -153,22 +156,27 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 	private Map<String, Map> processTreeString(String[] ctreeArray) {
 		Map<String, Map> treeMap = new HashMap<String, Map>();
 		int index = Arrays.asList(ctreeArray).indexOf("[1] root");
-		String[] treeStringArr = new String[ctreeArray.length - 9];
-		System.arraycopy(ctreeArray, index + 1, treeStringArr, 0, treeStringArr.length);
-		
-		for (int i = 0; i < treeStringArr.length; i++ ){
-			treeStringArr[i] = treeStringArr[i].replaceAll("\\|\\s*\\[[0-9]+\\]\\s","");
+		if (index == -1 ){
+			// single node case
+			index = Arrays.asList(ctreeArray).indexOf("Fitted party:") + 1;
+			generateNodeTreeWithParenthesis(treeMap, ctreeArray[index]);
+		} else {
+			//multi node case
+			String[] treeStringArr = new String[ctreeArray.length - 9];
+			System.arraycopy(ctreeArray, index + 1, treeStringArr, 0, treeStringArr.length);
+			for (int i = 0; i < treeStringArr.length; i++ ){
+				treeStringArr[i] = treeStringArr[i].replaceAll("\\|\\s*\\[[0-9]+\\]\\s","");
+			}
+			generateTreeEndingWithParenthesis(treeMap, "", 0, treeStringArr, new Integer(0));
 		}
 		
-		generateTreeEndingWithParenthesis(treeMap, "", 0, treeStringArr, new Integer(0));
-		//single node case??
 		return treeMap;
 	}
 	
 	private void generateNodeTreeWithParenthesis(Map<String, Map> rootMap, String nodeValue) {
-		String lastRegex = "(\\(\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+\\|\\d+\\.\\d+/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d/\\d+\\.\\d+\\))|(\\(\\d+\\.\\d+/\\d+\\.\\d+\\|\\d+\\.\\d+\\))";
+		String lastRegex = "\\(n\\s=.*\\)" ;
 
-		String key = nodeValue.replaceFirst(":", "").replaceFirst(lastRegex, "").trim();
+		String key = nodeValue.substring(10).replaceFirst(lastRegex, "").trim();
 		rootMap.put(key, new HashMap<String, Map>());
 	}
 	
