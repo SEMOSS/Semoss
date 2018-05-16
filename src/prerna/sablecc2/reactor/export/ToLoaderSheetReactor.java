@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -100,9 +101,10 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
 			for(String[] rel : rels) {
 				logger.info("Start rel sheet for " + Arrays.toString(rel));
-				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2]);
+				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
+				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
 				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
-				writeRelationshipSheet(engine, workbook, iterator, rel);
+				writeRelationshipSheet(engine, workbook, iterator, rel, edgeProps);
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
 			}
 		} else {
@@ -117,7 +119,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 				logger.info("Start rel sheet for " + Arrays.toString(rel));
 				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				writeRelationshipSheet(engine, workbook, iterator, rel);
+				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
 			}
 		}
@@ -186,7 +188,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		}
 	}
 	
-	public static void writeRelationshipSheet(IEngine engine, Workbook workbook, Iterator<IHeadersDataRow> it, String[] rel) {
+	public static void writeRelationshipSheet(IEngine engine, Workbook workbook, Iterator<IHeadersDataRow> it, String[] rel, List<String> edgeProps) {
 		String sheetName = Utility.getInstanceName(rel[0]) + "_" + Utility.getInstanceName(rel[1]) + "_" + Utility.getInstanceName(rel[2]);
 		
 		Sheet sheet = workbook.createSheet(sheetName);
@@ -197,6 +199,11 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			row.createCell(0).setCellValue("Relation");
 			row.createCell(1).setCellValue(getPhysicalColumnHeader(engine, rel[0]));
 			row.createCell(2).setCellValue(getPhysicalColumnHeader(engine, rel[1]));
+			if(edgeProps != null) {
+				for(int i = 0; i < edgeProps.size(); i++) {
+					row.createCell(3+i).setCellValue(edgeProps.get(i));
+				}
+			}
 		}
 		// add row 2 - so we can add teh rel name
 		{
@@ -253,13 +260,50 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		wb.setSheetOrder("Loader", 0);
 	}
 	
-	public static String generateSparqlQuery(IEngine engine, String startNode, String endNode, String relName) {
-		String query = "select distinct ?start ?end where { "
+	public static String generateSparqlQuery(IEngine engine, String startNode, String endNode, String relName, List<String> edgeProps) {
+		String query = null;
+		if(edgeProps.isEmpty()) {
+			query = "select distinct ?start ?end where { "
 				+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
 				+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
 				+ "{?start <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + "> ?end}"
 				+ "} order by ?start";
+		} else {
+			StringBuilder b = new StringBuilder();
+			b.append("select distinct ?start ?end ");
+			for(int i = 0; i < edgeProps.size(); i++) {
+				b.append("?prop").append(i).append(" ");
+			}
+			b.append("where { "
+					+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
+					+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
+					+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + ">}"
+					+ "{?start ?rel ?end}");
+			for(int i = 0; i < edgeProps.size(); i++) {
+				b.append("OPTIONAL{?rel <http://semoss.org/ontologies/Relation/Contains/").append(edgeProps.get(i)).append("> ?prop").append(i).append("}");
+			}
+			b.append("} order by ?start");
+			query = b.toString();
+		}
 		return query;
+	}
+	
+	public static List<String> getEdgeProperties(IEngine engine, String startNode, String endNode, String relName) {
+		String startQ = "select distinct ?propUri where { "
+				+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
+				+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
+				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + ">}"
+				+ "{?start ?rel ?end}"
+				+ "{?propUri a <http://semoss.org/ontologies/Relation/Contains>}"
+				+ "{?rel ?propUri ?prop}"
+				+ "} order by ?propUri";
+		
+		List<String> props = new Vector<String>();
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, startQ);
+		while(it.hasNext()) {
+			props.add(it.next().getValues()[0].toString());
+		}
+		return props;
 	}
 
 	public static String getPhysicalColumnHeader(IEngine engine, String conceptualName) {
@@ -280,7 +324,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 		String testEngine = "MovieDatabase";
 		testEngine = "TAP_Core_Data";
-		testEngine = "TAP_Site_Data";
+//		testEngine = "TAP_Site_Data";
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
 		coreEngine = new BigDataEngine();
