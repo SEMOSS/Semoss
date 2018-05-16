@@ -40,7 +40,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class SqlInterpreter2 extends AbstractQueryInterpreter {
+public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	// this keeps the table aliases
 	protected Hashtable<String, String> aliases = new Hashtable<String, String>();
@@ -81,16 +81,16 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 	
 	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
 	
-	public SqlInterpreter2() {
+	public SqlInterpreter() {
 		
 	}
 
-	public SqlInterpreter2(IEngine engine) {
+	public SqlInterpreter(IEngine engine) {
 		this.engine = engine;
 		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
 	}
 	
-	public SqlInterpreter2(ITableDataFrame frame) {
+	public SqlInterpreter(ITableDataFrame frame) {
 		this.frame = frame;
 	}
 
@@ -526,7 +526,7 @@ public class SqlInterpreter2 extends AbstractQueryInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
 		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
-		SqlInterpreter2 innerInterpreter = new SqlInterpreter2();
+		SqlInterpreter innerInterpreter = new SqlInterpreter();
 		if(this.frame != null) {
 			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
 		}

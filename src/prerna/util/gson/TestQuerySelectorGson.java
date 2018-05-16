@@ -1,6 +1,6 @@
 package prerna.util.gson;
 
-import prerna.query.interpreters.sql.SqlInterpreter2;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -28,7 +28,7 @@ public class TestQuerySelectorGson {
 		SimpleQueryFilter filter = new SimpleQueryFilter(lhs, "==", rhs);
 		qs.addExplicitFilter(filter);
 		
-		SqlInterpreter2 interp = new SqlInterpreter2();
+		SqlInterpreter interp = new SqlInterpreter();
 		interp.setQueryStruct(qs);
 		String sql = interp.composeQuery();
 		System.out.println(sql);

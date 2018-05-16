@@ -38,8 +38,8 @@ import com.google.gson.JsonSyntaxException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.IQueryInterpreter2;
-import prerna.query.interpreters.SolrInterpreter2;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.SolrInterpreter;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.OWLER;
@@ -197,8 +197,8 @@ public class SolrEngine extends AbstractEngine {
 	}
 
 	@Override
-	public IQueryInterpreter2 getQueryInterpreter2() {
-		return new SolrInterpreter2();
+	public IQueryInterpreter getQueryInterpreter2() {
+		return new SolrInterpreter();
 	}
 	
 	@Override
