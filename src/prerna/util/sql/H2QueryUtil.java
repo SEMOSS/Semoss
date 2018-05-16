@@ -27,20 +27,13 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-import java.util.List;
-
 public class H2QueryUtil extends SQLQueryUtil {
 	
 	public static final String DATABASE_DRIVER = "org.h2.Driver";
 	
 	public H2QueryUtil(){
-		super.setDialectAllTables(" SHOW TABLES FROM PUBLIC ");
-		super.setResultAllTablesTableName("TABLE_NAME");
 		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY INDEX_NAME");
 		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = ");
-		super.setDialectForceGraph("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
-		super.setDialectOuterJoinLeft(" LEFT OUTER JOIN ");
-		super.setDialectOuterJoinRight(" RIGHT OUTER JOIN ");
 		super.setDefaultDbUserName("sa");
 		super.setDefaultDbPassword("");
 	}
@@ -49,71 +42,26 @@ public class H2QueryUtil extends SQLQueryUtil {
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
 		return SQLQueryUtil.DB_TYPE.H2_DB;
 	}
+	
 	@Override
 	public String getDialectAllIndexesInDB(String schema){
 		return super.getDialectAllIndexesInDB(); //dont plop schema into here
 	}
+	
 	@Override
 	public String getConnectionURL(String baseFolder, String dbname){
 		String engineDirectoryName = "db" + System.getProperty("file.separator") + dbname;
 		return "jdbc:h2:nio:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
 				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
+	
 	@Override
 	public String getDatabaseDriverClassName(){
 		return DATABASE_DRIVER;
 	}
+	
 	@Override
 	public String getDialectIndexInfo(String indexName, String dbName){
 		return super.getDialectIndexInfo() + "'" + indexName+ "'"; //h2 doesnt need the dbName 
 	}
-	
-	
-	//"full outer join"
-	//this is definetly going to be db specific, (so abstracting)
-	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr, List<String> leftJoinsArr, 
-			List<String> joinsArr, String filters, int limit, String groupBy){
-		String joins = "";
-		String rightOuterJoins = "";
-		String leftOuterJoins = "";
-
-		for(String singleJoin: joinsArr){
-			if(joins.length()>0) joins+= " AND ";
-			joins += singleJoin;
-		}
-		
-		for(String singleJoin: rightJoinsArr){
-			rightOuterJoins += singleJoin;
-		}
-		
-		for(String singleJoin: leftJoinsArr){
-			leftOuterJoins += singleJoin;
-		}
-		
-		if(joins.length() > 0 && filters.length() > 0)
-			joins = joins + " AND " + filters;
-		else if(filters.length() > 0)
-			joins = filters;
-		if(joins.length() > 0)
-			joins = " WHERE " + joins;
-		
-		String selectStr = super.dialectSelect;
-		if(distinct) selectStr+= super.dialectDistinct;
-		
-		String query = selectStr + selectors + "  FROM  " + leftOuterJoins + joins; //+ " LIMIT " + limit ;
-		if(groupBy !=null && groupBy.length()>0)
-			query += " GROUP BY " + groupBy;
-		query += " UNION ";
-		query += selectStr + selectors + "  FROM  " + rightOuterJoins + joins; //+ " LIMIT " + limit ;
-		
-		if(groupBy !=null && groupBy.length()>0)
-			query += " GROUP BY " + groupBy;
-		
-		if(limit!=-1){
-			query += " LIMIT " + limit;
-		}
-
-		return query;
-	}
-	
 }

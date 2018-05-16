@@ -22,6 +22,8 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
@@ -533,10 +535,9 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		} else {
 			getRowCountQuery = queryUtil.getDialectSelectRowCountFrom(cleanConcept, whereBuffer.toString() + " AND " + selectClauseWhereBuffer.toString());
 		}
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCountQuery);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
 		if(wrapper.hasNext()){
-			ISelectStatement stmt = wrapper.next();
-			String rowcount = stmt.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
+			String rowcount = wrapper.next().getValues()[0].toString();
 			if(rowcount.equals("0")){
 				isInsert = true;
 			}
@@ -616,23 +617,25 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	private void findIndexes(String engineName){
 		// this gets all the existing tables
 		String query = queryUtil.getDialectAllIndexesInDB(engineName);
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 		while(wrapper.hasNext())
 		{
 			String tablename = "";
 			String dropCurrentIndexText = "";
-			ISelectStatement stmt = wrapper.next();
-			String indexName = stmt.getVar(queryUtil.getResultAllIndexesInDBIndexName()) + "";
+			IHeadersDataRow rawArr = wrapper.next();
+			Object[] values = rawArr.getValues();
+			String indexName = values[0].toString();
 			//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
 
 			String indexInfoQry = queryUtil.getDialectIndexInfo(indexName, engineName);
-			ISelectWrapper indexInfo = WrapperManager.getInstance().getSWrapper(engine, indexInfoQry);
+			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(engine, indexInfoQry);
 			List<String> columnsInIndex = new Vector<String>();
 			String columnName = "";
 			while(indexInfo.hasNext()){
-				ISelectStatement stmtIndx = indexInfo.next();
-				tablename = stmtIndx.getVar(queryUtil.getResultAllIndexesInDBTableName()) + "";
-				columnName = stmtIndx.getVar(queryUtil.getResultAllIndexesInDBColumnName()) + "";
+				IHeadersDataRow rawIndx = indexInfo.next();
+				Object[] indxValues = rawIndx.getValues();
+				tablename = indxValues[0].toString();
+				columnName = indxValues[1].toString();
 				columnsInIndex.add(columnName);
 			}
 			if(indexName.startsWith("CUST_")){
@@ -732,11 +735,10 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				//check that the temp table was created before dropping the table.
 				String verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP"); //query here would return a row count 
 				//if temp table wasnt successfully created, go to the next table.
-				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, verifyTable);
-				while(wrapper.hasNext()){ 
-					ISelectStatement stmtTblCount = wrapper.next();
-					String numberOfRows = stmtTblCount.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
-					if(numberOfRows.equals(0)){
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
+				if(wrapper.hasNext()){
+					String rowcount = wrapper.next().getValues()[0].toString();
+					if(rowcount.equals("0")){
 						//This REALLY shouldnt happen, but its here just in case...
 						LOGGER.error("**** Error***** occurred during database clean up on table " + tableName);
 						continue;

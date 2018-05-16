@@ -55,8 +55,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
@@ -1155,10 +1154,9 @@ public class FormulaExtractor extends AbstractFileReader {
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + 
 						tableToSet + " = '" + cells[setter] + "' AND " + tableToInsert +  "_FK IS NULL";
 				boolean isInsert = false;
-				ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, getRowCountQuery);
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
 				if(wrapper.hasNext()){
-					ISelectStatement stmt = wrapper.next();
-					String rowcount = stmt.getVar(queryUtil.getResultSelectRowCountFromRowCount()) + "";
+					String rowcount = wrapper.next().getValues()[0].toString();
 					if(rowcount.equals("0")){
 						isInsert = true;
 					}
