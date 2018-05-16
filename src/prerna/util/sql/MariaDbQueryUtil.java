@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-import java.util.List;
-
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -39,31 +37,15 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	private static String connectionBase = "jdbc:mysql://localhost:"+DIHelper.getInstance().getProperty(Constants.MARIADB_PORT);
 	private static String indexNameBind = "{indexName}";
 	private static String dbNameBind = "{dbName}";
-	private static String dialectForceGraphMaria = "SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = " + dbNameBind;
 
-	
 	public MariaDbQueryUtil(){
-		super.setDialectAllTables("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='DB_NAME'");
-		super.setResultAllTablesTableName("TABLE_NAME");
-		super.setDialectAllColumns("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=");
-		super.setResultAllColumnsColumnName("COLUMN_NAME");
-		super.setResultAllColumnsColumnName("Field");
-		super.setResultAllColumnsColumnType("Type");
 		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = ");
 		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = " + indexNameBind
 				+ " and TABLE_SCHEMA = " + dbNameBind);  
-		super.setDialectForceGraph(dialectForceGraphMaria);
 
-		//super.setResultAllIndexesInDBColumnName("Column_name");
-		//super.setResultAllIndexesInDBTableName("Table");
-		super.setDialectOuterJoinLeft(" LEFT JOIN ");
-		super.setDialectOuterJoinRight(" RIGHT JOIN ");
 		super.setDefaultDbUserName("root");
 		super.setDefaultDbPassword("");
-		super.setDialectDeleteDBSchema("DROP DATABASE IF EXISTS ");
 	}
-	
-
 	
 	@Override
 	public SQLQueryUtil.DB_TYPE getDatabaseType(){
@@ -73,10 +55,7 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	public String getConnectionURL(String baseFolder,String dbname){
 		return connectionBase + System.getProperty("file.separator") + dbname;
 	}
-	@Override
-	public String getTempConnectionURL(){
-		return connectionBase;
-	}
+
 	@Override
 	public String getDatabaseDriverClassName(){
 		return DATABASE_DRIVER;
@@ -87,91 +66,9 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		qry =  qry.replace(dbNameBind, "'" + dbName + "'");
 		return qry;
 	}
-	@Override 
-	public String getDialectForceGraph(String dbName){
-		String qry = dialectForceGraphMaria.replace(dbNameBind, "'" + dbName + "'");
-		return qry;
-	}
-	
 	
 	@Override
 	public String getDialectDropIndex(String indexName, String tableName){
 		return super.getDialectDropIndex() + indexName + " ON " + tableName;
-	}
-	
-	//"full outer join"
-	//this is definetly going to be db specific, (so abstracting)
-	@Override
-	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr, 
-			List<String> leftJoinsArr, List<String> joinsArr, String filters, int limit, String groupBy){
-		
-		String rightOuterJoins = "";
-		String leftOuterJoins = "";
-		String joins = "";
-		
-		//if(rightJoinsArr.size() == leftJoinsArr.size() && (rightJoinsArr.size()!=0 && (rightJoinsArr.size()-1) <= joinsArr.size())){
-		//	System.out.println("getDialectDistinctFullOuterJoinQuery: can continue");
-		//} else {
-		//	System.out.println("getDialectDistinctFullOuterJoinQuery: cant continue");
-		//}
-		
-		for(int i = 0; i < rightJoinsArr.size(); i++){
-			rightOuterJoins += rightJoinsArr.get(i);
-			leftOuterJoins += leftJoinsArr.get(i);
-			if(i!=0){
-				rightOuterJoins += " ON " + joinsArr.get(i-1);
-				leftOuterJoins += " ON " + joinsArr.get(i-1);
-			}
-		}
-		// if the joinsArray still has more
-		if(rightJoinsArr.size()!=0 && ((rightJoinsArr.size()-1) < joinsArr.size())){
-			for(int i = rightJoinsArr.size()-1; i < joinsArr.size(); i++){
-				if(joins.length()>0) joins += " AND ";
-				joins += joinsArr.get(i);
-			}
-		}
-		
-		String queryJoinsAndFilters = "";
-		if(joins.length() > 0 && filters.length() > 0)
-			queryJoinsAndFilters = joins + " AND " + filters;
-		else if(joins.length() > 0){
-			queryJoinsAndFilters = joins;
-		}
-		else if(filters.length() > 0){
-			queryJoinsAndFilters = filters;
-		}
-		if(queryJoinsAndFilters.length() > 0)
-			queryJoinsAndFilters = " WHERE " + queryJoinsAndFilters;
-		
-		String selectStr = super.dialectSelect;
-		if(distinct) selectStr+= super.dialectDistinct;
-		
-		String query = selectStr + selectors + "  FROM  " + leftOuterJoins + queryJoinsAndFilters; //+ " LIMIT " + limit ;
-		if(groupBy !=null && groupBy.length()>0){
-			query += " GROUP BY " + groupBy;
-		}
-		
-		query += " UNION ";
-		query += selectStr + selectors + "  FROM  " + rightOuterJoins + queryJoinsAndFilters; //+ " LIMIT " + limit ;
-		
-		if(groupBy !=null && groupBy.length()>0){
-			query += " GROUP BY " + groupBy;
-		}
-		
-		if(limit!=-1){
-			query += " LIMIT " + limit;
-		}
-		return query;
-
-	}
-
-	@Override
-	public String getDialectCreateDatabase(String engineName){
-		return "CREATE DATABASE " + engineName +  " CHARACTER SET = 'utf8' COLLATE = 'utf8_bin'";  //allow case sensitive search, binary fastest for sort/ordering, ordering will sort upper case then lower case
-	}
-	
-	@Override
-	public String getDialectAllColumns(String tableName){
-		return dialectAllColumns + "'" + tableName + "'";
 	}
 }
