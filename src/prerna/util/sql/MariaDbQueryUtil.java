@@ -70,10 +70,6 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 		return SQLQueryUtil.DB_TYPE.MARIA_DB;
 	}
 	@Override
-	public String getDefaultOuterJoins(){
-		return SQLQueryUtil.USE_OUTER_JOINS_FALSE;
-	}
-	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
 		return connectionBase + System.getProperty("file.separator") + dbname;
 	}
@@ -169,14 +165,6 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 
 	}
 
-	@Override
-	public String getEngineNameFromConnectionURL(String connectionURL) {
-		String engineName = "";
-		String splitConnectionURL[] = connectionURL.split("/");
-		engineName = splitConnectionURL[splitConnectionURL.length - 1];
-		return engineName;
-	}	
-	
 	@Override
 	public String getDialectCreateDatabase(String engineName){
 		return "CREATE DATABASE " + engineName +  " CHARACTER SET = 'utf8' COLLATE = 'utf8_bin'";  //allow case sensitive search, binary fastest for sort/ordering, ordering will sort upper case then lower case

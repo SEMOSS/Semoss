@@ -154,15 +154,11 @@ public abstract class SQLQueryUtil {
 
 	public abstract SQLQueryUtil.DB_TYPE getDatabaseType();
 
-	public abstract String getDefaultOuterJoins();
-
 	public abstract String getConnectionURL(String baseFolder,String dbname);
 
 	public abstract String getDatabaseDriverClassName();
 
 	public abstract String getDialectIndexInfo(String indexName, String dbName);
-
-	public abstract String getEngineNameFromConnectionURL(String connectionURL);
 
 	//"full outer join"
 	//this is definetly going to be db specific

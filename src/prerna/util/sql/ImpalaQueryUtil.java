@@ -79,18 +79,6 @@ public class ImpalaQueryUtil extends SQLQueryUtil {
 	}
 
 	@Override
-	public String getEngineNameFromConnectionURL(String connectionURL) {
-		String splitConnectionURL[] = connectionURL.split("/");
-		return splitConnectionURL[3];
-	}
-
-	@Override
-	public String getDefaultOuterJoins() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public String getDialectIndexInfo(String indexName, String dbName) {
 		// TODO Auto-generated method stub
 		return null;

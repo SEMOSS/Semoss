@@ -61,12 +61,6 @@ public class AnsiSqlQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public String getDefaultOuterJoins() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public String getDialectIndexInfo(String indexName, String dbName) {
 		// TODO Auto-generated method stub
 		return null;
@@ -75,12 +69,6 @@ public class AnsiSqlQueryUtil extends SQLQueryUtil {
 	@Override
 	public String getDialectFullOuterJoinQuery(boolean distinct, String selectors, List<String> rightJoinsArr,
 			List<String> leftJoinsArr, List<String> joinsArr, String filters, int limit, String groupBy) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getEngineNameFromConnectionURL(String connectionURL) {
 		// TODO Auto-generated method stub
 		return null;
 	}
