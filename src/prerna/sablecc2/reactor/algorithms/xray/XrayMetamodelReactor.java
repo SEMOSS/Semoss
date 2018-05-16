@@ -3,10 +3,8 @@ package prerna.sablecc2.reactor.algorithms.xray;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -45,6 +43,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.CONFIG.getKey());
 		}
 		Xray xray = new Xray(this.rJavaTranslator, getBaseFolder(), logger);
+		xray.setGenerateCountFrame(true);
 		String rFrameName = xray.run(config);
 
 		// check if we have results from xray
@@ -54,13 +53,38 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 		// if we have results sync back SEMOSS
 		if (!nullResults) {
 			// format xray results into json
+			String countFrame = xray.getCountDF();
 			String jsonR = "json" + Utility.getRandomString(5);
 			String tempFrame = "temp" + Utility.getRandomString(8);
-			String formatScript = tempFrame + " <- subset(" + rFrameName
-					+ ", select=c(Source_Database, Source_Table, Source_Column, Source_Property, Target_Database, Target_Table, Target_Column, Target_Property));";
-			formatScript += "library(jsonlite);";
-			formatScript += jsonR + " <- toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ";
-			this.rJavaTranslator.runR(formatScript);
+			StringBuilder rsb = new StringBuilder();
+			rsb.append(tempFrame + " <- subset(" + rFrameName
+					+ ", select=c(Source_Database, Source_Table, Source_Column, Source_Property, Target_Database, Target_Table, Target_Column, Target_Property, Source_Instances, Target_Instances));");
+			// remove bidirectional comparison
+			rsb.append(tempFrame+" <- "+tempFrame+"[1:(nrow("+tempFrame+") /2),];");
+			// get instance count for source
+			rsb.append(tempFrame + "<- merge(" + tempFrame + ", " + countFrame
+					+ ", by.x=c(\"Source_Database\", \"Source_Table\", \"Source_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
+			// rename count column for source
+			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Source_Count';");
+			// get instance count for target
+			rsb.append(tempFrame + " <- merge(" + tempFrame + ", " + countFrame
+					+ ", by.x=c(\"Target_Database\", \"Target_Table\", \"Target_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
+			// rename count column for target
+			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Target_Count';");
+			// add PK or FK for source
+			rsb.append(tempFrame + "$Source_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[11] == row[9], \"PK\",\"FK\")});");
+			// add PK or FK for target
+			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[10] == row[12], \"PK\",\"FK\")});");
+			// remove FK source and FK target
+			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key == \"FK\" & " + tempFrame + "$Target_Key == \"FK\"] <- \"\";");
+			// eliminate extra columns
+			rsb.append(tempFrame + " <- subset(" + tempFrame + ", select=c(Source_Database, Source_Table, Source_Column, Source_Key, Target_Database, Target_Table, Target_Column, Target_Key));");
+			// get json
+			rsb.append("library(jsonlite);");
+			rsb.append(jsonR + " <- toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
+			
+			this.rJavaTranslator.runR(rsb.toString());
+			System.out.println(rsb.toString() + "");
 			String json = this.rJavaTranslator.getString(jsonR);
 			List<Map> jsonMap = new ArrayList<Map>();
 			if (json != null) {
@@ -70,6 +94,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				} catch (IOException e2) {
 				}
 			} else {
+				// TODO rScript clean up 
 				throw new IllegalArgumentException("No collisions found");
 			}
 
@@ -110,6 +135,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			cleanUpScript.append("rm(" + rFrameName + ");");
 			cleanUpScript.append("rm(" + jsonR + ");");
 			cleanUpScript.append("rm(" + tempFrame + ");");
+			cleanUpScript.append("rm(" + countFrame + ");");
 			cleanUpScript.append("gc();");
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 			Map<String, Object> retMap = new HashMap<>();
