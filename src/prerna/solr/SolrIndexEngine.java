@@ -480,7 +480,7 @@ public class SolrIndexEngine {
 	 * Modifies the view count and last viewed time of a document based on its Unique ID
 	 * @param uniqueID              ID to be modified
 	 */
-	public void updateViewedInsight(String uniqueID) throws SolrServerException, IOException {
+	public synchronized void updateViewedInsight(String uniqueID) throws SolrServerException, IOException {
 		if (serverActive()) {
 			/*
 			 * solr doens't allow you to modify specific fields in a document that is already indexed
