@@ -125,11 +125,6 @@ public class UploadUtilities {
 		return owlFile;
 	}
 
-	public static void updateEngineMetadata() {
-
-	}
-	
-	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -148,7 +143,7 @@ public class UploadUtilities {
 	 * @param file
 	 * @return
 	 */
-	public static File createTemporaryRdbmsSmss(String appName, File owlFile, String rdbmsType, String file) {
+	public static File createTemporaryRdbmsSmss(String appName, File owlFile, String rdbmsType, String file) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appName);
 		
 		// i am okay with deleting the .temp if it exists
@@ -199,7 +194,7 @@ public class UploadUtilities {
 			
 			// most important piece
 			// the connection url
-			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
+			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
 			
 //			if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
 //				if(fileName == null) {
@@ -224,6 +219,7 @@ public class UploadUtilities {
 		
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new IOException("Could not generate temporary smss file for app");
 		} finally {
 			try {
 				if(bufferedWriter != null) {
@@ -310,7 +306,9 @@ public class UploadUtilities {
 	 * @return
 	 */
 	private static String getParamedSmssInsightDatabaseLocation() {
-		String connectionUrl = "db/@engine@" + DIR_SEPARATOR + "insights_database";
+		String connectionUrl = "db" + DIR_SEPARATOR + "@engine@" + DIR_SEPARATOR + "insights_database";
+		// regardless of OS, connection url is always /
+		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
 	}
 	
@@ -334,6 +332,8 @@ public class UploadUtilities {
 	public static String getInsightDatabaseConnectionUrl(String appName) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String connectionUrl = "jdbc:h2:" + baseFolder + ENGINE_DIRECTORY + appName + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		// regardless of OS, connection url is always /
+		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
 	}
 	
