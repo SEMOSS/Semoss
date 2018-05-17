@@ -72,7 +72,8 @@ getRFResults <- function(rf, method, sortBy="1") {
 			return (list(alignmentInfo=c("AttributeNames", "%IncMSE", "IncNodePurity", sortBy), returnObject=varImpDt))
 		},
 		classificationconfmatrix = {
-			confmatrix <- as.data.table(round(rf$confusion,2), keep.rownames = TRUE) %>% setnames(., c("rn", "class.error"), c("_", "Error(%)"))
+			confmatrix <- as.data.table(round(rf$confusion,4), keep.rownames = TRUE) %>% setnames(., c("rn", "class.error"), c("_", "Error(%)"))
+			confmatrix[, "Error(%)"] <- confmatrix[, "Error(%)"] * 100
 			return (confmatrix)
 		}
 	)
