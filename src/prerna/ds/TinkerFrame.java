@@ -567,7 +567,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add filters
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
-			TinkerHeadersDataRowIterator2 it = new TinkerHeadersDataRowIterator2(interp.composeIterator(), qs);
+			TinkerHeadersDataRowIterator it = new TinkerHeadersDataRowIterator(interp.composeIterator(), qs);
 			List<Object> columnList = new ArrayList<>();
 			while(it.hasNext()) {
 				columnList.add(it.next().getValues()[0]);
@@ -1099,7 +1099,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GremlinInterpreter interp = new GremlinInterpreter(this.g, this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
-		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator2(interp.composeIterator(), qs, this.metaData), qs);
+		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator(interp.composeIterator(), qs, this.metaData), qs);
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
