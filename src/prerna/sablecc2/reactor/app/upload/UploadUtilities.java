@@ -12,6 +12,7 @@ import java.util.Properties;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
@@ -256,6 +257,9 @@ public class UploadUtilities {
 			appTempSmss.delete();
 		}
 		
+		final String newLine = "\n";
+		final String tab = "\t";
+		
 		// also write the base properties
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
@@ -263,12 +267,11 @@ public class UploadUtilities {
 			File newFile = new File(appTempSmssLoc);
 			bufferedWriter = new BufferedWriter(writer);
 			writer = new FileWriter(newFile);
-			writer.write("Base Properties \n");
-			writer.write(Constants.ENGINE + "\t" + appName + "\n");
-			writer.write(Constants.ENGINE_TYPE + "\tprerna.engine.impl.app.AppEngine\n");
-			writer.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database" + "\n");
-			writer.write(Constants.SOLR_RELOAD + "\tfalse\n");
-			writer.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
+			writer.write("Base Properties" +  newLine);
+			writer.write(Constants.ENGINE + tab + appName + newLine);
+			writer.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
+			// write insights rdbms
+			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
