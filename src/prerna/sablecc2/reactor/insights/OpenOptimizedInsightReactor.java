@@ -1,15 +1,9 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
-import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
@@ -21,7 +15,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
 import prerna.util.ga.GATracker;
 
@@ -95,12 +88,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		runner = newInsight.reRunOptimizedPixelInsight();
 		
 		// update the solr universal view count
-		try {
-			SolrIndexEngine.getInstance().updateViewedInsight(appName + "_" + rdbmsId);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e) {
-			e.printStackTrace();
-		}
+		GlobalInsightCountUpdater.getInstance().addToQueue(appName, rdbmsId);
 
 		// track GA data
 		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appName, rdbmsId, newInsight.getInsightName());
