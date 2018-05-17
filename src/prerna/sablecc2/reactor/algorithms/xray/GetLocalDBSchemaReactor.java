@@ -79,6 +79,9 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 				propInfo.put("name", cleanProp);
 				dataType = engine.getDataTypes(prop);
 				if (dataType != null) {
+					if(dataType.contains("TYPE:")) {
+						dataType = dataType.replace("TYPE:", "");
+					}
 					dataType = SemossDataType.convertStringToDataType(dataType).toString();
 				} else {
 					dataType = SemossDataType.STRING.toString();
