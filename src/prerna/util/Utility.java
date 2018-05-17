@@ -1694,6 +1694,17 @@ public class Utility {
 		return outDate;
 	}
 	
+	public static Date getDateObjFromStringFormat(String input, String curFormat) {
+		SimpleDateFormat sdf = new SimpleDateFormat(curFormat);
+		Date mydate = null;
+		try {
+			mydate = sdf.parse(input);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return mydate;
+	}
+	
 	public static Date getTimeStampAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.ssss");
 		String output_date = getTimeStamp(input);
@@ -1710,8 +1721,7 @@ public class Utility {
 
 		return outDate;
 	}
-
-
+	
 	public static Object getCurrency(String input)
 	{
 		//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
