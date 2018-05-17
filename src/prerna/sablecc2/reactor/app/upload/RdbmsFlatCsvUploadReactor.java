@@ -29,6 +29,7 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
@@ -206,13 +207,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		engineNames = engineNames + ";" + newAppName;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 
-//		String testQuery = "select * from " + tableName;
-//		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, testQuery);
-//		while(it.hasNext()) {
-//			System.out.println(Arrays.toString(it.next().getValues()));
-//		}
-		
-		return null;
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	/**
@@ -320,8 +315,14 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 					else if(type == SemossDataType.DATE) {
 						// can I get a format?
 						String format = additionalTypes[colIndex];
-						if(format != null) {
-							
+						if(format != null && !format.isEmpty()) {
+							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
+							if(value != null) {
+								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							} else {
+								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
 						} else {
 							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
 							if(value != null) {
@@ -336,10 +337,16 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 					else if(type == SemossDataType.TIMESTAMP) {
 						// can I get a format?
 						String format = additionalTypes[colIndex];
-						if(format != null) {
-							
+						if(format != null && !format.isEmpty()) {
+							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
+							if(value != null) {
+								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							} else {
+								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
 						} else {
-							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
+							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex]);
 							if(value != null) {
 								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
 							} else {
