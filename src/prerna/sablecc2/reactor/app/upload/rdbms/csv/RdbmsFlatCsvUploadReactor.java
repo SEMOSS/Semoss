@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.upload;
+package prerna.sablecc2.reactor.app.upload.rdbms.csv;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +7,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -33,6 +34,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadReactor;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -53,41 +56,44 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 	 * 						additional inputs would be {header : currency, header : date_format, ... }
 	 * 6) clean -> boolean if we should clean up the strings before insertion, default is true
 	 * TODO: 7) deduplicate -> boolean if we should remove duplicate rows in the relational database
+	 * 8) existing -> boolean if we should add to an existing app, defualt is false
 	 */
 
 	private static final String CLASS_NAME = RdbmsFlatCsvUploadReactor.class.getName();
 
 	public RdbmsFlatCsvUploadReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DELIMITER.getKey(), 
-				ReactorKeysEnum.DATA_TYPE_MAP.getKey(), ReactorKeysEnum.NEW_HEADER_NAMES.getKey(), "additionalTypes", "clean"};
+				ReactorKeysEnum.DATA_TYPE_MAP.getKey(), ReactorKeysEnum.NEW_HEADER_NAMES.getKey(), 
+				"additionalTypes", "clean", "deduplicate", "existing"};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		final String newAppName = getAppName();
+		Logger logger = getLogger(CLASS_NAME);
+
+		final String appName = getAppName();
+		final boolean existing = getExisting();
 		final String filePath = getFilePath();
 		final File file = new File(filePath);
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
-		final String delimiter = getDelimiter();
-		Map<String, String> dataTypesMap = getDataTypeMap();
-		Map<String, String> newHeaders = getNewHeaders();
-		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
-		boolean clean = getClean();
-
-		// now that I have everything, let us go through and just insert everything
-		Logger logger = getLogger(CLASS_NAME);
-
-		// start by validation
-		logger.info("Start validating app");
-		try {
-			UploadUtilities.validateApp(newAppName);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
+		
+		if(existing) {
+			addToExistingApp(appName, filePath, logger);
+		} else {
+			generateNewApp(appName, filePath, logger);
 		}
-		logger.info("Done validating app");
-
+		
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
+	}
+	
+	/**
+	 * Make a new app with the file data
+	 * @param newAppName
+	 * @param filePath
+	 */
+	private void generateNewApp(final String newAppName, final String filePath, Logger logger) {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -99,6 +105,23 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		 * 7) load default insights
 		 * 8) add to localmaster and solr
 		 */
+		
+		final String delimiter = getDelimiter();
+		Map<String, String> dataTypesMap = getDataTypeMap();
+		Map<String, String> newHeaders = getNewHeaders();
+		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
+		final boolean clean = getClean();
+
+		// now that I have everything, let us go through and insert
+
+		// start by validation
+		logger.info("Start validating app");
+		try {
+			UploadUtilities.validateApp(newAppName);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		logger.info("Done validating app");
 
 		logger.info("Starting app creation");
 
@@ -106,13 +129,11 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		UploadUtilities.generateAppFolder(newAppName);
 		logger.info("1. Complete");
 
-		// 1)
 		logger.info("Generate new app database");
 		logger.info("2. Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppName);
 		logger.info("2. Complete");
-		
-		// 2)
+
 		logger.info("3. Create properties file for database...");
 		File tempSmss = null;
 		try {
@@ -123,8 +144,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		logger.info("3. Complete");
-		
-		// 3)
+
 		logger.info("4. Create database store...");
 		IEngine engine = new RDBMSNativeEngine();
 		engine.setEngineName(newAppName);
@@ -134,7 +154,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		engine.openDB(null);
 		logger.info("4. Complete");
 
-		// 4) This is where the data actually gets added
 		logger.info("5. Start loading data..");
 		logger.info("Parsing file metadata...");
 		CSVFileHelper helper = getHelper(filePath, delimiter, dataTypesMap, newHeaders);
@@ -143,7 +162,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		logger.info("Done parsing file metadata");
-		
+
 		logger.info("Create table...");
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath)).toUpperCase();
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
@@ -159,8 +178,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 			e.printStackTrace();
 		}
 		logger.info("5. Complete");
-		
-		// 5)
+
 		logger.info("6. Start generating engine metadata...");
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes);
@@ -174,14 +192,12 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		}
 		logger.info("6. Complete");
 
-		// 6)
 		logger.info("7. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		logger.info("7. Complete");
 
-		// 7)
 		logger.info("8. Process app metadata to allow for traversing across apps	");
 		try {
 			Utility.synchronizeEngineMetadata(newAppName);
@@ -200,16 +216,123 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 			e.printStackTrace();
 		}
 		tempSmss.delete();
-		
+
 		DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setLocalProperty(newAppName, engine);
 		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 		engineNames = engineNames + ";" + newAppName;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
+	
+	/**
+	 * Add the data into an existing rdbms engine
+	 * @param appName
+	 * @param filePath
+	 */
+	private void addToExistingApp(String appName, String filePath, Logger logger) {
+		IEngine engine = Utility.getEngine(appName);
+		if(engine == null) {
+			throw new IllegalArgumentException("Couldn't find the app " + appName + " to append data into");
+		}
+		if(!(engine instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("App must be using a relational database");
+		}
+		
+		final String delimiter = getDelimiter();
+		Map<String, String> dataTypesMap = getDataTypeMap();
+		Map<String, String> newHeaders = getNewHeaders();
+		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
+		final boolean clean = getClean();
+		
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Start loading data..");
+		logger.info("Parsing file metadata...");
+		CSVFileHelper helper = getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		Object[] headerTypesArr = getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		String[] headers = (String[]) headerTypesArr[0];
+		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+		String[] additionalTypes = (String[]) headerTypesArr[2];
+		logger.info("Done parsing file metadata");
 
+		logger.info("Get existing database schema...");
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		logger.info("Done getting existing database schema");
+
+		logger.info("Determine if we can add into an existing table or make new table...");
+		String tableToInsertInto = determineExistingTableToInsert(existingRDBMSStructure, headers, types);
+		if(tableToInsertInto == null) {
+			logger.info("Could not find existing table to insert into");
+			logger.info("Create table...");
+			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath)).toUpperCase();
+			String uniqueRowId = tableToInsertInto + "_UNIQUE_ROW_ID";
+
+			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
+			String[] sqlTypes = createNewTable(engine, tableToInsertInto, uniqueRowId, headers, types);
+			logger.info("Done create table");
+			try {
+				bulkInsertFile(engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
+				addIndex(engine, tableToInsertInto, uniqueRowId);
+			} catch (IOException e) {
+				// ugh... gotta clean up and delete everything... TODO:
+				e.printStackTrace();
+			}
+			logger.info(stepCounter + ". Complete");
+			stepCounter++;
+			
+			logger.info(stepCounter + ". Start generating engine metadata...");
+			OWLER owler = new OWLER(engine, engine.getOWL());
+			generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes);
+			owler.commit();
+			try {
+				owler.export();
+				engine.setOWL(engine.getOWL());
+			} catch (IOException e) {
+				// ugh... gotta clean up and delete everything... TODO:
+				e.printStackTrace();
+			}
+			logger.info(stepCounter + ". Complete");
+			
+			logger.info(stepCounter + ". Start generating default app insights");
+			Set<String> newTableSet = new HashSet<String>();
+			newTableSet.add(tableToInsertInto);
+			RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, newTableSet);
+			logger.info(stepCounter + ". Complete");
+			stepCounter++;
+		} else {
+			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
+			try {
+				bulkInsertFile(engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
+			} catch (IOException e) {
+				// ugh... gotta clean up and delete everything... TODO:
+				e.printStackTrace();
+			}
+			logger.info(stepCounter + ". Complete");
+		}
+
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		try {
+			Utility.synchronizeEngineMetadata(appName);
+			SolrUtility.addToSolrInsightCore(appName);
+			SolrUtility.addAppToSolr(appName);
+		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ". Complete");
+		
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Processing actually happens here
+	 * 
+	 */
+	
 	/**
 	 * Perform the insertion of data into the table
 	 * @param engine
@@ -255,7 +378,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 						ps.setObject(colIndex+1, null);
 						continue;
 					}
-					
+
 					// yay, actual data
 					SemossDataType type = types[colIndex];
 					// strings
@@ -383,7 +506,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 			throw new IOException(errorMessage);
 		}
 	}
-	
+
 	/**
 	 * Add the metadata into the OWL
 	 * @param owler
@@ -401,7 +524,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 			owler.addProp(tableName, uniqueRowId, headers[i], sqlTypes[i+1]);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param engine
@@ -475,9 +598,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 			}
 		}
 
-		// get the sql types
-
-
 		// get additional type information
 		if(additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
 			for(int i = 0 ; i < numHeaders; i++) {
@@ -486,6 +606,58 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		}
 
 		return new Object[]{headers, types, additionalTypes};
+	}
+
+	private String determineExistingTableToInsert(Map<String, Map<String, String>> existingRDBMSStructure, String[] headers, SemossDataType[] types) {
+		String existingTableNameToInsert = null;
+
+		// loop through every existing table
+		TABLE_LOOP : for(String existingTableName : existingRDBMSStructure.keySet()) {
+			// get the map containing the column names to data types for the existing table name
+			Map<String, String> existingColTypeMap = existingRDBMSStructure.get(existingTableName);
+
+			// if the number of headers does not match
+			// we know it is not a good match
+			if(existingColTypeMap.keySet().size()-1 != headers.length) {
+				// no way all columns are contained
+				// look at the next table
+				continue TABLE_LOOP;
+			}
+
+			// check that every header is contained in this table
+			// check that the data types from the csv file and the table match
+			for(int i = 0; i < headers.length; i++) {
+				// existing rdbms structure returns with everything upper case
+				String csvHeader = RDBMSEngineCreationHelper.cleanTableName(headers[i]).toUpperCase();
+				SemossDataType csvDataType = types[i];
+
+				if(!existingColTypeMap.containsKey(csvHeader)) {
+					// if the column name doesn't exist in the existing table
+					// look at the next table
+					continue TABLE_LOOP;
+				}
+
+				// if we get here
+				// we found a header that is in both
+				SemossDataType existingColDataType = SemossDataType.convertStringToDataType(existingColTypeMap.get(csvHeader.toUpperCase()));
+
+				// now test the data types
+				// need to perform a non-exact match
+				// i.e. float and double are the same, etc.
+				if(csvDataType != existingColDataType) {
+					// if the data types do not match
+					// look at the next table
+					continue TABLE_LOOP;
+				}
+			}
+
+			// if we got outside the other loop
+			// it means that every header was contained in the table
+			// and the data types also match
+			existingTableNameToInsert = existingTableName;
+		}
+		
+		return existingTableNameToInsert;
 	}
 
 	/**
@@ -500,7 +672,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		int size = types.length;
 		String[] sqlTypes = new String[size+1];
 		String[] newHeaders = new String[size+1];
-		
+
 		newHeaders[0] = uniqueRowId;
 		sqlTypes[0] = "IDENTITY";
 		for(int i = 0; i < size; i++) {
@@ -523,7 +695,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		engine.insertData(createTable);
 		return sqlTypes;
 	}
-	
+
 	///////////////////////////////////////////////////////
 
 	/*
@@ -594,6 +766,14 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		return (boolean) grs.get(0);
 	}
 
+	private boolean getExisting() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[8]);
+		if(grs == null || grs.isEmpty()) {
+			return false;
+		}
+		return (boolean) grs.get(0);
+	}
+
 
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
@@ -608,7 +788,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 		coreEngine.openDB(engineProp);
 		coreEngine.setEngineName("LocalMasterDatabase");
 		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
-		
+
 		String filePath = "C:/Users/SEMOSS/Desktop/Movie Data.csv";
 
 		Insight in = new Insight();
