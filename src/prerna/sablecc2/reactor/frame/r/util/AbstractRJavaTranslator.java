@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
@@ -297,21 +298,21 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	/**
 	 * Check if r packages are install throw an error is an r package is missing
-	 * 
 	 * @param packages
 	 */
     public void checkPackages(String[] packages) {
-		String packageError = "";
-		for (String rPackage : packages) {
-			String hasPackage = this.getString("as.character(\"" + rPackage + "\" %in% rownames(installed.packages()))");
-			if (!hasPackage.equalsIgnoreCase("true")) {
-				packageError += rPackage + "\n";
-			}
-		}
-		if (packageError.length() > 0) {
-			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
-			throw new IllegalArgumentException(errorMessage);
-		}
+    	String packageError = "";
+    	int[] confirmedPackages = this.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages,"','") + "')"
+    			+ ", require, character.only=TRUE))==F)");
+    	
+    	if (confirmedPackages.length > 0) {
+    		for (int i : confirmedPackages){
+    			int index = i - 1;
+    			packageError += packages[index] + "\n";
+    		}
+    		String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
+    		throw new IllegalArgumentException(errorMessage);
+    	}
     }
     
 	@Override
