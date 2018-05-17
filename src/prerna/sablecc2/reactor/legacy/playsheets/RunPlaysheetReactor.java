@@ -1,15 +1,9 @@
 package prerna.sablecc2.reactor.legacy.playsheets;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
@@ -21,7 +15,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.solr.SolrIndexEngine;
+import prerna.sablecc2.reactor.insights.GlobalInsightCountUpdater;
 import prerna.ui.helpers.OldInsightProcessor;
 import prerna.util.Utility;
 
@@ -75,13 +69,9 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		obj.put("recipe", new Object[0]);
 		obj.put("pkqlOutput", insightMap);
 
-		// update global solr tracker
-		try {
-			SolrIndexEngine.getInstance().updateViewedInsight(engine.getEngineName() + "_" + insightId);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e) {
-			e.printStackTrace();
-		}
+		// update the solr universal view count
+		GlobalInsightCountUpdater.getInstance().addToQueue(engine.getEngineName(), insightId);
+
 		return new NounMetadata(obj, PixelDataType.MAP, PixelOperationType.OLD_INSIGHT);
 	}
 
