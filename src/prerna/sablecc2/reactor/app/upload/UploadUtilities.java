@@ -124,6 +124,11 @@ public class UploadUtilities {
 		
 		return owlFile;
 	}
+	
+	public static String getRelativeOwlPath(File owlFile) {
+		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		return new File(baseDirectory).toURI().relativize(owlFile.toURI()).getPath();
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -168,7 +173,7 @@ public class UploadUtilities {
 			// write engine
 			bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
 			// write owl
-			String paramOwlLoc = owlFile.getAbsolutePath().replace(appName, "@engine@");
+			String paramOwlLoc = getRelativeOwlPath(owlFile).replace(appName, "@engine@");
 			bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 
 			// write insights rdbms
