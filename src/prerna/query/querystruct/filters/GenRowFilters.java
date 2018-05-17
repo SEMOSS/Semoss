@@ -21,6 +21,7 @@ public class GenRowFilters {
 	
 	// keep the list of filtered columns instead of iterating through
 	private Set<String> filteredColumns = new HashSet<String>();
+	private Set<String> qsFilteredColumns = new HashSet<String>();
 	
 	public GenRowFilters() {
 		
@@ -33,6 +34,7 @@ public class GenRowFilters {
 	public void addFilters(IQueryFilter newFilter) {
 		this.filterVec.add(newFilter);
 		this.filteredColumns.addAll(newFilter.getAllUsedColumns());
+		this.qsFilteredColumns.addAll(newFilter.getAllQueryStructColumns());
 	}
 	
 	public void removeFilter(int index) {
@@ -87,6 +89,7 @@ public class GenRowFilters {
 		
 		List<IQueryFilter> newFiltersToAppend = new Vector<IQueryFilter>();
 		Set<String> newColumnsToFilter = new HashSet<String>();
+		Set<String> newQsToFilter = new HashSet<String>();
 		
 		NEW_FILTERS_LOOP : for(IQueryFilter incoming_filter : incomingFilters.filterVec) {
 			if(incoming_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
@@ -101,6 +104,7 @@ public class GenRowFilters {
 					// add this filter to the existing QueryFilter
 					newFiltersToAppend.add(i_filter);
 					newColumnsToFilter.addAll(i_filter.getAllUsedColumns());
+					newQsToFilter.addAll(i_filter.getAllQueryStructColumns());
 					// continue through the loop
 					continue;
 				}
@@ -143,11 +147,13 @@ public class GenRowFilters {
 			// store all the filtered cols
 			// regardless of filter type
 			newColumnsToFilter.addAll(incoming_filter.getAllUsedColumns());
+			newQsToFilter.addAll(incoming_filter.getAllQueryStructColumns());
 		}
 		
 		// now loop through and add all the new filters
 		this.filterVec.addAll(newFiltersToAppend);
 		this.filteredColumns.addAll(newColumnsToFilter);
+		this.qsFilteredColumns.addAll(newQsToFilter);
 	}
 	
 	public int size() {
@@ -201,8 +207,10 @@ public class GenRowFilters {
 	 */
 	public void redetermineFilteredColumns() {
 		this.filteredColumns.clear();
+		this.qsFilteredColumns.clear();
 		for (IQueryFilter filter : this.filterVec) {
 			this.filteredColumns.addAll(filter.getAllUsedColumns());
+			this.qsFilteredColumns.addAll(filter.getAllQueryStructColumns());
 		}
 	}
 	
@@ -230,6 +238,14 @@ public class GenRowFilters {
 	 */
 	public Set<String> getAllFilteredColumns() {
 		return this.filteredColumns;
+	}
+	
+	/**
+	 * Get all fitlered qs columns used in this filter
+	 * @return
+	 */
+	public Set<String> getAllQsFilteredColumns() {
+		return this.qsFilteredColumns;
 	}
 	
 	/**
