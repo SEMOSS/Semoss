@@ -3,6 +3,7 @@ package prerna.query.interpreters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
@@ -65,6 +66,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	// map to store the selector name to the alisa
 	private Map<String, String> selectorAlias;
 	
+	// filtered columns
+	private Set<String> qsFilteredColumns;
+	
 	// store the engine
 	private IEngine engine;
 	
@@ -91,6 +95,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		this.selectorAlias = new HashMap<String, String>();
 		this.selectorWhereClause = new StringBuilder();
 		this.addedSelectors = new HashMap<String, String>();
+		GenRowFilters combinedFilters = this.qs.getCombinedFilters();
+		qsFilteredColumns = combinedFilters.getAllQsFilteredColumns();
 		
 		// add the join where clause
 		addJoins(this.qs.getRelations());
@@ -98,7 +104,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		addSelectors(this.qs.getSelectors());
 		
 		// add the filters
-		addFilters(this.qs.getCombinedFilters(), baseUri);
+		addFilters(combinedFilters, baseUri);
 		
 		// add the group bys
 		addGroupClause(this.qs.getGroupBy());
@@ -274,7 +280,11 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		if(!this.addedSelectors.containsKey(propVarName)) {
 			String propUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_PROPERTY_PREFIX + "/" + property);
 			// add the pattern around the property
-			this.selectorWhereClause.append("OPTIONAL{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+			if(this.qsFilteredColumns.contains(propVarName)) {
+				this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+			} else {
+				this.selectorWhereClause.append("OPTIONAL{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+			}
 			this.addedSelectors.put(propVarName, propUri);
 		}
 		return this.addedSelectors.get(propVarName);
