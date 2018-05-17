@@ -2,10 +2,12 @@ package prerna.ds.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.ds.QueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -71,12 +73,28 @@ public class QueryStructConverter {
 				retQs.addExplicitFilter(newFilter);
 			}
 		}
-
+		
 		// now add the relationships
 		// this hasn't changed at all....
 		// just set it
 		retQs.setRelations(qs.getRelations());
 
+		// add group bys
+		Map<String, Set<String>> groupBys = qs.getGroupBy();
+		for(String table : groupBys.keySet()) {
+			Set<String> columns = groupBys.get(table);
+			for(String col : columns) {
+				retQs.addGroupBy(new QueryColumnSelector(table + "__" + col));
+			}
+		}
+		
+		// add orders
+		Map<String, String> orderBys = qs.getOrderBy();
+		for(String table : orderBys.keySet()) {
+			String col = orderBys.get(table);
+			retQs.addOrderBy(new QueryColumnOrderBySelector(table + "__" + col));
+		}
+		
 		return retQs;
 	}
 }
