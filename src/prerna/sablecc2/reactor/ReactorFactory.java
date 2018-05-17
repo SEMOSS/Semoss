@@ -848,7 +848,8 @@ public class ReactorFactory {
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
         rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
 
-
+        // package(s) check
+        rFrameHash.put("CheckRPackages", prerna.sablecc2.reactor.frame.r.CheckRPackagesReactor.class);
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
