@@ -29,7 +29,6 @@ package prerna.rdf.engine.wrappers;
 
 import org.apache.log4j.Logger;
 
-import prerna.ds.TinkerHeadersDataRowIterator2;
 import prerna.ds.TinkerHeadersDataRowIteratorMap;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.ds.datastax.DataStaxGraphIterator;
@@ -44,7 +43,6 @@ import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.web.WebWrapper;
 import prerna.query.interpreters.DataStaxInterpreter;
-import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.GremlinMapInterp;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SolrInterpreter;

@@ -13,7 +13,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
-public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> {
+public class TinkerHeadersDataRowIterator implements Iterator<IHeadersDataRow> {
 
 	private SelectQueryStruct qs;
 	private Iterator baseIterator;
@@ -21,13 +21,13 @@ public class TinkerHeadersDataRowIterator2 implements Iterator<IHeadersDataRow> 
 	private String[] header;
 	private String[] headerOrdering;
 
-	public TinkerHeadersDataRowIterator2(Iterator composeIterator, SelectQueryStruct qs) {
+	public TinkerHeadersDataRowIterator(Iterator composeIterator, SelectQueryStruct qs) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
 	
-	public TinkerHeadersDataRowIterator2(Iterator composeIterator, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
+	public TinkerHeadersDataRowIterator(Iterator composeIterator, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		flushOutHeaders(this.qs.getSelectors(), meta);
