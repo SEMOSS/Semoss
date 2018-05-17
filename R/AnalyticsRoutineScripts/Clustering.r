@@ -131,7 +131,7 @@ scaleUniqueData <- function(dt, instanceCol, attrColList, uniqInstPerRow){
 			max_numCols =  sapply(dt[,attr_numeric,with=FALSE], max, na.rm=TRUE)
 			min_numCols =  sapply(dt[,attr_numeric,with=FALSE], min, na.rm=TRUE)
 
-			scaledAttrCols <- lapply(attr_numeric, function(x) ifelse((max_numCols[x] - min_numCols[x]) == 0, 0, (dtSubset[[x]] - min_numCols[x])/(max_numCols[x] - min_numCols[x])))
+			scaledAttrCols <- lapply(attr_numeric, function(x) if((max_numCols[x] - min_numCols[x]) > 0) (dtSubset[[x]] - min_numCols[x])/(max_numCols[x] - min_numCols[x]) else 0)
 			dtSubset <- dtSubset[, (attr_numeric) := lapply(1:length(attr_numeric), function(i) unlist(scaledAttrCols[[i]]))]
 			
 			temp <- dtSubset[complete.cases(dtSubset[[instanceCol]]), lapply(.SD, mean, na.rm=TRUE), by = instanceCol, .SDcols = attr_numeric]
