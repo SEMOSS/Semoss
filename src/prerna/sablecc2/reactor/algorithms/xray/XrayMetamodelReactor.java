@@ -2,9 +2,13 @@ package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -58,7 +62,9 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			String tempFrame = "temp" + Utility.getRandomString(8);
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(tempFrame + " <- subset(" + rFrameName
-					+ ", select=c(Source_Database, Source_Table, Source_Column, Source_Property, Target_Database, Target_Table, Target_Column, Target_Property, Source_Instances, Target_Instances));");
+					+ ", select=c(Source_Database, Source_Table, Source_Column, Target_Database, "
+					+ "Target_Table, Target_Column, Source_Instances, Target_Instances, "
+					+ "Is_Table_Source, Is_Table_Target));");
 			// remove bidirectional comparison
 			rsb.append(tempFrame+" <- "+tempFrame+"[1:(nrow("+tempFrame+") /2),];");
 			// get instance count for source
@@ -72,16 +78,16 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			// rename count column for target
 			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Target_Count';");
 			// add PK or FK for source
-			rsb.append(tempFrame + "$Source_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[11] == row[9], \"PK\",\"FK\")});");
+			rsb.append(tempFrame + "$Source_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[11] == row[7], \"PK\",\"FK\")});");
 			// add PK or FK for target
-			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[10] == row[12], \"PK\",\"FK\")});");
+			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[8] == row[12], \"PK\",\"FK\")});");
 			// remove FK source and FK target
 			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key == \"FK\" & " + tempFrame + "$Target_Key == \"FK\"] <- \"\";");
 			// eliminate extra columns
-			rsb.append(tempFrame + " <- subset(" + tempFrame + ", select=c(Source_Database, Source_Table, Source_Column, Source_Key, Target_Database, Target_Table, Target_Column, Target_Key));");
+			rsb.append(tempFrame + " <- subset(" + tempFrame + ", select=c(Source_Database, Source_Table, Source_Column, Source_Key, Target_Database, Target_Table, Target_Column, Target_Key, Is_Table_Source, Is_Table_Target));");
 			// get json
 			rsb.append("library(jsonlite);");
-			rsb.append(jsonR + " <- toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
+			rsb.append(jsonR + " <-  toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
 			
 			this.rJavaTranslator.runR(rsb.toString());
 			System.out.println(rsb.toString() + "");
@@ -97,37 +103,52 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				// TODO rScript clean up 
 				throw new IllegalArgumentException("No collisions found");
 			}
-
-			Map<String, Object> dbMap = new HashMap<>();
+			Set<String> dbList = xray.getEngineList();
+			Hashtable edgesTable = new Hashtable();
+			Hashtable conceptsTable = new Hashtable();
+			for(String db:dbList ) {
+				Map<String, Object> metamodelObject = MasterDatabaseUtility.getXrayExisitingMetamodelRDBMS(db);
+				Hashtable edgesList1 = (Hashtable)metamodelObject.get("edges");
+				Hashtable concepts = (Hashtable)metamodelObject.get("nodes");
+				edgesTable.putAll(edgesList1);
+				conceptsTable.putAll(concepts);
+			}
+			List<Map<String, Object>> edgesList = new Vector(edgesTable.values());
+			// this does not need to be modified maybe flush out only important concepts???????
+			List<Map<String, Object>> concepts2 = new Vector(conceptsTable.values());
 			for (Map map : jsonMap) {
-				for (Object key : map.keySet()) {
-					String sourceDB = (String) map.get("Source_Database");
-					String sourceTable = (String) map.get("Source_Table");
-					Map<String, Object> dbConcepts = null;
-					if (dbMap.containsKey(sourceDB)) {
-						dbConcepts = (Map<String, Object>) dbMap.get(sourceDB);
-						if (!dbConcepts.containsKey(sourceTable)) {
-							dbConcepts.put(sourceTable, MasterDatabaseUtility
-									.getSpecificConceptPropertiesRDBMS(sourceTable, sourceDB).get(sourceDB));
-						}
-					} else {
-						dbConcepts = new HashMap<>();
-						dbConcepts.put(sourceTable, MasterDatabaseUtility
-								.getSpecificConceptPropertiesRDBMS(sourceTable, sourceDB).get(sourceDB));
-					}
-					dbMap.put(sourceDB, dbConcepts);
-					String targetDB = (String) map.get("Target_Database");
-					String targetTable = (String) map.get("Target_Table");
-					if (dbMap.containsKey(targetDB)) {
-						dbConcepts = (Map<String, Object>) dbMap.get(targetDB);
-						if (!dbConcepts.containsKey(targetTable)) {
-							dbConcepts.put(targetTable, MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(targetTable, targetDB).get(targetDB));
-						}
-					} else {
-						dbConcepts = new HashMap<>();
-						dbConcepts.put(targetTable, MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(targetTable, targetDB).get(targetDB));
-					}
-					dbMap.put(targetDB, dbConcepts);
+				Map<String, Object> edgeMap = new HashMap<>();
+				String sourceDB = (String) map.get("Source_Database");
+				String sourceTable = (String) map.get("Source_Table");
+				Integer isSourceTable = (Integer) map.get("Is_Table_Source");
+				// need to get property value
+				String sourceColumn = null;
+				if (isSourceTable == 0) {
+					sourceColumn = (String) map.get("Source_Column");
+				}
+				String sourceEdge = sourceDB + "." + sourceTable;
+				if (sourceColumn != null) {
+					sourceEdge += "." + sourceColumn;
+				}
+				String targetDB = (String) map.get("Target_Database");
+				String targetTable = (String) map.get("Target_Table");
+				Integer isTargetTable = (Integer) map.get("Is_Table_Target");
+				String targetColumn = null;
+				if (isTargetTable == 0) {
+					targetColumn = (String) map.get("Target_Column");
+				}
+				String targetEdge = targetDB + "." + targetTable;
+				if (targetColumn != null) {
+					targetEdge += "." + targetColumn;
+				}
+				String edgeKey = sourceEdge + "-" + targetEdge;
+				// check if xray edge exists
+				if (!edgesTable.contains(edgeKey)) {
+					Map<String, Object> xrayEdge = new HashMap();
+					xrayEdge.put("source", sourceEdge);
+					xrayEdge.put("target", targetEdge);
+					edgesList.add(xrayEdge);
+
 				}
 			}
 			// clean up r temp variables
@@ -139,8 +160,8 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			cleanUpScript.append("gc();");
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("edges", jsonMap);
-			retMap.put("nodes", dbMap);
+			retMap.put("edges", edgesList);
+			retMap.put("nodes", conceptsTable.values());
 			return new NounMetadata(retMap, PixelDataType.MAP);
 		}
 		// clean up r temp variables
