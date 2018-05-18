@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -49,6 +50,8 @@ public class Xray {
 	private List<String> tableColumn = new Vector<String>();
 	private List<String> propColumn = new Vector<String>();
 	private List<Integer> countColumn = new Vector<Integer>();
+	// get list of engines used
+	private Set<String> engineList = new HashSet<String>();
 
 	public Xray(AbstractRJavaTranslator rJavaTranslator, String baseFolder, Logger logger) {
 		this.rJavaTranslator = rJavaTranslator;
@@ -513,6 +516,7 @@ public class Xray {
 		IEngine engine = Utility.getEngine(engineName);
 		// check if engine is valid
 		if (engine != null) {
+			this.engineList.add(engineName);
 			this.logger.info("Querying data from local database for X-ray comparison : " + engineName);
 			// loop through tables within a database
 			for (String table : dataSelection.keySet()) {
@@ -862,5 +866,8 @@ public class Xray {
 	}
 	public void setGenerateCountFrame(boolean countDF){
 		this.genCountFrame = countDF;
+	}
+	public Set<String> getEngineList() {
+		return this.engineList;
 	}
 }

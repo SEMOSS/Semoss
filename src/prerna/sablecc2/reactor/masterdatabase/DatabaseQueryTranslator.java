@@ -8,8 +8,12 @@ import java.util.Vector;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.parsers.SqlParser;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class DatabaseQueryTranslator extends AbstractReactor {
 	public DatabaseQueryTranslator() {
@@ -40,8 +44,6 @@ public class DatabaseQueryTranslator extends AbstractReactor {
 				Set<String> columns = schema.get(table);
 				// add physical col names
 				allPhysicalNames.addAll(columns);
-				System.out.println("table:" + table);
-				System.out.println("columns:" + columns);
 			}
 			
 			// get map of physical to conceptual names
@@ -64,14 +66,17 @@ public class DatabaseQueryTranslator extends AbstractReactor {
 
 			SqlParser targetQueryParser = new SqlParser();
 			SelectQueryStruct targetQS = targetQueryParser.processQuery(targetQuery);
+			targetQS.setEngine(Utility.getEngine(targetDB));
 			targetQS.setEngineName(targetDB);
-			
+			return new NounMetadata(targetQS, PixelDataType.QUERY_STRUCT);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		NounMetadata noun = new NounMetadata("Unable to interpret query", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		SemossPixelException exception = new SemossPixelException(noun);
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
 		
-		
-		return null;
 	}
 }
