@@ -254,6 +254,7 @@ import prerna.sablecc2.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupAppReactor;
+import prerna.sablecc2.reactor.utils.CheckRPackagesReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
@@ -388,6 +389,9 @@ public class ReactorFactory {
 		reactorHash.put("GetRequest", GetRequestReactor.class);
 		reactorHash.put("PostRequest", PostRequestReactor.class);
 		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
+		reactorHash.put("CheckRPackages", CheckRPackagesReactor.class);
+
+		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		
 		// Semantic blending
@@ -810,9 +814,6 @@ public class ReactorFactory {
 		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
         rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
-
-        // package(s) check
-        rFrameHash.put("CheckRPackages", prerna.sablecc2.reactor.frame.r.CheckRPackagesReactor.class);
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
