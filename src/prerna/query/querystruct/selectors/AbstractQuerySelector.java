@@ -17,10 +17,12 @@ public abstract class AbstractQuerySelector implements IQuerySelector {
 	@Override
 	public void setAlias(String alias) {
 		// cannot have __ in the alias
-		if(alias.contains("__")) {
-			this.alias = alias.split("__")[1];
-		} else {
-			this.alias = alias;
+		if (alias != null) {
+			if (alias.contains("__")) {
+				this.alias = alias.split("__")[1];
+			} else {
+				this.alias = alias;
+			}
 		}
 	}
 }
