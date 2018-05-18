@@ -34,7 +34,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
-import prerna.sablecc2.reactor.app.upload.AbstractUploadReactor;
+import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
@@ -43,7 +43,7 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
+public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 	/*
 	 * There are quite a few things that we need
@@ -62,9 +62,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 	private static final String CLASS_NAME = RdbmsFlatCsvUploadReactor.class.getName();
 
 	public RdbmsFlatCsvUploadReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DELIMITER.getKey(), 
-				ReactorKeysEnum.DATA_TYPE_MAP.getKey(), ReactorKeysEnum.NEW_HEADER_NAMES.getKey(), 
-				"additionalTypes", "clean", "deduplicate", "existing"};
+		this.keysToGet = new String[]{APP, FILE_PATH, DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, 
+				ADDITIONAL_TYPES, CLEAN_STRING_VALUES, REMOVE_DUPLICATE_ROWS, ADD_TO_EXISTING};
 	}
 
 	@Override
@@ -702,32 +701,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 	 * Getters from noun store
 	 */
 
-	private String getAppName() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-		if(grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the new app name using key " + this.keysToGet[0]);
-		}
-		return grs.get(0).toString();
-	}
-
-	private String getFilePath() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-		if(grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the file path using key " + this.keysToGet[1]);
-		}
-		return grs.get(0).toString();
-	}
-
-	private String getDelimiter() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-		if(grs == null || grs.isEmpty()) {
-			return ",";
-		}
-		return grs.get(0).toString();
-	}
-
 	private Map<String, String> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+		GenRowStruct grs = this.store.getNoun(DATA_TYPE_MAP);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -735,7 +710,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 	}
 
 	private Map<String, String> getNewHeaders() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		GenRowStruct grs = this.store.getNoun(NEW_HEADERS);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -743,37 +718,12 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadReactor {
 	}
 
 	private Map<String, String> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[5]);
+		GenRowStruct grs = this.store.getNoun(ADDITIONAL_TYPES);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
 		return (Map<String, String>) grs.get(0);
 	}
-
-	private boolean getClean() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
-		if(grs == null || grs.isEmpty()) {
-			return true;
-		}
-		return (boolean) grs.get(0);
-	}
-
-	private boolean getDeduplicateRows() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[7]);
-		if(grs == null || grs.isEmpty()) {
-			return false;
-		}
-		return (boolean) grs.get(0);
-	}
-
-	private boolean getExisting() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[8]);
-		if(grs == null || grs.isEmpty()) {
-			return false;
-		}
-		return (boolean) grs.get(0);
-	}
-
 
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
