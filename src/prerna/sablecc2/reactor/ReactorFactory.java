@@ -1,11 +1,11 @@
 package prerna.sablecc2.reactor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.comments.AddInsightCommentReactor;
@@ -326,9 +326,31 @@ public class ReactorFactory {
 	public static Map<String, Class> nativeFrameHash;
 	
 	static {
-		String baseFolder = "";
+		reactorHash = new HashMap<String, Class>();
+		createReactorHash(reactorHash);
+		// build expression hash
+		expressionHash = new HashMap<String, Class>();
+		populateExpressionSet(expressionHash);
+		// populate the frame specific hashes
+		rFrameHash = new HashMap<String, Class>();
+		populateRFrameHash(rFrameHash);
+		pandasFrameHash = new HashMap<String, Class>();
+		populatePandasFrameHash(pandasFrameHash);
+		h2FrameHash = new HashMap<String, Class>();
+		populateH2FrameHash(h2FrameHash);
+		tinkerFrameHash = new HashMap<String, Class>();
+		populateTinkerFrameHash(tinkerFrameHash);
+		nativeFrameHash = new HashMap<String, Class>();
+		populateNativeFrameHash(nativeFrameHash);
+		
+		
+		String additionalReactorsPath = "";
 		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");	
+			additionalReactorsPath = DIHelper.getInstance().getProperty("ADDITIONAL_REACTORS");	
+			File f = new File(additionalReactorsPath);
+			if(f.exists()) {
+				loadAdditionalReactor(f);
+			}
 		} catch(Exception e) {
 			// ignore
 			// this would only be null during testing
@@ -336,66 +358,7 @@ public class ReactorFactory {
 			// hopefully you dont have anything in a prop file you care about
 			// or update the var directly
 		}
-		final String REACTOR_PROP_PATH = baseFolder +"\\src\\reactors.prop";
-		final String EXPRESSION_PROP_PATH = baseFolder +"\\src\\expressionSetReactors.prop";
-		final String R_FRAME_PROP_PATH = baseFolder + "\\src\\rFrameReactors.prop";
-		final String PANDAS_FRAME_PROP_PATH = baseFolder + "\\src\\pyFrameReactors.prop";
-		final String H2_FRAME_PROP_PATH = baseFolder + "\\src\\h2FrameReactors.prop";
-		final String TINKER_FRAME_PROP_PATH = baseFolder + "\\src\\tinkerFrameReactors.prop";
-		final String NATIVE_FRAME_PROP_PATH = baseFolder + "\\src\\nativeFrameReactors.prop";
 		
-		// check if external reactor paths exists if not load reactors defined in this class
-		reactorHash = new HashMap<>();
-		createReactorHash(reactorHash);
-		// build generic reactor hash
-		Path reactorPath = Paths.get(REACTOR_PROP_PATH);
-		if (Files.exists(reactorPath)) {
-			buildReactorHashFromPropertyFile(reactorHash, REACTOR_PROP_PATH);
-		}
-
-		// build expression hash
-		expressionHash = new HashMap<>();
-		populateExpressionSet(expressionHash);
-		Path expressionPath = Paths.get(EXPRESSION_PROP_PATH);
-		if (Files.exists(expressionPath)) {
-			buildReactorHashFromPropertyFile(expressionHash, EXPRESSION_PROP_PATH);
-		}
-
-		// populate the frame specific hashes
-		rFrameHash = new HashMap<>();
-		populateRFrameHash(rFrameHash);
-		Path rFramePath = Paths.get(R_FRAME_PROP_PATH);
-		if (Files.exists(rFramePath)) {
-			buildReactorHashFromPropertyFile(rFrameHash, R_FRAME_PROP_PATH);
-		}
-
-		pandasFrameHash = new HashMap<>();
-		populatePandasFrameHash(pandasFrameHash);
-		Path pyFramepath = Paths.get(PANDAS_FRAME_PROP_PATH);
-		if (Files.exists(pyFramepath)) {
-			buildReactorHashFromPropertyFile(pandasFrameHash, PANDAS_FRAME_PROP_PATH);
-		}
-
-		h2FrameHash = new HashMap<>();
-		populateH2FrameHash(h2FrameHash);
-		Path h2FramePath = Paths.get(H2_FRAME_PROP_PATH);
-		if (Files.exists(h2FramePath)) {
-			buildReactorHashFromPropertyFile(h2FrameHash, H2_FRAME_PROP_PATH);
-		}
-		
-		tinkerFrameHash = new HashMap<>();
-		populateTinkerFrameHash(tinkerFrameHash);
-		Path tinkerFramePath = Paths.get(TINKER_FRAME_PROP_PATH);
-		if (Files.exists(tinkerFramePath)) {
-			buildReactorHashFromPropertyFile(tinkerFrameHash, TINKER_FRAME_PROP_PATH);
-		}
-	
-		nativeFrameHash = new HashMap<>();
-		populateNativeFrameHash(nativeFrameHash);
-		Path nativeFramePath = Paths.get(NATIVE_FRAME_PROP_PATH);
-		if (Files.exists(nativeFramePath)) {
-			buildReactorHashFromPropertyFile(nativeFrameHash, NATIVE_FRAME_PROP_PATH);
-		}
 	}
 	
 	// populates the frame agnostic reactors used by pixel
@@ -1010,6 +973,59 @@ public class ReactorFactory {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	/**
+	 * Loads the JSON for additional reactors
+	 * IF NAMES COLLIDE, THE PROP FILE WILL TAKE PRECEDENCE
+	 * @param jsonFile 
+	 * 
+	 */
+	private static void loadAdditionalReactor(File jsonFile) {
+		Map<String, Map<String, String>> jsonData = null;
+		try {
+			jsonData = new ObjectMapper().readValue(jsonFile, Map.class);
+		} catch(Exception e) {
+			// oops...
+			System.out.println("COULDN'T LOAD JSON FILE FOR ADDITIOANL REACTORS!!!!!");
+		}
+		if(jsonData != null) {
+			for(String key : jsonData.keySet()) {
+				Map<String, Class> hash = getReactorsForType(key);
+				if(hash != null) {
+					Map<String, String> reactorNameToClass = jsonData.get(key);
+					for(String reactorName : reactorNameToClass.keySet()) {
+						String classname = reactorNameToClass.get(reactorName);
+						Class reactor;
+						try {
+							reactor = (Class.forName(classname));
+							hash.put(reactorName, reactor);
+						} catch (ClassNotFoundException e) {
+							System.out.println("COULDN'T FIND THE REACTOR!");
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private static Map<String, Class> getReactorsForType(String key) {
+		key = key.toUpperCase();
+		if(key.equals("GENERAL")) {
+			return reactorHash;
+		} else if(key.equals("H2")) {
+			return h2FrameHash;
+		} else if(key.equals("R")) {
+			return rFrameHash;
+		} else if(key.equals("PY")) {
+			return pandasFrameHash;
+		} else if(key.equals("NATIVE")) {
+			return nativeFrameHash;
+		} else if(key.equals("TINKER")) {
+			return tinkerFrameHash;
+		}
+		return null;
 	}
 	
 }
