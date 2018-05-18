@@ -19,14 +19,15 @@ import prerna.util.ArrayUtilityMethods;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
-	protected RConnection retCon;
-	protected String port;
+	RConnection retCon;
+	String port;
 
 	/**
-	 * Have this be protected since we want the control to be based on the 
-	 * RJavaTranslator to determine which class to generate
+	 * Constructor only accesssible through the package
+	 * Please use the insight object or the RJavaTranslatorFactory
+	 * to get the correct instance
 	 */
-	protected RJavaRserveTranslator() {
+	RJavaRserveTranslator() {
 
 	}
 
