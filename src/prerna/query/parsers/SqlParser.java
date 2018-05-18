@@ -1,9 +1,11 @@
 package prerna.query.parsers;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import net.sf.jsqlparser.expression.Alias;
@@ -65,10 +67,13 @@ public class SqlParser {
 	private Map<String, String> tableAlias = null;
 	// keep column alias
 	private Map<String, String> columnAlias = null;
+	// used to keep track of every table and column set used
+	private Map<String, Set<String>> schema = null;
 
 	public SqlParser() {
 		this.tableAlias = new Hashtable <String, String>();
 		this.columnAlias = new Hashtable <String, String>();
+		this.schema = new Hashtable<String, Set<String>>();
 	}
 
 	public SelectQueryStruct processQuery(String query) throws Exception {
@@ -226,6 +231,13 @@ public class SqlParser {
 			if(tableAlias.containsKey(tableValue)) {
 				tableValue = tableAlias.get(tableValue);
 			}
+			// keep track of column and table in schema
+			Set<String> columns = new HashSet<String>();
+			if(this.schema.containsKey(tableValue)) {
+				columns = this.schema.get(tableValue);
+			}
+			columns.add(colValue);
+			this.schema.put(tableValue, columns);
 			colValue = tableValue + "__" + colValue;
 			constSelector = new QueryColumnSelector(colValue);
 		}
@@ -435,7 +447,23 @@ public class SqlParser {
 				String fromTable = tableName;
 				String fromColumn = ((Column)joinExpr.getLeftExpression()).getColumnName();
 				String joinType = null;
-
+				
+				// keep track of column and table in schema
+				// from 
+				Set<String> columns = new HashSet<String>();
+				if(this.schema.containsKey(fromTable)) {
+					columns = this.schema.get(fromTable);
+				}
+				columns.add(fromColumn);
+				this.schema.put(fromTable, columns);
+				// to
+				Set<String> columns2 = new HashSet<String>();
+				if(this.schema.containsKey(rightTableName)) {
+					columns2 = this.schema.get(rightTableName);
+				}
+				columns2.add(toColumn);
+				this.schema.put(rightTableName, columns2);
+				
 				// need to translate the alias into column name
 				String full_from = fromTable  + "__" + fromColumn;
 				String full_To = rightTableName + "__" + toColumn;
@@ -746,6 +774,13 @@ public class SqlParser {
 					String [] colParts = fullColumn.split("__");
 					String concept = colParts[0];
 					String property = colParts[1];
+					// keep track of column and table in schema
+					Set<String> columns = new HashSet<String>();
+					if(this.schema.containsKey(concept)) {
+						columns = this.schema.get(concept);
+					}
+					columns.add(property);
+					this.schema.put(concept, columns);
 					qs.addOrderBy(concept, property, sortDir);
 				}
 			}			
@@ -774,10 +809,27 @@ public class SqlParser {
 					String [] colParts = fullColumn.split("__");
 					String concept = colParts[0];
 					String property = colParts[1];
+					// keep track of column and table in schema
+					Set<String> columns = new HashSet<String>();
+					if(this.schema.containsKey(concept)) {
+						columns = this.schema.get(concept);
+					}
+					columns.add(property);
+					this.schema.put(concept, columns);
 					qs.addGroupBy(concept, property);
 				}
 			}
 		}
+	}
+	
+	public Map<String, String> getTableAlias() {
+		return this.tableAlias;
+	}
+	public Map<String, String> getColumnAlias() {
+		return this.columnAlias;
+	}
+	public Map<String, Set<String>> getSchema() {
+		return this.schema;
 	}
 
 
