@@ -10,9 +10,13 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -110,9 +114,14 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) {
-		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || 
-				qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || 
+				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+			iterator = new CsvFileIterator((CsvQueryStruct) qs);
+		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			iterator = new ExcelFileIterator((ExcelQueryStruct) qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
 			if(overrideImplicitFilters) {
