@@ -1,13 +1,18 @@
 package prerna.sablecc2.reactor.app.upload.rdbms.excel;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
+import prerna.poi.main.helper.XLFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -16,7 +21,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.test.TestUtilityMethods;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -62,16 +69,189 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
+	
 
-	private void generateNewApp(String appName, String filePath, Logger logger) {
+	@Override
+	public void addToExistingApp(String appName, String filePath, Logger logger) {
 		// TODO Auto-generated method stub
 		
 	}
 
-	private void addToExistingApp(String appName, String filePath, Logger logger) {
-		// TODO Auto-generated method stub
+	@Override
+	public void generateNewApp(String newAppName, String filePath, Logger logger) {
+		/*
+		 * Things we need to do
+		 * 1) make directory
+		 * 2) make owl
+		 * 3) make temporary smss
+		 * 4) make engine class
+		 * 5) load actual data
+		 * 6) load owl metadata
+		 * 7) load default insights
+		 * 8) add to localmaster and solr
+		 */
+		
+		Map<String, Map<String, String>> dataTypesMap = getDataTypeMap();
+		Map<String, Map<String, String>> newHeaders = getNewHeaders();
+		Map<String, Map<String, String>> additionalDataTypeMap = getAdditionalTypes();
+		final boolean clean = getClean();
+
+		// now that I have everything, let us go through and insert
+
+		// start by validation
+		logger.info("Start validating app");
+		try {
+			UploadUtilities.validateApp(newAppName);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		logger.info("Done validating app");
+
+		logger.info("Starting app creation");
+
+		logger.info("1. Start generating app folder");
+		UploadUtilities.generateAppFolder(newAppName);
+		logger.info("1. Complete");
+
+		logger.info("Generate new app database");
+		logger.info("2. Create metadata for database...");
+		File owlFile = UploadUtilities.generateOwlFile(newAppName);
+		logger.info("2. Complete");
+
+		logger.info("3. Create properties file for database...");
+		File tempSmss = null;
+		try {
+			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppName, owlFile, "H2_DB", null);
+			DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		logger.info("3. Complete");
+
+		logger.info("4. Create database store...");
+		IEngine engine = new RDBMSNativeEngine();
+		engine.setEngineName(newAppName);
+		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
+		props.put("TEMP", true);
+		engine.setProp(props);
+		engine.openDB(null);
+		logger.info("4. Complete");
+		
+		logger.info("5. Start loading data..");
+		logger.info("Load excel file...");
+		XLFileHelper helper = getHelper(filePath, newHeaders);
+		logger.info("Done loading excel file");
+		processExcelSheets(helper, dataTypesMap, additionalDataTypeMap, clean, logger); 
+//		Object[] headerTypesArr = getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+//		String[] headers = (String[]) headerTypesArr[0];
+//		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+//		String[] additionalTypes = (String[]) headerTypesArr[2];
+//		logger.info("Done parsing file metadata");
 		
 	}
+
+	/**
+	 * Process all the excel sheets using the data type map
+	 * @param helper
+	 * @param dataTypesMap
+	 * @param additionalDataTypeMap 
+	 */
+	private void processExcelSheets(XLFileHelper helper, Map<String, Map<String, String>> dataTypesMap, Map<String, Map<String, String>> additionalDataTypeMap, boolean clean, Logger logger) {
+		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			String[] sheetNames = helper.getTables();
+			for(String sheet : sheetNames) {
+				String[] headers = helper.getHeaders(sheet);
+				String[] types = helper.predictRowTypes(sheet);
+				Map<String, String> innerMap = new HashMap<String, String>();
+				int numHeaders = headers.length;
+				for(int i = 0; i < numHeaders; i++) {
+					innerMap.put(headers[i], types[i]);
+				}
+				dataTypesMap.put(sheet, innerMap);
+			}
+		}
+
+		int counter = 1;
+		int numSheets = dataTypesMap.keySet().size();
+		logger.info("Start processing sheets. Total sheets to load = " + numSheets);
+		for(String sheetname : dataTypesMap.keySet()) {
+			logger.info("Start process sheet " + counter + " = "+ sheetname);
+			
+			logger.info("Start parsing sheet metadata");
+			// get the sheet types
+			Map<String, String> sheetDataTypesMap = dataTypesMap.get(sheetname);
+			Map<String, String> sheetAdditionalDataTypesMap = null;
+			if(additionalDataTypeMap != null & additionalDataTypeMap.containsKey(sheetname)) {
+				sheetAdditionalDataTypesMap = additionalDataTypeMap.get(sheetname);
+			}
+			Object[] headerTypesArr = getHeadersAndTypes(helper, sheetname, sheetDataTypesMap, sheetAdditionalDataTypesMap);
+			String[] headers = (String[]) headerTypesArr[0];
+			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+			String[] additionalTypes = (String[]) headerTypesArr[2];
+			logger.info("Done parsing sheet metadata");
+			
+			
+			
+			logger.info("Done process sheet " + counter + " = "+ sheetname);
+			counter++;
+		}
+	}
+
+	private XLFileHelper getHelper(final String filePath, Map<String, Map<String, String>> newHeaders) {
+		XLFileHelper xlHelper = new XLFileHelper();
+		xlHelper.parse(filePath);
+		
+		// set the new headers we want
+		if(newHeaders != null && !newHeaders.isEmpty()) {
+			xlHelper.modifyCleanedHeaders(newHeaders);
+		}
+
+		return xlHelper;
+	}
+	
+	/**
+	 * Figure out the types and how to use them
+	 * Will return an object[]
+	 * Index 0 of the return is an array of the headers
+	 * Index 1 of the return is an array of the types
+	 * Index 2 of the return is an array of the additional type information
+	 * The 3 arrays all match based on index
+	 * @param helper
+	 * @param dataTypesMap
+	 * @param additionalDataTypeMap
+	 * @return
+	 */
+	private Object[] getHeadersAndTypes(XLFileHelper helper, String sheetName, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) {
+		String[] headers = helper.getHeaders(sheetName);
+		int numHeaders = headers.length;
+		// we want types
+		// and we want additional types
+		SemossDataType[] types = new SemossDataType[numHeaders];
+		String[] additionalTypes = new String[numHeaders];
+
+		// get the types
+		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
+			for(int i = 0; i < numHeaders; i++) {
+				types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
+			}
+		} else {
+			String[] predictedTypes = helper.predictRowTypes(sheetName);
+			for(int i = 0; i < predictedTypes.length; i++) {
+				types[i] = SemossDataType.convertStringToDataType(predictedTypes[i]);
+			}
+		}
+
+		// get additional type information
+		if(additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+			for(int i = 0 ; i < numHeaders; i++) {
+				additionalTypes[i] = additionalDataTypeMap.get(headers[i]);
+			}
+		}
+
+		return new Object[]{headers, types, additionalTypes};
+	}
+
 	
 	///////////////////////////////////////////////////////
 
