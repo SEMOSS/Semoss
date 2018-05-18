@@ -5,8 +5,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.ds.QueryStruct;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.parsers.SqlParser;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -47,25 +50,33 @@ public class DatabaseQueryTranslator extends AbstractReactor {
 			}
 			
 			// get map of physical to conceptual names
-			Map<String, String> conceptPhysical = MasterDatabaseUtility.getConceptualFromPhysical(allPhysicalNames, "film");
+			Map<String, String> conceptPhysical = MasterDatabaseUtility.getConceptualFromPhysical(allPhysicalNames, sourceDB);
 			// map source conceptual names to target conceptual names
 			Map<String, Object> conceptMap = MasterDatabaseUtility.getConceptMapping(sourceDB,
 					new Vector<String>(conceptPhysical.values()), targetDB);
 
 			// start translation here
 			String targetQuery = query;
+			String select = targetQuery.substring(0, targetQuery.indexOf("from"));
+			String queryEnd = targetQuery.substring(targetQuery.indexOf("from"));
 			for(String sourceConcept : conceptPhysical.keySet()) {
 				if(conceptMap.containsKey(sourceConcept)) {
 					List<String> targetConcepts = (List<String>) conceptMap.get(sourceConcept); 
 					if(!targetConcepts.isEmpty()) {
 						String targetConcept = targetConcepts.get(0);
-						targetQuery=targetQuery.replaceAll(sourceConcept, targetConcept);
+						queryEnd = queryEnd.replaceAll(sourceConcept, targetConcept);
+						if(schema.containsKey(sourceConcept)) {
+							targetConcept = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
+						}
+						select=select.replaceAll(sourceConcept, targetConcept);
 					}
 				}
 			}
-
+			targetQuery = select+queryEnd;
+			System.out.println(targetQuery);
 			SqlParser targetQueryParser = new SqlParser();
 			SelectQueryStruct targetQS = targetQueryParser.processQuery(targetQuery);
+			targetQS.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 			targetQS.setEngine(Utility.getEngine(targetDB));
 			targetQS.setEngineName(targetDB);
 			return new NounMetadata(targetQS, PixelDataType.QUERY_STRUCT);
