@@ -22,7 +22,7 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String dbFilter = getApp();
 		List<String> conceptualNames = getColumns();
-		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames);
+		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames, null);
 		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, dbFilter);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
