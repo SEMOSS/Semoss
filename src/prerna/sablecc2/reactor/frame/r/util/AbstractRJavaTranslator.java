@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -25,9 +25,10 @@ import prerna.util.Utility;
 
 public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
-	protected Insight insight = null;
-	protected Logger logger = null;
-
+	Insight insight = null;
+	Logger logger = null;
+	String env = "default";
+	
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
@@ -213,6 +214,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	@Override
 	public void setInsight(Insight insight) {
 		this.insight = insight;
+		this.env = Utility.makeAlphaNumeric(insight.getInsightId());
 	}
 
 	/**
