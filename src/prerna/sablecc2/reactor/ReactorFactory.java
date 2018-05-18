@@ -133,6 +133,7 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConnectionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.DatabaseQueryTranslator;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseSpecificConceptPropertiesReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseTableStructureReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
@@ -500,6 +501,7 @@ public class ReactorFactory {
 		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
 		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
+		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
 		
 		// NEW FEDERATE
 		reactorHash.put("GetDatabaseConnections", DatabaseConnectionsReactor.class);
