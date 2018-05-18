@@ -17,8 +17,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
-	protected Rengine engine;
+	Rengine engine;
 
+	/**
+	 * Constructor only accesssible through the package
+	 * Please use the insight object or the RJavaTranslatorFactory
+	 * to get the correct instance
+	 */
+	RJavaJriTranslator() {
+		
+	}
+	
 	/**
 	 * This will start R, only if it has not already been started
 	 * In this case we are starting an engine for JRI
