@@ -2,9 +2,6 @@ package prerna.sablecc2.reactor.app.upload.rdbms.csv;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -36,7 +33,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
-import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -92,7 +88,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * @param newAppName
 	 * @param filePath
 	 */
-	private void generateNewApp(final String newAppName, final String filePath, Logger logger) {
+	@Override
+	public void generateNewApp(final String newAppName, final String filePath, Logger logger) {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -199,10 +196,9 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("8. Process app metadata to allow for traversing across apps	");
 		try {
-			Utility.synchronizeEngineMetadata(newAppName);
-			SolrUtility.addToSolrInsightCore(newAppName);
-			SolrUtility.addAppToSolr(newAppName);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			updateLocalMaster(newAppName);
+			updateSolr(newAppName);
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		logger.info("8. Complete");
@@ -216,11 +212,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 		tempSmss.delete();
 
-		DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setLocalProperty(newAppName, engine);
-		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		engineNames = engineNames + ";" + newAppName;
-		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+		// update DIHelper
+		updateDIHelper(newAppName, engine, smssFile);
 	}
 	
 	/**
@@ -228,7 +221,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * @param appName
 	 * @param filePath
 	 */
-	private void addToExistingApp(String appName, String filePath, Logger logger) {
+	@Override
+	public void addToExistingApp(String appName, String filePath, Logger logger) {
 		IEngine engine = Utility.getEngine(appName);
 		if(engine == null) {
 			throw new IllegalArgumentException("Couldn't find the app " + appName + " to append data into");
@@ -310,14 +304,12 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			Utility.synchronizeEngineMetadata(appName);
-			SolrUtility.addToSolrInsightCore(appName);
-			SolrUtility.addAppToSolr(appName);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+			updateLocalMaster(appName);
+			updateSolr(appName);
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		logger.info(stepCounter + ". Complete");
-		
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////
