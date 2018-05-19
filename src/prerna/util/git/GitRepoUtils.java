@@ -264,20 +264,28 @@ public class GitRepoUtils {
 	 * @throws IOException
 	 */
 	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth, int attempt) {
+
+		boolean returnVal = true;
+		String [] repoParts = null;
 		
 		if(attempt < 3)
 		{
-			String [] repoParts = repositoryName.split("/");
+			try {
 			GitHubClient client = GitHubClient.createClient("https://github.com");
 			if(oauth != null) {
 				client.setOAuth2Token(oauth);
+				GitHub gh = GitUtils.login(oauth);
+				System.out.println(gh.getMyself().getLogin());
+				if(!repositoryName.contains("/"))
+					repositoryName = gh.getMyself().getLogin() + "/" + repositoryName ;
 			}
 			
+			repoParts = repositoryName.split("/");
+
 			RepositoryService service = new RepositoryService(client);
 			
-			boolean returnVal = true;
-			try {
 				service.getRepository(repoParts[0], repoParts[1]);
+				
 			}catch(HttpException ex)
 			{
 				ex.printStackTrace();

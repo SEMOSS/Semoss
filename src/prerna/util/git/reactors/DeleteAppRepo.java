@@ -30,6 +30,10 @@ public class DeleteAppRepo extends GitBaseReactor {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String appFolder = baseFolder + "/db/" + appName + "/version";
 
+		// remove it from remote
+		// take it out from local in case the global fails since they have removed the repository
+		GitRepoUtils.deleteRemoteRepositorySettings(appFolder, repository);
+
 		if(keyValue.size() == 4)
 		{
 			String username = this.keyValue.get(this.keysToGet[2]);
@@ -45,8 +49,6 @@ public class DeleteAppRepo extends GitBaseReactor {
 			
 		}
 	
-		// remove it from remote
-		GitRepoUtils.deleteRemoteRepositorySettings(appFolder, repository);
 		return new NounMetadata(true, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE);
 	}
 
