@@ -76,6 +76,10 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 
+	protected String encapsulateForEnv(String rScript) {
+		String newRScript = "with(" + this.env + ", {" + rScript + "});";
+		return newRScript;
+	}
 	
 	/**
 	 * This method is used to get the column names of a frame
@@ -214,7 +218,8 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	@Override
 	public void setInsight(Insight insight) {
 		this.insight = insight;
-		this.env = Utility.makeAlphaNumeric(insight.getInsightId());
+		this.env = "a" + Utility.makeAlphaNumeric(insight.getInsightId());
+		initREnv();
 	}
 
 	/**
@@ -334,7 +339,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 
 		try {
-			this.executeEmptyR("source(\"" + tempFileLocation + "\")");
+			this.executeEmptyR("source(\"" + tempFileLocation + "\", local=TRUE)");
 		} finally {
 			f.delete();
 		}
@@ -372,7 +377,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 		String scriptOutput = null;
 		try {
-			String finalScript = "print(source(\"" + tempFileLocation + "\", print.eval=TRUE)); ";
+			String finalScript = "print(source(\"" + tempFileLocation + "\", print.eval=TRUE, local=TRUE)); ";
 			this.executeR(finalScript);
 			try {
 				scriptOutput = FileUtils.readFileToString(outputF);
