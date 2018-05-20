@@ -74,6 +74,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					this.insight.getVarStore().put(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
 					this.insight.getVarStore().put(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
 				}
+				
+				// initialize the r environment
+				initREnv();
 			} catch (Exception e) {
 				System.out.println(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
@@ -579,5 +582,16 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 //		} catch (Exception e) {
 //			e.printStackTrace();
 //		}
+	}
+
+	@Override
+	public void initREnv() {
+		try {
+			if(this.retCon != null) {
+				this.retCon.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
+			}
+		} catch (RserveException e) {
+			e.printStackTrace();
+		}
 	}
 }
