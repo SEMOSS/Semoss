@@ -90,6 +90,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				if(this.insight != null) {
 					this.insight.getVarStore().put(IRJavaTranslator.R_ENGINE, new NounMetadata(retEngine, PixelDataType.R_ENGINE));
 				}
+				
+				// initialize the r environment
+				this.engine = retEngine;
 			} catch(NullPointerException e) {
 				e.printStackTrace();
 				System.out.println("Could not connect to R JRI.  Please make sure paths are accurate");
@@ -111,12 +114,13 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		this.engine = retEngine;
+		initREnv();
 	}
-
+	
 	@Override
 	public Object executeR(String rScript) {
 		try {
-			REXP rexp = engine.eval(rScript);
+			REXP rexp = engine.eval(encapsulateForEnv(rScript));
 			if(rexp == null) {
 				logger.info("Hmmm... REXP returned null for script = " + rScript);
 			}
@@ -129,12 +133,12 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public void executeEmptyR(String rScript) {
-		engine.eval(rScript, false);
+		engine.eval(encapsulateForEnv(rScript), false);
 	}
 
 	@Override
 	public String getString(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asString();
 		}
@@ -143,7 +147,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public String[] getStringArray(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asStringArray();
 		}
@@ -152,7 +156,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override 
 	public int getInt(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asInt();
 		}
@@ -161,7 +165,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public int[] getIntArray(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asIntArray();
 		}
@@ -170,7 +174,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public double getDouble(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asDouble();
 		}
@@ -179,7 +183,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public double[] getDoubleArray(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asDoubleArray();
 		}
@@ -188,7 +192,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public double[][] getDoubleMatrix(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asDoubleMatrix();
 		}
@@ -197,7 +201,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public boolean getBoolean(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asBool().isTRUE();
 		}
@@ -206,7 +210,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Object getFactor(String script) {
-		REXP val = engine.eval(script);
+		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			return val.asFactor();
 		}
@@ -215,7 +219,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
-		REXP histR = (REXP)engine.eval(script);
+		REXP histR = (REXP) engine.eval(encapsulateForEnv(script));
 		if(histR != null) {
 			RVector vectorR = histR.asVector();
 			double[] breaks = vectorR.at("breaks").asDoubleArray();
@@ -453,6 +457,13 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		// clean up other things
 		System.out.println("R Shutdown!!");
 		// java.lang.System.setSecurityManager(reactorManager);
+	}
+
+	@Override
+	public void initREnv() {
+		if(engine != null) {
+			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
+		}
 	}
 
 }
