@@ -13,6 +13,11 @@ public interface IRJavaTranslator {
 	String R_GRAQH_FOLDERS = "R_GRAQH_FOLDERS";
 	
 	/**
+	 * Initialize the environment 
+	 */
+	void initREnv();
+	
+	/**
 	 * start r server
 	 */
 	void startR();
