@@ -118,7 +118,7 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 	
 	private void storeCsvFileMeta(CsvQueryStruct qs, List<Join> joins) {
 		FileMeta fileMeta = new FileMeta();
-		fileMeta.setFileLoc(qs.getCsvFilePath());
+		fileMeta.setFileLoc(qs.getFilePath());
 		fileMeta.setDataMap(qs.getColumnTypes());
 		fileMeta.setNewHeaders(qs.getNewHeaderNames());
 		fileMeta.setPixelString(this.originalSignature);
@@ -129,7 +129,7 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 	
 	private void storeExcelFileMeta(ExcelQueryStruct qs, List<Join> joins) {
 		FileMeta fileMeta = new FileMeta();
-		fileMeta.setFileLoc(qs.getExcelFilePath());
+		fileMeta.setFileLoc(qs.getFilePath());
 		fileMeta.setDataMap(qs.getColumnTypes());
 		fileMeta.setSheetName(qs.getSheetName());
 		fileMeta.setNewHeaders(qs.getNewHeaderNames());

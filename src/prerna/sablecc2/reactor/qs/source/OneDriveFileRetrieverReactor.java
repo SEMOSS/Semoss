@@ -105,7 +105,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			}
 			helper.clear();
 			qs.merge(this.qs);
-			qs.setCsvFilePath(filePath);
+			qs.setFilePath(filePath);
 			qs.setDelimiter(',');
 			qs.setColumnTypes(dataTypes);
 			return qs;

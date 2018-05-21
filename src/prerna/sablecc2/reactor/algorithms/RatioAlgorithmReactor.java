@@ -310,7 +310,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		// add data to R frame
 		CsvQueryStruct csvQS = new CsvQueryStruct();
 		csvQS.setDelimiter(',');
-		csvQS.setCsvFilePath(path);
+		csvQS.setFilePath(path);
 		// add headers to qs
 		Map<String, String> csvHeaders = new HashMap<String, String>();
 		for (int i = 0; i < this.ratioFrameHeaders.length; i++) {

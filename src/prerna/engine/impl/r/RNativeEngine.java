@@ -131,7 +131,7 @@ public class RNativeEngine extends AbstractEngine {
 			}
 
 			CsvQueryStruct cqs = new CsvQueryStruct();
-			cqs.setCsvFilePath(fileDB);
+			cqs.setFilePath(fileDB);
 			cqs.setColumnTypes(conceptAndType);
 
 			// the filte iterator will rip through the whole thing anyways

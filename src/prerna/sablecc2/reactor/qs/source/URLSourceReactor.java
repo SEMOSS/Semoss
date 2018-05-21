@@ -52,7 +52,7 @@ public class URLSourceReactor extends AbstractQueryStructReactor {
 		}
 		helper.clear();
 		qs.merge(this.qs);
-		qs.setCsvFilePath(filePath);
+		qs.setFilePath(filePath);
 		qs.setDelimiter(delim);
 		qs.setColumnTypes(dataTypes);
 

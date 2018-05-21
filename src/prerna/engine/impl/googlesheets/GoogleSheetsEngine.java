@@ -115,7 +115,7 @@ public class GoogleSheetsEngine extends AbstractEngine {
 		// this is a flat db, so only need selectors
 		csvQs.setSelectors(dbQs.getSelectors());
 		
-		csvQs.setCsvFilePath(filePath);
+		csvQs.setFilePath(filePath);
 		csvQs.setDelimiter(',');
 		// need to get datatypes from OWL
 		Map<String, String> dataTypes = new HashMap<String, String>();
