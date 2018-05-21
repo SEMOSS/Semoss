@@ -77,8 +77,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	///////////////////////////////////////////////////////////////////
 
 	protected String encapsulateForEnv(String rScript) {
-		String newRScript = "with(" + this.env + ", {" + rScript + "});";
-		return newRScript;
+		return rScript;
+//		String newRScript = "with(" + this.env + ", {" + rScript + "});";
+//		return newRScript;
 	}
 	
 	/**
