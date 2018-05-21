@@ -25,7 +25,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	
 	public ExcelFileIterator(ExcelQueryStruct qs) {
 		this.qs = qs;
-		String fileLocation = qs.getExcelFilePath();
+		String fileLocation = qs.getFilePath();
 		String sheetToLoad = qs.getSheetName();
 		Map<String, String>  dataTypesMap = qs.getColumnTypes();
 		Map<String, String> newHeaders = qs.getNewHeaderNames();

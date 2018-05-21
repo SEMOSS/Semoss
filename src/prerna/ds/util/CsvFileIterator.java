@@ -24,7 +24,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 
 	public CsvFileIterator(CsvQueryStruct qs) {
 		this.qs = qs;
-		String fileLoc = qs.getCsvFilePath();
+		String fileLoc = qs.getFilePath();
 		Map<String, String> dataTypeMap = qs.getColumnTypes();
 		Map<String, String> newHeaders = qs.getNewHeaderNames();
 		char delimiter = qs.getDelimiter();

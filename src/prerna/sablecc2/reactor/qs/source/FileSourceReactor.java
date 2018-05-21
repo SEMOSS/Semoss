@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -22,6 +23,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	private static final String DATA_TYPES = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
 	private static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 	private static final String HEADER_NAMES = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
+	private static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 
 	/**
 	 * FileRead args 
@@ -38,16 +40,17 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	 */
 	
 	public FileSourceReactor() {
-		this.keysToGet = new String[]{FILEPATH, FILENAME, SHEET_NAME, DATA_TYPES, DELIMITER, HEADER_NAMES};
+		this.keysToGet = new String[]{FILEPATH, FILENAME, SHEET_NAME, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
 	}
 
 	@Override
 	protected SelectQueryStruct createQueryStruct() {
-		SelectQueryStruct qs = null;
+		AbstractFileQueryStruct qs = null;
 
 		// get inputs
-		Map<String, String> dataTypes = getDataTypes(); 
 		Map<String, String> newHeaders = getHeaders(); 
+		Map<String, String> dataTypes = getDataTypes();
+		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
 		String fileLocation = getFileLocation();
 		String fileExtension = "";
 
@@ -55,7 +58,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 		boolean isExcel = false;
 		if (fileLocation.contains(".")) {
 			fileExtension = fileLocation.substring(fileLocation.indexOf('.'), fileLocation.length());
-			if (fileExtension.equals(".xlsx")) {
+			if(fileExtension.equals(".xls") || fileExtension.equals(".xlsx") || fileExtension.equals(".xlsm")) {
 				isExcel = true;
 			}
 		}
@@ -63,18 +66,18 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 			// get excel inputs
 			String sheetName = getSheetName();
 			qs = new ExcelQueryStruct();
-			((ExcelQueryStruct) qs).setExcelFilePath(fileLocation);
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
-			((ExcelQueryStruct) qs).setColumnTypes(dataTypes);
-			((ExcelQueryStruct) qs).setNewHeaderNames(newHeaders);
 		} else { // set csv qs
 			char delimiter = getDelimiter();
 			qs = new CsvQueryStruct();
-			((CsvQueryStruct) qs).setCsvFilePath(fileLocation);
 			((CsvQueryStruct) qs).setDelimiter(delimiter);
-			((CsvQueryStruct) qs).setColumnTypes(dataTypes);
-			((CsvQueryStruct) qs).setNewHeaderNames(newHeaders);
 		}
+		// general inputs
+		qs.setFilePath(fileLocation);
+		qs.setNewHeaderNames(newHeaders);
+		qs.setColumnTypes(dataTypes);
+		qs.setAdditionalTypes(additionalDataTypes);
+		
 		qs.merge(this.qs);
 		
 		// Formatting and Tracking for Google Analytics
@@ -83,7 +86,6 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 
 		// track GA data
 		GATracker.getInstance().trackDragAndDrop(this.insight, heads, FileName);
-
 		return qs;
 	}
 
@@ -124,7 +126,17 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 			dataTypes = (Map<String, String>) dataNoun.getValue();
 		}
 		return dataTypes;
-
+	}
+	
+	private Map<String, String> getAdditionalDataTypes() {
+		GenRowStruct dataTypeGRS = this.store.getNoun(ADDITIONAL_DATA_TYPES);
+		Map<String, String> dataTypes = null;
+		NounMetadata dataNoun;
+		if (dataTypeGRS != null) {
+			dataNoun = dataTypeGRS.getNoun(0);
+			dataTypes = (Map<String, String>) dataNoun.getValue();
+		}
+		return dataTypes;
 	}
 
 	private char getDelimiter() {

@@ -9,7 +9,6 @@ import prerna.ds.util.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -60,7 +59,7 @@ public class ExcelApiReactor extends AbstractApiReactor {
 		xlQS.merge(this.qs);
 		
 		//set xlQS specific values 
-		xlQS.setExcelFilePath(this.fileName);
+		xlQS.setFilePath(this.fileName);
 		xlQS.setColumnTypes(this.dataTypeMap);
 		xlQS.setNewHeaderNames(this.newHeaders);
 		xlQS.setSheetName(this.sheetName);

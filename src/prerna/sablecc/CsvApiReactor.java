@@ -10,7 +10,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc.meta.FilePkqlMetadata;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -53,7 +52,7 @@ public class CsvApiReactor extends AbstractApiReactor {
 		csvQs.merge(this.qs);
 		
 		//set csvQS specific values
-		csvQs.setCsvFilePath(fileName);
+		csvQs.setFilePath(fileName);
 		csvQs.setDelimiter(',');
 		csvQs.setColumnTypes(this.dataTypeMap);
 		csvQs.setNewHeaderNames(this.newHeaders);
