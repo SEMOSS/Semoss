@@ -65,7 +65,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		rJavaTranslator.executeR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
-		qs.setCsvFilePath(tempFileLocation);
+		qs.setFilePath(tempFileLocation);
 		H2Importer importer = new H2Importer(frame, qs);
 		// importer will create the necessary meta information
 		importer.insertData();

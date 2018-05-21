@@ -97,7 +97,7 @@ public class ImportDataReactor extends AbstractReactor {
 	private void storeCsvFileMeta(CsvQueryStruct qs) {
 		if(qs.getSource() == CsvQueryStruct.ORIG_SOURCE.FILE_UPLOAD) {
 			FileMeta fileMeta = new FileMeta();
-			fileMeta.setFileLoc(qs.getCsvFilePath());
+			fileMeta.setFileLoc(qs.getFilePath());
 			fileMeta.setDataMap(qs.getColumnTypes());
 			fileMeta.setNewHeaders(qs.getNewHeaderNames());
 			fileMeta.setPixelString(this.originalSignature);
@@ -108,14 +108,14 @@ public class ImportDataReactor extends AbstractReactor {
 			// it is from an API call of some sort
 			// delete it
 			// when we save, we want to repull every time
-			File csvFile = new File(qs.getCsvFilePath());
+			File csvFile = new File(qs.getFilePath());
 			csvFile.delete();
 		}
 	}
 	
 	private void storeExcelFileMeta(ExcelQueryStruct qs) {
 		FileMeta fileMeta = new FileMeta();
-		fileMeta.setFileLoc(qs.getExcelFilePath());
+		fileMeta.setFileLoc(qs.getFilePath());
 		fileMeta.setDataMap(qs.getColumnTypes());
 		fileMeta.setSheetName(qs.getSheetName());
 		fileMeta.setNewHeaders(qs.getNewHeaderNames());

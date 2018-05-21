@@ -25,9 +25,6 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
@@ -147,7 +144,7 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 			dataTypes.put(colNames[i], types[i]);
 		}
 		qs.merge(this.qs);
-		qs.setCsvFilePath(filePath);
+		qs.setFilePath(filePath);
 		qs.setDelimiter(',');
 		qs.setColumnTypes(dataTypes);
 		return qs;

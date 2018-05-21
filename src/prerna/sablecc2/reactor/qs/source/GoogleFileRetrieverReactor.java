@@ -14,15 +14,10 @@ import org.apache.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
-import prerna.io.connector.IConnectorIOp;
 import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.Constants;
@@ -127,7 +122,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			}
 			helper.clear();
 			qs.merge(this.qs);
-			qs.setCsvFilePath(filePath);
+			qs.setFilePath(filePath);
 			qs.setDelimiter(',');
 			qs.setColumnTypes(dataTypes);
 			return qs;
