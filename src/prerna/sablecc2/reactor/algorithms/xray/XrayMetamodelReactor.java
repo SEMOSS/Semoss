@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -130,6 +129,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				if (sourceColumn != null) {
 					sourceEdge += "." + sourceColumn;
 				}
+				String sourceKey = (String)map.get("Source_Key");
 				String targetDB = (String) map.get("Target_Database");
 				String targetTable = (String) map.get("Target_Table");
 				Integer isTargetTable = (Integer) map.get("Is_Table_Target");
@@ -141,14 +141,18 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				if (targetColumn != null) {
 					targetEdge += "." + targetColumn;
 				}
+				String targetKey = (String)map.get("Target_Key");
+
 				String edgeKey = sourceEdge + "-" + targetEdge;
 				// check if xray edge exists
 				if (!edgesTable.contains(edgeKey)) {
 					Map<String, Object> xrayEdge = new HashMap();
 					xrayEdge.put("source", sourceEdge);
+					xrayEdge.put("sourceKey", sourceKey);
 					xrayEdge.put("target", targetEdge);
+					xrayEdge.put("targetKey", targetKey);
+					xrayEdge.put("xray", true);
 					edgesList.add(xrayEdge);
-
 				}
 			}
 			// clean up r temp variables
