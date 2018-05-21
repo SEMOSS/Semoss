@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.AbstractApiReactor;
 import prerna.query.querystruct.CsvQueryStruct;
