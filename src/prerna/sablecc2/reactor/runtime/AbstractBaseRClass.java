@@ -130,7 +130,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		} else {
 			newTable = new RDataTable(frameName);
 		}
-		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
+		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		this.insight.setDataMaker(newTable);
 	}
