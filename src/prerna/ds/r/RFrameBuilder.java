@@ -15,8 +15,8 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.util.CsvFileIterator;
-import prerna.ds.util.ExcelFileIterator;
+import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.ds.util.flatfile.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -147,7 +147,7 @@ public class RFrameBuilder {
 			long start = System.currentTimeMillis();
 			logger.info("Loading R table via CSV File");
 			// get you the fread notation with the csv file within the iterator
-			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, it.getFileLocation(), it.getDelimiter() + "");
+			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, it.getFileLocation(), qs.getDelimiter() + "");
 			evalR(loadFileRScript);
 
 			// fread will use the original headers, even if there are duplicates

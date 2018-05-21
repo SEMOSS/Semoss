@@ -40,7 +40,7 @@ import org.h2.tools.DeleteDbFiles;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator2;
-import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter;

@@ -20,7 +20,7 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
-import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;

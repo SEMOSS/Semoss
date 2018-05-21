@@ -1,14 +1,14 @@
-package prerna.ds.util;
+package prerna.ds.util.flatfile;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.poi.main.helper.CSVFileHelper;
-import prerna.query.querystruct.CsvQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.algorithm.api.SemossDataType;
+import prerna.poi.main.helper.XLFileHelper;
+import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -17,75 +17,63 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 
-public class CsvFileIterator extends AbstractFileIterator {
+public class ExcelFileIterator extends AbstractFileIterator {
 
-	private CSVFileHelper helper;
-	private CsvQueryStruct qs;
-
-	public CsvFileIterator(CsvQueryStruct qs) {
-		this.qs = qs;
-		String fileLoc = qs.getFilePath();
-		Map<String, String> dataTypeMap = qs.getColumnTypes();
-		Map<String, String> newHeaders = qs.getNewHeaderNames();
-		char delimiter = qs.getDelimiter();
-
-		// set default values
-		this.helper = new CSVFileHelper();
-		this.filters = new GenRowFilters();
-		this.helper.setDelimiter(delimiter);
-		this.helper.parse(fileLoc);
-		this.fileLocation = fileLoc;
-
-		// set the user defined headers
-		if (newHeaders != null && !newHeaders.isEmpty()) {
-			this.newHeaders = newHeaders;
-			this.helper.modifyCleanedHeaders(newHeaders);
-		}
-
-		setSelectors(qs.getSelectors());
-		setFilters(qs.getExplicitFilters());
-		this.headers = this.helper.getHeaders();
-		this.dataTypeMap = new HashMap<String, String>();
-
-		if (dataTypeMap != null && !dataTypeMap.isEmpty()) {
-			this.dataTypeMap = dataTypeMap;
-
-			this.types = new String[this.headers.length];
-			for (int j = 0; j < this.headers.length; j++) {
-				this.types[j] = dataTypeMap.get(this.headers[j]);
-			}
-
-			this.helper.parseColumns(this.headers);
-		} else {
-			setUnknownTypes();
-			setSelectors(qs.getSelectors());
-			qs.setColumnTypes(this.dataTypeMap);
-		}
-
-		this.getNextRow(); // this will get the first row of the file
-	}
+	private XLFileHelper helper;
+	private ExcelQueryStruct qs;
+	private int[] headerIndices;
+	private String sheetToLoad;
 	
-	/**
-	 * Determine the data types by parsing through the file
-	 * @param fileIterator
-	 */
-	private void setUnknownTypes() {
-		this.dataTypeMap = new HashMap<String, String>();
-		String[] allHeaders = this.helper.getAllCSVHeaders();
-		this.types = this.helper.predictTypes();
-		for(int i = 0; i < this.types.length; i++) {
-			this.dataTypeMap.put(allHeaders[i], this.types[i]);
+	public ExcelFileIterator(ExcelQueryStruct qs) {
+		this.qs = qs;
+		String fileLocation = qs.getFilePath();
+		String sheetToLoad = qs.getSheetName();
+		Map<String, String>  dataTypesMap = qs.getColumnTypes();
+		Map<String, String> newHeaders = qs.getNewHeaderNames();
+		this.helper = new XLFileHelper();
+		this.helper.parse(fileLocation);	
+		this.sheetToLoad = sheetToLoad;
+		this.dataTypeMap = dataTypesMap;
+		if(newHeaders != null && !newHeaders.isEmpty()) {
+			this.newHeaders = newHeaders;
+			Map<String, Map<String, String>> excelHeaderNames = new Hashtable<String, Map<String, String>>();
+			excelHeaderNames.put(this.sheetToLoad, this.newHeaders);
+			this.helper.modifyCleanedHeaders(excelHeaderNames);
 		}
 		
-		// need to redo types to be only those in the selectors
-		this.types = new String[this.headers.length];
-		for(int i = 0; i < this.headers.length; i++) {
-			this.types[i] = this.dataTypeMap.get(this.headers[i]);
+		setSelectors(qs.getSelectors());
+		setFilters(qs.getExplicitFilters());
+		
+		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
+			this.types = new SemossDataType[this.headers.length];
+			for (int j = 0; j < this.headers.length; j++) {
+				this.types[j] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[j]));
+			}
+		}
+		else {
+			setUnknownTypes();
+		}
+		
+		// need to grab the first row upon initialization 
+		getNextRow();
+	}
+	
+	private void setUnknownTypes() {
+		String[] strTypes = this.helper.predictRowTypes(this.sheetToLoad, this.headerIndices);
+		int numHeaders = this.headers.length;
+
+		this.dataTypeMap = new Hashtable<String, String>();
+		for(int i = 0; i < numHeaders; i++) {
+			this.dataTypeMap.put(this.headers[i], strTypes[i]);
+			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
+
 		}
 	}
 	
+	
 	public void getNextRow() {
-		String[] row = helper.getNextRow();
+		String[] row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
+		
 		if(filters == null || filters.isEmpty()) {
 			this.nextRow = row;
 			return;
@@ -125,70 +113,74 @@ public class CsvFileIterator extends AbstractFileIterator {
 							//?????????
 							
 						}
+
 					}
+
 				}
+
 			}
+
 			if (isValid) {
 				newRow = row;
 				break;
 			} else {
 				newRow = null;
 			}
+
 			if (newRow == null) {
-				row = helper.getNextRow();
+				row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
 			}
+
 		}
 		this.nextRow = newRow;
+
 	}
 
-	private void setSelectors(List<IQuerySelector> selectors) {
-		if (selectors.isEmpty()) {
-			// if no selectors, return everything
-			String[] allHeaders = this.helper.getHeaders();
-			for(int i = 0; i < allHeaders.length; i++) {
-				QueryColumnSelector newSelector = new QueryColumnSelector("DND__" + allHeaders[i]);
-				this.qs.addSelector(newSelector);
-			}
-			return; 
+
+	private void setSelectors(List<IQuerySelector> qsSelectors) {
+		if(qsSelectors.isEmpty()) {
+			return; // if no selectors, return everything
 		}
-	
-		int numSelectors = selectors.size();
+		int numSelectors = qsSelectors.size();
+
+		String[] selectors = new String[numSelectors];
 		
-		String[] csvSelectors = new String[numSelectors];
 		for(int i = 0; i < numSelectors; i++) {
-			QueryColumnSelector newSelector = (QueryColumnSelector) selectors.get(i);
+			QueryColumnSelector newSelector = (QueryColumnSelector) qsSelectors.get(i);
 			if(newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				throw new IllegalArgumentException("Cannot perform math on a csv import");
+				throw new IllegalArgumentException("Cannot perform math on a excel import");
 			}
-			csvSelectors[i] = newSelector.getAlias();;
+			selectors[i] = newSelector.getAlias();
 		}
 		
-		String[] allHeaders = this.helper.getHeaders();
-		if(allHeaders.length != csvSelectors.length) {
+		String[] allHeaders = this.helper.getHeaders(this.sheetToLoad);
+		if(allHeaders.length != selectors.length) {
 			// order the selectors
 			// all headers will be ordered
-			String[] orderedSelectors = new String[csvSelectors.length];
+			String[] orderedSelectors = new String[selectors.length];
 			int counter = 0;
 			for(String header : allHeaders) {
-				if(ArrayUtilityMethods.arrayContainsValue(csvSelectors, header)) {
+				if(ArrayUtilityMethods.arrayContainsValue(selectors, header)) {
 					orderedSelectors[counter] = header;
 					counter++;
 				}
 			}
 			
-			this.helper.parseColumns(orderedSelectors);
-			// after redoing the selectors, we need to skip the headers 
-			this.helper.getNextRow(); 
+			this.headers = orderedSelectors;
+			this.headerIndices = this.helper.getHeaderIndicies(this.sheetToLoad, orderedSelectors);
+			this.helper.getNextRow(this.sheetToLoad, this.headerIndices); // after redoing the selectors, we need to skip the headers 
+		} else {
+			this.headers = allHeaders;
+			this.headerIndices = new int[this.headers.length];
+			for(int i = 0; i < this.headers.length; i++) {
+				this.headerIndices[i] = i;
+			}
 		}
-	}
-	
-	public char getDelimiter() {
-		return this.helper.getDelimiter();
 	}
 
 	@Override
 	public void resetHelper() {
-		this.helper.reset(false);
+		this.helper.reset();
 	}
 
 	@Override
@@ -196,15 +188,15 @@ public class CsvFileIterator extends AbstractFileIterator {
 		this.helper.clear();
 	}
 	
-	public CSVFileHelper getHelper() {
+	public XLFileHelper getHelper() {
 		return this.helper;
 	}
 	
-	public CsvQueryStruct getQs() {
+	public ExcelQueryStruct getQs() {
 		return this.qs;
 	}
 
-	public void setQs(CsvQueryStruct qs) {
+	public void setQs(ExcelQueryStruct qs) {
 		this.qs = qs;
 	}
 }
