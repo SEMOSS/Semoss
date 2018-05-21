@@ -26,16 +26,14 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	
 	public ExcelFileIterator(ExcelQueryStruct qs) {
 		this.qs = qs;
-		String fileLocation = qs.getFilePath();
-		String sheetToLoad = qs.getSheetName();
-		Map<String, String>  dataTypesMap = qs.getColumnTypes();
-		Map<String, String> newHeaders = qs.getNewHeaderNames();
+		this.sheetToLoad = qs.getSheetName();
 		this.helper = new XLFileHelper();
-		this.helper.parse(fileLocation);	
-		this.sheetToLoad = sheetToLoad;
-		this.dataTypeMap = dataTypesMap;
+		this.helper.parse(qs.getFilePath());
+		
+		this.dataTypeMap = qs.getColumnTypes();
+		this.newHeaders = qs.getNewHeaderNames();
+		
 		if(newHeaders != null && !newHeaders.isEmpty()) {
-			this.newHeaders = newHeaders;
 			Map<String, Map<String, String>> excelHeaderNames = new Hashtable<String, Map<String, String>>();
 			excelHeaderNames.put(this.sheetToLoad, this.newHeaders);
 			this.helper.modifyCleanedHeaders(excelHeaderNames);
@@ -44,14 +42,25 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		setSelectors(qs.getSelectors());
 		setFilters(qs.getExplicitFilters());
 		
-		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
+		// now that I have set the headers from the setSelectors
+		this.headers = this.helper.getHeaders(this.sheetToLoad);
+		this.additionalTypesMap = qs.getAdditionalTypes();
+		
+		if(this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
 			this.types = new SemossDataType[this.headers.length];
-			for (int j = 0; j < this.headers.length; j++) {
-				this.types[j] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[j]));
+			this.additionalTypes = new String[this.headers.length];
+			
+			for (int index = 0; index < this.headers.length; index++) {
+				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
+				if(this.additionalTypesMap != null) {
+					this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
+				}
 			}
 		}
 		else {
 			setUnknownTypes();
+			setSelectors(qs.getSelectors());
+			qs.setColumnTypes(this.dataTypeMap);
 		}
 		
 		// need to grab the first row upon initialization 
@@ -62,6 +71,8 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		String[] strTypes = this.helper.predictRowTypes(this.sheetToLoad, this.headerIndices);
 		int numHeaders = this.headers.length;
 
+		this.types = new SemossDataType[this.headers.length];
+		this.additionalTypes = new String[this.headers.length];
 		this.dataTypeMap = new Hashtable<String, String>();
 		for(int i = 0; i < numHeaders; i++) {
 			this.dataTypeMap.put(this.headers[i], strTypes[i]);
