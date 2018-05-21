@@ -3,7 +3,6 @@ package prerna.ds.util.flatfile;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
@@ -25,35 +24,38 @@ public class CsvFileIterator extends AbstractFileIterator {
 
 	public CsvFileIterator(CsvQueryStruct qs) {
 		this.qs = qs;
-		String fileLoc = qs.getFilePath();
-		Map<String, String> dataTypeMap = qs.getColumnTypes();
-		Map<String, String> newHeaders = qs.getNewHeaderNames();
+		this.fileLocation = qs.getFilePath();
 		char delimiter = qs.getDelimiter();
 
 		// set default values
 		this.helper = new CSVFileHelper();
 		this.filters = new GenRowFilters();
 		this.helper.setDelimiter(delimiter);
-		this.helper.parse(fileLoc);
-		this.fileLocation = fileLoc;
+		this.helper.parse(qs.getFilePath());
 
+		this.dataTypeMap = qs.getColumnTypes();
+		this.newHeaders = qs.getNewHeaderNames();
+		
 		// set the user defined headers
-		if (newHeaders != null && !newHeaders.isEmpty()) {
-			this.newHeaders = newHeaders;
-			this.helper.modifyCleanedHeaders(newHeaders);
+		if (this.newHeaders != null && !this.newHeaders.isEmpty()) {
+			this.helper.modifyCleanedHeaders(this.newHeaders);
 		}
 
 		setSelectors(qs.getSelectors());
 		setFilters(qs.getExplicitFilters());
+		
+		// now that I have set the headers from the setSelectors
 		this.headers = this.helper.getHeaders();
-		this.dataTypeMap = new HashMap<String, String>();
+		this.additionalTypesMap = qs.getAdditionalTypes();
 
-		if(dataTypeMap != null && !dataTypeMap.isEmpty()) {
-			this.dataTypeMap = dataTypeMap;
-
+		if(this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
 			this.types = new SemossDataType[this.headers.length];
-			for (int j = 0; j < this.headers.length; j++) {
-				this.types[j] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[j]));
+			this.additionalTypes = new String[this.headers.length];
+			for(int index = 0; index < this.headers.length; index++) {
+				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
+				if(this.additionalTypesMap != null) {
+					this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
+				}
 			}
 
 			this.helper.parseColumns(this.headers);
@@ -63,8 +65,6 @@ public class CsvFileIterator extends AbstractFileIterator {
 			qs.setColumnTypes(this.dataTypeMap);
 		}
 
-		this.additionalTypesMap = qs.getAdditionalTypes();
-		
 		this.getNextRow(); // this will get the first row of the file
 	}
 	
@@ -83,6 +83,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 		
 		// need to redo types to be only those in the selectors
 		this.types = new SemossDataType[this.headers.length];
+		this.additionalTypes = new String[this.headers.length];
 		for(int i = 0; i < this.headers.length; i++) {
 			this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
 		}
