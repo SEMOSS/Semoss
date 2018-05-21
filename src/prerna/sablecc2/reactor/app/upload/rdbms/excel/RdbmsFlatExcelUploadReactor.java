@@ -2,16 +2,22 @@ package prerna.sablecc2.reactor.app.upload.rdbms.excel;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
+import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -25,10 +31,11 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
-	
+
 	/*
 	 * There are quite a few things that we need
 	 * 1) app -> name of the app to create
@@ -41,14 +48,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	 * TODO: 6) deduplicate -> boolean if we should remove duplicate rows in the relational database
 	 * 7) existing -> boolean if we should add to an existing app, defualt is false
 	 */
-	
+
 	private static final String CLASS_NAME = RdbmsFlatExcelUploadReactor.class.getName();
 
 	public RdbmsFlatExcelUploadReactor() {
 		this.keysToGet = new String[]{APP, FILE_PATH, DATA_TYPE_MAP, NEW_HEADERS, 
 				ADDITIONAL_TYPES, CLEAN_STRING_VALUES, REMOVE_DUPLICATE_ROWS, ADD_TO_EXISTING};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
@@ -60,21 +67,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
-		
+
 		if(existing) {
 			addToExistingApp(appName, filePath, logger);
 		} else {
 			generateNewApp(appName, filePath, logger);
 		}
-		
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-	
 
-	@Override
-	public void addToExistingApp(String appName, String filePath, Logger logger) {
-		// TODO Auto-generated method stub
-		
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	@Override
@@ -90,7 +90,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		 * 7) load default insights
 		 * 8) add to localmaster and solr
 		 */
-		
+
 		Map<String, Map<String, String>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, String>> newHeaders = getNewHeaders();
 		Map<String, Map<String, String>> additionalDataTypeMap = getAdditionalTypes();
@@ -137,27 +137,136 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		engine.setProp(props);
 		engine.openDB(null);
 		logger.info("4. Complete");
-		
+
 		logger.info("5. Start loading data..");
 		logger.info("Load excel file...");
 		XLFileHelper helper = getHelper(filePath, newHeaders);
 		logger.info("Done loading excel file");
-		processExcelSheets(helper, dataTypesMap, additionalDataTypeMap, clean, logger); 
-//		Object[] headerTypesArr = getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
-//		String[] headers = (String[]) headerTypesArr[0];
-//		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-//		String[] additionalTypes = (String[]) headerTypesArr[2];
-//		logger.info("Done parsing file metadata");
+
+		OWLER owler = new OWLER(engine, engine.getOWL());
+		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, clean, logger);
+
+		try {
+			owler.export();
+			engine.setOWL(owlFile.getPath());
+		} catch (IOException e) {
+			// ugh... gotta clean up and delete everything... TODO:
+			e.printStackTrace();
+		}
+		logger.info("5. Complete");
+
+		logger.info("6. Start generating default app insights");
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
+		engine.setInsightDatabase(insightDatabase);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		logger.info("6. Complete");
+
+		logger.info("7. Process app metadata to allow for traversing across apps	");
+		try {
+			updateLocalMaster(newAppName);
+			updateSolr(newAppName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info("7. Complete");
+
+		// and rename .temp to .smss
+		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		try {
+			FileUtils.copyFile(tempSmss, smssFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		tempSmss.delete();
+
+		// update DIHelper
+		updateDIHelper(newAppName, engine, smssFile);
+	}
+
+	@Override
+	public void addToExistingApp(String appName, String filePath, Logger logger) {
+		IEngine engine = Utility.getEngine(appName);
+		if(engine == null) {
+			throw new IllegalArgumentException("Couldn't find the app " + appName + " to append data into");
+		}
+		if(!(engine instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("App must be using a relational database");
+		}
+
+		Map<String, Map<String, String>> dataTypesMap = getDataTypeMap();
+		Map<String, Map<String, String>> newHeaders = getNewHeaders();
+		Map<String, Map<String, String>> additionalDataTypeMap = getAdditionalTypes();
+		final boolean clean = getClean();
 		
+		logger.info("Get existing database schema...");
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		logger.info("Done getting existing database schema");
+		
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Start loading data..");
+		logger.info("Load excel file...");
+		XLFileHelper helper = getHelper(filePath, newHeaders);
+		logger.info("Done loading excel file");
+
+		/*
+		 * Since we want to determine if we should add to an existing table
+		 * or make new tables
+		 * We need to go to the sheet level and determine it
+		 */
+		
+		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			String[] sheetNames = helper.getTables();
+			for(String sheet : sheetNames) {
+				String[] headers = helper.getHeaders(sheet);
+				String[] types = helper.predictRowTypes(sheet);
+				Map<String, String> innerMap = new HashMap<String, String>();
+				int numHeaders = headers.length;
+				for(int i = 0; i < numHeaders; i++) {
+					innerMap.put(headers[i], types[i]);
+				}
+				dataTypesMap.put(sheet, innerMap);
+			}
+		}
+		
+		OWLER owler = new OWLER(engine, engine.getOWL());
+		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, clean, logger);
+
+		try {
+			owler.export();
+			engine.setOWL(engine.getOWL());
+		} catch (IOException e) {
+			// ugh... gotta clean up and delete everything... TODO:
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ". Complete");
+
+		logger.info(stepCounter + ". Start generating default app insights");
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(appName);
+		engine.setInsightDatabase(insightDatabase);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		logger.info(stepCounter + ". Complete");
+
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		try {
+			updateLocalMaster(appName);
+			updateSolr(appName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ". Complete");
 	}
 
 	/**
 	 * Process all the excel sheets using the data type map
+	 * @param engine
+	 * @param owler
 	 * @param helper
 	 * @param dataTypesMap
-	 * @param additionalDataTypeMap 
+	 * @param additionalDataTypeMap
+	 * @param clean
+	 * @param logger
 	 */
-	private void processExcelSheets(XLFileHelper helper, Map<String, Map<String, String>> dataTypesMap, Map<String, Map<String, String>> additionalDataTypeMap, boolean clean, Logger logger) {
+	private void processExcelSheets(IEngine engine, OWLER owler, XLFileHelper helper, Map<String, Map<String, String>> dataTypesMap, Map<String, Map<String, String>> additionalDataTypeMap, boolean clean, Logger logger) {
 		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
 			String[] sheetNames = helper.getTables();
 			for(String sheet : sheetNames) {
@@ -177,31 +286,221 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Start processing sheets. Total sheets to load = " + numSheets);
 		for(String sheetname : dataTypesMap.keySet()) {
 			logger.info("Start process sheet " + counter + " = "+ sheetname);
-			
-			logger.info("Start parsing sheet metadata");
-			// get the sheet types
-			Map<String, String> sheetDataTypesMap = dataTypesMap.get(sheetname);
-			Map<String, String> sheetAdditionalDataTypesMap = null;
-			if(additionalDataTypeMap != null & additionalDataTypeMap.containsKey(sheetname)) {
-				sheetAdditionalDataTypesMap = additionalDataTypeMap.get(sheetname);
-			}
-			Object[] headerTypesArr = getHeadersAndTypes(helper, sheetname, sheetDataTypesMap, sheetAdditionalDataTypesMap);
-			String[] headers = (String[]) headerTypesArr[0];
-			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			String[] additionalTypes = (String[]) headerTypesArr[2];
-			logger.info("Done parsing sheet metadata");
-			
-			
-			
+			processSheet(engine, owler, helper, sheetname, dataTypesMap, additionalDataTypeMap, clean, logger);
 			logger.info("Done process sheet " + counter + " = "+ sheetname);
 			counter++;
 		}
+	}
+	
+	/**
+	 * Process a single sheet
+	 * @param engine
+	 * @param owler
+	 * @param helper
+	 * @param sheetname
+	 * @param dataTypesMap
+	 * @param additionalDataTypeMap
+	 * @param clean
+	 * @param logger
+	 */
+	private void processSheet(IEngine engine, OWLER owler, XLFileHelper helper, String sheetname, Map<String, Map<String, String>> dataTypesMap, Map<String, Map<String, String>> additionalDataTypeMap, boolean clean, Logger logger) {
+		logger.info("Start parsing sheet metadata");
+		// get the sheet types
+		Map<String, String> sheetDataTypesMap = dataTypesMap.get(sheetname);
+		Map<String, String> sheetAdditionalDataTypesMap = null;
+		if(additionalDataTypeMap != null & additionalDataTypeMap.containsKey(sheetname)) {
+			sheetAdditionalDataTypesMap = additionalDataTypeMap.get(sheetname);
+		}
+		Object[] headerTypesArr = getHeadersAndTypes(helper, sheetname, sheetDataTypesMap, sheetAdditionalDataTypesMap);
+		String[] headers = (String[]) headerTypesArr[0];
+		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+		String[] additionalTypes = (String[]) headerTypesArr[2];
+		logger.info("Done parsing sheet metadata");
+
+		logger.info("Create table...");
+		String tableName = RDBMSEngineCreationHelper.cleanTableName(sheetname.replace(" ", "_")).toUpperCase();
+		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
+
+		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
+		String[] sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+		logger.info("Done create table");
+		try {
+			bulkInsertSheet(engine, helper, sheetname, tableName, headers, types, additionalTypes, clean, logger);
+			addIndex(engine, tableName, uniqueRowId);
+		} catch (IOException e) {
+			// ugh... gotta clean up and delete everything... TODO:
+			e.printStackTrace();
+		}
+
+		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes);
+	}
+
+	private void bulkInsertSheet(IEngine engine, XLFileHelper helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
+			SemossDataType[] types, String[] additionalTypes, boolean clean, Logger logger) throws IOException {
+
+		// now we need to loop through the excel sheet and cast to the appropriate type and insert
+		// let us be smart about this and use a PreparedStatement for bulk insert
+		// get the bulk statement
+
+		// the prepared statement requires the table name and then the list of columns
+		Object[] getPreparedStatementArgs = new Object[headers.length+1];
+		getPreparedStatementArgs[0] = TABLE_NAME;
+		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+			getPreparedStatementArgs[headerIndex+1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
+		}
+		PreparedStatement ps = (PreparedStatement) engine.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
+
+		// keep a batch size so we dont get heapspace
+		final int batchSize = 5000;
+		int count = 0;
+
+		logger.info("Start inserting data into table");
+		// we loop through every row of the sheet
+		String[] nextRow = null;
+		try {
+			while( (nextRow = helper.getNextRow(SHEET_NAME)) != null ) {
+				// we need to loop through every value and cast appropriately
+				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+					// nulls get added as null
+					// not interesting...
+					if(nextRow[colIndex] == null) {
+						ps.setObject(colIndex+1, null);
+						continue;
+					}
+
+					// yay, actual data
+					SemossDataType type = types[colIndex];
+					// strings
+					if(type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
+						if(clean) {
+							String value = Utility.cleanString(nextRow[colIndex], false);
+							ps.setString(colIndex+1, value + "");
+						} else {
+							ps.setString(colIndex+1, nextRow[colIndex] + "");
+						}
+					} 
+					// int
+					else if(type == SemossDataType.INT) {
+						Integer value = null;
+						String val = nextRow[colIndex].trim();
+						try {
+							//added to remove $ and , in data and then try parsing as Double
+							int mult = 1;
+							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
+								mult = -1;
+							val = val.replaceAll("[^0-9\\.E]", "");
+							value = mult * Integer.parseInt(val.trim());
+						} catch(NumberFormatException ex) {
+							//do nothing
+						}
+
+						if(value != null) {
+							ps.setInt(colIndex+1, value);
+						} else {
+							// set default as null
+							ps.setObject(colIndex+1, null);
+						}
+					}
+					// doubles
+					else if(type == SemossDataType.DOUBLE) {
+						Double value = null;
+						String val = nextRow[colIndex].trim();
+						try {
+							//added to remove $ and , in data and then try parsing as Double
+							int mult = 1;
+							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
+								mult = -1;
+							val = val.replaceAll("[^0-9\\.E]", "");
+							value = mult * Double.parseDouble(val.trim());
+						} catch(NumberFormatException ex) {
+							//do nothing
+						}
+
+						if(value != null) {
+							ps.setDouble(colIndex+1, value);
+						} else {
+							// set default as null
+							ps.setObject(colIndex+1, null);
+						}
+					} 
+					// dates
+					else if(type == SemossDataType.DATE) {
+						// can I get a format?
+						String format = additionalTypes[colIndex];
+						if(format != null && !format.isEmpty()) {
+							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
+							if(value != null) {
+								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							} else {
+								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
+						} else {
+							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
+							if(value != null) {
+								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							} else {
+								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
+						}
+					}
+					// timestamps
+					else if(type == SemossDataType.TIMESTAMP) {
+						// can I get a format?
+						String format = additionalTypes[colIndex];
+						if(format != null && !format.isEmpty()) {
+							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
+							if(value != null) {
+								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							} else {
+								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
+						} else {
+							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex]);
+							if(value != null) {
+								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
+							} else {
+								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
+						}
+					}
+				}
+				// add it
+				ps.addBatch();
+
+				// batch commit based on size
+				if(++count % batchSize == 0) {
+					logger.info("Done inserting " + count + " number of rows");
+					ps.executeBatch();
+				}
+			}
+
+			// well, we are done looping through now
+			ps.executeBatch(); // insert any remaining records
+			logger.info("Finished");
+			logger.info("Completed " + count + " number of rows");
+			ps.close();
+		} catch(SQLException e) {
+			e.printStackTrace();
+			String errorMessage = "";
+			if(nextRow == null) {
+				errorMessage = "Error occured while performing insert on csv on row number = " + count;
+			} else { 
+				errorMessage = "Error occured while performing insert on csv data row:"
+						+ "\n" + Arrays.toString(nextRow);
+			}
+			throw new IOException(errorMessage);
+		}
+
 	}
 
 	private XLFileHelper getHelper(final String filePath, Map<String, Map<String, String>> newHeaders) {
 		XLFileHelper xlHelper = new XLFileHelper();
 		xlHelper.parse(filePath);
-		
+
 		// set the new headers we want
 		if(newHeaders != null && !newHeaders.isEmpty()) {
 			xlHelper.modifyCleanedHeaders(newHeaders);
@@ -209,7 +508,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		return xlHelper;
 	}
-	
+
 	/**
 	 * Figure out the types and how to use them
 	 * Will return an object[]
@@ -252,7 +551,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		return new Object[]{headers, types, additionalTypes};
 	}
 
-	
+
 	///////////////////////////////////////////////////////
 
 	/*
@@ -282,7 +581,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 		return (Map<String, Map<String, String>>) grs.get(0);
 	}
-	
+
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
@@ -325,5 +624,5 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		reactor.In();
 		reactor.execute();
 	}
-	
+
 }
