@@ -180,7 +180,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 		tempSmss.delete();
 
-		// update DIHelper
+		// update DIHelper & engine smss file location
+		engine.setPropFile(smssFile.getAbsolutePath());
 		updateDIHelper(newAppName, engine, smssFile);
 	}
 
