@@ -23,7 +23,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import prerna.ds.TinkerFrame;
-import prerna.ds.util.CsvFileIterator;
+import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.util.ArrayUtilityMethods;
 

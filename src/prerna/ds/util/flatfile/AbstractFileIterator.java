@@ -1,4 +1,4 @@
-package prerna.ds.util;
+package prerna.ds.util.flatfile;
 
 import java.io.File;
 import java.util.Date;
@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -26,13 +27,18 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	
 	protected String fileLocation;
 	
+	// variables used by the iterator
 	protected String[] headers;
-	protected String[] types;
+	protected SemossDataType[] types;
+	protected String[] additionalTypes;
 	protected String[] nextRow;
 	
+	// variables set by qs
 	protected GenRowFilters filters;
-	protected Map<String, String> dataTypeMap;
 	protected Map<String, String> newHeaders;
+	protected Map<String, String> dataTypeMap;
+	protected Map<String, String> additionalTypesMap;
+
 	protected int numRecords = -1;
 	
 	public abstract void getNextRow();
@@ -74,7 +80,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
 			String type = types[i];
-			if(type.contains("DOUBLE")) {
+			if(type.contains("DOUBLE") || type.contains("INT")) {
 				String val = row[i].trim();
 				try {
 					//added to remove $ and , in data and then try parsing as Double
@@ -88,7 +94,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 					cleanRow[i] = null;
 				}
 			} else if(type.contains("DATE")) {
-				cleanRow[i] = row[i]; //TODO do i need to do anything for dates???
+				cleanRow[i] = row[i];
 			} else {
 				cleanRow[i] = Utility.cleanString(row[i], true, true, false);
 			} 
@@ -129,7 +135,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 	
 	@Override
-	public String[] getTypes() {
+	public SemossDataType[] getTypes() {
 		return this.types;
 	}
 
