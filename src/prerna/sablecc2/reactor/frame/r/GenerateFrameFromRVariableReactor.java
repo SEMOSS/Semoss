@@ -39,7 +39,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		} else {
 			newTable = new RDataTable(varName);
 		}
-		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, varName);
+		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, varName);
 		this.insight.setDataMaker(newTable);
 		return new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
