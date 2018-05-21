@@ -2,18 +2,16 @@ package prerna.ds.util;
 
 import java.util.Iterator;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 
 public interface IFileIterator extends Iterator<IHeadersDataRow> {
 
-	public enum FILE_DATA_TYPE {STRING, META_DATA_ENUM}
+	String[] getHeaders();
 
-	public boolean numberRowsOverLimit(int limitSize);
+	SemossDataType[] getTypes();
 
-	public int getNumRecords();
+	boolean numberRowsOverLimit(int limitSize);
 
-	public String[] getTypes();
-
-	public String[] getHeaders();
-	
+	int getNumRecords();
 }
