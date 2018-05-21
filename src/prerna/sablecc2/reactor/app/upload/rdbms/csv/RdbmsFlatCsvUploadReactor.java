@@ -16,7 +16,6 @@ import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -73,16 +72,16 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
-		
+
 		if(existing) {
 			addToExistingApp(appName, filePath, logger);
 		} else {
 			generateNewApp(appName, filePath, logger);
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
-	
+
 	/**
 	 * Make a new app with the file data
 	 * @param newAppName
@@ -101,7 +100,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		 * 7) load default insights
 		 * 8) add to localmaster and solr
 		 */
-		
+
 		final String delimiter = getDelimiter();
 		Map<String, String> dataTypesMap = getDataTypeMap();
 		Map<String, String> newHeaders = getNewHeaders();
@@ -215,7 +214,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		// update DIHelper
 		updateDIHelper(newAppName, engine, smssFile);
 	}
-	
+
 	/**
 	 * Add the data into an existing rdbms engine
 	 * @param appName
@@ -230,13 +229,13 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		if(!(engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
-		
+
 		final String delimiter = getDelimiter();
 		Map<String, String> dataTypesMap = getDataTypeMap();
 		Map<String, String> newHeaders = getNewHeaders();
 		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = getClean();
-		
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Parsing file metadata...");
@@ -256,7 +255,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		if(tableToInsertInto == null) {
 			logger.info("Could not find existing table to insert into");
 			logger.info("Create table...");
-			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath)).toUpperCase();
+			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath).replace(" ", "_")).toUpperCase();
 			String uniqueRowId = tableToInsertInto + "_UNIQUE_ROW_ID";
 
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
@@ -271,7 +270,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			}
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
-			
+
 			logger.info(stepCounter + ". Start generating engine metadata...");
 			OWLER owler = new OWLER(engine, engine.getOWL());
 			generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes);
@@ -284,7 +283,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 				e.printStackTrace();
 			}
 			logger.info(stepCounter + ". Complete");
-			
+
 			logger.info(stepCounter + ". Start generating default app insights");
 			Set<String> newTableSet = new HashSet<String>();
 			newTableSet.add(tableToInsertInto);
@@ -311,7 +310,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 		logger.info(stepCounter + ". Complete");
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
@@ -323,7 +322,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * Processing actually happens here
 	 * 
 	 */
-	
+
 	/**
 	 * Perform the insertion of data into the table
 	 * @param engine
@@ -499,36 +498,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	}
 
 	/**
-	 * Add the metadata into the OWL
-	 * @param owler
-	 * @param tableName
-	 * @param uniqueRowId
-	 * @param headers
-	 * @param sqlTypes
-	 */
-	private void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes) {
-		// add the main column
-		owler.addConcept(tableName, uniqueRowId, OWLER.BASE_URI, "LONG");
-		// add the props
-		for(int i = 0; i < headers.length; i++) {
-			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-			owler.addProp(tableName, uniqueRowId, headers[i], sqlTypes[i+1]);
-		}
-	}
-
-	/**
-	 * 
-	 * @param engine
-	 * @param tableName
-	 * @param uniqueRowId
-	 */
-	private void addIndex(IEngine engine, String tableName, String uniqueRowId) {
-		String indexName = uniqueRowId.toUpperCase() + "_INDEX" ;
-		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + uniqueRowId.toUpperCase() + ")";
-		engine.insertData(indexSql);
-	}
-
-	/**
 	 * Parse the file
 	 * @param filePath
 	 * @param delimiter
@@ -647,44 +616,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			// and the data types also match
 			existingTableNameToInsert = existingTableName;
 		}
-		
+
 		return existingTableNameToInsert;
-	}
-
-	/**
-	 * Create a new table given the table name, headers, and types
-	 * Returns the sql types that were generated
-	 * @param tableName
-	 * @param headers
-	 * @param types
-	 */
-	private String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types) {
-		// we need to add the identity column
-		int size = types.length;
-		String[] sqlTypes = new String[size+1];
-		String[] newHeaders = new String[size+1];
-
-		newHeaders[0] = uniqueRowId;
-		sqlTypes[0] = "IDENTITY";
-		for(int i = 0; i < size; i++) {
-			newHeaders[i+1] = headers[i];
-			SemossDataType sType = types[i];
-			if(sType == SemossDataType.STRING || sType == SemossDataType.FACTOR) {
-				sqlTypes[i+1] = "VARCHAR(2000)";
-			} else if(sType == SemossDataType.INT) {
-				sqlTypes[i+1] = "INT";
-			} else if(sType == SemossDataType.DOUBLE) {
-				sqlTypes[i+1] = "DOUBLE";
-			} else if(sType == SemossDataType.DATE) {
-				sqlTypes[i+1] = "DATE";
-			} else if(sType == SemossDataType.TIMESTAMP) {
-				sqlTypes[i+1] = "TIMESTAMP ";
-			}
-		}
-
-		String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
-		engine.insertData(createTable);
-		return sqlTypes;
 	}
 
 	///////////////////////////////////////////////////////
