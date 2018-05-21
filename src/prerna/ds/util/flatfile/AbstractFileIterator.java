@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
@@ -71,17 +72,18 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		getNextRow();
 
 		// couple of things to take care of here
-		Object[] cleanRow = cleanRow(row, row);
+		Object[] cleanRow = cleanRow(row, types);
 		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, cleanRow);
 		return nextData;
 	}
 	
-	protected Object[] cleanRow(String[] row, String[] types) {
+	protected Object[] cleanRow(String[] row, SemossDataType[] types) {
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
-			String type = types[i];
-			if(type.contains("DOUBLE") || type.contains("INT")) {
-				String val = row[i].trim();
+			SemossDataType type = types[i];
+			String val = row[i].trim();
+			// try to get correct type
+			if(type == SemossDataType.DOUBLE || type == SemossDataType.INT) {
 				try {
 					//added to remove $ and , in data and then try parsing as Double
 					int mult = 1;
@@ -93,11 +95,21 @@ public abstract class AbstractFileIterator implements IFileIterator {
 					//do nothing
 					cleanRow[i] = null;
 				}
-			} else if(type.contains("DATE")) {
-				cleanRow[i] = row[i];
+			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+				String additionalTypeData = this.additionalTypes[i];
+				
+				// if we have additional data format for the date
+				// send the date object
+				Object date = null;
+				if(additionalTypeData != null) {
+					date = new SemossDate(val, additionalTypeData);
+				} else {
+					date = val;
+				}
+				cleanRow[i] = date;
 			} else {
-				cleanRow[i] = Utility.cleanString(row[i], true, true, false);
-			} 
+				cleanRow[i] = Utility.cleanString(val, true, true, false);
+			}
 		}
 		
 		return cleanRow;
