@@ -482,7 +482,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		this.rJavaTranslator.executeEmptyR("fwrite(" + frameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
-		qs.setCsvFilePath(tempFileLocation);
+		qs.setFilePath(tempFileLocation);
 		H2Importer importer = new H2Importer(frameToUse, qs);
 		if(syncExistingRMetadata) {
 			importer.insertData(newMeta);

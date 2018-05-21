@@ -66,7 +66,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 		// set csv qs
 		char delimiter = getDelimiter();
 		qs = new CsvQueryStruct();
-		qs.setCsvFilePath(fileLocation);
+		qs.setFilePath(fileLocation);
 		qs.setDelimiter(delimiter);
 		qs.setColumnTypes(dataTypes);
 		qs.merge(this.qs);
