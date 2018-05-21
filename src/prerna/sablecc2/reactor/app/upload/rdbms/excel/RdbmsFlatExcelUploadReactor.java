@@ -143,7 +143,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		XLFileHelper helper = getHelper(filePath, newHeaders);
 		logger.info("Done loading excel file");
 
-		OWLER owler = new OWLER(engine, engine.getOWL());
+		OWLER owler = new OWLER(engine, owlFile.getAbsolutePath());
 		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, clean, logger);
 
 		try {
