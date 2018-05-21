@@ -15,6 +15,7 @@ import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -143,7 +144,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		XLFileHelper helper = getHelper(filePath, newHeaders);
 		logger.info("Done loading excel file");
 
-		OWLER owler = new OWLER(engine, owlFile.getAbsolutePath());
+		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, clean, logger);
 
 		try {
