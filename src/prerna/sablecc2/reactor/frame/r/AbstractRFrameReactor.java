@@ -64,7 +64,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		} else {
 			newTable = new RDataTable(frameName);
 		}
-		ImportUtility.parseColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
+		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		return newTable;
 	}
 	

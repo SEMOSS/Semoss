@@ -397,12 +397,12 @@ public class ImportUtility {
 	 * @param types
 	 * @param frameTableName
 	 */
-	public static void parseColumnsAndTypesToFlatTable(ITableDataFrame dataframe, String[] columns, String[] types, String frameTableName) {
+	public static void parserRTableColumnsAndTypesToFlatTable(ITableDataFrame dataframe, String[] columns, String[] types, String frameTableName) {
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		metaData.addVertex(frameTableName);
 		metaData.setPrimKeyToVertex(frameTableName, true);
-		
+		metaData.setQueryStructNameToVertex(frameTableName, "UNKNOWN_R", frameTableName);
 		int numCols = columns.length;
 		for(int i = 0; i < numCols; i++) {
 			String columnName = columns[i];
@@ -412,6 +412,7 @@ public class ImportUtility {
 			metaData.addProperty(frameTableName, uniqueHeader);
 			metaData.setAliasToProperty(uniqueHeader, columnName);
 			metaData.setDataTypeToProperty(uniqueHeader, type);
+			metaData.setQueryStructNameToProperty(uniqueHeader, "UNKNOWN_R", uniqueHeader);
 		}
 	}
 	
