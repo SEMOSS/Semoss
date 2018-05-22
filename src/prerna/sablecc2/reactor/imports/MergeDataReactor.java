@@ -297,12 +297,8 @@ public class MergeDataReactor extends AbstractReactor {
 		// try specific key
 		{
 			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-			if(grs != null && !grs.isEmpty()) {
-				int size = grs.size();
-				for(int i = 0; i < size; i++) {
-					joins.add( (Join) grs.get(i));
-				}
-				
+			joins = grs.getAllJoins();
+			if(joins != null && !joins.isEmpty()) {
 				return joins;
 			}
 		}
