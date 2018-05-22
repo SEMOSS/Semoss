@@ -54,6 +54,19 @@ public class InsightUtility {
 				RDataTable frame = (RDataTable)dm;
 				frame.executeRScript("gc(" + frame.getTableName() + ");");
 			}
+			
+			// if it is the current frame
+			// also remove it
+			if(dm == varStore.get(Insight.CUR_FRAME_KEY)) {
+				varStore.remove(Insight.CUR_FRAME_KEY);
+			} else if(key.equals(Insight.CUR_FRAME_KEY)) {
+				// if we are removing curframekey
+				// also remove if it is added twice with its alias
+				String alias = dm.getTableName();
+				if(alias != null && !alias.isEmpty()) {
+					varStore.remove(alias);
+				}
+			}
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
