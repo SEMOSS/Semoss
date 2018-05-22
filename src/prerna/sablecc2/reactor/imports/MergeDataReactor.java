@@ -274,11 +274,22 @@ public class MergeDataReactor extends AbstractReactor {
 		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 	
+	private SelectQueryStruct getQueryStruct() {
+		GenRowStruct allNouns = getNounStore().getNoun(this.keysToGet[1]);
+		SelectQueryStruct queryStruct = null;
+		if(allNouns != null) {
+			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
+			return (SelectQueryStruct)object.getValue();
+		} 
+
+		return queryStruct;
+	}
+	
 	private List<Join> getJoins() {
 		List<Join> joins = new Vector<Join>();
 		// try specific key
 		{
-			GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
 			if(grs != null && !grs.isEmpty()) {
 				int size = grs.size();
 				for(int i = 0; i < size; i++) {
@@ -302,17 +313,6 @@ public class MergeDataReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Could not find the columns for the join");
 	}
 
-	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
-		SelectQueryStruct queryStruct = null;
-		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
-			return (SelectQueryStruct)object.getValue();
-		} 
-
-		return queryStruct;
-	}
-	
 	private ITask getTask() {
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.TASK.name());
 		ITask task = null;
