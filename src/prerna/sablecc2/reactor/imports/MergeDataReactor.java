@@ -45,7 +45,7 @@ public class MergeDataReactor extends AbstractReactor {
 		frame.setLogger(logger);
 		
 		// first convert the join to use the physical frame name in the selector
-		List<Join> joins = this.curRow.getAllJoins();
+		List<Join> joins = getJoins();
 		joins = convertJoins(joins, frame.getMetaData());
 		
 		// we could either be merging from a QS that we want to convert into a task
@@ -272,6 +272,34 @@ public class MergeDataReactor extends AbstractReactor {
 		}
 		
 		return (ITableDataFrame) this.insight.getDataMaker();
+	}
+	
+	private List<Join> getJoins() {
+		List<Join> joins = new Vector<Join>();
+		// try specific key
+		{
+			GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+			if(grs != null && !grs.isEmpty()) {
+				int size = grs.size();
+				for(int i = 0; i < size; i++) {
+					joins.add( (Join) grs.get(i));
+				}
+				
+				return joins;
+			}
+		}
+		
+		List<NounMetadata> joinsCur = this.curRow.getNounsOfType(PixelDataType.JOIN);
+		if(joinsCur != null && !joinsCur.isEmpty()) {
+			int size = joinsCur.size();
+			for(int i = 0; i < size; i++) {
+				joins.add( (Join) joinsCur.get(i).getValue());
+			}
+			
+			return joins;
+		}
+		
+		throw new IllegalArgumentException("Could not find the columns for the join");
 	}
 
 	private SelectQueryStruct getQueryStruct() {

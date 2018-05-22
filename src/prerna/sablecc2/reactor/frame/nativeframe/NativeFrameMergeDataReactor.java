@@ -16,6 +16,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.imports.FileMeta;
@@ -25,8 +26,10 @@ import prerna.util.ga.GATracker;
 
 public class NativeFrameMergeDataReactor extends AbstractReactor {
 
-	private static final String FRAME = "frame";
-
+	public NativeFrameMergeDataReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey(), ReactorKeysEnum.JOINS.getKey()};
+	}
+	
 	@Override
 	public NounMetadata execute()  {
 		ITableDataFrame frame = getFrame();
@@ -38,7 +41,7 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		// will not return anything
 		// but will update the frame in the pixel planner
 		SelectQueryStruct qs = getQueryStruct();
-		List<Join> joins = this.curRow.getAllJoins();
+		List<Join> joins = getJoins();
 		// first convert the join to use the physical frame name in the selector
 		joins = convertJoins(joins, frame.getMetaData());
 
@@ -90,9 +93,18 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Getters for the reactor
+	 */
+	
 	private ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(FRAME);
+		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
@@ -103,6 +115,34 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		}
 		
 		return (ITableDataFrame) this.insight.getDataMaker();
+	}
+	
+	private List<Join> getJoins() {
+		List<Join> joins = new Vector<Join>();
+		// try specific key
+		{
+			GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
+			if(grs != null && !grs.isEmpty()) {
+				int size = grs.size();
+				for(int i = 0; i < size; i++) {
+					joins.add( (Join) grs.get(i));
+				}
+				
+				return joins;
+			}
+		}
+		
+		List<NounMetadata> joinsCur = this.curRow.getNounsOfType(PixelDataType.JOIN);
+		if(joinsCur != null && !joinsCur.isEmpty()) {
+			int size = joinsCur.size();
+			for(int i = 0; i < size; i++) {
+				joins.add( (Join) joinsCur.get(i).getValue());
+			}
+			
+			return joins;
+		}
+		
+		throw new IllegalArgumentException("Could not find the columns for the join");
 	}
 
 	private SelectQueryStruct getQueryStruct() {
