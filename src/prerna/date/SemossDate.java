@@ -69,4 +69,12 @@ public class SemossDate {
 		return getFormattedDate();
 	}
 	
+	/**
+	 * Using this to test the string value + pattern
+	 * @return
+	 */
+	public String testToString() {
+		return this.dateVal + " ::: " + this.pattern;
+	}
+	
 }
