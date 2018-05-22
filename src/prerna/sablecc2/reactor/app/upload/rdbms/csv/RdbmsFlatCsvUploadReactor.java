@@ -454,7 +454,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 						if(format != null && !format.isEmpty()) {
 							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
 							if(value != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
 							} else {
 								// set default as null
 								ps.setObject(colIndex+1, null);
