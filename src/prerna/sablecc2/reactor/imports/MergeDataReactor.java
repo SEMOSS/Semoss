@@ -275,12 +275,19 @@ public class MergeDataReactor extends AbstractReactor {
 	}
 	
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct allNouns = getNounStore().getNoun(this.keysToGet[1]);
 		SelectQueryStruct queryStruct = null;
-		if(allNouns != null) {
-			NounMetadata object = (NounMetadata)allNouns.getNoun(0);
+
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
+		if(grs != null) {
+			NounMetadata object = (NounMetadata)grs.getNoun(0);
 			return (SelectQueryStruct)object.getValue();
-		} 
+		}
+		
+		grs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
+		if(grs != null) {
+			NounMetadata object = (NounMetadata) grs.getNoun(0);
+			return (SelectQueryStruct)object.getValue();
+		}
 
 		return queryStruct;
 	}
