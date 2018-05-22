@@ -41,7 +41,9 @@ public class CreateFrameReactor extends AbstractReactor {
 		// any existing frame that was in use
 		if(overrideFrame()) {
 			this.insight.setDataMaker(newFrame);
-		} else {
+		}
+		// add the alias as a noun by default
+		if(alias != null && !alias.isEmpty()) {
 			this.insight.getVarStore().put(alias, noun);
 		}
 		
