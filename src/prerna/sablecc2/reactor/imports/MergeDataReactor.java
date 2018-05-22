@@ -261,7 +261,7 @@ public class MergeDataReactor extends AbstractReactor {
 	
 	private ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
