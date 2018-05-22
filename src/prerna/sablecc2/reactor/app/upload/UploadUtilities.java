@@ -266,11 +266,11 @@ public class UploadUtilities {
 		BufferedWriter bufferedWriter = null;
 		try {
 			File newFile = new File(appTempSmssLoc);
-			bufferedWriter = new BufferedWriter(writer);
 			writer = new FileWriter(newFile);
-			writer.write("Base Properties" +  newLine);
-			writer.write(Constants.ENGINE + tab + appName + newLine);
-			writer.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
+			bufferedWriter = new BufferedWriter(writer);
+			bufferedWriter.write("Base Properties" +  newLine);
+			bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
+			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
 			// write insights rdbms
 			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
 		} catch (IOException ex) {
