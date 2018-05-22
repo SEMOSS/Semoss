@@ -434,7 +434,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			if(objects.size() > 1) {
 				multi = true;
 				myFilterFormatted = RSyntaxHelper.createRColVec(objects, leftDataType);
-			} else if(SemossDataType.DATE != leftDataType) {
+			} else {
 				// dont bother doing this if we have a date
 				// since we cannot use "in" with dates
 				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
