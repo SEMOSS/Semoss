@@ -13,8 +13,9 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 	
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		//get the selectors
-		String engineName = (String) this.curRow.get(0);
+		// get the selectors
+		this.organizeKeys();
+		String engineName = this.keyValue.get(this.keysToGet[0]);
 		this.qs.setEngineName(engineName);
 		// need to account if this is a hard query struct
 		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
