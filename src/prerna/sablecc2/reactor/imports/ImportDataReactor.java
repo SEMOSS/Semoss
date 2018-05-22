@@ -81,7 +81,7 @@ public class ImportDataReactor extends AbstractReactor {
 	
 	private ITableDataFrame getFrame() {
 		// try specific key
-		GenRowStruct frameGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[1]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
 			return (ITableDataFrame) frameGrs.get(0);
 		}
