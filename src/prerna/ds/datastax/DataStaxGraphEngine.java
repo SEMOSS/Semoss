@@ -14,7 +14,7 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.DataStaxGremlinMapInterp;
+import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -88,8 +88,8 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		return this.nameMap;
 	}
 	
-	public IQueryInterpreter getQueryInterpreter2() {
-		return new DataStaxGremlinMapInterp(this.graphTraversalSession, this.typeMap, this.nameMap);
+	public IQueryInterpreter getQueryInterpreter() {
+		return new GremlinNoEdgeBindInterpreter(this.graphTraversalSession, this.typeMap, this.nameMap);
 	}
 	
 	@Override
