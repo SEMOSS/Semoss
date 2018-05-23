@@ -113,7 +113,7 @@ public class WrapperManager {
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
-			GremlinMapInterp interpreter = new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap());
+			GremlinMapInterp interpreter = new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap());
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getTypeMap()), qs);
 			break;
