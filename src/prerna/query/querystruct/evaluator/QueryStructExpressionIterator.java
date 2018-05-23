@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.ds.TinkerHeadersDataRowIteratorMap;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
@@ -38,11 +39,16 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	private List<String> mathOperation;
 	private List<Integer> groupByIndex;
 	private String[] headers;
+	private String[] types;
+	
 	/**
 	 * Constructor
 	 */
 	public QueryStructExpressionIterator(Iterator<IHeadersDataRow> mainIterator, SelectQueryStruct qs) {
 		this.mainIterator = mainIterator;
+		if(mainIterator instanceof TinkerHeadersDataRowIteratorMap) {
+			this.types = ((TinkerHeadersDataRowIteratorMap) mainIterator).getTypes();
+		}
 		this.qs = qs;
 		init();
 	}
@@ -197,11 +203,13 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	@Override
 	public String[] getTypes() {
 		int size = this.headers.length;
-		String[] types = new String[size];
+		if(this.types == null) {
+			this.types = new String[size];
+		}
 		for(int i = 0; i < size; i++) {
 			if(this.mathIndex.contains(new Integer(i))) {
-				types[i] = "NUMBER";
-			} else {
+				this.types[i] = "NUMBER";
+			} else if(types[i] == null){
 				types[i] = "STRING";
 			}
 		}

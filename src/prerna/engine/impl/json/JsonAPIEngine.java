@@ -778,7 +778,7 @@ public class JsonAPIEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public IQueryInterpreter getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter(){
 		return new JsonInterpreter(this);
 	}
 

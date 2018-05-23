@@ -559,7 +559,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		 * 4. Add the properties
 		 * 5. For every, type 
 		 */
-		IQueryInterpreter builder = getQueryInterpreter2();
+		IQueryInterpreter builder = getQueryInterpreter();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setEngine(this);
 		
@@ -757,7 +757,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public IQueryInterpreter getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter(){
 		// defualt ansi sql 
 		return new SqlInterpreter(this);
 	}
