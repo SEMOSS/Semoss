@@ -460,8 +460,7 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 		// upsert the subject vertex
 		Vertex startV = null;
 		try {
-			startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-					new Object[] { subjectNodeType, instanceSubjectName });
+			startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
