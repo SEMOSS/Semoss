@@ -1,6 +1,8 @@
 runApriori <- function(dt, attrList, transactionIdList = NULL, support = NULL, confidence = NULL, maxlen = NULL, sortBy = "lift", lhsSpecified = NULL, rhsSpecified = NULL) 
 {
 	lapply(list('data.table', 'arules', 'dpylr'), require, character.only = TRUE)
+	
+	set.seed(123)
 		
 	#data prep / create transaction object
 	txn <- 
