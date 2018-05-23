@@ -142,7 +142,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<Object[]> getAllTablesAndColumns(String engineName) {
-		String query = "select c.conceptualname as column, c2.conceptualname as table, ec.property_type as type, ec.pk as pk "
+		String query = "select distinct c.conceptualname as column, c2.conceptualname as table, ec.property_type as type, ec.pk as pk "
 				+ "from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2 "
 				+ "where e.id = ec.engine "
 				+ "and e.enginename = '" + engineName + "' "
@@ -597,11 +597,11 @@ public class MasterDatabaseUtility {
 					nodeHash.put(engineName + "." + conceptualName, node);
 				}
 
-				if (!conceptName.equalsIgnoreCase(parentName)) {
+//				if (!conceptName.equalsIgnoreCase(parentName)) {
 					// might be this or might not be
 					// node.addProperty(engineName+ "." +conceptName);
 					node.addProperty(conceptName);
-				}
+//				}
 			}
 		} catch (SQLException ex) {
 			ex.printStackTrace();
@@ -632,8 +632,8 @@ public class MasterDatabaseUtility {
 				// need to check to see if the idHash has it else put it in
 				String sourceName = idHash.get(startId);
 				String targetName = idHash.get(endId);
-				newEdge.put("source", engineName + "." + sourceName);
-				newEdge.put("target", engineName + "." + targetName);
+				newEdge.put("source", engineName + "." + sourceName + "." + sourceName);
+				newEdge.put("target", engineName + "." + targetName + "." + targetName);
 
 				// if(nodeHash.containsKey(toId))
 
@@ -648,7 +648,7 @@ public class MasterDatabaseUtility {
 				}
 
 				if (foundNode) {
-					edgeHash.put(engineName + "." + sourceName + "-" + engineName + "." + targetName, newEdge);
+					edgeHash.put(engineName + "." + sourceName + "." + sourceName + "-" + engineName + "." + targetName + "." + targetName, newEdge);
 				}
 			}
 			finalHash.put("nodes", nodeHash);
