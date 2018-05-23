@@ -32,20 +32,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GremlinMapInterp extends AbstractQueryInterpreter {
 
 	// reference for getting actual names for loops within frames
-	private OwlTemporalEngineMeta meta;
+	protected OwlTemporalEngineMeta meta;
 	// all the filters being used
-	private GenRowFilters allFilters;
+	protected GenRowFilters allFilters;
 	
 	// the gremlin traversal being created
-	private GraphTraversal gt;
+	protected GraphTraversal gt;
 	// the list of variables being returned within the traversal
-	private List<String> selectors;
+	protected List<String> selectors;
 	// the list of properties for a given vertex
-	private Map<String, List<String>> propHash;
+	protected Map<String, List<String>> propHash;
 	// identify the name for the type of the name
-	private Map<String, String> typeMap;
+	protected Map<String, String> typeMap;
 	// identify the name for the vertex label
-	private Map<String, String> nameMap;
+	protected Map<String, String> nameMap;
 		
 	public GremlinMapInterp(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
 		this.gt = gt.V();
@@ -77,7 +77,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		return this.gt;
 	}
 
-	private void setSelectors() {
+	protected void setSelectors() {
 		// note, we add all things in the alias map even if they are not returned
 		// i.e. remember we can skip intermediary nodes
 		List<String> allAliasSelectors = new Vector<String>();
@@ -110,7 +110,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * Store both the list of selectors (which includes names of vertices and properties)
 	 * Also maintain a list of vertex to list of properties
 	 */
-	private void generateSelectors() {
+	protected void generateSelectors() {
 		if (this.selectors == null) {
 			// generate the names for each component of the selector
 			this.selectors = new Vector<String>();
@@ -148,7 +148,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		}
 	}
 
-	private void traverseRelations() {
+	protected void traverseRelations() {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
 		if(edgeMap.isEmpty()) {
 			// we have only a single selector
@@ -273,7 +273,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * Add the filter object to the current graph traversal
 	 * @param filterVec
 	 */
-	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec, String filterPropertyName) {
+	protected void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec, String filterPropertyName) {
 		for(SimpleQueryFilter filter : filterVec) {
 			SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 			NounMetadata lComp = filter.getLComparison();
@@ -298,7 +298,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * @param valuesComp
 	 * @param comparison
 	 */
-	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison, String filterPropertyName) {
+	protected void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison, String filterPropertyName) {
 		PixelDataType dataType = valuesComp.getNounType();
 		Object filterObject = valuesComp.getValue();
 		List<Object> filterValues = new Vector<Object>();
@@ -359,7 +359,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * @param traversals
 	 * @return
 	 */
-	private List<GraphTraversal<Object, Object>> visitNode(
+	protected List<GraphTraversal<Object, Object>> visitNode(
 			String startName,
 			Map<String, Set<String>> edgeMap,
 			List<String> travelledEdges,
@@ -484,7 +484,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	}
 
 	// using filters to apply the queried properties to the nodes
-	private List<GraphTraversal<Object, Object>> getProperties(GraphTraversal twoStepT, String startName) {
+	protected List<GraphTraversal<Object, Object>> getProperties(GraphTraversal twoStepT, String startName) {
 		List<GraphTraversal<Object, Object>> propTraversals = new Vector<GraphTraversal<Object, Object>>();
 		List<String> propTraversalSelect = new Vector<String>();
 		// iterate through nodes using propHash
@@ -518,7 +518,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * @param edgeMap
 	 * @return
 	 */
-	private Set<String> getUpstreamNodes(String downstreamNodeToFind, Map<String, Set<String>> edgeMap) {
+	protected Set<String> getUpstreamNodes(String downstreamNodeToFind, Map<String, Set<String>> edgeMap) {
 		Set<String> upstreamNodes = new HashSet<String>();
 		for (String possibleUpstreamNode : edgeMap.keySet()) {
 			Set<String> downstreamNodes = edgeMap.get(possibleUpstreamNode);
@@ -531,7 +531,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		return upstreamNodes;
 	}
 
-	private void addOrderBy() {
+	protected void addOrderBy() {
 		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
 		int numOrderBys = orderBy.size();
 		for(int i = 0; i < numOrderBys; i++) {
@@ -567,7 +567,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * If engine has defined a specific value, we will use that
 	 */
 	
-	private String getNodeType(String node) {
+	protected String getNodeType(String node) {
 		if(this.typeMap != null) {
 			if(this.typeMap.containsKey(node)) {
 				return this.typeMap.get(node);
@@ -576,7 +576,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		return TinkerFrame.TINKER_TYPE;
 	}
 	
-	private String getNodeName(String node) {
+	protected String getNodeName(String node) {
 		if(this.nameMap != null) {
 			if(this.nameMap.containsKey(node)) {
 				return this.nameMap.get(node);
@@ -592,7 +592,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * @param node
 	 * @return
 	 */
-	private String getPhysicalNodeType(String node) {
+	protected String getPhysicalNodeType(String node) {
 		if(this.meta == null) {
 			return node;
 		}
