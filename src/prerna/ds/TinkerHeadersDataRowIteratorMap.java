@@ -16,9 +16,10 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 
 	private SelectQueryStruct qs;
 	private Iterator baseIterator;
-	private String[] headerAlias;
 	private String[] header;
+	private String[] headerAlias;
 	private String[] headerOrdering;
+	private String[] types;
 	private Map<String,String> nameMap;
 
 	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> nameMap) {
@@ -92,6 +93,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 	private void flushOutHeaders(List<IQuerySelector> selectors, OwlTemporalEngineMeta meta) {
 		int numHeaders = selectors.size();
 		this.header = new String[numHeaders];
+		this.types = new String[numHeaders];
 		this.headerAlias = new String[numHeaders];
 		this.headerOrdering = new String[numHeaders];
 		int index = 0;
@@ -103,6 +105,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 				this.headerOrdering[index] = qsName;
 				this.header[index] = alias;
 				this.headerAlias[index] = getNodeAlias(meta, alias);
+				this.types[index] = getTypes(meta, qsName);
 			} else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				List<IQuerySelector> innerSelectorList = ((QueryFunctionSelector) header).getInnerSelector();
 				for(IQuerySelector innerSelector : innerSelectorList) {
@@ -113,6 +116,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 						this.headerOrdering[index] = qsName;
 						this.header[index] = alias;
 						this.headerAlias[index] = getNodeAlias(meta, alias);
+						this.types[index] = ((QueryFunctionSelector) header).getDataType();
 					}
 				}
 			}
@@ -120,6 +124,27 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 		}
 	}
 	
+	/**
+	 * Get the types
+	 * @return
+	 */
+	public String[] getTypes() {
+		return this.types;
+	}
+	
+	/**
+	 * Get the type from the OWL if present
+	 * @param meta
+	 * @param qsName
+	 * @return
+	 */
+	private String getTypes(OwlTemporalEngineMeta meta, String qsName) {
+		if(meta == null) {
+			return null;
+		}
+		return meta.getHeaderTypeAsString(qsName);
+	}
+
 	/**
 	 * For some of the nodes that have not been given an alias
 	 * If there is an implicit alias on it (a physical name that matches an existing name)

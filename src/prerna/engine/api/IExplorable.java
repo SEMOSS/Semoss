@@ -91,7 +91,7 @@ public interface IExplorable {
 	// get property
 	String getProperty(String key);
 	
-	IQueryInterpreter getQueryInterpreter2();
+	IQueryInterpreter getQueryInterpreter();
 	
 	/**
 	 * Returns the list of concepts as defined by the OWL file

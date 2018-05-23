@@ -13,13 +13,13 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 
-public class DataStaxGremlinMapInterp extends GremlinMapInterp {
+public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 
-	public DataStaxGremlinMapInterp(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
+	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
 		super(gt, typeMap, nameMap);
 	}
 	
-	public DataStaxGremlinMapInterp(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
+	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
 		super(gt, meta);
 	}
 

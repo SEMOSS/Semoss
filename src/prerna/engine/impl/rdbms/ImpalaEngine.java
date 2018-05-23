@@ -10,7 +10,7 @@ public class ImpalaEngine extends RDBMSNativeEngine {
 		
 	}
 	
-	public IQueryInterpreter getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter(){
 		return new ImpalaInterpreter(this);
 	}
 	

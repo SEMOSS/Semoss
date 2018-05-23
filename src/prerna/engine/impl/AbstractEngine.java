@@ -525,7 +525,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter(){
 		return new SparqlInterpreter(this);
 	}
 	
