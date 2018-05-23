@@ -1,10 +1,12 @@
 package prerna.ds.datastax;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.datastax.driver.dse.DseCluster;
@@ -24,8 +26,8 @@ import prerna.util.Utility;
 public class DataStaxGraphEngine extends AbstractEngine {
 	
 	private GraphTraversalSource graphTraversalSession;
-	private Map<String, String> typeMap;
-	
+	private Map<String, String> typeMap = new HashMap<String, String>();
+	private Map<String, String> nameMap = new HashMap<String, String>();
 
 	@Override
 	public void openDB(String propFile) {
@@ -36,11 +38,13 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		String username = this.prop.getProperty("USERNAME");
 		String password = this.prop.getProperty("PASSWORD");
 		String graphName = this.prop.getProperty("GRAPH_NAME");
-		// node type to property value map
+		// get the type map
 		String typeMapStr = this.prop.getProperty("TYPE_MAP");
+		// get the name map
+		String nameMapStr = this.prop.getProperty("NAME_MAP");
 
 		DseCluster dseCluster = null;
-		if (username != null && password != null) {
+		if(username != null && password != null) {
 			dseCluster = DseCluster.builder().addContactPoint(host).withCredentials(username, password)
 					.withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName))
 					.build();
@@ -48,11 +52,18 @@ public class DataStaxGraphEngine extends AbstractEngine {
 			dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port))
 					.withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
 		}
-		if (dseCluster != null) {
+		if(dseCluster != null) {
 			DseSession dseSession = dseCluster.connect();
 			if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 				try {
 					this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(nameMapStr != null && !nameMapStr.trim().isEmpty()) {
+				try {
+					this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -70,8 +81,16 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		return this.graphTraversalSession;
 	}
 	
+	public Graph getGraph() {
+		return this.graphTraversalSession.getGraph();
+	}
+	
 	public Map<String, String> getTypeMap() {
 		return this.typeMap;
+	}
+	
+	public Map<String, String> getNameMap() {
+		return this.nameMap;
 	}
 	
 	public IQueryInterpreter getQueryInterpreter2() {
