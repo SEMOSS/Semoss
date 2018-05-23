@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
@@ -21,11 +20,13 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 	private String[] header;
 	private String[] headerOrdering;
 	private Map<String,String> typeMap;
+	private Map<String,String> nameMap;
 
-	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> typeMap) {
+	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> typeMap, Map<String, String> nameMap) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		this.typeMap = typeMap;
+		this.nameMap = nameMap;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
 	
@@ -57,7 +58,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 				Object value = null;
 				if (vertOrProp instanceof Vertex) {
 					String node = this.headerOrdering[colIndex];
-					String name = this.typeMap.get(node);
+					String name = getNodeName(node);
 					value = ((Vertex) vertOrProp).value(name);
 				} else {
 					value = vertOrProp;
@@ -74,7 +75,7 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 			if(data instanceof Vertex) {
 				Vertex vertex = (Vertex) data;
 				String node = this.headerOrdering[0];
-				String name = this.typeMap.get(node);
+				String name = getNodeName(node);
 				retObject = new Object[]{vertex.value(name)};
 			} else {
 				// some object to return
@@ -135,6 +136,15 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 		return meta.getPhysicalName(node);
 	}
 
+	private String getNodeName(String node) {
+		if(this.nameMap != null) {
+			if(this.nameMap.containsKey(node)) {
+				return this.nameMap.get(node);
+			}
+		}
+		return TinkerFrame.TINKER_NAME;
+	}
+	
 	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
