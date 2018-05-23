@@ -114,7 +114,7 @@ public class WrapperManager {
 			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
-					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap()),
+					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getNameMap()),
 					qs);
 			break;
 		}
@@ -125,7 +125,7 @@ public class WrapperManager {
 			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
-					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((DataStaxGraphEngine) engine).getTypeMap(), ((DataStaxGraphEngine) engine).getNameMap()),
+					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((DataStaxGraphEngine) engine).getNameMap()),
 					qs);
 			break;
 		}
