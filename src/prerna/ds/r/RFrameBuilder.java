@@ -405,8 +405,7 @@ public class RFrameBuilder {
 		// loop through time stamps dates
 		for(String format : dateTimeMap.keySet()) {
 			String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
-			System.out.println(rFormat);
-			this.rJavaTranslator.runR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeMap.get(format)) ) );
+			this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeMap.get(format)) );
 		}
 	}
 	
