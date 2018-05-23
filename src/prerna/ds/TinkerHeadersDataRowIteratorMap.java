@@ -19,13 +19,11 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 	private String[] headerAlias;
 	private String[] header;
 	private String[] headerOrdering;
-	private Map<String,String> typeMap;
 	private Map<String,String> nameMap;
 
-	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> typeMap, Map<String, String> nameMap) {
+	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> nameMap) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
-		this.typeMap = typeMap;
 		this.nameMap = nameMap;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
