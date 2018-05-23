@@ -13,8 +13,8 @@ import java.util.Vector;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
@@ -31,29 +31,30 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GremlinInterpreter extends AbstractQueryInterpreter {
 
-	// reference to the graph which can execute gremlin
-	private Graph g;
 	// reference for getting actual names for loops within frames
-	private OwlTemporalEngineMeta meta;
+	protected OwlTemporalEngineMeta meta;
 	// all the filters being used
-	private GenRowFilters allFilters;
+	protected GenRowFilters allFilters;
 	
 	// the gremlin traversal being created
-	private GraphTraversal gt;
+	protected GraphTraversal gt;
 	// the list of variables being returned within the traversal
-	private List<String> selectors;
+	protected List<String> selectors;
 	// the list of properties for a given vertex
-	private Map<String, List<String>> propHash;
-	// store the unique name to the 
-
-	public GremlinInterpreter(Graph g) {
-		this.g = g;
-		this.gt = g.traversal().V();
+	protected Map<String, List<String>> propHash;
+	// identify the name for the type of the name
+	protected Map<String, String> typeMap;
+	// identify the name for the vertex label
+	protected Map<String, String> nameMap;
+		
+	public GremlinInterpreter(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
+		this.gt = gt.V();
+		this.typeMap = typeMap;
+		this.nameMap = nameMap;
 	}
 	
-	public GremlinInterpreter(Graph g, OwlTemporalEngineMeta meta) {
-		this.g = g;
-		this.gt = g.traversal().V();
+	public GremlinInterpreter(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
+		this.gt = gt.V();
 		this.meta = meta;
 	}
 
@@ -76,7 +77,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		return this.gt;
 	}
 
-	private void setSelectors() {
+	protected void setSelectors() {
 		// note, we add all things in the alias map even if they are not returned
 		// i.e. remember we can skip intermediary nodes
 		List<String> allAliasSelectors = new Vector<String>();
@@ -109,7 +110,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * Store both the list of selectors (which includes names of vertices and properties)
 	 * Also maintain a list of vertex to list of properties
 	 */
-	private void generateSelectors() {
+	protected void generateSelectors() {
 		if (this.selectors == null) {
 			// generate the names for each component of the selector
 			this.selectors = new Vector<String>();
@@ -147,7 +148,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 
-	private void traverseRelations() {
+	protected void traverseRelations() {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
 		if(edgeMap.isEmpty()) {
 			// we have only a single selector
@@ -162,12 +163,14 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 			// but is this traversal, to get a vertex
 			// or a property on the vertex
 			if(props != null) {
+//				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
+
 				// it is for a property on a vertex
 				GraphTraversal twoStepT = __.as(selector);
 
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(twoStepT, startNodeFilters, TinkerFrame.TINKER_NAME);
+				addFiltersToPath(twoStepT, startNodeFilters, getNodeName(selector));
 
 				List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selector);
 				if (propTraversals.size() > 0) {
@@ -177,10 +180,10 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(selector)).as(selector);
+				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(this.gt, startNodeFilters, TinkerFrame.TINKER_NAME);
+				addFiltersToPath(this.gt, startNodeFilters, getNodeName(selector));
 			}
 		} else {
 			// we need to go through the traversal
@@ -250,9 +253,9 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
-		this.gt = this.gt.has(TinkerFrame.TINKER_TYPE, getNodeType(startNode)).as(startNode);
+		this.gt = this.gt.has(getNodeType(startNode), getPhysicalNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
-		addFiltersToPath(this.gt, startNodeFilters, TinkerFrame.TINKER_NAME);
+		addFiltersToPath(this.gt, startNodeFilters, getNodeName(startNode));
 
 		List<String> travelledEdges = new Vector<String>();
 		List<String> travelledNodeProperties = new Vector<String>();
@@ -270,7 +273,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * Add the filter object to the current graph traversal
 	 * @param filterVec
 	 */
-	private void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec, String filterPropertyName) {
+	protected void addFiltersToPath(GraphTraversal traversalSegment, List<SimpleQueryFilter> filterVec, String filterPropertyName) {
 		for(SimpleQueryFilter filter : filterVec) {
 			SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
 			NounMetadata lComp = filter.getLComparison();
@@ -295,7 +298,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * @param valuesComp
 	 * @param comparison
 	 */
-	private void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison, String filterPropertyName) {
+	protected void processFilterColToValues(GraphTraversal traversalSegment, NounMetadata colComp, NounMetadata valuesComp, String comparison, String filterPropertyName) {
 		PixelDataType dataType = valuesComp.getNounType();
 		Object filterObject = valuesComp.getValue();
 		List<Object> filterValues = new Vector<Object>();
@@ -356,7 +359,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * @param traversals
 	 * @return
 	 */
-	private List<GraphTraversal<Object, Object>> visitNode(
+	protected List<GraphTraversal<Object, Object>> visitNode(
 			String startName,
 			Map<String, Set<String>> edgeMap,
 			List<String> travelledEdges,
@@ -391,10 +394,10 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 						}
 					}
 
-					twoStepT = twoStepT.out(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(downstreamNodeType)).as(downstreamNodeType);
+					twoStepT = twoStepT.out(edgeKey).has(getNodeType(downstreamNodeType), getPhysicalNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters, TinkerFrame.TINKER_NAME);
+					addFiltersToPath(twoStepT, nodeFilters, getNodeName(downstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(downstreamNodeType)) {
@@ -446,11 +449,11 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in(edgeKey).has(TinkerFrame.TINKER_TYPE, getNodeType(upstreamNodeType)).as(upstreamNodeType);
+					twoStepT = twoStepT.in(edgeKey).has(getNodeType(upstreamNodeType), getPhysicalNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters, TinkerFrame.TINKER_NAME);
+					addFiltersToPath(twoStepT, nodeFilters, getNodeName(upstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(upstreamNodeType)) {
@@ -481,7 +484,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	}
 
 	// using filters to apply the queried properties to the nodes
-	private List<GraphTraversal<Object, Object>> getProperties(GraphTraversal twoStepT, String startName) {
+	protected List<GraphTraversal<Object, Object>> getProperties(GraphTraversal twoStepT, String startName) {
 		List<GraphTraversal<Object, Object>> propTraversals = new Vector<GraphTraversal<Object, Object>>();
 		List<String> propTraversalSelect = new Vector<String>();
 		// iterate through nodes using propHash
@@ -515,7 +518,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * @param edgeMap
 	 * @return
 	 */
-	private Set<String> getUpstreamNodes(String downstreamNodeToFind, Map<String, Set<String>> edgeMap) {
+	protected Set<String> getUpstreamNodes(String downstreamNodeToFind, Map<String, Set<String>> edgeMap) {
 		Set<String> upstreamNodes = new HashSet<String>();
 		for (String possibleUpstreamNode : edgeMap.keySet()) {
 			Set<String> downstreamNodes = edgeMap.get(possibleUpstreamNode);
@@ -528,7 +531,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		return upstreamNodes;
 	}
 
-	private void addOrderBy() {
+	protected void addOrderBy() {
 		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
 		int numOrderBys = orderBy.size();
 		for(int i = 0; i < numOrderBys; i++) {
@@ -539,9 +542,9 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.incr);
+					gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
 				} else {
-					gt = gt.select(tableName).order().by(TinkerFrame.TINKER_NAME, Order.decr);
+					gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
 				}
 			}
 			//order by for property
@@ -555,6 +558,33 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
+	//////////////////////////////////////////////////////////
+	
+	/*
+	 * Getters for the type and name of the node
+	 * Default will be what we create on upload of tinker / frames of tinker
+	 * 
+	 * If engine has defined a specific value, we will use that
+	 */
+	
+	protected String getNodeType(String node) {
+		if(this.typeMap != null) {
+			if(this.typeMap.containsKey(node)) {
+				return this.typeMap.get(node);
+			}
+		}
+		return TinkerFrame.TINKER_TYPE;
+	}
+	
+	protected String getNodeName(String node) {
+		if(this.nameMap != null) {
+			if(this.nameMap.containsKey(node)) {
+				return this.nameMap.get(node);
+			}
+		}
+		return TinkerFrame.TINKER_NAME;
+	}
+	
 	/**
 	 * Method to get the actual type of the node
 	 * This is important for loops when we want the node to not be doubled
@@ -562,7 +592,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 * @param node
 	 * @return
 	 */
-	private String getNodeType(String node) {
+	protected String getPhysicalNodeType(String node) {
 		if(this.meta == null) {
 			return node;
 		}

@@ -29,7 +29,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.query.interpreters.GremlinMapInterp;
+import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -158,8 +158,8 @@ public class TinkerEngine extends AbstractEngine {
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter2() {
-		return new GremlinMapInterp(this.g.traversal(), this.typeMap, this.nameMap);
+	public IQueryInterpreter getQueryInterpreter() {
+		return new GremlinInterpreter(this.g.traversal(), this.typeMap, this.nameMap);
 	}
 
 	@Override

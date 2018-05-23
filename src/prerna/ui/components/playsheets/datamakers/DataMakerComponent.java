@@ -251,7 +251,7 @@ public class DataMakerComponent {
 	 */
 	private String buildQuery() {
 		SelectQueryStruct newQs = QueryStructConverter.convertOldQueryStruct(qs);
-		IQueryInterpreter builder = getEngine().getQueryInterpreter2();
+		IQueryInterpreter builder = getEngine().getQueryInterpreter();
 		builder.setQueryStruct(newQs);
 		return builder.composeQuery();
 	}

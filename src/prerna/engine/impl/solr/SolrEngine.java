@@ -197,7 +197,7 @@ public class SolrEngine extends AbstractEngine {
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter2() {
+	public IQueryInterpreter getQueryInterpreter() {
 		return new SolrInterpreter();
 	}
 	
