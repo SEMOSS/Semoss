@@ -44,13 +44,16 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	private List<String> selectors;
 	// the list of properties for a given vertex
 	private Map<String, List<String>> propHash;
-	// store the unique name to the 
-	Map<String, String> typeMap;
-	
-	public GremlinMapInterp(Graph g, Map<String, String> typeMap) {
+	// identify the name for the type of the name
+	private Map<String, String> typeMap;
+	// identify the name for the vertex label
+	private Map<String, String> nameMap;
+		
+	public GremlinMapInterp(Graph g, Map<String, String> typeMap, Map<String, String> nameMap) {
 		this.g = g;
 		this.gt = g.traversal().V();
 		this.typeMap = typeMap;
+		this.nameMap = nameMap;
 	}
 	
 	public GremlinMapInterp(Graph g, OwlTemporalEngineMeta meta) {
@@ -164,14 +167,14 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 			// but is this traversal, to get a vertex
 			// or a property on the vertex
 			if(props != null) {
-				this.gt.has(typeMap.get(selector), getNodeType(selector)).as(selector);
+				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
 
 				// it is for a property on a vertex
 				GraphTraversal twoStepT = __.as(selector);
 
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(twoStepT, startNodeFilters, this.typeMap.get(selector));
+				addFiltersToPath(twoStepT, startNodeFilters, getNodeName(selector));
 
 				List<GraphTraversal<Object, Object>> propTraversals = getProperties(twoStepT, selector);
 				if (propTraversals.size() > 0) {
@@ -181,10 +184,10 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				this.gt.has(typeMap.get(selector), getNodeType(selector)).as(selector);
+				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
-				addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(selector));
+				addFiltersToPath(this.gt, startNodeFilters, getNodeName(selector));
 			}
 		} else {
 			// we need to go through the traversal
@@ -254,9 +257,9 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
-		this.gt = this.gt.has(typeMap.get(startNode), getNodeType(startNode)).as(startNode);
+		this.gt = this.gt.has(getNodeType(startNode), getPhysicalNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
-		addFiltersToPath(this.gt, startNodeFilters, this.typeMap.get(startNode));
+		addFiltersToPath(this.gt, startNodeFilters, getNodeType(startNode));
 
 		List<String> travelledEdges = new Vector<String>();
 		List<String> travelledNodeProperties = new Vector<String>();
@@ -395,10 +398,10 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 						}
 					}
 
-					twoStepT = twoStepT.out(edgeKey).has(typeMap.get(downstreamNodeType), getNodeType(downstreamNodeType)).as(downstreamNodeType);
+					twoStepT = twoStepT.out(edgeKey).has(getNodeType(downstreamNodeType), getPhysicalNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(downstreamNodeType));
+					addFiltersToPath(twoStepT, nodeFilters, getNodeType(downstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(downstreamNodeType)) {
@@ -450,11 +453,11 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in(edgeKey).has(typeMap.get(upstreamNodeType), getNodeType(upstreamNodeType)).as(upstreamNodeType);
+					twoStepT = twoStepT.in(edgeKey).has(getNodeType(upstreamNodeType), getPhysicalNodeType(upstreamNodeType)).as(upstreamNodeType);
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters, this.typeMap.get(upstreamNodeType));
+					addFiltersToPath(twoStepT, nodeFilters, getNodeType(upstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(upstreamNodeType)) {
@@ -542,7 +545,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION sortDirection = orderSelector.getSortDir();
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
-				String nodeName = this.typeMap.get(tableName);
+				String nodeName = getNodeType(tableName);
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
 					gt = gt.select(tableName).order().by(nodeName, Order.incr);
 				} else {
@@ -560,6 +563,33 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		}
 	}
 	
+	//////////////////////////////////////////////////////////
+	
+	/*
+	 * Getters for the type and name of the node
+	 * Default will be what we create on upload of tinker / frames of tinker
+	 * 
+	 * If engine has defined a specific value, we will use that
+	 */
+	
+	private String getNodeType(String node) {
+		if(this.typeMap != null) {
+			if(this.typeMap.containsKey(node)) {
+				return this.typeMap.get(node);
+			}
+		}
+		return TinkerFrame.TINKER_TYPE;
+	}
+	
+	private String getNodeName(String node) {
+		if(this.nameMap != null) {
+			if(this.nameMap.containsKey(node)) {
+				return this.nameMap.get(node);
+			}
+		}
+		return TinkerFrame.TINKER_NAME;
+	}
+	
 	/**
 	 * Method to get the actual type of the node
 	 * This is important for loops when we want the node to not be doubled
@@ -567,7 +597,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	 * @param node
 	 * @return
 	 */
-	private String getNodeType(String node) {
+	private String getPhysicalNodeType(String node) {
 		if(this.meta == null) {
 			return node;
 		}
