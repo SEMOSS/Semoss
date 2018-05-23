@@ -40,7 +40,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 	public CreateExternalDSEGraphDBReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.HOST.getKey(),
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
 				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
 	}
 
@@ -82,9 +82,15 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+//		String graphNameId = this.keyValue.get(this.keysToGet[7]);
+//		if (graphNameId == null) {
+//			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+//			exception.setContinueThreadOfExecution(false);
+//			throw exception;
+//		}
 
 		// meta model
-		GenRowStruct grs = this.store.getNoun(keysToGet[7]);
+		GenRowStruct grs = this.store.getNoun(keysToGet[8]);
 		Map<String, Object> metaMap = null;
 		if(grs != null && !grs.isEmpty()) {
 			metaMap = (Map<String, Object>) grs.get(0);
@@ -111,7 +117,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		Map<String, String> typeMap = new HashMap<>();
 		// create typeMap for smms
 		for (String concept : concepts) {
-			Map<String, Object> propMap = (Map) nodes.get(concept);
+			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
 			for (String prop : propMap.keySet()) {
 				// get concept type
 				if (prop.equals(graphTypeId)) {
