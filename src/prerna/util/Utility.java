@@ -102,7 +102,6 @@ import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -1722,76 +1721,6 @@ public class Utility {
 
 		return outDate;
 	}
-	
-	public static SemossDate getSemossDate(String input) {
-		// we are going to do a bunch of date parsing
-		String[] dateMatches = new String[]{
-				"([0-1][0-2])/([0-3][0-9])/([0-9][0-9][0-9][0-9])",	// this matches MM/dd/yyyy where M > 10
-				"([0][0-9])/([0-3][0-9])/([0-9][0-9][0-9][0-9])",	// this matches MM/dd/yyyy where M < 9 and start 0
-				"([0-9])/([0-3][0-9])/([0-9][0-9][0-9][0-9])",	// this matches M/dd/yyyy where M < 9 and no start 0
-				"([0-9])/([0-9])/([0-9][0-9][0-9][0-9])",	// this matches M/d/yyyy 
-				"([0-1][0-2])/([0-9])/([0-9][0-9][0-9][0-9])",	// this matches MM/d/yyyy where M > 10 and d has no start 0
-
-				// same as above but only 2 y
-				"([0-1][0-2])/([0-3][0-9])/([0-9][0-9])",	// this matches MM/dd/yy where M > 10
-				"([0][0-9])/([0-3][0-9])/([0-9][0-9])",	// this matches MM/dd/yy where M < 9 and start 0
-				"([0-9])/([0-3][0-9])/([0-9][0-9])",	// this matches MM/dd/yy where M < 9 and no start 0
-				"([0-9])/([0-9])/([0-9][0-9])",	// this matches MM/dd/yy where M < 9 and no start 0 and d < 9 no start 0
-				"([0-1][0-2])/([0-9])/([0-9][0-9])",	// this matches MM/d/yyyy where M > 10 and d has no start 0
-
-				// if the person starts with dd
-				"([0-3][0-9])/([0-1][0-2])/([0-9][0-9][0-9][0-9])",	// this matches dd/MM/yyyy where M > 10
-				"([0-3][0-9])/([0][0-2])/([0-9][0-9][0-9][0-9])",	// this matches dd/MM/yyyy where M < 9 and start 0
-				"([0-3][0-9])/([0-9])/([0-9][0-9][0-9][0-9])",	// this matches dd/MM/yyyy where M < 9 and no start 0
-				
-				// same as above but only 2 y
-				"([0-3][0-9])/([0-1][0-2])/([0-9][0-9])",	// this matches dd/MM/yy where M > 10
-				"([0-3][0-9])/([0][0-2])/([0-9][0-9])",	// this matches dd/MM/yy where M < 9 and start 0
-				"([0-3][0-9])/([0-9])/([0-9][0-9])",	// this matches dd/MM/yy where M < 9 and no start 0
-			};
-
-		// matches index with above
-		String[] dateFormats = new String[]{
-				"MM/dd/yyyy",
-				"MM/dd/yyyy",
-				"M/dd/yyyy",
-				"M/d/yyyy",
-				"MM/d/yyyy",
-
-				// same as above but only 2 y
-				"MM/dd/yy",
-				"MM/dd/yy",
-				"M/dd/yy",
-				"M/d/yy",
-				"MM/d/yy",
-
-				// same as above but with start dd
-				"dd/MM/yyyy",
-				"dd/MM/yyyy",
-				"dd/M/yyyy",
-
-				// same as above but only 2 y
-				"dd/MM/yy",
-				"dd/MM/yy",
-				"dd/M/yy",
-				
-			};
-		
-		SemossDate semossdate = null;
-		int numFormats = dateMatches.length;
-		FIND_DATE : for(int i = 0; i < numFormats; i++) {
-			Pattern p = Pattern.compile(dateMatches[i]);
-			Matcher m = p.matcher(input);
-			if(m.matches()) {
-				// yay! we found a match
-				semossdate = new SemossDate(input, dateFormats[i]);
-				break FIND_DATE;
-			}
-		}
-		
-		return semossdate;
-	}
-	
 	
 	public static Object getCurrency(String input)
 	{
