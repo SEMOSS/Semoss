@@ -81,13 +81,16 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			// add PK or FK for target
 			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[8] == row[12], \"PK\",\"FK\")});");
 			// remove FK source and FK target
-			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key == \"FK\" & " + tempFrame + "$Target_Key == \"FK\"] <- \"\";");
+			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key == \"FK\" & "
+					+ tempFrame + "$Target_Key == \"FK\"] <- \"\";");
 			// eliminate extra columns
-			rsb.append(tempFrame + " <- subset(" + tempFrame + ", select=c(Source_Database, Source_Table, Source_Column, Source_Key, Target_Database, Target_Table, Target_Column, Target_Key, Is_Table_Source, Is_Table_Target));");
+			rsb.append(tempFrame + " <- subset(" + tempFrame
+					+ ", select=c(Source_Database, Source_Table, Source_Column, Source_Key, "
+					+ "Target_Database, Target_Table, Target_Column, Target_Key, Is_Table_Source, Is_Table_Target));");
 			// get json
 			rsb.append("library(jsonlite);");
 			rsb.append(jsonR + " <-  toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
-			
+
 			this.rJavaTranslator.runR(rsb.toString());
 			System.out.println(rsb.toString() + "");
 			String json = this.rJavaTranslator.getString(jsonR);
@@ -100,7 +103,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				}
 			} else {
 				// TODO rScript clean up 
-				throw new IllegalArgumentException("No collisions found");
+				throw new IllegalArgumentException("No results found");
 			}
 			Set<String> dbList = xray.getEngineList();
 			Hashtable edgesTable = new Hashtable();
@@ -127,7 +130,11 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				}
 				String sourceEdge = sourceDB + "." + sourceTable;
 				if (sourceColumn != null) {
+					// property
 					sourceEdge += "." + sourceColumn;
+				} else {
+					// concept
+					sourceEdge += "." + sourceTable;
 				}
 				String sourceKey = (String)map.get("Source_Key");
 				String targetDB = (String) map.get("Target_Database");
@@ -138,8 +145,13 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 					targetColumn = (String) map.get("Target_Column");
 				}
 				String targetEdge = targetDB + "." + targetTable;
+				
 				if (targetColumn != null) {
+					// property
 					targetEdge += "." + targetColumn;
+				} else {
+					// concept
+					targetEdge += "." + targetTable;
 				}
 				String targetKey = (String)map.get("Target_Key");
 
