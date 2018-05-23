@@ -111,7 +111,7 @@ public class WrapperManager {
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
-			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2(); //new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap());
+			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
 					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap()),
@@ -120,19 +120,14 @@ public class WrapperManager {
 		}
 		case DATASTAX_GRAPH : {
 			genQueryString = false;
-			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2(); //new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap());
+			// since we dont do math on gremlin
+			// right now, we will just construct and return a QSExpressionIterator
+			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
 					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((DataStaxGraphEngine) engine).getTypeMap(), ((DataStaxGraphEngine) engine).getNameMap()),
 					qs);
 			break;
-//			// since we dont do math on gremlin
-//			// right now, we will just construct and return a QSExpressionIterator
-//			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
-//			interpreter.setTypeMap(((DataStaxGraphEngine) engine).getTypeMap());
-//			interpreter.setQueryStruct(qs);
-//			returnWrapper = new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
-//			break;
 		}
 		case SOLR : {
 			genQueryString = false;
