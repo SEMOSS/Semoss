@@ -43,6 +43,12 @@ import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalDSEGraphDBReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalGraphDBReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphMetaModelReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphPropertiesReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphMetaModelReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
@@ -260,13 +266,7 @@ import prerna.sablecc2.reactor.utils.CheckRPackagesReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
-import prerna.sablecc2.reactor.utils.ExternalDSEGraphDBReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
-import prerna.sablecc2.reactor.utils.ExternalGraphDBReactor;
-import prerna.sablecc2.reactor.utils.GetDSEGraphMetaModelReactor;
-import prerna.sablecc2.reactor.utils.GetDSEGraphPropertiesReactor;
-import prerna.sablecc2.reactor.utils.GetGraphMetaModelReactor;
-import prerna.sablecc2.reactor.utils.GetGraphPropertiesReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
 import prerna.sablecc2.reactor.utils.GetWebTableHeader;
 import prerna.sablecc2.reactor.utils.GetWebTableNum;
@@ -396,7 +396,15 @@ public class ReactorFactory {
 		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
-
+		// external graph engine
+		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
+		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
+		reactorHash.put("CreateExternalGraphDatabase", CreateExternalGraphDBReactor.class);
+		// datastax graph reactors
+		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
+		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
+		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDBReactor.class);
+		
 		// Semantic blending
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		
@@ -725,15 +733,6 @@ public class ReactorFactory {
 		// web scrape engine
 		reactorHash.put("GetTableHeader", GetWebTableHeader.class);
 		reactorHash.put("GetNumTable", GetWebTableNum.class);
-		
-		// external graph engine
-		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
-		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
-		reactorHash.put("CreateExternalGraphDatabase", ExternalGraphDBReactor.class);
-		// datastax graph reactors
-		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
-		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
-		reactorHash.put("CreateExternalDSEGraphDatabase", ExternalDSEGraphDBReactor.class);
 		
 		// Tax specific handles
 		reactorHash.put("LoadClient", LoadGraphClient.class);

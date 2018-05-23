@@ -263,9 +263,9 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 				// TODO add relationship Property to owler
 			}
 		}
-		for(String c: concepts) {
-			owler.addProp(c, TinkerFrame.TINKER_NAME, dataTypes[csvColumnToIndex.get(c)]);
-		}
+//		for(String c: concepts) {
+//			owler.addProp(c, TinkerFrame.TINKER_NAME, dataTypes[csvColumnToIndex.get(c)]);
+//		}
 	}
 
 	/**

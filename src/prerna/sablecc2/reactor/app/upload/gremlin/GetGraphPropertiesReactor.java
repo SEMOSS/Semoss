@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.utils;
+package prerna.sablecc2.reactor.app.upload.gremlin;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +14,6 @@ import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.PixelDataType;
@@ -28,6 +26,7 @@ import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoRegistry;
 
 public class GetGraphPropertiesReactor extends AbstractReactor {
+	
 	public GetGraphPropertiesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
 	}
