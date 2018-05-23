@@ -25,7 +25,7 @@ public class CreateFrameReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		// get the name of the frame type
-		String frameType = this.curRow.get(0).toString();
+		String frameType = getFrameType();
 		// use factory to generate the new table
 		String alias = getAlias();
 		if(alias == null) {
@@ -61,6 +61,19 @@ public class CreateFrameReactor extends AbstractReactor {
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FRAME, PixelOperationType.FRAME);
 		outputs.add(output);
 		return outputs;
+	}
+	
+	/**
+	 * Get the frame type
+	 * @return
+	 */
+	private String getFrameType() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		if(grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString();
+		}
+		
+		return this.curRow.get(0).toString();
 	}
 	
 	/**
