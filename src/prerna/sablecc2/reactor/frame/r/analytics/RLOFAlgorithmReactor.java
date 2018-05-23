@@ -55,7 +55,7 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
-		String[] packages = new String[] { "Rlof", "data.table", "dplyr", "VGAM" , "doParallel", "for each", "iterators" };
+		String[] packages = new String[] { "Rlof", "data.table", "dplyr", "VGAM" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
