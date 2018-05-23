@@ -140,9 +140,11 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		// try specific key
 		{
 			GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-			joins = grs.getAllJoins();
-			if(joins != null && !joins.isEmpty()) {
-				return joins;
+			if(grs != null && !grs.isEmpty()) {
+				joins = grs.getAllJoins();
+				if(joins != null && !joins.isEmpty()) {
+					return joins;
+				}
 			}
 		}
 		
