@@ -42,7 +42,8 @@ public class TinkerEngine extends AbstractEngine {
 
 	private Graph g = null;
 	private Map<String, String> typeMap = new HashMap<String, String>();
-
+	private Map<String, String> nameMap = new HashMap<String, String>();
+	
 	public void openDB(String propFile) {
 		super.openDB(propFile);
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -51,6 +52,7 @@ public class TinkerEngine extends AbstractEngine {
 		fileName = fileName.replaceAll("@" + Constants.ENGINE + "@", this.engineName);
 		LOGGER.info("Opening graph:  " + fileName);
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
+		
 		// get type map
 		String typeMapStr = this.prop.getProperty("TYPE_MAP");
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
@@ -60,6 +62,17 @@ public class TinkerEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 		}
+		
+		// get the name map
+		String nameMapStr = this.prop.getProperty("NAME_MAP");
+		if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
+			try {
+				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 			g = Neo4jGraph.open(fileName);
 		} else {
@@ -256,10 +269,12 @@ public class TinkerEngine extends AbstractEngine {
 	public Graph getGraph() {
 		return g;
 	}
+	
 	public Map<String, String> getTypeMap() {
 		return this.typeMap;
 	}
-	public void setTypeMap(Map<String, String> typeMap) {
-		this.typeMap = typeMap;
+	
+	public Map<String, String> getNameMap() {
+		return this.nameMap;
 	}
 }
