@@ -23,11 +23,11 @@ public class RSyntaxHelper {
 		javaRDatTimeTranslationMap.put("y4", "%Y");		//full yr (4 digits)
 		javaRDatTimeTranslationMap.put("Y4", "%Y");		//full yr (4 digits)
 //		javaRDatTimeTranslationMap.put("G", value); 	//Era
+		javaRDatTimeTranslationMap.put("M1", "%m"); 	//Numerical month
 		javaRDatTimeTranslationMap.put("M2", "%m"); 	//Numerical month
 		javaRDatTimeTranslationMap.put("M3", "%b"); 	//Abbreviated month name
 		javaRDatTimeTranslationMap.put("M5", "%B"); 	//Full month name
 		javaRDatTimeTranslationMap.put("d", "%d"); 		//Day in month
-		javaRDatTimeTranslationMap.put("d2", "%d"); 		//Day in month
 		javaRDatTimeTranslationMap.put("D", "%j"); 		//Day in year
 //		javaRDatTimeTranslationMap.put("w", value); 	//Week in year
 //		javaRDatTimeTranslationMap.put("W", value); 	//Week in month
@@ -37,29 +37,14 @@ public class RSyntaxHelper {
 		javaRDatTimeTranslationMap.put("u", "%u"); 		//Day number of week (1 = Monday, ..., 7 = Sunday)
 		javaRDatTimeTranslationMap.put("a", "%p"); 		//AM/PM --- need to be used with %I not %H
 		javaRDatTimeTranslationMap.put("H", "%H"); 		//Hour in day (0-23)
-		javaRDatTimeTranslationMap.put("H1", "%H"); 		//Hour in day (0-23)
-		javaRDatTimeTranslationMap.put("H2", "%H"); 		//Hour in day (0-23)
-
 //		javaRDatTimeTranslationMap.put("k", value); 	//Hour in day (1-24)
 //		javaRDatTimeTranslationMap.put("K", value); 	//Hour in am/pm (0-11)
 		javaRDatTimeTranslationMap.put("h", "%I"); 		//Hour in am/pm (1-12)
-
 		javaRDatTimeTranslationMap.put("m", "%M"); 		//Minute in hour
-		javaRDatTimeTranslationMap.put("m1", "%M"); 		//Minute in hour
-		javaRDatTimeTranslationMap.put("m2", "%M"); 		//Minute in hour
-
 		javaRDatTimeTranslationMap.put("s", "%S"); 		//Second in minute
-		javaRDatTimeTranslationMap.put("s1", "%S"); 		//Second in minute
-		javaRDatTimeTranslationMap.put("s2", "%S"); 		//Second in minute
-
 		javaRDatTimeTranslationMap.put("S", "%OS"); 	//Millisecond
-		javaRDatTimeTranslationMap.put("S1", "%OS"); 	//Millisecond
-		javaRDatTimeTranslationMap.put("S2", "%OS"); 	//Millisecond
-		javaRDatTimeTranslationMap.put("S3", "%OS"); 	//Millisecond
-		javaRDatTimeTranslationMap.put("S4", "%OS"); 	//Millisecond
 //		javaRDatTimeTranslationMap.put("z", "%Z"); 		//tz (Pacific Standard Time; PST; GMT-08:00) ???? - TODO needs to be handled via the tz param
 		javaRDatTimeTranslationMap.put("Z", "%z"); 		//tz (-0800)
-		javaRDatTimeTranslationMap.put("Z1", "%z"); 		//tz (-0800)
 		javaRDatTimeTranslationMap.put("X", "%z"); 		//tz (-08; -0800; -08:00)
 	}
 	
@@ -260,7 +245,6 @@ public class RSyntaxHelper {
 		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
 				+ "lapply(.SD, function(x) as.POSIXct(fast_strptime(x, format='" + parsedFormat[0] + "'))), "
 				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
-		System.out.println(builder.toString());
 		return builder.toString();
 	}
 	
