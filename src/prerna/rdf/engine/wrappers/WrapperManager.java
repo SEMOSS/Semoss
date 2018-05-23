@@ -31,7 +31,6 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.TinkerHeadersDataRowIteratorMap;
 import prerna.ds.datastax.DataStaxGraphEngine;
-import prerna.ds.datastax.DataStaxGraphIterator;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -42,7 +41,6 @@ import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.web.WebWrapper;
-import prerna.query.interpreters.DataStaxInterpreter;
 import prerna.query.interpreters.GremlinMapInterp;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SolrInterpreter;
@@ -113,20 +111,28 @@ public class WrapperManager {
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
-			GremlinMapInterp interpreter = new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap());
+			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2(); //new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap());
 			interpreter.setQueryStruct(qs);
-			returnWrapper = new QueryStructExpressionIterator(new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getTypeMap()), qs);
+			returnWrapper = new QueryStructExpressionIterator(
+					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap()),
+					qs);
 			break;
 		}
 		case DATASTAX_GRAPH : {
 			genQueryString = false;
-			// since we dont do math on gremlin
-			// right now, we will just construct and return a QSExpressionIterator
-			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
-			interpreter.setTypeMap(((DataStaxGraphEngine) engine).getTypeMap());
+			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2(); //new GremlinMapInterp( ((TinkerEngine) engine).getGraph(), ((TinkerEngine) engine).getTypeMap(), ((TinkerEngine) engine).getNameMap());
 			interpreter.setQueryStruct(qs);
-			returnWrapper = new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
+			returnWrapper = new QueryStructExpressionIterator(
+					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((DataStaxGraphEngine) engine).getTypeMap(), ((DataStaxGraphEngine) engine).getNameMap()),
+					qs);
 			break;
+//			// since we dont do math on gremlin
+//			// right now, we will just construct and return a QSExpressionIterator
+//			DataStaxInterpreter interpreter = new DataStaxInterpreter( ((DataStaxGraphEngine) engine).getGraphTraversalSource());
+//			interpreter.setTypeMap(((DataStaxGraphEngine) engine).getTypeMap());
+//			interpreter.setQueryStruct(qs);
+//			returnWrapper = new QueryStructExpressionIterator(new DataStaxGraphIterator(interpreter.composeIterator(), qs, ((DataStaxGraphEngine)engine).getTypeMap()), qs);
+//			break;
 		}
 		case SOLR : {
 			genQueryString = false;

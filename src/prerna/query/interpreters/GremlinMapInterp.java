@@ -13,8 +13,8 @@ import java.util.Vector;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
@@ -31,8 +31,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GremlinMapInterp extends AbstractQueryInterpreter {
 
-	// reference to the graph which can execute gremlin
-	private Graph g;
 	// reference for getting actual names for loops within frames
 	private OwlTemporalEngineMeta meta;
 	// all the filters being used
@@ -49,16 +47,14 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 	// identify the name for the vertex label
 	private Map<String, String> nameMap;
 		
-	public GremlinMapInterp(Graph g, Map<String, String> typeMap, Map<String, String> nameMap) {
-		this.g = g;
-		this.gt = g.traversal().V();
+	public GremlinMapInterp(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
+		this.gt = gt.V();
 		this.typeMap = typeMap;
 		this.nameMap = nameMap;
 	}
 	
-	public GremlinMapInterp(Graph g, OwlTemporalEngineMeta meta) {
-		this.g = g;
-		this.gt = g.traversal().V();
+	public GremlinMapInterp(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
+		this.gt = gt.V();
 		this.meta = meta;
 	}
 
@@ -167,7 +163,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 			// but is this traversal, to get a vertex
 			// or a property on the vertex
 			if(props != null) {
-				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
+//				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
 
 				// it is for a property on a vertex
 				GraphTraversal twoStepT = __.as(selector);
@@ -259,7 +255,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 		// can do this by picking a "better" startNode
 		this.gt = this.gt.has(getNodeType(startNode), getPhysicalNodeType(startNode)).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
-		addFiltersToPath(this.gt, startNodeFilters, getNodeType(startNode));
+		addFiltersToPath(this.gt, startNodeFilters, getNodeName(startNode));
 
 		List<String> travelledEdges = new Vector<String>();
 		List<String> travelledNodeProperties = new Vector<String>();
@@ -401,7 +397,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 					twoStepT = twoStepT.out(edgeKey).has(getNodeType(downstreamNodeType), getPhysicalNodeType(downstreamNodeType)).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters, getNodeType(downstreamNodeType));
+					addFiltersToPath(twoStepT, nodeFilters, getNodeName(downstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(downstreamNodeType)) {
@@ -457,7 +453,7 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
-					addFiltersToPath(twoStepT, nodeFilters, getNodeType(upstreamNodeType));
+					addFiltersToPath(twoStepT, nodeFilters, getNodeName(upstreamNodeType));
 
 					// add properties if present
 					if (!travelledNodeProps.contains(upstreamNodeType)) {
@@ -545,11 +541,10 @@ public class GremlinMapInterp extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION sortDirection = orderSelector.getSortDir();
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
-				String nodeName = getNodeType(tableName);
 				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(nodeName, Order.incr);
+					gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
 				} else {
-					gt = gt.select(tableName).order().by(nodeName, Order.decr);
+					gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
 				}
 			}
 			//order by for property
