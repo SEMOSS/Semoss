@@ -29,6 +29,9 @@ public class FileMeta {
 	private FILE_TYPE type;
 	// sheet name is only needed for excel
 	private String sheetName;
+	// date/timestamp specific format request map
+	private Map<String, String> additionalTypes;
+
 	
 	/**
 	 * Will create an equivalent pixel to the import that was being used 
@@ -146,6 +149,14 @@ public class FileMeta {
 	
 	public String getOriginalFile() {
 		return this.originalFile;
+	}
+	
+	public Map<String, String> getAdditionalTypes() {
+		return additionalTypes;
+	}
+	
+	public void setAdditionalTypes(Map<String, String> additionalTypes) {
+		this.additionalTypes = additionalTypes;
 	}
 	
 }

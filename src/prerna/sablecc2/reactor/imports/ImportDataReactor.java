@@ -102,6 +102,7 @@ public class ImportDataReactor extends AbstractReactor {
 			fileMeta.setNewHeaders(qs.getNewHeaderNames());
 			fileMeta.setPixelString(this.originalSignature);
 			fileMeta.setSelectors(qs.getSelectors());
+			fileMeta.setAdditionalTypes(qs.getAdditionalTypes());
 			fileMeta.setType(FileMeta.FILE_TYPE.CSV);
 			this.insight.addFileUsedInInsight(fileMeta);
 		} else {
@@ -120,6 +121,7 @@ public class ImportDataReactor extends AbstractReactor {
 		fileMeta.setSheetName(qs.getSheetName());
 		fileMeta.setNewHeaders(qs.getNewHeaderNames());
 		fileMeta.setSelectors(qs.getSelectors());
+		fileMeta.setAdditionalTypes(qs.getAdditionalTypes());
 		fileMeta.setPixelString(this.originalSignature);
 		fileMeta.setType(FileMeta.FILE_TYPE.EXCEL);
 		this.insight.addFileUsedInInsight(fileMeta);
