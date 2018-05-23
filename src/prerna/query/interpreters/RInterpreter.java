@@ -114,9 +114,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				}
 				if(validHeaders.contains(column)) {
 					addedColToDateChange = true;
-					query.append(";")
-						.append(tempVarName).append("$").append(column)
-						.append("<- as.character(")
+					query.append(";").append(tempVarName).append("$").append(column)
+						.append("<- format(") //TODO once format is passed in, pass that into this portion
 						.append(tempVarName).append("$").append(column)
 						.append(")");
 				}

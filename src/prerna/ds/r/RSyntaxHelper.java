@@ -8,11 +8,61 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
 
 public class RSyntaxHelper {
+	
+	private static Map<String,String> javaRDatTimeTranslationMap = new HashMap<String,String>();
+	
+	static {
+		javaRDatTimeTranslationMap.put("y2", "%y");		//yr without century (2 digits)
+		javaRDatTimeTranslationMap.put("Y2", "%y");		//yr without century (2 digits)
+		javaRDatTimeTranslationMap.put("y4", "%Y");		//full yr (4 digits)
+		javaRDatTimeTranslationMap.put("Y4", "%Y");		//full yr (4 digits)
+//		javaRDatTimeTranslationMap.put("G", value); 	//Era
+		javaRDatTimeTranslationMap.put("M2", "%m"); 	//Numerical month
+		javaRDatTimeTranslationMap.put("M3", "%b"); 	//Abbreviated month name
+		javaRDatTimeTranslationMap.put("M5", "%B"); 	//Full month name
+		javaRDatTimeTranslationMap.put("d", "%d"); 		//Day in month
+		javaRDatTimeTranslationMap.put("d2", "%d"); 		//Day in month
+		javaRDatTimeTranslationMap.put("D", "%j"); 		//Day in year
+//		javaRDatTimeTranslationMap.put("w", value); 	//Week in year
+//		javaRDatTimeTranslationMap.put("W", value); 	//Week in month
+//		javaRDatTimeTranslationMap.put("F", value); 	//Day of week in month
+		javaRDatTimeTranslationMap.put("E3", "%a"); 	//Abbreviate day name in week
+		javaRDatTimeTranslationMap.put("E", "%A");		//Full day name in week
+		javaRDatTimeTranslationMap.put("u", "%u"); 		//Day number of week (1 = Monday, ..., 7 = Sunday)
+		javaRDatTimeTranslationMap.put("a", "%p"); 		//AM/PM --- need to be used with %I not %H
+		javaRDatTimeTranslationMap.put("H", "%H"); 		//Hour in day (0-23)
+		javaRDatTimeTranslationMap.put("H1", "%H"); 		//Hour in day (0-23)
+		javaRDatTimeTranslationMap.put("H2", "%H"); 		//Hour in day (0-23)
 
+//		javaRDatTimeTranslationMap.put("k", value); 	//Hour in day (1-24)
+//		javaRDatTimeTranslationMap.put("K", value); 	//Hour in am/pm (0-11)
+		javaRDatTimeTranslationMap.put("h", "%I"); 		//Hour in am/pm (1-12)
+
+		javaRDatTimeTranslationMap.put("m", "%M"); 		//Minute in hour
+		javaRDatTimeTranslationMap.put("m1", "%M"); 		//Minute in hour
+		javaRDatTimeTranslationMap.put("m2", "%M"); 		//Minute in hour
+
+		javaRDatTimeTranslationMap.put("s", "%S"); 		//Second in minute
+		javaRDatTimeTranslationMap.put("s1", "%S"); 		//Second in minute
+		javaRDatTimeTranslationMap.put("s2", "%S"); 		//Second in minute
+
+		javaRDatTimeTranslationMap.put("S", "%OS"); 	//Millisecond
+		javaRDatTimeTranslationMap.put("S1", "%OS"); 	//Millisecond
+		javaRDatTimeTranslationMap.put("S2", "%OS"); 	//Millisecond
+		javaRDatTimeTranslationMap.put("S3", "%OS"); 	//Millisecond
+		javaRDatTimeTranslationMap.put("S4", "%OS"); 	//Millisecond
+//		javaRDatTimeTranslationMap.put("z", "%Z"); 		//tz (Pacific Standard Time; PST; GMT-08:00) ???? - TODO needs to be handled via the tz param
+		javaRDatTimeTranslationMap.put("Z", "%z"); 		//tz (-0800)
+		javaRDatTimeTranslationMap.put("Z1", "%z"); 		//tz (-0800)
+		javaRDatTimeTranslationMap.put("X", "%z"); 		//tz (-08; -0800; -08:00)
+	}
+	
 	private RSyntaxHelper() {
 		
 	}
@@ -139,6 +189,12 @@ public class RSyntaxHelper {
 		return builder.toString();
 	}
 	
+	public static String alterColumnTypeToCharacter(String tableName, List<String> colName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.character), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
+		return builder.toString();
+	}
+	
 	/**
 	 * Converts a R column type to numeric
 	 * @param tableName				The name of the R table
@@ -153,6 +209,12 @@ public class RSyntaxHelper {
 		.append(tableName).append("$").append(colName).append("))");
 		return builder.toString();
 	}
+	
+	public static String alterColumnTypeToNumeric(String tableName, List<String> colName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.numeric), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
+		return builder.toString();
+	}
 
 	/**
 	 * Converts a R column type to date
@@ -160,24 +222,48 @@ public class RSyntaxHelper {
 	 * @param colName				The name of the column
 	 * @return						The r script to execute
 	 */
-	public static String alterColumnTypeToDate(String tableName, String colName) {
+	public static String alterColumnTypeToDate(String tableName, String format, String colName) {
 		// will generate a string similar to
 		// "datatable$Birthday <- as.Date(as.character(datatable$Birthday), format = '%m/%d/%Y')"
+		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
-		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.Date(as.character(")
-		.append(tableName).append("$").append(colName).append("), format = '%Y-%m-%d')");
+		builder.append(tableName + "$" + colName +  "<- as.Date(" 
+				+ tableName + "$" + colName + ", format = '" + parsedFormat[0] +"')");
+		return builder.toString();
+	}
+	
+	public static String alterColumnTypeToDate(String tableName, String format, List<String> cols) {
+		//parse out the milliseconds options
+		String[] parsedFormat = format.split("\\|");
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
+				+ "lapply(.SD, function(x) as.Date(x, format='" + parsedFormat[0] + "')), "
+				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
 		return builder.toString();
 	}
 
-	public static String alterColumnTypeToDateTime(String tableName, String colName) {
-		// will generate a string similar to
-		// "datatable$Birthday <- as.Date(as.character(datatable$Birthday), format = '%m/%d/%Y')"
+	public static String alterColumnTypeToDateTime(String tableName, String format,String colName) {
+		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
-		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.Date(as.character(")
-		.append(tableName).append("$").append(colName).append("), format = '%Y-%m-%d %H:%M:%S')");
+		builder.append("options(digits.secs =" + parsedFormat[1] + ");");
+		builder.append(tableName + "$" + colName + "<- as.POSIXct(fast_strptime(" 
+				+ tableName + "$" + colName + ", format = '" + parsedFormat[0] +"'))");
 		return builder.toString();
 	}
-
+	
+	public static String alterColumnTypeToDateTime(String tableName, String format, List<String> cols) {
+		//TODO need to gsub any delimiter that's not a period between second and millisecond if %OS
+		//parse out the milliseconds options
+		String[] parsedFormat = format.split("\\|");
+		StringBuilder builder = new StringBuilder();
+		builder.append("options(digits.secs =" + parsedFormat[1] + ");");
+		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
+				+ "lapply(.SD, function(x) as.POSIXct(fast_strptime(x, format='" + parsedFormat[0] + "'))), "
+				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
+		System.out.println(builder.toString());
+		return builder.toString();
+	}
+	
 	/**
 	 * Generate the syntax to perform a fRead to ingest a file
 	 * @param tableName
@@ -497,40 +583,89 @@ public class RSyntaxHelper {
 		
 		return rExec.toString();
 	}
-
-	public static void main(String[] args) {
-		// testing inner
-		System.out.println("testing inner...");
-		System.out.println("testing inner...");
-		System.out.println("testing inner...");
-		System.out.println("testing inner...");
-		System.out.println("testing inner...");
-
-		String returnTable = "tableToTest";
-		String leftTableName = "x";
-		String rightTableName = "y";
-		String joinType = "inner.join"; // left.outer.join, right.outer.join, outer.join
-		List<Map<String, String>> joinCols = new Vector<Map<String, String>>();
-		Map<String, String> join1 = new HashMap<String, String>();
-		join1.put("", "");
-		joinCols.add(join1);
-
-		// when you get to multi
-		//		Map<String, String> join2 = new HashMap<String, String>();
-		//		join2.put("", "");
-		//		joinCols.add(join2);
-
-		System.out.println(getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols));
-
-		System.out.println("testing left...");
-		System.out.println("testing left...");
-		System.out.println("testing left...");
-		System.out.println("testing left...");
-		System.out.println("testing left...");
-
-		returnTable = "tableToTest";
-		joinType = "left.outer.join"; // left.outer.join, right.outer.join, outer.join
-
-		System.out.println(getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols));
+	
+	/**
+	 * Converts Java datetime format to R datetime format
+	 * @param javaFormat
+	 * @return rFormat
+	 */
+	public static String translateJavaRDateTimeFormat(String javaFormat){
+		String rFormat = "";
+		String substr = "";
+		String optionsMiliSeconds = "";
+		
+		String datetimeRegex = "[GyYMDdEuaHhmsSZX]";
+		int lastIndxSubstr = 0;
+		for (int i = 0; i < javaFormat.length(); i++){
+			String ch = (i == javaFormat.length()-1) ? javaFormat.substring(i) : javaFormat.substring(i, i + 1);
+			if (!ch.matches(datetimeRegex) && !ch.equals("'")){
+				//handle delimiters/whitespaces
+				rFormat += ch;
+			} else {
+				lastIndxSubstr = javaFormat.lastIndexOf(ch);
+				substr = javaFormat.substring(i, lastIndxSubstr + 1);
+				
+				if (ch.equals("'")) {
+					//if character is a single quote (SQ), then need to properly parse to the nearest closing single quote
+					if (substr.equals("''")) {
+						rFormat += substr.replaceAll("''","'");
+						i = lastIndxSubstr;
+						continue;
+					}
+					String substr_trimmed = substr.substring(1, substr.length()-1).replaceAll("''","");
+					int nextSQIndx = substr_trimmed.indexOf("'");
+					int multiSQIndx = substr.substring(1, substr.length()-1).indexOf("''");
+					if (nextSQIndx > 0) {
+						if (multiSQIndx > 0 && multiSQIndx < nextSQIndx) {
+							rFormat += substr.substring(1, nextSQIndx + 3).replaceAll("''","'");
+							i = substr.substring(1, nextSQIndx + 3).length() + i + 1;
+							continue;
+						} else {
+							rFormat += substr.substring(1, nextSQIndx + 1);
+							i = substr.substring(1, nextSQIndx + 1).length() + i + 1;
+							continue;
+						}
+					} else {
+						rFormat += substr.substring(1, substr.length()-1).replaceAll("''","'");
+					}
+				} else if (ch.equalsIgnoreCase("y") || ch.equals("M") || ch.equals("E")) {
+					//for these ch, it needs to be concatenated with the length of the substr to identify the appropriate R syntax
+					int lengthSubstr = substr.length();
+					if (ch.equalsIgnoreCase("e") && lengthSubstr != 3){
+						rFormat += javaRDatTimeTranslationMap.get("E");
+					} else if (javaRDatTimeTranslationMap.get(ch + lengthSubstr) != null) {
+						rFormat += javaRDatTimeTranslationMap.get(ch + lengthSubstr);
+					} else {
+						throw new RuntimeException("Associated R date/time format is undefined.");
+					}
+				} else if (ch.equals("S")) {
+					//need to retain how many digits the millisecond request is
+					optionsMiliSeconds = Integer.toString(substr.length());
+					//for second, need to check for millisecond to properly translate to R syntax
+					if (rFormat.indexOf("%S") > 1) {
+						rFormat = rFormat.replaceAll("%S", "%OS");
+						rFormat = rFormat.substring(0, rFormat.indexOf("%OS") + 3); 
+					} else {
+						throw new RuntimeException("R timestamps cannot support milliseconds without the presence of seconds.");
+					}
+				} else if (javaRDatTimeTranslationMap.get(ch) != null){
+					//for these ch, it can be used to directly search for the appropriate R syntax
+					rFormat += javaRDatTimeTranslationMap.get(ch);
+				} else {
+					throw new RuntimeException("Associated R date/time format is undefined.");
+				}
+				
+				i = lastIndxSubstr;
+			}
+		}
+		
+		//persist the millisecond decimal place option alongside the R date format
+		if (optionsMiliSeconds != "") {
+			rFormat += "|" + optionsMiliSeconds ;
+		} else {
+			rFormat += "|NULL" ;
+		}		
+		
+		return rFormat;
 	}
 }
