@@ -520,14 +520,65 @@ public class SemossDate {
 		// we have a full month spelled out
 		// so lets consolidate to replace
 		
-		String[] months = new String[]{"january", "february", "march", "april", "may",
-				"june", "july", "august", "september", "october", "november", "december"};
+		String[] months = new String[]{"January", "February", "March", "April", "May",
+				"June", "July", "August", "September", "October", "November", "December"};
 		
-		String monthReplacement = "MONTH_REPLACEMENT";
+		String monthUsed = null;
+		final String MONTH_REPLACEMENT = "MONTH_REPLACEMENT";
 		for(String m : months) {
-			input.replaceAll("(?i)" + Pattern.quote(m), monthReplacement);
+			input = input.replaceAll("(?i)" + Pattern.quote(m), MONTH_REPLACEMENT);
+			if(input.contains(MONTH_REPLACEMENT)) {
+				monthUsed = m;
+				break;
+			}
 		}
 		
+		// if we didn't find a match
+		// no point in continuing
+		if(monthUsed == null) {
+			return null;
+		}
+		
+		dateMatches = new String[]{
+			/*
+			 * January 1st, 2015	
+			 */
+			MONTH_REPLACEMENT + "\\s*[0-9][a-zA-z]{2},\\s*[0-9]{4}", // this matches MMMM d'%s', yyyy
+			MONTH_REPLACEMENT + "\\s*[0-3][0-9][a-zA-z]{2},\\s*[0-9]{4}", // this matches MMMM dd'%s', yyyy
+
+			/*
+			 * January 1, 2015	
+			 */
+			MONTH_REPLACEMENT + "\\s*[0-9],\\s*[0-9]{4}", // this matches MMMM d, yyyy
+			MONTH_REPLACEMENT + "\\s*[0-3][0-9],\\s*[0-9]{4}", // this matches MMMM dd, yyyy
+		};
+		
+		dateFormats = new String[]{
+				/*
+				 * January 1st, 2015	
+				 */ 
+				"MMMM d'%s', yyyy",
+				"MMMM dd'%s', yyyy",
+				/*
+				 * January 1, 2015	
+				 */
+				"MMMM d, yyyy",
+				"MMMM dd, yyyy",
+		};
+		
+		
+		numFormats = dateMatches.length;
+		FIND_DATE : for(int i = 0; i < numFormats; i++) {
+			Pattern p = Pattern.compile(dateMatches[i]);
+			Matcher m = p.matcher(input);
+			if(m.matches()) {
+				// yay! we found a match
+				// get back the original date
+				input = input.replace(MONTH_REPLACEMENT, monthUsed);
+				semossdate = new SemossDate(input, dateFormats[i]);
+				break FIND_DATE;
+			}
+		}
 		
 		return semossdate;
 	}
