@@ -85,6 +85,13 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				} else {
 					logger.info("Successfully loaded packages stringr");
 				}
+				// lubridate
+				ret = retEngine.eval("library(lubridate);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package lubridate could not be found!");
+				} else {
+					logger.info("Successfully loaded packages lubridate");
+				}
 				
 				// set the rengine
 				if(this.insight != null) {
@@ -102,13 +109,15 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 						+ "1)splitstackshape\n"
 						+ "2)data.table\n"
 						+ "3)reshape2\n"
-						+ "4)stringr\n\n");
+						+ "4)stringr\n"
+						+ "5)lubridate\n");
 				e.printStackTrace();
 				throw new IllegalArgumentException("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
 						+ "1)splitstackshape\n"
 						+ "2)data.table\n"
 						+ "3)reshape2\n"
-						+ "4)stringr\n\n");
+						+ "4)stringr\n"
+						+ "5)lubridate\n");
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
