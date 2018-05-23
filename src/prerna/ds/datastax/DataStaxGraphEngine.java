@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.datastax.driver.dse.DseCluster;
@@ -15,7 +14,7 @@ import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.DataStaxInterpreter;
+import prerna.query.interpreters.GremlinMapInterp;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -81,10 +80,6 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		return this.graphTraversalSession;
 	}
 	
-	public Graph getGraph() {
-		return this.graphTraversalSession.getGraph();
-	}
-	
 	public Map<String, String> getTypeMap() {
 		return this.typeMap;
 	}
@@ -94,7 +89,7 @@ public class DataStaxGraphEngine extends AbstractEngine {
 	}
 	
 	public IQueryInterpreter getQueryInterpreter2() {
-		return new DataStaxInterpreter(this.graphTraversalSession);
+		return new GremlinMapInterp(this.graphTraversalSession, this.typeMap, this.nameMap);
 	}
 	
 	@Override

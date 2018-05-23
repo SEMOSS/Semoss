@@ -29,7 +29,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.query.interpreters.GremlinInterpreter;
+import prerna.query.interpreters.GremlinMapInterp;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -159,7 +159,7 @@ public class TinkerEngine extends AbstractEngine {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter2() {
-		return new GremlinInterpreter(this.g);
+		return new GremlinMapInterp(this.g.traversal(), this.typeMap, this.nameMap);
 	}
 
 	@Override
@@ -223,12 +223,7 @@ public class TinkerEngine extends AbstractEngine {
 		if (gt.hasNext()) {
 			retVertex = gt.next();
 		} else {
-			retVertex = g.addVertex(T.label, type, TinkerFrame.TINKER_ID, type + ":" + data, TinkerFrame.TINKER_TYPE, type,
-					TinkerFrame.TINKER_NAME, data);// push the actual value as
-			// well who knows when you
-			// would need it
-			
-			
+			retVertex = g.addVertex(T.label, type, TinkerFrame.TINKER_ID, type + ":" + data, TinkerFrame.TINKER_TYPE, type, TinkerFrame.TINKER_NAME, data);
 		}
 		return retVertex;
 	}
@@ -251,8 +246,7 @@ public class TinkerEngine extends AbstractEngine {
 		Hashtable<String, Object> propHash = (Hashtable<String, Object>) args[4];
 
 		String type = fromVertexUniqueName + TinkerFrame.EDGE_LABEL_DELIMETER + toVertexUniqueName;
-		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":"
-				+ toVertex.value(TinkerFrame.TINKER_NAME);
+		String edgeID = type + "/" + fromVertex.value(TinkerFrame.TINKER_NAME) + ":" + toVertex.value(TinkerFrame.TINKER_NAME);
 
 		retEdge = fromVertex.addEdge(type, toVertex);
 		retEdge.property(TinkerFrame.TINKER_ID, edgeID);
