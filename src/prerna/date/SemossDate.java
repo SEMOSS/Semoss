@@ -441,7 +441,6 @@ public class SemossDate {
 				"[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", // this matches dd MMM, yyyy
 				"[0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", // this matches d MMM, yyyy
 
-				
 				/*
 				 * 12 Mar 91
 				 */
@@ -451,10 +450,32 @@ public class SemossDate {
 				"[0-9]\\s*[a-zA-Z]{3},\\s*[0-9][0-9]", // this matches d MMM, yy
 			
 				/*
+				 * Mar 12 2012
+				 */
+				"[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9]{4}", // this matches MMM dd yyyy
+				"[a-zA-Z]{3}\\s*[0-9]\\s*[0-9]{4}", // this matches MMM d yyyy
+				"[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9]{4}", // this matches MMM dd, yyyy
+				"[a-zA-Z]{3}\\s*[0-9],\\s*[0-9]{4}", // this matches MMM d, yyyy
+				
+				/*
+				 * Mar 12 91
+				 */
+				"[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9][0-9]", // this matches MMM dd yy
+				"[a-zA-Z]{3}\\s*[0-9]\\s*[0-9][0-9]", // this matches MMM d yy
+				"[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9][0-9]", // this matches MMM dd, yy
+				"[a-zA-Z]{3}\\s*[0-9],\\s*[0-9][0-9]", // this matches MMM d, yy
+				
+				/*
 				 * Mar 12
 				 */
-				"[0-3][0-9]\\s*[a-zA-Z]{3}", // this matches MMM dd
-				"[0-9]\\s*[a-zA-Z]{3}", // this matches MMM d
+				"[a-zA-Z]{3}\\s*[0-3][0-9]", // this matches MMM dd
+				"[a-zA-Z]{3}\\s*[0-9][0-9]", // this matches MMM d
+				
+				/*
+				 * Mar-12
+				 */
+				"[a-zA-Z]{3}-[0-3][0-9]", // this matches MMM-dd
+				"[a-zA-Z]{3}-[0-3][0-9]", // this matches MMM-d
 				
 				/*
 				 * Wed, Mar 12 2015
@@ -479,6 +500,50 @@ public class SemossDate {
 
 		// matches index with above
 		String[] dateFormats = new String[]{
+				
+				/*
+				 * 12 Mar 2012
+				 */
+				"dd MMM yyyy",
+				"d MMM yyyy", 
+				"dd MMM, yyyy",
+				"d MMM, yyyy",
+
+				/*
+				 * 12 Mar 91
+				 */
+				"dd MMM yy",
+				"d MMM yy", 
+				"dd MMM, yy",
+				"d MMM, yy",
+				
+				/*
+				 * Mar 12 2012
+				 */
+				"MMM dd yyyy",
+				"MMM d yyyy", 
+				"MMM dd, yyyy",
+				"MMM d, yyyy",
+				
+				/*
+				 * Mar 12 91
+				 */
+				"MMM dd yy",
+				"MMM d yy", 
+				"MMM dd, yy",
+				"MMM d, yy",
+				
+				/*
+				 * Mar 12
+				 */
+				"MMM dd",
+				"MMM d",
+				
+				/*
+				 * Mar-12
+				 */
+				"MMM-dd", // this matches MMM-dd
+				"MMM-d", // this matches MMM-d
 				
 				/*
 				 * Wed, Mar 12 2015
@@ -600,6 +665,15 @@ public class SemossDate {
 		System.out.println(SemossDate.genDateObj(d).testToString());
 		
 		d = "5/15/91";
+		System.out.println(SemossDate.genDateObj(d).testToString());
+		
+		d = "Jan-12";
+		System.out.println(SemossDate.genDateObj(d).testToString());
+		
+//		d = "January 12th, 2015";
+//		System.out.println(SemossDate.genDateObj(d).testToString());
+		
+		d = "Jan 15, 2019";
 		System.out.println(SemossDate.genDateObj(d).testToString());
 	}
 
