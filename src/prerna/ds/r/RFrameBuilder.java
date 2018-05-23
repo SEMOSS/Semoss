@@ -1,6 +1,7 @@
 package prerna.ds.r;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
@@ -104,6 +106,8 @@ public class RFrameBuilder {
 	 * @param typesMap				The data type of each column
 	 */
 	public void createTableViaIterator(String tableName, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
+		Map<String, String> additionalType = new HashMap<String,String>();
+		
 		/*
 		 * We have an iterator that comes for 3 main sources
 		 * 1) some kind of resultset (i.e. engine/endpoint) -> we flush this out to a csv file and load it
@@ -112,8 +116,10 @@ public class RFrameBuilder {
 		 */
 		if(it instanceof CsvFileIterator) {
 			createTableViaCsvFile(tableName, (CsvFileIterator) it);
+			additionalType = ((CsvFileIterator) it).getQs().getAdditionalTypes();
 		} else if(it instanceof ExcelFileIterator) {
 			createTableViaExcelFile(tableName, (ExcelFileIterator) it);
+			additionalType = ((ExcelFileIterator) it).getQs().getAdditionalTypes();
 		} else {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
@@ -123,18 +129,20 @@ public class RFrameBuilder {
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
 			newFile.delete();
-		}
+		}	
 		
 		// ... and make sure you update the types after!
 		// the types map will have the finalized headers to their types (?) TODO check this, if not true, need to do this in csv/excel iterators
-		
-		// modify columns such that they are chars where needed
-		// this is because an int id may need to be convered to string
-		alterColumnsToChars(tableName, typesMap);
-		// modify columns such that they are numeric where needed
-		alterColumnsToNumeric(tableName, typesMap);
-		//modify columns such that they are date where needed
-		alterColumnsToDate(tableName, typesMap);
+		// prior to updating the datatypes, need an inverted form of the typesMap
+		Map<SemossDataType, List<String>> invTypesMap = new HashMap<SemossDataType, List<String>>();
+		for (String header : typesMap.keySet()){
+			SemossDataType dataType = typesMap.get(header);
+			invTypesMap.computeIfAbsent(dataType, v -> new ArrayList<String>());
+			invTypesMap.get(dataType).add(header);
+		}
+
+		// alter types
+		alterColumnTypes(tableName, typesMap, additionalType);
 		
 		//add indices
 		addColumnIndex(tableName, getColumnNames());
@@ -152,11 +160,29 @@ public class RFrameBuilder {
 
 			// fread will use the original headers, even if there are duplicates
 			// we need to fix this -> grab the new ones and write it out
-
 			evalR("setnames(" + tableName + ", " + RSyntaxHelper.createStringRColVec(newCleanHeaders) + ")");
 			long end = System.currentTimeMillis();
 			logger.info("Loading R done in " + (end-start) + "ms");
 		}
+
+		if (qs.getSelectors().size() < newCleanHeaders.length) {
+			long start = System.currentTimeMillis();
+			logger.info("Need to filter R table based on selected headers");
+			RInterpreter interp = new RInterpreter();
+			interp.setDataTableName(tableName);
+			interp.setQueryStruct(qs);
+			Map<String, String> strTypes = qs.getColumnTypes();
+			Map<String, SemossDataType> enumTypes = new HashMap<String, SemossDataType>();
+			for(String key : strTypes.keySet()) {
+				enumTypes.put(key, SemossDataType.convertStringToDataType(strTypes.get(key)));
+			}
+			interp.setColDataTypes(enumTypes);
+			String query = interp.composeQuery();
+			evalR(tableName + "<-" + query);
+			long end = System.currentTimeMillis();
+			logger.info("Done filter R table based on selected headers in " + (end-start) + "ms");			
+		}
+		
 		if(!qs.getExplicitFilters().isEmpty()) {
 			long start = System.currentTimeMillis();
 			logger.info("Need to filter R table based on QS");
@@ -200,13 +226,31 @@ public class RFrameBuilder {
 			logger.info("Loading R table via Excel File");
 			// get you the fread notation with the csv file within the iterator
 			String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(tableName, it.getFileLocation(), sheetName);
-			System.out.println(it.getFileLocation());
 			evalR(loadFileRScript);
 
 			evalR("setnames(" + tableName + ", " + RSyntaxHelper.createStringRColVec(newCleanHeaders) + ")");
 			long end = System.currentTimeMillis();
 			logger.info("Loading R done in " + (end-start) + "ms");
 		}
+		
+		if (qs.getSelectors().size() < newCleanHeaders.length) {
+			long start = System.currentTimeMillis();
+			logger.info("Need to filter R table based on selected headers");
+			RInterpreter interp = new RInterpreter();
+			interp.setDataTableName(tableName);
+			interp.setQueryStruct(qs);
+			Map<String, String> strTypes = qs.getColumnTypes();
+			Map<String, SemossDataType> enumTypes = new HashMap<String, SemossDataType>();
+			for(String key : strTypes.keySet()) {
+				enumTypes.put(key, SemossDataType.convertStringToDataType(strTypes.get(key)));
+			}
+			interp.setColDataTypes(enumTypes);
+			String query = interp.composeQuery();
+			evalR(tableName + "<-" + query);
+			long end = System.currentTimeMillis();
+			logger.info("Done filter R table based on selected headers in " + (end-start) + "ms");			
+		}
+		
 		if(!qs.getExplicitFilters().isEmpty()) {
 			long start = System.currentTimeMillis();
 			logger.info("Need to filter R table based on QS");
@@ -299,44 +343,70 @@ public class RFrameBuilder {
 	}
 	
 	/**
-	 * Modify columns to make sure they are numeric for math operations
-	 * @param typesMap
-	 */
-	private void alterColumnsToNumeric(String tableName, Map<String, SemossDataType> typesMap) {
-		for(String header : typesMap.keySet()) {
-			SemossDataType type = typesMap.get(header);
-			if(type == SemossDataType.INT || type == SemossDataType.DOUBLE) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToNumeric(tableName, header) ) );
-			}
-		}
-	}
-	
-	/**
-	 * Modify columns to make sure they are in the date format
-	 * @param typesMap
-	 */
-	private void alterColumnsToDate(String tableName, Map<String, SemossDataType> typesMap) {
-		for(String header : typesMap.keySet()) {
-			SemossDataType type = typesMap.get(header);
-			if(type == SemossDataType.DATE) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(tableName, header) ) );
-			} else if(type == SemossDataType.TIMESTAMP) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDateTime(tableName, header) ) );
-			}
-		}
-	}
-	
-	/**
-	 * Modify columns to make sure they are chars
+	 * Alters a set of columns togheter
+	 * Faster than running each conversion separately
 	 * @param tableName
 	 * @param typesMap
+	 * @param javaDateFormatMap
 	 */
-	private void alterColumnsToChars(String tableName, Map<String, SemossDataType> typesMap) {
+	private void alterColumnTypes(String tableName, Map<String, SemossDataType> typesMap, Map<String, String> javaDateFormatMap) {
+		// go through all the headers
+		// and collect similar types
+		// so we can execute with a single r script line
+		// for performance improvements
+		
+		List<String> charColumns = new Vector<String>();
+		List<String> intColumns = new Vector<String>();
+		List<String> doubleColumns = new Vector<String>();
+		Map<String, List<String>> datesMap = new HashMap<String, List<String>>();
+		Map<String, List<String>> dateTimeMap = new HashMap<String, List<String>>();
+
 		for(String header : typesMap.keySet()) {
 			SemossDataType type = typesMap.get(header);
 			if(type == SemossDataType.STRING) {
-				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToCharacter(tableName, header) ) );
+				charColumns.add(header);
+			} else if(type == SemossDataType.INT) {
+				intColumns.add(header);
+			} else if(type == SemossDataType.DOUBLE) {
+				doubleColumns.add(header);
+			} else if( type == SemossDataType.DATE && javaDateFormatMap.containsKey(header)) {
+				String format = javaDateFormatMap.get(header);
+				if(datesMap.containsKey(format)) {
+					// add to existing list
+					datesMap.get(format).add(header);
+				} else {
+					List<String> headerList = new Vector<String>();
+					headerList.add(header);
+					datesMap.put(format, headerList);
+				}
+			} else if( type == SemossDataType.TIMESTAMP && javaDateFormatMap.containsKey(header)) {
+				String format = javaDateFormatMap.get(header);
+				if(dateTimeMap.containsKey(format)) {
+					// add to existing list
+					dateTimeMap.get(format).add(header);
+				} else {
+					List<String> headerList = new Vector<String>();
+					headerList.add(header);
+					dateTimeMap.put(format, headerList);
+				}
 			}
+		}
+		
+		// now that we have everything
+		// execute everything
+		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
+		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, intColumns) ) );
+		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
+		// loop through normal dates
+		for(String format : datesMap.keySet()) {
+			String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
+			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToDate(tableName, rFormat, datesMap.get(format)) ) );
+		}
+		// loop through time stamps dates
+		for(String format : dateTimeMap.keySet()) {
+			String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
+			System.out.println(rFormat);
+			this.rJavaTranslator.runR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeMap.get(format)) ) );
 		}
 	}
 	
@@ -446,4 +516,73 @@ public class RFrameBuilder {
 		}
 		return null;
 	}
+	
+	
+//	/**
+//	 * Modify columns to make sure they are numeric for math operations
+//	 * @param typesMap
+//	 */
+//	private void alterColumnsToNumeric(String tableName, Map<SemossDataType, List<String>> typesMap) {	
+//		if (typesMap.containsKey(SemossDataType.INT) || typesMap.containsKey(SemossDataType.DOUBLE)) {
+//			List<String> columns = new ArrayList<String>();
+//			if (typesMap.get(SemossDataType.INT) != null && typesMap.get(SemossDataType.INT).size() > 0) {
+//				columns.addAll(typesMap.get(SemossDataType.INT));
+//			}
+//			if (typesMap.get(SemossDataType.DOUBLE) != null && typesMap.get(SemossDataType.DOUBLE).size() > 0) {
+//				columns.addAll(typesMap.get(SemossDataType.DOUBLE));
+//			}
+//			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, columns) ) );
+//		}
+//	}
+//	
+//
+//	/**
+//	 * 	Modify columns to make sure they are date or datetime types
+//	 * @param tableName
+//	 * @param typesMap
+//	 * @param javaDateFormatMap
+//	 */
+//	private void alterColumnsToDate(String tableName, Map<SemossDataType, List<String>> typesMap, Map<String, String> javaDateFormatMap) {
+//		if (typesMap.containsKey(SemossDataType.DATE)) {
+//			Map<String, List<String>> rJavaDateFormatMap = new HashMap<String, List<String>>();
+//			//translate java date format to R syntax and aggregate applicable columns
+//			for (String header: typesMap.get(SemossDataType.DATE)){
+//				String javaFormat = javaDateFormatMap.get(header);
+//				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat);
+//				rJavaDateFormatMap.computeIfAbsent(rFormat, v -> new ArrayList<String>());
+//				rJavaDateFormatMap.get(rFormat).add(header);
+//			}
+//			//for each r format of date, convert column appropriately
+//			for (String key : rJavaDateFormatMap.keySet()) {
+//				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(tableName, key, rJavaDateFormatMap.get(key)) ) );
+//			}
+//		} 
+//		
+//		if (typesMap.containsKey(SemossDataType.TIMESTAMP)) {
+//			Map<String, List<String>> rJavaTSFormatMap = new HashMap<String, List<String>>();
+//			//translate java timestamp format to R syntax and aggregate applicable columns
+//			for (String header: typesMap.get(SemossDataType.TIMESTAMP)){
+//				String javaFormat = javaDateFormatMap.get(header);
+//				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat);
+//				rJavaTSFormatMap.computeIfAbsent(rFormat, v -> new ArrayList<String>());
+//				rJavaTSFormatMap.get(rFormat).add(header);
+//			}
+//			//for each r format of timestamp, convert column appropriately
+//			for (String key : rJavaTSFormatMap.keySet()) {
+//				this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, key, rJavaTSFormatMap.get(key)) );
+//			}
+//		}
+//	}
+//	/**
+//	 * Modify columns to make sure they are chars
+//	 * @param tableName
+//	 * @param typesMap
+//	 */
+//	private void alterColumnsToChars(String tableName, Map<SemossDataType, List<String>> typesMap) {
+//		if (typesMap.containsKey(SemossDataType.STRING)) {
+//			List<String> columns = typesMap.get(SemossDataType.STRING);
+//			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, columns) ) );
+//		}
+//	}
+	
 }

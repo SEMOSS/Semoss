@@ -622,13 +622,13 @@ public class SemossDate {
 				/*
 				 * January 1st, 2015	
 				 */ 
-				"MMMM d'%s', yyyy",
-				"MMMM dd'%s', yyyy",
+				"MMMMM d'%s', yyyy",
+				"MMMMM dd'%s', yyyy",
 				/*
 				 * January 1, 2015	
 				 */
-				"MMMM d, yyyy",
-				"MMMM dd, yyyy",
+				"MMMMM d, yyyy",
+				"MMMMM dd, yyyy",
 		};
 		
 		

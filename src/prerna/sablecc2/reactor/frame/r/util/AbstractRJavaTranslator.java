@@ -129,10 +129,11 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			rScript = RSyntaxHelper.alterColumnTypeToNumeric(frameName, columnName);
 		} else if(typeToConvert == SemossDataType.DOUBLE) {
 			rScript = RSyntaxHelper.alterColumnTypeToNumeric(frameName, columnName);
-		} else if(typeToConvert == SemossDataType.DATE) {
-			rScript = RSyntaxHelper.alterColumnTypeToDate(frameName, columnName);
+		} 
+		else if(typeToConvert == SemossDataType.DATE) {
+			rScript = RSyntaxHelper.alterColumnTypeToDate(frameName, null, columnName);
 		} else if(typeToConvert == SemossDataType.TIMESTAMP) {
-			rScript = RSyntaxHelper.alterColumnTypeToDateTime(frameName, columnName);
+			rScript = RSyntaxHelper.alterColumnTypeToDateTime(frameName, null, columnName);
 		}
 		this.executeEmptyR(rScript);
 	}
