@@ -237,7 +237,7 @@ public class RNativeEngine extends AbstractEngine {
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter(){
 		RInterpreter retInterp = new RInterpreter();
 		if(fakeHeader != null) {
 			retInterp.addHeaderToRemove(fakeHeader);

@@ -250,7 +250,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	}
 	
 	@Override
-	public IQueryInterpreter getQueryInterpreter2(){
+	public IQueryInterpreter getQueryInterpreter(){
 		return new JsonInterpreter(this);
 	}
 	

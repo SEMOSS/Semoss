@@ -297,18 +297,37 @@ public class XLFileHelper {
 	/////////////////// END SPECIFIC HEADERS NEXT ROWS ///////////////////
 
 	private String getCell(Cell thisCell) {
-		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK) {
-			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
+		if(thisCell == null) {
+			return "";
+		}
+		int type = thisCell.getCellType();
+		if(type == Cell.CELL_TYPE_BLANK) {
+			return "";
+		}
+		if(type == Cell.CELL_TYPE_STRING) {
+			return thisCell.getStringCellValue();
+		} else if(type == Cell.CELL_TYPE_NUMERIC) {
+			if(DateUtil.isCellDateFormatted(thisCell)) {
+				return thisCell.getDateCellValue() + "";
+			}
+			return thisCell.getNumericCellValue() + "";
+		} else if(type == Cell.CELL_TYPE_BOOLEAN) {
+			return thisCell.getBooleanCellValue() + "";
+		} else if(type == Cell.CELL_TYPE_FORMULA) {
+			// do the same for the formula value
+			int formulatype = thisCell.getCachedFormulaResultType();
+			if(formulatype == Cell.CELL_TYPE_BLANK) {
+				return "";
+			}
+			if(formulatype == Cell.CELL_TYPE_STRING) {
 				return thisCell.getStringCellValue();
-			} else if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-				return thisCell.getNumericCellValue() + "";
-			} else if(thisCell.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
-				return thisCell.getBooleanCellValue() + "";
-			} else if(thisCell.getCellType() == Cell.CELL_TYPE_FORMULA) {
-				// get random date formulas
+			} else if(formulatype == Cell.CELL_TYPE_NUMERIC) {
 				if(DateUtil.isCellDateFormatted(thisCell)) {
 					return formatter.format(thisCell.getDateCellValue());
 				}
+				return thisCell.getNumericCellValue() + "";
+			} else if(formulatype == Cell.CELL_TYPE_BOOLEAN) {
+				return thisCell.getBooleanCellValue() + "";
 			}
 		}
 		return "";

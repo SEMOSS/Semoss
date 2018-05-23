@@ -558,7 +558,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		if(isNumeric(columnHeader)) {
-			GremlinInterpreter interp = new GremlinInterpreter(this.g);
+			GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 			SelectQueryStruct qs = new SelectQueryStruct();
 			// add selector
 			QueryColumnSelector selector = new QueryColumnSelector();
@@ -1088,18 +1088,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
-		// right now
-		// BE is going to assume the user wants all the join information
-		// even if they are not returning all the headers
-//		if(queryStruct.getSelectors().size() > 1) {
-			// fill in relationships into qs
-			qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
-//		}
+		qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		GremlinInterpreter interp = new GremlinInterpreter(this.g, this.metaData);
+		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
-		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIterator(interp.composeIterator(), qs, this.metaData), qs);
+		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIteratorMap(interp.composeIterator(), qs, this.metaData), qs);
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {

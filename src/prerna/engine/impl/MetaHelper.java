@@ -522,7 +522,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter2() {
+	public IQueryInterpreter getQueryInterpreter() {
 		// TODO Auto-generated method stub
 		return null;
 	}

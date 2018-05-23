@@ -41,7 +41,7 @@ import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.web.WebWrapper;
-import prerna.query.interpreters.GremlinMapInterp;
+import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SolrInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -111,7 +111,7 @@ public class WrapperManager {
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
-			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2();
+			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
 					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getNameMap()),
@@ -122,7 +122,7 @@ public class WrapperManager {
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
-			GremlinMapInterp interpreter = (GremlinMapInterp) engine.getQueryInterpreter2();
+			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
 					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((DataStaxGraphEngine) engine).getNameMap()),
@@ -145,7 +145,7 @@ public class WrapperManager {
 
 		if(genQueryString) {
 			long start = System.currentTimeMillis();
-			IQueryInterpreter interpreter = engine.getQueryInterpreter2();
+			IQueryInterpreter interpreter = engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			String query = interpreter.composeQuery();
 			LOGGER.debug("Executing query on engine " + engine.getEngineName());
