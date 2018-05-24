@@ -624,6 +624,15 @@ public class XLFileHelper {
 		return this.fileLocation;
 	}
 	
+	/**
+	 * Get the index for a given sheet
+	 * @param sheetName
+	 * @return
+	 */
+	public int getSheetIndex(String sheetName) {
+		return this.workbook.getSheetIndex(sheetName);
+	}
+	
 	
 	///// TESTING CODE STARTS HERE /////
 

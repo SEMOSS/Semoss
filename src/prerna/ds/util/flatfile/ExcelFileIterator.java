@@ -77,7 +77,6 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		for(int i = 0; i < numHeaders; i++) {
 			this.dataTypeMap.put(this.headers[i], strTypes[i]);
 			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
-
 		}
 	}
 	
@@ -201,6 +200,10 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	
 	public XLFileHelper getHelper() {
 		return this.helper;
+	}
+	
+	public int getSheetIndex() {
+		return this.helper.getSheetIndex(this.sheetToLoad);
 	}
 	
 	public ExcelQueryStruct getQs() {
