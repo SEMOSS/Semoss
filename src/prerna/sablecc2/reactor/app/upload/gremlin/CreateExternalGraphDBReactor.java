@@ -40,7 +40,8 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 
 	public CreateExternalGraphDBReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
+				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(), 
+				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
 	}
 
 	@Override
@@ -49,7 +50,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		organizeKeys();
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-		String databaseName = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = this.keyValue.get(this.keysToGet[0]).trim().replaceAll("\\s+", "_");
 		if (databaseName == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires database name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
@@ -67,8 +68,14 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+//		String nodeName = this.keyValue.get(this.keysToGet[3]);
+//		if (nodeName == null) {
+//			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+//			exception.setContinueThreadOfExecution(false);
+//			throw exception;
+//		}
 		// get metamodel
-		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
+		GenRowStruct grs = this.store.getNoun(keysToGet[4]);
 		Map<String, Object> metaMap = null;
 		if(grs != null && !grs.isEmpty()) {
 			metaMap = (Map<String, Object>) grs.get(0);
@@ -94,6 +101,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		// create insights dbs
 		logger.info("Start generating insights database");
 		IEngine insightDb = UploadUtilities.generateInsightsDatabase(databaseName);
+		UploadUtilities.addExploreInstanceInsight(databaseName, insightDb);
 		logger.info("Done generating insights database");
 
 		// create smss
