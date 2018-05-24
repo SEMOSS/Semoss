@@ -15,6 +15,17 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 
 public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 
+	/**	
+	 * THIS CLASS IS EXTREMELY SIMILAR TO THE BASE GREMLIN INTERPRETER
+	 * Only difference is we do not bind on the edge names
+	 * We use this when connecting to external databases that do not following our 
+	 * convention of what a node edge should be
+	 * 
+	 * TODO: capture this information and store it in the OWL as the relationship name
+	 * Use that with the QS to perform the correct operation
+	 */
+	
+	
 	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
 		super(gt, typeMap, nameMap);
 	}
@@ -22,7 +33,7 @@ public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 	public GremlinNoEdgeBindInterpreter(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
 		super(gt, meta);
 	}
-
+	
 	/**
 	 * The main method to traversal the graph relationships
 	 * @param startName
