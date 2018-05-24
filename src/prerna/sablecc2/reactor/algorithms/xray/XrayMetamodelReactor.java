@@ -115,6 +115,8 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				edgesTable.putAll(edgesList1);
 				conceptsTable.putAll(concepts);
 			}
+			
+			String delim = "-";
 			List<Map<String, Object>> edgesList = new Vector(edgesTable.values());
 			// this does not need to be modified maybe flush out only important concepts???????
 			List<Map<String, Object>> concepts2 = new Vector(conceptsTable.values());
@@ -128,13 +130,13 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				if (isSourceTable == 0) {
 					sourceColumn = (String) map.get("Source_Column");
 				}
-				String sourceEdge = sourceDB + "." + sourceTable;
+				String sourceEdge = sourceDB + delim + sourceTable;
 				if (sourceColumn != null) {
 					// property
-					sourceEdge += "." + sourceColumn;
+					sourceEdge += delim + sourceColumn;
 				} else {
 					// concept
-					sourceEdge += "." + sourceTable;
+					sourceEdge += delim + sourceTable;
 				}
 				String sourceKey = (String)map.get("Source_Key");
 				String targetDB = (String) map.get("Target_Database");
@@ -144,18 +146,18 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				if (isTargetTable == 0) {
 					targetColumn = (String) map.get("Target_Column");
 				}
-				String targetEdge = targetDB + "." + targetTable;
+				String targetEdge = targetDB + delim + targetTable;
 				
 				if (targetColumn != null) {
 					// property
-					targetEdge += "." + targetColumn;
+					targetEdge += delim+ targetColumn;
 				} else {
 					// concept
-					targetEdge += "." + targetTable;
+					targetEdge += delim + targetTable;
 				}
 				String targetKey = (String)map.get("Target_Key");
 
-				String edgeKey = sourceEdge + "-" + targetEdge;
+				String edgeKey = sourceEdge + delim + targetEdge;
 				// check if xray edge exists
 				if (!edgesTable.contains(edgeKey)) {
 					Map<String, Object> xrayEdge = new HashMap();

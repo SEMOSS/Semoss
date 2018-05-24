@@ -558,7 +558,8 @@ public class MasterDatabaseUtility {
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		ResultSet rs = null;
-
+		// creates e-c-p node names for fe to parse
+		String delim = "-";
 		Map<String, Object> finalHash = new Hashtable<String, Object>();
 
 		// idHash - physical ID to the name of the node
@@ -590,11 +591,11 @@ public class MasterDatabaseUtility {
 				String parentName = idHash.get(parentPhysicalId);
 
 				// if already there, should we still add it ?
-				if (nodeHash.containsKey(engineName + "." + parentName))
-					node = nodeHash.get(engineName + "." + parentName);
+				if (nodeHash.containsKey(engineName + delim + parentName))
+					node = nodeHash.get(engineName + delim + parentName);
 				else {
-					node = new MetamodelVertex(engineName + "." + parentName);
-					nodeHash.put(engineName + "." + conceptualName, node);
+					node = new MetamodelVertex(engineName + delim + parentName);
+					nodeHash.put(engineName + delim + conceptualName, node);
 				}
 
 //				if (!conceptName.equalsIgnoreCase(parentName)) {
@@ -632,23 +633,23 @@ public class MasterDatabaseUtility {
 				// need to check to see if the idHash has it else put it in
 				String sourceName = idHash.get(startId);
 				String targetName = idHash.get(endId);
-				newEdge.put("source", engineName + "." + sourceName + "." + sourceName);
-				newEdge.put("target", engineName + "." + targetName + "." + targetName);
+				newEdge.put("source", engineName + delim + sourceName + delim + sourceName);
+				newEdge.put("target", engineName + delim + targetName + delim + targetName);
 
 				// if(nodeHash.containsKey(toId))
 
 				boolean foundNode = true;
-				if (!nodeHash.containsKey(engineName + "." + sourceName)) {
+				if (!nodeHash.containsKey(engineName + delim + sourceName)) {
 					foundNode = false;
 					System.out.println("Unable to find node " + sourceName);
 				}
-				if (!nodeHash.containsKey(engineName + "." + targetName)) {
+				if (!nodeHash.containsKey(engineName + delim + targetName)) {
 					foundNode = false;
 					System.out.println("Unable to find node " + targetName);
 				}
 
 				if (foundNode) {
-					edgeHash.put(engineName + "." + sourceName + "." + sourceName + "-" + engineName + "." + targetName + "." + targetName, newEdge);
+					edgeHash.put(engineName + delim + sourceName + delim + sourceName + delim + engineName + delim+ targetName + delim + targetName, newEdge);
 				}
 			}
 			finalHash.put("nodes", nodeHash);
@@ -1749,6 +1750,46 @@ public class MasterDatabaseUtility {
 			closeStreams(stmt, rs);
 		}
 		return physicalConceptMap;
+	}
+	
+	public List<Map<String, String>> databaseTranslator(String sourceDB, String targetDB) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		// select logicalname from concept where conceptualname='MovieBudget'
+		// and conceptualname != logicalname
+		// select distinct c.conceptualname, ec.physicalname from concept c,
+		// engineconcept ec, engine e where ec.localconceptid=c.localconceptid
+		// and ec.physicalname in ('Title', 'Actor');
+		List<Map<String, String>> tranlationList = new ArrayList<>();
+		Map<String, String> map = new HashMap<>();
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			String query = "SELECT e.engineName as sourceEngine, c.conceptualName as sourceConceptual, ec.physicalName as sourcePhysical, c.logicalName, "
+					+ "targetEngine, targetConceptual, targetPhysical from engine e, engineconcept ec, concept c  "
+					+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
+					+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
+					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '"
+					+ sourceDB + "' " + "and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
+					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '" + targetDB
+					+ "' and c.conceptualName != c.logicalName";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				String sourceEngine = rs.getString(1);
+				String sourceConceptual = rs.getString(2);
+				String sourcePhysical = rs.getString(3);
+				String logicalName = rs.getString(4);
+				String targetEngine = rs.getString(5);
+				String targetConceptual = rs.getString(6);
+				String targetPhysical = rs.getString(7);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		return tranlationList;
 	}
 	
 	public static void main(String[] args) {
