@@ -567,7 +567,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add filters
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
-			TinkerHeadersDataRowIterator it = new TinkerHeadersDataRowIterator(interp.composeIterator(), qs);
+			TinkerHeadersDataRowIteratorMap it = new TinkerHeadersDataRowIteratorMap(interp.composeIterator(), qs, this.metaData);
 			List<Object> columnList = new ArrayList<>();
 			while(it.hasNext()) {
 				columnList.add(it.next().getValues()[0]);
