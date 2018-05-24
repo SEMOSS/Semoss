@@ -50,7 +50,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		organizeKeys();
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-		String databaseName = this.keyValue.get(this.keysToGet[0]);
+		String databaseName = this.keyValue.get(this.keysToGet[0]).trim().replaceAll("\\s+", "_");;
 		if (databaseName == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires database name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
@@ -82,12 +82,12 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-//		String graphNameId = this.keyValue.get(this.keysToGet[7]);
-//		if (graphNameId == null) {
-//			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-//			exception.setContinueThreadOfExecution(false);
-//			throw exception;
-//		}
+		String graphNameId = this.keyValue.get(this.keysToGet[7]);
+		if (graphNameId == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// meta model
 		GenRowStruct grs = this.store.getNoun(keysToGet[8]);
@@ -111,10 +111,12 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		// create insights dbs
 		logger.info("Start generating insights database");
 		IEngine insightDb = UploadUtilities.generateInsightsDatabase(databaseName);
+		UploadUtilities.addExploreInstanceInsight(databaseName, insightDb);
 		logger.info("Done generating insights database");
 
 		// create smss
 		Map<String, String> typeMap = new HashMap<>();
+		Map<String, String> nameMap = new HashMap<>();
 		// create typeMap for smms
 		for (String concept : concepts) {
 			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
@@ -123,6 +125,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 				if (prop.equals(graphTypeId)) {
 					conceptTypes.put(concept, propMap.get(graphTypeId).toString());
 					typeMap.put(concept, graphTypeId);
+					nameMap.put(concept, graphNameId);
 					break;
 				}
 			}
@@ -132,7 +135,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		String tempSmssLocation = null;
 		logger.info("Start generating temp smss");
 		try {
-			tempSmssLocation = generateTempSmss(databaseName, host, port, username, password, graphName, typeMap);
+			tempSmssLocation = generateTempSmss(databaseName, host, port, username, password, graphName, typeMap, nameMap);
 			DIHelper.getInstance().getCoreProp().setProperty(databaseName + "_" + Constants.STORE, tempSmssLocation);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -209,17 +212,20 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 
 	/**
 	 * Generate the SMSS for the db
-	 * 
 	 * @param appName
-	 * @param graphName2 
-	 * @param password 
-	 * @param tinkerFilePath
-	 * @param tinkerTypeMap
-	 * @param tinkerDriverType
+	 * @param host
+	 * @param port
+	 * @param username
+	 * @param password
+	 * @param graphName
+	 * @param typeMap
+	 * @param nameMap
 	 * @return
 	 * @throws IOException
 	 */
-	private String generateTempSmss(String appName, String host, String port, String username, String password, String graphName, Map tinkerTypeMap)
+	private String generateTempSmss(String appName, String host, String port, 
+			String username, String password, String graphName, 
+			Map<String, String> typeMap, Map<String, String> nameMap)
 			throws IOException {
 		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -237,8 +243,6 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 			pw.write(Constants.ENGINE_TYPE + "\tprerna.ds.datastax.DataStaxGraphEngine\n");
 			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@engine@"
 					+ System.getProperty("file.separator") + "insights_database" + "\n");
-			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
-			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			pw.write(Constants.OWL + "\tdb" + System.getProperty("file.separator") + "@engine@"
 					+ System.getProperty("file.separator") + "@engine@_OWL.OWL" + "\n");
 
@@ -252,9 +256,11 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 			pw.write("GRAPH_NAME" + "\t" + graphName + "\n");
 			// add type map
 			Gson gson = new GsonBuilder().create();
-			String json = gson.toJson(tinkerTypeMap);
+			String json = gson.toJson(typeMap);
 			pw.write("TYPE_MAP" + "\t" + json + "\n");
-
+			json = gson.toJson(nameMap);
+			pw.write("NAME_MAP" + "\t" + json + "\n");
+			
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate smss file");
