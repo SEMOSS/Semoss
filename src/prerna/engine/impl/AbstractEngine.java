@@ -694,7 +694,11 @@ public abstract class AbstractEngine implements IEngine {
 			if(folderName.equals(this.engineName))
 			{
 				logger.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
-				FileUtils.deleteDirectory(engineFolder);
+				try {
+					FileUtils.deleteDirectory(engineFolder);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			else{
 				logger.error("Cannot delete database folder as folder name does not line up with engine name");
