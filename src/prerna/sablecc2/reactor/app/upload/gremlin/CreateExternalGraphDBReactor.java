@@ -163,6 +163,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		logger.info("5. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
+		insightDatabase.closeDB();
 		logger.info("5. Complete");
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
@@ -189,7 +190,6 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 
 		TinkerEngine tinkerEng = new TinkerEngine();
 		tinkerEng.setEngineName(newAppName);
-		tinkerEng.setInsightDatabase(insightDatabase);
 		tinkerEng.openDB(smssFile.getAbsolutePath());
 
 		// only at end do we add to DIHelper

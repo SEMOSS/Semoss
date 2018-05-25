@@ -177,6 +177,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		logger.info("5. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
+		insightDatabase.closeDB();
 		logger.info("5. Complete");
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
@@ -203,7 +204,6 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
 		dseEngine.setEngineName(newAppName);
-		dseEngine.setInsightDatabase(insightDatabase);
 		dseEngine.openDB(smssFile.getAbsolutePath());
 
 		// only at end do we add to DIHelper
