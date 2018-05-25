@@ -1752,7 +1752,7 @@ public class MasterDatabaseUtility {
 		return physicalConceptMap;
 	}
 	
-	public List<Map<String, String>> databaseTranslator(String sourceDB, String targetDB) {
+	public static Map<String, List<String>> databaseTranslator(String sourceDB, String targetDB) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		// select logicalname from concept where conceptualname='MovieBudget'
@@ -1760,8 +1760,7 @@ public class MasterDatabaseUtility {
 		// select distinct c.conceptualname, ec.physicalname from concept c,
 		// engineconcept ec, engine e where ec.localconceptid=c.localconceptid
 		// and ec.physicalname in ('Title', 'Actor');
-		List<Map<String, String>> tranlationList = new ArrayList<>();
-		Map<String, String> map = new HashMap<>();
+		Map<String, List<String>> map = new HashMap<>();
 		ResultSet rs = null;
 		Statement stmt = null;
 		try {
@@ -1770,8 +1769,8 @@ public class MasterDatabaseUtility {
 					+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
 					+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
 					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '"
-					+ sourceDB + "' " + "and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
-					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '" + targetDB
+					+ targetDB + "' " + "and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
+					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '" + sourceDB
 					+ "' and c.conceptualName != c.logicalName";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
@@ -1783,13 +1782,21 @@ public class MasterDatabaseUtility {
 				String targetEngine = rs.getString(5);
 				String targetConceptual = rs.getString(6);
 				String targetPhysical = rs.getString(7);
+
+				List<String> targetPhysicals = new Vector<String>();
+				if (map.containsKey(sourcePhysical)) {
+					targetPhysicals = map.get(sourcePhysical);
+				}
+				targetPhysicals.add(targetPhysical);
+				
+				map.put(sourcePhysical, targetPhysicals);
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
 			closeStreams(stmt, rs);
 		}
-		return tranlationList;
+		return map;
 	}
 	
 	public static void main(String[] args) {
