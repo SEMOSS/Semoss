@@ -158,6 +158,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("6. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
+		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		logger.info("6. Complete");

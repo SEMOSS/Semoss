@@ -1,11 +1,7 @@
 package prerna.sablecc2.reactor.app.upload.gremlin;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,10 +10,8 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.GenRowStruct;
@@ -35,7 +29,7 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class CreateExternalGraphDBReactor extends AbstractReactor {
-	
+
 	private static final String CLASS_NAME = CreateExternalGraphDBReactor.class.getName();
 
 	public CreateExternalGraphDBReactor() {
@@ -48,14 +42,8 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-		String databaseName = this.keyValue.get(this.keysToGet[0]).trim().replaceAll("\\s+", "_");
-		if (databaseName == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires database name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+
+		String newAppName = this.keyValue.get(this.keysToGet[0]).trim().replaceAll("\\s+", "_");
 		String fileName = this.keyValue.get(this.keysToGet[1]);
 		if (fileName == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires file name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -68,44 +56,33 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-//		String nodeName = this.keyValue.get(this.keysToGet[3]);
-//		if (nodeName == null) {
-//			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-//			exception.setContinueThreadOfExecution(false);
-//			throw exception;
-//		}
+		String nodeName = this.keyValue.get(this.keysToGet[3]);
+		if (nodeName == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		// get metamodel
 		GenRowStruct grs = this.store.getNoun(keysToGet[4]);
 		Map<String, Object> metaMap = null;
 		if(grs != null && !grs.isEmpty()) {
 			metaMap = (Map<String, Object>) grs.get(0);
 		}
-		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
-		Map<String, Object> edges = (Map<String, Object>) metaMap.get("edges");
-		Set<String> concepts = nodes.keySet();
-		Map<String, String> conceptTypes = new HashMap<String, String>();
-		Set<String> edgeLabels = edges.keySet();
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
 		if (fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
 			tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
 		}
 
-		// create db folder
-		logger.info("Start generating app folder");
-		String dbFolder = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + databaseName;
-		File newF = new File(dbFolder);
-		newF.mkdirs();
-		logger.info("Done generating app folder");
+		// grab metadata
+		Map<String, Object> nodes = (Map<String, Object>) metaMap.get("nodes");
+		Map<String, Object> edges = (Map<String, Object>) metaMap.get("edges");
+		Set<String> concepts = nodes.keySet();
+		Map<String, String> conceptTypes = new HashMap<String, String>();
+		Set<String> edgeLabels = edges.keySet();
 
-		// create insights dbs
-		logger.info("Start generating insights database");
-		IEngine insightDb = UploadUtilities.generateInsightsDatabase(databaseName);
-		UploadUtilities.addExploreInstanceInsight(databaseName, insightDb);
-		logger.info("Done generating insights database");
-
-		// create smss
-		Map<String, String> typeMap = new HashMap<>();
+		Map<String, String> typeMap = new HashMap<String, String>();
+		Map<String, String> nameMap = new HashMap<String, String>();
 		// create typeMap for smms
 		for (String concept : concepts) {
 			Map<String, Object> propMap = (Map) nodes.get(concept);
@@ -114,36 +91,46 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 				if (prop.equals(nodeType)) {
 					conceptTypes.put(concept, propMap.get(nodeType).toString());
 					typeMap.put(concept, nodeType);
+					nameMap.put(concept,  nodeName);
 					break;
 				}
 			}
 		}
 
-		// add to DIHelper so we dont auto load with the file watcher
-		String tempSmssLocation = null;
-		logger.info("Start generating temp smss");
+		// start by validation
+		logger.info("Start validating app");
 		try {
-			tempSmssLocation = generateTempSmss(databaseName, fileName, typeMap, tinkerDriver);
-			DIHelper.getInstance().getCoreProp().setProperty(databaseName + "_" + Constants.STORE, tempSmssLocation);
+			UploadUtilities.validateApp(newAppName);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e.getMessage());
+		}
+		logger.info("Done validating app");
+
+		logger.info("Starting app creation");
+
+		logger.info("1. Start generating app folder");
+		UploadUtilities.generateAppFolder(newAppName);
+		logger.info("1. Complete");
+
+		logger.info("Generate new app database");
+		logger.info("2. Create metadata for database...");
+		File owlFile = UploadUtilities.generateOwlFile(newAppName);
+		logger.info("2. Complete");
+
+		logger.info("3. Create properties file for database...");
+		File tempSmss = null;
+		try {
+			tempSmss = UploadUtilities.generateTemporaryTinkerSmss(newAppName, owlFile, fileName, typeMap, nameMap, tinkerDriver);
+			DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("Done generating temp smss");
-
-		// load into solr
-		logger.info("Start loading into solr");
-		try {
-			SolrUtility.addAppToSolr(databaseName);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
-			e.printStackTrace();
-		}
-		logger.info("Done loading into solr");
+		logger.info("3. Complete");
 
 		// create owl file
-		logger.info("Start creating owl");
-		String owlPath = dbFolder + DIR_SEPARATOR + databaseName + "_OWL.owl";
-		OWLER owler = new OWLER(owlPath, IEngine.ENGINE_TYPE.TINKER);
+		logger.info("4. Start generating engine metadata...");
+		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
 		// add concepts
 		for (String concept : concepts) {
 			String conceptType = conceptTypes.get(concept);
@@ -158,100 +145,60 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 			}
 		}
 		// add relationships
-		for (String label : edgeLabels) {
+		for(String label : edgeLabels) {
 			List<String> rels = (List<String>) edges.get(label);
 			owler.addRelation(rels.get(0), rels.get(1), null);
 		}
+
 		try {
 			owler.commit();
 			owler.export();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			owler.closeOwl();
 		}
-		owler.closeOwl();
-		logger.info("Done creating owl");
-		// rename .temp to .smss
-		logger.info("Replacing .temp smss file with .smm ");
-		File tempFile = new File(tempSmssLocation);
-		File smssFile = new File(tempSmssLocation.replace(".temp", ".smss"));
+		logger.info("4. Complete");
+
+		logger.info("5. Start generating default app insights");
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
+		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
+		logger.info("5. Complete");
+
+		logger.info("6. Process app metadata to allow for traversing across apps	");
 		try {
-			FileUtils.copyFile(tempFile, smssFile);
+			Utility.synchronizeEngineMetadata(newAppName);
+			SolrUtility.addToSolrInsightCore(newAppName);
+			SolrUtility.addAppToSolr(newAppName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info("6. Complete");
+
+		// rename .temp to .smss
+		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		try {
+			FileUtils.copyFile(tempSmss, smssFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		tempFile.delete();
-		DIHelper.getInstance().getCoreProp().setProperty(databaseName + "_" + Constants.STORE,
-				smssFile.getAbsolutePath());
-		logger.info("Done replacing .temp smss file with .smss ");
-		logger.info("Finalizing adding external graph engine ");
-		Utility.synchronizeEngineMetadata(databaseName);
+		tempSmss.delete();
+
+		DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		Utility.synchronizeEngineMetadata(newAppName);
+
 		TinkerEngine tinkerEng = new TinkerEngine();
-		tinkerEng.setEngineName(databaseName);
-		tinkerEng.setInsightDatabase(insightDb);
+		tinkerEng.setEngineName(newAppName);
+		tinkerEng.setInsightDatabase(insightDatabase);
 		tinkerEng.openDB(smssFile.getAbsolutePath());
+
 		// only at end do we add to DIHelper
-		DIHelper.getInstance().setLocalProperty(databaseName, tinkerEng);
+		DIHelper.getInstance().setLocalProperty(newAppName, tinkerEng);
 		String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		appNames = appNames + ";" + databaseName;
+		appNames = appNames + ";" + newAppName;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
-
-	/**
-	 * Generate the SMSS for the db
-	 * 
-	 * @param appName
-	 * @param tinkerFilePath
-	 * @param tinkerTypeMap
-	 * @param tinkerDriverType
-	 * @return
-	 * @throws IOException
-	 */
-	private String generateTempSmss(String appName, String tinkerFilePath, Map tinkerTypeMap,
-			TINKER_DRIVER tinkerDriverType) throws IOException {
-		final String FILE_SEP = System.getProperty("file.separator");
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String smssFileLocation = baseFolder + FILE_SEP + "db" + FILE_SEP + appName + ".temp";
-
-		// also write the base properties
-		// ie ONTOLOGY, DREAMER, ENGINE, ENGINE CLASS
-		FileWriter pw = null;
-		try {
-			File newFile = new File(smssFileLocation);
-			pw = new FileWriter(newFile);
-			// base properties
-			pw.write("Base Properties \n");
-			pw.write(Constants.ENGINE + "\t" + appName + "\n");
-			pw.write(Constants.ENGINE_TYPE + "\tprerna.engine.impl.tinker.TinkerEngine\n");
-			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@engine@"
-					+ System.getProperty("file.separator") + "insights_database" + "\n");
-			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
-			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
-			pw.write(Constants.OWL + "\tdb" + System.getProperty("file.separator") + "@engine@"
-					+ System.getProperty("file.separator") + "@engine@_OWL.OWL" + "\n");
-
-			// custom tinker props
-			pw.write(Constants.TINKER_FILE + "\t" + tinkerFilePath + "\n");
-			pw.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
-			// add type map
-			Gson gson = new GsonBuilder().create();
-			String json = gson.toJson(tinkerTypeMap);
-			pw.write("TYPE_MAP" + "\t" + json + "\n");
-
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			throw new IOException("Could not generate smss file");
-		} finally {
-			if (pw != null) {
-				try {
-					pw.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return smssFileLocation;
 	}
 
 }
