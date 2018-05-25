@@ -8,14 +8,21 @@ import java.nio.file.Files;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.Properties;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -169,24 +176,13 @@ public class UploadUtilities {
 			writer = new FileWriter(appTempSmss);
 			bufferedWriter = new BufferedWriter(writer);
 			
-			bufferedWriter.write("Base Properties" + newLine);
-			// write engine
-			bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
-			// write owl
-			String paramOwlLoc = getRelativeOwlPath(owlFile).replace(appName, "@engine@");
-			bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
-
-			// write insights rdbms
-			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
-			
-			// write the engine type
-			bufferedWriter.write(Constants.ENGINE_TYPE + tab);
+			String engineClassName = "";
 			if(rdbmsType.equals(RdbmsConnectionHelper.IMPALA)) {
-				bufferedWriter.write(ImpalaEngine.class.getName());
+				engineClassName = ImpalaEngine.class.getName();
 			} else {
-				bufferedWriter.write(RDBMSNativeEngine.class.getName());
+				engineClassName = RDBMSNativeEngine.class.getName();
 			}
-			bufferedWriter.write(newLine);
+			writeDefaultSettings(bufferedWriter, appName, owlFile, engineClassName, newLine, tab);
 
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
@@ -196,7 +192,6 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
 			// write the password
 			bufferedWriter.write(Constants.PASSWORD + tab + newLine);
-			
 			// most important piece
 			// the connection url
 			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
@@ -293,6 +288,149 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Generate a tinker smss
+	 * @param appName
+	 * @param owlFile
+	 * @param tinkerFilePath
+	 * @param typeMap
+	 * @param nameMap
+	 * @param tinkerDriverType
+	 * @return
+	 * @throws IOException
+	 */
+	public static File generateTemporaryTinkerSmss(String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around 
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if(appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+		
+		final String newLine = "\n";
+		final String tab = "\t";
+		
+		// also write the base properties
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			File newFile = new File(appTempSmssLoc);
+			writer = new FileWriter(newFile);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+			
+			// tinker file location
+			bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
+			// tinker driver
+			bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
+			// type map
+			Gson gson = new GsonBuilder().create();
+			String json = gson.toJson(typeMap);
+			bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			// name map
+			json = gson.toJson(nameMap);
+			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
+			
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new IOException("Could not generate app smss file");
+		} finally {
+			try {
+				if(bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if(writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return appTempSmss;
+	}
+
+	/**
+	 * Generate a temporary datastax smss
+	 * @param appName
+	 * @param owlFile
+	 * @param host
+	 * @param port
+	 * @param username
+	 * @param password
+	 * @param graphname
+	 * @param typeMap
+	 * @param nameMap
+	 * @param tinkerDriverType
+	 * @return
+	 * @throws IOException
+	 */
+	public static File generateTemporaryDatastaxSmss(String appName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around 
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if(appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+		
+		final String newLine = "\n";
+		final String tab = "\t";
+		
+		// also write the base properties
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			File newFile = new File(appTempSmssLoc);
+			writer = new FileWriter(newFile);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
+			
+			// tinker file location
+			bufferedWriter.write("HOST" + tab + host + newLine);
+			bufferedWriter.write("PORT" + "\t" + port + newLine);
+			if(username != null){
+				bufferedWriter.write("USERNAME" + tab + username + newLine);
+			}
+			if(password != null) {
+				bufferedWriter.write("PASSWORD" + tab + password + newLine);
+			}
+			bufferedWriter.write("GRAPH_NAME" + tab + graphName + newLine);
+			
+			// type map
+			Gson gson = new GsonBuilder().create();
+			String json = gson.toJson(typeMap);
+			bufferedWriter.write("TYPE_MAP" + "\t" + json + "\n");
+			// name map
+			json = gson.toJson(nameMap);
+			bufferedWriter.write("NAME_MAP" + "\t" + json + "\n");
+			
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new IOException("Could not generate app smss file");
+		} finally {
+			try {
+				if(bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if(writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return appTempSmss;
+	}
+	
+	/**
 	 * Get the app temporary smss location
 	 * @param appName
 	 * @return
@@ -301,6 +439,32 @@ public class UploadUtilities {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String appTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + appName + ".temp";
 		return appTempSmssLoc;
+	}
+	
+	/**
+	 * Writes the shared properties across majority of engines. This includes:
+	 * 1) Engine Name
+	 * 2) Engine Type
+	 * 3) Insights database locaiton
+	 * 4) OWL file locaiton
+	 * 
+	 * @param bufferedWriter
+	 * @param appName
+	 * @param owlFile
+	 * @param engineClassName
+	 * @param newLine
+	 * @param tab
+	 * @throws IOException
+	 */
+	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String appName, File owlFile, String engineClassName, final String newLine, final String tab) throws IOException {
+		bufferedWriter.write("Base Properties" +  newLine);
+		bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
+		bufferedWriter.write(Constants.ENGINE_TYPE + tab + engineClassName + newLine);
+		// write insights rdbms
+		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
+		// write owl
+		String paramOwlLoc = getRelativeOwlPath(owlFile).replace(appName, "@engine@");
+		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 	}
 	
 	/**
