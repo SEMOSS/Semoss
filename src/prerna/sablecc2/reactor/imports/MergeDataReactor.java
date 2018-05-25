@@ -14,6 +14,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.Insight;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.LambdaQueryStruct;
@@ -52,19 +53,31 @@ public class MergeDataReactor extends AbstractReactor {
 		// or it is a task already and we want to merge
 		// in either case, we will not return anything but just update the frame
 		
+		ITableDataFrame mergeFrame = null;
 		SelectQueryStruct qs = getQueryStruct();
 		if(qs != null) {
-			frame = mergeFromQs(frame, qs, joins);
+			mergeFrame = mergeFromQs(frame, qs, joins);
 		} else {
 			ITask task = getTask();
 			if(task != null) {
-				frame = mergeFromTask(frame, task, joins);
+				mergeFrame = mergeFromTask(frame, task, joins);
 			} else {
 				throw new IllegalArgumentException("Could not find any data input to merge into the frame");
 			}
 		}
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		// in case we generated a new frame
+		// update existing references
+		if(mergeFrame != frame) {
+			if(frame.getTableName() != null) {
+				this.insight.getVarStore().put(frame.getTableName(), noun);
+			} else if(frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY)) {
+				this.insight.setDataMaker(mergeFrame);
+			}
+		}
+		
+		return noun;
 	}
 	
 	/**
@@ -136,8 +149,6 @@ public class MergeDataReactor extends AbstractReactor {
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
-		this.insight.setDataMaker(frame);
-		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
 		
 		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
@@ -174,7 +185,6 @@ public class MergeDataReactor extends AbstractReactor {
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
-		this.insight.setDataMaker(frame);
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
 		
