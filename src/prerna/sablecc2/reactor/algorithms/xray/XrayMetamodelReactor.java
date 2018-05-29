@@ -60,12 +60,33 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			String jsonR = "json" + Utility.getRandomString(5);
 			String tempFrame = "temp" + Utility.getRandomString(8);
 			StringBuilder rsb = new StringBuilder();
-			rsb.append(tempFrame + " <- subset(" + rFrameName
+			// xray remove a-b duplicate b-a match
+			rsb.append(tempFrame + "<- " + rFrameName + ";\n");
+			String nR = "n" + Utility.getRandomString(5);
+			rsb.append(nR + "<- nrow(" + tempFrame + ");\n");
+			String vR = "v" + Utility.getRandomString(5);
+			rsb.append(vR + "<- vector();\n");
+			String iR = "i" + Utility.getRandomString(5);
+			rsb.append("for(" + iR + " in 1:" + nR + "){\n");
+			
+			rsb.append("src <-paste0(" + tempFrame + "$Source_Database[" + iR + "],\"%\"," + tempFrame + "$Source_Table["
+					+ iR + "],\"%\"," + tempFrame + "$Source_Property[" + iR + "]);\n");
+			rsb.append("trg <-paste0(" + tempFrame + "$Target_Database[" + iR + "],\"%\"," + tempFrame + "$Target_Table["
+					+ iR + "],\"%\"," + tempFrame + "$Target_Property[" + iR + "]);\n");
+			rsb.append("if(src < trg){\n");
+			rsb.append(vR+"[" + iR + "]<-paste0(src,\"%\",trg);\n");
+			rsb.append("}else{\n");
+			rsb.append(vR+"[" + iR + "]<-paste0(trg,\"%\",src);\n");
+			rsb.append("}\n rm(src);\n rm(trg);\n");
+			rsb.append("}\n");
+			rsb.append(tempFrame + "$id <- " + vR + ";\n");
+			rsb.append(tempFrame + "<- " + tempFrame + "[order(" + tempFrame + "$id),];\n");
+			rsb.append(tempFrame + "<-" + tempFrame + "[!duplicated(" + tempFrame + "$id),];\n");
+			rsb.append(tempFrame + " <- subset(" + tempFrame
 					+ ", select=c(Source_Database, Source_Table, Source_Column, Target_Database, "
 					+ "Target_Table, Target_Column, Source_Instances, Target_Instances, "
 					+ "Is_Table_Source, Is_Table_Target));");
-			// remove bidirectional comparison
-			rsb.append(tempFrame+" <- "+tempFrame+"[1:(nrow("+tempFrame+") /2),];");
+
 			// get instance count for source
 			rsb.append(tempFrame + "<- merge(" + tempFrame + ", " + countFrame
 					+ ", by.x=c(\"Source_Database\", \"Source_Table\", \"Source_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
@@ -108,14 +129,17 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			Set<String> dbList = xray.getEngineList();
 			Hashtable edgesTable = new Hashtable();
 			Hashtable conceptsTable = new Hashtable();
-			for(String db:dbList ) {
+			for (String db : dbList) {
+				Boolean existingMetamodel = new Boolean(((Map) config.get("parameters")).get("metamodel").toString());
 				Map<String, Object> metamodelObject = MasterDatabaseUtility.getXrayExisitingMetamodelRDBMS(db);
-				Hashtable edgesList1 = (Hashtable)metamodelObject.get("edges");
-				Hashtable concepts = (Hashtable)metamodelObject.get("nodes");
-				edgesTable.putAll(edgesList1);
+				Hashtable edgesList1 = (Hashtable) metamodelObject.get("edges");
+				Hashtable concepts = (Hashtable) metamodelObject.get("nodes");
+				if (existingMetamodel) {
+					edgesTable.putAll(edgesList1);
+				}
 				conceptsTable.putAll(concepts);
 			}
-			
+
 			String delim = "-";
 			List<Map<String, Object>> edgesList = new Vector(edgesTable.values());
 			// this does not need to be modified maybe flush out only important concepts???????

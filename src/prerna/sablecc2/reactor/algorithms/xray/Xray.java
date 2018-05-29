@@ -120,8 +120,8 @@ public class Xray {
 								+ RSyntaxHelper.createStringRColVec(propColumn.toArray()) + ", count=" + RSyntaxHelper
 										.createStringRColVec(countColumn.toArray(new Integer[countColumn.size()]))
 								+ ")");
-				System.out.println(countBuilder);
 				this.rJavaTranslator.runR(countBuilder.toString());
+				System.out.println(countBuilder);
 			}
 		}
 
