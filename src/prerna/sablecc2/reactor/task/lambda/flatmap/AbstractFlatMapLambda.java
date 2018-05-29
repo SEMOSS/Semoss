@@ -19,5 +19,10 @@ public abstract class AbstractFlatMapLambda implements IFlatMapLambda {
 	public void setUser2(User2 user) {
 		this.user = user;
 	}
+	
+	public void setParams(Map params)
+	{
+		
+	}
 
 }

@@ -33,4 +33,10 @@ public interface IFlatMapLambda {
 	 * Set the user within the transformation
 	 */
 	void setUser2(User2 user);
+	
+	/**
+	 * Sets other params to be utilized for twitter etc. 
+	 */
+	void setParams(Map params);
+	
 }
