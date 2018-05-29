@@ -17,6 +17,8 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 	// total number of columns
 	private int totalCols;
 	
+	Map params = null;
+	
 	@Override
 	public List<IHeadersDataRow> process(IHeadersDataRow row) {
 		// construct new values to append onto the row
@@ -26,8 +28,15 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 		Hashtable params = new Hashtable();
 		params.put("q", row.getValues()[colIndex]);
 		params.put("lang", "en");
-		params.put("count", "10");
-		params.put("result_type", "mixed");
+		if(this.params.containsKey("output"))
+			params.put("count", this.params.get("output"));		
+		else
+			params.put("count", "10");
+		
+		if(this.params.containsKey("result_type"))
+			params.put("result_type", this.params.get("result_type"));
+		else
+			params.put("result_type", "mixed");
 		
 		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
 		// add new values
@@ -118,6 +127,12 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 		header.put("derived", true);
 		header.put("type", type.toUpperCase());
 		return header;
+	}
+
+	@Override
+	public void setParams(Map params) {
+		// TODO Auto-generated method stub
+		this.params = params;
 	}
 
 }
