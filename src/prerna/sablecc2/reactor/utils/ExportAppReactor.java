@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,21 +28,22 @@ public class ExportAppReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-		String engineName = this.keyValue.get(this.keysToGet[0]);
-		
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		File zip = null;
 		try {
 			logger.info("Exporting Database Now... ");
 			logger.info("Stopping the engine ... ");
 			// remove the app
-			Utility.getEngine(engineName).closeDB();
-			zip = ZipDatabase.zipEngine(engineName);			
-			DIHelper.getInstance().removeLocalProperty(engineName);
+			IEngine engine = Utility.getEngine(engineId);
+			engine.closeDB();
+			zip = ZipDatabase.zipEngine(engineId, engine.getEngineName());			
+			DIHelper.getInstance().removeLocalProperty(engineId);
 			logger.info("Synchronize Database Complete");
 		} finally {
 			// open it back up
 			logger.info("Opening the engine again ... ");
-			Utility.getEngine(engineName);
+			Utility.getEngine(engineId);
 		}
 		
 		// store it in the insight so the FE can download it
