@@ -68,7 +68,7 @@ public abstract class AbstractQueryStruct {
 	// Datasource
 	protected transient ITableDataFrame frame;
 	protected transient IEngine engine;
-	protected String engineName;
+	protected String engineId;
 	
 	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
@@ -210,15 +210,15 @@ public abstract class AbstractQueryStruct {
 	
 	//////////////////////////////////////////// OTHERS /////////////////////////////////////////////////////
 
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
 	}
 	
-	public String getEngineName() {
-		if(this.engineName == null && this.engine != null) {
-			this.engineName = this.engine.getEngineId();
+	public String getEngineId() {
+		if(this.engineId == null && this.engine != null) {
+			this.engineId = this.engine.getEngineId();
 		}
-		return this.engineName;
+		return this.engineId;
 	}
 	
 	public void setEngine(IEngine engine) {
@@ -231,7 +231,7 @@ public abstract class AbstractQueryStruct {
 	
 	public IEngine retrieveQueryStructEngine() {
 		if(this.engine == null) {
-			this.engine = Utility.getEngine(this.engineName);
+			this.engine = Utility.getEngine(this.engineId);
 		}
 		return this.engine;
 	}
@@ -274,8 +274,8 @@ public abstract class AbstractQueryStruct {
 		mergeImplicitFilters(incomingQS.implicitFilters);
 		mergeHavingFilters(incomingQS.havingFilters);
 		mergeRelations(incomingQS.relations);
-		if(incomingQS.getEngineName() != null) {
-			setEngineName(incomingQS.getEngineName());
+		if(incomingQS.getEngineId() != null) {
+			setEngineId(incomingQS.getEngineId());
 		}
 		
 		if(incomingQS.getEngine() != null) {

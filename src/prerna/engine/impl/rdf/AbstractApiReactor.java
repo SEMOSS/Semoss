@@ -221,7 +221,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 		}
 
 		this.qs = new SelectQueryStruct();
-		this.qs.setEngineName(this.engineName);
+		this.qs.setEngineId(this.engineName);
 		this.put(PKQLEnum.QUERY_STRUCT, this.qs);
 		processQueryStruct(selectors, filters, joins, limit, offset);
 		

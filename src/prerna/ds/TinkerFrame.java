@@ -1279,7 +1279,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 		long time1 = System.currentTimeMillis();
 		// set engine on qs2
-		qs2.setEngineName(component.getEngineName());
+		qs2.setEngineId(component.getEngineName());
 		// instantiate h2importer with frame and qs
 		IImporter importer = new TinkerImporter(this, qs2);
 		if (joins.isEmpty()) {

@@ -1737,7 +1737,7 @@ public class SolrIndexEngine {
 	/**
 	 * Used to verify if specified engine is already contained within solr If
 	 * the method returns a false then the engine needs to be added to solr
-	 * @param engineName           name of the engine to verify existence
+	 * @param engineId           name of the engine to verify existence
 	 * @return true if the engine already exists
 	 */
 	public boolean containsEngine(String engineId) {
@@ -1779,7 +1779,7 @@ public class SolrIndexEngine {
 
 	/**
 	 * Deletes all insights related to a specified engine
-	 * @param engineName      engine name to delete
+	 * @param engineId      engine name to delete
 	 */
 	public void deleteEngine(String appId) {
 		if (serverActive()) {

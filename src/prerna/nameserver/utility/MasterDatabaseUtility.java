@@ -1110,27 +1110,25 @@ public class MasterDatabaseUtility {
 		return conceptsList;
 	}	
 	
-	public static String getBasicDataType(String engineName, String conceptualName, String parentConceptualName) {
+	public static String getBasicDataType(String engineId, String conceptualName, String parentConceptualName) {
 		String query = null;
 		if(parentConceptualName == null || parentConceptualName.isEmpty()) {
 			query = "select distinct ec.property_type "
 					+ "from engineconcept ec "
-					+ "inner join engine e on e.id = ec.engine "
 					+ "inner join concept c on ec.localconceptid = c.localconceptid "
-					+ "where e.enginename = '" + engineName + "' and c.conceptualname = '" + conceptualName + "'";
+					+ "where ec.engine = '" + engineId + "' and c.conceptualname = '" + conceptualName + "'";
 		} else {
 			query = "select distinct ec.property_type "
 					+ "from engine e "
 					+ "inner join engineconcept ec on e.id = ec.engine "
 					+ "inner join concept c on ec.localconceptid = c.localconceptid "
-					+ "where e.enginename = '" + engineName + "' and "
+					+ "where ec.engine = '" + engineId + "' and "
 					+ "c.conceptualname = '" + conceptualName + "' and "
 					+ "ec.parentphysicalid in "
 					+ "(select distinct ec.physicalnameid "
 					+ "from engineconcept ec "
-					+ "inner join engine e on ec.engine = e.id "
 					+ "inner join concept c on c.localconceptid = ec.localconceptid "
-					+ "where e.enginename = '" + engineName + "' and "
+					+ "where ec.engine = '" + engineId + "' and "
 					+ "c.conceptualname = '" + parentConceptualName + "')";
 		}
 		

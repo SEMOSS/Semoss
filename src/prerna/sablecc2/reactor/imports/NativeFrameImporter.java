@@ -61,7 +61,7 @@ public class NativeFrameImporter implements IImporter {
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
-		if(qsType == QUERY_STRUCT_TYPE.ENGINE && this.dataframe.getEngineName().equals(this.qs.getEngineName())) {
+		if(qsType == QUERY_STRUCT_TYPE.ENGINE && this.dataframe.getEngineName().equals(this.qs.getEngineId())) {
 			// this is the case where we can do an easy merge
 			ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs);
 			this.dataframe.mergeQueryStruct(this.qs);
