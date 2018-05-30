@@ -31,7 +31,7 @@ public class AppInsightsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appName = this.keyValue.get(this.keysToGet[0]);
+		String appId = this.keyValue.get(this.keysToGet[0]);
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
@@ -82,9 +82,9 @@ public class AppInsightsReactor extends AbstractReactor {
 		}
 		
 		Map<String, List<String>> filterForEngine = new HashMap<String, List<String>>();
-		List<String> engineList = new ArrayList<String>();
-		engineList.add(appName);
-		filterForEngine.put(SolrIndexEngine.APP_NAME, engineList);
+		List<String> engineIdList = new ArrayList<String>();
+		engineIdList.add(appId);
+		filterForEngine.put(SolrIndexEngine.APP_ID, engineIdList);
 		if(tags != null && !tags.isEmpty()) {
 			filterForEngine.put(SolrIndexEngine.TAGS, tags);
 		}
@@ -97,7 +97,7 @@ public class AppInsightsReactor extends AbstractReactor {
 			return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INSIGHTS);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException | IOException e) { 
 			e.printStackTrace();
-			throw new IllegalArgumentException("Error retrieving insights for app = " + appName);
+			throw new IllegalArgumentException("Error retrieving insights for app = " + appId);
 		}
 	}
 
