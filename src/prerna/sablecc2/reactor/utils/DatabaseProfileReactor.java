@@ -54,13 +54,14 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
 		}
 		
-		String dbName = this.keyValue.get(this.keysToGet[0]);
-		IEngine engine = Utility.getEngine(dbName);
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		IEngine engine = Utility.getEngine(engineId);
 		if (engine != null) {
 			List<String> conceptList = getConceptList();
 			// get concept properties from local master
-			Map<String, HashMap> dbMap = MasterDatabaseUtility.getConceptProperties(conceptList, dbName);
-			HashMap<String, ArrayList<String>> conceptMap = dbMap.get(dbName);
+			Map<String, HashMap> dbMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
+			HashMap<String, ArrayList<String>> conceptMap = dbMap.get(engineId);
 			for (int i = 0; i < conceptList.size(); i++) {
 				// first add concept profile data
 				String concept = conceptList.get(i);
@@ -69,14 +70,14 @@ public class DatabaseProfileReactor extends AbstractReactor {
 				// determine concept prim key if applicable and dataType
 				ENGINE_TYPE engineType = engine.getEngineType();
 				if (engineType.equals(ENGINE_TYPE.SESAME)) {
-					conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, concept, null);
+					conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId, concept, null);
 					primKey = concept;
 				} else if (engineType.equals(ENGINE_TYPE.RDBMS)) {
 					// get primary key for concept
 					String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
 					String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
 					primKey = Utility.getClassName(tableURI);
-					conceptDataType = MasterDatabaseUtility.getBasicDataType(dbName, primKey, concept);
+					conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId, primKey, concept);
 				}
 				// concept data type now get profile data based on type
 				if (Utility.isNumericType(conceptDataType)) {
@@ -94,7 +95,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 					ArrayList<String> properties = conceptMap.get(concept);
 					for (String prop : properties) {
 						// check property data type
-						String dataType = MasterDatabaseUtility.getBasicDataType(dbName, prop, concept);
+						String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
 						if (Utility.isNumericType(dataType)) {
 							String[] cells = getNumericalProfileData(engine, concept, prop);
 							frame.addRow(tableName, cells, headers, dataTypes);
