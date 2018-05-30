@@ -2469,11 +2469,13 @@ public class Utility {
 		//		-> i.e. we do not need to remove the engine and re-add it
 		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
 		String engineRdbmsDbTime = "Dummy";
-		if(rdbmsDate != null)
-			engineRdbmsDbTime = df.format(rdbmsDate);		
-		if(engineRdbmsDbTime.equalsIgnoreCase(engineDbTime))
+		if(rdbmsDate != null) {
+			engineRdbmsDbTime = df.format(rdbmsDate);
+		}
+		if(engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) {
 			System.out.println("Success.. !!");
-
+		}
+		
 		if(rdbmsDate == null) {
 			// logic to register the engine into the local master
 			adder.registerEngineLocal(prop);
