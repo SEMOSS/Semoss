@@ -67,6 +67,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 	public IEngine importFileWithOutConnection(ImportOptions options) throws IOException {
 		String smssLocation = options.getSMSSLocation();
 		String engineName = options.getDbName();
+		String appID = options.getEngineID();
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();	
@@ -82,7 +83,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		LOGGER.setLevel(Level.WARN);
 		try {
 			// create the engine and the owler
-			openRdbmsEngineWithoutConnection(engineName);
+			openRdbmsEngineWithoutConnection(engineName, appID);
 			Map<String, String> paramHash = new Hashtable<String, String>();
 			paramHash.put("BaseFolder", DIHelper.getInstance().getProperty(Constants.BASE_FOLDER));
 			paramHash.put("ENGINE", engineName);

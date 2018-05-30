@@ -48,10 +48,11 @@ public class NLPReader extends AbstractFileReader {
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
+		String appID = options.getEngineID();
 		boolean error = false;
 		
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		openRdfEngineWithoutConnection(engineName);		
+		openRdfEngineWithoutConnection(engineName, appID);		
 		try {
 			//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 			ProcessNLP processor = new ProcessNLP();
