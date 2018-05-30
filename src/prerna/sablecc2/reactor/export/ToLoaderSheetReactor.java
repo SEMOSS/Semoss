@@ -20,6 +20,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -49,19 +50,20 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-		String engineName = this.keyValue.get(this.keysToGet[0]);
-		if(engineName == null) {
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if(engineId == null) {
 			throw new IllegalArgumentException("Must define which database to get a loader sheet from");
 		}
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 
-		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + engineName + "_Loader_Sheet_Export.xlsx";
+		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + engineId + "_Loader_Sheet_Export.xlsx";
 		File f = new File(fileLoc);
 		if(f.exists()) {
 			f.delete();
 		}
 		Workbook workbook = new XSSFWorkbook();
 		
-		IEngine engine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(engineId);
 		// get a list of all the tables and properties
 		Vector<String> concepts = engine.getConcepts(true);
 
@@ -130,7 +132,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 		logger.info("Start exporting");
 		Utility.writeWorkbook(workbook, fileLoc);
-		logger.info("Done exporting worksheet for engine = " + engineName);
+		logger.info("Done exporting worksheet for engine = " + engineId);
 
 		String randomKey = UUID.randomUUID().toString();
 		this.insight.addExportFile(randomKey, fileLoc);
