@@ -45,8 +45,12 @@ public class DatabaseListReactor extends AbstractReactor {
 			
 			for(SolrDocument doc : results) {
 				Map<String, String> appEntry = new HashMap<String, String>();
+				// below to be removed
 				appEntry.put("id", doc.get("id") + "");
 				appEntry.put("name", doc.get("app_name") + "");
+				// above to be removed
+				appEntry.put("app_id", doc.get("id") + "");
+				appEntry.put("app_name", doc.get("app_name") + "");
 				appEntry.put("type", doc.get("app_type") + "");
 				appEntry.put("cost", doc.get("app_cost") + "");
 				appList.add(appEntry);
