@@ -1170,12 +1170,12 @@ public class MasterDatabaseUtility {
 	/**
 	 * Adds logical name to concept from engine
 	 * 
-	 * @param engineName
+	 * @param engineId
 	 * @param concept
 	 * @param logicalName
 	 * @return
 	 */
-	public static boolean addLogicalName(String engineName, String concept, String logicalName) {
+	public static boolean addLogicalName(String engineId, String concept, String logicalName) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection masterConn = engine.makeConnection();
 		Statement stmt = null;
@@ -1185,8 +1185,8 @@ public class MasterDatabaseUtility {
 			String duplicateQueryCheck = "select localconceptid, conceptualname, logicalname, "
 					+ "domainname, globalid from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
-					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\' and logicalname = \'" + logicalName + "\';";
+					+ "where engine='" + engineId + "') "
+					+ "and conceptualname='" + concept + "' and logicalname='" + logicalName + "';";
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(duplicateQueryCheck);
 			if (rs != null) {
@@ -1205,8 +1205,8 @@ public class MasterDatabaseUtility {
 				String sourceLogicalInfo = "select localconceptid, conceptualname, logicalname, "
 						+ "domainname, globalid from concept "
 						+ "where localconceptid in (select localconceptid from engineconcept "
-						+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-						+ "and conceptualname = \'" + concept + "\';";
+						+ "where engine='" + engineId + "') "
+						+ "and conceptualname='" + concept + "'";
 				if (stmt == null || stmt.isClosed()) {
 					stmt = masterConn.createStatement();
 				}
@@ -1219,9 +1219,9 @@ public class MasterDatabaseUtility {
 					String globalID = rs.getString(5);
 					if (conceptualName.equals(concept)) {
 						// insert target CN as logical name
-						String insertString = "insert into concept " + "values(\'" + localConceptID + "\', \'"
-								+ conceptualName + "\', \'" + logicalName + "\', \'" + domainName + "\', \'"
-								+ globalID.toString() + "\');";
+						String insertString = "insert into concept " + "values('" + localConceptID + "', '"
+								+ conceptualName + "', '" + logicalName + "\', \'" + domainName + "', '"
+								+ globalID.toString() + "');";
 						int validInsert = masterConn.createStatement().executeUpdate(insertString);
 						if (validInsert > 0) {
 							try {
@@ -1260,8 +1260,8 @@ public class MasterDatabaseUtility {
 		try {
 			String deleteQuery = "delete from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
-					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\' and logicalname = \'" + logicalName + "\';";
+					+ "where engine='" + engineName + "')"
+					+ "and conceptualname='" + concept + "' and logicalname='" + logicalName + "'";
 			stmt = masterConn.createStatement();
 			int updateCount = stmt.executeUpdate(deleteQuery);
 			if (updateCount == 1) {
@@ -1278,11 +1278,11 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get logical names for a specific engine and concept
 	 * 
-	 * @param engineName
+	 * @param engineId
 	 * @param concept
 	 * @return logicalNames
 	 */
-	public static List<String> getLogicalNames(String engineName, String concept) {
+	public static List<String> getLogicalNames(String engineId, String concept) {
 		List<String> logicalNames = new ArrayList<String>();
 		
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
@@ -1293,8 +1293,9 @@ public class MasterDatabaseUtility {
 		try {
 			String query = "select logicalname from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
-					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\';";
+					+ "where engine='" + engineId + "')"
+					+ "and conceptualname='" + concept + "'";
+			
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(query);
 			while (rs.next()) {
@@ -1307,37 +1308,6 @@ public class MasterDatabaseUtility {
 			closeStreams(stmt, rs);
 		}
 		return logicalNames;
-	}
-	
-	
-	/**
-	 * 
-	 * @param targetDB
-	 * @param logical
-	 * @return
-	 */
-	public static List<String> getConceptualNameFromLogical(String targetDB, String logical) {
-		List<String> conceptulNames = new Vector<String>();
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection masterConn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			String query = "select distinct c.localconceptid, c.conceptualname, c.logicalname, e.enginename "
-					+ "from concept c, engineconcept ec, engine e " + "where c.logicalname in ('" + logical
-					+ "') and e.enginename = '" + targetDB
-					+ "' and e.id = ec.engine and ec.localconceptid = c.localconceptid;";
-			stmt = masterConn.createStatement();
-			rs = stmt.executeQuery(query);
-			while (rs.next()) {
-				conceptulNames.add(rs.getString(2));
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
-		}
-		return conceptulNames;
 	}
 	
 	/**
@@ -1633,35 +1603,21 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
-	 * Get the engine id from the engine alias
-	 * @param alias
+	 * Try to reconcile and get the engine id
+	 * @param engineId
 	 * @return
 	 */
-	public static String getEngineIdFromAlias(String alias) {
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		if(engine == null) {
-			return null;
+	public static String testEngineIdIfAlias(String engineId) {
+		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
+		if(appIds.size() == 1) {
+			// actually received an app name
+			engineId = appIds.get(0);
+		} else if(appIds.size() > 1) {
+			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
 		}
 		
-		Connection conn = engine.makeConnection();
-		ResultSet rs = null;
-		Statement stmt = null;
-
-		String id = null;
-		try {
-			String sql = "select e.id from engine e where e.enginename='" + alias + "'";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(sql);
-			while(rs.next()) {
-				id = rs.getString(1);
-			}
-		} catch(Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
-		}
-		
-		return id;
+		// i guess the input was the actual id
+		return engineId;
 	}
 	
 	private static void closeStreams(Statement stmt, ResultSet rs) {
@@ -1681,114 +1637,114 @@ public class MasterDatabaseUtility {
 		}
 	}
 	
-	/**
-	 * Get the properties for a given concept
-	 * 
-	 * @param conceptName
-	 * @param engineName
-	 *            filter for the properties
-	 * @return
-	 */
-	public static List<String> getAllConceptProperties(String engineName) {
-		// get the bindings based on the input list
-		if (engineName == null || engineName.isEmpty()) {
-			throw new IllegalArgumentException("Must define engineName");
-		}
-		String propQuery = "select distinct ec.physicalname, ec.property "
-				+ "from engineconcept ec, concept c, engine e " + " WHERE e.enginename= '" + engineName + "' "
-				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
-		List<String> properties = new ArrayList<String>();
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(propQuery);
-			while (rs.next()) {
-				String propName = rs.getString(1);
-				properties.add(propName);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
-		}
-		return properties;
-	}
+//	/**
+//	 * Get the properties for a given concept
+//	 * 
+//	 * @param conceptName
+//	 * @param engineName
+//	 *            filter for the properties
+//	 * @return
+//	 */
+//	public static List<String> getAllConceptProperties(String engineName) {
+//		// get the bindings based on the input list
+//		if (engineName == null || engineName.isEmpty()) {
+//			throw new IllegalArgumentException("Must define engineName");
+//		}
+//		String propQuery = "select distinct ec.physicalname, ec.property "
+//				+ "from engineconcept ec, concept c, engine e " + " WHERE e.enginename= '" + engineName + "' "
+//				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
+//		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+//		Connection conn = engine.makeConnection();
+//		Statement stmt = null;
+//		ResultSet rs = null;
+//		List<String> properties = new ArrayList<String>();
+//		try {
+//			stmt = conn.createStatement();
+//			rs = stmt.executeQuery(propQuery);
+//			while (rs.next()) {
+//				String propName = rs.getString(1);
+//				properties.add(propName);
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		} finally {
+//			closeStreams(stmt, rs);
+//		}
+//		return properties;
+//	}
 
-	/**
-	 * Maps concepts from sourceDB to concepts in targetDB linked by logical
-	 * names
-	 * 
-	 * @param sourceDB
-	 * @param concepts
-	 *            optional: specify concepts or get all concepts
-	 * @param targetDB
-	 * @return map with sourceDB concept - target DB concept
-	 */
-	public static Map<String, Object> getConceptMapping(String sourceDB, List<String> concepts, String targetDB) {
-		Map<String, Object> map = new HashMap<String, Object>();
-		List<String> conceptualName = null;
-		// map specified concepts
-		if (!(concepts == null) && !concepts.isEmpty()) {
-			conceptualName = concepts;
-		} else {
-			// get all concepts
-			conceptualName = getAllConceptProperties(sourceDB);
-		}
-		for (String concept : conceptualName) {
-			List<String> propeties = new Vector<>();
-			propeties.add(concept);
-			List<String> logicalNames = getAllLogicalNamesFromConceptualRDBMS(propeties, sourceDB);
-			for (String logicalName : logicalNames) {
-				List<String> conceptuals = getConceptualNameFromLogical(targetDB, logicalName);
-				if (conceptuals != null && !conceptuals.isEmpty()) {
-					map.put(concept, conceptuals);
-				}
-			}
-		}
-		return map;
-	}
+//	/**
+//	 * Maps concepts from sourceDB to concepts in targetDB linked by logical
+//	 * names
+//	 * 
+//	 * @param sourceDB
+//	 * @param concepts
+//	 *            optional: specify concepts or get all concepts
+//	 * @param targetDB
+//	 * @return map with sourceDB concept - target DB concept
+//	 */
+//	public static Map<String, Object> getConceptMapping(String sourceDB, List<String> concepts, String targetDB) {
+//		Map<String, Object> map = new HashMap<String, Object>();
+//		List<String> conceptualName = null;
+//		// map specified concepts
+//		if (!(concepts == null) && !concepts.isEmpty()) {
+//			conceptualName = concepts;
+//		} else {
+//			// get all concepts
+//			conceptualName = getAllConceptProperties(sourceDB);
+//		}
+//		for (String concept : conceptualName) {
+//			List<String> propeties = new Vector<>();
+//			propeties.add(concept);
+//			List<String> logicalNames = getAllLogicalNamesFromConceptualRDBMS(propeties, sourceDB);
+//			for (String logicalName : logicalNames) {
+//				List<String> conceptuals = getConceptualNameFromLogical(targetDB, logicalName);
+//				if (conceptuals != null && !conceptuals.isEmpty()) {
+//					map.put(concept, conceptuals);
+//				}
+//			}
+//		}
+//		return map;
+//	}
 	
-	/**
-	 * Get map of physical to conceptual name for an engine
-	 * 
-	 * @param physicalNames
-	 * @param engineFilter
-	 * @return
-	 */
-	public static Map<String, String> getConceptualFromPhysical(List<String> physicalNames, String engineFilter) {
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		// select logicalname from concept where conceptualname='MovieBudget'
-		// and conceptualname != logicalname
-		// select distinct c.conceptualname, ec.physicalname from concept c,
-		// engineconcept ec, engine e where ec.localconceptid=c.localconceptid
-		// and ec.physicalname in ('Title', 'Actor');
-		Map<String, String> physicalConceptMap = new HashMap<>();
-		String physicalList = makeListToString(physicalNames);
-		ResultSet rs = null;
-		Statement stmt = null;
-		try {
-			String query = "select distinct ec.physicalname, c.conceptualname "
-					+ "from engineconcept ec, concept c, engine e where ec.localconceptid=c.localconceptid "
-					+ " and e.enginename = '" + engineFilter + "' " + "and ec.engine=e.id " + "and ec.physicalname in "
-					+ physicalList + ";";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while (rs.next()) {
-				String physical = rs.getString(1);
-				String concept = rs.getString(2);
-				physicalConceptMap.put(physical, concept);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
-		}
-		return physicalConceptMap;
-	}
+//	/**
+//	 * Get map of physical to conceptual name for an engine
+//	 * 
+//	 * @param physicalNames
+//	 * @param engineFilter
+//	 * @return
+//	 */
+//	public static Map<String, String> getConceptualFromPhysical(List<String> physicalNames, String engineFilter) {
+//		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+//		Connection conn = engine.makeConnection();
+//		// select logicalname from concept where conceptualname='MovieBudget'
+//		// and conceptualname != logicalname
+//		// select distinct c.conceptualname, ec.physicalname from concept c,
+//		// engineconcept ec, engine e where ec.localconceptid=c.localconceptid
+//		// and ec.physicalname in ('Title', 'Actor');
+//		Map<String, String> physicalConceptMap = new HashMap<>();
+//		String physicalList = makeListToString(physicalNames);
+//		ResultSet rs = null;
+//		Statement stmt = null;
+//		try {
+//			String query = "select distinct ec.physicalname, c.conceptualname "
+//					+ "from engineconcept ec, concept c, engine e where ec.localconceptid=c.localconceptid "
+//					+ " and e.enginename = '" + engineFilter + "' " + "and ec.engine=e.id " + "and ec.physicalname in "
+//					+ physicalList + ";";
+//			stmt = conn.createStatement();
+//			rs = stmt.executeQuery(query);
+//			while (rs.next()) {
+//				String physical = rs.getString(1);
+//				String concept = rs.getString(2);
+//				physicalConceptMap.put(physical, concept);
+//			}
+//		} catch (Exception ex) {
+//			ex.printStackTrace();
+//		} finally {
+//			closeStreams(stmt, rs);
+//		}
+//		return physicalConceptMap;
+//	}
 	
 	public static Map<String, List<String>> databaseTranslator(String sourceDB, String targetDB) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);

@@ -18,13 +18,21 @@ public class GetLogicalNamesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngineName();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		
 		String concept = getConcept();
-		List<String> logicalNames = MasterDatabaseUtility.getLogicalNames(engineName, concept);
+		List<String> logicalNames = MasterDatabaseUtility.getLogicalNames(engineId, concept);
 		return new NounMetadata(logicalNames, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGICAL_NAMES);
 	}
-
-	private String getEngineName() {
+	
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	
+	private String getEngineId() {
 		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			String engine = (String) instanceGrs.get(0);
