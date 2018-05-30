@@ -72,12 +72,13 @@ public class CSVReader extends AbstractCSVFileReader {
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
 		String propertyFiles = options.getPropertyFiles();
+		String appID = options.getEngineID();
 		
 		boolean error = false;
 		logger.setLevel(Level.WARN);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
 		try {
-			openRdfEngineWithoutConnection(engineName);
+			openRdfEngineWithoutConnection(engineName, appID);
 			for(int i = 0; i<files.length;i++)
 			{
 				try {
