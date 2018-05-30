@@ -25,7 +25,7 @@ public abstract class AbstractFormBuilder {
 
 	protected static final Logger LOGGER = LogManager.getLogger(AbstractFormBuilder.class.getName());
 
-	protected static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
+	public static final String FORM_BUILDER_ENGINE_NAME = "form_builder_engine";
 	protected static final String AUDIT_FORM_SUFFIX = "_FORM_LOG";
 	protected static final DateFormat DATE_DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSSSSS");
 	protected static final String OVERRIDE = "override";
