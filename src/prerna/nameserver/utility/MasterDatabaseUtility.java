@@ -1415,11 +1415,11 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get local concept id
 	 * 
-	 * @param engineName
+	 * @param engineId
 	 * @param concept
 	 * @return
 	 */
-	public static String getLocalConceptID(String engineName, String concept) {
+	public static String getLocalConceptID(String engineId, String concept) {
 		String localConceptID = null;
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
@@ -1428,8 +1428,8 @@ public class MasterDatabaseUtility {
 		try {
 			String query = "select localconceptid from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
-					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\';";
+					+ "where engine='" + engineId + "') "
+					+ "and conceptualname='" + concept + "';";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 			while (rs.next()) {
@@ -1441,7 +1441,7 @@ public class MasterDatabaseUtility {
 			closeStreams(stmt, rs);
 		}
 		if (localConceptID == null) {
-			throw new IllegalArgumentException("Unable to get concept ID for " + engineName + " " + concept);
+			throw new IllegalArgumentException("Unable to get concept ID for " + engineId + " " + concept);
 		}
 		return localConceptID;
 	}
@@ -1449,12 +1449,12 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get concept metadata value for a key
 	 * 
-	 * @param engineName
+	 * @param engineId
 	 * @param concept
 	 * @param key
 	 * @return
 	 */
-	public static String getMetadataValue(String engineName, String concept, String key) {
+	public static String getMetadataValue(String engineId, String concept, String key) {
 		String value = null;
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
@@ -1464,8 +1464,8 @@ public class MasterDatabaseUtility {
 			String query = "select " + Constants.VALUE + " from " + Constants.CONCEPT_METADATA_TABLE
 					+ " where localconceptid in (select localconceptid from concept "
 					+ "where localconceptid in (select localconceptid from engineconcept "
-					+ "where engine in (select id from engine where enginename = \'" + engineName + "\')) "
-					+ "and conceptualname = \'" + concept + "\') and " + Constants.KEY + " = \'" + key + "\';";
+					+ "where engine='" + engineId + "') "
+					+ "and conceptualname='" + concept + "') and " + Constants.KEY + "='" + key + "';";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 
