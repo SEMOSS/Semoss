@@ -37,16 +37,8 @@ public class DeleteAppReactor extends AbstractReactor {
 			IEngine engine = Utility.getEngine(appId);
 			// we may have the alias
 			if(engine == null) {
-				List<String> possibleIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
-				if(possibleIds.size() == 1) {
-					engine = Utility.getEngine(possibleIds.get(0));
-				} else if(appIds.size() > 1) {
-					throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
-				}
-				
-				if(engine == null) {
-					throw new IllegalArgumentException("Cannot find app = " + appId);
-				}
+				// we may have the alias
+				engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
 			}
 			if (engine != null) {
 				deleteEngine(engine);

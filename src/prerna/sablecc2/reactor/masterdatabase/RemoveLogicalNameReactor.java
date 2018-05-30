@@ -19,17 +19,25 @@ public class RemoveLogicalNameReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngineName();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		
 		String concept = getConcept();
 		List<String> logicalNames = getLogicalNames();
 		boolean success = false;
 		for (String name : logicalNames) {
-			success = MasterDatabaseUtility.removeLogicalName(engineName, concept, name);
+			success = MasterDatabaseUtility.removeLogicalName(engineId, concept, name);
 		}
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
+	
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
+	///////////// GRAB INPUTS FROM PIXEL REACTOR //////////////
+	///////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////
 
-	private String getEngineName() {
+	private String getEngineId() {
 		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			String engine = (String) instanceGrs.get(0);

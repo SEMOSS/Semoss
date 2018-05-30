@@ -19,12 +19,14 @@ public class AddLogicalNameReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngineName();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		
 		String concept = getConcept();
 		List<String> logicalNames = getLogicalNames();
 		boolean success = false;
 		for(String name: logicalNames) {
-			success = MasterDatabaseUtility.addLogicalName(engineName, concept, name);
+			success = MasterDatabaseUtility.addLogicalName(engineId, concept, name);
 		}
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
@@ -35,7 +37,7 @@ public class AddLogicalNameReactor extends AbstractReactor {
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
 
-	private String getEngineName() {
+	private String getEngineId() {
 		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[0]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			String engine = (String) instanceGrs.get(0);
