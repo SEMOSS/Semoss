@@ -203,7 +203,7 @@ public class UploadUtilities {
 //				} else {
 //					bufferedWriter.write("USE_FILE" + "\ttrue\n");
 //					fileName = fileName.replace(baseFolder, "@BaseFolder@");
-//					fileName = fileName.replace(dbname, "@ENGINE@");
+//					fileName = fileName.replace(dbname, SmssUtilities.ENGINE_REPLACEMENT);
 //					// strip the stupid ;
 //					fileName = fileName.replace(";", "");
 //					bufferedWriter.write("DATA_FILE" + "\t" + fileName+"\n");
@@ -468,7 +468,7 @@ public class UploadUtilities {
 		// write insights rdbms
 		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
 		// write owl
-		String paramOwlLoc = getRelativeOwlPath(owlFile).replace(DIR_SEPARATOR + appName + DIR_SEPARATOR, DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR);
+		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(appName, SmssUtilities.ENGINE_REPLACEMENT);
 		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 	}
 	
@@ -480,7 +480,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	private static String getParamedSmssInsightDatabaseLocation() {
-		String connectionUrl = "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + "insights_database";
+		String connectionUrl = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + "insights_database";
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
