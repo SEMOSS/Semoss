@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -40,6 +41,8 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		String newAppId = UUID.randomUUID().toString();
+
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String newAppName = this.keyValue.get(this.keysToGet[0]).trim().replaceAll("\\s+", "_");;
@@ -123,19 +126,19 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		logger.info("Starting app creation");
 
 		logger.info("1. Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppName);
+		UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info("1. Complete");
 
 		logger.info("Generate new app database");
 		logger.info("2. Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
 		logger.info("2. Complete");
 
 		logger.info("3. Create properties file for database...");
 		File tempSmss = null;
 		try {
-			tempSmss = UploadUtilities.generateTemporaryDatastaxSmss(newAppName, owlFile, host, port, username, password, graphName, typeMap, nameMap);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			tempSmss = UploadUtilities.generateTemporaryDatastaxSmss(newAppId, newAppName, owlFile, host, port, username, password, graphName, typeMap, nameMap);
+			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
@@ -175,16 +178,16 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		logger.info("4. Complete");
 
 		logger.info("5. Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
 		insightDatabase.closeDB();
 		logger.info("5. Complete");
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
 		try {
-			Utility.synchronizeEngineMetadata(newAppName);
-			SolrUtility.addToSolrInsightCore(newAppName);
-			SolrUtility.addAppToSolr(newAppName);
+			Utility.synchronizeEngineMetadata(newAppId);
+			SolrUtility.addToSolrInsightCore(newAppId);
+			SolrUtility.addAppToSolr(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -199,17 +202,18 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		}
 		tempSmss.delete();
 
-		DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		Utility.synchronizeEngineMetadata(newAppName);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		Utility.synchronizeEngineMetadata(newAppId);
 
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
-		dseEngine.setEngineId(newAppName);
+		dseEngine.setEngineId(newAppId);
+		dseEngine.setEngineName(newAppName);
 		dseEngine.openDB(smssFile.getAbsolutePath());
 
 		// only at end do we add to DIHelper
-		DIHelper.getInstance().setLocalProperty(newAppName, dseEngine);
+		DIHelper.getInstance().setLocalProperty(newAppId, dseEngine);
 		String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		appNames = appNames + ";" + newAppName;
+		appNames = appNames + ";" + newAppId;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);

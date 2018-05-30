@@ -49,20 +49,20 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 
 	/**
 	 * Update local master
-	 * @param appName
+	 * @param appId
 	 */
-	protected void updateLocalMaster(String appName) {
-		Utility.synchronizeEngineMetadata(appName);
+	protected void updateLocalMaster(String appId) {
+		Utility.synchronizeEngineMetadata(appId);
 	}
 
 	/**
 	 * Update solr
-	 * @param appName
+	 * @param appId
 	 * @throws Exception
 	 */
-	protected void updateSolr(String appName) throws Exception {
-		SolrUtility.addToSolrInsightCore(appName);
-		SolrUtility.addAppToSolr(appName);
+	protected void updateSolr(String appId) throws Exception {
+		SolrUtility.addToSolrInsightCore(appId);
+		SolrUtility.addAppToSolr(appId);
 	}
 
 	/**
@@ -90,11 +90,11 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param engine
 	 * @param smssFile
 	 */
-	protected void updateDIHelper(String newAppName, IEngine engine, File smssFile) {
-		DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		DIHelper.getInstance().setLocalProperty(newAppName, engine);
+	protected void updateDIHelper(String newAppId, String newAppName, IEngine engine, File smssFile) {
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setLocalProperty(newAppId, engine);
 		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		engineNames = engineNames + ";" + newAppName;
+		engineNames = engineNames + ";" + newAppId;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 	}
 
