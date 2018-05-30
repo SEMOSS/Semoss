@@ -11,6 +11,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 
+import prerna.engine.impl.SmssUtilities;
+
 public final class ZipDatabase {
 
 	// buffer for read and write data to file
@@ -138,9 +140,9 @@ public final class ZipDatabase {
 		}
 	}
 
-	public static File zipEngine(String engineName) 
+	public static File zipEngine(String engineId, String engineName) 
 	{
-		String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + engineName;
+		String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(engineName, engineId);
 		String zipFilePath = OUTPUT_PATH + "/" + engineName + ".zip";
 		
 		FileOutputStream fos = null;
@@ -165,7 +167,7 @@ public final class ZipDatabase {
 			}
 
 			// add smss file
-			File smss = new File(engineDir + "/../" + engineName + ".smss");
+			File smss = new File(engineDir + "/../" + SmssUtilities.getUniqueName(engineName, engineId) + ".smss");
 			System.out.println("Saving file " + smss.getName());
 			addToZipFile(smss, zos);
 		} catch (FileNotFoundException e) {
