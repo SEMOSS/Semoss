@@ -760,7 +760,7 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 		
 		numSitesNotInWaveForSysHash = new HashMap<String, Integer>();
 		DHMSMDeploymentGapAnalysis gap = new DHMSMDeploymentGapAnalysis();
-		gap.setEngineNames(tapCore.getEngineName(),tapSite.getEngineName());
+		gap.setEngineNames(tapCore.getEngineId(),tapSite.getEngineId());
 		gap.createData();
 		List<Object[]> gapList = gap.getList();
 		int size = gapList.size();
@@ -794,9 +794,9 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 	}
 
 	public void runMainQuery(String sysURI) {
-		String query = tapSite.getEngineName() + "&" + tapCore.getEngineName() + "&" + masterQuery;
+		String query = tapSite.getEngineId() + "&" + tapCore.getEngineId() + "&" + masterQuery;
 		if(!sysURI.isEmpty()) {
-			query = tapSite.getEngineName() + "&" + tapCore.getEngineName() + "&" +masterQueryForSingleSystem.replace("@SYSTEM@", sysURI);
+			query = tapSite.getEngineId() + "&" + tapCore.getEngineId() + "&" +masterQueryForSingleSystem.replace("@SYSTEM@", sysURI);
 			systemsToAddList.add(Utility.getInstanceName(sysURI.replace("<", "").replace(">", "")));
 		} else {
 			systemsToAddList = DHMSMDeploymentHelper.getHPSysList(tapCore);
@@ -815,7 +815,7 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 			
 			systemsToAddList.add(sysName);
 		}
-		String query = tapSite.getEngineName() + "&" + tapCore.getEngineName() + "&" + masterQueryForListOfSystems.replace("@BINDINGS@", bindingsStr);
+		String query = tapSite.getEngineId() + "&" + tapCore.getEngineId() + "&" + masterQueryForListOfSystems.replace("@BINDINGS@", bindingsStr);
 		
 		processQuery(query);
 	}

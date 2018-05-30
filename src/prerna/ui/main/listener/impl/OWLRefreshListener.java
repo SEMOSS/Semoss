@@ -207,7 +207,7 @@ public class OWLRefreshListener implements IChakraListener {
 	{
 		GraphPlaySheet ps = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
 
-		String engineName = ps.engine.getEngineName();
+		String engineName = ps.engine.getEngineId();
 		// get the core properties
 		ps.exportDB();
 		((AbstractEngine)ps.engine).saveConfiguration();

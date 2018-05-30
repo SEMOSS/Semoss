@@ -123,7 +123,7 @@ public class UpdateDataListListener extends AbstractListener {
 
 	/**
 	 * Runs a query on a specific engine to make a list of systems to report on
-	 * @param engineName 	String containing the name of the database engine to be queried
+	 * @param engineId 	String containing the name of the database engine to be queried
 	 * @param query 		String containing the SPARQL query to run
 	 */
 	public ArrayList<String> runListQuery(IEngine engine, String query) {
@@ -143,7 +143,7 @@ public class UpdateDataListListener extends AbstractListener {
 				list.add((String) sjss.getVar(names[0]));
 			}
 		} catch (RuntimeException e) {
-			Utility.showError("Cannot find engine: "+engine.getEngineName());
+			Utility.showError("Cannot find engine: "+engine.getEngineId());
 		}
 		return list;
 	}
@@ -219,7 +219,7 @@ public class UpdateDataListListener extends AbstractListener {
 		this.type = "ActiveSystem";
 		try{
 			EntityFiller filler = new EntityFiller();
-			filler.engineName = engine.getEngineName();
+			filler.engineName = engine.getEngineId();
 			filler.type = type;
 			filler.setExternalQuery(sparqlQuery);
 			filler.run();

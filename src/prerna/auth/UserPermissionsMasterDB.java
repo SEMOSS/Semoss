@@ -27,24 +27,41 @@
  *******************************************************************************/
 package prerna.auth;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.mindrot.jbcrypt.BCrypt;
 import com.google.gson.internal.StringMap;
-
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.auth.User;
 
 public class UserPermissionsMasterDB {
 	private RDBMSNativeEngine securityDB;
@@ -52,6 +69,205 @@ public class UserPermissionsMasterDB {
 	public UserPermissionsMasterDB() {
 		securityDB = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 	}
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * 
+	 * @param userName	String representing the name of the user to add
+	 */
+	public boolean addEngine(String engineID, String engineName) {
+		String query = "INSERTO INTO ENGINE(ID, NAME) VALUES ('?1','?2');";
+		query = query.replace("?1", engineID);
+		query = query.replace("?2", engineName);
+		securityDB.insertData(query);
+		securityDB.commit();
+		return true;
+	}
+	
+	/**
+	 * Initialize a local security engine for the UserPermissionsMasterDB object for testing purposes.
+	 * @param dbPath Security database location.
+	 */
+	public UserPermissionsMasterDB(String dbPath) {
+		TestUtilityMethods.loadDIHelper();
+		securityDB = new RDBMSNativeEngine();
+		securityDB.setEngineId("security");
+		securityDB.openDB(dbPath);
+		DIHelper.getInstance().setLocalProperty("security", securityDB);
+	}
+	
+	/**
+	 * Testing Here.
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		TestUtilityMethods.loadDIHelper();
+		String dbPath = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\security.smss";
+		UserPermissionsMasterDB auth = new UserPermissionsMasterDB(dbPath);
+		System.out.println(auth.getUserVisibleEngines("tom@gmail.com"));
+		//auth.removeDb("ManueruDB");
+		//auth.removeUserPermissionsbyDbId("", "");
+		//auth.getAllDbUsers("2018-04-03T15:46:20.930");
+		//System.out.println(auth.isUserWithAccessToGroupDb("tom@gmail.com", "500"));
+		/*User newUser = new User("okokokokoko@email.com", "manueru4", "okokokokoko@email.com", "ok2");
+		System.out.println(auth.addNativeUser(newUser));
+		User user = auth.getUserFromDatabase("manueru4");
+		System.out.println(user.toString());
+		System.out.println(auth.logIn("manueru4", "ok2"));*/
+	}
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * 
+	 * @param userName	String representing the name of the user to add
+	 */
+	public Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
+		
+		validInformation(newUser, password);
+		
+		boolean isNewUser = checkUserExist(newUser.getUsername(), newUser.getEmail());
+		if(!isNewUser) {			
+			String salt = generateSalt();
+			String hashedPassword = (hash(password, salt));
+			String query = "INSERT INTO User (id, name, username, email, type, admin, password, salt) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
+					+ "'" + hashedPassword + "', '" + salt + "');";
+			
+			securityDB.insertData(query);
+			securityDB.commit();
+			return true;
+		} else {
+			return false;
+		}
+		
+	}
+	
+	/**
+	 * Basic validation of the user information before creating it.
+	 * @param newUser
+	 * @throws IllegalArgumentException
+	 */
+	private void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
+		String error = "";
+		if(newUser.getUsername().isEmpty()){
+			error += "User name can not be empty. ";
+		}
+
+		error += validEmail(newUser.getEmail());
+		error += validPassword(password);
+		
+		if(!error.isEmpty()){
+			throw new IllegalArgumentException(error);
+		}
+	}
+	
+	private String validEmail(String email){
+		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
+			return  email + " is not a valid email address. ";
+		}
+		return "";
+	}
+	
+	private String validPassword(String password){
+		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
+        Matcher matcher = pattern.matcher(password);
+		
+		if(!matcher.lookingAt()){
+			return "Password doesn't comply with the security policies.";
+		}
+		return "";
+	}
+
+	/**
+	 * Check if a user (user name or email) exist in the security database
+	 * @param username
+	 * @param email
+	 * @return true if user is found otherwise false.
+	 */
+	public boolean checkUserExist(String username, String email){
+		String query = "SELECT * FROM USER WHERE USERNAME = '?1' OR EMAIL = '?2'";
+		query = query.replace("?1", username);
+		query = query.replace("?2", email);
+		
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		return sjsw.hasNext();
+	}
+	
+	/**
+	 * Verifies user information provided in the log in screen to allow or not 
+	 * the entry in the application.
+	 * @param user user name
+	 * @param password
+	 * @return true if user exist and password is correct otherwise false.
+	 */
+	public boolean logIn(String user, String password){
+		StringMap<String> databaseUser = getUserFromDatabase(user);
+		if(!databaseUser.isEmpty()){
+			String typedHash = hash(password, databaseUser.get("SALT"));
+			return databaseUser.get("PASSWORD").equals(typedHash);
+		} else {
+			 return false;
+		}
+	}
+	
+	/**
+	 * Brings all the user basic information from the database.
+	 * @param username 
+	 * @return User retrieved from the database otherwise null.
+	 */
+	private StringMap<String> getUserFromDatabase(String username) {
+		 StringMap<String> user = new StringMap<>();
+		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT FROM USER WHERE USERNAME = '?1'";
+		query = query.replace("?1", username);
+		
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		String[] names = sjsw.getDisplayVariables();
+		if(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			
+			user.put(names[0], sjss.getVar(names[0]).toString());
+			user.put(names[1], sjss.getVar(names[1]).toString());
+			user.put(names[2], sjss.getVar(names[2]).toString());
+			user.put(names[3], sjss.getVar(names[3]).toString());
+			user.put(names[4], sjss.getVar(names[4]).toString());
+			user.put(names[5], sjss.getVar(names[5]).toString());
+			user.put(names[6], sjss.getVar(names[6]).toString());
+			user.put(names[7], sjss.getVar(names[7]).toString());
+			
+			return user;
+		}
+		return user;
+	}
+	
+	/**
+	 * Just a tentative salt generation method
+	 * @return salt
+	 * @throws NoSuchAlgorithmException
+	 */
+	private byte[] generateSaltJava() throws NoSuchAlgorithmException {
+		SecureRandom random = SecureRandom.getInstance("NativePRNGBlocking");
+	    byte[] salt = new byte[32];
+	    random.nextBytes(salt);
+	    System.out.println(salt);
+	    return salt;
+	}
+	
+	/**
+	 * Current salt generation by BCrypt
+	 * @return salt
+	 */
+	private String generateSalt(){
+		return BCrypt.gensalt();
+	}
+	
+	/**
+	 * Create the password hash based on the password and salt provided.
+	 * @param password
+	 * @param salt
+	 * @return hash
+	 */
+	private String hash(String password, String salt) {
+        return BCrypt.hashpw(password, salt);
+    }
 	
 	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
@@ -70,9 +286,9 @@ public class UserPermissionsMasterDB {
 	}
 	
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * Check if the user is an admin
 	 * 
-	 * @param userName	String representing the name of the user to add
+	 * @param userId	String representing the id of the user to check
 	 */
 	public Boolean isUserAdmin(String userId) {
 		String query = "SELECT ADMIN FROM USER WHERE ID='" + userId + "';";
@@ -93,7 +309,8 @@ public class UserPermissionsMasterDB {
 	 */
 	public Boolean addEngineAndOwner(String engineName, String userId) {
 		//Add the engine to the ENGINE table
-		String query = "INSERT INTO Engine VALUES (NULL, '" + engineName + "');";
+		String engineID = UUID.randomUUID().toString();
+		String query = "INSERT INTO Engine VALUES ('" + engineName + "','" + engineID + "');";
 		Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, false);
 		int id = -1;
 		ResultSet rs = null;
@@ -120,7 +337,7 @@ public class UserPermissionsMasterDB {
 		}
 
 		//Add the user to the permissions table as the owner for the engine
-		query = "INSERT INTO EnginePermission VALUES (NULL, " + id + ", '" + userId + "', " + EnginePermission.OWNER.getId() + ");";
+		query = "INSERT INTO EnginePermission (ID, USER, PERMISSION, ENGINE) VALUES (NULL, '" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineID + "');";
 		Statement stmt2 = securityDB.execUpdateAndRetrieveStatement(query, true);
 		if(stmt2 != null) {
 			securityDB.commit();
@@ -317,27 +534,190 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
-	public StringMap<ArrayList<StringMap<String>>> getGroupsAndMembersForUser(String userId) {
-		String query = "SELECT DISTINCT ug.NAME AS GroupName, u.ID AS ID, u.NAME AS MEMBERNAME, u.EMAIL AS EMAIL FROM UserGroup ug, User u, GroupMembers gm WHERE ug.OWNER='" + userId + "' AND ug.ID=gm.GROUPID AND gm.MEMBERID=u.ID;";
+	
+	public ArrayList<StringMap<String>> getUserDatabases(String userId, boolean isAdmin){
+		ArrayList<StringMap<String>> ret = new ArrayList<>();
 		
-		ArrayList<String[]> groups = runQuery(query);
-		StringMap<ArrayList<StringMap<String>>> ret = new StringMap<ArrayList<StringMap<String>>>();
+		if(isAdmin && !isUserAdmin(userId)){
+			throw new IllegalArgumentException("The user isn't an admin");
+		}
+		
+		String query = "";
+		ArrayList<String[]> engines = new ArrayList<>();
+		
+		if(!isAdmin){
+			query = "SELECT e.id AS DB_ID, e.name AS DB_NAME, ep.permission AS DB_PERMISSION, ep.visibility AS VISIBILITY "
+					+ "FROM ENGINEPERMISSION ep JOIN ENGINE e ON(ep.engine = e.id)  "
+					+ "WHERE ep.user = '?1'";
+			query = query.replace("?1", userId);
+			
+			engines = runQuery(query);
+			
+			query = "SELECT ge.engine AS DB_ID, e.name AS DB_NAME, ge.permission AS DB_PERMISSION "
+				  + "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) ";
+				  		
+			if(!isAdmin){
+				query = "SELECT ge.engine AS DB_ID, e.name AS DB_NAME, ge.permission AS DB_PERMISSION, v.visibility AS VISIBILITY "
+						+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) "
+						+ "JOIN ENGINEGROUPMEMBERVISIBILITY v ON(gm.id = v.groupmembersid AND ge.id = groupenginepermissionid)  "
+						+ "WHERE gm.memberid = '?1'";
+				query = query.replace("?1", userId);
+			}
+			engines.addAll(runQuery(query));
+		} else {
+			query = "SELECT e.id AS DB_ID, e.name AS DB_NAME "
+					+ "FROM ENGINE e "
+					+ "WHERE e.ID != '1'";
+			
+			engines = runQuery(query);	
+		}
+		
+		for(String[] engine : engines) {
+			StringMap<String> dbProp = new StringMap<>();
+			
+			dbProp.put("db_id", engine[0]);
+			dbProp.put("db_name", engine[1]);
+			if(!isAdmin){
+				dbProp.put("db_permission", EnginePermission.getPermissionValueById(engine[2]));
+				dbProp.put("db_visibility", engine[3]);
+			}
+			ret.add(dbProp);
+		}
+		return ret;
+	}
+	
+	public StringMap<ArrayList<StringMap<String>>> getDatabaseUsersAndGroups(String userId, String engineId, boolean isAdmin){
+		
+		StringMap<ArrayList<StringMap<String>>> ret = new StringMap<>();
+		ret.put("groups", new ArrayList<>());
+		ret.put("users", new ArrayList<>());
+		
+		if(isAdmin && !isUserAdmin(userId)){
+			throw new IllegalArgumentException("This user is not an admin. ");
+		}
+		
+		//TODO add check if user can access this engine as owner
+		
+		String query = "SELECT u.id as ID, u.name as NAME, ge.permission as PERMISSION "
+				+ "FROM ENGINEPERMISSION ge JOIN User u ON (ge.user = u.id) "
+				+ "WHERE ge.engine = '?1'";
+		query = query.replace("?1", engineId);
+		
+		ArrayList<String[]> users = runQuery(query);
+		
+		for(String[] user : users) {
+			StringMap<String> userInfo = new StringMap<>();
+			
+			userInfo.put("id", user[0]);
+			userInfo.put("name", user[1]);
+			userInfo.put("permission", EnginePermission.getPermissionValueById(user[2]));	
+			
+			ret.get("users").add(userInfo);
+		}
+		
+		String groupQuery = "SELECT ug.id AS ID, ug.name as NAME, ge.permission AS PERMISSION "
+				+ "FROM GROUPENGINEPERMISSION ge JOIN USERGROUP ug ON (ge.groupid = ug.id) "
+				+ "WHERE ge.engine = '?1'";
+		groupQuery = groupQuery.replace("?1", engineId);
+		
+		ArrayList<String[]> groups = runQuery(groupQuery);
 		
 		for(String[] group : groups) {
-			String groupName = group[0];
-			StringMap<String> user = new StringMap<String>();
-			user.put("id", group[1]);
-			user.put("name", group[2]);
-			user.put("email", group[3]);
+			StringMap<String> userInfo = new StringMap<>();
 			
-			if(ret.get(groupName) == null) {
-				ArrayList<StringMap<String>> newGroup = new ArrayList<StringMap<String>>();
-				newGroup.add(user);
-				ret.put(groupName, newGroup);
-			} else {
-				ret.get(groupName).add(user);
+			userInfo.put("id", group[0]);
+			userInfo.put("name", group[1]);
+			userInfo.put("permission", EnginePermission.getPermissionValueById(group[2]));	
+			
+			ret.get("groups").add(userInfo);
+		}
+		
+		return ret;
+	}
+	
+	
+	private void getGroupsWithoutMembers(ArrayList<HashMap<String, Object>> ret, String query, String userId){
+		ArrayList<String[]> groupsWithoutMembers = runQuery(query);
+		
+		for(String[] groupsWithoutMember : groupsWithoutMembers) {
+			String groupId = groupsWithoutMember[0];
+			String groupName = groupsWithoutMember[1];
+			
+			HashMap<String, Object> groupObject = new HashMap<>();
+			groupObject.put("group_id", groupId);
+			groupObject.put("group_name", groupName);
+			groupObject.put("group_users", new ArrayList<StringMap<String>>());
+			
+			ret.add(groupObject);
+		}
+	}
+	
+	private int indexGroup(ArrayList<HashMap<String, Object>> ret, String groupId){
+		for (int i = 0; i < ret.size(); i++) {
+			if(ret.get(i).get("group_id").equals(groupId)){
+				return i;
 			}
 		}
+		return -1;
+	}
+	
+	private void getGroupsAndMembers(ArrayList<HashMap<String, Object>> ret, String query, String userId){
+		ArrayList<String[]> groupsAndMembers = runQuery(query);
+		
+		for(String[] groupAndMember : groupsAndMembers) {
+			String groupId = groupAndMember[0];
+			String groupName = groupAndMember[1];
+			
+			StringMap<ArrayList<StringMap<String>>> groupUsersObject = new StringMap<>();
+			
+			StringMap<String> user = new StringMap<String>();
+			user.put("id", groupAndMember[2]);
+			user.put("name", groupAndMember[3]);
+			user.put("email", groupAndMember[4]);
+			
+			int indexGroup = indexGroup(ret, groupId);
+			
+			if(indexGroup == -1) {
+				ArrayList<StringMap<String>> newGroup = new ArrayList<StringMap<String>>();
+				newGroup.add(user);
+				HashMap<String, Object> groupObject = new HashMap<>();
+				groupObject.put("group_id", groupId);
+				groupObject.put("group_name", groupName);
+				groupObject.put("group_users", newGroup);
+				
+				ret.add(groupObject);
+			} else {
+				ArrayList<StringMap<String>> updateGroup = (ArrayList<StringMap<String>>) ret.get(indexGroup).get("group_users");
+				updateGroup.add(user);
+			}
+		}
+	}
+	
+	/**
+	 * Get all Groups and list of user for each group,
+	 * if the user is admin returns all the groups.
+	 * @param userId
+	 * @return all groups and list of users for each group
+	 */
+	public ArrayList<HashMap<String, Object>> getGroupsAndMembersForUser(String userId) {
+		
+		ArrayList<HashMap<String, Object>> ret = new ArrayList<>();
+		
+//		if(isUserAdmin(userId)){
+//			String query = "SELECT ug.ID AS GROUP_ID, ug.NAME AS GROUP_NAME FROM USERGROUP ug LEFT JOIN GROUPMEMBERS gm ON(ug.ID = gm.GROUPID) WHERE GROUPID IS NULL";
+//			getGroupsWithoutMembers(ret, query, userId);
+//			
+//			query = "SELECT ug.ID AS GROUP_ID, ug.NAME AS GroupName, u.ID AS MEMBER_ID, u.NAME AS MEMBERNAME, u.EMAIL AS EMAIL FROM UserGroup ug JOIN GroupMembers gm ON(gm.groupid = ug.id) JOIN User u ON(gm.memberid = u.id)";
+//			getGroupsAndMembers(ret, query, userId);
+//		} else {
+		String query = "SELECT ug.ID AS GROUP_ID, ug.NAME AS GROUP_NAME FROM USERGROUP ug LEFT JOIN GROUPMEMBERS gm ON(ug.ID = gm.GROUPID) WHERE GROUPID IS NULL AND ug.owner = '?1'";
+		query = query.replace("?1", userId);
+		getGroupsWithoutMembers(ret, query, userId);
+		
+		query = "SELECT ug.ID AS GROUP_ID, ug.NAME AS GroupName, u.ID AS MEMBER_ID, u.NAME AS MEMBERNAME, u.EMAIL AS EMAIL FROM UserGroup ug JOIN GroupMembers gm ON(gm.groupid = ug.id) JOIN User u ON(gm.memberid = u.id) WHERE ug.owner = '?1'";
+		query = query.replace("?1", userId);
+		getGroupsAndMembers(ret, query, userId);
+//		}
 		
 		return ret;
 	}
@@ -403,7 +783,7 @@ public class UserPermissionsMasterDB {
 	}
 	
 	public ArrayList<StringMap<String>> searchForUser(String searchTerm) {
-		String query = "SELECT DISTINCT User.ID AS ID, User.NAME AS NAME, User.EMAIL AS EMAIL FROM User WHERE UPPER(User.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(User.EMAIL) LIKE UPPER('%" + searchTerm + "%');";
+		String query = "SELECT DISTINCT User.ID AS ID, User.NAME AS NAME, User.EMAIL AS EMAIL FROM User WHERE UPPER(User.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(User.EMAIL) LIKE UPPER('%" + searchTerm + "%') AND TYPE != 'anonymous';";
 		ArrayList<StringMap<String>> users = new ArrayList<StringMap<String>>();
 		
 		for(String[] s : runQuery(query)) {
@@ -417,16 +797,30 @@ public class UserPermissionsMasterDB {
 		return users;
 	}
 	
+	/**
+	 * Get all engines associated with the userId and the permission that the user has for the engine,
+	 * @param userId
+	 * @return List of "EngineName, UserName and Permission" for the specific user.
+	 */
 	public ArrayList<StringMap<String>> getAllEnginesAndPermissionsForUser(String userId) {
 		ArrayList<String[]> ret = new ArrayList<String[]>();
-		String query = "SELECT DISTINCT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSION FROM Engine e, User u, EnginePermission ep, Permission p "
-				+ "WHERE u.ID='" + userId + "' AND ep.USER=u.ID AND ep.PERMISSION=p.ID";
+		
+		String query = "SELECT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSION "
+					 + "FROM Engine e JOIN EnginePermission ep ON (e.id = ep.engine) "
+					 			   + "JOIN User u ON(ep.user = u.id) "
+					 			   + "JOIN Permission p ON(ep.permission = p.id) "
+	 			     + "WHERE ep.user='?1'";
+		query = query.replace("?1", userId);
 		
 		ret = runQuery(query);
 		
-		query = "SELECT DISTINCT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSIONNAME FROM Engine e, User u, GroupEnginePermission gep, GroupMembers gm, Permission p "
-				+ "WHERE u.ID='" + userId + "' AND gm.MEMBERID=u.ID "
-					+ "AND gm.GROUPID=gep.GROUPID AND gep.PERMISSION=p.ID";
+		query = "SELECT DISTINCT e.NAME AS ENGINENAME, u.NAME AS OWNER, p.NAME AS PERMISSIONNAME "
+			  + "FROM Engine e JOIN GroupEnginePermission gep ON (e.id =gep.engine) "
+							+ "JOIN GroupMembers gm ON(gep.groupid = gm.groupid) "
+							+ "JOIN User u ON(gm.memberid = u.id) "
+							+ "JOIN Permission p ON(gep.permission = p.id) "
+			  + "WHERE u.ID='?1'";
+		query = query.replace("?1", userId);
 		
 		ret.addAll(runQuery(query));
 		
@@ -469,19 +863,39 @@ public class UserPermissionsMasterDB {
 		}
 		
 		for(String user : users) {
-			query = "INSERT INTO GroupMembers VALUES (" + id + ", '" + user + "');";
+			query = "INSERT INTO GroupMembers(ID, GROUPID, MEMBERID) VALUES (NULL, " + id + ", '" + user + "');";
 			securityDB.insertData(query);
 		}
+		
+		securityDB.commit();
+		
+		//ADD VISIBILITY
+		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
+				+ "SELECT NULL AS ID, gep.ID AS GROUPENGINEPERMISSIONID, gm.ID ASGROUPMEMBERSID, TRUE AS VISIBILITY "
+				+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION gep ON(gm.groupid = gep.groupid) "
+				+ "WHERE gm.groupid = ?1 AND gm.memberid IN ?2 ";
+		query = query.replace("?1", id + "");
+		query = query.replace("?2", "(" + convertArrayToDbString(users, true) +")");
+		securityDB.insertData(query);
 		
 		securityDB.commit();
 		
 		return true;
 	}
 	
-	public Boolean removeGroup(String userId, String groupName) {
-		String query = "DELETE FROM GroupEnginePermission WHERE GroupEnginePermission.GROUPID IN (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='group1' AND UserGroup.OWNER='" + userId + "'); ";
-		query += "DELETE FROM GroupMembers WHERE GroupMembers.GROUPID IN (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'); ";
-		query += "DELETE FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "';";
+	public Boolean removeGroup(String userId, String groupId) {
+		
+		String query;
+		
+		if(isUserAdmin(userId)){
+			query = "DELETE FROM GroupEnginePermission WHERE GroupEnginePermission.GROUPID IN (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.ID='" + groupId + "'); ";
+			query += "DELETE FROM GroupMembers WHERE GroupMembers.GROUPID IN (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.ID='" + groupId + "'); ";
+			query += "DELETE FROM UserGroup WHERE UserGroup.ID='" + groupId + "';";
+		} else {
+			query = "DELETE FROM GroupEnginePermission WHERE GroupEnginePermission.GROUPID IN (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.ID='" + groupId + "' AND UserGroup.OWNER='" + userId + "'); ";
+			query += "DELETE FROM GroupMembers WHERE GroupMembers.GROUPID IN (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.ID='" + groupId + "' AND UserGroup.OWNER='" + userId + "'); ";
+			query += "DELETE FROM UserGroup WHERE UserGroup.ID='" + groupId + "' AND UserGroup.OWNER='" + userId + "';";
+		}
 		
 		securityDB.execUpdateAndRetrieveStatement(query, true);
 		securityDB.commit();
@@ -489,8 +903,25 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
-	public Boolean addUserToGroup(String userId, String groupName, String userIdToAdd) {
-		String query = "INSERT INTO GroupMembers VALUES ((SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), '" + userIdToAdd + "');";
+	public Boolean addUserToGroup(String userId, String groupId, String userIdToAdd) {
+		String query;
+		
+		if(isUserAdmin(userId)){
+			query = "INSERT INTO GroupMembers (ID, GROUPID, MEMBERID) VALUES (NULL, (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.ID='" + groupId + "'), '" + userIdToAdd + "');";
+		} else {
+			query = "INSERT INTO GroupMembers (ID, GROUPID, MEMBERID) VALUES (NULL, (SELECT UserGroup.ID FROM UserGroup WHERE UserGroup.ID='" + groupId + "' AND UserGroup.OWNER='" + userId + "'), '" + userIdToAdd + "');";
+		}
+		
+		securityDB.insertData(query);
+		securityDB.commit();
+		
+		//ADD VISIBILITY
+		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
+				+ "SELECT NULL AS ID, gep.ID AS GROUPENGINEPERMISSIONID, gm.ID ASGROUPMEMBERSID, TRUE AS VISIBILITY "
+				+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION gep ON(gm.groupid = gep.groupid) "
+				+ "WHERE gm.groupid = '?1' AND gm.memberid = '?2'";
+		query = query.replace("?1", groupId);
+		query = query.replace("?2", userIdToAdd);
 		
 		securityDB.insertData(query);
 		securityDB.commit();
@@ -498,68 +929,60 @@ public class UserPermissionsMasterDB {
 		return true;
 	}
 	
-	public Boolean removeUserFromGroup(String userId, String groupName, String userToRemove) {
-		String query = "DELETE FROM GroupMembers WHERE GroupMembers.MEMBERID='" + userToRemove + "' AND GroupMembers.GROUPID IN "
-				+ "(SELECT DISTINCT UserGroup.ID AS GROUPID FROM UserGroup WHERE UserGroup.OWNER='" + userId + "');";
-		
-		securityDB.execUpdateAndRetrieveStatement(query, true);
-		securityDB.commit();
-		
-		return true;
-	}
-	
-	public Boolean setPermissionsForGroup(String userId, String groupName, String engineName, EnginePermission[] permissions) {
-		for(int i = 0; i < permissions.length; i++) {
-			String query = "INSERT INTO GROUPENGINEPERMISSION VALUES ("
-					+ "(SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.USER='" + userId + "' "
-							+ "AND EnginePermission.ENGINE=Engine.ID AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "), "
-					+ "(SELECT DISTINCT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "'), "
-					+ permissions[i].getId() + ")";
-			
-			securityDB.insertData(query);
+	private String convertArrayToDbString(ArrayList<String> list, boolean stringList){
+		String listString = "";
+		String quotes = "'";
+		if(!stringList){
+			quotes = "";	
 		}
-		securityDB.commit();
-		
-		return true;
-	}
-	
-	public Boolean removeAllPermissionsForGroup(String userId, String groupName, String engineName) {
-		String query = "DELETE FROM GroupEnginePermission "
-				+ "WHERE GroupEnginePermission.ENGINE IN "
-					+ "(SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
-						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
-				+ "AND GroupEnginePermission.GROUPID IN "
-					+ "(SELECT DISTINCT UserGroup.ID FROM UserGroup WHERE UserGroup.NAME='" + groupName + "' AND UserGroup.OWNER='" + userId + "');";
-		
-		securityDB.execUpdateAndRetrieveStatement(query, true);
-		securityDB.commit();
-		
-		return true;
-	}
-	
-	public Boolean setPermissionsForUser(String userId, String engineName, String userToAdd, EnginePermission[] permissions) {
-		for(int i = 0; i < permissions.length; i++) {
-			String query = "INSERT INTO EnginePermission VALUES (NULL, (SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
-							+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + "), '" + userToAdd + "', " + permissions[i].getId() + ");";
-			
-			securityDB.insertData(query);
+		for(String groupId : list){
+			if(listString.isEmpty())
+				listString += quotes + groupId + quotes;
+			else 
+				listString += ", " + quotes + groupId + quotes;
 		}
-		securityDB.commit();
-		
-		return true;
+		return listString;
 	}
 	
-	public Boolean removeAllPermissionsForUser(String userId, String engineName, String userToRemove) {
-		String query = "DELETE FROM EnginePermission "
-				+ "WHERE EnginePermission.ENGINE IN "
-					+ "(SELECT DISTINCT Engine.ID FROM Engine, EnginePermission WHERE Engine.NAME='" + engineName + "' AND EnginePermission.ENGINE=Engine.ID "
-						+ "AND EnginePermission.USER='" + userId + "' AND EnginePermission.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
-				+ "AND EnginePermission.USER='" + userToRemove + "';";
+	public String isUserWithDatabasePermissionAlready(String userId, ArrayList<String> groupsId, ArrayList<String> usersId){
+		String ret = "";
 		
-		securityDB.execUpdateAndRetrieveStatement(query, true);
-		securityDB.commit();
+		String username = getUsernameByUserId(userId);
 		
-		return true;
+		if(usersId.contains(userId)){
+			ret += "The user " + username + " already has a direct relationship with the database. ";
+		}
+		
+		String query = "SELECT gm.groupid AS ID, ug.name AS NAME, u.name AS OWNER FROM GROUPMEMBERS gm JOIN USERGROUP ug ON (gm.groupid = ug.id) JOIN User u ON(ug.owner = u.id) WHERE gm.groupid IN ?1 AND gm.memberid = '?2'";	
+		query = query.replace("?1", "(" + convertArrayToDbString(groupsId, true) + ")");
+		query = query.replace("?2", userId);
+		
+		ArrayList<String[]> result = runQuery(query);
+		
+		for(String[] row : result){
+			String groupId = row[0];
+			String groupName = row[1];
+			String groupOwner = row[2];
+			
+			ret += "The user " + username + " is in " + groupName + " owned by " + groupOwner + ". "; 
+			
+		}
+		
+		return ret.isEmpty() ? "true" : ret;
+	}
+	
+	private String getUsernameByUserId(String userId) {
+		// TODO Auto-generated method stub
+		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
+		query = query.replace("?1", userId);
+		
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		String[] names = sjsw.getDisplayVariables();
+		if(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			return sjss.getVar(names[0]).toString();
+		}
+		return null;
 	}
 	
 	public StringMap<ArrayList<String>> getInsightPermissionsForUser(String userId) {
@@ -926,6 +1349,34 @@ public class UserPermissionsMasterDB {
 		return ret;
 	}
 	
+	/**
+	 * Returns a list of values given a query with one column/variable.
+	 * 
+	 * @param query		Query to be executed to retrieve engine names
+	 * @return			List of engine names
+	 */
+	private ArrayList<StringMap<String>> getSimpleQuery(String query) {
+		System.out.println("Executing security query: " + query);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		ArrayList<StringMap<String>> ret = new ArrayList<>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] headers = row.getHeaders();
+			Object[] values = row.getValues();
+			StringMap<String> rowData = new StringMap<>();
+			for(int idx = 0; idx < headers.length; idx++){
+				if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+					rowData.put(headers[idx].toString().toLowerCase(), "Default");
+				} else {
+					rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
+				}
+			}
+			ret.add(rowData);
+		}
+		
+		return ret;
+	}
+	
 	public boolean isUserReadOnlyInsights(String userId, String engineName, String rdbmsId) {
 		String query = "SELECT DISTINCT ENGINE.NAME, USERINSIGHTPERMISSION.INSIGHTID FROM USERINSIGHTPERMISSION INNER JOIN ENGINE ON USERINSIGHTPERMISSION.ENGINEID = ENGINE.ID WHERE USERINSIGHTPERMISSION.USERID = '" + userId +  "' "
 				+ "AND ENGINE.NAME = '" + engineName + "' AND USERINSIGHTPERMISSION.INSIGHTID = '" + rdbmsId + "' AND PERMISSION='2'";
@@ -997,4 +1448,703 @@ public class UserPermissionsMasterDB {
 		
 		return runQuery(query);
 	}
+
+	/**
+	 * Brings the user id from database.
+	 * @param username
+	 * @return userId if it exists otherwise null
+	 */
+	public String getUserId(String username) {
+		// TODO Auto-generated method stub
+		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
+		query = query.replace("?1", username);
+		
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		String[] names = sjsw.getDisplayVariables();
+		if(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			return sjss.getVar(names[0]).toString();
+		}
+		return null;
+		
+	}
+	
+	/**
+	 * Brings the user name from database.
+	 * @param username
+	 * @return userId if it exists otherwise null
+	 */
+	public String getNameUser(String username) {
+		// TODO Auto-generated method stub
+		String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
+		query = query.replace("?1", username);
+		
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		String[] names = sjsw.getDisplayVariables();
+		if(sjsw.hasNext()) {
+			ISelectStatement sjss = sjsw.next();
+			return sjss.getVar(names[0]).toString();
+		}
+		return null;
+		
+	}
+	
+	/**
+	 * Check if user is allowed to use a certain database (owner/edit permissions).
+	 * @param userId
+	 * @param engineName
+	 * @return 
+	 */
+	public boolean isUserAllowedToUseEngine(String userId, String engineName){
+		/*if(isUserAdmin(userId)){
+			return true;
+		}*/
+		
+		String query = "SELECT e.ID FROM ENGINEPERMISSION ep "
+				+ "JOIN ENGINE e ON(ep.engine = e.id) WHERE USER = '?1' AND e.name = '?2' AND (ep.permission = '1'  OR ep.permission = '3') "
+				+ "UNION "
+				+ "SELECT gep.engine "
+				+ "FROM GROUPENGINEPERMISSION gep JOIN GROUPMEMBERS gm ON (gep.groupid = gm.groupid) JOIN engine e ON (e.id = gep.engine) "
+				+ "WHERE e.name = '?2'  AND gm.memberid = '?1' AND (gep.PERMISSION = '1' OR  gep.PERMISSION = '3')";
+		
+		query = query.replace("?1", userId);
+		query = query.replace("?2", engineName);
+		
+		List<Object[]> res = runQuery2(query);
+		return !res.isEmpty();
+	}
+	
+	/**
+	 * Get a list of the users o a certain group.
+	 * @param groupId
+	 * @return list of users.
+	 */
+	public ArrayList<String[]> getAllUserFromGroup(String groupId){
+		String query = 	"SELECT gm.groupid AS GROUP_ID, ug.name AS GROUP_NAME, ug.owner AS GROUP_OWNER, gm.memberid AS USER_ID, u.name AS USER_NAME  FROM GROUPMEMBERS gm JOIN USERGROUP ug ON (ug.id = gm.groupid) JOIN USER u ON (u.id = gm.memberid) WHERE gm.groupid = ?1";
+		query = query.replace("?1", groupId);
+		return runQuery(query);
+	}
+	
+	/**
+	 * Get a list of all the users of a list of groups
+	 * @param groups
+	 * @return list of users.
+	 */
+	public StringMap<ArrayList<String[]>> getAllUserFromGroups(ArrayList<String> groups){
+		String query = 	"SELECT gm.groupid AS GROUP_ID, ug.name AS GROUP_NAME, ug.owner AS GROUP_OWNER, gm.memberid AS USER_ID, u.name AS USER_NAME  FROM GROUPMEMBERS gm JOIN USERGROUP ug ON (ug.id = gm.groupid) JOIN USER u ON (u.id = gm.memberid) WHERE gm.groupid IN ?1";
+		query = query.replace("?1", "(" + convertArrayToDbString(groups, false) + ")");
+		List<Object[]> users = runQuery2(query);
+		StringMap<ArrayList<String[]>> ret = new StringMap<>();
+		for(Object[] userObject : users){
+			String[] user = Arrays.stream(userObject).map(Object::toString).
+	                   toArray(String[]::new);
+			String userId = user[3];
+			if(ret.get(userId) == null){
+				ArrayList<String[]> userNodeList = new ArrayList<>();
+				userNodeList.add(user);
+				ret.put(userId, userNodeList);
+			} else {
+				ret.get(userId).add(user);
+			}
+		}
+		return ret;
+	}
+	
+	/**
+	 * Check if the users from a group already have access to the database through another group.  
+	 * @param usersFromGroup
+	 * @param otherGroupsUserList
+	 * @return
+	 */
+	private String isGroupWithInvalidUsersFromOtherGroups(ArrayList<String[]> usersFromGroup, StringMap<ArrayList<String[]>> otherGroupsUserList){
+		String ret = "";
+		for(String[] user : usersFromGroup){
+			String userId = user[3];
+			if(otherGroupsUserList.get(userId) != null){
+				ArrayList<String[]> otherCoincidences = otherGroupsUserList.get(userId);
+				for(String[] coincidence : otherCoincidences){
+					String groupName = coincidence[1];
+					String groupOwner = getUsernameByUserId(coincidence[2]);
+					ret += "The user " + user[4] + " in " + user[1] + " already has access to the database through " + groupName + " owned by " + groupOwner + ". ";
+				}
+			}
+		}
+		return ret;
+	}
+	
+	/**
+	 * Check if the user from a group have already direct access to a database. 
+	 * Checking over the parameter usersList
+	 * @param usersFromGroup
+	 * @param users
+	 * @return
+	 */
+	private String isGroupWithInvalidUsersFromList(ArrayList<String[]> usersFromGroup, ArrayList<String> users){
+		String ret = "";
+		for(String[] user : usersFromGroup){
+			if(users.contains(user[3])){
+				ret += "The user " + user[4] + " in the group " + user[1] + " already has direct access to the database. ";
+			}
+		}
+		return ret;
+	}
+	
+	/**
+	 * Check if the group to be added has already permissions to a database.
+	 * @param groupId
+	 * @param groups
+	 * @param users
+	 * @return
+	 */
+	public String isGroupUsersWithDatabasePermissionAlready(String groupId, ArrayList<String> groups,
+			ArrayList<String> users) {
+		
+		String ret = "";
+		// TODO Security check if the user logged in is the owner of the group being added (?)
+		
+		ArrayList<String[]> allUserFromGroup = getAllUserFromGroup(groupId);
+		ret += isGroupWithInvalidUsersFromList(allUserFromGroup, users);
+		StringMap<ArrayList<String[]>> allUsersFromOtherGroups = getAllUserFromGroups(groups);
+		ret += isGroupWithInvalidUsersFromOtherGroups(allUserFromGroup, allUsersFromOtherGroups);
+		
+		return ret.isEmpty() ? "true" : ret;
+	}
+	
+	/**
+	 * Get all groups associated with a database. To that list adds groupsToAdd and remove groupsToRemove 
+	 * @param engineId
+	 * @param groupsToAdd
+	 * @param groupsToRemove
+	 * @return list of groups id.
+	 */
+	public ArrayList<String> getAllDbGroupsById(String engineId, ArrayList<String> groupsToAdd,
+			ArrayList<String> groupsToRemove) {
+		
+		ArrayList<String> ret = new ArrayList<>();
+		String query = "SELECT GROUPENGINEPERMISSION.GROUPID FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.ENGINE = '?1'";
+		query = query.replace("?1", engineId);
+		ArrayList<String[]> rows = runQuery(query);
+		
+		for(String[] row : rows){
+			if(row[0] != null && !row[0].isEmpty())
+                ret.add(row[0]);
+		}
+		
+		ret.removeAll(groupsToRemove);
+		ret.addAll(groupsToAdd);
+		return ret;
+	}
+
+	/***
+	 * Get all users that have a direct relationship with a database to that list adds userToAdd and 
+	 * removes usersToRemove
+	 * @param engineId
+	 * @param usersToAdd
+	 * @param usersToRemove
+	 * @return list of users id.
+	 */
+	public ArrayList<String> getAllDbUsersById(String engineId, ArrayList<String> usersToAdd,
+			ArrayList<String> usersToRemove) {
+		
+		ArrayList<String> ret = new ArrayList<>();
+		String query = "SELECT ENGINEPERMISSION.USER FROM ENGINEPERMISSION WHERE ENGINEPERMISSION.ENGINE = '?1'";
+		query = query.replace("?1", engineId);
+		ArrayList<String[]> rows = runQuery(query);
+		
+		for(String[] row : rows){
+			ret.add(row[0]);
+		}
+		ret.removeAll(usersToRemove);
+		ret.addAll(usersToAdd);
+		return ret;
+	}
+	
+	/**
+	 * Check if the user is already associated from another group 
+	 * to the databases that the group he wants to be part of is associated. 
+	 * @param userId
+	 * @param groupId
+	 * @return
+	 */
+	public String isUserInAnotherDbGroup(String userId, String groupId) {
+		
+		String ret = "";
+		String query = "SELECT gm.groupid as GROUPID, ug.name as GROUPNAME, u.name as OWNER, gr.enginename AS ENGINENAME "
+				+ "FROM GROUPMEMBERS gm JOIN USERGROUP ug ON (ug.id = gm.groupid) JOIN USER u ON(u.id = ug.owner) JOIN "
+				+ "(SELECT ge.groupid as GROUPID, en.name AS ENGINENAME FROM GROUPENGINEPERMISSION ge JOIN "
+				+ "(SELECT ge.engine AS ENGINE, e.name AS NAME "
+				+ "FROM GROUPENGINEPERMISSION ge JOIN ENGINE e ON(ge.engine = e.id) WHERE ge.groupid = '?2') en ON (ge.engine = en.engine) WHERE ge.groupid != '?2') gr ON (gm.groupid = gr.groupid) "
+				+ "WHERE gm.memberid = '?1'";
+		
+		query = query.replace("?1", userId);
+		query = query.replace("?2", groupId);
+		
+		List<Object[]> rows = runQuery2(query);
+		
+		for(Object[] row : rows){
+			String groupName = row[1].toString();
+			String ownerName = row[2].toString();
+			String engineName = row[3].toString();
+			ret += "The user is already associated with the database " + engineName + " in the group " + groupName + " owned by " + ownerName + ". ";
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Check if a user already have a relationship with a database that the group already have access.
+	 * @param userId
+	 * @param groupId
+	 * @return blank if there was no relationships otherwise a message explaining other databases associated with the user.
+	 */
+	public String isUserWithAccessToGroupDb(String userId, String groupId) {
+		
+		String ret = "";
+		String query = "SELECT en.engine AS ENGINE, en.name AS ENGINENAME "
+				+ "FROM ENGINEPERMISSION ep JOIN (SELECT ge.engine AS ENGINE, e.name AS NAME FROM GROUPENGINEPERMISSION ge JOIN ENGINE e ON(ge.engine = e.id) WHERE ge.groupid = '?1') en ON (ep.engine = en.engine) "
+				+ "WHERE ep.user = '?2'";
+		
+		query = query.replace("?1", groupId);
+		query = query.replace("?2", userId);
+		
+		List<Object[]> rows = runQuery2(query);
+		
+		for(Object[] row : rows){
+			String engineName = row[1].toString();
+			ret += "The user is already associated with the database " + engineName + ". ";
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Check if a user can be added or not to a group based on its database
+	 * permission on another groups and the database permissions from the group
+	 * it's going ot be added.
+	 * @param userId
+	 * @param groupId
+	 * @return true if user can be added otherwise a message explainig why not.
+	 */
+	public String isUserAddedToGroupValid(String userId, String groupId){
+		String ret = "";
+		
+		ret += isUserWithAccessToGroupDb(userId, groupId);
+		ret += isUserInAnotherDbGroup(userId, groupId);
+		
+		return ret.isEmpty() ? "true" : ret;
+	}
+	
+	/**
+	 * Get all database users who aren't "Anonymous" type
+	 * @param userId
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public ArrayList<StringMap<String>> getAllDbUsers(String userId) throws IllegalArgumentException{
+		ArrayList<StringMap<String>> ret = new ArrayList<>();  
+		if(isUserAdmin(userId)){
+			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER WHERE TYPE != 'anonymous'";
+			ret = getSimpleQuery(query);
+		} else {
+			throw new IllegalArgumentException("The user can't access to this resource. ");
+		}
+		return ret;
+	}
+	
+	/**
+	 * Remove all permission a user has over a database.
+	 * @param userRemove
+	 * @param engineId
+	 * @return true if action was performed otherwise false
+	 */
+	public boolean removeUserPermissionsbyDbId(String userRemove, String engineId){
+		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINE = '?2' AND USER = '?1' AND PERMISSION != 1; "
+				+ "DELETE FROM GROUPMEMBERS WHERE  GROUPID = (SELECT TOP 1 ge.groupid AS GROUPID FROM GROUPMEMBERS gm "
+				+ "JOIN GROUPENGINEPERMISSION ge ON (gm.groupid = ge.groupid) WHERE gm.memberid = '?1' "
+				+ "AND ge.engine = '?2' AND ge.PERMISSION != 1) AND MEMBERID = '?1'";
+		
+		query = query.replace("?1", userRemove);
+		query = query.replace("?2", engineId);
+		System.out.println("Executing security query: " + query);
+		if(securityDB.execUpdateAndRetrieveStatement(query, true) != null){
+			securityDB.commit();
+		} else {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Update user information.
+	 * @param adminId
+	 * @param userInfo
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public boolean editUser(String adminId, StringMap<String> userInfo) throws IllegalArgumentException{
+        boolean first = true;
+        String error = "";
+        String userId = userInfo.remove("id");
+        if(userId.equals(adminId) || isUserAdmin(adminId)){
+        	String name = userInfo.get("name") != null ? userInfo.get("name") : "";
+        	String email = userInfo.get("email") != null ? userInfo.get("email") : "";
+            if(checkUserExist(name, email)){
+                throw new IllegalArgumentException("The user name or email already exist.");
+            }
+            String password = userInfo.get("password");
+            if(password != null && !password.isEmpty()){
+                error += validPassword(password);
+                if(error.isEmpty()){
+                    String newSalt = generateSalt();
+                    userInfo.put("password", hash(password, newSalt));
+                    userInfo.put("salt", newSalt);
+                }
+            }
+            if(email != null && !email.isEmpty()){
+                error += validEmail(email);
+            }
+            if(!error.isEmpty()){
+                throw new IllegalArgumentException(error);
+            }
+            String query = "UPDATE USER ";
+            for( Entry<String, String> entry : userInfo.entrySet()){
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if(value != null && !value.isEmpty()){
+                    if(first){
+                        query += "SET " + key + " = '" + value + "'";
+                        first = false;
+                    } else {
+                        query += ", " + key + " = '" + value + "'";
+                    }
+                }
+            }
+            query += " WHERE ID = '" + userId + "'";
+            System.out.println("Executing security query: " + query);
+            Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, true);
+            if(stmt != null){
+                securityDB.commit();
+            } else {
+                throw new IllegalArgumentException("An unexpected error happen. Please try again.");
+            }
+        } else {
+            throw new IllegalArgumentException("User is not allowed to perform this operation");
+        }
+        return true;
+    }
+	
+	/**
+	 * Remove all permissions from a group with a database.
+	 * @param groupId
+	 * @param engineId
+	 * @return
+	 */
+	public Boolean removeAllPermissionsForGroup(String groupId, String engineId) {
+		String query = "DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1' AND GROUPID = '?2'";
+		query = query.replace("?1", engineId);
+		query = query.replace("?2", groupId);
+		
+		System.out.println("Executing security query: " + query);
+		if(securityDB.execUpdateAndRetrieveStatement(query, true) != null){
+			securityDB.commit();
+		} else {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Remove all direct permissions of user with a database. 
+	 * @param userId
+	 * @param engineId
+	 * @return
+	 */
+	public Boolean removeAllPermissionsForUser(String userId, String engineId) {
+		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINE = '?1' AND USER = '?2'";
+		query = query.replace("?1", engineId);
+		query = query.replace("?2", userId);
+		
+		System.out.println("Executing security query: " + query);
+		if(securityDB.execUpdateAndRetrieveStatement(query, true) != null){
+			securityDB.commit();
+		} else {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Remove a user from a group. Only owner of a group can do it. 
+	 * @param userId
+	 * @param groupId
+	 * @param userToRemove
+	 * @return
+	 */
+	public Boolean removeUserFromGroup(String userId, String groupId, String userToRemove) {
+        String query;
+        
+        /*if(isUserAdmin(userId)){
+            query = "DELETE FROM GroupMembers WHERE GroupMembers.MEMBERID='" + userToRemove + "' AND GroupMembers.GROUPID = '" + groupId + "';";
+        } else {*/
+        query = "DELETE FROM GroupMembers WHERE GroupMembers.MEMBERID='" + userToRemove + "' AND GroupMembers.GROUPID IN "
+                    + "(SELECT DISTINCT UserGroup.ID AS GROUPID FROM UserGroup WHERE UserGroup.OWNER='" + userId + "' AND UserGroup.ID = '" + groupId + "');";
+        //}
+        
+        securityDB.execUpdateAndRetrieveStatement(query, true);
+        securityDB.commit();
+        
+        return true;
+    }
+	
+	/**
+	 * Build the relationship between a group and a database.
+	 * @param groupId
+	 * @param engineId
+	 * @param permission
+	 * @return true
+	 */
+	public Boolean setPermissionsForGroup(String groupId, String engineId, EnginePermission permission) {
+		
+		String query = "INSERT INTO GROUPENGINEPERMISSION(ID, ENGINE, GROUPID, PERMISSION) VALUES (NULL,'?1', '?2', '?3')";
+		query = query.replace("?1", engineId);
+		query = query.replace("?2", groupId);
+		query = query.replace("?3", permission.getId() + "");
+		System.out.println("Executing security query: " + query);
+		securityDB.insertData(query);
+		securityDB.commit();
+		
+		//ADD VISIBILITY
+		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY)  "
+				+ "SELECT NULL AS ID, ep.ID AS GROUPENGINEPERMISSIONID, gm.ID AS GROUPMEMBERS, TRUE AS VISIBILITY "
+				+ "FROM GROUPENGINEPERMISSION ep JOIN GROUPMEMBERS gm ON (ep.groupid = gm.groupid) "
+				+ "WHERE ep.groupid = '?1' AND ep.engine = '?2'";
+		query = query.replace("?1", groupId);
+		query = query.replace("?2", engineId);
+		System.out.println("Executing security query: " + query);
+		securityDB.insertData(query);
+		securityDB.commit();
+		
+		return true;
+	}
+	
+	public Boolean setPermissionsForUser(String engineId, String userToAdd, EnginePermission permission) {
+		String query = "INSERT INTO ENGINEPERMISSION (ID, ENGINE, USER, PERMISSION) VALUES (NULL,'?1', '?2', '?3')";
+		query = query.replace("?1", engineId);
+		query = query.replace("?2", userToAdd);
+		query = query.replace("?3", permission.getId() + "");
+		System.out.println("Executing security query: " + query);
+		securityDB.insertData(query);
+		
+		securityDB.commit();
+		
+		return true;
+	}
+	
+	/**
+	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
+	 * @param userId
+	 * @param engineId
+	 * @param visibility
+	 */
+	public void setDbVisibility(String userId, String engineId, String visibility){
+		
+		String query = "SELECT ID FROM ENGINEPERMISSION WHERE USER = '?1' AND ENGINE = '?2'";
+		query = query.replace("?1", userId);
+		query = query.replace("?2", engineId);
+		ISelectWrapper sjsw = Utility.processQuery(securityDB, query);
+		if(sjsw.hasNext()){
+			query = "UPDATE ENGINEPERMISSION SET VISIBILITY = '?3' WHERE USER = '?1' AND ENGINE = '?2'";
+			query = query.replace("?1", userId);
+			query = query.replace("?2", engineId);
+			query = query.replace("?3", visibility);
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+			return;
+		}
+		
+		query = "SELECT gep.ID, temp.AID "
+				+ "FROM GROUPENGINEPERMISSION gep JOIN (SELECT ID AS AID, GROUPID FROM GROUPMEMBERS WHERE MEMBERID = '?2') temp ON (gep.groupid = temp.GROUPID) "
+				+ "WHERE ENGINE = '?1'";
+		query = query.replace("?1", engineId);
+		query = query.replace("?2", userId);
+		
+		List<Object[]> rows = runQuery2(query);
+		
+		for(Object[] row : rows){
+			query = "UPDATE ENGINEGROUPMEMBERVISIBILITY SET VISIBILITY = '"+ visibility + 
+					"' WHERE GROUPENGINEPERMISSIONID = '"+ row[0].toString() +"' AND GROUPMEMBERSID = '" + row[1].toString() +"'";
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+			return;
+		}
+		
+	}
+	
+	/**
+	 * Remove a database and all the permissions related to it.
+	 * @param engineName
+	 */
+	public void removeDb(String engineName){
+		
+		String query = "SELECT ID FROM ENGINE WHERE NAME = '?1'";
+		query = query.replace("?1", engineName);
+		ArrayList<String[]> rows = runQuery(query);
+		String engineId = rows.get(0)[0];
+		
+		//DELETE USERPERMISSIONS
+		query = "DELETE FROM ENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM ENGINE WHERE ID = '?1'";
+		query = query.replace("?1", engineId);
+		
+		System.out.println("Executing security query: " + query);
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		securityDB.commit();
+		
+	}
+	
+	/**
+	 * Returns a list of all engines that a given user can see (has been given any level of permission).
+	 * 
+	 * @param userId	ID of the user
+	 * @return			List of engine names
+	 */
+	public HashSet<String> getUserVisibleEngines(String userId) {
+		HashSet<String> engines = new HashSet<String>();
+		
+		//boolean isAdmin = isUserAdmin(userId);
+		boolean isAdmin = false;
+		
+		String query = "SELECT e.name AS DB_NAME "
+				+ "FROM ENGINEPERMISSION ep JOIN ENGINE e ON(ep.engine = e.id) ";
+		
+		if(!isAdmin){
+			query = "SELECT e.name AS DB_NAME "
+					+ "FROM ENGINEPERMISSION ep JOIN ENGINE e ON(ep.engine = e.id)  "
+					+ "WHERE ep.user = '?1' AND ep.visibility = 'TRUE'";
+			query = query.replace("?1", userId);
+		}
+		
+		ArrayList<String[]> dbEngines = runQuery(query);
+		
+		query = "SELECT e.name AS DB_NAME "
+			  + "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) ";
+			  		
+		if(!isAdmin){
+			query = "SELECT e.name AS DB_NAME "
+					+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) "
+					+ "JOIN ENGINEGROUPMEMBERVISIBILITY v ON(gm.id = v.groupmembersid AND ge.id = groupenginepermissionid)  "
+					+ "WHERE gm.memberid = '?1' AND v.visibility = 'TRUE'";
+			query = query.replace("?1", userId);
+		}
+		
+		
+		dbEngines.addAll(runQuery(query));
+		
+		for(String[] engine : dbEngines) {
+
+			engines.add(engine[0]);
+		}
+		
+		return engines;
+		
+	}
+	
+	/**
+	 * Adds or Remove permission for users and groups to a
+	 * certain database.
+	 * @param userId
+	 * @param isAdmin
+	 * @param engineId
+	 * @param groups
+	 * @param users
+	 */
+	public void savePermissions(String userId, boolean isAdmin, String engineId, StringMap<ArrayList<StringMap<String>>> groups, StringMap<ArrayList<StringMap<String>>> users){
+		
+		ArrayList<StringMap<String>> groupsToAdd = groups.get("add");
+		ArrayList<StringMap<String>> groupsToRemove = groups.get("remove");
+		
+		if(isAdmin && !isUserAdmin(userId)){
+			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
+		}
+		
+		if(!isAdmin && !isUserDatabaseOwner(userId, engineId)){
+			throw new IllegalArgumentException("The user is not an owner of this database.");
+		}
+		
+		for(StringMap<String> map : groupsToRemove) {
+			removeAllPermissionsForGroup(map.get("id"), engineId);
+		}
+		
+		for(StringMap<String> map : groupsToAdd) {
+			String perm = map.get("permission");
+			setPermissionsForGroup(map.get("id"), engineId, EnginePermission.getPermissionByValue(perm));
+		}
+		
+		ArrayList<StringMap<String>> usersToAdd = users.get("add");
+		ArrayList<StringMap<String>> usersToRemove = users.get("remove");
+		
+		for(StringMap<String> map : usersToRemove) {
+			removeAllPermissionsForUser(map.get("id"), engineId);
+		}
+		
+		for(StringMap<String> map : usersToAdd) {
+			String perm = map.get("permission");
+			setPermissionsForUser(engineId, map.get("id"), EnginePermission.getPermissionByValue(perm));
+		}
+		
+	}
+	
+	/**
+	 * Check if the user has owner permission of a certain database
+	 * @param userId
+	 * @param engineId
+	 * @return true or false
+	 */
+	public boolean isUserDatabaseOwner(String userId, String engineId){
+		String query = "SELECT ID FROM ENGINEPERMISSION WHERE USER = '?1' AND ENGINE = '?2' AND PERMISSION = '1' UNION SELECT gep.ID FROM GROUPENGINEPERMISSION gep JOIN GROUPMEMBERS gm ON (gep.groupid = gm.groupid) WHERE gep.engine = '?2'  AND gm.memberid = '?1' AND gep.PERMISSION = '1'";
+		query = query.replace("?1", userId);
+		query = query.replace("?2", engineId);
+		List<Object[]> res = runQuery2(query);
+		return !res.isEmpty();
+	}
+	
+	/**
+	 * Delete a user and all its relationships.
+	 * @param userId
+	 * @param userDelete
+	 */
+	public void deleteUser(String userId, String userDelete){
+		if(isUserAdmin(userId)){
+			List<String> groups = getGroupsOwnedByUser(userId);
+			for(String groupId : groups){
+				removeGroup(userId, groupId);
+			}
+			String query = "DELETE FROM ENGINEPERMISSION WHERE USER = '?1'; DELETE FROM GROUPMEMBERS WHERE MEMBERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
+			query = query.replace("?1", userDelete);
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+		} else {
+			throw new IllegalArgumentException("This user can't perfom this action.");
+		}
+	}
+	
+	/**
+	 * Get the id list of groups owned by an user
+	 * @param userId
+	 * @return List<String> with the id of the groups owned by an user
+	 */
+	public List<String> getGroupsOwnedByUser(String userId){
+		String query = "SELECT ID FROM USERGROUP WHERE OWNER = '?1'";
+		query = query.replace("?1", userId);
+		ArrayList<String[]> res = runQuery(query);
+		List<String> groupList = new ArrayList<>();
+		for(String[] row : res){
+			groupList.add(row[0]);
+		}
+		return groupList;
+	}
+	
+	
 }

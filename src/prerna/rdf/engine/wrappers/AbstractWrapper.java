@@ -64,7 +64,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	public Map<String, Object> getResponseMeta() {
 		Map<String, Object> resp = new HashMap<String, Object>();
 		if(engine != null) {
-			resp.put("engine", engine.getEngineName());
+			resp.put("engine", engine.getEngineId());
 		}
 		if(query != null){
 			// if super long... only show first 500 values
@@ -109,7 +109,7 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 
 	@Override
 	public void setEngine(IEngine engine) {
-		LOGGER.debug("Set the engine to " + engine.getEngineName());
+		LOGGER.debug("Set the engine to " + engine.getEngineId());
 		this.engine = engine;
 	}
 

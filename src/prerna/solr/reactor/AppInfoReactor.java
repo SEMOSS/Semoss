@@ -60,6 +60,7 @@ public class AppInfoReactor extends AbstractReactor {
 			SolrDocumentList results = response.getResults();
 			// there should only be 1
 			appInfo = results.get(0);
+			appInfo.put("app_id", appInfo.remove("id"));
 			
 			/*
 			 * Queries below are done on the insight core
@@ -75,11 +76,11 @@ public class AppInfoReactor extends AbstractReactor {
 			filterData = new HashMap<String, List<String>>();
 			filterList = new ArrayList<String>();
 			filterList.add(appName);
-			filterData.put("core_engine", filterList);
+			filterData.put(SolrIndexEngine.APP_NAME, filterList);
 			builder.setFilterOptions(filterData);
 			
 			List<String> facetList = new ArrayList<>();
-			facetList.add("tags");
+			facetList.add(SolrIndexEngine.TAGS);
 			// set facet info
 			builder.setFacet(true);
 			builder.setFacetField(facetList);

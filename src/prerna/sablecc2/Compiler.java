@@ -28,7 +28,7 @@ public class Compiler
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 
@@ -52,13 +52,13 @@ public class Compiler
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinInput.smss";
 		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("MinInput");
+		coreEngine.setEngineId("MinInput");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("MinInput", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\MinProposal.smss";
 		coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("MinProposal");
+		coreEngine.setEngineId("MinProposal");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("MinProposal", coreEngine);
 

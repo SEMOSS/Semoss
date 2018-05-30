@@ -20,7 +20,7 @@ class TestGson {
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Forms_TAP_Core_Data.smss";
 		BigDataEngine test5 = new BigDataEngine();
 		test5.openDB(engineProp);
-		test5.setEngineName("Forms_TAP_Core_Data");
+		test5.setEngineId("Forms_TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("Forms_TAP_Core_Data", test5);
 
 //		Vector<String> concepts = test5.getConcepts2(false);

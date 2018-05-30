@@ -65,7 +65,7 @@ public class DualEngineGenericPlaySheet extends DualEngineGridPlaySheet {
 	@Override
 	public void createData(){
 		this.engine1 = this.engine;
-		this.engineName1 = this.engine.getEngineName();
+		this.engineName1 = this.engine.getEngineId();
 		super.createData();
 		createFinalList(finalNames);
 	}

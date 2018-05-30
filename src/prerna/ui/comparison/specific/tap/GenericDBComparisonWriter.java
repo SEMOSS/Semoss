@@ -74,8 +74,8 @@ public class GenericDBComparisonWriter {
 		comparer = new GenericDBComparer(newDB, oldDB, newMetaDB, oldMetaDB);
 		wb = new XSSFWorkbook();
 		
-		this.newDBName = newDB.getEngineName();
-		this.oldDBName = oldDB.getEngineName();
+		this.newDBName = newDB.getEngineId();
+		this.oldDBName = oldDB.getEngineId();
 	}
 	
 	public void runAllInstanceTests() {

@@ -43,7 +43,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			Insight insight = getInsight(insightStrings.get(i));
 			insightMap.put("name", insight.getInsightName());
 			// keys below match those in solr
-			insightMap.put("core_engine", insight.getEngineName());
+			insightMap.put("core_engine", insight.getEngineId());
 			insightMap.put("core_engine_id", insight.getRdbmsId());
 			insightMap.put("recipe", getInsightRecipe(insight));
 			// the old id -> needed to properly update the dashboard config

@@ -36,7 +36,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -48,6 +47,7 @@ import org.apache.log4j.Logger;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -65,7 +65,7 @@ public class AddToMasterDB {
 	private static final String DB_DIRECTORY = WS_DIRECTORY + "/SemossWeb/db";
 		
 	private Connection conn = null;
-	private PersistentHash conceptIdHash = new PersistentHash();
+	private PersistentHash conceptIdHash = null;
 	
 	/*
 	 *  a.	Need multiple primary keys
@@ -79,36 +79,26 @@ public class AddToMasterDB {
 	 * 
 	 */
 	
-	
 	public boolean registerEngineLocal(Properties prop) {
+		String engineUniqueId = prop.getProperty(Constants.ENGINE);
+		if(engineUniqueId == null) {
+			engineUniqueId = UUID.randomUUID().toString();
+		}
+		return registerEngineLocal(prop, engineUniqueId);
+	}
+	
+	public boolean registerEngineLocal(Properties prop, String engineUniqueId) {
 		// grab the local master engine
 		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		// establish the connection
 		getConnection(localMaster);
 		
-		// once we have a connection
-		// let us make sure all the tables are there
+		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		
-		// get the base folder
-		String baseFolder = null;
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		} catch (Exception ignored) {
-			// just set to default location
-			// used for testing if DIHelper not loaded
-			baseFolder = "C:/workspace/Semoss_Dev";
-		}
-
 		// we want to load in the OWL for the engine we want to synchronize into the
 		// the local master
 		// get the owl relative path from the base folder to get the full path
-		String owlFile = baseFolder + "/" + prop.getProperty(Constants.OWL);
-		String engineName = prop.getProperty(Constants.ENGINE);
-		
-		// fill the owl path since we change the engine name for git sync
-		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
-		paramHash2.put("engine", engineName);
-		owlFile = Utility.fillParam2(owlFile, paramHash2);
+		String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 
 		// owl is stored as RDF/XML file
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
@@ -148,7 +138,6 @@ public class AddToMasterDB {
 			engineTypeString = "TYPE:RDF";
 		}
 		
-		String engineUniqueId = UUID.randomUUID().toString();
 		this.conceptIdHash.put(engineName+"_ENGINE", engineUniqueId);
 		String [] colNames = {"ID", "EngineName", "ModifiedDate", "Type"};
 		String [] types = {"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
@@ -177,6 +166,7 @@ public class AddToMasterDB {
 		
 		return true;
 	}
+	
 	
 	/**
 	 * Will add a concept and all of its properties into the local master
@@ -458,13 +448,11 @@ public class AddToMasterDB {
 	 * @return
 	 */
 	private Connection getConnection(IEngine localMaster) {
-		if(conn == null) {
-	    	try {
-	    		conn = ((RDBMSNativeEngine) localMaster).makeConnection();
-	    		conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+    	try {
+    		conn = ((RDBMSNativeEngine) localMaster).makeConnection();
+    		conceptIdHash = ((RDBMSNativeEngine) localMaster).getConceptIdHash();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return conn;
 	}
@@ -684,306 +672,5 @@ public class AddToMasterDB {
 	private static String determineSmssPath(String engineName) {
 		return DB_DIRECTORY + "/" + engineName + ".smss";
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-//	private void masterConcept(String physicalConceptUri, 
-//			String engineName, 
-//			Hashtable <String, String> previousConcepts, 
-//			MetaHelper helper, 
-//			IEngine.ENGINE_TYPE engineType)
-//	{
-//		// get the conceptual URI for the concept
-//		// http://semoss.org/ontologies/Concept/CLEAN_CONCEPT_NAME
-//		// clean concept name above is PKQL acceptable (i.e. alpha-numeric-underscore characters only)
-//		String conceptualUri = helper.getConceptualUriFromPhysicalUri(physicalConceptUri);
-//		
-//		// get the concept instance
-//		// in rdf, this just returns the instance name
-//		// in rdbms, this returns Table_TABLE_NAME + Column_COLUMN_NAME 
-//		// ('+' is not actual present, but there is no space in between the actual table name and the column tag)
-//		String conceptInstance = Utility.getInstanceName(physicalConceptUri, engineType);
-//		
-//		// as a note
-//		// for RDBMS, this will be the table name, not the primary key in the table
-//		String physicalInstance = Utility.getInstanceName(physicalConceptUri); 
-//		
-//		// get the engine composite
-//		// http://semoss.org/ontologies/Concept/ENGINE_NAME_PHYSICAL_NAME
-//		String engineComposite = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/" + engineName + "_" + conceptInstance;
-//
-//		addConcept(engineName, physicalInstance, physicalInstance, helper, physicalConceptUri);
-//		
-//		// adding the physical URI to the engine composite
-//		previousConcepts.put(physicalConceptUri, engineComposite);
-//
-//		// now get all the properties for the concept
-//		// false will return the physical URI for the concepts
-//		List<String> properties = helper.getProperties4Concept(physicalConceptUri, false);
-//
-//		// iterate through and add all the properties
-//		for(int propIndex = 0;propIndex < properties.size(); propIndex++) {
-//			String physicalPropUri = properties.get(propIndex);
-//			LOGGER.debug("For concept = " + physicalConceptUri + " adding property ::: " + physicalPropUri);
-//			addProperty(physicalPropUri, engineName, helper, engineType, physicalInstance); 
-//		}
-//		
-//		// only need to process relationships in one direction
-//		
-//		Vector <String[]> otherConcepts = helper.getFromNeighborsWithRelation(physicalConceptUri, 0);		
-//		
-//		masterOtherConcepts(otherConcepts, previousConcepts, engineName, conceptInstance, engineType, physicalInstance, helper);
-//		
-//		// need to introduce another class called get composite neighbors
-//		// with the relation /Relation/Composite - where it is also a subclass of relation ?
-//		// the composite relation will contain all the composite relationship in a single string
-//		// Where the compositions will be separated by a :	
-//		// /Relation/Composite/Title.Title.Studio.Title_FK:Title.Title.Nominated.Title_FK
-//	}
-//	
-//	private void addConcept(String engineInstance, String physicalInstance, String mainInstance, MetaHelper helper, String Uri)
-//	{
-//		/**
-//		 * All Concepts are of the form
-//		 *  Concept | Conceptual Name | Logical Name | DomainArea | ID
-//		 *  Need to figure out domain area
-//		 * In the beginning - everything is just physical
-//		 */
-//
-//		String uniqueId = null;
-//		String [] colNames;
-//		String [] types;
-//		String [] conceptData;
-//		// need to make the domain also to be an ID
-//		if(conceptIdHash.containsKey(physicalInstance+"_CONCEPTUAL"))
-//		{
-//			uniqueId = conceptIdHash.get(physicalInstance+"_CONCEPTUAL");
-//		}
-//		else
-//		{
-//			uniqueId = UUID.randomUUID().toString();
-//			conceptIdHash.put(physicalInstance+"_CONCEPTUAL", uniqueId);
-//			colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-//			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-//			// making the logical name to be to upper case
-//			conceptData = new String[]{uniqueId, physicalInstance, physicalInstance, "NewDomain", ""};
-//			String tableName = "Concept";
-//			insertQuery(tableName, colNames, types, conceptData);
-//		}
-//		/**
-//		 * Engine Specific Concept Data
-//		 *  Engine | Physical Concept | Main Physical Concept (Same as Physical for concept different for property) | ID | Concept ID (refers to the id of the concept in ConceptTable | Primary Key? 
-//		 *  Primary Key - may be useful in terms of getting to the concept
-//		 *  i.e. the table should be the same for property ?
-//		 *  We need to make sure that the concept in previous step doesn't always insert but gives the id as well
-//		 *  Do we need the main physical Concept - ok.. so this could be the table in the case of RDBMS without which you cannot bring it up
-//		 *  but there could be many of these - in which case we should show the user about it ? or qualify it with the table name ?
-//		 * 
-//		 */
-//		
-//		String dataType = "";
-//		String originalType = "";
-//		if(helper != null) {
-//			dataType = helper.getDataTypes(Uri);
-//			if(dataType == null) {
-//				originalType = "STRING";
-//				dataType = "STRING";
-//			} else {
-//				originalType = dataType;
-//				dataType = dataType.replace("TYPE:", "");
-//			}
-//		}
-//
-//		if(dataType.equalsIgnoreCase("STRING") || dataType.toUpperCase().contains("VARCHAR"))
-//			dataType = "STRING";
-//		else if(dataType.equalsIgnoreCase("DOUBLE") || dataType.toUpperCase().contains("FLOAT"))
-//			dataType = "DOUBLE";
-//		else if(dataType.equalsIgnoreCase("DATE") || dataType.toUpperCase().contains("TIMESTAMP"))
-//			dataType = "DATE";
-//
-//		if(!conceptIdHash.containsKey(physicalInstance+  "_" + engineInstance + "_PHYSICAL"))
-//		{
-//			String conceptId = uniqueId;
-//			uniqueId = UUID.randomUUID().toString();
-//			String engineId = conceptIdHash.get(engineInstance + "_ENGINE");
-//			conceptIdHash.put(physicalInstance + "_" + engineInstance + "_PHYSICAL", uniqueId);
-//			colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
-//			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
-//			String [] conceptInstanceData = {engineId, physicalInstance, uniqueId, uniqueId, conceptId, "TRUE", "FALSE", originalType, dataType};
-//			insertQuery("EngineConcept", colNames, types, conceptInstanceData);
-//		}
-//	}
-//	
-//	
-//	
-//	private void masterOtherConcepts(Vector <String[]> otherConcepts, 
-//			Hashtable <String, String> previousConcepts, 
-//			String engineInstance, 
-//			String conceptInstance, 
-//			IEngine.ENGINE_TYPE engineType, 
-//			String mainConceptInstance, 
-//			MetaHelper helper)
-//	{
-//		for(int otherIndex = 0;otherIndex < otherConcepts.size();otherIndex++)
-//		{
-//			String otherConcept = otherConcepts.get(otherIndex)[0];
-//			String otherRelation = otherConcepts.get(otherIndex)[1];
-//			String iOtherConcept = Utility.getInstanceName(otherConcept, engineType);
-//			String iOtherRelation = Utility.getInstanceName(otherRelation);
-//			String otherEngineConceptComposite = previousConcepts.get(otherConcept);
-//			
-//			if(otherEngineConceptComposite == null) {
-//				otherEngineConceptComposite = Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "/" + engineInstance + "_" + iOtherConcept;
-//				previousConcepts.put(otherConcept, otherEngineConceptComposite);
-//				addConcept(engineInstance, Utility.getInstanceName(otherConcept), Utility.getInstanceName(otherConcept), helper, otherConcept);
-//			}
-//			
-//			/**
-//			 * Create a conceptual relationship and then the actual relationship
-//			 * first piece is conceptual
-//			 * ID, Source Conceptual ID, Target Conceptual ID, GLOBAL ID   
-//			 */
-//			String otherConceptInstance = Utility.getInstanceName(otherConcept);
-//			
-//			String [] colNames = {"ID", "SourceID", "TargetID", "GlobalID"};
-//			String [] types = {"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-//			String relId = null;
-//			if(!conceptIdHash.containsKey(mainConceptInstance + "_" + otherConceptInstance + "_RELATION"))
-//			{
-//				relId = UUID.randomUUID().toString();
-//				String conceptConceptualId = conceptIdHash.get(mainConceptInstance + "_CONCEPTUAL");
-//				String otherConceptualId = conceptIdHash.get(otherConceptInstance + "_CONCEPTUAL");
-//				String [] relData = {relId, conceptConceptualId, otherConceptualId, ""};
-//				insertQuery("Relation", colNames, types, relData);
-//				// I need to keep the relation name as well
-//				conceptIdHash.put(mainConceptInstance + "_" + otherConceptInstance + "_RELATION", relId);
-//			}
-//			else
-//				relId = conceptIdHash.get(mainConceptInstance + "_" + otherConceptInstance + "_RELATION");
-//			
-//			/**
-//			 * Relationships are kept only at the physical level - sorry that did not come out right.. but..
-//			 * need to accomodate for multiple foreign keys as well
-//			 *  
-//			 * Engine | Rel_ID| InstanceRelation ID | From Concept ID | To Concept ID | From Property ID | To Property ID 	
-//			 * 
-//			 * In the case of RDBMS the property is the same as concept ?
-//			 * In the case 
-//			 * 
-//			 */
-//			//System.out.println(conceptIdHash.thisHash);
-//			// for now I am not keeping ID.. but merely trying to get the property
-//			// need to make sure we balance for multiple foregin keys
-//			// need to get the IDs for the concepts
-//			if(!conceptIdHash.containsKey(engineInstance + "_" + mainConceptInstance + "_" + Utility.getInstanceName(otherConcept)+"_PHYSICAL"))
-//			{
-//				colNames = new String []{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID", "SourceProperty", "TargetProperty", "RelationName"}; //"DomainName"};
-//				types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-//				String conceptId = conceptIdHash.get(mainConceptInstance + "_" + engineInstance +"_PHYSICAL");
-//				String otherConceptId = conceptIdHash.get(Utility.getInstanceName(otherConcept) + "_" + engineInstance +"_PHYSICAL");
-//				String engineId = conceptIdHash.get(engineInstance + "_ENGINE");
-//				String uniqueId = UUID.randomUUID().toString();
-//				String [] conceptData = {engineId, relId, uniqueId, conceptId, otherConceptId, mainConceptInstance, Utility.getInstanceName(otherConcept), iOtherRelation};
-//				conceptIdHash.put(engineInstance + "_" + mainConceptInstance + "_" + Utility.getInstanceName(otherConcept)+"_PHYSICAL", uniqueId);
-//				insertQuery("EngineRelation", colNames, types, conceptData);
-//			} 
-//		} 
-//	}
-//	
-//	private void addProperty(
-//			String physicalPropUri, 
-//			String engineName, 
-//			MetaHelper helper, 
-//			IEngine.ENGINE_TYPE engineType, 
-//			String physicalInstance)
-//	{
-//		String conceptualPropertyUri = helper.getConceptualUriFromPhysicalUri(physicalPropUri);
-//		
-//		// so I might need to do a couple of checks here
-//		// basically i also need to add a logical name
-//		// the logical name is purely just the last name
-//		// need to do this the messy way for now
-//		String lProperty = null;
-//		if(engineType == IEngine.ENGINE_TYPE.RDBMS || engineType == IEngine.ENGINE_TYPE.R) {
-//			lProperty = Utility.getClassName(physicalPropUri);
-//		}
-//		if(lProperty == null || lProperty.equalsIgnoreCase("Contains")) {
-//			lProperty = Utility.getInstanceName(physicalPropUri);
-//		}
-//		/**
-//		 * All Concepts are of the form
-//		 *  Concept | Conceptual Name | Logical Name | DomainArea | ID
-//		 *  Need to figure out domain area
-//		 * 
-//		 */
-//		String dataType = "";
-//		String originalType = "";
-//		if(helper != null) {
-//			dataType = helper.getDataTypes(physicalPropUri);
-//			originalType = dataType;
-//			dataType = dataType.replace("TYPE:", "");
-//		}
-//		if(dataType.equalsIgnoreCase("STRING") || dataType.toUpperCase().contains("VARCHAR"))
-//			dataType = "STRING";
-//		else if(dataType.equalsIgnoreCase("DOUBLE") || dataType.toUpperCase().contains("FLOAT"))
-//			dataType = "DOUBLE";
-//		else if(dataType.equalsIgnoreCase("DATE") || dataType.toUpperCase().contains("TIMESTAMP"))
-//			dataType = "DATE";
-//
-//
-//		String [] colNames = {"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-//		String [] types = {"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-//		if(!conceptIdHash.containsKey(lProperty))
-//		{
-//			// how do we handle if there is a concept and property with the same name ?
-//			// it is treated the same
-//
-//			String uniqueId = UUID.randomUUID().toString();
-//			conceptIdHash.put(lProperty, uniqueId);
-//			String [] conceptData = {uniqueId, lProperty, lProperty, "NewDomain",""};
-//			insertQuery("Concept", colNames, types, conceptData);
-//		}
-//		
-//		/**
-//		 * Need a similar structure for properties as concept
-//		 * Should we just promote the properties to just concept ?
-//		 * Engine Specific Concept Data
-//		 *  Engine ID | Physical Concept | Main Physical Concept ID (Filled only when it is a property) | ID | Concept ID (refers to the id of the concept in ConceptTable | Primary Key? 
-//		 *  We need to make sure that the concept in previous step doesn't always insert but gives the id as well
-//		 * 
-//
-//		 * 
-//		 */
-//		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
-//		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
-//
-//		String conceptId = conceptIdHash.get(lProperty);
-//		String uniqueId = UUID.randomUUID().toString();
-//		String engineId = conceptIdHash.get(engineName + "_ENGINE");
-//		String mainConceptId = conceptIdHash.get(physicalInstance + "_" + engineName + "_PHYSICAL");
-//		String [] conceptInstanceData = {engineId, lProperty, mainConceptId, uniqueId, conceptId, "FALSE", "TRUE", originalType, dataType};
-//		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
-//	}
-	
-
 	
 }

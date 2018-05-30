@@ -93,7 +93,7 @@ public class GetLocalDBSchemaReactor extends AbstractReactor {
 		}
 
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put("databaseName", engine.getEngineName());
+		ret.put("databaseName", engine.getEngineId());
 		ret.put("tables", tableDetails);
 		ret.put("relationships", relationshipMap);
 

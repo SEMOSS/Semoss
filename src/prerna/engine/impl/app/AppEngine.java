@@ -25,7 +25,7 @@ public class AppEngine extends AbstractEngine {
 		Hashtable <String, String> paramHash = new Hashtable <String, String>();
 		paramHash.put("BaseFolder", baseFolder);
 		if(this.engineName != null) {
-			paramHash.put("engine", getEngineName());
+			paramHash.put("engine", getEngineId());
 		}
 		
 		String insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);

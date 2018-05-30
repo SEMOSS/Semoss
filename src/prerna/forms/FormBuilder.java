@@ -167,7 +167,7 @@ public final class FormBuilder {
 			user = engineHash.get("user").toString();
 		}
 		
-		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineName())).toUpperCase() + AUDIT_FORM_SUFFIX;
+		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
 		IEngine formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		// create audit table if doesn't exist
 		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";

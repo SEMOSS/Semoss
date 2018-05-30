@@ -116,7 +116,7 @@ public class CirclePackPlaySheet extends BrowserPlaySheet {
 		processTree(rootMap, hashSet);
 		//System.out.println(rootMap);
 		//printHashSet(hashSet);
-		String root = engine.getEngineName();
+		String root = engine.getEngineId();
 
 		allHash.put("name", root);
 		allHash.put("children", hashSet);

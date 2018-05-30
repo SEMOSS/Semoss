@@ -88,7 +88,7 @@ public class AggregationHelper implements IAggregationHelper {
 					conceptTriple = false;
 				}
 				( (BigDataEngine) engine).addStatement(new Object[]{sub, pred, obj, conceptTriple});
-				LOGGER.info("ADDING INTO " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				LOGGER.info("ADDING INTO " + engine.getEngineId() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}
 	}
@@ -106,7 +106,7 @@ public class AggregationHelper implements IAggregationHelper {
 					conceptTriple = false;
 				}
 				( (BigDataEngine) engine).removeStatement(new Object[]{sub, pred, obj, conceptTriple});
-				LOGGER.info("REMOVING FROM " + engine.getEngineName() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
+				LOGGER.info("REMOVING FROM " + engine.getEngineId() + ": " + sub + ">>>>>" + pred + ">>>>>" + obj + ">>>>>");
 			}
 		}		
 	}
@@ -292,7 +292,7 @@ public class AggregationHelper implements IAggregationHelper {
 	public void writeToOWL(IEngine engine)
 	{
 		// get the path to the owlFile
-		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineName() +"_" + Constants.OWL); 
+		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineId() +"_" + Constants.OWL); 
 
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		RepositoryConnection exportRC = existingBaseEngine.getRc();
@@ -346,7 +346,7 @@ public class AggregationHelper implements IAggregationHelper {
 	public void writeToOWL(IEngine engine, HashMap<String, HashMap<String, Set<String>>> baseRelations) throws RepositoryException, RDFHandlerException 
 	{
 		// get the path to the owlFile
-		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineName() +"_" + Constants.OWL); 
+		String owlFileLocation = DIHelper.getInstance().getProperty(engine.getEngineId() +"_" + Constants.OWL); 
 
 		RDFFileSesameEngine existingBaseEngine = (RDFFileSesameEngine) ( (AbstractEngine) engine).getBaseDataEngine();
 		for(String subjectURI : baseRelations.keySet()) 

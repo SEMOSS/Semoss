@@ -45,6 +45,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.OwlConceptualNameModernizer;
+import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.solr.SolrIndexEngine;
@@ -81,13 +82,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	public String loadNewDB(String newFile) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
-		String engineName = null;
+		String engineId = null;
 		try{
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
-			engineName = prop.getProperty(Constants.ENGINE);
-			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
+			engineId = prop.getProperty(Constants.ENGINE);
+			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 				LOGGER.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
@@ -104,7 +105,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
-		return engineName;
+		return engineId;
 	}
 	
 	// this is an alternate method.. which will not load the database but would merely keep the name of the engine
@@ -116,20 +117,18 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	public String catalogDB(String newFile) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
-		String engineName = null;
+		String engineId = null;
 		try{
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
-			engineName = prop.getProperty(Constants.ENGINE);
+			engineId = prop.getProperty(Constants.ENGINE);
 			
-			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
+			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 				LOGGER.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
-			} 
-			else 
-			{
+			} else {
 				String fileName = folderToWatch + "/" + newFile;
-				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, fileName);
+				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.STORE, fileName);
 				String engineTypeString = null;
 				String rawType = prop.get(Constants.ENGINE_TYPE).toString();
 				if(rawType.contains("RDBMS")) {
@@ -139,11 +138,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				} else {
 					engineTypeString = "RDF";
 				}
-				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.TYPE, engineTypeString);
+				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.TYPE, engineTypeString);
 				
 				String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-				if(!(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName))) {
-					engineNames = engineNames + ";" + engineName;
+				if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
+					engineNames = engineNames + ";" + engineId;
 					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 				}
 				
@@ -167,15 +166,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					
 				}
-
 				
 				if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
 					// if the database is a hidden database
 					// do not add anything
 					// we return null and we will 
-					LOGGER.info("Engine " + engineName + " is a hidden database. Do not load into local master or solr.");
+					LOGGER.info("Engine " + engineId + " is a hidden database. Do not load into local master or solr.");
 					return null;
 				} else {
 					// we want to ignore AppEngine
@@ -190,16 +187,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						modernizer.run();
 						
 						// get that metadata I say
-						Utility.synchronizeEngineMetadata(engineName);
+						Utility.synchronizeEngineMetadata(engineId);
 					}
 					
 					// now add to solr
 					// add instances
-					SolrUtility.addToSolrInsightCore(engineName);
+					SolrUtility.addToSolrInsightCore(engineId);
 					// add app
-					SolrUtility.addAppToSolr(engineName);
+					SolrUtility.addAppToSolr(engineId);
 					LOGGER.info("Loaded Engine.. " + fileName);
-					//Utility.loadWebEngine(fileName, prop);
 				}
 			}
 		}catch(Exception e){
@@ -213,30 +209,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 		
-		return engineName;
+		return engineId;
 	}
-
-
-	//	private void clearLocalDB() {
-	//		BigDataEngine localDB = (BigDataEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-	//		String query = "SELECT DISTINCT ?S ?P ?O WHERE {?S ?P ?O}";
-	//		List<Object[]> results = new ArrayList<Object[]>();
-	//		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(localDB, query);
-	//		String[] names = wrap.getVariables();
-	//		while(wrap.hasNext()) {
-	//			ISelectStatement ss = wrap.next();
-	//			boolean isConcept = false;
-	//			if(ss.getRawVar(names[2]).toString().startsWith("http://")) {
-	//				isConcept = true;
-	//			}
-	//			results.add(new Object[]{ss.getRawVar(names[0]).toString(), ss.getRawVar(names[1]).toString(), ss.getRawVar(names[2]).toString(), isConcept});
-	//		}
-	//		
-	//		for(Object[] row : results) {
-	//			localDB.doAction(ACTION_TYPE.REMOVE_STATEMENT, row);
-	//		}
-	//		localDB.commit();
-	//	}
 
 	/**
 	 * Used in the starter class for processing SMSS files.
@@ -274,6 +248,25 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			fileIdx++;
 		}
 		
+		/*
+		 * AFTER WE LOAD THE LOCAL MASTER - UPDATE LEGACY DATABASES
+		 * TO ADD USER SPECIFIC DATABASES / UNIQUE ENGINE NAMES
+		 */
+		SmssUpdater.run();
+		
+		// recalculate everything
+		dir = new File(folderToWatch);
+		fileNames = dir.list(this);
+		engineNames = new String[fileNames.length];
+		localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
+		if(localMasterIndex != -1) {
+			String temp = fileNames[0];
+			fileNames[0] = localMasterDBName;
+			fileNames[localMasterIndex] = temp;
+		}
+		
+		// now continue normal flow
+		
 		// also need to load the security db
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		// trying to figure out where the security database is in the scheme of things
@@ -307,7 +300,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		}
 		
 		// remove unused databases
-		List<String> engines = MasterDatabaseUtility.getAllEnginesRDBMS();
+		List<String> engines = MasterDatabaseUtility.getAllEngineIds();
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		
 		// so delete the engines if the SMSS is not there anymore sure makes sense
@@ -324,10 +317,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(solrIndexEngine.serverActive()) {
 				// check the insight core
 				List<String> facetList = new ArrayList<String>();
-				facetList.add(SolrIndexEngine.CORE_ENGINE);
+				facetList.add(SolrIndexEngine.APP_ID);
 				Map<String, Map<String, Long>> facetReturn = solrIndexEngine.executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList, SOLR_PATHS.SOLR_INSIGHTS_PATH);
 				if(facetReturn != null && !facetReturn.isEmpty()) {
-					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.CORE_ENGINE);
+					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.APP_ID);
 					if(solrEngines != null) {
 						Set<String> engineSet = solrEngines.keySet();
 						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well
@@ -341,10 +334,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 				// check also the app core
 				facetList = new ArrayList<String>();
-				facetList.add("app_name");
+				facetList.add(SolrIndexEngine.ID);
 				facetReturn = solrIndexEngine.executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList, SOLR_PATHS.SOLR_APP_PATH_NAME);
 				if(facetReturn != null && !facetReturn.isEmpty()) {
-					Map<String, Long> solrEngines = facetReturn.get("app_name");
+					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.ID);
 					if(solrEngines != null) {
 						Set<String> engineSet = solrEngines.keySet();
 						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well

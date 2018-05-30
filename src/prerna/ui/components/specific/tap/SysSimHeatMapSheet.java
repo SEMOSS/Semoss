@@ -117,7 +117,7 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		updateProgressBar("10%...Getting all systems for evaluation", 10);
 		String defaultSystemsQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System ?UsedBy ?SystemUser}}";
 		defaultSystemsQuery = addBindings(defaultSystemsQuery);
-		comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), defaultSystemsQuery);
+		comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineId(), defaultSystemsQuery);
 		sdf.setComparisonObjectList(comparisonObjectList);
 		
 		//first get databack from the 
@@ -126,20 +126,20 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		dataQuery = addBindings(dataQuery);
 		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU }{?System ?UsedBy ?SystemUser}}";
 		bluQuery = addBindings(bluQuery);
-		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(this.engine.getEngineName(), dataQuery, bluQuery, SimilarityFunctions.VALUE);
+		Hashtable<String, Hashtable<String,Double>> dataBLUHash = sdf.getDataBLUDataSet(this.engine.getEngineId(), dataQuery, bluQuery, SimilarityFunctions.VALUE);
 		dataBLUCompleteHash = processHashForCharting(dataBLUHash);
 		
 		String theaterQuery = "SELECT DISTINCT ?System ?Theater WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/GarrisonTheater> ?Theater}{?System ?UsedBy ?SystemUser}}";
 		theaterQuery = addBindings(theaterQuery);
 		updateProgressBar("30%...Evaluating Deployment Score", 30);
-		Hashtable theaterHash = sdf.stringCompareBinaryResultGetter(this.engine.getEngineName(), theaterQuery, "Theater", "Garrison", "Both");
+		Hashtable theaterHash = sdf.stringCompareBinaryResultGetter(this.engine.getEngineId(), theaterQuery, "Theater", "Garrison", "Both");
 		theaterHash = processHashForCharting(theaterHash);
 		//dataHash = processOverallScore(dataHash, theaterHash);
 		
 		String dwQuery = "SELECT DISTINCT ?System ?Trans WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/Contains/Transactional> ?Trans}{?System ?UsedBy ?SystemUser}}";
 		dwQuery = addBindings(dwQuery);
 		updateProgressBar("40%...Evaluating System Transactional Score", 40);
-		Hashtable dwHash = sdf.stringCompareBinaryResultGetter(this.engine.getEngineName(), dwQuery, "Yes", "No", "Both");
+		Hashtable dwHash = sdf.stringCompareBinaryResultGetter(this.engine.getEngineId(), dwQuery, "Yes", "No", "Both");
 		dwHash = processHashForCharting(dwHash);
 		//dataHash = processOverallScore(dataHash, dwHash);
 		
@@ -147,25 +147,25 @@ public class SysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		String bpQuery ="SELECT DISTINCT ?System ?BusinessProcess WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?BusinessProcess <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessProcess> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?BusinessProcess}{?System ?UsedBy ?SystemUser}}";
 		bpQuery = addBindings(bpQuery);
 		updateProgressBar("50%...Evaluating System Supporting Business Processes", 50);
-		Hashtable bpHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), bpQuery, SimilarityFunctions.VALUE);
+		Hashtable bpHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), bpQuery, SimilarityFunctions.VALUE);
 		bpHash = processHashForCharting(bpHash);
 		
 		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?Activity}{?System ?UsedBy ?SystemUser}}";
 		actQuery = addBindings(actQuery);
 		updateProgressBar("55%...Evaluating System Supporting Activity", 55);
-		Hashtable actHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), actQuery, SimilarityFunctions.VALUE);
+		Hashtable actHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), actQuery, SimilarityFunctions.VALUE);
 		actHash = processHashForCharting(actHash);
 		
 		String userQuery ="SELECT DISTINCT ?System ?Personnel WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Personnel <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Personnel> ;} {?System <http://semoss.org/ontologies/Relation/UsedBy> ?Personnel}{?System ?UsedBy ?SystemUser}}";
 		userQuery = addBindings(userQuery);
 		updateProgressBar("60%...Evaluating System Users", 60);
-		Hashtable userHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), userQuery, SimilarityFunctions.VALUE);
+		Hashtable userHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), userQuery, SimilarityFunctions.VALUE);
 		userHash = processHashForCharting(userHash);
 		
 		String uiQuery ="SELECT DISTINCT ?System ?UserInterface WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?UserInterface <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/UserInterface> ;} {?System <http://semoss.org/ontologies/Relation/Utilizes> ?UserInterface}{?System ?UsedBy ?SystemUser}}";
 		uiQuery = addBindings(uiQuery);
 		updateProgressBar("70%...Evaluating User Interface", 70);
-		Hashtable uiHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), uiQuery, SimilarityFunctions.VALUE);
+		Hashtable uiHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), uiQuery, SimilarityFunctions.VALUE);
 		uiHash = processHashForCharting(uiHash);
 		
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();

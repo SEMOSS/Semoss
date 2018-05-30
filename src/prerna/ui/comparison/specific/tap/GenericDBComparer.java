@@ -63,8 +63,8 @@ public class GenericDBComparer
 		this.newMetaDB = newMetaDB;
 		this.oldMetaDB = oldMetaDB;
 		
-		this.newDBName = newDB.getEngineName();
-		this.oldDBName = oldDB.getEngineName();
+		this.newDBName = newDB.getEngineId();
+		this.oldDBName = oldDB.getEngineId();
 	}
 	
 	/**

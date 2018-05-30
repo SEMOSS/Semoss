@@ -17,7 +17,7 @@ public class TestRDBMSInsights {
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\ab.smss";
 		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("ab");
+		coreEngine.setEngineId("ab");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("ab", coreEngine);
 		

@@ -70,7 +70,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 	/**
 	 * Loading data into SEMOSS to create a new database
 	 * @param smssLocation					The location of the smss file for the engine
-	 * @param engineName					The name of the engine
+	 * @param engineId					The name of the engine
 	 * @param fileNames						String containing the file names semicolon delimited
 	 * @param customBase					The custom base uri for the database
 	 * @param owlFile						The location of the OWL file for the database
@@ -175,7 +175,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 
 	/**
 	 * Load data into an existing relational database
-	 * @param engineName				The name of the engine to add data into
+	 * @param engineId				The name of the engine to add data into
 	 * @param fileNames					The list of files to upload, semicolon delimited
 	 * @param customBase				The base URI for the database
 	 * @param owlFile					The path to the existing owl file... TODO: can grab this from the engine directly
@@ -203,7 +203,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		try {
 			openEngineWithConnection(engineName);
 			openScriptFile(engineName);
-			findIndexes(engine.getEngineName());
+			findIndexes(engine.getEngineId());
 			for(int i = 0; i<files.length;i++)
 			{
 				try {

@@ -119,7 +119,7 @@ public class DendrogramPlaySheet extends BrowserPlaySheet {
 		//printHashSet(hashSet);
 
 		//System.err.println(engine.getEngineType());
-		String root = engine.getEngineName();
+		String root = engine.getEngineId();
 		
 		allHash.put("name", root);
 		allHash.put("children", hashSet);

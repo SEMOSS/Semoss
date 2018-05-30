@@ -240,7 +240,7 @@ public class DistanceDownstreamInserter {
 		Vector<String> dataObjectArray = new Vector<String>();
 		EntityFiller filler = new EntityFiller();
 		//filler.engine = this.engine;
-		filler.engineName = this.engine.getEngineName();
+		filler.engineName = this.engine.getEngineId();
 		filler.type = type;
 		filler.run();
 		dataObjectArray = filler.names;

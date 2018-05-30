@@ -138,7 +138,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	
 	private static String[] getCmdArray(String feUrl, Insight in, String params) {
 		String id = in.getRdbmsId();
-		String engine = in.getEngineName();
+		String engine = in.getEngineId();
 
 		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
 				DIR_SEPARATOR + "db" + 

@@ -30,6 +30,7 @@ package prerna.util.sql;
 
 import org.apache.log4j.Logger;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -46,8 +47,8 @@ public class RDBMSUtility {
 		return "jdbc:h2:nio:" + "@database@;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
 
-	public static String fillH2ConnectionURL(String baseURL, String engineName) {
-		if(engineName == null) {
+	public static String fillH2ConnectionURL(String baseURL, String engineId, String engineName) {
+		if(engineId == null && engineName == null) {
 			return baseURL;
 		}
 		
@@ -56,6 +57,6 @@ public class RDBMSUtility {
 		}
 		
 		return baseURL.replace("@" + Constants.BASE_FOLDER + "@", DIHelper.getInstance().getProperty(Constants.BASE_FOLDER))
-				.replace("@" + Constants.ENGINE + "@", engineName);
+				.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
 	}
 }

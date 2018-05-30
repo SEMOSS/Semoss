@@ -25,13 +25,13 @@ public class MHSGenesisScheduleUpdater {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Site_Data");
+		coreEngine.setEngineId("TAP_Site_Data");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 		

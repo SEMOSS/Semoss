@@ -98,9 +98,9 @@ public class SolrIndexEngine {
 	public static final String MODIFIED_ON = "modified_on";
 	public static final String LAST_VIEWED_ON = "last_viewed_on";
 
-	public static final String ENGINES = "engines";
-	public static final String CORE_ENGINE = "core_engine";
-	public static final String CORE_ENGINE_ID = "core_engine_id";
+	public static final String APP_ID = "app_id";
+	public static final String APP_NAME = "app_name";
+	public static final String APP_INSIGHT_ID = "app_insight_id";
 
 	public static final String UP_VOTES = "up_votes";
 	public static final String VIEW_COUNT = "view_count";
@@ -177,7 +177,6 @@ public class SolrIndexEngine {
 		boolean isActive = true;
 		try {
 			insightServer.ping();
-			instanceServer.ping();
 			appServer.ping();
 		} catch (Exception e) {
 			isActive = false;
@@ -583,7 +582,7 @@ public class SolrIndexEngine {
 	public void addApp(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
 		if (serverActive()) {
 			LOGGER.info("Adding app with unique ID:  " + uniqueID);
-			SolrUtility.addSolrInputDocument(appServer, ID, uniqueID, fieldData);
+			SolrUtility.addSolrInputDocument(appServer, SolrIndexEngine.ID, uniqueID, fieldData);
 			LOGGER.info("UniqueID " + uniqueID + "'s app has been added");
 		}
 	}
@@ -593,12 +592,16 @@ public class SolrIndexEngine {
 	 * @param appName
 	 * @return
 	 */
-	public boolean containsApp(String appName) {
+	public boolean containsApp(String appId) {
 		// check if db currently exists
-		LOGGER.info("checking if app " + appName + " needs to be added to solr");
+		LOGGER.info("checking if app " + appId + " needs to be added to solr");
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
-		builder.setSearchString(appName);
-		builder.setDefaultSearchField("app_name");
+		Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+		List<String> filterList = new Vector<String>();
+		filterList.add(appId);
+		filterData.put(SolrIndexEngine.ID, filterList);
+		builder.setFilterOptions(filterData );
+		builder.setDefaultSearchField(SolrIndexEngine.ID);
 		builder.setLimit(1);
 		
 		SolrDocumentList queryRet = null;
@@ -609,7 +612,7 @@ public class SolrIndexEngine {
 			e.printStackTrace();
 		}
 		if (queryRet != null && queryRet.size() != 0) {
-			LOGGER.info("Engine " + appName + " already exists inside solr");
+			LOGGER.info("Engine " + appId + " already exists inside solr");
 		} else {
 			LOGGER.info("queryRet.size() = 0 ... so add engine");
 		}
@@ -833,8 +836,9 @@ public class SolrIndexEngine {
 		// these are the necessarily fields to view and run a returned insight
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(ID);
-		retFields.add(CORE_ENGINE);
-		retFields.add(CORE_ENGINE_ID);
+		retFields.add(APP_ID);
+		retFields.add(APP_NAME);
+		retFields.add(APP_INSIGHT_ID);
 		retFields.add(LAYOUT);
 		retFields.add(STORAGE_NAME);
 		retFields.add(CREATED_ON);
@@ -1235,8 +1239,8 @@ public class SolrIndexEngine {
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(ID);
 		retFields.add(VIEW_COUNT);
-		retFields.add(CORE_ENGINE);
-		retFields.add(CORE_ENGINE_ID);
+		retFields.add(APP_ID);
+		retFields.add(APP_INSIGHT_ID);
 		retFields.add(LAYOUT);
 		retFields.add(STORAGE_NAME);
 		retFields.add(CREATED_ON);
@@ -1736,12 +1740,16 @@ public class SolrIndexEngine {
 	 * @param engineName           name of the engine to verify existence
 	 * @return true if the engine already exists
 	 */
-	public boolean containsEngine(String engineName) {
+	public boolean containsEngine(String engineId) {
 		// check if db currently exists
-		LOGGER.info("checking if engine " + engineName + " needs to be added to solr");
+		LOGGER.info("checking if engine " + engineId + " needs to be added to solr");
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
-		builder.setSearchString(engineName);
-		builder.setDefaultSearchField(SolrIndexEngine.CORE_ENGINE);
+		Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+		List<String> filterList = new Vector<String>();
+		filterList.add(engineId);
+		filterData.put(SolrIndexEngine.APP_ID, filterList);
+		builder.setFilterOptions(filterData );
+		builder.setDefaultSearchField(SolrIndexEngine.APP_ID);
 		builder.setLimit(1);
 		
 		SolrDocumentList queryRet = null;
@@ -1764,7 +1772,7 @@ public class SolrIndexEngine {
 			LOGGER.info("queryRet.size() = 0 ... so add engine");
 			return false;
 		} else {
-			LOGGER.info("Engine " + engineName + " already exists inside solr");
+			LOGGER.info("Engine " + engineId + " already exists inside solr");
 			return true;
 		}
 	}
@@ -1773,19 +1781,19 @@ public class SolrIndexEngine {
 	 * Deletes all insights related to a specified engine
 	 * @param engineName      engine name to delete
 	 */
-	public void deleteEngine(String engineName) {
+	public void deleteEngine(String appId) {
 		if (serverActive()) {
 			try {
-				LOGGER.info("DELETING ENGINE FROM SOLR " + engineName);
-				String query = CORE_ENGINE + ":" + engineName;
+				LOGGER.info("DELETING ENGINE FROM SOLR " + appId);
+				String query = APP_ID + ":" + appId;
 				LOGGER.info("deleted query is " + query);
 				insightServer.deleteByQuery(query);
 				insightServer.commit();
-				query = "app_name:" + engineName;
+				query = ID + ":" + appId;
 				LOGGER.info("deleted query is " + query);
 				appServer.deleteByQuery(query);
 				appServer.commit();
-				LOGGER.info("successfully removed " + engineName + " from solr" + engineName);
+				LOGGER.info("successfully removed " + appId + " from solr" + appId);
 			} catch (SolrServerException e1) {
 				e1.printStackTrace();
 			} catch (IOException e1) {
@@ -1816,9 +1824,8 @@ public class SolrIndexEngine {
 			// these are the necessarily fields to view and run a returned insight
 			List<String> retFields = new ArrayList<String>();
 			retFields.add(ID);
-			retFields.add(CORE_ENGINE);
-			retFields.add(CORE_ENGINE_ID);
-			retFields.add(ENGINES);
+			retFields.add(APP_ID);
+			retFields.add(APP_INSIGHT_ID);
 			retFields.add(LAYOUT);
 			retFields.add(STORAGE_NAME);
 			retFields.add(CREATED_ON);
@@ -1833,7 +1840,7 @@ public class SolrIndexEngine {
 			Map<String, List<String>> filterData = new HashMap<String, List<String>>();
 			List<String> engineList = new Vector<String>();
 			engineList.add(engineName);
-			filterData.put(CORE_ENGINE, engineList);
+			filterData.put(APP_ID, engineList);
 			queryBuilder.setFilterOptions(filterData);
 			
 			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
@@ -1869,7 +1876,7 @@ public class SolrIndexEngine {
 			Map<String, List<String>> filterData = new HashMap<String, List<String>>();
 			List<String> engineList = new Vector<String>();
 			engineList.add(engineName);
-			filterData.put(CORE_ENGINE, engineList);
+			filterData.put(APP_ID, engineList);
 			queryBuilder.setFilterOptions(filterData);
 			
 			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_INSIGHTS_PATH);
@@ -1939,14 +1946,14 @@ public class SolrIndexEngine {
 	/**
 	 * Get the solr id based on the engine name and the unique engine id
 	 * This does a concatenation between the engine name and the unique engine id
-	 * @param engineName			The engine name
+	 * @param engineId			The engine name
 	 * @param engineIds				The list of the engine ids
 	 * @return						The solr id for each entry in the engine id list
 	 */
-	public static List<String> getSolrIdFromInsightEngineId(String engineName, List<String> engineIds) {
+	public static List<String> getSolrIdFromInsightEngineId(String engineId, List<String> engineIds) {
 		Vector<String> fixedQuestionIds = new Vector<String>();
 		for(String id : engineIds) {
-			fixedQuestionIds.add(getSolrIdFromInsightEngineId(engineName, id));
+			fixedQuestionIds.add(getSolrIdFromInsightEngineId(engineId, id));
 		}
 		
 		return fixedQuestionIds;
@@ -1954,12 +1961,12 @@ public class SolrIndexEngine {
 	
 	/**
 	 * Get the solr id based on the engine name and the unique engine id
-	 * @param engineName			The engine name
+	 * @param engineId			The engine name
 	 * @param id					The insight unique id for that engine
 	 * @return						The corresponding solr unique insight id
 	 */
-	public static String getSolrIdFromInsightEngineId(String engineName, String id) {
-		return engineName + "_" + id;
+	public static String getSolrIdFromInsightEngineId(String engineId, String id) {
+		return engineId + "_" + id;
 	}
 	
 	/////////////////// END UTILITY METHODS ///////////////////

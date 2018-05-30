@@ -81,7 +81,7 @@ public class RNativeEngine extends AbstractEngine {
 			Map <String, String> paramHash = new Hashtable<String, String>();
 
 			paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-			paramHash.put("ENGINE", getEngineName());
+			paramHash.put("ENGINE", getEngineId());
 			fileDB = Utility.fillParam2(fileDB, paramHash);
 
 			Vector <String> concepts = this.getConcepts();

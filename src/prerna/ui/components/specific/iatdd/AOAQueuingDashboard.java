@@ -201,7 +201,7 @@ public class AOAQueuingDashboard extends BrowserPlaySheet {
 		returnData.put("playsheet", "prerna.ui.components.specific.iatdd.AOAQueuingDashboard");
 		returnData.put("data", inner);
 		returnData.put("title", "Queuing Dashboard");
-		returnData.put("engineName", engine.getEngineName());
+		returnData.put("engineName", engine.getEngineId());
 		return returnData;
 		
 	}
