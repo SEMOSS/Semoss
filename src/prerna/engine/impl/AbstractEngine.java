@@ -332,7 +332,17 @@ public abstract class AbstractEngine implements IEngine {
 	public String getEngineId() {
 		return this.engineId;
 	}
+	
+	@Override
+	public void setEngineName(String engineName) {
+		this.engineName = engineName;
+	}
 
+	@Override
+	public String getEngineName() {
+		return this.engineName;
+	}
+	
 	/**
 	 * Writes the database back with updated properties if necessary
 	 */
