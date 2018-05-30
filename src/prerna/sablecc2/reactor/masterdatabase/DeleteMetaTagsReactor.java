@@ -19,10 +19,11 @@ public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
 		List<String> valuesToDelete = getValues();
-		String oldTagList = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.TAG);
+		String oldTagList = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.TAG);
 		ArrayList<String> tags = new ArrayList<String>();
 		// organize existing tags into list
 		for (String tag : oldTagList.split(VALUE_DELIMITER)) {
@@ -43,7 +44,7 @@ public class DeleteMetaTagsReactor extends  AbstractMetaDBReactor {
 			newTagList += newTag + VALUE_DELIMITER;
 		}
 		AddToMasterDB master = new AddToMasterDB();
-		boolean success = master.addMetadata(engineName, concept, Constants.TAG, newTagList);
+		boolean success = master.addMetadata(engineId, concept, Constants.TAG, newTagList);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 	

@@ -24,9 +24,10 @@ public class GetMetaLinkReactor extends  AbstractMetaDBReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
-		String hyperLink = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.LINK);
+		String hyperLink = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.LINK);
 		ArrayList<String> list = new ArrayList<String>();
 		if (hyperLink != null) {
 			for (String link : hyperLink.split(VALUE_DELIMITER)) {
