@@ -9,14 +9,14 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getApp();
+		String appId = getApp();
 		String rdbmsId = getRdbmsId();
 		String feUrl = getUrl();
 		Object params = getExecutionParams();
 		if(params == null) {
-			ImageCaptureReactor.runImageCapture(feUrl, engineName, rdbmsId, null);
+			ImageCaptureReactor.runImageCapture(feUrl, appId, rdbmsId, null);
 		} else {
-			ImageCaptureReactor.runImageCapture(feUrl, engineName, rdbmsId, params.toString());
+			ImageCaptureReactor.runImageCapture(feUrl, appId, rdbmsId, params.toString());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

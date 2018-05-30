@@ -8,7 +8,6 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +17,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -75,7 +75,17 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find app = " + appId);
+			// we may have the alias
+			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
+			if(appIds.size() == 1) {
+				engine = Utility.getEngine(appIds.get(0));
+			} else if(appIds.size() > 1) {
+				throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
+			}
+			
+			if(engine == null) {
+				throw new IllegalArgumentException("Cannot find app = " + appId);
+			}
 		}
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
@@ -86,7 +96,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		if(!hidden) {
 			logger.info("2) Add insight to solr...");
-			addNewInsightToSolr(appId, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
+			addNewInsightToSolr(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
 			logger.info("2) Done...");
 		} else {
 			logger.info("2) Insight is hidden ... do not add to solr");
@@ -94,19 +104,20 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(appId, newRdbmsId, insightName, layout, recipeToSave, hidden);
+		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
 		
 		// get base 64 image string and write to file
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			storeImageFromPng(base64Image, newRdbmsId, appId);
+			storeImageFromPng(base64Image, newRdbmsId, engine.getEngineId(), engine.getEngineName());
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("name", insightName);
-		returnMap.put("core_engine_id", newRdbmsId);
-		returnMap.put("core_engine", appId);
+		returnMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
+		returnMap.put(SolrIndexEngine.APP_INSIGHT_ID, newRdbmsId);
+		returnMap.put(SolrIndexEngine.APP_NAME, engine.getEngineName());
+		returnMap.put(SolrIndexEngine.APP_ID, engine.getEngineId());
 		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 
@@ -118,21 +129,22 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	
 	/**
 	 * Add an insight into solr
-	 * @param engineName
+	 * @param appId
+	 * @param appName
 	 * @param insightIdToSave
 	 * @param insightName
 	 * @param layout
 	 * @param description
 	 * @param tags
 	 * @param userId
-	 * @param imageURL
 	 */
-	private void addNewInsightToSolr(String engineName, String insightIdToSave, String insightName, String layout,
-			String description, List<String> tags, String userId) {
+	private void addNewInsightToSolr(String appId, String appName, String insightIdToSave, String insightName, String layout, String description, List<String> tags, String userId) {
 		Map<String, Object> solrInsights = new HashMap<>();
 		DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 		Date date = new Date();
 		String currDate = dateFormat.format(date);
+		solrInsights.put(SolrIndexEngine.APP_ID, appId);
+		solrInsights.put(SolrIndexEngine.APP_NAME, appName);
 		solrInsights.put(SolrIndexEngine.STORAGE_NAME, insightName);
 		solrInsights.put(SolrIndexEngine.TAGS, tags);
 		solrInsights.put(SolrIndexEngine.LAYOUT, layout);
@@ -144,10 +156,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		solrInsights.put(SolrIndexEngine.USER_ID, userId);
 		solrInsights.put(SolrIndexEngine.VIEW_COUNT, 0);
 
-		// TODO: figure out which engines are used within this insight
-		solrInsights.put(SolrIndexEngine.APP_ID, engineName);
 		try {
-			SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
+			SolrIndexEngine.getInstance().addInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(appId, insightIdToSave), solrInsights);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e1) {
 			e1.printStackTrace();

@@ -8,10 +8,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -26,6 +24,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
@@ -46,6 +45,7 @@ public class MosfetSyncHelper {
 	// RENAMED
 	public static final String REN = "REN";
 
+	public static final String ENGINE_ID_KEY = "engineId";
 	public static final String ENGINE_KEY = "engine";
 	public static final String RDBMS_ID_KEY = "rdbmsId";
 	public static final String INSIGHT_NAME_KEY = "insightName";
@@ -119,7 +119,8 @@ public class MosfetSyncHelper {
 	}
 
 	private static void processAddedFile(Map<String, Object> mapData, String lastModDate, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
-		String engineName = mapData.get(ENGINE_KEY).toString();
+		String appId = mapData.get(ENGINE_ID_KEY).toString();
+		String appName = mapData.get(ENGINE_KEY).toString();
 		String id = mapData.get(RDBMS_ID_KEY).toString();
 		String name = mapData.get(INSIGHT_NAME_KEY).toString();
 		String layout = mapData.get(LAYOUT_KEY).toString();
@@ -133,11 +134,11 @@ public class MosfetSyncHelper {
 		// we just go through and add it
 		// if it is an add/modify, we have the same steps
 		if(!hidden) {
-			addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
+			addSolrDocToProcess(solrDocsToAdd, lastModDate, appId, appName, id, name, layout);
 		}
 		
 		// need to add the insight in the rdbms engine
-		IEngine engine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(appId);
 		// we want to make sure the file isn't added because we made the insight
 		// and is in fact a new one made by another collaborator
 		Vector<Insight> ins = engine.getInsight(id);
@@ -164,7 +165,8 @@ public class MosfetSyncHelper {
 	}
 
 	private static void processModifiedFiles(Map<String, Object> mapData, String lastModDate, List<SolrInputDocument> solrDocsToAdd, Logger logger) {
-		String engineName = mapData.get(ENGINE_KEY).toString();
+		String appId = mapData.get(ENGINE_ID_KEY).toString();
+		String appName = mapData.get(ENGINE_KEY).toString();
 		String id = mapData.get(RDBMS_ID_KEY).toString();
 		String name = mapData.get(INSIGHT_NAME_KEY).toString();
 		String layout = mapData.get(LAYOUT_KEY).toString();
@@ -178,11 +180,11 @@ public class MosfetSyncHelper {
 		// we just go through and add it
 		// if it is an add/modify, we have the same steps
 		if(!hidden) {
-			addSolrDocToProcess(solrDocsToAdd, lastModDate, engineName, id, name, layout);
+			addSolrDocToProcess(solrDocsToAdd, lastModDate, appId, appName, id, name, layout);
 		}
 		
 		// need to update the insight in the rdbms engine
-		modifyInsightInEngineRdbms(engineName, id, name, layout, recipe, hidden);
+		modifyInsightInEngineRdbms(appId, id, name, layout, recipe, hidden);
 	}
 
 	private static void processDelete(List<String> list, List<String> solrDocsToRemove, Logger logger) {
@@ -214,14 +216,11 @@ public class MosfetSyncHelper {
 		deleteInsightFromEngineRdbms(engineName, id);
 	}
 
-	private static void addSolrDocToProcess(List<SolrInputDocument> solrDocsToAdd, String lastModDate, String engineName, String id, String name, String layout) {
+	private static void addSolrDocToProcess(List<SolrInputDocument> solrDocsToAdd, String lastModDate, String appId, String appName, String id, String name, String layout) {
 		// if the solr is active...
 		if (solrE != null && solrE.serverActive()) {
 			// set all the users to be default...
 			String userID = "default";
-
-			Set<String> engineSet = new HashSet<String>();
-			engineSet.add(engineName);
 
 			// have all the relevant fields now, so store with appropriate schema name
 			// create solr document and add into docs list
@@ -230,13 +229,14 @@ public class MosfetSyncHelper {
 			queryResults.put(SolrIndexEngine.CREATED_ON, lastModDate);
 			queryResults.put(SolrIndexEngine.MODIFIED_ON, lastModDate);
 			queryResults.put(SolrIndexEngine.USER_ID, userID);
-			queryResults.put(SolrIndexEngine.APP_ID, engineName);
+			queryResults.put(SolrIndexEngine.APP_ID, appId);
+			queryResults.put(SolrIndexEngine.APP_NAME, appName);
 			queryResults.put(SolrIndexEngine.APP_INSIGHT_ID, id);
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 			queryResults.put(SolrIndexEngine.VIEW_COUNT, 0);
 
 			try {
-				solrDocsToAdd.add(SolrUtility.createDocument(SolrIndexEngine.ID, engineName + "_" + id, queryResults));
+				solrDocsToAdd.add(SolrUtility.createDocument(SolrIndexEngine.ID, SolrIndexEngine.getSolrIdFromInsightEngineId(appId, id), queryResults));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -250,8 +250,8 @@ public class MosfetSyncHelper {
 		admin.addInsight(id, insightName, layout, pixelRecipeToSave, hidden);
 	}
 
-	private static void modifyInsightInEngineRdbms(String engineName, String id, String insightName, String layout, String recipe, boolean hidden) {
-		IEngine engine = Utility.getEngine(engineName);
+	private static void modifyInsightInEngineRdbms(String appId, String id, String insightName, String layout, String recipe, boolean hidden) {
+		IEngine engine = Utility.getEngine(appId);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		// just put the recipe into an array
 		String[] pixelRecipeToSave = new String[]{recipe};
@@ -368,21 +368,22 @@ public class MosfetSyncHelper {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	public static File makeMosfitFile(String engineName, String rdbmsID, String insightName, String layout, String[] recipeToSave, boolean hidden) {
+	public static File makeMosfitFile(String appId, String appName, String rdbmsID, String insightName, String layout, String[] recipeToSave, boolean hidden) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
 				+ DIR_SEPARATOR + Constants.DB 
-				+ DIR_SEPARATOR + engineName 
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID;
 		
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		// format recipe file
 		HashMap<String, Object> output = new HashMap<String, Object>();
-		output.put("engine", engineName);
-		output.put("rdbmsId", rdbmsID);
-		output.put("insightName", insightName);
-		output.put("layout", layout);
-		output.put("hidden", hidden);
+		output.put(ENGINE_ID_KEY, appId);
+		output.put(ENGINE_KEY, appName);
+		output.put(RDBMS_ID_KEY, rdbmsID);
+		output.put(INSIGHT_NAME_KEY, insightName);
+		output.put(LAYOUT_KEY, layout);
+		output.put(HIDDEN_KEY, hidden);
 		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
 			recipe.append(pixel);
@@ -405,16 +406,17 @@ public class MosfetSyncHelper {
 		return f;
 	}
 	
-	public static File updateMosfitFile(File mosfetFile, String engineName, String rdbmsID, String insightName, String layout, String imageFileName, String[] recipeToSave, boolean hidden) {
+	public static File updateMosfitFile(File mosfetFile, String appId, String appName, String rdbmsID, String insightName, String layout, String imageFileName, String[] recipeToSave, boolean hidden) {
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		// format recipe file
 		HashMap<String, Object> output = new HashMap<String, Object>();
-		output.put("engine", engineName);
-		output.put("rdbmsId", rdbmsID);
-		output.put("insightName", insightName);
-		output.put("layout", layout);
-		output.put("image", imageFileName);
-		output.put("hidden", hidden);
+		output.put(ENGINE_ID_KEY, appId);
+		output.put(ENGINE_KEY, appName);
+		output.put(RDBMS_ID_KEY, rdbmsID);
+		output.put(INSIGHT_NAME_KEY, insightName);
+		output.put(LAYOUT_KEY, layout);
+		output.put(HIDDEN_KEY, hidden);
+		
 		StringBuilder recipe = new StringBuilder();
 		for (String pixel : recipeToSave) {
 			recipe.append(pixel);
