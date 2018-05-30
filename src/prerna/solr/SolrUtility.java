@@ -516,10 +516,10 @@ public final class SolrUtility {
 	}
 
 
-	public static File getStockImage(String app, String insightId) {
+	public static File getStockImage(String appId, String insightId) {
 		String imageDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\images\\stock\\";
 		try {
-			SolrDocument solrDoc = SolrIndexEngine.getInstance().getInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(app, insightId));
+			SolrDocument solrDoc = SolrIndexEngine.getInstance().getInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(appId, insightId));
 			String layout = solrDoc.get(SolrIndexEngine.LAYOUT).toString().toLowerCase();
 			if(layout.equals("area")) {
 				return new File(imageDir + "area.png");
