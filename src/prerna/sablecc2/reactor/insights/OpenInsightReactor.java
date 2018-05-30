@@ -69,6 +69,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			insightMap.put("app_id", newInsight.getEngineId());
 			insightMap.put("app_name", newInsight.getEngineName());
 			insightMap.put("app_insight_id", newInsight.getRdbmsId());
+			
+			// LEGACY PARAMS
+			insightMap.put("core_engine", newInsight.getEngineName());
+			insightMap.put("core_engine_id", newInsight.getRdbmsId());
+			
 			insightMap.put("layout", ((OldInsight) newInsight).getOutput());
 			return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
 		}
