@@ -138,14 +138,13 @@ public class MasterDatabaseUtility {
 	
 	/**
 	 * Get a list of arrays containing [table, column, type] for a given database
-	 * @param engineName
+	 * @param engineId
 	 * @return
 	 */
-	public static List<Object[]> getAllTablesAndColumns(String engineName) {
+	public static List<Object[]> getAllTablesAndColumns(String engineId) {
 		String query = "select distinct c.conceptualname as column, c2.conceptualname as table, ec.property_type as type, ec.pk as pk "
-				+ "from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2 "
-				+ "where e.id = ec.engine "
-				+ "and e.enginename = '" + engineName + "' "
+				+ "from engineconcept ec, engineconcept ec2, concept c, concept c2 "
+				+ "where ec.engine='" + engineId + "' "
 				+ "and ec.localconceptid = c.localconceptid "
 				+ "and ec.parentphysicalid = ec2.physicalnameid "
 				+ "and ec2.localconceptid = c2.localconceptid "

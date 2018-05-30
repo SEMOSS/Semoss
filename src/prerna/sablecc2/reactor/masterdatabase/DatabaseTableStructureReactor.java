@@ -18,11 +18,20 @@ public class DatabaseTableStructureReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String engineName = this.keyValue.get(this.keysToGet[0]);
-		if(engineName == null) {
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if(engineId == null) {
 			throw new IllegalArgumentException("Need to define the database to get the structure from from");
 		}
-		List<Object[]> data = MasterDatabaseUtility.getAllTablesAndColumns(engineName);
+		
+		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
+		if(appIds.size() == 1) {
+			// actually received an app name
+			engineId = appIds.get(0);
+		} else if(appIds.size() > 1) {
+			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
+		}
+		
+		List<Object[]> data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
 }
