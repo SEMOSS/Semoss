@@ -22,9 +22,10 @@ public class GetMetaDescriptionReactor extends AbstractMetaDBReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
-		String description = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.DESCRIPTION);
+		String description = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.DESCRIPTION);
 		String output = "";
 		if(description != null) {
 			output = description;
