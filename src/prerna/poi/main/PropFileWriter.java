@@ -38,6 +38,7 @@ import java.io.Reader;
 
 import org.apache.commons.io.FileUtils;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
@@ -59,6 +60,7 @@ public class PropFileWriter {
 	public String owlFile;
 
 	private String engineName;
+	private String engineID;
 	private File engineDirectory;
 	private String defaultEngine = "prerna.engine.impl.rdf.BigDataEngine";
 	private String defaultRDBMSEngine = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
@@ -98,7 +100,7 @@ public class PropFileWriter {
 			throw new IllegalArgumentException("Database name is invalid.");
 		}
 		this.engineName = dbName;
-		engineDirectoryName = "db" + System.getProperty("file.separator") + dbName;
+		engineDirectoryName = "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(dbName, this.engineID);
 		engineDirectory = new File(baseDirectory + System.getProperty("file.separator") + engineDirectoryName);
 		try {
 			// make the new folder to store everything in
@@ -107,7 +109,7 @@ public class PropFileWriter {
 			// define the owlFile location
 			// replace the engine name with engine
 			//this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
-			this.owlFile = "db" + System.getProperty("file.separator") + engineName + System.getProperty("file.separator") + engineName + "_OWL.OWL";
+			this.owlFile = "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(dbName, this.engineID) + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 			if(owlFile.contains("\\")) {
 				owlFile = owlFile.replaceAll("\\\\", "/");
 			}
@@ -173,7 +175,7 @@ public class PropFileWriter {
 		// move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
 		// change the name of the file from default to engine name
-		propFileName = propFileName.replace("Default", dbname);
+		propFileName = propFileName.replace("Default", SmssUtilities.getUniqueName(dbname, this.engineID));
 		propFileName = propFileName.replace("properties1", "temp");
 
 		// also write the base properties
@@ -185,7 +187,8 @@ public class PropFileWriter {
 			File newFile = new File(propFileName);
 			pw = new FileWriter(newFile);
 			pw.write("Base Properties \n");
-			pw.write(Constants.ENGINE + "\t" + dbname + "\n");
+			pw.write(Constants.ENGINE_ALIAS + "\t" + dbname + "\n");
+			pw.write(Constants.ENGINE + "\t" + this.engineID + "\n");
 			pw.write(Constants.OWL + "\t" + this.owlFile + "\n");
 			if (dbType == ImportOptions.DB_TYPE.RDF) {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
@@ -294,5 +297,8 @@ public class PropFileWriter {
 
 	public void setTinkerType(ImportOptions.TINKER_DRIVER tinkerDriverType) {
 		this.tinkerDriverType = tinkerDriverType;
+	}
+	public void setEngineID(String engineID) {
+		this.engineID = engineID;
 	}
 }

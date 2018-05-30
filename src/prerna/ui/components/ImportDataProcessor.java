@@ -52,6 +52,7 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.AbstractCSVFileReader;
 import prerna.poi.main.AbstractFileReader;
@@ -121,6 +122,7 @@ public class ImportDataProcessor {
 		IEngine engine = null;
 		ImportOptions.DB_TYPE dbType = options.getDbType();
 		String engineName = options.getDbName();
+		String engineID = options.getEngineID();
 		options.getBaseUrl();
 		// autoLoad = false ---> means we will close the engine and then start it up again using the smss file...
 		Boolean autoLoad = (options.isAutoLoad() != null) ? options.isAutoLoad() : true;	
@@ -143,7 +145,7 @@ public class ImportDataProcessor {
 
 			String owlPath = baseDirectory + "/" + propWriter.owlFile;
 			Hashtable <String, String> paramHash = new Hashtable<String, String>();
-			paramHash.put("engine", engineName);
+			paramHash.put("ENGINE", SmssUtilities.getUniqueName(engineName, engineID));
 			owlPath = Utility.fillParam2(owlPath, paramHash);
 			options.setOwlFileLocation(owlPath);
 			
@@ -159,6 +161,7 @@ public class ImportDataProcessor {
 					 throw new IOException(errorMessage);
 			}
 			
+			engine.setEngineId(engineID);
 			// if not auto load... i.e. manually load here into DIHelper
 			if(!autoLoad) {
 				engine.setOWL(owlPath);
@@ -166,19 +169,19 @@ public class ImportDataProcessor {
 				if(dbType == ImportOptions.DB_TYPE.RDBMS) {
 					((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 				}
-				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
-				Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
+				DIHelper.getInstance().getCoreProp().setProperty(engineID + "_" + Constants.STORE, smssLocation);
+				Utility.synchronizeEngineMetadata(engineID); // replacing this for engine
 				//Utility.addToLocalMaster(engine);
-				SolrUtility.addToSolrInsightCore(engineName);
-				SolrUtility.addAppToSolr(engineName);
+				SolrUtility.addToSolrInsightCore(engineID);
+				SolrUtility.addAppToSolr(engineID);
 				// Do we need this?
 				// Commenting it out for now to speed up upload until we find a better way to utilize this
 //				Utility.addToSolrInstanceCore(engine);
 				
 				// only after all of this is good, should we add it to DIHelper
-				DIHelper.getInstance().setLocalProperty(engineName, engine);
+				DIHelper.getInstance().setLocalProperty(engineID, engine);
 				String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-				engineNames = engineNames + ";" + engineName;
+				engineNames = engineNames + ";" + engineID;
 				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 			}
 			
@@ -186,7 +189,7 @@ public class ImportDataProcessor {
 			smssLocation = smssLocation.replace("temp", "smss");
 			newProp = new File(smssLocation);
 			// replace the .temp on the DI Helper with .smss
-			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
+			DIHelper.getInstance().getCoreProp().setProperty(engineID + "_" + Constants.STORE, smssLocation);
 			try {
 				// we just copy over the the .temp file contents into the .smss
 				FileUtils.copyFile(propFile, newProp);
@@ -240,7 +243,7 @@ public class ImportDataProcessor {
 							FileUtils.forceDelete(newProp);
 					
 					// delete the engine folder and all its contents
-					String engineFolderPath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + engineName;
+					String engineFolderPath = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(engineName, engineID);
 					File engineFolderDir = new File(engineFolderPath);
 					if(engineFolderDir.exists()) {
 						File[] files = engineFolderDir.listFiles();
@@ -718,7 +721,8 @@ public class ImportDataProcessor {
 	private PropFileWriter runPropWriter(ImportOptions options) throws IOException {
 		PropFileWriter propWriter = new PropFileWriter();
 		String dbName = options.getDbName(), dbPropFile = options.getSMSSLocation();
-		ImportOptions.DB_TYPE dbType = options.getDbType();		
+		ImportOptions.DB_TYPE dbType = options.getDbType();
+		propWriter.setEngineID(options.getEngineID());
 		// need to make provision for dbType
 		if(dbType == ImportOptions.DB_TYPE.RDBMS) {
 			SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
@@ -753,6 +757,7 @@ public class ImportDataProcessor {
 		ImportOptions.IMPORT_TYPE importType = options.getImportType();
 		ImportOptions.DB_TYPE dbType = options.getDbType();
 		ImportOptions.IMPORT_METHOD importMethod = options.getImportMethod();
+		String engineID = options.getEngineID();
 		if(DIHelper.getInstance().getLocalProp(engineName) != null && ((importType.equals(ImportOptions.IMPORT_TYPE.EXTERNAL_RDBMS) || importMethod.equals(ImportOptions.IMPORT_METHOD.CREATE_NEW)))) {
 			errorMessage = "Database name already exists. \nPlease make the database name unique \nor consider import method to \"Add To Existing\".";
 			throw new IOException(errorMessage);
@@ -776,6 +781,11 @@ public class ImportDataProcessor {
 			errorMessage = "Database to add to cannot be found. \nPlease select an existing database or considering creating a new database.";
 			throw new IOException(errorMessage);
 		}
+		if(engineID == null) {
+			errorMessage = "Need to add engineID";
+			throw new IOException(errorMessage);
+		}
+		
 	}
 
 	//TODO: this needs to be where we do connect to existing RDBMS
