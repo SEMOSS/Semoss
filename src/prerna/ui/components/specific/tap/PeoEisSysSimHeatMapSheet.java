@@ -25,7 +25,7 @@ public class PeoEisSysSimHeatMapSheet extends SysSimHeatMapSheet {
 				Utility.showError("Query returned no results.");
 				return;
 			}*/
-			sourceFileSelection = runQuery(this.engine.getEngineName(), this.query, true);
+			sourceFileSelection = runQuery(this.engine.getEngineId(), this.query, true);
 		}
 		SimilarityFunctions sdf = new SimilarityFunctions();
 		if(this.pane!=null)
@@ -35,12 +35,12 @@ public class PeoEisSysSimHeatMapSheet extends SysSimHeatMapSheet {
 		updateProgressBar("10%...Getting all systems for evaluation", 10);
 		String defaultSystemsQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?System <http://semoss.org/ontologies/Relation/ReportedIn> ?Source}{?System <http://semoss.org/ontologies/Relation/Contains/NeedsAssessment> 'Yes'}}";
 		defaultSystemsQuery = addBindings(defaultSystemsQuery);
-		comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), defaultSystemsQuery);
+		comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineId(), defaultSystemsQuery);
 		sdf.setComparisonObjectList(comparisonObjectList);
 		
 		//Query to return a list of categories
 		String allCategoriesQuery = "SELECT DISTINCT ?Category WHERE { {?Category <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CRA_Category>}}";
-		ArrayList<ArrayList<Object>> categoryList = runQuery(this.engine.getEngineName(), allCategoriesQuery, false);
+		ArrayList<ArrayList<Object>> categoryList = runQuery(this.engine.getEngineId(), allCategoriesQuery, false);
 
 		//For each category, query the data (System and associated category value) and send to the param data hash for processing
 		for (int i = 0; i < categoryList.size(); i++) {
@@ -49,7 +49,7 @@ public class PeoEisSysSimHeatMapSheet extends SysSimHeatMapSheet {
 			String query = "SELECT DISTINCT ?System ?Value WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;}{?System <http://semoss.org/ontologies/Relation/ReportedIn> ?Source}{?System <http://semoss.org/ontologies/Relation/Contains/NeedsAssessment> 'Yes'}{?CRA_Value <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CRA_Value>} {?System <http://semoss.org/ontologies/Relation/HasCRA> ?CRA_Value} {?CRA_Value <http://semoss.org/ontologies/Relation/Contains/Value> ?Value} {?CRA_Category <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/CRA_Category>}{?CRA_Category <http://semoss.org/ontologies/Relation/Contain> ?CRA_Value} BIND (<http://semoss.org/ontologies/Concept/CRA_Category/@CRA_Category@> AS ?CRA_Category) }";
 			query = query.replace("@CRA_Category@", category);
 			query = addBindings(query);
-			Hashtable catHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), query, SimilarityFunctions.VALUE);
+			Hashtable catHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), query, SimilarityFunctions.VALUE);
 			catHash = processHashForCharting(catHash);
 			updateProgressBar("...Evaluating Data", 20 + i*2);
 			if (catHash != null && !catHash.isEmpty()) {

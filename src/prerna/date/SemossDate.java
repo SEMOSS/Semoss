@@ -675,6 +675,12 @@ public class SemossDate {
 		
 		d = "Jan 15, 2019";
 		System.out.println(SemossDate.genDateObj(d).testToString());
+		
+		d = "1/1/2018";
+		System.out.println(SemossDate.genDateObj(d).testToString());
+		
+		d = "2018/1/1";
+		System.out.println(SemossDate.genDateObj(d).testToString());
 	}
 
 }

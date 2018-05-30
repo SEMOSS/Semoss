@@ -29,9 +29,9 @@ public final class SolrImportUtility {
 	private static final String CREATED_ON_FINDER = SolrIndexEngine.CREATED_ON + " : ";
 	private static final String LAST_VIEWED_ON_FINDER = SolrIndexEngine.LAST_VIEWED_ON + " : ";
 
-	private static final String CORE_ENGINE_FINDER = SolrIndexEngine.CORE_ENGINE + " : ";
-	private static final String CORE_ENGINE_ID_FINDER = SolrIndexEngine.CORE_ENGINE_ID + " : ";
-	private static final String ENGINES_FINDER = SolrIndexEngine.ENGINES + " : ";
+	private static final String APP_ID_FINDER = SolrIndexEngine.APP_ID + " : ";
+	private static final String APP_NAME_FINDER = SolrIndexEngine.APP_NAME + " : ";
+	private static final String APP_INSIGHT_ID_FINDER = SolrIndexEngine.APP_INSIGHT_ID + " : ";
 
 	private static final String UP_VOTES_FINDER = SolrIndexEngine.UP_VOTES + " : ";
 	private static final String VIEW_COUNT_FINDER = SolrIndexEngine.VIEW_COUNT + " : "; 
@@ -141,9 +141,9 @@ public final class SolrImportUtility {
 			String createdOnDate = null;
 			String lastViewedDate = null;
 
-			String coreEngine = null;
-			String coreEngineId = null;
-			String engineName = null;
+			String appId = null;
+			String appName = null;
+			String appInsightId = null;
 
 			String upVoteCount = null;
 			String viewCount = null;
@@ -151,10 +151,8 @@ public final class SolrImportUtility {
 			String tag = null;
 			String description = null;
 			String layout = null;
-			String image = null;
 			String userID = null;
 
-			List<String> enginesList = new ArrayList<String>();
 			List<String> tagsList = new ArrayList<String>();
 			///////////////// THIS IS THE END OF ALL THE FIELDS TO COLLECT /////////////////
 
@@ -181,15 +179,14 @@ public final class SolrImportUtility {
 					lastViewedDate = SolrIndexEngine.getDateFormat().format( date );
 				} else if (currentLine.startsWith(LAYOUT_FINDER)) {
 					layout = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(CORE_ENGINE_FINDER)) {
-					coreEngine = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				}  else if (currentLine.startsWith(CORE_ENGINE_ID_FINDER)) {
-					coreEngineId = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(APP_ID_FINDER)) {
+					appId = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(APP_NAME_FINDER)) {
+					appName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
+				} else if (currentLine.startsWith(APP_INSIGHT_ID_FINDER)) {
+					appInsightId = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(USERID_FINDER)) {
 					userID = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-				} else if (currentLine.startsWith(ENGINES_FINDER)) {
-					engineName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
-					enginesList.add(engineName);
 				} else if (currentLine.startsWith(STORAGE_NAME_FINDER)) {
 					storageName = currentLine.substring(currentLine.indexOf(':') + 2).trim();
 				} else if (currentLine.startsWith(UP_VOTES_FINDER)) {
@@ -233,29 +230,29 @@ public final class SolrImportUtility {
 			} else {
 				doc.addField(SolrIndexEngine.LAYOUT, layout);
 			}
-			// core engine is required
-			if(coreEngine == null || coreEngine.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an coreEngine or coreEngine is empty...");
+			// app id is required
+			if(appId == null || appId.isEmpty()) {
+				throw new IOException("SolrInputDocument does not contain an app_id or app_id is empty...");
 			} else {
-				doc.addField(SolrIndexEngine.CORE_ENGINE, coreEngine);
+				doc.addField(SolrIndexEngine.APP_ID, appId);
 			}
-			// core engine id -> the id of the insight within the core_engine's insight rdbms database, is required
-			if(coreEngineId == null) {
+			// app name is required
+			if(appName == null || appName.isEmpty()) {
+				throw new IOException("SolrInputDocument does not contain an app_name or app_name is empty...");
+			} else {
+				doc.addField(SolrIndexEngine.APP_NAME, appId);
+			}
+			// app insight id the id of the insight within the core_engine's insight rdbms database, is required
+			if(appInsightId == null) {
 				throw new IOException("SolrInputDocument does not contain a coreEngineId...");
 			} else {
-				doc.addField(SolrIndexEngine.CORE_ENGINE_ID, coreEngineId);
+				doc.addField(SolrIndexEngine.APP_INSIGHT_ID, appInsightId);
 			}
 			// user id is required
 			if(userID == null || userID.isEmpty()) {
 				throw new IOException("SolrInputDocument does not contain an userID or userID is empty...");
 			} else {
 				doc.addField(SolrIndexEngine.USER_ID, userID);
-			}
-			// the engines used for this insight are required
-			if(enginesList == null || enginesList.isEmpty()) {
-				throw new IOException("SolrInputDocument does not contain an enginesList or enginesList is empty...");
-			} else {
-				doc.addField(SolrIndexEngine.ENGINES, enginesList);
 			}
 			// the name of the insight is required
 			// note the name is stored as both a string for exact match and also parsed

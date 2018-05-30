@@ -189,7 +189,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		Utility.synchronizeEngineMetadata(newAppName);
 
 		TinkerEngine tinkerEng = new TinkerEngine();
-		tinkerEng.setEngineName(newAppName);
+		tinkerEng.setEngineId(newAppName);
 		tinkerEng.openDB(smssFile.getAbsolutePath());
 
 		// only at end do we add to DIHelper

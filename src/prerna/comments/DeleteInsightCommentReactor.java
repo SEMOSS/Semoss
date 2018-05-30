@@ -14,7 +14,8 @@ public class DeleteInsightCommentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engine = this.insight.getEngineName();
+		String engineId = this.insight.getEngineId();
+		String engineName = this.insight.getEngineName();
 		String rdbmsId = this.insight.getRdbmsId();
 		
 		String commentId = this.keyValue.get(this.keysToGet[0]);
@@ -23,7 +24,7 @@ public class DeleteInsightCommentReactor extends AbstractReactor {
 		}
 		
 		// after grabbing the input, write it to a file		
-		InsightComment iComment = new InsightComment(engine, rdbmsId);
+		InsightComment iComment = new InsightComment(engineId, engineName, rdbmsId);
 		iComment.setId(commentId);
 		iComment.setAction(InsightComment.DELETE_ACTION);
 		// add the comment to the chain

@@ -317,9 +317,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("LocalMasterDatabase");
+		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("LocalMasterDatabase");
+		coreEngine.setEngineId("LocalMasterDatabase");
 		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 
 		String testEngine = "MovieDatabase";
@@ -328,9 +328,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName(testEngine);
+		coreEngine.setEngineId(testEngine);
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName(testEngine);
+		coreEngine.setEngineId(testEngine);
 		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
 
 		Insight in = new Insight();

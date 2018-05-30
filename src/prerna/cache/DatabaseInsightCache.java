@@ -34,7 +34,7 @@ public class DatabaseInsightCache extends InsightCache {
 		if(questionName.length() > 25) {
 			questionName = questionName.substring(0, 25);
 		}
-		String base = getBaseDBFolder(in.getEngineName()) + FILE_SEPARATOR + id + "_" + questionName;
+		String base = getBaseDBFolder(in.getEngineId()) + FILE_SEPARATOR + id + "_" + questionName;
 		File basefolder = new File(base);
 		if(!basefolder.exists()) {
 			try {

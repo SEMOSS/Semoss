@@ -363,7 +363,6 @@ public class SolrIndexEngineQueryBuilder {
 		addDisMax(SolrIndexEngine.INDEXED_DESCRIPTION, 2.0);
 		addDisMax(SolrIndexEngine.TAGS, 1.5);
 		addDisMax(SolrIndexEngine.INDEXED_TAGS, 1.5);
-		addDisMax(SolrIndexEngine.ENGINES, 1.0);
 		// we want to boost the question name field to increase the score when question name contains phrases that match
 		// with the query search 
 		setPhraseBooster(SolrIndexEngine.INDEX_NAME);

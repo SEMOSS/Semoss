@@ -203,7 +203,7 @@ public class RdfExcelTableReader extends AbstractFileReader {
 	
 	/**
 	 * Load data into SEMOSS into an existing database
-	 * @param engineName 	String grabbed from the user interface specifying which database to add the data
+	 * @param engineId 	String grabbed from the user interface specifying which database to add the data
 	 * @param fileNames 	Absolute paths of files the user wants to load into SEMOSS, paths are separated by ";"
 	 * @param customBase 	String grabbed from the user interface that is used as the URI base for all instances
 	 * @param customMap 	Absolute path specified in the Excel file that determines the location of the prop file for the data

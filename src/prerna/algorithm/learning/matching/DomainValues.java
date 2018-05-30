@@ -100,7 +100,7 @@ public class DomainValues {
 	 *            add or remove concept properties
 	 */
 	public HashMap<String, String> exportInstanceValues(IEngine engine, String outputFolder, boolean exportProperty, int instancesThreshold) {
-		String engineName = engine.getEngineName();
+		String engineName = engine.getEngineId();
 		HashMap<String, String> propertyMap = new HashMap<String, String>();
 		// Grab all the concepts that exist in the database
 		// Process each concept
@@ -412,7 +412,7 @@ public class DomainValues {
 	 * @param outputFolder
 	 */
 	public HashMap<String, String> exportRelationInstanceValues(IEngine engine, String outputFolder, int instancesThreshold) {
-		String engineName = engine.getEngineName();
+		String engineName = engine.getEngineId();
 		SelectQueryStruct engineQS = engine.getDatabaseQueryStruct();
 		Map<String, Map<String, List>> relations = engineQS.getRelations();
 		HashMap<String, String> totalCount = new HashMap<String, String>();

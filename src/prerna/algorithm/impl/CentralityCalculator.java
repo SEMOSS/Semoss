@@ -322,9 +322,9 @@ public final class CentralityCalculator {
 		String playSheetName = "Graph";
 		String dataMakerName = "GraphDataModel";
 		String title = "Metamodel";
-		String id = coreEngine.getEngineName() + "-Metamodel";
+		String id = coreEngine.getEngineId() + "-Metamodel";
 		AbstractEngine eng = ((AbstractEngine)coreEngine).getBaseDataEngine();
-		eng.setEngineName(id);
+		eng.setEngineId(id);
 		eng.setBaseData((RDFFileSesameEngine) eng);
 		Hashtable<String, String> filterHash = new Hashtable<String, String>();
 		filterHash.put("http://semoss.org/ontologies/Relation", "http://semoss.org/ontologies/Relation");

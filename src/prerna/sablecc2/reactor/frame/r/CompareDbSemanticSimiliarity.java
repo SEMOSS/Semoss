@@ -66,7 +66,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 		if(addFlag){
 			for (String database : databaseList) {
 				IEngine engine = Utility.getEngine(database);
-				List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engine.getEngineName());
+				List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engine.getEngineId());
 
 				// iterate this and if table changes then execute and do R updates
 				int count = 0;
@@ -82,7 +82,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							QueryColumnSelector colSelector = new QueryColumnSelector();
 							colSelector.setTable(table);
 							colSelector.setColumn(col);
-							colSelector.setAlias(engine.getEngineName() + "$" + table + "$" + col);
+							colSelector.setAlias(engine.getEngineId() + "$" + table + "$" + col);
 							typesMap.put(col, dataType);
 							qs.addSelector(colSelector);
 							// only values that arnent null
@@ -95,7 +95,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 							if(!iterator.hasNext()){
 								// all values are null in this column
-								failedColArray.add(engine.getEngineName() + "$" + table + "$" + col );
+								failedColArray.add(engine.getEngineId() + "$" + table + "$" + col );
 								continue;
 							}
 							// write to csv and read to R
@@ -106,7 +106,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							newFile.delete();
 
 							// get random subset
-							this.rJavaTranslator.runR(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),20),c(\"" + engine.getEngineName() + "$" + table + "$" + col + "\")]");
+							this.rJavaTranslator.runR(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),20),c(\"" + engine.getEngineId() + "$" + table + "$" + col + "\")]");
 							
 							/// update run individually for each column
 							this.rJavaTranslator.runR(rMasterTable1 + "<-as.data.frame(" + rMasterTable1 + ");");
@@ -117,7 +117,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							this.rJavaTranslator.runR("rm(errorResults)");
 							if (nullResults){
 								// TODO: run Google NLP
-								failedColArray.add(engine.getEngineName() + "$" + table + "$" + col );
+								failedColArray.add(engine.getEngineId() + "$" + table + "$" + col );
 							}
 						}
 					} else {

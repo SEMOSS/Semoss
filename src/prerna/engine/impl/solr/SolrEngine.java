@@ -411,7 +411,7 @@ public class SolrEngine extends AbstractEngine {
 		TestUtilityMethods.loadDIHelper();
 		SolrEngine solr = new SolrEngine();
 		solr.openDB(null);
-		solr.setEngineName("insightCore");
+		solr.setEngineId("insightCore");
 	}
 
 }

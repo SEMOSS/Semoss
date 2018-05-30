@@ -2637,7 +2637,7 @@ public class Translation extends DepthFirstAdapter {
 	@Override
 	public void outADatabaseList(ADatabaseList node) {
 		// just get the list of engines
-		List<String> dbList = MasterDatabaseUtility.getAllEnginesRDBMS();
+		List<String> dbList = MasterDatabaseUtility.getAllEngineIds();
 		// put it in a map so the FE knows what it is looking at
 		Map returnData = new HashMap();
 		returnData.put("list", convertListToListMaps(dbList));

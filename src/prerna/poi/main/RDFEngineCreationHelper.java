@@ -19,7 +19,7 @@ public class RDFEngineCreationHelper {
 	 * @param conceptualNames
 	 */
 	public static void insertSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
-		String engineName = rdfEngine.getEngineName();
+		String engineName = rdfEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdfEngine.getInsightDatabase());
 		
 		//determine the # where the new questions should start
@@ -60,7 +60,7 @@ public class RDFEngineCreationHelper {
 	 * @param conceptualNames
 	 */
 	public static void insertNewSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
-		String engineName = rdfEngine.getEngineName();
+		String engineName = rdfEngine.getEngineId();
 		IEngine insightsDatabase = rdfEngine.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightsDatabase);
 		
@@ -112,7 +112,7 @@ public class RDFEngineCreationHelper {
 	 * @param rdfEngine
 	 */
 	public static void insertNLPDefaultQuestions(IEngine rdfEngine) {
-		String engineName = rdfEngine.getEngineName();
+		String engineName = rdfEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdfEngine.getInsightDatabase());
 
 		//determine the # where the new questions should start

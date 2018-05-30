@@ -67,8 +67,8 @@ public class JsonAPIEngine extends AbstractEngine {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			Hashtable <String, String> paramHash = new Hashtable <String, String>();
 			paramHash.put("BaseFolder", baseFolder);
-			if(getEngineName() != null)
-				paramHash.put("engine", getEngineName());
+			if(getEngineId() != null)
+				paramHash.put("engine", getEngineId());
 
 			if(propFile != null) {
 				setPropFile(propFile);
@@ -95,18 +95,18 @@ public class JsonAPIEngine extends AbstractEngine {
 							//Map <String, String> paramHash = new Hashtable<String, String>();
 							
 							paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-							paramHash.put("ENGINE", getEngineName());
+							paramHash.put("ENGINE", getEngineId());
 							csvFile = Utility.fillParam2(csvFile, paramHash);
 
 							
 							String fileName = Utility.getOriginalFileName(csvFile);
 							// make the table name based on the fileName
 							String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-							owlFile = baseFolder + "/db/" + getEngineName() + "/" + cleanTableName + ".OWL";
+							owlFile = baseFolder + "/db/" + getEngineId() + "/" + cleanTableName + ".OWL";
 							
 							CSVToOwlMaker maker = new CSVToOwlMaker();
 							maker.makeOwl(csvFile, owlFile, getEngineType());
-							owlFile = "/db/" + getEngineName() + "/" + cleanTableName + ".OWL";
+							owlFile = "/db/" + getEngineId() + "/" + cleanTableName + ".OWL";
 							
 							if(prop.containsKey("REPLACE_OWL"))
 								Utility.updateSMSSFile(propFile, Constants.OWL, owlFile);

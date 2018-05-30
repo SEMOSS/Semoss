@@ -64,14 +64,14 @@ public class ExportDatabaseLoadSheetsListener implements IChakraListener {
 
 		//Get all concepts in the database
 		String conceptQuery = "SELECT ?entity WHERE {?entity <http://www.w3.org/2000/01/rdf-schema#subClassOf> <" + Constants.BASE_URI + Constants.DEFAULT_NODE_CLASS + "> ;} ORDERBY ?entity";
-		ArrayList<String> conceptList = QueryProcessor.getStringList(conceptQuery, engine.getEngineName());
+		ArrayList<String> conceptList = QueryProcessor.getStringList(conceptQuery, engine.getEngineId());
 
 		//Export all properties in one excel file
 		//One sheet for each concept with its properties
 		//if concept does not have properties, will not have a sheet
 		NodeLoadingSheetWriter conWriter = new NodeLoadingSheetWriter();
 		conWriter.setShowSuccessMessage(false);
-		conWriter.setWriteFileName(engine.getEngineName() + "_Property_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx");
+		conWriter.setWriteFileName(engine.getEngineId() + "_Property_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx");
 		conWriter.writeNodeLoadingSheets(engine, conceptList);
 		
 		//Export all relationships in multiple files
@@ -81,7 +81,7 @@ public class ExportDatabaseLoadSheetsListener implements IChakraListener {
 			if(!relationshipList.isEmpty()) {
 				RelationshipLoadingSheetWriter relWriter = new RelationshipLoadingSheetWriter();
 				relWriter.setShowSuccessMessage(false);
-				relWriter.setWriteFileName(engine.getEngineName() + "_" + inputConcept + "_Relations_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx");
+				relWriter.setWriteFileName(engine.getEngineId() + "_" + inputConcept + "_Relations_LoadingSheet_" + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "") + ".xlsx");
 				relWriter.writeRelationshipLoadingSheets(engine, relationshipList);
 			}
 		}

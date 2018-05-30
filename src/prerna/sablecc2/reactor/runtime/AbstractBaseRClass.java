@@ -1475,7 +1475,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put("databaseName", engine.getEngineName());
+		ret.put("databaseName", engine.getEngineId());
 		ret.put("tables", tableDetails);
 		ret.put("relationships", relationshipMap);
 

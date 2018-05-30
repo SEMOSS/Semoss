@@ -52,7 +52,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 		//get access token
 		String accessToken=null;
 		User2 user = this.insight.getUser2();
-		try{
+		try {
 			if(user==null){
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "google");

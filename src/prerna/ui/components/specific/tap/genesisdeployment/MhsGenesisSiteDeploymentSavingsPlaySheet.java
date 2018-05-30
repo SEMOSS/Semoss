@@ -109,8 +109,8 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		this.siteDeploymentSavings.syncHeaders();
 
 		// just going to go through and add all the different type of savings
-		addLocallyDeployedSiteSavings();
-		addGloballyDeployedSystemSavings();
+//		addLocallyDeployedSiteSavings();
+//		addGloballyDeployedSystemSavings();
 		addSiteSpecificSystemSavings();
 		addFixedSustainmentCostForAllLocallyDeployedSystems();
 		
@@ -158,14 +158,14 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		String endYear = "FY" + (15 + numColumns-3);
 		StringBuilder systemFixedCostQuery = new StringBuilder(baseSystemFixedCostQuery.toString());
 		systemFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getTableName())
-					.append(" WHERE Central_Deployment='FALSE' AND SYSTEM != 'CHCS';");
+					.append(" WHERE Central_Deployment='FALSE' AND SYSTEM != 'CHCS'").append(" and system = 'CIS-Essentris'");
 		updateSystemFixedCostValues(systemFixedCostQuery.toString(), endYear);
 		
-		endYear = "FY" + (15 + numColumns-2);
-		StringBuilder chcsFixedCostQuery = new StringBuilder(baseSystemFixedCostQuery.toString());
-		chcsFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getTableName())
-					.append(" WHERE Central_Deployment='FALSE' AND SYSTEM='CHCS';");
-		updateSystemFixedCostValues(chcsFixedCostQuery.toString(), endYear);
+//		endYear = "FY" + (15 + numColumns-2);
+//		StringBuilder chcsFixedCostQuery = new StringBuilder(baseSystemFixedCostQuery.toString());
+//		chcsFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getTableName())
+//					.append(" WHERE Central_Deployment='FALSE' AND SYSTEM='CHCS';");
+//		updateSystemFixedCostValues(chcsFixedCostQuery.toString(), endYear);
 		
 		LOGGER.info("DONE ::: Finsihed with fixed sustainment cost for systems where we do not have site specific costs...");
 	}
@@ -227,7 +227,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 			
 			// so we have the list of sites to filter to in this wave
 			// append that to the base site system specific cost query and then update the values
-			StringBuilder siteSystemSpecificCost = new StringBuilder(baseSiteSystemSpecificCost.toString()).append(siteSystemFilter.toString());
+			StringBuilder siteSystemSpecificCost = new StringBuilder(baseSiteSystemSpecificCost.toString()).append(siteSystemFilter.toString()).append(" and system = 'CIS-Essentris'");
 			// update the base site specific costs
 			// this is a different method only because chcs has year of savings pushed by 2 years
 			updateSiteSpecificSystemCostValues(siteSystemSpecificCost.toString(), endYear);
@@ -361,53 +361,53 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Core_Data");
+		coreEngine.setEngineId("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("TAP_Core_Data");
+		coreEngine.setEngineId("TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Site_Data");
+		coreEngine.setEngineId("TAP_Site_Data");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("TAP_Site_Data");
+		coreEngine.setEngineId("TAP_Site_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Portfolio");
+		coreEngine.setEngineId("TAP_Portfolio");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("TAP_Portfolio");
+		coreEngine.setEngineId("TAP_Portfolio");
 		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
 
 		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();
 		MhsGenesisSiteDeploymentSavingsPlaySheet ps = new MhsGenesisSiteDeploymentSavingsPlaySheet(processor);
 		ps.processDataMakerComponent(null);
 		
-		Iterator<IHeadersDataRow> it2 = ps.systemSiteSustainmentFrame.iterator();
-		boolean f1 = true;
-		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\SEMOSS\\Desktop\\Datasets\\all_data.csv", "UTF-8");
-			while(it2.hasNext()) {
-				IHeadersDataRow row = it2.next();
-				if(f1) {
-					f1 = false;
-					for(Object val : row.getHeaders()) {
-						writer.print(val + ",");
-					}
-					writer.print("\n");
-				}
-				Object[] values = row.getValues();
-				for(Object val : values) {
-					writer.print(val + ",");
-				}
-				writer.print("\n");
-				System.out.println(">>> " + Arrays.toString( values ) );
-			}
-			writer.close();
-		} catch (IOException e) {
-			// do something
-		}
+//		Iterator<IHeadersDataRow> it2 = ps.systemSiteSustainmentFrame.iterator();
+//		boolean f1 = true;
+//		try{
+//			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\all_data.csv", "UTF-8");
+//			while(it2.hasNext()) {
+//				IHeadersDataRow row = it2.next();
+//				if(f1) {
+//					f1 = false;
+//					for(Object val : row.getHeaders()) {
+//						writer.print(val + ",");
+//					}
+//					writer.print("\n");
+//				}
+//				Object[] values = row.getValues();
+//				for(Object val : values) {
+//					writer.print(val + ",");
+//				}
+//				writer.print("\n");
+//				System.out.println(">>> " + Arrays.toString( values ) );
+//			}
+//			writer.close();
+//		} catch (IOException e) {
+//			// do something
+//		}
 		// iterate through the results for testing
 		
 		String fName = ps.siteDeploymentSavings.getTableName();
@@ -419,7 +419,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		Iterator<IHeadersDataRow> it = ps.siteDeploymentSavings.query(qs);
 		System.out.println(">>> " + Arrays.toString( ps.siteDeploymentSavingsHeaders ) );
 		try{
-			PrintWriter writer = new PrintWriter("C:\\Users\\SEMOSS\\Desktop\\Datasets\\SAVINGS_SiteView_CIS_Essentris.csv", "UTF-8");
+			PrintWriter writer = new PrintWriter("C:\\Users\\mahkhalil\\Desktop\\Datasets\\SAVINGS_SiteView_CIS-Essentris.csv", "UTF-8");
 			for(Object val : ps.siteDeploymentSavingsHeaders) {
 				writer.print(val + ",");
 			}

@@ -848,7 +848,7 @@ public class Xray {
 			if (it.hasNext()) {
 				count = ((Double) it.next().getValues()[0]).intValue();
 			}
-			engineColumn.add(engine.getEngineName());
+			engineColumn.add(engine.getEngineId());
 			tableColumn.add(concept);
 			if (prop == null) {
 				propColumn.add(concept);

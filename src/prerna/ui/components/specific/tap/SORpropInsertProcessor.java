@@ -101,13 +101,13 @@ public class SORpropInsertProcessor extends AggregationHelper {
 	
 	public boolean runCoreInsert() {
 		boolean methodSuccess = true;
-		LOGGER.info("Core DB is: " + coreDB.getEngineName());
+		LOGGER.info("Core DB is: " + coreDB.getEngineId());
 		
 		//1. Query and store the Data
 		Hashtable<String, Set<String>> systemDataHash = getQueryResultHash(coreDB, SYSTEM_DATA_QUERY);
 		Hashtable<String, Set<String>> systemDataSORHash = getQueryResultHash(coreDB, SYSTEM_DATA_SOR_QUERY);
 		
-		if (!(coreDB.getEngineName().equals("TAP_Core_Data"))) {
+		if (!(coreDB.getEngineId().equals("TAP_Core_Data"))) {
 			this.errorMessage = "Select TAP_Core_Data from the database list.";
 			return false;
 		}				

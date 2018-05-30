@@ -1,7 +1,6 @@
 package prerna.solr;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -10,20 +9,16 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -33,11 +28,10 @@ import org.apache.solr.common.SolrInputDocument;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.MetaHelper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
@@ -115,33 +109,24 @@ public final class SolrUtility {
 	 * @throws NoSuchAlgorithmException 
 	 * @throws KeyManagementException 
 	 */
-	public static void addAppToSolr(String appName) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static void addAppToSolr(String appId) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		if(!solrE.containsApp(appName)) {
+		if(!solrE.containsApp(appId)) {
+			// get the db type
+			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+			Properties prop = Utility.loadProperties(smssFile);
+			
+			String appName = prop.getProperty(Constants.ENGINE_ALIAS);
+			if(appName == null) {
+				appName = appId;
+			}
+			
 			LOGGER.info("Need to add app into app core");
 			Map<String, Object> fieldData = new HashMap<String, Object>();
+			fieldData.put("id", appId);
 			fieldData.put("app_name", appName);
 			fieldData.put("app_creation_date", SolrIndexEngine.getDateFormat().format(new Date()));
 			fieldData.put("app_tags", Collections.nCopies(1, appName));
-			
-			// get the db type
-			String engineFile = DIHelper.getInstance().getCoreProp().getProperty(appName + "_" + Constants.STORE);
-			Properties prop = new Properties();
-			FileInputStream fis = null;
-			try {
-				fis = new FileInputStream(engineFile);
-				prop.load(fis);
-			} catch(Exception ex) {
-				ex.printStackTrace();
-			} finally {
-				if(fis != null) {
-					try {
-						fis.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
 			
 			String app_type = null;
 			String app_cost = null;
@@ -196,7 +181,7 @@ public final class SolrUtility {
 			fieldData.put("app_cost", app_cost);
 			
 			try {
-				solrE.addApp(appName, fieldData);
+				solrE.addApp(appId, fieldData);
 			} catch (SolrServerException | IOException e) {
 				e.printStackTrace();
 			}
@@ -205,167 +190,19 @@ public final class SolrUtility {
 		}
 	}
 	
-
-	/**
-	 * Add the engine instances into the solr index engine
-	 * @param engineToAdd					The IEngine to add into the solr index engine
-	 * @throws KeyManagementException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
-	 * @throws ParseException
-	 */
-	public static void addToSolrInstanceCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
-		// get the engine name
-		String engineName = engineToAdd.getEngineName();
-		// get the solr index engine
-		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		// if the solr is active...
-		if (solrE.serverActive()) {
-
-			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-			/*
-			 * The unique document is the engineName concatenated with the concept
-			 * BUT for properties it is the engineName concatenated with the concept concatenated with the property 
-			 * Note: we only add properties that are not numeric
-			 * 
-			 * Logic is as follows
-			 * 1) Get the list of all the concepts
-			 * 2) For each concept add the concept with all its instance values to the docs list
-			 * 3) If the concept has properties, perform steps 4 & 5
-			 * 		4) for each property, get the list of values
-			 * 		5) if property is categorical, add the property with all its instance values as a document to the docs list
-			 * 6) Index all the documents that are stored in docs
-			 * 
-			 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
-			 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
-			 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
-			 */
-
-			//TODO: WE NOW STORE THE DATA TYPES ON THE OWL!!! NO NEED TO PERFORM THE QUERY BEFORE CHECKING THE TYPE!!!!!
-			//TODO: will come back to this
-
-			// 1) grab all concepts that exist in the database
-			List<String> conceptList = engineToAdd.getConcepts(false);
-			for(String concept : conceptList) {
-				// we ignore the default concept node...
-				if(concept.equals("http://semoss.org/ontologies/Concept")) {
-					continue;
-				}
-
-				// 2) get all the instances for the concept
-				// fieldData will store the instance document information when we add the concept
-				List<Object> instances = engineToAdd.getEntityOfType(concept);
-				if(instances.isEmpty()) {
-					// sometimes this list is empty when users create databases with empty fields that are
-					// meant to filled in via forms 
-					continue;
-				}
-				// create the concept unique id which is the engineName concatenated with the concept
-				String newId = engineName + "_" + concept;
-
-				//use the method that you just made to save the concept
-				Map<String, Object> fieldData = new HashMap<String, Object>();
-				fieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-				fieldData.put(SolrIndexEngine.VALUE, concept);
-				// sadly, the instances we get back are URIs.. need to extract the instance values from it
-				List<Object> instancesList = new ArrayList<Object>();
-				for(Object instance : instances) {
-					instancesList.add(Utility.getInstanceName(instance + ""));
-				}
-				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
-				// add to the docs list
-				docs.add(createDocument(SolrIndexEngine.ID, newId, fieldData));
-
-				// 3) now see if the concept has properties
-				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
-				if(propName.isEmpty()) {
-					// if no properties, go onto the next concept
-					continue;
-				}
-
-				// we found properties, lets try to add those as well
-				// here we have the bifurcation based on the engine type
-				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
-					NEXT_PROP : for(String prop : propName) {
-						Vector<Object> propertiesList = engineToAdd.getEntityOfType(prop);
-						boolean isNumeric = false;
-						Iterator<Object> it = propertiesList.iterator();
-						while(it.hasNext()) {
-							Object o = it.next();
-							if(o == null || o.toString().isEmpty()) {
-								it.remove();
-								continue;
-							}
-							if(o instanceof Number || Utility.isStringDate(o + "")) {
-								isNumeric = true;
-								continue NEXT_PROP;
-							}
-						}
-
-						// add if the property and its instances to the docs list
-						if(!isNumeric && !propertiesList.isEmpty()) {
-							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
-							Map<String, Object> propFieldData = new HashMap<String, Object>();
-							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-							propFieldData.put(SolrIndexEngine.VALUE, prop);
-							propertiesList.add(Utility.getInstanceName(prop));
-							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-							// add the property document to the docs
-							docs.add(createDocument(SolrIndexEngine.ID, propId, propFieldData));
-						}
-					}
-				} else {
-					for(String prop : propName) {
-						// there is no way to get the list of properties for a specific concept in RDF through the interface
-						// create a query using the concept and the property name
-						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
-						List<Object> propertiesList = new ArrayList<Object>();
-						while (propWrapper.hasNext()) {
-							ISelectStatement propSS = propWrapper.next();
-							Object property = propSS.getVar("property");
-							if(property instanceof String && !Utility.isStringDate((String)property)){
-								//replace property underscores with space
-								property = property.toString();
-								propertiesList.add(property);
-							}
-						}
-
-						// add if the property and its instances to the docs list
-						if(!propertiesList.isEmpty()) {
-							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
-							Map<String, Object> propFieldData = new HashMap<String, Object>();
-							propFieldData.put(SolrIndexEngine.CORE_ENGINE, engineName);
-							propFieldData.put(SolrIndexEngine.VALUE, prop);
-							propertiesList.add(Utility.getInstanceName(prop));
-							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
-							// add the property document to the docs
-							docs.add(createDocument(SolrIndexEngine.ID, propId, propFieldData));
-						}
-					}
-				}
-			}
-
-			// 6) index all the documents at the same time for efficiency
-			try {
-				solrE.addInstances(docs);
-			} catch (SolrServerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public static void addToSolrInsightCore(String engineName) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+	public static void addToSolrInsightCore(String appId) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		// get the engine name		
 		// generate the appropriate query to execute on the local master engine to get the time stamp
-		LOGGER.info("SOLR'ing on " + engineName);
+		LOGGER.info("SOLR'ing on " + appId);
 
-		String engineFile = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
-
+		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+		Properties prop = Utility.loadProperties(smssFile);
+		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
+		if(appName == null) {
+			appName = appId;
+		}
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		Properties prop = new Properties();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		FileInputStream fis = null;
 		String engineDbTime = null;
 		String dbLocation = null;
 
@@ -375,9 +212,6 @@ public final class SolrUtility {
 		boolean forceUpdateSolr = false;
 
 		try {
-			fis = new FileInputStream(engineFile);
-			prop.load(fis);
-
 			// see if solr document exists
 			String solrDocLocation = prop.getProperty(Constants.SOLR_EXPORT);
 			if(solrDocLocation != null && !solrDocLocation.isEmpty()) {
@@ -391,41 +225,25 @@ public final class SolrUtility {
 				forceUpdateSolr = Boolean.parseBoolean(smssForceUpdateString);
 			}
 
-			Hashtable <String, String> paramHash = new Hashtable <String, String>();
-			paramHash.put("BaseFolder", baseFolder);
-			paramHash.put("engine", engineName);
-
-			// find when the database was last modified to see the time
-			dbLocation = (String)prop.get(Constants.RDBMS_INSIGHTS);
-			dbLocation = Utility.fillParam2(dbLocation, paramHash);
-			String dbFileLocation = baseFolder + "/" + dbLocation + ".mv.db";
-			File dbfile = new File(dbFileLocation);
-
+			File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
+			dbLocation = dbfile.getAbsolutePath();
 			BasicFileAttributes bfa = Files.readAttributes(dbfile.toPath(), BasicFileAttributes.class);
 			FileTime ft = bfa.lastModifiedTime();
 			DateFormat df = SolrIndexEngine.getDateFormat();
 			engineDbTime = df.format(ft.toMillis());
 		} catch(Exception ex) {
 			ex.printStackTrace();
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
-
+		
 		// make the engine compare if this is valid
-		if(forceUpdateSolr || !solrE.containsEngine(engineName))
+		if(forceUpdateSolr || !solrE.containsEngine(appId))
 		{
 			// get the solr index engine
 			// if the solr is active...
 			if (solrE.serverActive()) {
 				if(solrDocFile != null && solrDocFile.exists()) {
 					// delete any existing insights from this engine
-					solrE.deleteEngine(engineName);
+					solrE.deleteEngine(appId);
 
 					LOGGER.info("We have a solr document export to load");
 					try {
@@ -437,18 +255,12 @@ public final class SolrUtility {
 					// this has all the details
 					// the engine file is primarily the SMSS that is going to be utilized for the purposes of retrieving all the data
 					//jdbc:h2:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
-					String jdbcURL = "jdbc:h2:" + baseFolder + "/" + dbLocation + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+					String jdbcURL = "jdbc:h2:" + dbLocation.replace(".mv.db", "") + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 					LOGGER.info("Connecting to URL.. " + jdbcURL);
 					String userName = "sa";
 					String password = "";
-					//			if(prop.containsKey(Constants.USERNAME))
-					//				userName = prop.getProperty(Constants.USERNAME);
-					//			if(prop.containsKey(Constants.PASSWORD))
-					//				password = prop.getProperty(Constants.PASSWORD);
-
 					RDBMSNativeEngine rne = new RDBMSNativeEngine();
 					rne.makeConnection(jdbcURL, userName, password);
-					MetaHelper helper = new MetaHelper(null, null, null, rne);
 
 					List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
 					/*
@@ -462,7 +274,7 @@ public final class SolrUtility {
 					 */
 
 					// 1) delete any existing insights from this engine
-					solrE.deleteEngine(engineName);
+					solrE.deleteEngine(appId);
 
 					// also going to get some default field values since they are not captured anywhere...
 
@@ -522,7 +334,7 @@ public final class SolrUtility {
 						}
 
 						Set<String> engineSet = new HashSet<String>();
-						engineSet.add(engineName);
+						engineSet.add(appId);
 						/////// END CLOB PROCESSING TO GET LIST OF ENGINES ///////
 
 						// have all the relevant fields now, so store with appropriate schema name
@@ -532,13 +344,13 @@ public final class SolrUtility {
 						queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 						queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 						queryResults.put(SolrIndexEngine.USER_ID, userID);
-						queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-						queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+						queryResults.put(SolrIndexEngine.APP_ID, appId);
+						queryResults.put(SolrIndexEngine.APP_NAME, appName);
+						queryResults.put(SolrIndexEngine.APP_INSIGHT_ID, id);
 						queryResults.put(SolrIndexEngine.LAYOUT, layout);
 						queryResults.put(SolrIndexEngine.TAGS, perspective);
 						try {
-							docs.add(createDocument(SolrIndexEngine.ID, SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, id), queryResults));
+							docs.add(createDocument(SolrIndexEngine.ID, SolrIndexEngine.getSolrIdFromInsightEngineId(appId, id), queryResults));
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -548,17 +360,16 @@ public final class SolrUtility {
 					try {
 						solrE.addInsights(docs);
 						rne.closeDB();
-						fis.close();
 					} catch (SolrServerException | IOException e) {
 						e.printStackTrace();
 					}
 				}
 			}
-			LOGGER.info("Completed " + engineName);
+			LOGGER.info("Completed " + appId);
 
 			if(forceUpdateSolr) {
-				LOGGER.info(engineName + " is changing solr boolean on smss");
-				Utility.changePropMapFileValue(engineFile, Constants.SOLR_RELOAD, "false");	
+				LOGGER.info(appId + " is changing solr boolean on smss");
+				Utility.changePropMapFileValue(smssFile, Constants.SOLR_RELOAD, "false");	
 			}
 		}
 		else
@@ -569,7 +380,7 @@ public final class SolrUtility {
 
 	/**
 	 * Used to update the data within a GIT synchronized file
-	 * @param engineName
+	 * @param engineId
 	 * @throws KeyManagementException
 	 * @throws NoSuchAlgorithmException
 	 * @throws KeyStoreException
@@ -612,9 +423,8 @@ public final class SolrUtility {
 			queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 			queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 			queryResults.put(SolrIndexEngine.USER_ID, userID);
-			queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-			queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-			queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+			queryResults.put(SolrIndexEngine.APP_ID, engineName);
+			queryResults.put(SolrIndexEngine.APP_INSIGHT_ID, id);
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 			try {
@@ -668,9 +478,8 @@ public final class SolrUtility {
 				queryResults.put(SolrIndexEngine.CREATED_ON, currDate);
 				queryResults.put(SolrIndexEngine.MODIFIED_ON, currDate);
 				queryResults.put(SolrIndexEngine.USER_ID, userID);
-				queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-				queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-				queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+				queryResults.put(SolrIndexEngine.APP_ID, engineName);
+				queryResults.put(SolrIndexEngine.APP_INSIGHT_ID, id);
 				queryResults.put(SolrIndexEngine.LAYOUT, layout);
 
 				try {
@@ -785,5 +594,157 @@ public final class SolrUtility {
 			e.printStackTrace();
 		}
 	}
+	
+	
+	
+	
+//	/**
+//	 * Add the engine instances into the solr index engine
+//	 * @param engineToAdd					The IEngine to add into the solr index engine
+//	 * @throws KeyManagementException
+//	 * @throws NoSuchAlgorithmException
+//	 * @throws KeyStoreException
+//	 * @throws ParseException
+//	 */
+//	public static void addToSolrInstanceCore(IEngine engineToAdd) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, ParseException{
+//		// get the engine id
+//		String engineId = engineToAdd.getEngineId();
+//		// get the solr index engine
+//		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+//		// if the solr is active...
+//		if (solrE.serverActive()) {
+//
+//			List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+//			/*
+//			 * The unique document is the engineName concatenated with the concept
+//			 * BUT for properties it is the engineName concatenated with the concept concatenated with the property 
+//			 * Note: we only add properties that are not numeric
+//			 * 
+//			 * Logic is as follows
+//			 * 1) Get the list of all the concepts
+//			 * 2) For each concept add the concept with all its instance values to the docs list
+//			 * 3) If the concept has properties, perform steps 4 & 5
+//			 * 		4) for each property, get the list of values
+//			 * 		5) if property is categorical, add the property with all its instance values as a document to the docs list
+//			 * 6) Index all the documents that are stored in docs
+//			 * 
+//			 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
+//			 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
+//			 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
+//			 */
+//
+//			//TODO: WE NOW STORE THE DATA TYPES ON THE OWL!!! NO NEED TO PERFORM THE QUERY BEFORE CHECKING THE TYPE!!!!!
+//			//TODO: will come back to this
+//
+//			// 1) grab all concepts that exist in the database
+//			List<String> conceptList = engineToAdd.getConcepts(false);
+//			for(String concept : conceptList) {
+//				// we ignore the default concept node...
+//				if(concept.equals("http://semoss.org/ontologies/Concept")) {
+//					continue;
+//				}
+//
+//				// 2) get all the instances for the concept
+//				// fieldData will store the instance document information when we add the concept
+//				List<Object> instances = engineToAdd.getEntityOfType(concept);
+//				if(instances.isEmpty()) {
+//					// sometimes this list is empty when users create databases with empty fields that are
+//					// meant to filled in via forms 
+//					continue;
+//				}
+//				// create the concept unique id which is the engineName concatenated with the concept
+//				String newId = engineId + "_" + concept;
+//
+//				//use the method that you just made to save the concept
+//				Map<String, Object> fieldData = new HashMap<String, Object>();
+//				fieldData.put(SolrIndexEngine.APP_ID, engineId);
+//				fieldData.put(SolrIndexEngine.VALUE, concept);
+//				// sadly, the instances we get back are URIs.. need to extract the instance values from it
+//				List<Object> instancesList = new ArrayList<Object>();
+//				for(Object instance : instances) {
+//					instancesList.add(Utility.getInstanceName(instance + ""));
+//				}
+//				fieldData.put(SolrIndexEngine.INSTANCES, instancesList);
+//				// add to the docs list
+//				docs.add(createDocument(SolrIndexEngine.ID, newId, fieldData));
+//
+//				// 3) now see if the concept has properties
+//				List<String> propName = engineToAdd.getProperties4Concept(concept, false);
+//				if(propName.isEmpty()) {
+//					// if no properties, go onto the next concept
+//					continue;
+//				}
+//
+//				// we found properties, lets try to add those as well
+//				// here we have the bifurcation based on the engine type
+//				if(engineToAdd.getEngineType().equals(IEngine.ENGINE_TYPE.RDBMS)) {
+//					NEXT_PROP : for(String prop : propName) {
+//						Vector<Object> propertiesList = engineToAdd.getEntityOfType(prop);
+//						boolean isNumeric = false;
+//						Iterator<Object> it = propertiesList.iterator();
+//						while(it.hasNext()) {
+//							Object o = it.next();
+//							if(o == null || o.toString().isEmpty()) {
+//								it.remove();
+//								continue;
+//							}
+//							if(o instanceof Number || Utility.isStringDate(o + "")) {
+//								isNumeric = true;
+//								continue NEXT_PROP;
+//							}
+//						}
+//
+//						// add if the property and its instances to the docs list
+//						if(!isNumeric && !propertiesList.isEmpty()) {
+//							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
+//							Map<String, Object> propFieldData = new HashMap<String, Object>();
+//							propFieldData.put(SolrIndexEngine.APP_ID, engineId);
+//							propFieldData.put(SolrIndexEngine.VALUE, prop);
+//							propertiesList.add(Utility.getInstanceName(prop));
+//							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
+//							// add the property document to the docs
+//							docs.add(createDocument(SolrIndexEngine.ID, propId, propFieldData));
+//						}
+//					}
+//				} else {
+//					for(String prop : propName) {
+//						// there is no way to get the list of properties for a specific concept in RDF through the interface
+//						// create a query using the concept and the property name
+//						String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
+//						ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engineToAdd, propQuery);
+//						List<Object> propertiesList = new ArrayList<Object>();
+//						while (propWrapper.hasNext()) {
+//							ISelectStatement propSS = propWrapper.next();
+//							Object property = propSS.getVar("property");
+//							if(property instanceof String && !Utility.isStringDate((String)property)){
+//								//replace property underscores with space
+//								property = property.toString();
+//								propertiesList.add(property);
+//							}
+//						}
+//
+//						// add if the property and its instances to the docs list
+//						if(!propertiesList.isEmpty()) {
+//							String propId = newId + "_" + prop; // in case there are properties for the same engine, tie it to the concept
+//							Map<String, Object> propFieldData = new HashMap<String, Object>();
+//							propFieldData.put(SolrIndexEngine.APP_ID, engineId);
+//							propFieldData.put(SolrIndexEngine.VALUE, prop);
+//							propertiesList.add(Utility.getInstanceName(prop));
+//							propFieldData.put(SolrIndexEngine.INSTANCES, propertiesList);
+//							// add the property document to the docs
+//							docs.add(createDocument(SolrIndexEngine.ID, propId, propFieldData));
+//						}
+//					}
+//				}
+//			}
+//
+//			// 6) index all the documents at the same time for efficiency
+//			try {
+//				solrE.addInstances(docs);
+//			} catch (SolrServerException | IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
 	
 }

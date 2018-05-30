@@ -463,7 +463,7 @@ public class UploadUtilities {
 		// write insights rdbms
 		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
 		// write owl
-		String paramOwlLoc = getRelativeOwlPath(owlFile).replace(appName, "@engine@");
+		String paramOwlLoc = getRelativeOwlPath(owlFile).replace(DIR_SEPARATOR + appName + DIR_SEPARATOR, DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR);
 		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 	}
 	
@@ -475,7 +475,7 @@ public class UploadUtilities {
 	 * @return
 	 */
 	private static String getParamedSmssInsightDatabaseLocation() {
-		String connectionUrl = "db" + DIR_SEPARATOR + "@engine@" + DIR_SEPARATOR + "insights_database";
+		String connectionUrl = "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + "insights_database";
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
