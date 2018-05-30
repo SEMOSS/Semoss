@@ -132,8 +132,8 @@ public class PropFileWriter {
 					}
 				}
 			}
-			// change it to @engine@
-			this.owlFile = "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + engineName + "_OWL.OWL";
+			// change it to @ENGINE@
+			this.owlFile = "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + engineName + "_OWL.OWL";
 
 			// Now we have all of the different file required for an engine taken care of, update the map file
 			if (dbPropFile == null || dbPropFile.equals("")) {
@@ -191,8 +191,8 @@ public class PropFileWriter {
 				pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultEngine + "\n");
 			}
 			// replacing dbname with the engine name
-			// @engine@
-			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database" + "\n");
+			// @ENGINE@
+			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database" + "\n");
 			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
