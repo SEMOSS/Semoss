@@ -1074,8 +1074,9 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 		Set<String> conceptsList = new TreeSet<String>();
 		try {
-			String query = "select distinct c.conceptualname, from concept c, engineconcept ec "
-						+ "where ec.localconceptid=c.localconceptid and ec.property=false and ec.engine ='" + engineId + "'";
+			String query = "select distinct c.conceptualname "
+					+ "from concept c, engineconcept ec "
+					+ "where ec.localconceptid=c.localconceptid and ec.property=false and ec.engine ='" + engineId + "'";
 			
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
