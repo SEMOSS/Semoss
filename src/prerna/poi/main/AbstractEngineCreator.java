@@ -72,8 +72,8 @@ public class AbstractEngineCreator {
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	protected void openREngineWithoutConnection(String appName) {
-		createNewREngine(appName);
+	protected void openREngineWithoutConnection(String appName, String appID) {
+		createNewREngine(appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
@@ -130,35 +130,38 @@ public class AbstractEngineCreator {
 		engine.setInsightDatabase(insightDatabase);
 	}
 	
-	private void createNewREngine(String dbName) {
+	private void createNewREngine(String appName, String appID) {
 		engine = new RNativeEngine();
-		engine.setEngineId(dbName);
+		engine.setEngineName(appName);
+		engine.setEngineId(appID);
 		engine.openDB(dbPropFile);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 	
 	//added for connect to external RDBMS workflow
-	protected void generateEngineFromRDBMSConnection(String schema, String dbName) {
-		connectToExternalRDBMSEngine(schema,dbName);
+	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) {
+		connectToExternalRDBMSEngine(schema,appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 	//added for connect to external Impala workflow
-	protected void generateEngineFromImpalaConnection(String schema, String dbName) {
-		connectToExternalImpalaEngine(schema,dbName);
+	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) {
+		connectToExternalImpalaEngine(schema,dbName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.IMPALA, this.customBaseURI);
 	}
 	//added for connect to external RDBMS workflow
-	private void connectToExternalRDBMSEngine(String schema, String dbName) {
+	private void connectToExternalRDBMSEngine(String schema, String appName, String appID) {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineId(dbName);
+		engine.setEngineId(appID);
+		engine.setEngineName(appName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
-		prop.put(Constants.ENGINE, dbName);
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+		prop.put(Constants.ENGINE, appID);
+		prop.put(Constants.ENGINE_ALIAS, appName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
@@ -173,18 +176,20 @@ public class AbstractEngineCreator {
 		engine.openDB(null);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 
 	//added for connect to external Impala workflow
-	private void connectToExternalImpalaEngine(String schema, String dbName) {
+	private void connectToExternalImpalaEngine(String schema, String appName, String appID) {
 		engine = new ImpalaEngine();
-		engine.setEngineId(dbName);
+		engine.setEngineId(appID);
+		engine.setEngineName(appName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
-		prop.put(Constants.ENGINE, dbName);
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+		prop.put(Constants.ENGINE, appID);
+		prop.put(Constants.ENGINE_ALIAS, appName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
@@ -199,7 +204,7 @@ public class AbstractEngineCreator {
 		engine.openDB(null);
 
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 
@@ -300,9 +305,6 @@ public class AbstractEngineCreator {
 		sqlHash.put("NUMBER", "FLOAT");
 		sqlHash.put("INTEGER", "FLOAT");
 		sqlHash.put("BOOLEAN", "BOOLEAN");
-	}
-	protected IEngine createNewInsightsDatabase(String dbName) {
-		return createNewInsightsDatabase(dbName, null);
 	}
 	
 	protected IEngine createNewInsightsDatabase(String appName, String appID) {
