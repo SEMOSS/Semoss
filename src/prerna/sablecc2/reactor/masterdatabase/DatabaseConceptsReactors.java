@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
-import java.util.List;
 import java.util.Set;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -27,14 +26,7 @@ public class DatabaseConceptsReactors extends AbstractReactor {
 			throw new IllegalArgumentException("Can only define one database within this call");
 		}
 		String engineId = eGrs.get(0).toString();
-		
-		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
-		if(appIds.size() == 1) {
-			// actually received an app name
-			engineId = appIds.get(0);
-		} else if(appIds.size() > 1) {
-			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
-		}
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		
 		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engineId);
 		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPTS);

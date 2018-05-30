@@ -56,13 +56,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			// we may have the alias
-			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
-			if(appIds.size() == 1) {
-				engine = Utility.getEngine(appIds.get(0));
-			} else if(appIds.size() > 1) {
-				throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
-			}
-			
+			engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
 			if(engine == null) {
 				throw new IllegalArgumentException("Cannot find app = " + appId);
 			}
