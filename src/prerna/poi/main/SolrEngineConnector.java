@@ -55,7 +55,7 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		
 		// 4) create the base insights 
 		// TODO: i have this in future code.. right now, we need to make a question file
-		this.engine.setInsightDatabase(createNewInsightsDatabase(dbName));
+		this.engine.setInsightDatabase(createNewInsightsDatabase(dbName, this.engine.getEngineId()));
 		
 		//) 5-8
 		String tempSmssLocation = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + dbName + ".temp"; 
