@@ -164,37 +164,35 @@ public class TinkerEngine extends AbstractEngine {
 	public void commit() {
 		try {
 			long startTime = System.currentTimeMillis();
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
-			String fileName = prop.getProperty(Constants.TINKER_FILE);
-			fileName = fileName.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
-			fileName = fileName.replaceAll("@" + Constants.ENGINE + "@", this.engineName);
+			String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
+
 			if (tinkerDriver == TINKER_DRIVER.TG) {
 				Builder<GryoIo> builder = IoCore.gryo();
 				builder.graph(g);
 				IoRegistry kryo = new MyGraphIoRegistry();
 				builder.registry(kryo);
 				GryoIo yes = builder.create();
-				yes.writeGraph(fileName);
+				yes.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 				Builder<GraphSONIo> builder = IoCore.graphson();
 				builder.graph(g);
 				IoRegistry kryo = new MyGraphIoRegistry();
 				builder.registry(kryo);
 				GraphSONIo yes = builder.create();
-				yes.writeGraph(fileName);
+				yes.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.XML) {
 				Builder<GraphMLIo> builder = IoCore.graphml();
 				builder.graph(g);
 				IoRegistry kryo = new MyGraphIoRegistry();
 				builder.registry(kryo);
 				GraphMLIo yes = builder.create();
-				yes.writeGraph(fileName);
+				yes.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 				g.tx().commit();
 			}
 			long endTime = System.currentTimeMillis();
-			LOGGER.info("Successfully saved graph to file: " + fileName + "(" + (endTime - startTime) + " ms)");
+			LOGGER.info("Successfully saved graph to file: " + fileLocation + "(" + (endTime - startTime) + " ms)");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

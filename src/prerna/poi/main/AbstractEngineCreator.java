@@ -161,7 +161,7 @@ public class AbstractEngineCreator {
 		
 		// setting as a parameter for engine
 		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
-		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database");
+		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 		((AbstractEngine) engine).setProperties(prop);
@@ -187,7 +187,7 @@ public class AbstractEngineCreator {
 
 		// setting as a parameter for engine
 		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
-		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database");
+		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
 		((AbstractEngine) engine).setProperties(prop);
