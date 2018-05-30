@@ -17,6 +17,7 @@ import com.google.gson.GsonBuilder;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -80,9 +81,9 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	public static File generateAppFolder(String appName) {
+	public static File generateAppFolder(String appId, String appName) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appLocation = baseFolder + ENGINE_DIRECTORY + appName;
+		String appLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId);
 		File appFolder = new File(appLocation);
 		appFolder.mkdirs();
 		return appFolder;
@@ -93,9 +94,9 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	public static File generateOwlFile(String appName) {
+	public static File generateOwlFile(String appId, String appName) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String owlLocation = baseFolder + ENGINE_DIRECTORY + appName + DIR_SEPARATOR + appName + "_OWL.OWL";
+		String owlLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + appName + "_OWL.OWL";
 		File owlFile = new File(owlLocation);
 		
 		FileWriter writer = null;
@@ -155,8 +156,8 @@ public class UploadUtilities {
 	 * @param file
 	 * @return
 	 */
-	public static File createTemporaryRdbmsSmss(String appName, File owlFile, String rdbmsType, String file) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appName);
+	public static File createTemporaryRdbmsSmss(String appId, String appName, File owlFile, String rdbmsType, String file) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -182,7 +183,7 @@ public class UploadUtilities {
 			} else {
 				engineClassName = RDBMSNativeEngine.class.getName();
 			}
-			writeDefaultSettings(bufferedWriter, appName, owlFile, engineClassName, newLine, tab);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
 
 			// write the rdbms type
 			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
@@ -241,8 +242,8 @@ public class UploadUtilities {
 	 * @param appName
 	 * @throws IOException 
 	 */
-	public static File createTemporaryAppSmss(String appName) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appName);
+	public static File createTemporaryAppSmss(String appId, String appName) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 		
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -265,6 +266,7 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			bufferedWriter.write("Base Properties" +  newLine);
 			bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
+			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
 			// write insights rdbms
 			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
@@ -289,6 +291,7 @@ public class UploadUtilities {
 	
 	/**
 	 * Generate a tinker smss
+	 * @param appId
 	 * @param appName
 	 * @param owlFile
 	 * @param tinkerFilePath
@@ -298,8 +301,8 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appName);
+	public static File generateTemporaryTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -320,7 +323,7 @@ public class UploadUtilities {
 			File newFile = new File(appTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 			
 			// tinker file location
 			bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
@@ -355,6 +358,7 @@ public class UploadUtilities {
 
 	/**
 	 * Generate a temporary datastax smss
+ 	 * @param appId
 	 * @param appName
 	 * @param owlFile
 	 * @param host
@@ -368,8 +372,8 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryDatastaxSmss(String appName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap) throws IOException {
-		String appTempSmssLoc = getAppTempSmssLoc(appName);
+	public static File generateTemporaryDatastaxSmss(String appId, String appName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
 		// we dont leave this around 
@@ -390,7 +394,7 @@ public class UploadUtilities {
 			File newFile = new File(appTempSmssLoc);
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
-			writeDefaultSettings(bufferedWriter, appName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
 			
 			// tinker file location
 			bufferedWriter.write("HOST" + tab + host + newLine);
@@ -435,9 +439,9 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	private static String getAppTempSmssLoc(String appName) {
+	private static String getAppTempSmssLoc(String appId, String appName) {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String appTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + appName + ".temp";
+		String appTempSmssLoc = baseDirectory + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + ".temp";
 		return appTempSmssLoc;
 	}
 	
@@ -456,9 +460,10 @@ public class UploadUtilities {
 	 * @param tab
 	 * @throws IOException
 	 */
-	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String appName, File owlFile, String engineClassName, final String newLine, final String tab) throws IOException {
+	private static void writeDefaultSettings(BufferedWriter bufferedWriter, String appId, String appName, File owlFile, String engineClassName, final String newLine, final String tab) throws IOException {
 		bufferedWriter.write("Base Properties" +  newLine);
-		bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
+		bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
+		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + engineClassName + newLine);
 		// write insights rdbms
 		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
@@ -498,9 +503,9 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	public static String getInsightDatabaseConnectionUrl(String appName) {
+	public static String getInsightDatabaseConnectionUrl(String appId, String appName) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionUrl = "jdbc:h2:" + baseFolder + ENGINE_DIRECTORY + appName + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		String connectionUrl = "jdbc:h2:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
@@ -511,14 +516,14 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	public static IEngine generateInsightsDatabase(String appName) {
+	public static IEngine generateInsightsDatabase(String appId, String appName) {
 		Properties prop = new Properties();
 
 		/*
 		 * This has hard coded defaults for h2!
 		 */
 		
-		String connectionUrl = getInsightDatabaseConnectionUrl(appName);
+		String connectionUrl = getInsightDatabaseConnectionUrl(appId, appName);
 		prop.put(Constants.CONNECTION_URL, connectionUrl);
 		prop.put(Constants.USERNAME, "sa");
 		prop.put(Constants.PASSWORD, "");

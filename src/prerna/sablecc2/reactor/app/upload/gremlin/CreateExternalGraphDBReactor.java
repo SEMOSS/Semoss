@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -40,6 +41,8 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		String newAppId = UUID.randomUUID().toString();
+
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 
@@ -109,19 +112,19 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		logger.info("Starting app creation");
 
 		logger.info("1. Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppName);
+		UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info("1. Complete");
 
 		logger.info("Generate new app database");
 		logger.info("2. Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
 		logger.info("2. Complete");
 
 		logger.info("3. Create properties file for database...");
 		File tempSmss = null;
 		try {
-			tempSmss = UploadUtilities.generateTemporaryTinkerSmss(newAppName, owlFile, fileName, typeMap, nameMap, tinkerDriver);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			tempSmss = UploadUtilities.generateTemporaryTinkerSmss(newAppId, newAppName, owlFile, fileName, typeMap, nameMap, tinkerDriver);
+			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
@@ -161,16 +164,16 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		logger.info("4. Complete");
 
 		logger.info("5. Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		insightDatabase.closeDB();
 		logger.info("5. Complete");
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
 		try {
-			Utility.synchronizeEngineMetadata(newAppName);
-			SolrUtility.addToSolrInsightCore(newAppName);
-			SolrUtility.addAppToSolr(newAppName);
+			Utility.synchronizeEngineMetadata(newAppId);
+			SolrUtility.addToSolrInsightCore(newAppId);
+			SolrUtility.addAppToSolr(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -185,17 +188,18 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		}
 		tempSmss.delete();
 
-		DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, smssFile.getAbsolutePath());
-		Utility.synchronizeEngineMetadata(newAppName);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		Utility.synchronizeEngineMetadata(newAppId);
 
 		TinkerEngine tinkerEng = new TinkerEngine();
-		tinkerEng.setEngineId(newAppName);
+		tinkerEng.setEngineId(newAppId);
+		tinkerEng.setEngineName(newAppName);
 		tinkerEng.openDB(smssFile.getAbsolutePath());
 
 		// only at end do we add to DIHelper
-		DIHelper.getInstance().setLocalProperty(newAppName, tinkerEng);
+		DIHelper.getInstance().setLocalProperty(newAppId, tinkerEng);
 		String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		appNames = appNames + ";" + newAppName;
+		appNames = appNames + ";" + newAppId;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
