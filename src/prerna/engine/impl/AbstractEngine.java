@@ -659,18 +659,24 @@ public abstract class AbstractEngine implements IEngine {
 	public void deleteDB() {
 		lOGGER.debug("closing " + this.engineName);
 		this.closeDB();
-		Map<String, String> engineParam = new HashMap<String, String>();
-		engineParam.put("engine", this.engineName);
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String insightLoc = baseFolder + "/" + this.getProperty(Constants.RDBMS_INSIGHTS);
-		insightLoc = Utility.fillParam2(insightLoc, engineParam);
-		File insightFile = new File(insightLoc);
-		File engineFolder = new File(insightFile.getParent());
+		
+		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
+		File owlFile = SmssUtilities.getOwlFile(this.prop);
+		File engineFolder = insightFile.getParentFile();
 		String folderName = engineFolder.getName();
 		try {
-			lOGGER.debug("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder.
-			if(folderName.equals(this.engineName))
-			{
+			if(owlFile != null && owlFile.exists()) {
+				System.out.println("Deleting owl file " + owlFile.getAbsolutePath());
+				FileUtils.forceDelete(owlFile);
+			}
+			if(insightFile != null && insightFile.exists()) {
+				System.out.println("Deleting insight file " + insightFile.getAbsolutePath());
+				FileUtils.forceDelete(insightFile);
+			}
+			
+			//this check is to ensure we are deleting the right folder.
+			lOGGER.debug("checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
 				lOGGER.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
 				try {
 					FileUtils.deleteDirectory(engineFolder);
@@ -678,28 +684,16 @@ public abstract class AbstractEngine implements IEngine {
 					e.printStackTrace();
 				}
 			}
-			else{
-				lOGGER.error("Cannot delete database folder as folder name does not line up with engine name");
-				//try deleting each file individually
-				lOGGER.debug("Deleting insight file " + insightLoc);
-				insightFile.delete();
-
-				String owlLoc = baseFolder + "/" + this.getProperty(Constants.OWL);
-				if(owlLoc != null){
-					lOGGER.debug("Deleting owl file " + owlLoc);
-					File owlFile = new File(owlLoc);
-					owlFile.delete();
-				}
-			}
+			
 			lOGGER.debug("Deleting smss " + this.propFile);
 			File smssFile = new File(this.propFile);
 			FileUtils.forceDelete(smssFile);
 
 			//remove from DIHelper
 			String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-			engineNames = engineNames.replace(";" + engineName, "");
+			engineNames = engineNames.replace(";" + this.engineId, "");
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
-			DIHelper.getInstance().removeLocalProperty(engineName);
+			DIHelper.getInstance().removeLocalProperty(this.engineId);
 
 		} catch (IOException e) {
 			e.printStackTrace();
