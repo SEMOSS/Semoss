@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
@@ -40,8 +41,8 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String appName = getApp();
-		if(appName == null) {
+		String appId = getApp();
+		if(appId == null) {
 			throw new IllegalArgumentException("Need to input the app name");
 		}
 		String rdbmsId = getRdbmsId();
@@ -52,9 +53,19 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		List<String> additionalPixels = getAdditionalPixels();
 
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(appName);
+		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find app = " + appName);
+			// we may have the alias
+			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
+			if(appIds.size() == 1) {
+				engine = Utility.getEngine(appIds.get(0));
+			} else if(appIds.size() > 1) {
+				throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
+			}
+			
+			if(engine == null) {
+				throw new IllegalArgumentException("Cannot find app = " + appId);
+			}
 		}
 		List<Insight> in = engine.getInsight(rdbmsId + "");
 		Insight newInsight = in.get(0);
@@ -88,10 +99,10 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		runner = newInsight.reRunOptimizedPixelInsight();
 		
 		// update the solr universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(appName, rdbmsId);
+		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
 
 		// track GA data
-		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appName, rdbmsId, newInsight.getInsightName());
+		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appId, rdbmsId, newInsight.getInsightName());
 		
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
