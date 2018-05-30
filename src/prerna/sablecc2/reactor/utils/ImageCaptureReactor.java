@@ -12,6 +12,8 @@ import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.SmssUtilities;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -62,15 +64,28 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String feUrl, String engineName, String id, String params) {
-		IEngine coreEngine = Utility.getEngine(engineName);
-		runImageCapture(feUrl, coreEngine, engineName, id, params);
+	public static void runImageCapture(String feUrl, String appId, String insightId, String params) {
+		IEngine coreEngine = Utility.getEngine(appId);
+		if(coreEngine == null) {
+			// we may have the alias
+			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
+			if(appIds.size() == 1) {
+				coreEngine = Utility.getEngine(appIds.get(0));
+			} else if(appIds.size() > 1) {
+				throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
+			}
+			
+			if(coreEngine == null) {
+				throw new IllegalArgumentException("Cannot find app = " + appId);
+			}
+		}
+		runImageCapture(feUrl, coreEngine, appId, insightId, params);
 	}
 	
-	public static void runImageCapture(String feUrl, IEngine coreEngine, String engineName, String id, String params) {
+	public static void runImageCapture(String feUrl, IEngine coreEngine, String appId, String insightId, String params) {
 		Insight insight = null;
 		try {
-			insight = coreEngine.getInsight(id).get(0);
+			insight = coreEngine.getInsight(insightId).get(0);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -138,11 +153,12 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	
 	private static String[] getCmdArray(String feUrl, Insight in, String params) {
 		String id = in.getRdbmsId();
-		String engine = in.getEngineId();
-
+		String engineId = in.getEngineId();
+		String engineName = in.getEngineName();
+		
 		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
 				DIR_SEPARATOR + "db" + 
-				DIR_SEPARATOR + engine + 
+				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
 				DIR_SEPARATOR + "version" +
 				DIR_SEPARATOR + id;
 		
@@ -168,20 +184,20 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		if(insecure.equals("")){
 			if(params != null) {
 				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000"};	
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000"};	
 
 			} else {
 				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
 			}
 		}
 		else {
 			if(params != null) {
 				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&parameters=" + params + "&hideMenu=true&panel=0&drop=1000"};				
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params + "&hideMenu=true&panel=0&drop=1000"};				
 			} else {
 				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engine + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
+						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
 			}
 		}
 		return cmd;
