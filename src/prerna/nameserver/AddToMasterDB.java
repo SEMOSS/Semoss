@@ -545,24 +545,24 @@ public class AddToMasterDB {
 	 * Adds row to metadata table
 	 * ex localConceptID, key, value
 	 * 
-	 * @param engineName
+	 * @param engineId
 	 * @param concept
 	 * @param key
 	 * @param value
 	 * @return
 	 */
-	public boolean addMetadata(String engineName, String concept, String key, String value) {
+	public boolean addMetadata(String engineId, String concept, String key, String value) {
 		boolean valid = false;
 		String tableName = Constants.CONCEPT_METADATA_TABLE;
 		String[] colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
 		String[] types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 
-		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineId, concept);
 		try {
 			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			getConnection(localMaster);
 			// check if key exists
-			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineName, concept, key);
+			String duplicateCheck = MasterDatabaseUtility.getMetadataValue(engineId, concept, key);
 			if (duplicateCheck == null) {
 				String insertString = RdbmsQueryBuilder.makeInsert(tableName, colNames, types, new Object[] { localConceptID, key, value });
 				int validInsert = conn.createStatement().executeUpdate(insertString + ";");
