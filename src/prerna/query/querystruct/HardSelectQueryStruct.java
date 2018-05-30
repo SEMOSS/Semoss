@@ -20,7 +20,7 @@ public class HardSelectQueryStruct extends SelectQueryStruct {
 	public SelectQueryStruct getNewBaseQueryStruct() {
 		HardSelectQueryStruct newQs = new HardSelectQueryStruct();
 		newQs.setQsType(getQsType());
-		newQs.setEngineName(getEngineName());
+		newQs.setEngineId(getEngineId());
 		return newQs;
 	}
 }

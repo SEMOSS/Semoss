@@ -31,7 +31,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 			appId = engineName;
 		}
 		
-		this.qs.setEngineName(appId);
+		this.qs.setEngineId(appId);
 		// need to account if this is a hard query struct
 		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
 				this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {

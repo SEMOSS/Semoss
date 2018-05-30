@@ -496,7 +496,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		SelectQueryStruct newQs = new SelectQueryStruct();
 		newQs.setQsType(this.qsType);
 		if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-			newQs.setEngineName(this.engineName);
+			newQs.setEngineId(this.engineId);
 			newQs.setEngine(this.engine);
 		} else if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			newQs.setFrame(this.frame);
