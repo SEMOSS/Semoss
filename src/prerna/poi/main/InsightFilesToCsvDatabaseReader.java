@@ -17,10 +17,10 @@ public class InsightFilesToCsvDatabaseReader extends AbstractEngineCreator {
 	 * Take the csv file and generate a engine backed by it
 	 * @return
 	 */
-	public IEngine generateEngineFromCsvFile(DATABASE_TYPE type, String appName, String fileLocation) {
+	public IEngine generateEngineFromCsvFile(DATABASE_TYPE type, String appName, String appID, String fileLocation) {
 		// initialize the engine
 		if(type == DATABASE_TYPE.RDBMS) {
-			openRdbmsEngineWithoutConnection(appName);
+			openRdbmsEngineWithoutConnection(appName, appID);
 		} else {
 			openREngineWithoutConnection(appName);
 		}
