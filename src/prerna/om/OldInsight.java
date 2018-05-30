@@ -900,6 +900,14 @@ public class OldInsight extends Insight {
 		}
 	}
 	
+	public String getEngineName() {
+		if(this.mainEngine != null) {
+			return this.mainEngine.getEngineName();
+		} else {
+			return null;
+		}
+	}
+	
 	public void setMainEngine(IEngine engine) {
 		this.mainEngine = engine;
 	} 
