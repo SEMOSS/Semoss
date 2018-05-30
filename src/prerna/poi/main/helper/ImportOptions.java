@@ -55,7 +55,8 @@ public class ImportOptions {
 		OBJECT_TYPE_MAP,		
 		ROW_KEY,				// What to put in a prop file to grab the current row number
 		CREATE_INDEXES,			// If true, RDBMSReader will create indexes when cleaning up tables
-		TINKER_DRIVER_TYPE		//.tg, neo4j, .xml, .json
+		TINKER_DRIVER_TYPE,		//.tg, neo4j, .xml, .json
+		ENGINE_ID
 	};
 	
 	/**
@@ -419,6 +420,13 @@ public class ImportOptions {
 	
 	public void setCleanString(boolean cleanString) {
 		thisMap.put(IMPORT_OPTIONS.CLEAN_STRING, cleanString);
+	}
+	
+	public void setEngineID(String engineID) {
+		this.thisMap.put(IMPORT_OPTIONS.ENGINE_ID, engineID);
+	}
+	public String getEngineID() {
+		return (String) this.thisMap.get(IMPORT_OPTIONS.ENGINE_ID);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////
