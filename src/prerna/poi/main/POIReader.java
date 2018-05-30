@@ -138,12 +138,13 @@ public class POIReader extends AbstractFileReader {
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
+		String appID = options.getEngineID();
 		boolean error = false;
 		logger.setLevel(Level.WARN);
 
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		try {
-			openRdfEngineWithoutConnection(engineName);
+			openRdfEngineWithoutConnection(engineName, appID);
 			for (String fileName : files) {
 				importFile(fileName);
 			}
@@ -179,8 +180,9 @@ public class POIReader extends AbstractFileReader {
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbType);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
+		String appID = options.getEngineID();
 		try {
-			openRdbmsEngineWithoutConnection(engineName);
+			openRdbmsEngineWithoutConnection(engineName, appID);
 			// if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 			for (String fileName : files) {
 				importFileRDBMS(fileName);

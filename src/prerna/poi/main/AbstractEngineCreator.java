@@ -57,39 +57,35 @@ public class AbstractEngineCreator {
 		}
 	}
 	
-	protected void openRdfEngineWithoutConnection(String dbName) {
-		createNewRdfEngine(dbName);
+	protected void openRdfEngineWithoutConnection(String appName, String appID) {
+		createNewRdfEngine(appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
-	// TODO need to remove this
-	protected void openRdbmsEngineWithoutConnection(String dbName) {
-		createNewRDBMSEngine(dbName, null);
-		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
-	}
-	protected void openRdbmsEngineWithoutConnection(String dbName, String engineID) {
-		createNewRDBMSEngine(dbName, engineID);
+	
+	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) {
+		createNewRDBMSEngine(appName, engineID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
-	protected void openTinkerEngineWithoutConnection(String dbName) {
-		createNewTinkerEngine(dbName);
+	protected void openTinkerEngineWithoutConnection(String appName, String appID) {
+		createNewTinkerEngine(appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	protected void openREngineWithoutConnection(String dbName) {
-		createNewREngine(dbName);
+	protected void openREngineWithoutConnection(String appName) {
+		createNewREngine(appName);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	private void createNewRDBMSEngine(String dbName, String engineID) {
+	private void createNewRDBMSEngine(String appName, String appID) {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineId(engineID);
-		engine.setEngineName(dbName);
+		engine.setEngineId(appID);
+		engine.setEngineName(appName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(dbName, engineID)));
-		prop.put(Constants.ENGINE, engineID);
-		prop.put(Constants.ENGINE_ALIAS, dbName);
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(appName, appID)));
+		prop.put(Constants.ENGINE, appID);
+		prop.put(Constants.ENGINE_ALIAS, appName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
@@ -99,13 +95,14 @@ public class AbstractEngineCreator {
 		engine.openDB(null);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName, engineID);
+		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 
-	private void createNewRdfEngine(String dbName) {
+	private void createNewRdfEngine(String appName, String appID) {
 		engine = new BigDataEngine();
-		engine.setEngineId(dbName);
+		engine.setEngineId(appID);
+		engine.setEngineName(appName);
 		engine.openDB(dbPropFile);
 		
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
@@ -118,17 +115,18 @@ public class AbstractEngineCreator {
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 	
-	private void createNewTinkerEngine(String dbName) {
+	private void createNewTinkerEngine(String appName, String appID) {
 		engine = new TinkerEngine();
-		engine.setEngineId(dbName);
+		engine.setEngineId(appID);
+		engine.setEngineName(appName);
 		engine.openDB(dbPropFile);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 	
