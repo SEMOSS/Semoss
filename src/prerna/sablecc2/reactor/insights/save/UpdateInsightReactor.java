@@ -9,7 +9,6 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +17,8 @@ import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -77,7 +78,17 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find engine = " + appId);
+			// we may have the alias
+			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(appId);
+			if(appIds.size() == 1) {
+				engine = Utility.getEngine(appIds.get(0));
+			} else if(appIds.size() > 1) {
+				throw new IllegalArgumentException("There are 2 databases with the name " + appId + ". Please pass in the correct id to know which source you want to load from");
+			}
+			
+			if(engine == null) {
+				throw new IllegalArgumentException("Cannot find app = " + appId);
+			}
 		}
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
@@ -89,7 +100,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info("2) Update insight to solr...");
-			editExistingInsightInSolr(appId, existingId, insightName, layout, "", new ArrayList<String>(), "");
+			editExistingInsightInSolr(engine.getEngineId(), engine.getEngineName(), existingId, insightName, layout, "", new ArrayList<String>(), "");
 			logger.info("2) Done...");
 		} else {
 			dropInsightInSolr(appId, existingId);
@@ -98,19 +109,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		//update recipe text file
 		logger.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
-		updateRecipeFile(appId, existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
+		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
 		logger.info("3) Done");
 		
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			storeImageFromPng(base64Image, existingId, appId);
+			storeImageFromPng(base64Image, existingId, engine.getEngineId(), engine.getEngineName());
 		}
-
+		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("name", insightName);
-		returnMap.put("core_engine_id", existingId);
-		returnMap.put("core_engine", appId);
-		returnMap.put("recipe", recipeToSave);
+		returnMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
+		returnMap.put(SolrIndexEngine.APP_INSIGHT_ID, existingId);
+		returnMap.put(SolrIndexEngine.APP_NAME, engine.getEngineName());
+		returnMap.put(SolrIndexEngine.APP_ID, engine.getEngineId());
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -127,8 +138,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param userId
 	 * @param imageURL
 	 */
-	private void editExistingInsightInSolr(String engineName, String existingRdbmsId, String insightName, String layout,
-			String description, List<String> tags, String userId) {
+	private void editExistingInsightInSolr(String appId, String appName, String existingRdbmsId, String insightName, String layout, String description, List<String> tags, String userId) {
 		Map<String, Object> solrModifyInsights = new HashMap<>();
 		DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 		Date date = new Date();
@@ -139,10 +149,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		solrModifyInsights.put(SolrIndexEngine.LAYOUT, layout);
 		solrModifyInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 		solrModifyInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-		solrModifyInsights.put(SolrIndexEngine.APP_ID, engineName);
+		solrModifyInsights.put(SolrIndexEngine.APP_ID, appId);
+		solrModifyInsights.put(SolrIndexEngine.APP_NAME, appName);
 
 		try {
-			SolrIndexEngine.getInstance().modifyInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, existingRdbmsId), solrModifyInsights);
+			SolrIndexEngine.getInstance().modifyInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(appId, existingRdbmsId), solrModifyInsights);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 				| IOException e1) {
 			e1.printStackTrace();
@@ -165,12 +176,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String engineName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave, boolean hidden) {
+	protected void updateRecipeFile(String appId, String appName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave, boolean hidden) {
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + engineName + DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
-		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), engineName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
+		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
 	}
 
 }
