@@ -298,7 +298,8 @@ public class AbstractEngineCreator {
 	}
 	
 	protected IEngine createNewInsightsDatabase(String dbName) {
-		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(dbName);
+		//TODO: need to push in ids for database loading
+		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(null, dbName);
 		UploadUtilities.addExploreInstanceInsight(dbName, insightEngine);
 		return insightEngine;
 	}
