@@ -1609,7 +1609,7 @@ public class MasterDatabaseUtility {
 		Statement stmt = null;
 
 		try {
-			String sql = "select e.id from engine e where e.enginename='" + alias + "'";
+			String sql = "select distinct e.id, e.enginename from engine e where e.enginename='" + alias + "'";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(sql);
 			while(rs.next()) {
