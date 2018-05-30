@@ -39,7 +39,7 @@ public class QueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			if(name.equals("qsType")) {
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			} else if(name.equals("engineName")) {
-				qs.setEngineName(in.nextString());
+				qs.setEngineId(in.nextString());
 			} else if(name.equals("isDistinct")) {
 				qs.setDistinct(in.nextBoolean());
 			} else if(name.equals("overrideImplicit")) {
@@ -147,8 +147,8 @@ public class QueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		// lets do the easy ones first
 		// qs type
 		out.name("qsType").value(value.getQsType().toString());
-		if(value.getEngineName() != null) {
-			out.name("engineName").value(value.getEngineName());
+		if(value.getEngineId() != null) {
+			out.name("engineName").value(value.getEngineId());
 		}
 		out.name("isDistinct").value(value.isDistinct());
 		out.name("overrideImplicit").value(value.isOverrideImplicit());

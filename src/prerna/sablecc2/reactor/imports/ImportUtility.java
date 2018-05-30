@@ -112,7 +112,7 @@ public class ImportUtility {
 		}
 		// engine with raw query
 		else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			parseRawQsToFlatTable(dataframe, qs, frameTableName, (IRawSelectWrapper) it, qs.getEngineName());
+			parseRawQsToFlatTable(dataframe, qs, frameTableName, (IRawSelectWrapper) it, qs.getEngineId());
 		}
 		// frame
 		else if(qsType == QUERY_STRUCT_TYPE.FRAME) {
@@ -151,7 +151,7 @@ public class ImportUtility {
 	 */
 	private static void parseEngineQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String engineName = qs.getEngineName();
+		String engineName = qs.getEngineId();
 		
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
@@ -444,7 +444,7 @@ public class ImportUtility {
 	 */
 	public static void parseQueryStructAsGraph(ITableDataFrame dataframe, SelectQueryStruct qs, Map<String, Set<String>> edgeHash) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String engineName = qs.getEngineName();
+		String engineName = qs.getEngineId();
 		
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
@@ -644,7 +644,7 @@ public class ImportUtility {
 	 */
 	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, SelectQueryStruct qs) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String engineName = qs.getEngineName();
+		String engineName = qs.getEngineId();
 		
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		Set<String> addedQsNames = new HashSet<String>();
@@ -791,7 +791,7 @@ public class ImportUtility {
 	private static Map<String, SemossDataType> getMetaDataFromEngineQs(SelectQueryStruct qs) {
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String engineName = qs.getEngineName();
+		String engineName = qs.getEngineId();
 		// loop through all the selectors
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
@@ -911,7 +911,7 @@ public class ImportUtility {
 	public static void parseQueryStructToFlatTableWithJoin(ITableDataFrame dataframe, SelectQueryStruct qs, String tableName, Iterator<IHeadersDataRow> it, List<Join> joins) {
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, qs.getEngineName());
+			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, qs.getEngineId());
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, "RAW_FRAME_QUERY");
 		} else {

@@ -37,7 +37,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	public void setConnection(String engineName) {
-		qs.setEngineName(engineName);
+		qs.setEngineId(engineName);
 	}
 
 	@Override
@@ -144,7 +144,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 	
 	public String getEngineName() {
-		return qs.getEngineName();
+		return qs.getEngineId();
 	}
 	
 	public SelectQueryStruct getQueryStruct() {
