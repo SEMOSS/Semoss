@@ -96,11 +96,11 @@
 		<copyField source="tags" dest="indexed_tags"/>
 	
 		<!-- engines that are used in the insight defintion -->
-		<field name="core_engine" type="string" indexed="true" stored="true" required="true" multiValued="false" />
-		<!-- the id of the insight within the given engine -->
-		<field name="core_engine_id" type="string" indexed="false" stored="true" required="true" multiValued="false" /> 
+		<field name="app_id" type="string" indexed="true" stored="true" required="true" multiValued="false" />
 		<!-- engines that are used in the insight defintion -->
-		<field name="engines" type="text_en_splitting" indexed="true" stored="true" required="true" multiValued="true" /> 
+		<field name="app_name" type="string" indexed="true" stored="true" required="true" multiValued="false" />
+		<!-- the id of the insight within the given engine -->
+		<field name="app_insight_id" type="string" indexed="false" stored="true" required="true" multiValued="false" /> 
 		
 		<!-- this will hold the description of the insight -->
 		<field name="description" type="string" indexed="true" stored="true" required="false" multiValued="false" />
