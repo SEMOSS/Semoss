@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -61,7 +62,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 
-		final String appName = getAppName();
+		final String appIdOrName = getAppName();
 		final boolean existing = getExisting();
 		final String filePath = getFilePath();
 		final File file = new File(filePath);
@@ -70,9 +71,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 
 		if(existing) {
-			addToExistingApp(appName, filePath, logger);
+			addToExistingApp(appIdOrName, filePath, logger);
 		} else {
-			generateNewApp(appName, filePath, logger);
+			generateNewApp(appIdOrName, filePath, logger);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
@@ -92,6 +93,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		 * 8) add to localmaster and solr
 		 */
 
+		String newAppId = UUID.randomUUID().toString();
 		Map<String, Map<String, String>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, String>> newHeaders = getNewHeaders();
 		Map<String, Map<String, String>> additionalDataTypeMap = getAdditionalTypes();
@@ -111,19 +113,19 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Starting app creation");
 
 		logger.info("1. Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppName);
+		UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info("1. Complete");
 
 		logger.info("Generate new app database");
 		logger.info("2. Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
 		logger.info("2. Complete");
 
 		logger.info("3. Create properties file for database...");
 		File tempSmss = null;
 		try {
-			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppName, owlFile, "H2_DB", null);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppName + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
+			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
@@ -132,7 +134,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("4. Create database store...");
 		IEngine engine = new RDBMSNativeEngine();
-		engine.setEngineId(newAppName);
+		engine.setEngineId(newAppId);
+		engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		engine.setProp(props);
@@ -157,16 +160,16 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("5. Complete");
 
 		logger.info("6. Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		logger.info("6. Complete");
 
 		logger.info("7. Process app metadata to allow for traversing across apps	");
 		try {
-			updateLocalMaster(newAppName);
-			updateSolr(newAppName);
+			updateLocalMaster(newAppId);
+			updateSolr(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -183,14 +186,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
-		updateDIHelper(newAppName, engine, smssFile);
+		updateDIHelper(newAppId, newAppName, engine, smssFile);
 	}
 
 	@Override
-	public void addToExistingApp(String appName, String filePath, Logger logger) {
-		IEngine engine = Utility.getEngine(appName);
+	public void addToExistingApp(String appId, String filePath, Logger logger) {
+		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Couldn't find the app " + appName + " to append data into");
+			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
 		}
 		if(!(engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
@@ -244,15 +247,13 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(appName);
-		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine.getInsightDatabase());
 		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			updateLocalMaster(appName);
-			updateSolr(appName);
+			updateLocalMaster(appId);
+			updateSolr(appId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
