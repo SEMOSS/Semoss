@@ -8,6 +8,7 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.cache.ICache;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -22,7 +23,7 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 	 * @return
 	 * @throws IOException 
 	 */
-	public IEngine processExistingSolrConnection(String dbName, String solrURL, String solrCoreName) throws IOException {
+	public IEngine processExistingSolrConnection(String appName, String appID, String solrURL, String solrCoreName) throws IOException {
 		/*
 		 * Processing steps
 		 * 1) create the engine folder (using db name)
@@ -37,7 +38,7 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		
 		// 1) create the engine folder
 		String baseDirectory = DIHelper.getInstance().getProperty("BaseFolder");
-		String engineDirectoryName = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + dbName;
+		String engineDirectoryName = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(appName, appID);
 		File engineDirectory = new File(engineDirectoryName);
 		if(engineDirectory.exists()) {
 			throw new IOException("Engine directory already exists!  Need admin privelages to remove the folder before uploading an engine with the specified name.");
@@ -46,38 +47,39 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		
 		// 2) create a new solr engine
 		this.engine = new SolrEngine(solrURL, solrCoreName);
-		this.engine.setEngineId(dbName);
+		this.engine.setEngineId(appID);
+		this.engine.setEngineName(appName);
 		
 		// 3) create the owler
-		this.owlFile = engineDirectoryName + System.getProperty("file.separator") + dbName + "_OWL.OWL";
+		this.owlFile = engineDirectoryName + System.getProperty("file.separator") + appName + "_OWL.OWL";
 		this.owler = SolrEngine.getSolrEngineOWLER(owlFile, solrURL, solrCoreName);
 		createBaseRelations();
 		
 		// 4) create the base insights 
 		// TODO: i have this in future code.. right now, we need to make a question file
-		this.engine.setInsightDatabase(createNewInsightsDatabase(dbName, this.engine.getEngineId()));
+		this.engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		
 		//) 5-8
-		String tempSmssLocation = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + dbName + ".temp"; 
-		String smssLocation = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + dbName + ".smss"; 
+		String tempSmssLocation = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(appName, appID) + ".temp"; 
+		String smssLocation = baseDirectory + System.getProperty("file.separator") + "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(appName, appID) + ".smss"; 
 
 		File tempFile = null;
 		File smssFile = null;
 		
 		try {
-			tempFile = wirteSmssFile(dbName, tempSmssLocation, solrURL, solrCoreName);
+			tempFile = writeSmssFile(appName, appID, tempSmssLocation, solrURL, solrCoreName);
 			
-			DIHelper.getInstance().getCoreProp().setProperty(dbName + "_" + Constants.STORE, tempSmssLocation);
-			Utility.synchronizeEngineMetadata(dbName); // replacing this for engine
+			DIHelper.getInstance().getCoreProp().setProperty(appID + "_" + Constants.STORE, tempSmssLocation);
+			Utility.synchronizeEngineMetadata(appID); // replacing this for engine
 			// only after all of this is good, should we add it to DIHelper
-			DIHelper.getInstance().setLocalProperty(dbName, this.engine);
+			DIHelper.getInstance().setLocalProperty(appID, this.engine);
 			String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-			engineNames = engineNames + ";" + dbName;
+			engineNames = engineNames + ";" + appID;
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 			
 			// but we need to change to the true smss
-			smssFile = wirteSmssFile(dbName, smssLocation, solrURL, solrCoreName);
-			DIHelper.getInstance().getCoreProp().setProperty(dbName + "_" + Constants.STORE, smssLocation);
+			smssFile = writeSmssFile(appName, appID, smssLocation, solrURL, solrCoreName);
+			DIHelper.getInstance().getCoreProp().setProperty(appID + "_" + Constants.STORE, smssLocation);
 			
 			// set the correct prop file
 			// set the owl
@@ -97,7 +99,7 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		return this.engine;
 	}
 	
-	private File wirteSmssFile(String dbName, String smssLocation, String solrURL, String solrCoreName) throws IOException {
+	private File writeSmssFile(String dbName, String appID, String smssLocation, String solrURL, String solrCoreName) throws IOException {
 		// changing to params
 		
 		//String owlPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_OWL.OWL";
@@ -111,7 +113,8 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		try {
 			pw = new FileWriter(f);
 			pw.write("Base Properties\n");
-			pw.write(Constants.ENGINE + "\t" + dbName + "\n");
+			pw.write(Constants.ENGINE + "\t" + appID + "\n");
+			pw.write(Constants.ENGINE_ALIAS + "\t" + dbName + "\n");
 			pw.write(Constants.ENGINE_TYPE + "\tprerna.engine.impl.solr.SolrEngine\n");
 			pw.write(Constants.OWL + "\t" + owlPropValue + "\n");
 			
