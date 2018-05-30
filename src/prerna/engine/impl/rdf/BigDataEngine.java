@@ -448,10 +448,8 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 */
 	public void deleteDB() {
 		super.deleteDB();
-
-		// try deleting the jnl which is the one item the generic delete may not clean up
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String jnlLoc = baseFolder + "/" + this.getProperty("com.bigdata.journal.AbstractJournal.file");
+		// delete JNL if above doesn't
+		String jnlLoc = SmssUtilities.getSysTapJnl(prop).getAbsolutePath();
 		if(jnlLoc != null){
 			System.out.println("Deleting jnl file " + jnlLoc);
 			File jnlFile = new File(jnlLoc);
