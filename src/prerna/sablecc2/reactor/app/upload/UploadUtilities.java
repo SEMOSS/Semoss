@@ -468,7 +468,7 @@ public class UploadUtilities {
 		// write insights rdbms
 		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
 		// write owl
-		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(appName, SmssUtilities.ENGINE_REPLACEMENT);
+		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(appName, appId), SmssUtilities.ENGINE_REPLACEMENT);
 		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
 	}
 	
