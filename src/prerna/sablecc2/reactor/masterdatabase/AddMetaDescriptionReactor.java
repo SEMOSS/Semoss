@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
 import prerna.nameserver.AddToMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,11 +24,12 @@ public class AddMetaDescriptionReactor extends AbstractMetaDBReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		String engine = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
 		String description = getDescription();
 		AddToMasterDB master = new AddToMasterDB();
-		boolean success = master.addMetadata(engine, concept, Constants.DESCRIPTION, description);
+		boolean success = master.addMetadata(engineId, concept, Constants.DESCRIPTION, description);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 

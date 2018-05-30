@@ -28,12 +28,13 @@ public class AddMetaTagReactor extends AbstractMetaDBReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engine = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
 		List<String> values = getValues();
 		String newTagList = "";
 		// check if tags exist
-		String oldTagList = MasterDatabaseUtility.getMetadataValue(engine, concept, Constants.TAG);
+		String oldTagList = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.TAG);
 		if (oldTagList != null) {
 			String[] oldTags = oldTagList.split(VALUE_DELIMITER);
 			for (String tag : values) {
@@ -51,7 +52,7 @@ public class AddMetaTagReactor extends AbstractMetaDBReactor {
 		}
 		newTagList = oldTagList + newTagList;
 		AddToMasterDB master = new AddToMasterDB();
-		boolean success = master.addMetadata(engine, concept, Constants.TAG, newTagList);
+		boolean success = master.addMetadata(engineId, concept, Constants.TAG, newTagList);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 

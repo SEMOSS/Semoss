@@ -23,9 +23,10 @@ public class GetMetaTagReactor extends AbstractMetaDBReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String engineName = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
-		String tagList = MasterDatabaseUtility.getMetadataValue(engineName, concept, Constants.TAG);
+		String tagList = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.TAG);
 		ArrayList<String> list = new ArrayList<String>();
 		if (tagList != null) {
 			for (String tag : tagList.split(VALUE_DELIMITER)) {

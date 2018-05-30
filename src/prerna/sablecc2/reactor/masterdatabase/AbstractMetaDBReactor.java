@@ -22,7 +22,7 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 	 * 
 	 * @return
 	 */
-	public String getEngine() {
+	public String getEngineId() {
 		GenRowStruct engineGRS = this.store.getNoun(ReactorKeysEnum.DATABASE.getKey());
 		if (engineGRS != null) {
 			NounMetadata noun = engineGRS.getNoun(0);

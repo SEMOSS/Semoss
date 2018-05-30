@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 
 import prerna.nameserver.AddToMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -28,7 +29,8 @@ public class AddMetaLinkReactor extends  AbstractMetaDBReactor  {
 	
 	@Override
 	public NounMetadata execute() {
-		String engine = getEngine();
+		String engineId = getEngineId();
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String concept = getConcept();
 		List<String> values = getValues();
 		String hyperLinkList = "";
@@ -36,7 +38,7 @@ public class AddMetaLinkReactor extends  AbstractMetaDBReactor  {
 			hyperLinkList += link + VALUE_DELIMITER;
 		}
 		AddToMasterDB master = new AddToMasterDB();
-		boolean success = master.addMetadata(engine, concept, Constants.LINK, hyperLinkList);
+		boolean success = master.addMetadata(engineId, concept, Constants.LINK, hyperLinkList);
 		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
 	}
 
