@@ -100,6 +100,7 @@ public class MyAppsReactor extends AbstractReactor {
 			SolrDocumentList results = response.getResults();
 			for(SolrDocument doc : results) {
 				Map<String, Object> appMap = new HashMap<String, Object>();
+				appMap.put("app_id", doc.get("id"));
 				appMap.put("app_name", doc.get("app_name"));
 				appMap.put("app_description", doc.get("app_description"));
 				appMap.put("app_tags", doc.get("app_tags"));
@@ -117,7 +118,7 @@ public class MyAppsReactor extends AbstractReactor {
 			String searchString = "*:*";
 			int groupOffsetInt = 0;
 			int groupLimitInt = 25;
-			String groupByField = SolrIndexEngine.CORE_ENGINE;
+			String groupByField = SolrIndexEngine.APP_ID;
 			String groupSort = SolrIndexEngine.VIEW_COUNT;
 			
 			Map<String, Object> groupFieldMap = SolrIndexEngine.getInstance().executeQueryGroupBy(
@@ -144,7 +145,7 @@ public class MyAppsReactor extends AbstractReactor {
 				SolrDocumentList list = (SolrDocumentList) imageMap.get(appName);
 				for (int i = 0; i < list.size(); i++) {
 					SolrDocument doc = list.get(i);
-					insights.add((String) doc.get(SolrIndexEngine.CORE_ENGINE_ID));
+					insights.add((String) doc.get(SolrIndexEngine.APP_INSIGHT_ID));
 					names.add((String) doc.get(SolrIndexEngine.STORAGE_NAME));
 				}
 				

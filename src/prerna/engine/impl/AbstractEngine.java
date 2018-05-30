@@ -75,8 +75,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.rdf.util.AbstractQueryParser;
-import prerna.rdf.util.SPARQLQueryParser;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
@@ -92,34 +90,31 @@ import prerna.util.Utility;
  */
 public abstract class AbstractEngine implements IEngine {
 
-	//THIS IS IN CASE YOU NEED TO RECREATE YOUR INSIGHTS FROM THE XML/PROP QUESTIONS FILE
-	//USE THIS INSTEAD OF GOING THROUGH EACH DB FOLDER TO DELETE THE INSIGHT_DATABASE AND SMSS RDMBS_INSIGHT LINE
-	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
-//	private static final boolean RECREATE_INSIGHTS = false;
+	private static final Logger lOGGER = LogManager.getLogger(AbstractEngine.class.getName());
+	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
+	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
+	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
+	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
+	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
-	//THIS IS IN CASE YOU ARE MANUALLY MANIPULATING THE DB FOLDER AND WANT TO RE-ADD
-	//INSIGHTS INTO THE SOLR INSTANCE ON YOUR LOCAL MACHINE
-	//PLEASE REMEMBER TO TURN THIS TO FALSE AFTERWARDS!
-	public static final boolean RECREATE_SOLR = false;
-	
-	public String baseFolder = null;
-	
-	private static final Logger logger = LogManager.getLogger(AbstractEngine.class.getName());
-
-	protected String engineName = null;
-	private String propFile = null;
-
+	protected String baseFolder = null;
+	protected String propFile = null;
 	protected Properties prop = null;
-	public Properties generalEngineProp = null;
-	private Properties ontoProp = null;
+	
+	protected String engineId = null;
+	protected String engineName = null;
+	
+	protected Properties generalEngineProp = null;
+	protected Properties ontoProp = null;
 
 	private MetaHelper owlHelper = null;
+	protected RDFFileSesameEngine baseDataEngine;
 	
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
-
 	
-	protected RDFFileSesameEngine baseDataEngine;
 	protected RDBMSNativeEngine insightRDBMS;
 	protected String insightDriver = "org.h2.Driver";
 	protected String insightRDBMSType = "H2_DB";
@@ -135,19 +130,8 @@ public abstract class AbstractEngine implements IEngine {
 
 	private Hashtable<String, String> baseDataHash;
 
-	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private String baseUri;
-
-	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
-	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
-
-	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
-
-	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
-	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
-
-	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
-
+	
 	/**
 	 * Opens a database as defined by its properties file. What is included in
 	 * the properties file is dependent on the type of engine that is being
@@ -162,43 +146,36 @@ public abstract class AbstractEngine implements IEngine {
 	public void openDB(String propFile) {
 		try {
 			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			Hashtable <String, String> paramHash = new Hashtable <String, String>();
-			paramHash.put("BaseFolder", baseFolder);
-			if(getEngineName() != null)
-				paramHash.put("engine", getEngineName());
-
 			if(propFile != null) {
 				this.propFile = propFile;
-				logger.info("Opening DB - " + engineName);
-				prop = Utility.loadProperties(propFile);
+				lOGGER.info("Opening DB - " + engineName);
+				this.prop = Utility.loadProperties(propFile);
 			}
 			if(prop != null) {
+				// grab the main properties
+				this.engineId = prop.getProperty(Constants.ENGINE);
+				this.engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+	
 				// load the rdbms insights db
-				insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
+				this.insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
+				this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.prop).getAbsolutePath();
 				
-				insightDatabaseLoc = Utility.fillParam2(insightDatabaseLoc, paramHash);
-				
-//				// creating logic to delete file if not there
-//				if(insightDatabaseLoc != null && RECREATE_INSIGHTS) {
-//					String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + insightDatabaseLoc + ".mv.db";
-//					FileUtils.forceDelete(new File(location));
-//				} 
 				if(insightDatabaseLoc != null) {
-					logger.info("Loading insight rdbms database...");
-					insightRDBMS = new RDBMSNativeEngine();
+					lOGGER.info("Loading insight rdbms database...");
+					this.insightRDBMS = new RDBMSNativeEngine();
 					Properties prop = new Properties();
 					prop.put(Constants.DRIVER, insightDriver);
 					prop.put(Constants.RDBMS_TYPE, insightRDBMSType);
-					String connURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
+					String connURL = connectionURLStart + insightDatabaseLoc.replace(".mv.db", "") + connectionURLEnd;
 					prop.put(Constants.CONNECTION_URL, connURL);
 					prop.put(Constants.USERNAME, insightUsername);
-					insightRDBMS.setProperties(prop);
-					insightRDBMS.openDB(null);
+					this.insightRDBMS.setProperties(prop);
+					this.insightRDBMS.openDB(null);
 					
 					boolean tableExists = false;
 					ResultSet rs = null;
 					try {
-						rs = insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
+						rs = this.insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
 						if (rs.next()) {
 							  tableExists = true;
 						}
@@ -216,7 +193,7 @@ public abstract class AbstractEngine implements IEngine {
 					
 					if(tableExists) {
 						String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
-						IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
+						IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.insightRDBMS, q);
 						while(wrap.hasNext()) {
 							String val = wrap.next().getValues()[0] + "";
 							if(!val.equals("VARCHAR")) {
@@ -236,8 +213,8 @@ public abstract class AbstractEngine implements IEngine {
 						}
 						wrap.cleanUp();
 					}
-					
 				}
+				
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert
@@ -251,57 +228,49 @@ public abstract class AbstractEngine implements IEngine {
 					Utility.changePropMapFileValue(propFile, Constants.PIXEL_UPDATE, "true");
 				}
 				// update explore an instance query!!!
-				updateExploreInstanceQuery(insightRDBMS);
+				updateExploreInstanceQuery(this.insightRDBMS);
 				
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
-				
-				if (owlFile != null) {
+				if(owlFile != null) {
 					// need a check here to say if I am asking this to be remade or keep what it is
-					if(owlFile.equalsIgnoreCase("REMAKE"))
-					{
+					if(owlFile.equalsIgnoreCase("REMAKE")) {
 						// the process of remake will start here
 						// see if the usefile is there
-						if(prop.containsKey(USE_FILE))
-						{
-							String csvFile = prop.getProperty(DATA_FILE);	
+						if(this.prop.containsKey(USE_FILE)) {
+							String csvFile = SmssUtilities.getDataFile(this.prop).getAbsolutePath();
 							owlFile = csvFile.replace("data/", "") + ".OWL";
 							//Map <String, String> paramHash = new Hashtable<String, String>();
-							
-							paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-							paramHash.put("ENGINE", getEngineName());
-							csvFile = Utility.fillParam2(csvFile, paramHash);
-
 							
 							String fileName = Utility.getOriginalFileName(csvFile);
 							// make the table name based on the fileName
 							String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-							owlFile = baseFolder + "/db/" + getEngineName() + "/" + cleanTableName + ".OWL";
+							owlFile = baseFolder + "/db/" + getEngineId() + "/" + cleanTableName + ".OWL";
 							
 							CSVToOwlMaker maker = new CSVToOwlMaker();
 							maker.makeOwl(csvFile, owlFile, getEngineType());
-							owlFile = "/db/" + getEngineName() + "/" + cleanTableName + ".OWL";
+							owlFile = "/db/" + SmssUtilities.getUniqueName(this.prop) + "/" + cleanTableName + ".OWL";
 							
-							if(prop.containsKey("REPLACE_OWL"))
+							if(this.prop.containsKey("REPLACE_OWL"))
 								Utility.updateSMSSFile(propFile, Constants.OWL, owlFile);
-						}
-						else
+						} else {
 							owlFile = null;
+						}
 					}
-					if(owlFile != null)
-					{					
-						owlFile = Utility.fillParam2(owlFile, paramHash);
-						logger.info("Loading OWL: " + owlFile);
-						setOWL(baseFolder + "/" + owlFile);
+					// set the owl file
+					if(owlFile != null) {
+						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
+						lOGGER.info("Loading OWL: " + owlFile);
+						setOWL(owlFile);
 					}
 				}
 				// load properties object for db
-				String genEngPropFile = prop.getProperty(Constants.ENGINE_PROPERTIES);
-				if (genEngPropFile != null) {
-					generalEngineProp = Utility.loadProperties(baseFolder + "/" + genEngPropFile);
+				File engineProps = SmssUtilities.getEngineProperties(this.prop);
+				if (engineProps != null) {
+					this.generalEngineProp = Utility.loadProperties(engineProps.getAbsolutePath());
 				}
 			}
-			this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
+			this.owlHelper = new MetaHelper(this.baseDataEngine, getEngineType(), this.engineId);
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} 
@@ -310,11 +279,11 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public void closeDB() {
 		if(this.baseDataEngine != null) {
-			logger.debug("closing its owl engine ");
+			lOGGER.debug("closing its owl engine ");
 			this.baseDataEngine.closeDB();
 		}
 		if(this.insightRDBMS != null) {
-			logger.debug("closing its insight engine ");
+			lOGGER.debug("closing its insight engine ");
 			this.insightRDBMS.closeDB();
 		}
 	}
@@ -323,7 +292,7 @@ public abstract class AbstractEngine implements IEngine {
 	public String getProperty(String key) {
 		String retProp = null;
 
-		logger.debug("Property is " + key + "]");
+		lOGGER.debug("Property is " + key + "]");
 		if (generalEngineProp != null && generalEngineProp.containsKey(key))
 			retProp = generalEngineProp.getProperty(key);
 		if (retProp == null && ontoProp != null && ontoProp.containsKey(key))
@@ -347,22 +316,21 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	/**
-	 * Sets the name of the engine. This may be a lot of times the same as the
-	 * Repository Name
-	 * @param engineName	name of the engine that this is being set to
+	 * Sets the unique id for the engine 
+	 * @param engineId - id to set the engine 
 	 */
 	@Override
-	public void setEngineName(String engineName) {
-		this.engineName = engineName;
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
 	}
 
 	/**
-	 * Gets the engine name for this engine
-	 * @return Name of the engine it is being set to
+	 * Gets the engine name for this engine	
+	 * @return Name of the engine
 	 */
 	@Override
-	public String getEngineName() {
-		return engineName;
+	public String getEngineId() {
+		return this.engineId;
 	}
 
 	/**
@@ -371,7 +339,7 @@ public abstract class AbstractEngine implements IEngine {
 	public void saveConfiguration() {
 		FileOutputStream fileOut = null;
 		try {
-			logger.debug("Writing to file " + propFile);
+			lOGGER.debug("Writing to file " + propFile);
 			fileOut = new FileOutputStream(propFile);
 			prop.store(fileOut, null);
 		} catch (IOException e) {
@@ -404,8 +372,8 @@ public abstract class AbstractEngine implements IEngine {
 		this.baseDataEngine = eng;
 		
 		if(this.baseDataEngine != null) {
-			if(this.baseDataEngine.getEngineName() == null) {
-				this.baseDataEngine.setEngineName(this.engineName + "_OWL");
+			if(this.baseDataEngine.getEngineId() == null) {
+				this.baseDataEngine.setEngineId(this.engineId + "_OWL");
 			}
 		}
 	}
@@ -425,7 +393,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @param h		Hashtable - The base data hash that this is being set to
 	 */
 	public void setBaseHash(Hashtable h) {
-		logger.debug(this.engineName + " Set the Base Data Hash ");
+		lOGGER.debug(this.engineId + " Set the Base Data Hash ");
 		this.baseDataHash = h;
 	}
 
@@ -440,7 +408,7 @@ public abstract class AbstractEngine implements IEngine {
 	public void setOWL(String owl) {
 		this.owl = owl;
 		createBaseRelationEngine();
-		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineName);
+		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineId);
 	}
 
 	public void setProperties(Properties prop) {
@@ -462,7 +430,7 @@ public abstract class AbstractEngine implements IEngine {
 		// + "_" + Constants.OWL);
 		if (owl == null) {
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			owl = baseFolder + "/db/" + getEngineName() + "/" + getEngineName()	+ "_OWL.OWL";
+			owl = baseFolder + "/db/" + getEngineId() + "/" + getEngineId()	+ "_OWL.OWL";
 		}
 		baseRelEngine.setFileName(owl);
 		baseRelEngine.openDB(null);
@@ -533,7 +501,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * Commits the base data engine
 	 */
 	public void commitOWL() {
-		logger.debug("Committing base data engine of " + this.engineName);
+		lOGGER.debug("Committing base data engine of " + this.engineId);
 		this.baseDataEngine.commit();
 	}
 
@@ -612,8 +580,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * Runs a select query on the base data engine of this engine
 	 */
 	public Object execOntoSelectQuery(String query) {
-		logger.debug("Running select query on base data engine of " + this.engineName);
-		logger.debug("Query is " + query);
+		lOGGER.debug("Running select query on base data engine of " + this.engineId);
+		lOGGER.debug("Query is " + query);
 		return this.baseDataEngine.execQuery(query);
 	}
 
@@ -665,21 +633,21 @@ public abstract class AbstractEngine implements IEngine {
 			method = this.getClass().getMethod(methodName, args.getClass());
 			ret = method.invoke(this, params);
 		} catch (SecurityException e) {
-			logger.error(e);
+			lOGGER.error(e);
 		} catch (NoSuchMethodException e) {
-			logger.error(e);
+			lOGGER.error(e);
 		} catch (IllegalArgumentException e) {
-			logger.error(e);
+			lOGGER.error(e);
 		} catch (IllegalAccessException e) {
-			logger.error(e);
+			lOGGER.error(e);
 		} catch (InvocationTargetException e) {
-			logger.error(e);
+			lOGGER.error(e);
 		}
 		return ret;
 	}
 
 	public void deleteDB() {
-		logger.debug("closing " + this.engineName);
+		lOGGER.debug("closing " + this.engineName);
 		this.closeDB();
 		Map<String, String> engineParam = new HashMap<String, String>();
 		engineParam.put("engine", this.engineName);
@@ -690,10 +658,10 @@ public abstract class AbstractEngine implements IEngine {
 		File engineFolder = new File(insightFile.getParent());
 		String folderName = engineFolder.getName();
 		try {
-			logger.debug("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder.
+			lOGGER.debug("checking folder " + folderName + " against db " + this.engineName);//this check is to ensure we are deleting the right folder.
 			if(folderName.equals(this.engineName))
 			{
-				logger.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
+				lOGGER.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
 				try {
 					FileUtils.deleteDirectory(engineFolder);
 				} catch (IOException e) {
@@ -701,19 +669,19 @@ public abstract class AbstractEngine implements IEngine {
 				}
 			}
 			else{
-				logger.error("Cannot delete database folder as folder name does not line up with engine name");
+				lOGGER.error("Cannot delete database folder as folder name does not line up with engine name");
 				//try deleting each file individually
-				logger.debug("Deleting insight file " + insightLoc);
+				lOGGER.debug("Deleting insight file " + insightLoc);
 				insightFile.delete();
 
 				String owlLoc = baseFolder + "/" + this.getProperty(Constants.OWL);
 				if(owlLoc != null){
-					logger.debug("Deleting owl file " + owlLoc);
+					lOGGER.debug("Deleting owl file " + owlLoc);
 					File owlFile = new File(owlLoc);
 					owlFile.delete();
 				}
 			}
-			logger.debug("Deleting smss " + this.propFile);
+			lOGGER.debug("Deleting smss " + this.propFile);
 			File smssFile = new File(this.propFile);
 			FileUtils.forceDelete(smssFile);
 
@@ -728,10 +696,6 @@ public abstract class AbstractEngine implements IEngine {
 		}
 	}
 	
-	public AbstractQueryParser getQueryParser() {
-		return new SPARQLQueryParser();
-	}
-
 	@Override
 	public IEngine getInsightDatabase() {
 		return this.insightRDBMS;
@@ -802,7 +766,7 @@ public abstract class AbstractEngine implements IEngine {
 		
 		if(!idString.isEmpty()) {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
-			logger.info("Running insights query " + query);
+			lOGGER.info("Running insights query " + query);
 			
 			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, query);
 			while (wrap.hasNext()) {
@@ -844,7 +808,8 @@ public abstract class AbstractEngine implements IEngine {
 					((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRDBMS, rdbmsId));
 					in.setIsOldInsight(true);
 				} else {
-					in = new Insight(this.engineName, rdbmsId);
+					in = new Insight(this.engineId, rdbmsId);
+					in.setEngineName(this.engineName);
 					in.setInsightName(insightName);
 					List<String> pixelList = new Vector<String>();
 					for(int i = 0; i < pixel.length; i++) {
@@ -891,11 +856,11 @@ public abstract class AbstractEngine implements IEngine {
 			if(wrap.hasNext()) {
 				ISelectStatement ss = wrap.next();
 				baseUri = ss.getRawVar("entity") + "";
-				logger.info("Got base uri from owl " + baseUri + " for engine " + getEngineName());
+				lOGGER.info("Got base uri from owl " + baseUri + " for engine " + getEngineId());
 			}
 			if(baseUri == null){
 				baseUri = Constants.CONCEPT_URI;
-				logger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineName());
+				lOGGER.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine " + getEngineId());
 				
 			}
 		}
@@ -1120,8 +1085,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	// load the prop file
-	public void setProp(Properties prop)
-	{
+	public void setProp(Properties prop) {
 		this.prop = prop;
 	}
 	
@@ -1138,7 +1102,7 @@ public abstract class AbstractEngine implements IEngine {
 		try {
 			converter.modifyInsightsDatabase();
 		} catch (IOException e) {
-			logger.error(e.getMessage());
+			lOGGER.error(e.getMessage());
 		}
 	}
 	
@@ -1148,7 +1112,7 @@ public abstract class AbstractEngine implements IEngine {
 			// if solr doesn't have this engine
 			// do not add anything yet
 			// let it get added later
-			if(!SolrIndexEngine.getInstance().containsEngine(this.engineName)) {
+			if(!SolrIndexEngine.getInstance().containsEngine(this.engineId)) {
 				return;
 			}
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e3) {
@@ -1233,6 +1197,9 @@ public abstract class AbstractEngine implements IEngine {
 					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
 					Date date = new Date();
 					String currDate = dateFormat.format(date);
+					solrInsights.put(SolrIndexEngine.APP_ID, this.engineId);
+					solrInsights.put(SolrIndexEngine.APP_NAME, this.engineName);
+					solrInsights.put(SolrIndexEngine.APP_INSIGHT_ID, insightIdToSave);
 					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an instance of a selected node type");
 					solrInsights.put(SolrIndexEngine.TAGS, "Explore");
 					solrInsights.put(SolrIndexEngine.LAYOUT, "Graph");
@@ -1240,16 +1207,11 @@ public abstract class AbstractEngine implements IEngine {
 					solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 					solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
 					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
-					solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, insightIdToSave);
 					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
-		
-					// TODO: figure out which engines are used within this insight
-					solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
-					solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
-		
+
 					try {
-						SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
-						SolrUtility.addAppToSolr(engineName);
+						SolrIndexEngine.getInstance().addInsight(this.engineId + "_" + insightIdToSave, solrInsights);
+						SolrUtility.addAppToSolr(this.engineId);
 					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 							| IOException e1) {
 						e1.printStackTrace();

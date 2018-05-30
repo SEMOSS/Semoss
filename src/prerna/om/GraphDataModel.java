@@ -1213,7 +1213,7 @@ public class GraphDataModel implements IDataMaker {
 		// this links the hierarchy that tool needs to the metamodel being queried
 		// eventually this could be a SPIN
 		// need to get the engine name and jam it - Done Baby
-		if(!loadedOWLS.containsKey(engine.getEngineName()) && engine instanceof AbstractEngine) {
+		if(!loadedOWLS.containsKey(engine.getEngineId()) && engine instanceof AbstractEngine) {
 			if(this.baseRelEngine == null){
 				this.baseRelEngine = ((AbstractEngine)engine).getBaseDataEngine();
 			} else {
@@ -1223,7 +1223,7 @@ public class GraphDataModel implements IDataMaker {
 			this.baseFilterHash.putAll(((AbstractEngine)engine).getBaseHash());
 
 			RDFEngineHelper.addAllData(baseRelEngine, rc);
-			loadedOWLS.put(engine.getEngineName(), engine.getEngineName());
+			loadedOWLS.put(engine.getEngineId(), engine.getEngineId());
 		}
 		logger.info("BaseQuery");
 	}

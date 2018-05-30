@@ -78,7 +78,7 @@ public class AbstractEngineCreator {
 	
 	private void createNewRDBMSEngine(String dbName) {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineName(dbName);
+		engine.setEngineId(dbName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
@@ -98,7 +98,7 @@ public class AbstractEngineCreator {
 
 	private void createNewRdfEngine(String dbName) {
 		engine = new BigDataEngine();
-		engine.setEngineName(dbName);
+		engine.setEngineId(dbName);
 		engine.openDB(dbPropFile);
 		
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
@@ -117,7 +117,7 @@ public class AbstractEngineCreator {
 	
 	private void createNewTinkerEngine(String dbName) {
 		engine = new TinkerEngine();
-		engine.setEngineName(dbName);
+		engine.setEngineId(dbName);
 		engine.openDB(dbPropFile);
 		
 		// create the insight database
@@ -127,7 +127,7 @@ public class AbstractEngineCreator {
 	
 	private void createNewREngine(String dbName) {
 		engine = new RNativeEngine();
-		engine.setEngineName(dbName);
+		engine.setEngineId(dbName);
 		engine.openDB(dbPropFile);
 		
 		// create the insight database
@@ -149,7 +149,7 @@ public class AbstractEngineCreator {
 	//added for connect to external RDBMS workflow
 	private void connectToExternalRDBMSEngine(String schema, String dbName) {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineName(dbName);
+		engine.setEngineId(dbName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
@@ -175,7 +175,7 @@ public class AbstractEngineCreator {
 	//added for connect to external Impala workflow
 	private void connectToExternalImpalaEngine(String schema, String dbName) {
 		engine = new ImpalaEngine();
-		engine.setEngineName(dbName);
+		engine.setEngineId(dbName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
 		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));

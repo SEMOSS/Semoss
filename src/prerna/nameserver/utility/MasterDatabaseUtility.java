@@ -184,7 +184,7 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get a list of connections for a given logical name
 	 * @param engineFilter 
-	 * @param engineName
+	 * @param engineId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames, String engineFilter) {
@@ -667,7 +667,7 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get the properties for a given concept across all the databases
 	 * @param conceptName
-	 * @param engineName		optional filter for the properties
+	 * @param engineId		optional filter for the properties
 	 * @return
 	 */
 	public static Map<String, HashMap> getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
@@ -746,7 +746,7 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get the properties for a given concept across all the databases
 	 * @param conceptName
-	 * @param engineName		optional filter for the properties
+	 * @param engineId		optional filter for the properties
 	 * @return
 	 */
 	public static Map<String, Object[]> getConceptPropertiesRDBMS(List<String> conceptLogicalNames, String engineFilter) {
@@ -1043,11 +1043,11 @@ public class MasterDatabaseUtility {
 		return returnHash;
 	}
 
-	public static List<String> getAllEnginesRDBMS() {
-		/*
-		 * Grab the local master engine and query for the concepts
-		 * We do not want to load the engine until the user actually wants to use it
-		 */
+	/**
+	 * Get the list of unique engine ids
+	 * @return
+	 */
+	public static List<String> getAllEngineIds() {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
@@ -1055,10 +1055,8 @@ public class MasterDatabaseUtility {
 		
 		List <String> retList = new ArrayList<String>();
 		if(conn != null) {
-			// select distinct c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine and e.enginename = 'actor';
-			// I am getting the logical and the physical
 			try {
-				String conceptQuery = "select distinct e.enginename from engine e order by enginename"; //, c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine";
+				String conceptQuery = "select distinct e.id from engine e"; 
 				stmt = conn.createStatement();
 				rs = stmt.executeQuery(conceptQuery);
 				while(rs.next()) {
@@ -1595,6 +1593,38 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
+	 * Get all engine alias to id combinations
+	 * @return
+	 */
+	public static List<String> getEngineIdsForAlias(String alias) {
+		List<String> ids = new Vector<String>();
+
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		if(engine == null) {
+			return ids;
+		}
+		
+		Connection conn = engine.makeConnection();
+		ResultSet rs = null;
+		Statement stmt = null;
+
+		try {
+			String sql = "select e.id from engine e where e.enginename='" + alias + "'";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(sql);
+			while(rs.next()) {
+				ids.add(rs.getString(1));
+			}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return ids;
+	}
+	
+	/**
 	 * Get the engine id from the engine alias
 	 * @param alias
 	 * @return
@@ -1803,7 +1833,7 @@ public class MasterDatabaseUtility {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		

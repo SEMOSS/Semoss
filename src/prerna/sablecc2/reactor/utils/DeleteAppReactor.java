@@ -70,7 +70,7 @@ public class DeleteAppReactor extends AbstractReactor {
 	}
 
 	private boolean deleteEngine(IEngine coreEngine) {
-		String engineName = coreEngine.getEngineName();
+		String engineName = coreEngine.getEngineId();
 		coreEngine.deleteDB();
 
 		// remove from dihelper... this is absurd
@@ -100,7 +100,7 @@ public class DeleteAppReactor extends AbstractReactor {
 
 	// session code
 	private boolean deleteEngine(IEngine coreEngine, HttpServletRequest request) {
-		String engineName = coreEngine.getEngineName();
+		String engineName = coreEngine.getEngineId();
 		coreEngine.deleteDB();
 		// remove from session
 		HttpSession session = request.getSession();

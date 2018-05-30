@@ -104,7 +104,7 @@ public class FormsDataProcessor extends BaseFormsDataProcessor{
 	}
 	
 	public void processData(IEngine engine, File sourceFolder){
-		LOGGER.info("SELECTED DATABASE ENGINE::: " + engine.getEngineName());
+		LOGGER.info("SELECTED DATABASE ENGINE::: " + engine.getEngineId());
 		LOGGER.info("SELECTED SOURCE FOLDER ::: " + sourceFolder.getName());
 
 		LOGGER.info("The Nonservices marked for review are: ");

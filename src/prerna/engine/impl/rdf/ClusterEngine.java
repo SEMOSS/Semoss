@@ -76,7 +76,7 @@ public class ClusterEngine extends AbstractEngine {
 
 	public void addEngine(AbstractEngine engine) {
 		// put it in the hash
-		engineHash.put(engine.getEngineName(), engine);
+		engineHash.put(engine.getEngineId(), engine);
 		
 		// get the base owl file
 		// get the name of the engine

@@ -27,6 +27,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinInterpreter;
@@ -46,11 +47,8 @@ public class TinkerEngine extends AbstractEngine {
 	
 	public void openDB(String propFile) {
 		super.openDB(propFile);
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String fileName = prop.getProperty(Constants.TINKER_FILE);
-		fileName = fileName.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
-		fileName = fileName.replaceAll("@" + Constants.ENGINE + "@", this.engineName);
-		LOGGER.info("Opening graph:  " + fileName);
+		String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
+		LOGGER.info("Opening graph:  " + fileLocation);
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
 		
 		// get type map
@@ -74,7 +72,7 @@ public class TinkerEngine extends AbstractEngine {
 		}
 		
 		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
-			g = Neo4jGraph.open(fileName);
+			g = Neo4jGraph.open(fileLocation);
 		} else {
 			g = TinkerGraph.open();
 			// create index for default semoss types
@@ -92,7 +90,7 @@ public class TinkerEngine extends AbstractEngine {
 					IoRegistry kryo = new MyGraphIoRegistry();
 					builder.registry(kryo);
 					GryoIo yes = builder.create();
-					yes.readGraph(fileName);
+					yes.readGraph(fileLocation);
 				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 					// user kyro to de-serialize the cached graph
 					Builder<GraphSONIo> builder = IoCore.graphson();
@@ -100,14 +98,14 @@ public class TinkerEngine extends AbstractEngine {
 					IoRegistry kryo = new MyGraphIoRegistry();
 					builder.registry(kryo);
 					GraphSONIo yes = builder.create();
-					yes.readGraph(fileName);
+					yes.readGraph(fileLocation);
 				} else if (tinkerDriver == TINKER_DRIVER.XML) {
 					Builder<GraphMLIo> builder = IoCore.graphml();
 					builder.graph(this.g);
 					IoRegistry kryo = new MyGraphIoRegistry();
 					builder.registry(kryo);
 					GraphMLIo yes = builder.create();
-					yes.readGraph(fileName);
+					yes.readGraph(fileLocation);
 				}
 			} catch (IOException e) {
 				// e.printStackTrace();

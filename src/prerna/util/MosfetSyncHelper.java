@@ -230,9 +230,8 @@ public class MosfetSyncHelper {
 			queryResults.put(SolrIndexEngine.CREATED_ON, lastModDate);
 			queryResults.put(SolrIndexEngine.MODIFIED_ON, lastModDate);
 			queryResults.put(SolrIndexEngine.USER_ID, userID);
-			queryResults.put(SolrIndexEngine.ENGINES, engineSet);
-			queryResults.put(SolrIndexEngine.CORE_ENGINE, engineName);
-			queryResults.put(SolrIndexEngine.CORE_ENGINE_ID, id);
+			queryResults.put(SolrIndexEngine.APP_ID, engineName);
+			queryResults.put(SolrIndexEngine.APP_INSIGHT_ID, id);
 			queryResults.put(SolrIndexEngine.LAYOUT, layout);
 			queryResults.put(SolrIndexEngine.VIEW_COUNT, 0);
 

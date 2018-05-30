@@ -44,7 +44,7 @@ public abstract class AbstractFormBuilder {
 	protected AbstractFormBuilder(IEngine engine) {
 		this.formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		this.engine = engine;
-		this.auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineName())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
+		this.auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
 		generateEngineAuditLog(this.auditLogTableName);
 	}
 	

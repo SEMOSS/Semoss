@@ -10,6 +10,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -228,7 +229,8 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
 		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
-		String loadFileRScript = trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
+		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath(), "\\t");
+		//trg + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
 		this.rJavaTranslator.runR(loadFileRScript);
 		newFile.delete();
 

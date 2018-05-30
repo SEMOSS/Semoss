@@ -29,6 +29,7 @@ public class DatabaseListReactor extends AbstractReactor {
 		
 		// get the list of databases from the solr app
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+		builder.addReturnFields("id");
 		builder.addReturnFields("app_name");
 		builder.addReturnFields("app_type");
 		builder.addReturnFields("app_cost");
@@ -44,6 +45,7 @@ public class DatabaseListReactor extends AbstractReactor {
 			
 			for(SolrDocument doc : results) {
 				Map<String, String> appEntry = new HashMap<String, String>();
+				appEntry.put("id", doc.get("id") + "");
 				appEntry.put("name", doc.get("app_name") + "");
 				appEntry.put("type", doc.get("app_type") + "");
 				appEntry.put("cost", doc.get("app_cost") + "");

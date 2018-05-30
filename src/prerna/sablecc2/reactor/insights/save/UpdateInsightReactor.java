@@ -139,8 +139,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		solrModifyInsights.put(SolrIndexEngine.LAYOUT, layout);
 		solrModifyInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 		solrModifyInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-		solrModifyInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
-		solrModifyInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
+		solrModifyInsights.put(SolrIndexEngine.APP_ID, engineName);
 
 		try {
 			SolrIndexEngine.getInstance().modifyInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, existingRdbmsId), solrModifyInsights);

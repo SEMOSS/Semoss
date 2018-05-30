@@ -51,6 +51,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -147,9 +148,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 			}
 			if(this.dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
-				if(this.engineName != null) {
-					this.connectionURL = RDBMSUtility.fillH2ConnectionURL(this.connectionURL, this.engineName);
-				}
+				this.connectionURL = RDBMSUtility.fillH2ConnectionURL(this.connectionURL, this.engineId, this.engineName);
 			}
 			
 			this.connBuilder = null;
@@ -157,12 +156,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				connBuilder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.BUILD_FROM_FILE);
 				
 				// determine the location of the file relative to where SEMOSS is installed
-				this.fileDB = prop.getProperty(DATA_FILE);
-				Map<String, String> paramHash = new Hashtable<String, String>();
-				paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-				paramHash.put("ENGINE", getEngineName());
-				this.fileDB = Utility.fillParam2(this.fileDB, paramHash);
-				
+				this.fileDB = SmssUtilities.getDataFile(prop).getAbsolutePath();
 				// set the file location
 				connBuilder.setFileLocation(this.fileDB);
 				
@@ -179,7 +173,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				connBuilder.setColumnToTypesMap(conceptAndType);
 				
 				// also update the connection url
-				paramHash = new Hashtable<String, String>();
+				Hashtable<String, String> paramHash = new Hashtable<String, String>();
 				String dbName = this.fileDB.replace(".csv", "").replace(".tsv", "");
 				paramHash.put("database", dbName);
 				this.connectionURL = Utility.fillParam2(connectionURL, paramHash);

@@ -31,14 +31,14 @@ public class Compiler
 		TestUtilityMethods.loadDIHelper();
 		String localEngineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine localEngine = new BigDataEngine();
-		localEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		localEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		localEngine.openDB(localEngineProp);
-		localEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		localEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, localEngine);
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.setEngineId("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 		

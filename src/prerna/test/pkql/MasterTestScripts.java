@@ -314,7 +314,7 @@ public class MasterTestScripts {
 	 */
 	private void setUpEngine() {
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName(engine);
+		coreEngine.setEngineId(engine);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(engine, coreEngine);
 	}

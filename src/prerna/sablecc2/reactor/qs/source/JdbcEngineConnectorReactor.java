@@ -44,7 +44,7 @@ public class JdbcEngineConnectorReactor extends AbstractQueryStructReactor {
 		} else {
 			fakeEngine = new RDBMSNativeEngine();
 		}
-		fakeEngine.setEngineName("FAKE_ENGINE");
+		fakeEngine.setEngineId("FAKE_ENGINE");
 		fakeEngine.setConnection(con);
 		fakeEngine.setBasic(true);
 		

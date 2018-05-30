@@ -73,7 +73,7 @@ public class InsightsConverter2 {
 		ResultSet rs = (ResultSet) mapRet.get(RDBMSNativeEngine.RESULTSET_OBJECT);
 		try {
 			if (!rs.next()) {
-				throw new IOException("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + this.coreEngine.getEngineName());
+				throw new IOException("COULD NOT FIND INSIGHTS QUESTION_ID TABLE FOR ENGINE = " + this.coreEngine.getEngineId());
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -417,13 +417,13 @@ public class InsightsConverter2 {
 		
 		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineName(Constants.LOCAL_MASTER_DB_NAME);
+		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
 		
 		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Core_Data");
+		coreEngine.setEngineId("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 		

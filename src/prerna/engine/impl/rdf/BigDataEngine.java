@@ -28,7 +28,6 @@
 package prerna.engine.impl.rdf;
 
 import java.io.File;
-import java.sql.Connection;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -69,9 +67,9 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.PersistentHash;
 import prerna.util.Utility;
 
 /**
@@ -81,16 +79,12 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 
 	private static final Logger logger = LogManager.getLogger(BigDataEngine.class.getName());
 	private BigdataSail bdSail = null;
-	Properties rdfMap = null;
 	private SailRepositoryConnection rc = null;
 	private SailConnection sc = null;
 	private ValueFactory vf = null;
 	boolean connected = false;
 	private InferenceEngine ie = null;
-	Connection localCheater = null;
-	PersistentHash conceptIdHash = new PersistentHash();
-	int tableCount = 0;
-	
+
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
 	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
@@ -99,42 +93,28 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 * what type of engine is being instantiated.
 	 */
 	@Override
-	public void openDB(String propFile)
-	{
-		try
-		{			
+	public void openDB(String propFile) {
+		try {			
 			super.openDB(propFile);
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			String fileName = baseFolder + "/" + prop.getProperty("com.bigdata.journal.AbstractJournal.file");
+			String fileName = SmssUtilities.getSysTapJnl(prop).getAbsolutePath();
 			prop.put("com.bigdata.journal.AbstractJournal.file", fileName);
 			bdSail = new BigdataSail(prop);
 			// BigdataSail.Options.TRUTH_MAINTENANCE = "true";
 			BigdataSailRepository repo = new BigdataSailRepository(bdSail);
 			repo.initialize();
 			rc = repo.getUnisolatedConnection();
-		
-			// logger.info("ie forward chaining " + ie);
-			// need to convert to constants
-			String dbcmFile = prop.getProperty(Constants.DBCM_Prop);
-			String workingDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			
 			sc = ((SailRepositoryConnection) rc).getSailConnection();
-			dbcmFile = workingDir + "/" + dbcmFile;
-			rdfMap = DIHelper.getInstance().getCoreProp();
 			vf = bdSail.getValueFactory();
 			this.connected = true;
-			
-			
-	        ie = ((BigdataSail)bdSail).getInferenceEngine();	
-		}catch(RuntimeException ignored)
-		{
+
+			ie = ((BigdataSail) bdSail).getInferenceEngine();	
+		}catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
@@ -154,7 +134,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 * Runs the passed string query against the engine as a SELECT query.  The query passed must be in the structure of a SELECT 
 	 * SPARQL query and the result format will depend on the engine type.
 	 * @param query the string version of the SELECT query to be run against the engine
-	
+
 	 * @return triple query results that can be displayed as a grid */
 	public Object execQuery(String query) {
 		try {
@@ -192,7 +172,6 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 */
 	@Override
 	public void insertData(String query) {
-
 		Update up;
 		try {
 			up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
@@ -200,8 +179,8 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			rc.setAutoCommit(false);
 			rc.begin();
 			up.execute();
-	        InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-	        ie.computeClosure(null);
+			InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
+			ie.computeClosure(null);
 			sc.commit();
 			rc.commit();
 		} catch (MalformedQueryException e) {
@@ -214,64 +193,54 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries agains the 
 	 * engine.
-	
+
 	 * @return the type of the engine */
-	public ENGINE_TYPE getEngineType()
-	{
+	public ENGINE_TYPE getEngineType() {
 		return IEngine.ENGINE_TYPE.SESAME;
 	}
-	
+
 	/**
 	 * Processes a SELECT query to get the results in the exact format that the database stores them.
 	 * This is important for things like param values so that we can take the returned value and fill the main query without needing modification
 	 * @param sparqlQuery the SELECT SPARQL query to be run against the engine
 	 * @return the Vector of Strings representing the full uris of all of the query results */
-	public Vector<Object> getCleanSelect(String sparqlQuery)
-	{
+	public Vector<Object> getCleanSelect(String sparqlQuery) {
 		try {
-			if(sparqlQuery != null)
-				{
-					TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
-					logger.debug("\nSPARQL: " + sparqlQuery);
-					tq.setIncludeInferred(true /* includeInferred */);
-					TupleQueryResult sparqlResults = tq.evaluate();
-					Vector<Object> retVec = new Vector<Object>();
-					
-					int count = 0;
-					
-					while(sparqlResults.hasNext())
-					{
-						try {
-							Value val = sparqlResults.next().getValue(Constants.ENTITY);
-							Object next = null;
-							if (val instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) val).getDatatype() != null) {
-								try {
-									next = ((BigdataLiteralImpl)val).doubleValue();
-								} catch(NumberFormatException ex) {
-									next = ((BigdataLiteralImpl) val).getLabel();
-								}
-							} else if(val instanceof Literal){
-								next = ((Literal)val).getLabel();
-							} else {
-								next = "" + val;
+			if(sparqlQuery != null) {
+				TupleQuery tq = rc.prepareTupleQuery(QueryLanguage.SPARQL, sparqlQuery);
+				logger.debug("\nSPARQL: " + sparqlQuery);
+				tq.setIncludeInferred(true /* includeInferred */);
+				TupleQueryResult sparqlResults = tq.evaluate();
+				Vector<Object> retVec = new Vector<Object>();
+
+				while(sparqlResults.hasNext()) {
+					try {
+						Value val = sparqlResults.next().getValue(Constants.ENTITY);
+						Object next = null;
+						if (val instanceof BigdataLiteralImpl && ((BigdataLiteralImpl) val).getDatatype() != null) {
+							try {
+								next = ((BigdataLiteralImpl)val).doubleValue();
+							} catch(NumberFormatException ex) {
+								next = ((BigdataLiteralImpl) val).getLabel();
 							}
-							//System.out.print(".");
-							//if(count < 100)
-							retVec.add(next);
-							count++;
-						} catch (RuntimeException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}	
-					}
-					
-					logger.info("Found " + retVec.size() + " elements in result set");
-					return retVec;
+						} else if(val instanceof Literal){
+							next = ((Literal)val).getLabel();
+						} else {
+							next = "" + val;
+						}
+						retVec.add(next);
+					} catch (RuntimeException e) {
+						e.printStackTrace();
+					}	
 				}
+
+				logger.info("Found " + retVec.size() + " elements in result set");
+				return retVec;
+			}
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		} catch (MalformedQueryException e) {
@@ -281,7 +250,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
 	 * @param type The full URI of the node type that we want to get the instances of
@@ -301,7 +270,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 		retList.add(type);
 		paramHash.put("entity", retList);
 		query = Utility.fillParam(query, paramHash);
-		
+
 		return getCleanSelect(query);
 	}
 
@@ -314,7 +283,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	{
 		return connected;
 	}
-	
+
 	/**
 	 * Method addStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
 	 * @param subject String - RDF Subject for the triple
@@ -322,7 +291,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 * @param object Object - RDF Object for the triple
 	 * @param concept boolean - True if the statement is a concept
 	 */
-//	public void addStatement(String subject, String predicate, Object object, boolean concept)
+	//	public void addStatement(String subject, String predicate, Object object, boolean concept)
 	public void addStatement(Object[] args)
 	{
 		String subject = args[0]+"";
@@ -337,13 +306,13 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			String predString = null;
 			String sub = subject.trim();
 			String pred = predicate.trim();
-					
+
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);
-			
+
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
-			
+
 			if(!concept)
 			{
 				if(object.getClass() == new Double(1).getClass())
@@ -364,7 +333,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.addStatement(newSub, newPred, vf.createLiteral(value));
 				} 
 			}
@@ -377,7 +346,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
 	 * @param subject String - RDF Subject for the triple
@@ -385,7 +354,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 * @param object Object - RDF Object for the triple
 	 * @param concept boolean - True if the statement is a concept
 	 */
-//	public void removeStatement(String subject, String predicate, Object object, boolean concept)
+	//	public void removeStatement(String subject, String predicate, Object object, boolean concept)
 	public void removeStatement(Object[] args)
 	{
 		String subject = args[0]+"";
@@ -400,13 +369,13 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			String predString = null;
 			String sub = subject.trim();
 			String pred = predicate.trim();
-					
+
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);
-			
+
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
-			
+
 			if(!concept)
 			{
 				if(object.getClass() == new Double(1).getClass())
@@ -427,7 +396,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 					logger.debug("Found String " + object);
 					String value = object + "";
 					// try to see if it already has properties then add to it
-//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
+					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.removeStatements(newSub, newPred, vf.createLiteral(value));
 				} 
 			}
@@ -438,21 +407,21 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
-	
-	
+
+
 	/**
 	 * Method infer.	
 	 */
 	public void infer()
 	{
-        try {
+		try {
 			ie.computeClosure(null);
 			sc.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Commit the database. Commits the active transaction.  This operation ends the active transaction.
 	 */
@@ -462,12 +431,9 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 		try {
 			sc.commit();
 			((BigdataSailRepositoryConnection)rc).flush();
-			//closeDB();
-			//openDB(propFile);
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		} catch (SailException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -482,7 +448,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 */
 	public void deleteDB() {
 		super.deleteDB();
-		
+
 		// try deleting the jnl which is the one item the generic delete may not clean up
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String jnlLoc = baseFolder + "/" + this.getProperty("com.bigdata.journal.AbstractJournal.file");

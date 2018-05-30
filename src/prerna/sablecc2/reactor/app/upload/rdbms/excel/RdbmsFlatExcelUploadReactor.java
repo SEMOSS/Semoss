@@ -132,7 +132,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("4. Create database store...");
 		IEngine engine = new RDBMSNativeEngine();
-		engine.setEngineName(newAppName);
+		engine.setEngineId(newAppName);
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		engine.setProp(props);
@@ -594,9 +594,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("LocalMasterDatabase");
+		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("LocalMasterDatabase");
+		coreEngine.setEngineId("LocalMasterDatabase");
 		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 
 		String filePath = "C:/Users/SEMOSS/Desktop/Movie Data.csv";
