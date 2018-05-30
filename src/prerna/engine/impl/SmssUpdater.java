@@ -11,6 +11,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.forms.AbstractFormBuilder;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -81,7 +82,8 @@ public class SmssUpdater {
 					Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.ENGINE, aliasToId.get(engineName));
 					System.out.println("DONE!");
 				} else if(!engineName.equals(Constants.LOCAL_MASTER_DB_NAME) && 
-						!engineName.equals(Constants.SECURITY_DB)){
+						!engineName.equals(Constants.SECURITY_DB) &&
+						!engineName.equals(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME)){
 					
 					// we will make a unique id
 					String newId = UUID.randomUUID().toString();
