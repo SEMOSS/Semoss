@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.List;
-import java.util.Map;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -13,10 +12,8 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class DatabaseSpecificConceptPropertiesReactor extends AbstractReactor {
 
-	public static final String COLUMN_FILTER = "columnFilter";
-
 	public DatabaseSpecificConceptPropertiesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.DATABASE.getKey(), COLUMN_FILTER };
+		this.keysToGet = new String[] { ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.DATABASE.getKey()};
 	}
 
 	@Override
@@ -30,34 +27,20 @@ public class DatabaseSpecificConceptPropertiesReactor extends AbstractReactor {
 
 		// account for optional engine filter
 		GenRowStruct engineFilterGrs = this.store.getNoun(keysToGet[1]);
-		String engineFilter = null;
-		if (engineFilterGrs != null) {
-			engineFilter = engineFilterGrs.get(0).toString();
+		if (engineFilterGrs == null) {
+			throw new IllegalArgumentException("Need to define the engine filter");
+		}
+		String engineId = engineFilterGrs.get(0).toString();
+		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
+		if(appIds.size() == 1) {
+			// actually received an app name
+			engineId = appIds.get(0);
+		} else if(appIds.size() > 1) {
+			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
 		}
 
-		Map<String, List<String>> conceptProperties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(conceptLogicals, engineFilter);
-		List<String> values = conceptProperties.get(engineFilter);
-		// TODO: not working yet
-		String filterCol = "";
-		GenRowStruct filterColGrs = this.store.getNoun(keysToGet[2]);
-		if (filterColGrs != null) {
-			filterCol = filterColGrs.get(0).toString();
-		}
-		values.remove(filterCol);
-		return new NounMetadata(values, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
-	}
-
-	///////////////////////// KEYS /////////////////////////////////////
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The optional engine filter";
-		} else if (key.equals(COLUMN_FILTER)) {
-			return "The optional column filter";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(conceptLogicals, engineId);
+		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
 
 }
