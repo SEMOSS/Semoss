@@ -626,7 +626,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 		long time1 = System.currentTimeMillis();
 		// set engine on qs2
-		qs2.setEngineName(component.getEngineName());
+		qs2.setEngineId(component.getEngineName());
 		// instantiate h2importer with frame and qs
 		IImporter importer = new H2Importer(this, qs2);
 		if (joins.isEmpty()) {

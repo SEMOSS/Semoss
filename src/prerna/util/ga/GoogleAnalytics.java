@@ -75,7 +75,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		final String exprEnd = "]}";
 
 		HashMap<String, String[]> joinHash = new HashMap();
-		String engineName = qs.getEngineName();
+		String engineName = qs.getEngineId();
 		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			// person has entered their own query
 			String query = ((HardSelectQueryStruct) qs).getQuery();

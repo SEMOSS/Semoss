@@ -28,7 +28,7 @@ public class QsToPixelConverter {
 	
 	public static String getHardQsPixel(HardSelectQueryStruct qs) {
 		StringBuilder b = new StringBuilder();
-		b.append("Database(").append(qs.getEngineName()).append(") | Query(")
+		b.append("Database(").append(qs.getEngineId()).append(") | Query(")
 			.append(qs.getQuery().replace("\"", "\\\"")).append(")");
 		return b.toString();
 	}
