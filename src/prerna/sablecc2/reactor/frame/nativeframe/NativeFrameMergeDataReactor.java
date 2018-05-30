@@ -49,9 +49,9 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 		GATracker.getInstance().trackDataImport(this.insight, qs);
 
 		// Format and send Google Analytics data
-		String engine = qs.getEngineName() + "";
+		String engine = qs.getEngineId() + "";
 		// if the engine doesnt have a name then the data is coming from a temp table
-		if (qs.getEngineName() == null){
+		if (qs.getEngineId() == null){
 			String tempFrameName = qs.getFrame() + "";
 			engine = "TempFrame_" + tempFrameName ;
 		}

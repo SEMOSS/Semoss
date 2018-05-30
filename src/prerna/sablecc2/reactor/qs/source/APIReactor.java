@@ -87,7 +87,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 			
 			// make up an engine name
 			String engineName = aliasProp.getProperty("engine_name");
-			qs.setEngineName(engineName);
+			qs.setEngineId(engineName);
 			qs.setEngine(engine);
 		}
 		else if(this.getNounStore().getNoun("aliasMap") != null)
@@ -120,7 +120,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 			engine.setProp(aliasProp);
 
 			String engineName = Utility.getRandomString(6);
-			qs.setEngineName(engineName);
+			qs.setEngineId(engineName);
 			qs.setEngine(engine);
 		}
 	}
