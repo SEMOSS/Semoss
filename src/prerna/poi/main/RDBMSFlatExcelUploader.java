@@ -100,12 +100,13 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	 */
 	public IEngine importFileWithOutConnection(ImportOptions options) throws IOException {
 		String smssLocation = options.getSMSSLocation();
-		String engineName = options.getDbName();
+		String appName = options.getDbName();
 		String fileLocations = options.getFileLocations();
 		String customBaseURI = options.getBaseUrl();
 		String owlPath = options.getOwlFileLocation();		
 		boolean allowDuplicates = options.isAllowDuplicates();
 		cleanString = options.getCleanString();
+		String appID = options.getEngineID();
 		
 		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
@@ -117,7 +118,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		LOGGER.setLevel(Level.WARN);
 		try {
 			// create the engine and the owler
-			openRdbmsEngineWithoutConnection(engineName);
+			openRdbmsEngineWithoutConnection(appName, appID);
 			for(int i = 0; i < files.length;i++)
 			{
 				String fileName = files[i];

@@ -49,17 +49,18 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 	public IEngine importFileWithOutConnection(ImportOptions options) throws FileNotFoundException, IOException {
 
 		String smssLocation = options.getSMSSLocation();
-		String engineName = options.getDbName();
+		String appName = options.getDbName();
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
 		String propertyFiles = options.getPropertyFiles();
+		String appID = options.getEngineID();
 
 		boolean error = false;
 		logger.setLevel(Level.WARN);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
 		try {
-			openTinkerEngineWithoutConnection(engineName);
+			openTinkerEngineWithoutConnection(appName, appID);
 			for (int i = 0; i < files.length; i++) {
 				try {
 					String fileName = files[i];
