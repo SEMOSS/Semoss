@@ -42,8 +42,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String engineName = getApp();
-		if(engineName == null || engineName.isEmpty()) {
+		String appId = getApp();
+		if(appId == null || appId.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
 		}
 		String insightName = getInsightName();
@@ -67,15 +67,15 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String newInsightId = UUID.randomUUID().toString();
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
-		recipeToSave = saveFilesInInsight(recipeToSave, engineName, newInsightId);
+		recipeToSave = saveFilesInInsight(recipeToSave, appId, newInsightId);
 		
 		if(params != null && !params.isEmpty()) {
 			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
 		}
 		
-		IEngine engine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find app = " + engineName);
+			throw new IllegalArgumentException("Cannot find app = " + appId);
 		}
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
@@ -86,7 +86,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		if(!hidden) {
 			logger.info("2) Add insight to solr...");
-			addNewInsightToSolr(engineName, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
+			addNewInsightToSolr(appId, newRdbmsId, insightName, layout, "", new ArrayList<String>(), "");
 			logger.info("2) Done...");
 		} else {
 			logger.info("2) Insight is hidden ... do not add to solr");
@@ -94,24 +94,24 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(engineName, newRdbmsId, insightName, layout, recipeToSave, hidden);
+		MosfetSyncHelper.makeMosfitFile(appId, newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
 		
 		// get base 64 image string and write to file
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
-			storeImageFromPng(base64Image, newRdbmsId, engineName);
+			storeImageFromPng(base64Image, newRdbmsId, appId);
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("core_engine_id", newRdbmsId);
-		returnMap.put("core_engine", engineName);
+		returnMap.put("core_engine", appId);
 		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 
 		// track GA data
-		GATracker.getInstance().trackInsightExecution(this.insight, "saveinsight", engineName, newRdbmsId, insightName);
+		GATracker.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
 
 		return noun;
 	}
