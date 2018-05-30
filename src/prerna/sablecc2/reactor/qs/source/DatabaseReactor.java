@@ -18,20 +18,17 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		// get the selectors
 		this.organizeKeys();
-		String engineName = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[0]);
 		
-		//TODO: incase db name is passed
-		String appId = null;
-		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineName);
+		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
 		if(appIds.size() == 1) {
-			appId = appIds.get(0);
+			// actually received an app name
+			engineId = appIds.get(0);
 		} else if(appIds.size() > 1) {
-			throw new IllegalArgumentException("There are 2 databases with the name " + engineName + ". Please pass in the correct id to know which source you want to load from");
-		} else {
-			appId = engineName;
+			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
 		}
 		
-		this.qs.setEngineId(appId);
+		this.qs.setEngineId(engineId);
 		// need to account if this is a hard query struct
 		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
 				this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
