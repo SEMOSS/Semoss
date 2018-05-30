@@ -60,7 +60,8 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		String username = options.getUsername();
 		String password = options.getPassword();
 		String engineName = options.getDbName();
-
+		String appName = options.getEngineID();
+		
 		// the logical metamodel for the upload
 		Map<String, Object> externalMetamodel = options.getExternalMetamodel();
 		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get("nodes");
@@ -69,7 +70,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		this.queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
 		prepEngineCreator(null, options.getOwlFileLocation(), options.getSMSSLocation());
 		// this will create the class variable this.engine
-		generateEngineFromRDBMSConnection(schema, engineName);
+		generateEngineFromRDBMSConnection(schema, engineName, appName);
 		
 		// get the existing table names -> column name, column type
 		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.engine);

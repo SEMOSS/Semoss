@@ -22,7 +22,7 @@ public class InsightFilesToCsvDatabaseReader extends AbstractEngineCreator {
 		if(type == DATABASE_TYPE.RDBMS) {
 			openRdbmsEngineWithoutConnection(appName, appID);
 		} else {
-			openREngineWithoutConnection(appName);
+			openREngineWithoutConnection(appName, appID);
 		}
 		
 		// regardless of the engine type
