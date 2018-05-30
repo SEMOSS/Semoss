@@ -281,6 +281,7 @@ import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.PostRequestReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
+import prerna.sablecc2.reactor.utils.StoreUniqueColumnsReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
@@ -478,6 +479,7 @@ public class ReactorFactory {
 		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
 		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
 		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
+		reactorHash.put("StoreUniqueValuesCount ", StoreUniqueColumnsReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
