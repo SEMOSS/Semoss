@@ -9,8 +9,8 @@ import prerna.util.DIHelper;
 public class SmssUtilities {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	private static final String ENGINE_REPLACEMENT = "@" + Constants.ENGINE + "@";
-	
+	public static final String ENGINE_REPLACEMENT = "@" + Constants.ENGINE + "@";
+
 	private SmssUtilities() {
 		
 	}
