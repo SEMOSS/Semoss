@@ -466,10 +466,10 @@ public class AddToMasterDB {
 	
 	/**
 	 * Get the date for a given engine
-	 * @param engineName
+	 * @param engineId
 	 * @return
 	 */
-	public Date getEngineDate(String engineName) {
+	public Date getEngineDate(String engineId) {
 		java.util.Date retDate = null;
 		RDBMSNativeEngine localMaster = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = getConnection(localMaster);
@@ -477,9 +477,7 @@ public class AddToMasterDB {
 			Statement stmt = null;
 			ResultSet rs = null;
 			try {
-				String query = "select modifieddate from engine e "
-							+ "where "
-							+ "e.enginename = '" + engineName + "'";
+				String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
 				stmt = conn.createStatement();
 				rs = stmt.executeQuery(query);
 				while(rs.next()) {
