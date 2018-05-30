@@ -43,7 +43,7 @@ viz_history<-function(df){
 										# need a check that alias is not null!!!
 										semantic<-row[1,l]
 										if(semantic != ""){
-											z<-rbindlist(list(z,list(i,j,db,tbl,col,type,semantic,comp,chart,user)))
+											z<-rbindlist(list(z,list(i,j,db,tbl,col,type,semantic,comp,uniqueValues,chart,user)))
 										}
 									}
 								} else{
