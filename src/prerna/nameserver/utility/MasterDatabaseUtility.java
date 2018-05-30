@@ -201,7 +201,7 @@ public class MasterDatabaseUtility {
 		// NOTE ::: IMPORTANT THAT THIS MATCHES ALL THE BELOW QUERY NAMES!!!
 		String engineFilterStr = "";
 		if(engineFilter != null && !engineFilter.isEmpty()) {
-			engineFilterStr = " and e.enginename = '" + engineFilter + "'";
+			engineFilterStr = " and ec.engine = '" + engineFilter + "'";
 		}
 		
 		/*
@@ -225,10 +225,9 @@ public class MasterDatabaseUtility {
 		
 		String query = "select ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId,"
 				+ " c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName, ec.pk as pk" 
-				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
+				+ " from engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"
 				+ engineFilterStr
-				+ " and e.id = ec.engine"
 				+ " and ec.localconceptid = c.localconceptid"
 				+ " and ec.parentphysicalid = ec2.physicalnameid"
 				+ " and ec2.localconceptid = c2.localconceptid";
@@ -276,7 +275,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// let us first go ahead and get the properties we can connect to
-		query = "select distinct e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
+		query = "select distinct e.id, e.enginename, c2.conceptualname as table, c.conceptualname as column, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
 				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec2.physicalnameid in (" + sb.toString() + ")"
 				+ engineFilterStr
@@ -292,12 +291,13 @@ public class MasterDatabaseUtility {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 			while(rs.next()) {
-				String engineName = rs.getString(1);
-				String table = rs.getString(2);
-				String column = rs.getString(3);
-				String type = rs.getString(4);
-				boolean pk = rs.getBoolean(5);
-				String equivId = rs.getString(6);
+				String engineId = rs.getString(1);
+				String engineName = rs.getString(2);
+				String table = rs.getString(3);
+				String column = rs.getString(4);
+				String type = rs.getString(5);
+				boolean pk = rs.getBoolean(6);
+				String equivId = rs.getString(7);
 				
 				Object[] equivTableCol = parentEquivMap.get(equivId);
 				
@@ -308,7 +308,12 @@ public class MasterDatabaseUtility {
 				
 				// if we passed the above test, add the valid connection
 				Map<String, Object> row = new HashMap<String, Object>();
+				// TODO: delete after FE updates payload acceptance
 				row.put("app", engineName);
+				
+				row.put("app_id", engineId);
+				row.put("app_name", engineName);
+
 				row.put("table", table);
 				row.put("column", column);
 				row.put("pk", pk);
@@ -338,7 +343,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// let me find up and downstream connections for my equivalent concepts
-		query = "select distinct e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
+		query = "select distinct e.id, e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
 				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where er.sourceconceptid in (" + sb.toString() + ")"
 				+ engineFilterStr
@@ -352,17 +357,22 @@ public class MasterDatabaseUtility {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 			while(rs.next()) {
-				String engineName = rs.getString(1);
-				String upstream = rs.getString(2);
-				String downstream = rs.getString(3);
-				String type = rs.getString(4);
+				String engineId = rs.getString(1);
+				String engineName = rs.getString(2);
+				String upstream = rs.getString(3);
+				String downstream = rs.getString(4);
+				String type = rs.getString(5);
 				
 				// the downstream nodes
 				// mean that the source is the equivalent concept
 				
 				// if we passed the above test, add the valid connection
 				Map<String, Object> row = new HashMap<String, Object>();
+				// TODO: delete after FE updates payload acceptance
 				row.put("app", engineName);
+				
+				row.put("app_id", engineId);
+				row.put("app_name", engineName);
 				row.put("equiv", upstream);
 				row.put("table", downstream);
 				row.put("dataType", type);
@@ -377,7 +387,7 @@ public class MasterDatabaseUtility {
 		}
 		
 		// let me repeat for my upstream
-		query = "select distinct e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
+		query = "select distinct e.id, e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
 				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where er.targetconceptid in (" + sb.toString() + ")"
 				+ engineFilterStr
@@ -391,17 +401,22 @@ public class MasterDatabaseUtility {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 			while(rs.next()) {
-				String engineName = rs.getString(1);
-				String upstream = rs.getString(2);
-				String downstream = rs.getString(3);
-				String type = rs.getString(4);
+				String engineId = rs.getString(1);
+				String engineName = rs.getString(2);
+				String upstream = rs.getString(3);
+				String downstream = rs.getString(4);
+				String type = rs.getString(5);
 				
 				// the downstream nodes
 				// mean that the source is the equivalent concept
 				
 				// if we passed the above test, add the valid connection
 				Map<String, Object> row = new HashMap<String, Object>();
+				// TODO: delete after FE updates payload acceptance
 				row.put("app", engineName);
+				
+				row.put("app_id", engineId);
+				row.put("app_name", engineName);
 				row.put("equiv", downstream);
 				row.put("table", upstream);
 				row.put("dataType", type);
@@ -418,7 +433,7 @@ public class MasterDatabaseUtility {
 		return returnData;
 	}
 
-	public static Map<String, Object[]> getMetamodelRDBMS(String engineName) {
+	public static Map<String, Object[]> getMetamodelRDBMS(String engineId) {
 		// this needs to be moved to the name server
 		// and this needs to be based on local master database
 		// need this to be a simple OWL data
@@ -441,10 +456,9 @@ public class MasterDatabaseUtility {
 		Hashtable <String, MetamodelVertex> nodeHash = new Hashtable <String, MetamodelVertex>();
 		
 		try {
-			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property from "
-					 + "engineconcept ec, concept c, engine e "
-					 + "where ec.engine=e.id "
-					 + "and e.enginename='" + engineName + "' "
+			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property "
+					+ "from engineconcept ec, concept c "
+					 + "where ec.engine='" + engineId + "' "
 					 + "and c.localconceptid=ec.localconceptid order by ec.property";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(nodeQuery);
@@ -488,8 +502,9 @@ public class MasterDatabaseUtility {
 		try {
 			// get the edges next
 			//SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and e.enginename = 'Mv1'
-			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and "
-					+ "e.enginename = '" + engineName + "'";
+			String edgeQuery = "SELECT er.sourceconceptid, er.targetconceptid "
+					+ "from enginerelation er "
+					+ "where er.engine='" + engineId + "'";
 
 			if(stmt == null) {
 				stmt = conn.createStatement();
@@ -1074,10 +1089,10 @@ public class MasterDatabaseUtility {
 
 	/**
 	 * Get the list of concepts for a given engine
-	 * @param engineName
+	 * @param engineId
 	 * @return
 	 */
-	public static Set<String> getConceptsWithinEngineRDBMS(String engineName) {
+	public static Set<String> getConceptsWithinEngineRDBMS(String engineId) {
 		/*
 		 * Grab the local master engine and query for the concepts
 		 * We do not want to load the engine until the user actually wants to use it
@@ -1093,8 +1108,7 @@ public class MasterDatabaseUtility {
 		Set<String> conceptsList = new TreeSet<String>();
 		try {
 			String query = "select distinct c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e "
-						+ "where ec.localconceptid=c.localconceptid and e.id=ec.engine and ec.property=false and "
-						+ "e.enginename = '" + engineName + "'";
+						+ "where ec.localconceptid=c.localconceptid and ec.property=false and ec.engine ='" + engineId + "'";
 			
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
