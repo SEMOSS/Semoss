@@ -95,6 +95,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String propertyFiles = options.getPropertyFiles();
 		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
+		String engineID = options.getEngineID();
 		
 		long start = System.currentTimeMillis();
 
@@ -103,7 +104,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
 
 		try {
-			openRdbmsEngineWithoutConnection(engineName);
+			openRdbmsEngineWithoutConnection(engineName, engineID);
 			openScriptFile(engineName);
 			for(int i = 0; i<files.length;i++)
 			{
