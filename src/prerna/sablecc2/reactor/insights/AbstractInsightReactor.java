@@ -15,6 +15,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -203,11 +204,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	protected void storeImageFromPng(String base64Image, String insightId, String engineName) {
+	protected void storeImageFromPng(String base64Image, String insightId, String appId, String appName) {
 		// set up path to save image to file
 		final String DIR_SEP = java.nio.file.FileSystems.getDefault().getSeparator();
 		final String imagePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ DIR_SEP + "db" + DIR_SEP + engineName + DIR_SEP + "version" + DIR_SEP + insightId + DIR_SEP + "image.png";
+				+ DIR_SEP + "db" + DIR_SEP + SmssUtilities.getUniqueName(appName, appId) + DIR_SEP + "version" + DIR_SEP + insightId + DIR_SEP + "image.png";
 		
 		// decode image and write to file
 		byte[] data = Base64.decodeBase64(base64Image);
