@@ -749,7 +749,6 @@ public class MasterDatabaseUtility {
 			closeStreams(stmt, rs);
 		}
 		
-		
 		for(String engineName : queryData.keySet()) {
 			returnHash.put(engineName, (HashMap) queryData.get(engineName));
 		}
@@ -766,16 +765,17 @@ public class MasterDatabaseUtility {
 	public static Map<String, Object[]> getConceptPropertiesRDBMS(List<String> conceptLogicalNames, String engineFilter) {
 		// get the bindings based on the input list
 		String conceptString = makeListToString(conceptLogicalNames);
-		String engineString = " and e.enginename= '" + engineFilter +"' ";
+		String engineString = " and ec.engine= '" + engineFilter +"' ";
 		if(engineFilter == null || engineFilter.isEmpty()) {
 			engineString = "";
 		}
 		
-		String propQuery = "select distinct e.enginename, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
-				+ "from engineconcept ec, concept c, engine e where ec.parentphysicalid in "
+		String propQuery = "select distinct ec.engine, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
+				+ "from engineconcept ec, concept c "
+				+ "where ec.parentphysicalid in "
 				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in" +  conceptString.toString() + ") )" 
 				+ engineString
-				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
+				+ " and c.localconceptid=ec.localconceptid order by ec.property";
 	
 		Map<String, Object[]> returnHash = new TreeMap<String, Object[]>();;
 		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<String, Map<String, MetamodelVertex>>();
@@ -889,35 +889,36 @@ public class MasterDatabaseUtility {
 		// third is the downstream
 		//select e.enginename, ec.engine, c.logicalname, ec.physicalnameid from concept c, engineconcept ec, engine e where c.logicalname in ('Title') and c.localconceptid=ec.localconceptid and e.id = ec.engine
 
-		String conceptMasterQuery = "select e.enginename, ec.engine, c.conceptualname, ec.physicalnameid, ec.physicalname from concept c, engineconcept ec, engine e where "
-				+ "c.logicalname in " + conceptString
-				+ "and c.localconceptid=ec.localconceptid and e.id=ec.engine";
+		String conceptMasterQuery = "select ec.engine, c.conceptualname, ec.physicalnameid, ec.physicalname "
+				+ "from concept c, engineconcept ec "
+				+ "where c.logicalname in " + conceptString
+				+ "and c.localconceptid=ec.localconceptid";
 		try {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(conceptMasterQuery);
 			while(rs.next()) {
-				String engineName = rs.getString(1);
-				String logicalName = rs.getString(3);
-				String physicalNameId = rs.getString(4);
-				String equivalentConcept = rs.getString(5);
+				String engineId = rs.getString(1);
+				String conceptualName = rs.getString(2);
+				String physicalNameId = rs.getString(3);
+				String equivalentConcept = rs.getString(4);
 
 				// put the id for future reference
 				// no reason why we cannot cache but.. 
-				idToName.put(physicalNameId, logicalName);
+				idToName.put(physicalNameId, conceptualName);
 
 				Map <String, Object> conceptSpecific = null;
-				if(retMap.containsKey(engineName)) {
-					conceptSpecific = retMap.get(engineName);
+				if(retMap.containsKey(engineId)) {
+					conceptSpecific = retMap.get(engineId);
 				} else {
 					conceptSpecific = new TreeMap<String, Object>();
 				}
-				retMap.put(engineName, conceptSpecific);
+				retMap.put(engineId, conceptSpecific);
 
 				Hashtable <String, String> stream = new Hashtable<String, String>();
 				stream.put("equivalentConcept", equivalentConcept);
 
-				conceptSpecific.put(logicalName, stream);
-				retMap.put(engineName, conceptSpecific);
+				conceptSpecific.put(conceptualName, stream);
+				retMap.put(engineId, conceptSpecific);
 			}
 		} catch(SQLException e) {
 			e.printStackTrace();
@@ -932,21 +933,20 @@ public class MasterDatabaseUtility {
 		//and ec.physicalnameid=er.targetconceptid and c.localconceptid=ec.localconceptid and e.id=er.engine;
 
 		// now time to run the upstream and downstream queries
-		String downstreamQuery = "select distinct  e.enginename, er.sourceconceptid, 'upstream' as upstream,  "
-				+ "er.relationname,  c.conceptualname , er.engine, er.targetconceptid, ec.physicalname from "
-				+ "enginerelation er, engineconcept ec, concept c, engine e "
+		String downstreamQuery = "select distinct ec.engine, er.sourceconceptid, 'upstream' as upstream, "
+				+ "er.relationname, c.conceptualname , er.engine, er.targetconceptid, ec.physicalname "
+				+ "from enginerelation er, engineconcept ec, concept c "
 				+ "where er.sourceconceptid in (select physicalnameid from engineconcept where localconceptid in "
 				+ "(select localconceptid from concept where logicalname in " + conceptString + ")) "
-				+ "and ec.physicalnameid=er.targetconceptid and c.localconceptid=ec.localconceptid and e.id=er.engine;";
+				+ "and ec.physicalnameid=er.targetconceptid and c.localconceptid=ec.localconceptid;";
 
 		try {
 			if(stmt == null) {
 				stmt = conn.createStatement();
 			}
 			rs = stmt.executeQuery(downstreamQuery);
-			while(rs.next())
-			{
-				String engineName = rs.getString(1);
+			while(rs.next()) {
+				String engineId = rs.getString(1);
 				String coreConceptId = rs.getString(2);
 				String relationName = rs.getString(4);
 				String streamConceptName = rs.getString(5);
@@ -955,7 +955,7 @@ public class MasterDatabaseUtility {
 				// this is the main concept
 				String coreConceptName = idToName.get(coreConceptId);
 
-				Map <String, Map> engineSpecific = retMap.get(engineName);
+				Map <String, Map> engineSpecific = retMap.get(engineId);
 				Map <String, Object> conceptSpecific = engineSpecific.get(coreConceptName);
 
 				Set<String> downstreams = new TreeSet<String>();
@@ -970,7 +970,7 @@ public class MasterDatabaseUtility {
 				conceptSpecific.put("upstream", downstreams);
 				conceptSpecific.put("physical", physicalNames);
 				engineSpecific.put(coreConceptName, conceptSpecific);
-				retMap.put(engineName, engineSpecific);
+				retMap.put(engineId, engineSpecific);
 			}
 		} catch(SQLException e) {
 			e.printStackTrace();
@@ -979,12 +979,12 @@ public class MasterDatabaseUtility {
 		}
 
 		// now time to run the upstream and downstream queries
-		String upstreamQuery = "select distinct  e.enginename, er.targetconceptid, 'downstream' as downstream,  "
-				+ "er.relationname,  c.conceptualname , er.engine, er.sourceconceptid, ec.physicalname from "
-				+ "enginerelation er, engineconcept ec, concept c, engine e "
+		String upstreamQuery = "select distinct ec.engine, er.targetconceptid, 'downstream' as downstream,  "
+				+ "er.relationname,  c.conceptualname , er.engine, er.sourceconceptid, ec.physicalname "
+				+ "from enginerelation er, engineconcept ec, concept c "
 				+ "where er.targetconceptid in (select physicalnameid from engineconcept where localconceptid in "
 				+ "(select localconceptid from concept where logicalname in " + conceptString + ")) "
-				+ "and ec.physicalnameid=er.sourceconceptid and c.localconceptid=ec.localconceptid and e.id=er.engine;";
+				+ "and ec.physicalnameid=er.sourceconceptid and c.localconceptid=ec.localconceptid";
 		try {
 			if(stmt == null) {
 				stmt = conn.createStatement();
@@ -1025,38 +1025,6 @@ public class MasterDatabaseUtility {
 		return retMap;
 	}
 	
-	public static Map<String, Set<String>> getAllConceptsFromEnginesRDBMS() {
-		/*
-		 * Grab the local master engine and query for the concepts
-		 * We do not want to load the engine until the user actually wants to use it
-		 */
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-
-		// select distinct c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine and e.enginename = 'actor';
-		// I am getting the logical and the physical
-		Map<String, Set<String>> returnHash = new TreeMap<String, Set<String>>();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try
-		{
-			String conceptQuery = "select distinct e.enginename from engine e"; //, c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and e.id=ec.engine";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(conceptQuery);
-			while(rs.next()) {
-				String engineName = rs.getString(1);
-				Set <String> conceptSet = new TreeSet<String>();
-				conceptSet.add("");
-				returnHash.put(engineName, conceptSet);
-			}
-		} catch(SQLException ex) {
-			ex.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
-		}
-		return returnHash;
-	}
-
 	/**
 	 * Get the list of unique engine ids
 	 * @return
@@ -1106,7 +1074,7 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 		Set<String> conceptsList = new TreeSet<String>();
 		try {
-			String query = "select distinct c.logicalname, ec.physicalname from concept c, engineconcept ec, engine e "
+			String query = "select distinct c.conceptualname, from concept c, engineconcept ec "
 						+ "where ec.localconceptid=c.localconceptid and ec.property=false and ec.engine ='" + engineId + "'";
 			
 			stmt = conn.createStatement();
