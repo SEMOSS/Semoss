@@ -21,15 +21,8 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineId = getApp();
-		if(engineId != null) {
-			List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
-			if(appIds.size() == 1) {
-				// actually received an app name
-				engineId = appIds.get(0);
-			} else if(appIds.size() > 1) {
-				throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
-			}
-		}
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+
 		List<String> conceptualNames = getColumns();
 		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames, null);
 		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, engineId);

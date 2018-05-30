@@ -31,13 +31,7 @@ public class DatabaseSpecificConceptPropertiesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the engine filter");
 		}
 		String engineId = engineFilterGrs.get(0).toString();
-		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
-		if(appIds.size() == 1) {
-			// actually received an app name
-			engineId = appIds.get(0);
-		} else if(appIds.size() > 1) {
-			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");
-		}
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 
 		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(conceptLogicals, engineId);
 		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
