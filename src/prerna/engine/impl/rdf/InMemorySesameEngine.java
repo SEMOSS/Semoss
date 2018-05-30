@@ -34,7 +34,6 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -77,12 +76,10 @@ import prerna.util.Utility;
 public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 
 	private static final Logger logger = LogManager.getLogger(InMemorySesameEngine.class.getName());
-	Properties bdProp = null;
-	Properties rdfMap = null;
 	RepositoryConnection rc = null;
+	SailConnection sc = null;
 	ValueFactory vf = null;
 	boolean connected = false;
-	SailConnection sc = null;
 
 	/**
 	 * Method setRepositoryConnection. Sets the repository connection.
@@ -129,30 +126,6 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 		}
 		// ng.shutdown();
 	}
-
-	/**
-	 * Runs the passed string query against the engine and returns graph query results.  The query passed must be in the structure 
-	 * of a CONSTRUCT SPARQL query.  The exact format of the results will be 
-	 * dependent on the type of the engine, but regardless the results are able to be graphed.
-	 * @param query the string version of the query to be run against the engine
-	
-	 * @return the graph query results */
-//	@Override
-//	public GraphQueryResult execGraphQuery(String query) {
-//		 GraphQueryResult res = null;
-//		try {
-//			GraphQuery sagq = rc.prepareGraphQuery(QueryLanguage.SPARQL,
-//						query);
-//				res = sagq.evaluate();
-//		} catch (RepositoryException e) {
-//			e.printStackTrace();
-//		} catch (MalformedQueryException e) {
-//			e.printStackTrace();
-//		} catch (QueryEvaluationException e) {
-//			e.printStackTrace();
-//		}
-//		return res;	
-//	}
 
 	/**
 	 * Runs the passed string query against the engine as a SELECT query.  The query passed must be in the structure of a SELECT 

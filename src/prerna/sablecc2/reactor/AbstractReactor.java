@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -79,6 +80,25 @@ public abstract class AbstractReactor implements IReactor {
 			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
 				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
 			}
+		}
+	}
+	
+	/**
+	 * 	Organize a list of engines into the keyValue object of the reactor for
+	 *  engine name related searches in solr.
+	 * @param enginesList List of Engines(name) for the specific user
+	 */
+	public void organizeKeysForEngines(HashSet<String> enginesList) {
+		int enginesSize = enginesList.size();
+		String[] engines = enginesList.toArray(new String[enginesList.size()]);
+		for (int enIdx = 0; enIdx < enginesSize; enIdx++) {
+			if (enIdx == 0)
+				keyValue.put(this.keysToGet[0], engines[enIdx] + "");
+			else
+				keyValue.put(this.keysToGet[0], keyValue.get(this.keysToGet[0]) + " OR " + engines[enIdx] + "");
+		}
+		if (enginesList.isEmpty()) {
+			keyValue.put(this.keysToGet[0], "");
 		}
 	}
 	

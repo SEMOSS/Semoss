@@ -36,7 +36,7 @@ public class UpdateSystemSiteSupport {
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
 		IEngine pEng = new BigDataEngine();
 		pEng.openDB(engineProp);
-		pEng.setEngineName("TAP_Portfolio");
+		pEng.setEngineId("TAP_Portfolio");
 		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", pEng);
 
 		String query = "select distinct ?systemsitesupportglitem ?system ?dcsite ?fy ?gltag ?cost "

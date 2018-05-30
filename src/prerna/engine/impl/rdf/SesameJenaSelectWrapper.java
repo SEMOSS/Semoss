@@ -443,7 +443,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
 		engine.setAPI("http://localhost:9080/Monolith/api/engine");
 		engine.setDatabase("Movie_DB");
-		engine.setEngineName("Movie_DB");
+		engine.setEngineId("Movie_DB");
 		
 		engine.openDB(null);
 		

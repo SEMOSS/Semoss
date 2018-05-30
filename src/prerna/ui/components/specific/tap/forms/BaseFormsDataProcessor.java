@@ -274,7 +274,7 @@ public class BaseFormsDataProcessor {
 	
 	protected ArrayList<String> getReviewedSystems(IEngine engine, String queryToRun){
 		//get the list of reviewed systems
-		ArrayList<String> listToPopulate = QueryProcessor.getStringList(queryToRun, engine.getEngineName());
+		ArrayList<String> listToPopulate = QueryProcessor.getStringList(queryToRun, engine.getEngineId());
 		LOGGER.info(listToPopulate.toString());
 		return listToPopulate;
 	}
@@ -375,7 +375,7 @@ public class BaseFormsDataProcessor {
 		}
 		//make a query with the chosen systems and pull the information for the query
 		localQuery = query.replace("@SYSTEM@", systemsToQueryFor);
-		consolidatedMapping = getMapOfStringMapOfStrings(localQuery, engine.getEngineName());
+		consolidatedMapping = getMapOfStringMapOfStrings(localQuery, engine.getEngineId());
 		//LOGGER.info("Adding this to the map: " + consolidatedMapping.toString());
 
 		return consolidatedMapping;
@@ -399,7 +399,7 @@ public class BaseFormsDataProcessor {
 		}
 		//make a query with the chosen systems and pull the information for the query
 		localQuery = query.replace("@SYSTEM@", systemsToQueryFor);
-		consolidatedMapping = QueryProcessor.getStringListMap(localQuery, engine.getEngineName());
+		consolidatedMapping = QueryProcessor.getStringListMap(localQuery, engine.getEngineId());
 		LOGGER.info("Adding this to the map: " + consolidatedMapping.toString());
 
 		return consolidatedMapping;
@@ -424,7 +424,7 @@ public class BaseFormsDataProcessor {
 		}
 		//make a query with the chosen systems and pull the information for the query
 		localQuery = query.replace("@SYSTEM@", systemsToQueryFor);
-		consolidatedMapping = getMapOfTable(localQuery, engine.getEngineName());
+		consolidatedMapping = getMapOfTable(localQuery, engine.getEngineId());
 		LOGGER.info("Adding this to the map: " + consolidatedMapping.toString());
 
 		return consolidatedMapping;

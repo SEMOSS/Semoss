@@ -46,7 +46,7 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		
 		// 2) create a new solr engine
 		this.engine = new SolrEngine(solrURL, solrCoreName);
-		this.engine.setEngineName(dbName);
+		this.engine.setEngineId(dbName);
 		
 		// 3) create the owler
 		this.owlFile = engineDirectoryName + System.getProperty("file.separator") + dbName + "_OWL.OWL";

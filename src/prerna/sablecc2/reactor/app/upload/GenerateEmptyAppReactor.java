@@ -103,7 +103,7 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		logger.info("Done loading into solr");
 
 		AppEngine appEng = new AppEngine();
-		appEng.setEngineName(appName);
+		appEng.setEngineId(appName);
 		appEng.setInsightDatabase(insightDb);
 		// only at end do we add to DIHelper
 		DIHelper.getInstance().setLocalProperty(appName, appEng);

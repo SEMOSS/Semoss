@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -28,6 +29,7 @@ public class InsightComment {
 	public static final String COMMENT_EXTENSION = ".c";
 
 	// keys
+	private static final String ENGINE_ID_KEY = "engineId";
 	private static final String ENGINE_KEY = "engine";
 	private static final String INSGIHT_ID_KEY = "insightId";
 
@@ -49,6 +51,7 @@ public class InsightComment {
 	private String comment;
 	private String action;
 	// required to know where it belongs
+	private String engineId;
 	private String engineName;
 	private String rdbmsId;
 	
@@ -67,7 +70,8 @@ public class InsightComment {
 	/**
 	 * Constructor will generate the random comment id
 	 */
-	public InsightComment(String engineName, String rdbmsId) {
+	public InsightComment(String engineId, String engineName, String rdbmsId) {
+		this.engineId = engineId;
 		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
 		
@@ -77,7 +81,7 @@ public class InsightComment {
 	
 	/**
 	 * Write the insight comment
-	 * @param engineName
+	 * @param engineId
 	 * @param rdbmsId
 	 */
 	public void writeToFile() {
@@ -85,7 +89,7 @@ public class InsightComment {
 
 		String json = GSON.toJson(map);
 		String baseDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-				+ "\\" + Constants.DB + "\\" + this.engineName + "\\version\\" + this.rdbmsId;
+				+ "\\" + Constants.DB + "\\" + SmssUtilities.getUniqueName(this.engineName, this.engineId) + "\\version\\" + this.rdbmsId;
 		
 		File path = new File(baseDir);
 		// create insight directory if it doesn't exist
@@ -115,7 +119,10 @@ public class InsightComment {
 	 */
 	private Map<String, String> moveDataToMap() {
 		Map<String, String> map = new TreeMap<String, String>();
-		map.put(ENGINE_KEY, this.engineName);
+		map.put(ENGINE_ID_KEY, this.engineId);
+		if(this.engineName != null) {
+			map.put(ENGINE_KEY, this.engineName);
+		}
 		map.put(INSGIHT_ID_KEY, this.rdbmsId);
 
 		map.put(ID_KEY, this.id);
@@ -163,10 +170,11 @@ public class InsightComment {
 			throw new IllegalArgumentException("Comment info file is not in valid JSON format");
 		}
 
-		String engineName = mapData.get(ID_KEY);
-		String insightId = mapData.get(ID_KEY);
+		String engineId = mapData.get(ENGINE_ID_KEY);
+		String engineName = mapData.get(ENGINE_KEY);
+		String insightId = mapData.get(INSGIHT_ID_KEY);
 
-		InsightComment comment = new InsightComment(engineName, insightId);
+		InsightComment comment = new InsightComment(engineId, engineName, insightId);
 		comment.id = mapData.get(ID_KEY);
 		comment.nextId = mapData.get(NEXT_ID_KEY);
 		comment.prevId = mapData.get(PREVIOUS_ID_KEY);

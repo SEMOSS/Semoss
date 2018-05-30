@@ -140,13 +140,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
 		solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
 		solrInsights.put(SolrIndexEngine.DESCRIPTION, description);
-		solrInsights.put(SolrIndexEngine.CORE_ENGINE_ID, insightIdToSave);
+		solrInsights.put(SolrIndexEngine.APP_INSIGHT_ID, insightIdToSave);
 		solrInsights.put(SolrIndexEngine.USER_ID, userId);
 		solrInsights.put(SolrIndexEngine.VIEW_COUNT, 0);
 
 		// TODO: figure out which engines are used within this insight
-		solrInsights.put(SolrIndexEngine.CORE_ENGINE, engineName);
-		solrInsights.put(SolrIndexEngine.ENGINES, new HashSet<String>().add(engineName));
+		solrInsights.put(SolrIndexEngine.APP_ID, engineName);
 		try {
 			SolrIndexEngine.getInstance().addInsight(engineName + "_" + insightIdToSave, solrInsights);
 		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException

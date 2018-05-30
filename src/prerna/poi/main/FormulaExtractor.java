@@ -105,7 +105,7 @@ public class FormulaExtractor extends AbstractFileReader {
 	/**
 	 * Load data into SEMOSS into an existing database
 	 * 
-	 * @param engineName
+	 * @param engineId
 	 *            String grabbed from the user interface specifying which database to add the data
 	 * @param fileNames
 	 *            Absolute paths of files the user wants to load into SEMOSS, paths are separated by ";"

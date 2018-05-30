@@ -92,7 +92,7 @@ public class Dashboard implements IDataMaker {
 			Map<String, Object> nextInsightMap = new HashMap<>();
 			
 			nextInsightMap.put("insightID", insight.getInsightId());
-			nextInsightMap.put("engine", insight.getEngineName());
+			nextInsightMap.put("engine", insight.getEngineId());
 			nextInsightMap.put("questionID", insight.getRdbmsId());
 			
 			String[] ids = this.insight2frameMap.get(insight.getInsightId());

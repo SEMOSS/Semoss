@@ -51,7 +51,7 @@ public class DataMakerComponent {
 	 */
 	public DataMakerComponent(IEngine engine, String query){
 		this.engine = engine;
-		this.engineName = engine.getEngineName();
+		this.engineName = engine.getEngineId();
 		this.query = query;
 	}
 
@@ -72,7 +72,7 @@ public class DataMakerComponent {
 	 */
 	public DataMakerComponent(IEngine engine, QueryStruct qs){
 		this.engine = engine;
-		this.engineName = engine.getEngineName();
+		this.engineName = engine.getEngineId();
 		this.qs = qs;
 	}
 	

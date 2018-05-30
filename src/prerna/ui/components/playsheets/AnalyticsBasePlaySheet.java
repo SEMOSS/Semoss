@@ -113,7 +113,7 @@ public class AnalyticsBasePlaySheet extends BrowserPlaySheet {
 		allData = addToAllData(centralityHash, "x", allData);
 
 		LOGGER.info("Constructing query to calculate the number of insights for each query...");
-		String engineName = engine.getEngineName();
+		String engineName = engine.getEngineId();
 		String specificInsightQuery = getConceptInsightCountQuery.replace("@ENGINE_NAME@", "http://semoss.org/ontologies/Concept/Engine/".concat(engineName));
 		String bindings = "BINDINGS ?entity { ";
 		for(String concept : conceptList) {

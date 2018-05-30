@@ -203,7 +203,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		Utility.synchronizeEngineMetadata(newAppName);
 
 		DataStaxGraphEngine dseEngine = new DataStaxGraphEngine();
-		dseEngine.setEngineName(newAppName);
+		dseEngine.setEngineId(newAppName);
 		dseEngine.openDB(smssFile.getAbsolutePath());
 
 		// only at end do we add to DIHelper

@@ -70,7 +70,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		obj.put("pkqlOutput", insightMap);
 
 		// update the solr universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(engine.getEngineName(), insightId);
+		GlobalInsightCountUpdater.getInstance().addToQueue(engine.getEngineId(), insightId);
 
 		return new NounMetadata(obj, PixelDataType.MAP, PixelOperationType.OLD_INSIGHT);
 	}

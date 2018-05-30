@@ -31,4 +31,16 @@ public enum EnginePermission {
 		
 		return ep;
 	}
+	
+	public static String getPermissionValueById(String id) {
+		EnginePermission ep = EnginePermission.READ_ONLY;
+		for(EnginePermission perm : EnginePermission.values()) {
+			String permId = perm.id + "";
+			if(permId.equalsIgnoreCase(id)) {
+				ep = perm;
+			}
+		}
+		
+		return ep.getPermission();
+	}
 }

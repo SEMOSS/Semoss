@@ -78,6 +78,7 @@ public class Insight {
 
 	// if this is a saved insight
 	protected String rdbmsId;
+	protected String engineId;
 	protected String engineName;
 
 	// list to store the pixels that make this insight
@@ -139,12 +140,12 @@ public class Insight {
 
 	/**
 	 * Open a saved insight
-	 * @param engineName
+	 * @param engineId
 	 * @param rdbmsId
 	 */
-	public Insight(String engineName, String rdbmsId) {
+	public Insight(String engineId, String rdbmsId) {
 		this();
-		this.engineName = engineName;
+		this.engineId = engineId;
 		this.rdbmsId = rdbmsId;
 	}
 	
@@ -323,7 +324,7 @@ public class Insight {
 	
 	public LinkedList<InsightComment> getInsightComments() {
 		if(this.insightCommentList == null) {
-			this.insightCommentList = InsightCommentHelper.generateInsightCommentList(this.engineName, this.rdbmsId);
+			this.insightCommentList = InsightCommentHelper.generateInsightCommentList(this.engineId, this.rdbmsId);
 		}
 		return this.insightCommentList;
 	}
@@ -365,6 +366,13 @@ public class Insight {
 		this.insightId = insightId;
 	}
 
+	public String getUser2Id(String type) {
+		if(this.user2 == null) {
+			return "-1";
+		}
+		return user2.getAccessToken(type).getId();
+	}
+	
 	public String getUserId() {
 		if(this.user == null) {
 			return "-1";
@@ -396,6 +404,14 @@ public class Insight {
 		this.rdbmsId = rdbmsId;
 	}
 
+	public String getEngineId() {
+		return engineId;
+	}
+
+	public void setEngineId(String engineId) {
+		this.engineId = engineId;
+	}
+	
 	public String getEngineName() {
 		return engineName;
 	}

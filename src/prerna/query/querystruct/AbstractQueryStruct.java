@@ -216,7 +216,7 @@ public abstract class AbstractQueryStruct {
 	
 	public String getEngineName() {
 		if(this.engineName == null && this.engine != null) {
-			this.engineName = this.engine.getEngineName();
+			this.engineName = this.engine.getEngineId();
 		}
 		return this.engineName;
 	}

@@ -122,17 +122,29 @@ public interface IEngine extends IExplorable {
 	public boolean isConnected();
 
 	/**
-	 * Sets the name of the engine. This may be a lot of times the same as the Repository Name
-	 * @param engineName - Name of the engine that this is being set to 
+	 * Sets the unique id for the engine 
+	 * @param engineId - id to set the engine 
 	 */
-	public void setEngineName(String engineName);
+	public void setEngineId(String engineId);
 	
 	/**
 	 * Gets the engine name for this engine	
 	 * @return Name of the engine
 	 */
-	public String getEngineName();
+	public String getEngineId();
 
+//	/**
+//	 * Sets the name of the engine. This may be a lot of times the same as the Repository Name
+//	 * @param engineName - Name of the engine that this is being set to 
+//	 */
+//	public void setEngineName(String engineName);
+//	
+//	/**
+//	 * Gets the engine name for this engine	
+//	 * @return Name of the engine
+//	 */
+//	public String getEngineName();
+	
 	/**
 	 * Performs a specific action with the given args
 	 * @param actionType The type of action to perform

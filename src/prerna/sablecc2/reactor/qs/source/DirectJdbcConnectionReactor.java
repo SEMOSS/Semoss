@@ -35,7 +35,7 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		}
 		
 		RDBMSNativeEngine fakeEngine = new RDBMSNativeEngine();
-		fakeEngine.setEngineName("DIRECT_ENGINE_CONNECTION");
+		fakeEngine.setEngineId("DIRECT_ENGINE_CONNECTION");
 		fakeEngine.setConnection(con);
 		fakeEngine.setBasic(true);
 		
