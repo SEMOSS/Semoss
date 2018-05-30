@@ -111,7 +111,7 @@ public class HighSystemCheckBoxSelectorListener implements ActionListener {
 		Vector<String> retList=new Vector<String>();
 		try{
 			EntityFiller filler = new EntityFiller();
-			filler.engineName = engine.getEngineName();
+			filler.engineName = engine.getEngineId();
 			filler.type = type;
 			filler.setExternalQuery(sparqlQuery);
 			filler.run();

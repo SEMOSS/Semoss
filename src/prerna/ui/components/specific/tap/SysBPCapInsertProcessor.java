@@ -118,7 +118,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		boolean success = true;		
 		LOGGER.info("Data Object Threshold Value = " + dataObjectThresholdValue*100 + "%");
 		LOGGER.info("Business Logic Unit Threshold Value = " + bluThresholdValue*100 + "%");
-		LOGGER.info("Core DB is: " + coreDB.getEngineName());			
+		LOGGER.info("Core DB is: " + coreDB.getEngineId());			
 //1.  QUERY AND COLLECT THE DATA (Raw URIs)	
 		HashMap<String, Set<String>> bpDataHash = getQueryResultHash(coreDB, BUSINESS_PROCESSES_DATA_QUERY);
 		HashMap<String, Set<String>> bpBLUHash = getQueryResultHash(coreDB, BUSINESS_PROCESSES_BLU_QUERY);
@@ -126,7 +126,7 @@ public class SysBPCapInsertProcessor extends AggregationHelper {
 		HashMap<String, Set<String>> systemBLUHash = getQueryResultHash(coreDB, SYSTEM_BLU_QUERY);				
 		HashMap<String, Set<String>> capDataHash = getQueryResultHash(coreDB, CAPABILITY_DATA_QUERY);
 		HashMap<String, Set<String>> capBLUHash = getQueryResultHash(coreDB, CAPABILITY_BLU_QUERY);		
-			if (!(coreDB.getEngineName().equals("TAP_Core_Data"))) {
+			if (!(coreDB.getEngineId().equals("TAP_Core_Data"))) {
 				this.errorMessage = "Select the TAP_Core_Data database.";
 				return false;
 			}				

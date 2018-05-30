@@ -65,7 +65,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 			// return to the FE the recipe
 			insightMap.put("name", newInsight.getInsightName());
 			// keys below match those in solr
-			insightMap.put("core_engine", newInsight.getEngineName());
+			insightMap.put("core_engine", newInsight.getEngineId());
 			insightMap.put("core_engine_id", newInsight.getRdbmsId());
 			insightMap.put("layout", ((OldInsight) newInsight).getOutput());
 			return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);

@@ -454,7 +454,7 @@ public class InsightFilesToDatabaseReader {
 		String engineName = "Movie_RDBMS";
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + engineName + ".smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName(engineName);
+		coreEngine.setEngineId(engineName);
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty(engineName, coreEngine);
 		

@@ -1420,7 +1420,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		//TODO: put in correct path for your database
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
 		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineName("Movie_RDBMS");
+		coreEngine.setEngineId("Movie_RDBMS");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
 	}

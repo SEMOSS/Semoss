@@ -19,10 +19,10 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
+@Deprecated
 public class OwlConceptualNameModernizer {
 
 	private String owlPath;
@@ -30,23 +30,11 @@ public class OwlConceptualNameModernizer {
 	private ENGINE_TYPE engineType = ENGINE_TYPE.RDBMS;
 
 	public OwlConceptualNameModernizer(Properties prop) {
-		String baseFolder = null;
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		} catch (Exception ignored) {
-			// just set to default location
-			// used for testing if DIHelper not loaded
-			baseFolder = "C:/workspace/Semoss_Dev";
-		}
-
 		// create the owl engine
 		// since we need to do this on start up
 		// we dont want to load the entire engine
 
-		this.owlPath = baseFolder + "/" + prop.getProperty(Constants.OWL);
-		Map<String, String> paramHash = new Hashtable<String, String>();
-		paramHash.put("engine", prop.getProperty(Constants.ENGINE));
-		this.owlPath = Utility.fillParam2(this.owlPath, paramHash);
+		this.owlPath = SmssUtilities.getOwlFile(prop).getAbsolutePath();
 		
 		// owl is stored as RDF/XML file
 		this.rfse = new RDFFileSesameEngine();

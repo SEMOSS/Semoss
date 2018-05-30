@@ -77,7 +77,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		{
 			allHash.put("xAxisTitle", "Capability");
 			updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
-			comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), capabilityQuery);
+			comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineId(), capabilityQuery);
 			setComparisonObjectTypes("Capability", "System");
 			updateProgressBar("35%...Querying Data", 35);
 			processor.genStorageInformation(this.engine, comparisonType);
@@ -85,7 +85,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		{
 			allHash.put("xAxisTitle", "BusinessProcess");
 			updateProgressBar("10%...Getting " + comparisonType + " list for evaluation", 10);
-			comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), businessProcessQuery);
+			comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineId(), businessProcessQuery);
 			setComparisonObjectTypes("BusinessProcess", "System");
 			updateProgressBar("35%...Querying Data", 35);
 			processor.genStorageInformation(this.engine, comparisonType);
@@ -210,7 +210,7 @@ public class SysCapSimHeatMapSheet extends SimilarityHeatMapSheet {
 		SysCapSimHeatMapWriter writer = new SysCapSimHeatMapWriter();
 		String folder = System.getProperty("file.separator") + "export" + System.getProperty("file.separator") + "Reports"
 				+ System.getProperty("file.separator");
-		String writeFileName = "SystemCapabilityHeatMap_for_" + this.engine.getEngineName().replaceAll(":", "") + "_"
+		String writeFileName = "SystemCapabilityHeatMap_for_" + this.engine.getEngineId().replaceAll(":", "") + "_"
 				+ DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()).replace(":", "").replaceAll(" ", "_")
 				+ ".xlsx";
 		

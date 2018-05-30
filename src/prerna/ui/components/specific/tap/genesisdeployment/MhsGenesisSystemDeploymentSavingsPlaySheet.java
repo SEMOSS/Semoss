@@ -621,23 +621,23 @@ public class MhsGenesisSystemDeploymentSavingsPlaySheet extends TablePlaySheet {
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";
 		IEngine coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Core_Data");
+		coreEngine.setEngineId("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("TAP_Core_Data");
+		coreEngine.setEngineId("TAP_Core_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data.smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Site_Data");
+		coreEngine.setEngineId("TAP_Site_Data");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("TAP_Site_Data");
+		coreEngine.setEngineId("TAP_Site_Data");
 		DIHelper.getInstance().setLocalProperty("TAP_Site_Data", coreEngine);
 
 		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio.smss";
 		coreEngine = new BigDataEngine();
-		coreEngine.setEngineName("TAP_Portfolio");
+		coreEngine.setEngineId("TAP_Portfolio");
 		coreEngine.openDB(engineProp);
-		coreEngine.setEngineName("TAP_Portfolio");
+		coreEngine.setEngineId("TAP_Portfolio");
 		DIHelper.getInstance().setLocalProperty("TAP_Portfolio", coreEngine);
 
 		MhsGenesisDeploymentSavingsProcessor processor = new MhsGenesisDeploymentSavingsProcessor();

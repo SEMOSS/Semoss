@@ -48,7 +48,7 @@ public class D3FileWatcher extends AbstractFileWatcher {
 		try {
 			System.out.println("File Came through "  + folderToWatch + "/" + fileName);
 			D3CSVLoader loader = new D3CSVLoader();
-			loader.importFileWithConnection(engine.getEngineName(), folderToWatch + "/" + fileName, "http://semoss.org/ontologies", engine.getProperty(Constants.OWL));
+			loader.importFileWithConnection(engine.getEngineId(), folderToWatch + "/" + fileName, "http://semoss.org/ontologies", engine.getProperty(Constants.OWL));
 			
 			
 		} catch(RuntimeException ex) {

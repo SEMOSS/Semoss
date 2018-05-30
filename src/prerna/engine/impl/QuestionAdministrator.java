@@ -457,7 +457,7 @@ public class QuestionAdministrator {
 //			Map<String, Object> compMap = insightMakeup.get(i);
 			DataMakerComponent dmc = dmcList.get(i);
 			List<SEMOSSParam> involvedParams = new Vector<SEMOSSParam>();
-			String engineName = dmc.getEngine().getEngineName();
+			String engineName = dmc.getEngine().getEngineId();
 			String realEngineName = escapeForSQLStatement(engineName);
 			String cleanEngineName = Utility.cleanString(engineName, true);
 			LOGGER.info("Component " + i + " has engine name::: " + cleanEngineName);

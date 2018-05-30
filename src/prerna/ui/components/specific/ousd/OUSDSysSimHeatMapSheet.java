@@ -110,14 +110,14 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		updateProgressBar("10%...Getting all systems for evaluation", 10);
 		String defaultSystemsQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>}{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?SystemOwner}} BINDINGS ?SystemOwner {(<http://semoss.org/ontologies/Concept/SystemOwner/DFAS>)}";
 		defaultSystemsQuery = addBindings(defaultSystemsQuery);
-		comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineName(), defaultSystemsQuery);
+		comparisonObjectList = sdf.createComparisonObjectList(this.engine.getEngineId(), defaultSystemsQuery);
 		sdf.setComparisonObjectList(comparisonObjectList);
 		
 		//data provided by system
 		updateProgressBar("20%...Evaluating Data created by systems Score", 20);
 		String dataProvidedQuery = "SELECT DISTINCT ?System ?Data WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?Data <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DataObject>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?Data}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>}{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?SystemOwner}} BINDINGS ?SystemOwner {(<http://semoss.org/ontologies/Concept/SystemOwner/DFAS>)}";
 		dataProvidedQuery = addBindings(dataProvidedQuery);
-		Hashtable dataProvidedHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), dataProvidedQuery, SimilarityFunctions.VALUE);
+		Hashtable dataProvidedHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), dataProvidedQuery, SimilarityFunctions.VALUE);
 		dataProvidedHash = processHashForCharting(dataProvidedHash);
 		
 		//dataDown
@@ -137,20 +137,20 @@ public class OUSDSysSimHeatMapSheet extends SimilarityHeatMapSheet{
 		updateProgressBar("30%...Evaluating BLU Score", 30);
 		String bluQuery = "SELECT DISTINCT ?System ?BLU WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?BLU <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/BusinessLogicUnit>;}{?System <http://semoss.org/ontologies/Relation/Provide> ?BLU }{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>}{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?SystemOwner}} BINDINGS ?SystemOwner {(<http://semoss.org/ontologies/Concept/SystemOwner/DFAS>)}";
 		bluQuery = addBindings(bluQuery);
-		Hashtable bluHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), bluQuery, SimilarityFunctions.VALUE);
+		Hashtable bluHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), bluQuery, SimilarityFunctions.VALUE);
 		bluHash = processHashForCharting(bluHash);
 		
 		
 		updateProgressBar("50%...Evaluating System Supporting Activity", 50);
 		String actQuery ="SELECT DISTINCT ?System ?Activity WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System> ;} {?Activity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Activity> ;} {?System <http://semoss.org/ontologies/Relation/Supports> ?Activity}{?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>}{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?SystemOwner}} BINDINGS ?SystemOwner {(<http://semoss.org/ontologies/Concept/SystemOwner/DFAS>)}";
 		actQuery = addBindings(actQuery);
-		Hashtable actHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), actQuery, SimilarityFunctions.VALUE);
+		Hashtable actHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), actQuery, SimilarityFunctions.VALUE);
 		actHash = processHashForCharting(actHash);
 
 		updateProgressBar("60%...Evaluating System Supporting Functional Strategies", 60);
 		String fsQuery ="SELECT DISTINCT ?System ?FunctionalStrategyInitiative Where{{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?FunctionalStrategyInitiative <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FunctionalStrategyInitiative>} {?System <http://semoss.org/ontologies/Relation/Provide> ?FunctionalStrategyInitiative} {?SystemOwner <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemOwner>}{?System <http://semoss.org/ontologies/Relation/OwnedBy> ?SystemOwner}} BINDINGS ?SystemOwner {(<http://semoss.org/ontologies/Concept/SystemOwner/DFAS>)}";
 		fsQuery = addBindings(fsQuery);
-		Hashtable fsHash = sdf.compareObjectParameterScore(this.engine.getEngineName(), fsQuery, SimilarityFunctions.VALUE);
+		Hashtable fsHash = sdf.compareObjectParameterScore(this.engine.getEngineId(), fsQuery, SimilarityFunctions.VALUE);
 		fsHash = processHashForCharting(fsHash);
 
 		ArrayList<Hashtable> hashArray = new ArrayList<Hashtable>();

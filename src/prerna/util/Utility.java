@@ -107,7 +107,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -709,6 +709,10 @@ public class Utility {
 	 * @param valueToProvide			The value to give the key
 	 */
 	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide) {
+		changePropMapFileValue(smssPath, keyToAlter, valueToProvide, false);
+	}
+	
+	public static void changePropMapFileValue(String smssPath, String keyToAlter, String valueToProvide, boolean contains) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
 
@@ -736,18 +740,36 @@ public class Utility {
 			// 2) iterate through each line if the smss file
 			for(int i=0; i<content.size(); i++){
 				// 3) if this line starts with the key to alter
-				if(content.get(i).contains(keyToAlter)){
-					// create new line to write using the key and the new value
-					String newKeyValue = keyToAlter + "\t" + valueToProvide;
-					fileOut.write(newKeyValue.getBytes());
+				
+				if(contains) {
+					if(content.get(i).contains(keyToAlter)) {
+						// create new line to write using the key and the new value
+						String newKeyValue = keyToAlter + "\t" + valueToProvide;
+						fileOut.write(newKeyValue.getBytes());
+					}
+					
+					// 4) if it doesn't, just write the next line as is
+					else {
+						byte[] contentInBytes = content.get(i).getBytes();
+						fileOut.write(contentInBytes);
+					}
+					// after each line, write a line break into the file
+					fileOut.write(lineBreak);
+				} else {
+					if(content.get(i).startsWith(keyToAlter + "\t") || content.get(i).startsWith(keyToAlter + " ")){
+						// create new line to write using the key and the new value
+						String newKeyValue = keyToAlter + "\t" + valueToProvide;
+						fileOut.write(newKeyValue.getBytes());
+					}
+					
+					// 4) if it doesn't, just write the next line as is
+					else {
+						byte[] contentInBytes = content.get(i).getBytes();
+						fileOut.write(contentInBytes);
+					}
+					// after each line, write a line break into the file
+					fileOut.write(lineBreak);
 				}
-				// 4) if it doesn't, just write the next line as is
-				else {
-					byte[] contentInBytes = content.get(i).getBytes();
-					fileOut.write(contentInBytes);
-				}
-				// after each line, write a line break into the file
-				fileOut.write(lineBreak);
 			}
 		} catch(IOException e){
 			e.printStackTrace();
@@ -774,9 +796,12 @@ public class Utility {
 	 * @param valueToProvide			The value for the key to add to the smss file
 	 */
 	public static void updateSMSSFile(String smssPath, String keyToAdd, String valueToProvide) {
+		updateSMSSFile(smssPath, "OWL", keyToAdd, valueToProvide);
+	}
+	
+	public static void updateSMSSFile(String smssPath, String locInFile, String keyToAdd, String valueToProvide) {
 		FileOutputStream fileOut = null;
 		File file = new File(smssPath);
-		String locInFile = "OWL";
 
 		/*
 		 * 1) Loop through the smss file and add each line as a list of strings
@@ -806,7 +831,7 @@ public class Utility {
 
 				// 3) if the last line printed matches that in locInFile, then write the new
 				// 		key-value pair after
-				if(content.get(i).contains(locInFile)){
+				if(content.get(i).startsWith(locInFile + "\t") || content.get(i).startsWith(locInFile + " ")){
 					String newProp = keyToAdd + "\t" + valueToProvide;
 					fileOut.write(newProp.getBytes());
 					fileOut.write("\n".getBytes());
@@ -2239,8 +2264,8 @@ public class Utility {
 	public static IEngine loadWebEngine(String fileName, Properties prop) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		// load the engine
 		IEngine engineToAdd = loadEngine(fileName, prop);
-		// get the engine name
-		String engineName = engineToAdd.getEngineName();
+		// get the engine id
+		String engineId = engineToAdd.getEngineId();
 
 		// get the solr instance
 		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
@@ -2285,29 +2310,29 @@ public class Utility {
 			}
 			// this if statement corresponds to the decision logic in comment block above
 			// 3) and 4) are checked within the if statement
-			if (!hidden && (AbstractEngine.RECREATE_SOLR || smssProp || !solrE.containsEngine(engineName))) {
+			if (!hidden && (smssProp || !solrE.containsEngine(engineId))) {
 				// alright, we are going to load the engines insights into solr
-				LOGGER.info(engineToAdd.getEngineName() + " has solr force reload value of " + smssProp );
-				LOGGER.info(engineToAdd.getEngineName() + " is reloading solr");
+				LOGGER.info(engineToAdd.getEngineId() + " has solr force reload value of " + smssProp );
+				LOGGER.info(engineToAdd.getEngineId() + " is reloading solr");
 //				try {
 //					// add the instances into solr
 //					addToSolrInstanceCore(engineToAdd);
 					// add the insights into solr
-					SolrUtility.addToSolrInsightCore(engineName);
+					SolrUtility.addToSolrInsightCore(engineId);
 					// add app
-					SolrUtility.addAppToSolr(engineName);
+					SolrUtility.addAppToSolr(engineId);
 //				} catch (ParseException e) {
 //					e.printStackTrace();
 //				}
 			}
 			// if the engine is hidden, delete it from solr
 			else if(hidden){
-				SolrUtility.deleteFromSolr(engineName);
+				SolrUtility.deleteFromSolr(engineId);
 			}
 			// if the smss prop was set to true -> i.e. a hard solr reload for that specific engine
 			// then we want to change the boolean to be false such that this is only a one time solr reload
 			if(smssProp){
-				LOGGER.info(engineToAdd.getEngineName() + " is changing solr boolean on smss");
+				LOGGER.info(engineToAdd.getEngineId() + " is changing solr boolean on smss");
 				changePropMapFileValue(fileName, Constants.SOLR_RELOAD, "false");
 			}
 		}
@@ -2327,25 +2352,24 @@ public class Utility {
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
-			String engineName = prop.getProperty(Constants.ENGINE);
+			String engineId = prop.getProperty(Constants.ENGINE);
 			String engineClass = prop.getProperty(Constants.ENGINE_TYPE);
 
-			if(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName)) {
-				LOGGER.debug("DB " + engineName + " is already loaded...");
+			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
+				LOGGER.debug("DB " + engineId + " is already loaded...");
 				// engines are by default loaded so that we can keep track on the front end of engine/all call
 				// so even though it is added here there is a good possibility it is not loaded so check to see this
-				if(DIHelper.getInstance().getLocalProp(engineName) instanceof IEngine) {
-					return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+				if(DIHelper.getInstance().getLocalProp(engineId) instanceof IEngine) {
+					return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
 				}
 			}
 
 			// we store the smss location in DIHelper 
-			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, fileName);
+			DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.STORE, fileName);
 			// we also store the OWL location
 			if(prop.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
+				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 			}
-			
 			
 			//TODO: NEED TO REMOVE THIS CODE
 			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
@@ -2359,29 +2383,29 @@ public class Utility {
 			
 			// create and open the class
 			engine = (IEngine)Class.forName(engineClass).newInstance();
-			engine.setEngineName(engineName);
+			engine.setEngineId(engineId);
 			engine.openDB(fileName);
 
 			// set the engine in DIHelper
-			DIHelper.getInstance().setLocalProperty(engineName, engine);
+			DIHelper.getInstance().setLocalProperty(engineId, engine);
 
 			// Append the engine name to engines if not already present
-			if(!(engines.startsWith(engineName) || engines.contains(";"+engineName+";") || engines.endsWith(";"+engineName))) 
+			if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) 
 			{
-				engines = engines + ";" + engineName;
+				engines = engines + ";" + engineId;
 				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
 			}
 
 			// now add or remove based on if it is hidden to local master
 			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
-			boolean isLocal = engineName.equals(Constants.LOCAL_MASTER_DB_NAME);
+			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
 			if(!hidden && !isLocal) {
 				// sync up the engine metadata now
-				synchronizeEngineMetadata(engineName);
+				synchronizeEngineMetadata(engineId);
 			} else if(!isLocal){ // never add local master to itself...
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB();
-				deleter.deleteEngineRDBMS(engineName);
-				SolrUtility.deleteFromSolr(engineName);
+				deleter.deleteEngineRDBMS(engineId);
+				SolrUtility.deleteFromSolr(engineId);
 			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
@@ -2393,254 +2417,7 @@ public class Utility {
 		return engine;
 	}
 
-//	/**
-//	 * Add data types into the OWL file for each concept and property for an engine 
-//	 * @param engine				The IEngine to add datatypes for
-//	 * @param fileName				The location of the SMSS file for that engine
-//	 */
-//	public static void loadDataTypesIfNotPresent(IEngine engine, String fileName) {
-//		/*
-//		 * Many use cases through the application requires that the data type be properly 
-//		 * defined within the OWL file for each data source
-//		 * 		-> when data type is not defined, most places in the code assumes values
-//		 * 			to be of type string/varchar
-//		 * 
-//		 * This routine is called at engine start-up to loop through every concept and
-//		 * property and add an appropriate data type triple
-//		 * 
-//		 * Note: this code first looks to see if a data type for that column exists within
-//		 * the owl, only if it not present will it try to determine the data type
-//		 * 
-//		 * Here is the logical flow
-//		 * 1) grab the boolean on the SMSS file to see if we need to go through this routine
-//		 * 2) if the boolean is true, continue to perform the following steps
-//		 * 3) grab all the concepts that exist in the database
-//		 * 4) get all the instances for the concept and determine the type IF a type is not present
-//		 * 		-> note: all concepts in an RDF database are automatically strings
-//		 * 			since they are stored as URIs
-//		 * 5) grab all the properties for the given concept
-//		 * 6) determine the type of the property IF a type is not already present
-//		 * 
-//		 * There is a very annoying caveat.. we have an annoying bifurcation based on the engine type
-//		 * If it is a RDBMS, getting the properties is pretty easy based on the way the IEngine is set up and how RDBMS queries work
-//		 * However, for RDF, getting the properties requires us to create a query and execute that query to get the list of values :/
-//		 */
-//
-//		// 1) grab boolean value that was defined in the SMSS file to determine if we need to look at data types to add to owl
-//		boolean fillEmpty = true;
-//		String fillEmptyStr = engine.getProperty(Constants.FILL_EMPTY_DATATYPES);
-//		if(fillEmptyStr != null) {
-//			fillEmpty = Boolean.parseBoolean(fillEmptyStr);
-//		}
-//
-//		// 2) if the boolean is true, proceed to perform logic, else, nothing to do
-//		if(fillEmpty) {
-//			LOGGER.info(engine.getEngineName() + " is reloading data types into owl file");
-//			// grab the engine type
-//			ENGINE_TYPE engineType = engine.getEngineType();
-//			// use the super handy owler object to actual add the triples 
-//			OWLER owler = new OWLER(engine, ((AbstractEngine) engine).getOWL());
-//
-//			// 3) first grab all the concepts
-//			// see if concept has a data type, if not, determine the type and then add it
-//			Vector<String> concepts = engine.getConcepts(false);;
-//			for(String concept : concepts) {
-//				// ignore stupid master concept
-//				if(concept.equals("http://semoss.org/ontologies/Concept")) {
-//					continue; 
-//				}
-//				String conceptType = engine.getDataTypes(concept);
-//				// 4) if the type of the concept isn't stored, need to add it
-//				if(conceptType == null) {
-//					// checking the type if rdf
-//					// if it is a RDF engine, all concepts are strings as its stored in a URI
-//					if(engineType != ENGINE_TYPE.RDBMS) {
-//						// all URIs are strings!!!!
-//						owler.addConcept(Utility.getInstanceName(concept), "STRING");
-//					} else {
-//						// grab all values
-//						Vector<Object> instances = engine.getEntityOfType(concept);
-//						if(instances != null && !instances.isEmpty()) {
-//							// determine the type via the first row
-//							String instanceObj = instances.get(0).toString().replace("\"", "");
-//							String type = Utility.findTypes(instanceObj)[0] + "";
-//							owler.addConcept(Utility.getInstanceName(concept), type);
-//						} else {
-//							// why is this a thing???
-//							LOGGER.error("no instances... not sure how i determine a type here...");
-//						}
-//					}
-//				}
-//
-//				// 5) For the concept, get all the properties
-//				// see if property has a data type, if not, determine the type and then add it
-//				List<String> propNames = engine.getProperties4Concept(concept, false);
-//				if(propNames != null && !propNames.isEmpty()) {
-//					// need a bifurcation in logic between rdbms and rdf
-//					// rdbms engine is smart enough to parse the table and column name from the uri in getEntityOfType call
-//					// however, rdf is dumb and requires a unique query to be created 
-//					// in order to get the values of a property for a specific concept
-//					for(String prop : propNames) {
-//						String propType = engine.getDataTypes(prop);
-//
-//						// 6) If the prop type isn't sotred, need to add it
-//						if(propType == null) {
-//							if(engineType == ENGINE_TYPE.RDBMS) {
-//								// grab all values
-//								Vector<Object> properties = engine.getEntityOfType(prop);
-//								if(properties != null && !properties.isEmpty()) {
-//									// determine the type via the first row
-//									String property = properties.get(0).toString().replace("\"", "");
-//									String type = Utility.findTypes(property)[0] + "";
-//									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-//								} else {
-//									// why is this a thing???
-//									LOGGER.error("no instances of property... not sure how i determine a type here...");
-//								}
-//							} else {
-//								// sadly, need to hand jam the appropriate query here
-//								String propQuery = "SELECT DISTINCT ?property WHERE { {?x <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + concept + "> } { ?x <" + prop + "> ?property} }";
-//								ISelectWrapper propWrapper = WrapperManager.getInstance().getSWrapper(engine, propQuery);
-//								if(propWrapper.hasNext()) {
-//									ISelectStatement propSS = propWrapper.next();
-//									String property = propSS.getVar("property").toString().replace("\"", "");
-//									String type = Utility.findTypes(property)[0] + "";
-//									owler.addProp(Utility.getInstanceName(concept), Utility.getInstanceName(prop), type);
-//								}  else {
-//									// why is this a thing???
-//									LOGGER.error("no instances of property... not sure how i determine a type here...");
-//								}
-//							}
-//						}
-//					}
-//				}
-//			}
-//
-//			// now write the owler with all these triples added
-//			// also need to reset the OWL within the engine to load in the triples
-//			try {
-//				owler.export();
-//				// setting the owl reloads the base engine to get the data types
-//				engine.setOWL(owler.getOwlPath());
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//
-//			// update the smss file to contain the boolean as true to avoid this process on start up again
-//			LOGGER.info(engine.getEngineName() + " is changing boolean on smss for filling empty datatypes");
-//			changePropMapFileValue(fileName, Constants.FILL_EMPTY_DATATYPES, "false");
-//		}
-//	}
-
-//	/**
-//	 * Adds the engine into the local master database
-//	 * @param engineToAdd				The engine to add into local master
-//	 */
-//	public static void addToLocalMaster(IEngine engineToAdd) {
-//		/*
-//		 * This determines when it is necessary to add an engine into the local master database
-//		 * 
-//		 * Logical Flow
-//		 * 
-//		 * 1) Get timestamp of the engine within local master -> call this time_local
-//		 * 2) Get timestamp of last engine update, stored on engine's OWL file -> call this time_engine
-//		 * 3) If time_local is equal to time_engine, local master is up to date
-//		 * 4) In all other conditions, add the engine to the local master
-//		 * 		-> all other conditions means if either time_local or time_engine are null or
-//		 * 			if they do not equal
-//		 * 
-//		 * Note: that after the local master has the engine added, the timestamp in the local master
-//		 * 			is set to be equal to that in the engine's OWL file (if the engine's OWL file time
-//		 * 			stamp is null, it is set to the time when this routine started running)
-//		 */
-//
-//		// grab the local master engine
-//		IEngine localMaster = (IEngine) DIHelper.getInstance().getLocalProp(Constants.LOCAL_MASTER_DB_NAME);
-//		if(localMaster == null) {
-//			LOGGER.info(">>>>>>>> Unable to find local master database in DIHelper.");
-//			return;
-//		}
-//		if(engineToAdd == null) {
-//			throw new NullPointerException("Engine passed in is null... no engine to load");
-//		}
-//
-//		// generate the appropriate query to execute on the local master engine to get the time stamp
-//		String engineName = engineToAdd.getEngineName();
-//		String engineURL = "http://semoss.org/ontologies/Concept/Engine/" + Utility.cleanString(engineName, true);
-//		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
-//
-//		// generate the query to execute on the engine's OWL to get the time stamp
-//		String engineQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + BaseDatabaseCreator.TIME_URL + "> <" + BaseDatabaseCreator.TIME_KEY + "> ?TIMESTAMP}";
-//
-//		// 1) get the local master timestamp for engine
-//		String localDbTimeForEngine = null;
-//		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
-//		String[] names = wrapper.getVariables();
-//		while(wrapper.hasNext()) {
-//			ISelectStatement ss = wrapper.next();
-//			localDbTimeForEngine = ss.getVar(names[0]) + "";
-//		}
-//
-//		// 2) get the engine timestamp from OWL 
-//		String engineDbTime = null;
-//		ISelectWrapper wrapper2 = WrapperManager.getInstance().getSWrapper( ((AbstractEngine)engineToAdd).getBaseDataEngine(), engineQuery);
-//		String[] names2 = wrapper2.getVariables();
-//		while(wrapper2.hasNext()) {
-//			ISelectStatement ss = wrapper2.next();
-//			engineDbTime = ss.getVar(names2[0]) + "";
-//		}
-//
-//		// if the engine OWL file doesn't have a time stamp, add one into it
-//		if(engineDbTime == null) {
-//			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
-//			Calendar cal = Calendar.getInstance();
-//			engineDbTime = dateFormat.format(cal.getTime());
-//			((AbstractEngine)engineToAdd).getBaseDataEngine().doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{BaseDatabaseCreator.TIME_URL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-//			((AbstractEngine)engineToAdd).getBaseDataEngine().commit();
-//			try {
-//				((AbstractEngine)engineToAdd).getBaseDataEngine().exportDB();
-//			} catch (RepositoryException e) {
-//				e.printStackTrace();
-//			} catch (RDFHandlerException e) {
-//				e.printStackTrace();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//
-//		// 4) perform the necessary additions if the time stamps do not equal
-//		// this is broken out into 2 separate parts
-//		// 4.1) the local master doesn't have a time stamp which means the engine is not present
-//		//		-> i.e. we do not need to remove the engine and re-add it
-//		// 4.2) the time is present and we need to remove anything relating the engine that was in the engine and then re-add it
-//
-//		if(localDbTimeForEngine == null) {
-//			// here we add the engine's time stamp into the local master
-//			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-//
-//			// logic to register the engine into the local master
-//			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-//			adder.registerEngineLocal(engineToAdd);
-//			localMaster.commit();
-//		} else if(!localDbTimeForEngine.equals(engineDbTime)) {
-//			// remove the existing time stamp in the local master
-//			localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
-//			// add the time stamp to be equal to that which is stored in the engine's OWL
-//			localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-//
-//			// if it has a time stamp, it means it was previously in local master
-//			// logic to delete an engine from the local master
-//			DeleteFromMasterDB remover = new DeleteFromMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-//			remover.deleteEngine(engineName);
-//
-//			// logic to add the engine into the local master
-//			AddToMasterDB adder = new AddToMasterDB(Constants.LOCAL_MASTER_DB_NAME);
-//			adder.registerEngineLocal(engineToAdd);
-//			localMaster.commit();
-//		}
-//	}
-
-	public static void synchronizeEngineMetadata(String engineName) {
+	public static void synchronizeEngineMetadata(String engineId) {
 		/*
 		 * This determines when it is necessary to add an engine into the local master database
 		 * 
@@ -2666,30 +2443,12 @@ public class Utility {
 		}
 
 		// generate the appropriate query to execute on the local master engine to get the time stamp
-		String engineFile = DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
+		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
 
 		// this has all the details
 		// the engine file is primarily the SMSS that is going to be utilized for the purposes of retrieving all the data
-		Properties prop = new Properties();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		Properties prop = Utility.loadProperties(smssFile);
 
-		FileInputStream fis = null;
-		try {
-			fis = new FileInputStream(engineFile);
-			prop.load(fis);
-//			prop.put("fis", fis);
-		} catch(Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
 		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
 		if(rawType.contains("AppEngine")) {
 			// this engine has no data! it is just a collection of insights
@@ -2699,47 +2458,10 @@ public class Utility {
 		
 		AddToMasterDB adder = new AddToMasterDB();
 
-		Date rdbmsDate = adder.getEngineDate(engineName);
-		String owlFileName = baseFolder + "/" + prop.getProperty(Constants.OWL);
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-		Map<String, String> paramHash = new Hashtable<String, String>();
-		paramHash.put("engine", prop.getProperty(Constants.ENGINE));
-		owlFileName = Utility.fillParam2(owlFileName, paramHash);
-		
-		File owlFile = new File(owlFileName);
+		Date rdbmsDate = adder.getEngineDate(engineId);
+		File owlFile = SmssUtilities.getOwlFile(prop);
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
-
-/*		String engineURL = "http://semoss.org/ontologies/meta/engine/" + Utility.cleanString(engineName, true);
-		String localDbQuery = "SELECT DISTINCT ?TIMESTAMP WHERE {<" + engineURL + "> <http://semoss.org/ontologies/Relation/modified> ?TIMESTAMP}";
-
-		// 1) get the local master timestamp for engine
-		String localDbTimeForEngine = null;
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(localMaster, localDbQuery);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			localDbTimeForEngine = ss.getVar(names[0]) + "";
-		}
-*/
-		// if the engine OWL file doesn't have a time stamp, add one into it
-		// not sure if I need this anymore
-		/*
-		if(engineDbTime == null) {
-			DateFormat dateFormat = BaseDatabaseCreator.getFormatter();
-			Calendar cal = Calendar.getInstance();
-			engineDbTime = dateFormat.format(cal.getTime());
-			((AbstractEngine)engineToAdd).getBaseDataEngine().doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{BaseDatabaseCreator.TIME_URL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-			((AbstractEngine)engineToAdd).getBaseDataEngine().commit();
-			try {
-				((AbstractEngine)engineToAdd).getBaseDataEngine().exportDB();
-			} catch (RepositoryException e) {
-				e.printStackTrace();
-			} catch (RDFHandlerException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}*/
 
 		// 4) perform the necessary additions if the time stamps do not equal
 		// this is broken out into 2 separate parts
@@ -2753,27 +2475,16 @@ public class Utility {
 			System.out.println("Success.. !!");
 
 		if(rdbmsDate == null) {
-			// here we add the engine's time stamp into the local master
-			//>>localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-
 			// logic to register the engine into the local master
 			adder.registerEngineLocal(prop);
-			//>>localMaster.commit(); 
 			adder.commit(localMaster);
-		} else if(!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) { // BIGData has idiosyncracy where it keeps date in a weird format 2016-05-12T12:23:07.000Z instead of 2016-05-12T12:23:07
-			// remove the existing time stamp in the local master
-			//>>localMaster.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, localDbTimeForEngine, false});
-			// add the time stamp to be equal to that which is stored in the engine's OWL
-			//>>localMaster.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{engineURL, BaseDatabaseCreator.TIME_KEY, engineDbTime, false});
-
+		} else if(!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) { 
 			// if it has a time stamp, it means it was previously in local master
 			// logic to delete an engine from the local master
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
-			//>>remover.deleteEngine(engineName);
-			remover.deleteEngineRDBMS(engineName);
+			remover.deleteEngineRDBMS(engineId);
 			// logic to add the engine into the local master
 			adder.registerEngineLocal(prop);
-			//>>localMaster.commit();
 			adder.commit(localMaster);
 		}
 	}

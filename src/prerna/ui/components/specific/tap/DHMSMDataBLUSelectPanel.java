@@ -169,7 +169,7 @@ public class DHMSMDataBLUSelectPanel extends JPanel {
 	{
 		engine = (IEngine) DIHelper.getInstance().getLocalProp("TAP_Core_Data");
 		EntityFiller filler = new EntityFiller();
-		filler.engineName = engine.getEngineName();
+		filler.engineName = engine.getEngineId();
 		filler.type = "Capability";
 		filler.setExternalQuery(query);
 		filler.run();

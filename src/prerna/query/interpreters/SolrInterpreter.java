@@ -166,7 +166,7 @@ public class SolrInterpreter extends AbstractQueryInterpreter {
 		String solrBaseURL = "http://localhost:8080/solr/";
 		String coreName = "insightCore";
 		SolrEngine engine = new SolrEngine(solrBaseURL, coreName);
-		engine.setEngineName("insightCore");
+		engine.setEngineId("insightCore");
 		// solr.openDB(null);
 		System.out.println("Active " + engine.serverActive());
 		SelectQueryStruct qs = new SelectQueryStruct();

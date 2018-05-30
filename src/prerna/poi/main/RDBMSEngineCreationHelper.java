@@ -35,7 +35,7 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	public static void insertNewTablesAsInsights(IEngine rdbmsEngine,  Map<String, Map<String, String>> existingMetaModel, Set<String> newTables) {
-		String engineName = rdbmsEngine.getEngineName();
+		String engineName = rdbmsEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdbmsEngine.getInsightDatabase());
 		
 		//determine the # where the new questions should start

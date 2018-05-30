@@ -892,9 +892,9 @@ public class OldInsight extends Insight {
 		this.uiOptions = uiOptions;
 	}
 
-	public String getEngineName() {
+	public String getEngineId() {
 		if(this.mainEngine != null) {
-			return this.mainEngine.getEngineName();
+			return this.mainEngine.getEngineId();
 		} else {
 			return null;
 		}

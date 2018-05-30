@@ -638,7 +638,7 @@ public class OWLER {
 		className = Utility.getClassName(column);
 		
 		// if column isnt a string then end here
-		String dataType = MasterDatabaseUtility.getBasicDataType(engine.getEngineName(), className, null);
+		String dataType = MasterDatabaseUtility.getBasicDataType(engine.getEngineId(), className, null);
 		if (dataType == null || !dataType.equalsIgnoreCase("STRING")){
 			return;
 		}

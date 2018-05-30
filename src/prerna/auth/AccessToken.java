@@ -4,6 +4,8 @@ public class AccessToken {
 
 	String provider = null;
 	
+	String id = null;
+	String username = null;
 	String access_token = null;
 	int expires_in = 0; // this is in seconds
 	String token_type = "Bearer";
@@ -104,4 +106,21 @@ public class AccessToken {
 	public void setLocale(String local) {
 		this.locale = local;
 	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
 }

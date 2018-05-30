@@ -77,6 +77,7 @@ import com.bigdata.rdf.model.BigdataLiteralImpl;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -87,7 +88,6 @@ import prerna.util.Utility;
 public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 
 	private static final Logger logger = LogManager.getLogger(RDFFileSesameEngine.class.getName());
-	Properties rdfMap = null;
 	RepositoryConnection rc = null;
 	ValueFactory vf = null;
 	String rdfFileType = "RDF/XML";
@@ -95,7 +95,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	String fileName = null;
 	SailConnection sc = null;
 	boolean connected = false;
-	
+
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
 	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
@@ -104,37 +104,30 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * what type of engine is being instantiated.
 	 */
 	@Override
-	public void openDB(String propFile)
-	{
-		//super.openDB(propFile);
-		try
-		{
+	public void openDB(String propFile) {
+		try {
 			super.openDB(propFile);
-			Repository myRepository;
-				//super.openDB(propFile);
-				myRepository = new SailRepository(
-						new ForwardChainingRDFSInferencer(
-						new MemoryStore()));
-				myRepository.initialize();
+			Repository myRepository = new SailRepository(
+					new ForwardChainingRDFSInferencer(
+							new MemoryStore()));
+			myRepository.initialize();
+			if(prop != null) {
+				fileName = SmssUtilities.getRdfFile(prop).getAbsolutePath();
 				
-			//System.err.println("Prop File is " + propFile2);
-			
-			if(prop != null)
-			{
-				
-				fileName = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + prop.getProperty(Constants.RDF_FILE_NAME);
-				if(prop.containsKey(Constants.RDF_FILE_TYPE))
+				if(prop.containsKey(Constants.RDF_FILE_TYPE)) {
 					rdfFileType = prop.getProperty(Constants.RDF_FILE_TYPE);
-				if(prop.containsKey(Constants.RDF_FILE_BASE_URI))
+				}
+
+				if(prop.containsKey(Constants.RDF_FILE_BASE_URI)) {
 					baseURI = prop.getProperty(Constants.RDF_FILE_BASE_URI);
+				}
 			}
 
 			rc = myRepository.getConnection();
 			sc = ((SailRepositoryConnection) rc).getSailConnection();
 			vf = rc.getValueFactory();
-			
-			if(fileName != null)
-			{
+
+			if(fileName != null) {
 				File file = new File( fileName);
 				if(rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, baseURI, RDFFormat.RDFXML);
 				else if(rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
@@ -144,9 +137,8 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				else if(rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
 				else if(rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
 			}
-		    this.connected = true;
-		}catch(RuntimeException ignored)
-		{
+			this.connected = true;
+		} catch(RuntimeException ignored) {
 			this.connected = false;
 			ignored.printStackTrace();
 		} catch (RDFParseException e) {
@@ -161,30 +153,24 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 	}
 
-	
-	public void openFile(String rdfFile, String rdfFileType, String baseURI)
-	{
-		//super.openDB(propFile);
-		try
-		{
-			Repository myRepository;
-				//super.openDB(propFile);
-				myRepository = new SailRepository(
-						//new NativeStore(new File("sample.native")));
-						new MemoryStore());
-				myRepository.initialize();
+
+	public void openFile(String rdfFile, String rdfFileType, String baseURI) {
+		try {
+			Repository myRepository = new SailRepository(
+					new MemoryStore());
+			myRepository.initialize();
 			fileName = rdfFile;	
-			//System.err.println("Prop File is " + propFile2);
-			if(rdfFileType != null)
+			if(rdfFileType != null) {
 				this.rdfFileType = rdfFileType;
-			if(baseURI != null)
+			}
+			if(baseURI != null) {
 				this.baseURI = baseURI;
+			}
 			rc = myRepository.getConnection();
 			sc = ((SailRepositoryConnection) rc).getSailConnection();
 			vf = rc.getValueFactory();
-			
-			if(fileName != null)
-			{
+
+			if(fileName != null) {
 				File file = new File( fileName);
 				if(this.rdfFileType.equalsIgnoreCase("RDF/XML")) rc.add(file, this.baseURI, RDFFormat.RDFXML);
 				else if(this.rdfFileType.equalsIgnoreCase("TURTLE")) rc.add(file, baseURI, RDFFormat.TURTLE);
@@ -194,11 +180,9 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				else if(this.rdfFileType.equalsIgnoreCase("TRIG")) rc.add(file, baseURI, RDFFormat.TRIG);
 				else if(this.rdfFileType.equalsIgnoreCase("TRIX")) rc.add(file, baseURI, RDFFormat.TRIX);
 				rc.commit();
-				System.out.println("Loaded the file " + fileName);
 			}
-		    this.connected = true;
-		}catch(RuntimeException ignored)
-		{
+			this.connected = true;
+		} catch(RuntimeException ignored) {
 			this.connected = false;
 			ignored.printStackTrace();
 		} catch (RDFParseException e) {
@@ -213,7 +197,6 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 	}
 
-	
 	/**
 	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
 	 * safely ends the active transactions and closes the engine.
@@ -221,21 +204,19 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	@Override
 	public void closeDB() {
 		super.closeDB();
-		// ng.stopTransaction(Conclusion.SUCCESS);
 		try {
 			rc.close();
 			connected = false;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		// ng.shutdown();
 	}
 
 	/**
 	 * Runs the passed string query against the engine as a SELECT query.  The query passed must be in the structure of a SELECT 
 	 * SPARQL query and the result format will depend on the engine type.
 	 * @param query the string version of the SELECT query to be run against the engine
-	
+
 	 * @return triple query results that can be displayed as a grid */
 	@Override
 	public Object execQuery(String query) {
@@ -265,11 +246,11 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Gets the type of the engine.  The engine type is often used to determine what API to use while running queries against the 
 	 * engine.
-	
+
 	 * @return the type of the engine */
 	public ENGINE_TYPE getEngineType()
 	{
@@ -315,7 +296,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
 	 * @param type The full URI of the node type that we want to get the instances of
@@ -335,14 +316,14 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		retList.add(type);
 		paramHash.put("entity", retList);
 		query = Utility.fillParam(query, paramHash);
-		
+
 		return getCleanSelect(query);
 	}
 
 	/**
 	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #openDB(String)} 
 	 * is called and the connection becomes false when {@link #closeDB()} is called.
-	
+
 	 * @return true if the engine is connected to its data store and false if it is not */
 	@Override
 	public boolean isConnected()
@@ -357,7 +338,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @param object Object - RDF Object
 	 * @param concept boolean - True if the statement is a concept
 	 */
-//	public void addStatement(String subject, String predicate, Object object, boolean concept)
+	//	public void addStatement(String subject, String predicate, Object object, boolean concept)
 	public void addStatement(Object[] args)
 	{
 		String subject = args[0]+"";
@@ -372,18 +353,18 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			String predString = null;
 			String sub = subject.trim();
 			String pred = predicate.trim();
-			
+
 			//System.err.println("VF is " + vf);
 			if(!rc.isActive()) {
 				rc.begin();
 			}
-			
+
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);
-			
+
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
-			
+
 			if(!concept)
 			{
 				if(object.getClass() == new Double(1).getClass())
@@ -420,7 +401,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Method removeStatement. Processes a given subject, predicate, object triple and adds the statement to the SailConnection.
 	 * @param subject String - RDF Subject
@@ -428,7 +409,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @param object Object - RDF Object
 	 * @param concept boolean - True if the statement is a concept
 	 */
-//	public void removeStatement(String subject, String predicate, Object object, boolean concept)
+	//	public void removeStatement(String subject, String predicate, Object object, boolean concept)
 	public void removeStatement(Object[] args)
 	{
 		String subject = args[0]+"";
@@ -443,24 +424,24 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			String predString = null;
 			String sub = subject.trim();
 			String pred = predicate.trim();
-			
+
 			//System.err.println("VF is " + vf);
 			sc.begin();
 
-			
+
 			subString = Utility.cleanString(sub, false);
 			newSub = vf.createURI(subString);
-			
+
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
-			
+
 			URI uriObj = null;
 			try{
 				uriObj = vf.createURI(object+"");
 			}catch(IllegalArgumentException e){
 				// ignore exception
 			}
-			
+
 			if(!concept || uriObj == null)
 			{
 				if(object.getClass() == new Double(1).getClass())
@@ -495,7 +476,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		} 
 	}
-	
+
 	/**
 	 * Runs the passed string query against the engine as an INSERT query.  The query passed must be in the structure of an INSERT 
 	 * SPARQL query or an INSERT DATA SPARQL query 
@@ -531,7 +512,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Method exportDB.  Exports the repository connection to the RDF database.
 	 * @throws IOException 
@@ -557,7 +538,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			}
 		}
 	}
-	
+
 	/**
 	 * Method exportDB.  Exports the repository connection to the RDF database.
 	 * @throws IOException 
@@ -582,10 +563,10 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		}
 	}
 
-	
+
 	/**
 	 * Method getRc.  Gets the repository connection.
-	
+
 	 * @return RepositoryConnection - The repository connection. */
 	public RepositoryConnection getRc() {
 		return rc;
@@ -593,34 +574,34 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 
 	public void setRC(RepositoryConnection rc) {
 		this.rc = rc;
-		
+
 	}
 	/**
 	 * Method getRc.  Gets the repository connection.
-	
+
 	 * @return RepositoryConnection - The repository connection. */
 	public SailConnection getSC() {
 		return sc;
 	}
 	/**
 	 * Method getRc.  Gets the repository connection.
-	
+
 	 * @return RepositoryConnection - The repository connection. */
 	public void setSC(SailConnection sc) {
 		this.sc = sc;
 	}
 	/**
 	 * Method getRc.  Gets the repository connection.
-	
+
 	 * @return RepositoryConnection - The repository connection. */
 	public void setVF(ValueFactory vf) {
 		this.vf = vf;
 	}
-	
+
 	public ValueFactory getVF() {
 		return this.vf;
 	}
-	
+
 	public void setFileName(String fileName){
 		this.fileName = fileName;
 	}
@@ -628,7 +609,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	@Override
 	public void removeData(String query) {
 		insertData(query);
-		
+
 	}
 
 	@Override
@@ -639,7 +620,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void writeData(RDFXMLWriter writer) throws RepositoryException, RDFHandlerException {
 		try {
 			rc.export(writer);
@@ -651,7 +632,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
 	}
-	
+
 	public void writeBack(){
 		FileWriter fw = null;
 		try {
@@ -663,7 +644,6 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 		} catch (RDFHandlerException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if(fw != null) {

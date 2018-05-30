@@ -66,7 +66,7 @@ public class SaveOWLListener implements IChakraListener {
 	{
 //		GraphPlaySheet ps = (GraphPlaySheet)QuestionPlaySheetStore.getInstance().getActiveSheet();
 		GraphPlaySheet ps = (GraphPlaySheet) ((OldInsight) InsightStore.getInstance().getActiveInsight()).getPlaySheet();
-		String engineName = ps.engine.getEngineName();
+		String engineName = ps.engine.getEngineId();
 		// get the core properties
 		ps.exportDB();
 		((AbstractEngine)ps.engine).saveConfiguration();

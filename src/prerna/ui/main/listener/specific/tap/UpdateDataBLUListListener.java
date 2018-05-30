@@ -186,7 +186,7 @@ public class UpdateDataBLUListListener extends AbstractListener {
 				list.add((String) sjss.getVar(names[0]));
 				}
 		} catch (RuntimeException e) {
-			Utility.showError("Cannot find engine: "+engine.getEngineName());
+			Utility.showError("Cannot find engine: "+engine.getEngineId());
 		}
 		return list;
 	}

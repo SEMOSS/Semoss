@@ -49,8 +49,9 @@ public class AppInsightsReactor extends AbstractReactor {
 		
 		List<String> retFields = new ArrayList<String>();
 		retFields.add(SolrIndexEngine.ID);
-		retFields.add(SolrIndexEngine.CORE_ENGINE);
-		retFields.add(SolrIndexEngine.CORE_ENGINE_ID);
+		retFields.add(SolrIndexEngine.APP_ID);
+		retFields.add(SolrIndexEngine.APP_NAME);
+		retFields.add(SolrIndexEngine.APP_INSIGHT_ID);
 		retFields.add(SolrIndexEngine.LAYOUT);
 		retFields.add(SolrIndexEngine.STORAGE_NAME);
 		retFields.add(SolrIndexEngine.CREATED_ON);
@@ -83,7 +84,7 @@ public class AppInsightsReactor extends AbstractReactor {
 		Map<String, List<String>> filterForEngine = new HashMap<String, List<String>>();
 		List<String> engineList = new ArrayList<String>();
 		engineList.add(appName);
-		filterForEngine.put(SolrIndexEngine.CORE_ENGINE, engineList);
+		filterForEngine.put(SolrIndexEngine.APP_NAME, engineList);
 		if(tags != null && !tags.isEmpty()) {
 			filterForEngine.put(SolrIndexEngine.TAGS, tags);
 		}
