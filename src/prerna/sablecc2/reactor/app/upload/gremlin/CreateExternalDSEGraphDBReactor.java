@@ -179,7 +179,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 
 		logger.info("5. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppName, insightDatabase);
+		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		insightDatabase.closeDB();
 		logger.info("5. Complete");
 
