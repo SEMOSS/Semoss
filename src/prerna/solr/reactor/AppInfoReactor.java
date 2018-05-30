@@ -32,7 +32,7 @@ public class AppInfoReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appName = this.keyValue.get(this.keysToGet[0]);
+		String appId = this.keyValue.get(this.keysToGet[0]);
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
 		builder.addReturnFields("id");
@@ -48,8 +48,8 @@ public class AppInfoReactor extends AbstractReactor {
 
 		Map<String, List<String>> filterData = new HashMap<String, List<String>>();
 		List<String> filterList = new ArrayList<String>();
-		filterList.add(appName);
-		filterData.put("app_name", filterList);
+		filterList.add(appId);
+		filterData.put("id", filterList);
 		builder.setFilterOptions(filterData);
 		
 		SolrQuery q = builder.getSolrQuery();
@@ -67,7 +67,7 @@ public class AppInfoReactor extends AbstractReactor {
 			 */
 			
 			// augment the metadata with the number of insights in the app
-			long numInsights = solrE.getNumEngineInsights(appName);
+			long numInsights = solrE.getNumEngineInsights(appId);
 			appInfo.put("num_insights", numInsights);
 			
 			// augment the metadata with the tags for the insights in the app
@@ -75,8 +75,8 @@ public class AppInfoReactor extends AbstractReactor {
 			// need to re-add the filter but modify the key name
 			filterData = new HashMap<String, List<String>>();
 			filterList = new ArrayList<String>();
-			filterList.add(appName);
-			filterData.put(SolrIndexEngine.APP_NAME, filterList);
+			filterList.add(appId);
+			filterData.put(SolrIndexEngine.APP_ID, filterList);
 			builder.setFilterOptions(filterData);
 			
 			List<String> facetList = new ArrayList<>();
