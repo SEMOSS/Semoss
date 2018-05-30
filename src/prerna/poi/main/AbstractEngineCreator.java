@@ -13,6 +13,7 @@ import org.openrdf.rio.RDFHandlerException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -60,9 +61,13 @@ public class AbstractEngineCreator {
 		createNewRdfEngine(dbName);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
-	
+	// TODO need to remove this
 	protected void openRdbmsEngineWithoutConnection(String dbName) {
-		createNewRDBMSEngine(dbName);
+		createNewRDBMSEngine(dbName, null);
+		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
+	}
+	protected void openRdbmsEngineWithoutConnection(String dbName, String engineID) {
+		createNewRDBMSEngine(dbName, engineID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
@@ -76,13 +81,15 @@ public class AbstractEngineCreator {
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	private void createNewRDBMSEngine(String dbName) {
+	private void createNewRDBMSEngine(String dbName, String engineID) {
 		engine = new RDBMSNativeEngine();
-		engine.setEngineId(dbName);
+		engine.setEngineId(engineID);
+		engine.setEngineName(dbName);
 		Properties prop = new Properties();
 		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,dbName));
-		prop.put(Constants.ENGINE, dbName);
+		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(dbName, engineID)));
+		prop.put(Constants.ENGINE, engineID);
+		prop.put(Constants.ENGINE_ALIAS, dbName);
 		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
 		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
 		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
@@ -92,7 +99,7 @@ public class AbstractEngineCreator {
 		engine.openDB(null);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(dbName);
+		IEngine insightDatabase = createNewInsightsDatabase(dbName, engineID);
 		engine.setInsightDatabase(insightDatabase);
 	}
 
@@ -296,11 +303,14 @@ public class AbstractEngineCreator {
 		sqlHash.put("INTEGER", "FLOAT");
 		sqlHash.put("BOOLEAN", "BOOLEAN");
 	}
-	
 	protected IEngine createNewInsightsDatabase(String dbName) {
+		return createNewInsightsDatabase(dbName, null);
+	}
+	
+	protected IEngine createNewInsightsDatabase(String appName, String appID) {
 		//TODO: need to push in ids for database loading
-		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(null, dbName);
-		UploadUtilities.addExploreInstanceInsight(dbName, insightEngine);
+		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(appID, appName);
+		UploadUtilities.addExploreInstanceInsight(appName, insightEngine);
 		return insightEngine;
 	}
 }
