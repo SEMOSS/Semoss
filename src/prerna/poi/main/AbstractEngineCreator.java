@@ -307,10 +307,10 @@ public class AbstractEngineCreator {
 		sqlHash.put("BOOLEAN", "BOOLEAN");
 	}
 	
-	protected IEngine createNewInsightsDatabase(String appName, String appID) {
+	protected IEngine createNewInsightsDatabase(String appName, String appId) {
 		//TODO: need to push in ids for database loading
-		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(appID, appName);
-		UploadUtilities.addExploreInstanceInsight(appName, insightEngine);
+		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(appId, appName);
+		UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
 		return insightEngine;
 	}
 }
