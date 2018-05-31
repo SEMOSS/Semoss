@@ -1150,7 +1150,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
 			try {
-				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.engineName);
+				newPixel += new String(Files.readAllBytes(exploreF.toPath())).replaceAll("\n|\r|\t", "").replaceAll("\\s\\s+", "").replace("<<ENGINE>>", this.engineId);
 			} catch (IOException e2) {
 				// can't help ya
 				return;
@@ -1170,7 +1170,7 @@ public abstract class AbstractEngine implements IEngine {
 					admin.dropInsight(oldId);
 					try {
 						List<String> rList = new Vector<String>();
-						rList.add(this.engineName + "_" + oldId);
+						rList.add(this.engineId + "_" + oldId);
 						SolrIndexEngine.getInstance().removeInsight(rList);
 					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 							| IOException e1) {
