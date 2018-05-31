@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
@@ -15,6 +16,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
 
 public class DashboardInsightConfigReactor extends AbstractReactor {
@@ -43,9 +45,14 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			Insight insight = getInsight(insightStrings.get(i));
 			insightMap.put("name", insight.getInsightName());
 			// keys below match those in solr
+			insightMap.put(SolrIndexEngine.APP_ID, insight.getEngineId());
+			insightMap.put(SolrIndexEngine.APP_INSIGHT_ID, insight.getRdbmsId());
+			insightMap.put("recipe", getInsightRecipe(insight));
+			
+			// TODO: delete this once we update ids
 			insightMap.put("core_engine", insight.getEngineId());
 			insightMap.put("core_engine_id", insight.getRdbmsId());
-			insightMap.put("recipe", getInsightRecipe(insight));
+			
 			// the old id -> needed to properly update the dashboard config
 			insightMap.put("oldId", oldIds.get(i));
 			// and make a new insight for them to run this recipe on
@@ -65,18 +72,20 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 		return new NounMetadata(dashboardInsightConfig, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DASHBOARD_INSIGHT_CONFIGURATION);
 	}
 	
-	private Insight getInsight(String engineName_rdbmsId_concat) {
-		String[] split = engineName_rdbmsId_concat.split("__");
-		String engineName = split[0];
+	private Insight getInsight(String engineId_rdbmsId_concat) {
+		String[] split = engineId_rdbmsId_concat.split("__");
+		String engineId = split[0];
 		String rdbmsId = split[1];
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(engineName);
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+
+		IEngine engine = Utility.getEngine(engineId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Could not find engine " + engineName);
+			throw new IllegalArgumentException("Could not find engine " + engineId);
 		}
 		List<Insight> in = engine.getInsight(rdbmsId + "");
 		if(in == null || in.size() == 0) {
-			throw new IllegalArgumentException("Could not find insight with id " + rdbmsId + " within the engine " + engineName);
+			throw new IllegalArgumentException("Could not find insight with id " + rdbmsId + " within the engine " + engineId);
 		}
 		Insight insight = in.get(0);
 		return insight;
