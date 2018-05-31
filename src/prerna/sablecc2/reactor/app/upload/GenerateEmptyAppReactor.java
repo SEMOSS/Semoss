@@ -125,14 +125,11 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		}
 		tempSmss.delete();
 		
-		// update DIHelper & engine smss file location
+		// update engine smss file location
 		appEng.setPropFile(smssFile.getAbsolutePath());
 		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setLocalProperty(appId, appEng);
-		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-		engineNames = engineNames + ";" + appId;
-		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return new NounMetadata(appId, PixelDataType.CONST_STRING);
 	}
 }
