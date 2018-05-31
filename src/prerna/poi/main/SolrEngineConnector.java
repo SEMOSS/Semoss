@@ -103,10 +103,10 @@ public class SolrEngineConnector extends AbstractEngineCreator {
 		// changing to params
 		
 		//String owlPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + dbName + "_OWL.OWL";
-		String owlPropValue = "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + dbName + "_OWL.OWL";
+		String owlPropValue = "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + dbName + "_OWL.OWL";
 		
 		//String insightsRdbmsPropValue = "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database";
-		String insightsRdbmsPropValue = "db" + System.getProperty("file.separator") + "@engine@" + System.getProperty("file.separator") + "insights_database";
+		String insightsRdbmsPropValue = "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database";
 
 		File f = new File(smssLocation);
 		FileWriter pw = null;
