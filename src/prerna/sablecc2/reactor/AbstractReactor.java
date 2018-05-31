@@ -74,7 +74,11 @@ public abstract class AbstractReactor implements IReactor {
 					}
 				}
 			}
-		} else {
+		}
+		
+		// if we still are empty
+		// try to fill via input indices in cur row
+		if(keyValue.isEmpty()) {
 			GenRowStruct struct = this.getCurRow();
 			int structSize = struct.size();
 			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
