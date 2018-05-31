@@ -11,7 +11,6 @@ viz_history<-function(df){
 			tryCatch({
 				data<-fromJSON(viz[i,2])
 				user<-viz[i,5]
-				names(data[1])
 				chart<-names(data[[1]][1])
 				if(chart != "false" & chart != "collision-resolver"){
 					m<-length(data[[1]][[1]])
@@ -39,7 +38,7 @@ viz_history<-function(df){
 									}else{
 										uniqueValues<-0
 									}
-									for(l in 6:k){
+									for(l in 7:k){
 										# need a check that alias is not null!!!
 										semantic<-row[1,l]
 										if(semantic != ""){
