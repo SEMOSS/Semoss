@@ -49,6 +49,7 @@ import org.apache.log4j.Logger;
 
 import aurelienribon.ui.css.Style;
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.ui.components.BrowserGraphPanel;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRestoreDefaultsListener;
 import prerna.ui.main.listener.specific.tap.DHMSMDeploymentStrategyRunBtnListener;
@@ -143,7 +144,8 @@ public class DHMSMDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 			this.portfolioEngineName = querySplit[1];
 			this.siteEngineName = querySplit[2];
 		}
-		coreEngine = (IEngine) Utility.getEngine(coreEngineName);
+		String coreEngineId = MasterDatabaseUtility.testEngineIdIfAlias(coreEngineName);
+		coreEngine = (IEngine) Utility.getEngine(coreEngineId);
 
 	}
 	

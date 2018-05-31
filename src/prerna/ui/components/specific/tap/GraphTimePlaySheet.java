@@ -43,6 +43,7 @@ import com.google.gson.GsonBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.GraphDataModel;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
@@ -86,7 +87,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 		gdm.setPropSudowlSearch(false, false, false);
 		for (int qIdx = 0; qIdx < this.graphQueryArray.size(); qIdx ++ ){
 			String[] queryArray = this.graphQueryArray.get(qIdx);
-			gdm.processData(queryArray[0], Utility.getEngine(queryArray[1]));
+			gdm.processData(queryArray[0], Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(queryArray[1])));
 		}
 
 		logger.info("Creating the base Graph");
@@ -157,7 +158,7 @@ public class GraphTimePlaySheet extends BrowserPlaySheet{
 	{
 		for (int qIdx = 0; qIdx < this.timeQueryArray.size(); qIdx ++){
 			String[] queryArray = this.timeQueryArray.get(qIdx);
-			processTimeData(queryArray[0], Utility.getEngine(queryArray[1]));
+			processTimeData(queryArray[0], Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(queryArray[1])));
 		}
 		Hashtable retHash = (Hashtable) this.getDataMakerOutput();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();

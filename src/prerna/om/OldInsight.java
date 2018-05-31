@@ -38,6 +38,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdf.InMemorySesameEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.ui.components.api.IPlaySheet;
@@ -262,6 +263,7 @@ public class OldInsight extends Insight {
 			String newComponent = COMP + component;
 			if(!newComponent.equals(curComponent)){
 				String engine = st.getVar("Engine")+"";
+				engine = MasterDatabaseUtility.testEngineIdIfAlias(engine);
 				String query = st.getVar("Query")+"";
 				String metamodelString = st.getVar("Metamodel")+"";
 				System.out.println(engine + " ::::::: " + component +" ::::::::: " + query + " :::::::::: " + metamodelString);

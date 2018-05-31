@@ -10,6 +10,7 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.AbstractFutureInterfaceCostProcessor.COST_FRAMEWORK;
 import prerna.ui.components.specific.tap.FutureStateInterfaceResult.INTERFACE_TYPES;
@@ -67,15 +68,15 @@ public class LPInterfaceDBModProcessor extends AbstractLPInterfaceProcessor{
 	//TODO: move engine definitions outside class to keep reusable
 	public LPInterfaceDBModProcessor() throws IOException {
 		super();
-		tapCost = Utility.getEngine("TAP_Cost_Data");
+		tapCost = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Cost_Data"));
 		if(tapCost == null) {
 			throw new IOException("TAP_Cost_Data not found.");
 		}
-		futureDB = Utility.getEngine("FutureDB");
+		futureDB = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("FutureDB"));
 		if(futureDB == null) {
 			throw new IOException("FutureDB engine not found");
 		}
-		tapCore = Utility.getEngine("TAP_Core_Data");
+		tapCore = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Core_Data"));
 		if(tapCore == null) {
 			throw new IOException("TAP_Core_Data engine not found");
 		}

@@ -110,6 +110,7 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
@@ -2535,29 +2536,30 @@ public class Utility {
 
 	/**
 	 * 
-	 * @param engineName - engine to get
+	 * @param engineId - engine to get
 	 * @return
 	 * 
 	 * Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IEngine getEngine(String engineName) {
+	@Deprecated
+	public static IEngine getEngine(String engineId) {
 		IEngine engine = null;
-		if(DIHelper.getInstance().getLocalProp(engineName) != null) {
-			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			engineLocks.remove(engineName);
+		if(DIHelper.getInstance().getLocalProp(engineId) != null) {
+			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+			engineLocks.remove(engineId);
 		} else {
 			// start the engine using the smss file
-			String smssFile = (String) DIHelper.getInstance().getCoreProp().getProperty(engineName + "_" + Constants.STORE);
+			String smssFile = (String) DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
 			// start it up
 			if(smssFile != null) {
-				ReentrantLock lock = getEngineLock(engineName);
+				ReentrantLock lock = getEngineLock(engineId);
 				lock.lock();
 				try {
 					// need to do a double check
 					// so if a different thread was waiting for the engine to load
 					// it doesn't go through this process again
-					if(DIHelper.getInstance().getLocalProp(engineName) != null)  {
-						return (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+					if(DIHelper.getInstance().getLocalProp(engineId) != null)  {
+						return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
 					}
 					
 					// actual process to load
@@ -2567,7 +2569,7 @@ public class Utility {
 						fis = new FileInputStream(smssFile);
 						daProp.load(fis);
 						engine = Utility.loadWebEngine(smssFile, daProp);
-						System.out.println("Loaded the engine.. !!!!! " + engineName);
+						System.out.println("Loaded the engine.. !!!!! " + engineId);
 					} catch (KeyManagementException e) {
 						e.printStackTrace();
 					} catch (NoSuchAlgorithmException e) {
@@ -2589,7 +2591,7 @@ public class Utility {
 					lock.unlock();
 				}
 			} else {
-				System.out.println("There is no SMSS File for the engine " + engineName + "...");
+				System.out.println("There is no SMSS File for the engine " + engineId + "...");
 			}
 		}
 
