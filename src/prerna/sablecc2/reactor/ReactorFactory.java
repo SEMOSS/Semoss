@@ -268,6 +268,7 @@ import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupAppReactor;
 import prerna.sablecc2.reactor.utils.CheckRPackagesReactor;
+import prerna.sablecc2.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
@@ -398,6 +399,8 @@ public class ReactorFactory {
 		reactorHash.put("PostRequest", PostRequestReactor.class);
 		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
 		reactorHash.put("CheckRPackages", CheckRPackagesReactor.class);
+		reactorHash.put("StoreUniqueValuesCount ", StoreUniqueColumnsReactor.class);
+		reactorHash.put("CheckRecommendOptimization ", CheckRecommendOptimizationReactor.class);
 
 		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
@@ -479,7 +482,6 @@ public class ReactorFactory {
 		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
 		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
 		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
-		reactorHash.put("StoreUniqueValuesCount ", StoreUniqueColumnsReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
