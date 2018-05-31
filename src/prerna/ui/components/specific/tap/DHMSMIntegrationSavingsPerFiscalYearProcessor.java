@@ -40,6 +40,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.ui.components.playsheets.DualEngineGridPlaySheet;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -715,9 +716,9 @@ private final String masterQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?S
 	}
 
 	public void runSupportQueries(String portfolioDBName, String siteDBName, String coreDBName) {
-		this.tapPortfolio = (IEngine) Utility.getEngine(portfolioDBName);
-		this.tapSite = (IEngine) Utility.getEngine(siteDBName);
-		this.tapCore = (IEngine) Utility.getEngine(coreDBName);
+		this.tapPortfolio = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(portfolioDBName));
+		this.tapSite = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(siteDBName));
+		this.tapCore = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(coreDBName));
 		if(tapPortfolio == null) {
 			throw new NullPointerException("Need to add TAP_Portfolio db.");
 		}
