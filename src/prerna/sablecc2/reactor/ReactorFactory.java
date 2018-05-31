@@ -400,8 +400,8 @@ public class ReactorFactory {
 		reactorHash.put("PostRequest", PostRequestReactor.class);
 		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
 		reactorHash.put("CheckRPackages", CheckRPackagesReactor.class);
-		reactorHash.put("StoreUniqueValuesCount ", StoreUniqueColumnsReactor.class);
-		reactorHash.put("CheckRecommendOptimization ", CheckRecommendOptimizationReactor.class);
+		reactorHash.put("StoreUniqueValuesCount", StoreUniqueColumnsReactor.class);
+		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 
 		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
