@@ -513,11 +513,11 @@ public class Xray {
 	 */
 	private void writeLocalEngineToFile(Map<String, Object> connectorData, Map<String, Object> dataSelection,
 			boolean dataMode, String dataFolder, boolean semanticMode, String semanticFolder) {
-		String engineName = (String) connectorData.get("engineName");
-		String engineID = MasterDatabaseUtility.testEngineIdIfAlias(engineName);
+		String engineID = (String) connectorData.get("engineId");
 		IEngine engine = Utility.getEngine(engineID);
 		// check if engine is valid
 		if (engine != null) {
+			String engineName = engine.getEngineName();
 			this.engineList.add(engineName);
 			this.logger.info("Querying data from local database for X-ray comparison : " + engineName);
 			// loop through tables within a database
