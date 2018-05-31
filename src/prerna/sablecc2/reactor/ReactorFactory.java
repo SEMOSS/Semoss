@@ -103,6 +103,7 @@ import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.RNumericalCorrelationReactor;
+import prerna.sablecc2.reactor.frame.r.ROutlierAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.RSimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
@@ -830,6 +831,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
 		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
 		rFrameHash.put("RunSimilarity", RSimilarityAlgorithmReactor.class);
+		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
 		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
         rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
