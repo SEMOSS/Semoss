@@ -37,7 +37,7 @@
           }
         },
         "model": {
-          "query": "(infinite = Database(<<ENGINE>>) | Select(<concept>) | Filter(<concept> ?like \"<search>\") | Sort(cols=[<concept>], direction=[asc]) | Iterate()) | Collect(50);",
+          "query": "(infinite = Database(\"<<ENGINE>>\") | Select(<concept>) | Filter(<concept> ?like \"<search>\") | Sort(cols=[<concept>], direction=[asc]) | Iterate()) | Collect(50);",
           "infiniteQuery": "infinite | Collect(50);",
           "searchParam": "search",
           "dependsOn": [
