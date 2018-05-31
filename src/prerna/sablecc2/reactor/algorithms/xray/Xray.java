@@ -27,6 +27,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -513,7 +514,8 @@ public class Xray {
 	private void writeLocalEngineToFile(Map<String, Object> connectorData, Map<String, Object> dataSelection,
 			boolean dataMode, String dataFolder, boolean semanticMode, String semanticFolder) {
 		String engineName = (String) connectorData.get("engineName");
-		IEngine engine = Utility.getEngine(engineName);
+		String engineID = MasterDatabaseUtility.testEngineIdIfAlias(engineName);
+		IEngine engine = Utility.getEngine(engineID);
 		// check if engine is valid
 		if (engine != null) {
 			this.engineList.add(engineName);
@@ -848,7 +850,7 @@ public class Xray {
 			if (it.hasNext()) {
 				count = ((Double) it.next().getValues()[0]).intValue();
 			}
-			engineColumn.add(engine.getEngineId());
+			engineColumn.add(engine.getEngineName());
 			tableColumn.add(concept);
 			if (prop == null) {
 				propColumn.add(concept);
