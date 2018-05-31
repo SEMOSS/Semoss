@@ -47,6 +47,7 @@ import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.specific.tap.DHMSMDeploymentHelper;
 import prerna.util.ArrayUtilityMethods;
@@ -220,9 +221,9 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	public void runSupportQueries() {
-		this.tapPortfolio = (IEngine) Utility.getEngine("TAP_Portfolio");
-		this.tapSite = (IEngine) Utility.getEngine("TAP_Site_Data");
-		this.tapCore = (IEngine) Utility.getEngine("TAP_Core_Data");
+		this.tapPortfolio = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
+		this.tapSite = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Site_Data"));
+		this.tapCore = (IEngine) Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Core_Data"));
 
 		this.waveStartEndDate = DHMSMDeploymentHelper.getWaveStartAndEndDate(tapSite);
 		// calculate the wave start/end dates
@@ -533,7 +534,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 	private H2Frame appendSystemSustainmentInfo(H2Frame mainSustainmentFrame, double[] inflationArr) {
 		LOGGER.info("Running query to get the systems and their costs");
 
-		IEngine tapPortfolio = Utility.getEngine("TAP_Portfolio");
+		IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
 		String systemSustainmentBudgetQuery = "SELECT DISTINCT ?System ?FY (SUM(?Cost) AS ?Cost) WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Grand_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudget} {?SystemBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?OMTag} {?SystemBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } GROUP BY ?System ?FY ORDER BY ?System";
 		StringBuilder systemSustainmentBudgetBuilder = new StringBuilder(systemSustainmentBudgetQuery);
 		systemSustainmentBudgetBuilder.append(getHPSystemFilterString());
@@ -711,7 +712,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		String[] waveSiteSystemHeaders = new String[]{"Wave","HostSiteAndFloater","System"};
 		H2Frame mainSustainmentFrame2 = new H2Frame(waveSiteSystemHeaders);
 		// execute the query
-		IEngine tapSite = Utility.getEngine("TAP_Site_Data");
+		IEngine tapSite = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Site_Data"));
 		Map<String, SemossDataType> dataTypes = new Hashtable<String, SemossDataType>();
 		dataTypes.put("Wave", SemossDataType.STRING);
 		dataTypes.put("HostSiteAndFloater", SemossDataType.STRING);
@@ -733,7 +734,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		if(this.hpSystemFilterStr == null) {
 			final String systemFilterQuery = "SELECT DISTINCT ?System WHERE {{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/ActiveSystem> } {?System <http://semoss.org/ontologies/Relation/Contains/Device> 'N'} {?System <http://semoss.org/ontologies/Relation/Contains/Disposition> 'High'}{?System <http://semoss.org/ontologies/Relation/Contains/Review_Status> ?Review_Status}FILTER (?Review_Status in('FAC_Approved','FCLG_Approved')) }";
 			// this will run and get the list of system with the requierd set of property values
-			IEngine tapCore = Utility.getEngine("TAP_Core_Data");
+			IEngine tapCore = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Core_Data"));
 			Iterator<IHeadersDataRow> rawWrapper = WrapperManager.getInstance().getRawWrapper(tapCore, systemFilterQuery);
 			StringBuilder waveSiteSystemBuilder = new StringBuilder(" BINDINGS ?System {");
 			while(rawWrapper.hasNext()) {
@@ -771,7 +772,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			this.systemSiteSustainmentFrame = new H2Frame();
 			this.systemSiteSustainmentFrame.addNewColumn(headers, dataTypes, this.systemSiteSustainmentFrame.getTableName());
 
-			IEngine tapPortfolio = Utility.getEngine("TAP_Portfolio");
+			IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
 			String[] systemSiteSustainmentQueryArr = new String[2];
 			systemSiteSustainmentQueryArr[0] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SysSiteGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} {?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Site <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} {?SysSiteGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SysSiteGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} } ORDER BY ?System ?Site";
 			systemSiteSustainmentQueryArr[1] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?FloaterGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FloaterGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} {?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?Site <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} {?FloaterGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?FloaterGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} } ORDER BY ?System ?Site";
