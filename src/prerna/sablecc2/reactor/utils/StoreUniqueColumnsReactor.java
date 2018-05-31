@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -22,7 +23,10 @@ public class StoreUniqueColumnsReactor extends AbstractReactor {
 		organizeKeys();
 		// get inputs - engine
 		String engineName = this.keyValue.get(this.keysToGet[0]);
+		engineName = MasterDatabaseUtility.testEngineIdIfAlias(engineName);
+
 		IEngine engine = Utility.getEngine(engineName);
+
 		// validate engine exists
 		if (engine == null){
 			throw new IllegalArgumentException("Engine doesnt exist");
