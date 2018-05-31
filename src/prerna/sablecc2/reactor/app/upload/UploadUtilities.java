@@ -265,7 +265,7 @@ public class UploadUtilities {
 			writer = new FileWriter(newFile);
 			bufferedWriter = new BufferedWriter(writer);
 			bufferedWriter.write("Base Properties" +  newLine);
-			bufferedWriter.write(Constants.ENGINE + tab + appName + newLine);
+			bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
 			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
 			// write insights rdbms
