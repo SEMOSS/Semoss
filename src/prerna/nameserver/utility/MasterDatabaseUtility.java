@@ -21,6 +21,7 @@ import com.google.gson.GsonBuilder;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.sablecc2.reactor.IReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1580,6 +1581,7 @@ public class MasterDatabaseUtility {
 		List<String> appIds = MasterDatabaseUtility.getEngineIdsForAlias(engineId);
 		if(appIds.size() == 1) {
 			// actually received an app name
+			IReactor.printReactorStackTrace();
 			engineId = appIds.get(0);
 		} else if(appIds.size() > 1) {
 			throw new IllegalArgumentException("There are 2 databases with the name " + engineId + ". Please pass in the correct id to know which source you want to load from");

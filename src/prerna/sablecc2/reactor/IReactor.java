@@ -208,5 +208,32 @@ k. Gets the query struct ? or possibly try to get it from overall
 	 * 
 	 */
 	
+	/**
+	 * THIS IS ONLY USED FOR TESTING PURPOSES!!!
+	 */
+	public static void printReactorStackTrace() {
+		System.err.println("PRINTING STACK TRACE!!!!");
+		System.err.println("PRINTING STACK TRACE!!!!");
+		System.err.println("PRINTING STACK TRACE!!!!");
+		System.err.println("PRINTING STACK TRACE!!!!");
+		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+		int index = 0;
+		for (StackTraceElement element : stackTrace) {
+			String className = element.getClassName();
+			try {
+				Class c = Class.forName(className);
+				if(c.newInstance() instanceof IReactor) {
+					System.err.println();
+					System.err.println("Index: " + index++ );
+					System.err.println("ClassName: " + element.getClassName());
+					System.err.println("MethodName: " + element.getMethodName());
+					System.err.println("FileName: " + element.getFileName());
+					System.err.println("LineNumber: " + element.getLineNumber());
+				}
+			} catch(Exception e) {
+
+			}
+		}
+	}
 	
 }
