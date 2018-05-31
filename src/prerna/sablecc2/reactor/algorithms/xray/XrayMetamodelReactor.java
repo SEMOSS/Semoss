@@ -50,8 +50,26 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 		String rFrameName = xray.run(config);
 
 		// check if we have results from xray
-		String checkNull = "is.null(" + rFrameName + ")";
+		String checkNull = " is.null(" + rFrameName + ")";
 		boolean nullResults = this.rJavaTranslator.getBoolean(checkNull);
+		
+		Set<String> dbList = xray.getEngineList();
+		Hashtable edgesTable = new Hashtable();
+		Hashtable conceptsTable = new Hashtable();
+		for (String db : dbList) {
+			Boolean existingMetamodel = new Boolean(((Map) config.get("parameters")).get("metamodel").toString());
+			Map<String, Object> metamodelObject = MasterDatabaseUtility.getXrayExisitingMetamodelRDBMS(db);
+			Hashtable edgesList1 = (Hashtable) metamodelObject.get("edges");
+			Hashtable concepts = (Hashtable) metamodelObject.get("nodes");
+			if (existingMetamodel) {
+				edgesTable.putAll(edgesList1);
+			}
+			conceptsTable.putAll(concepts);
+		}
+
+		List<Map<String, Object>> edgesList = new Vector(edgesTable.values());
+		// this does not need to be modified maybe flush out only important concepts???????
+		List<Map<String, Object>> concepts2 = new Vector(conceptsTable.values());
 
 		// if we have results sync back SEMOSS
 		if (!nullResults) {
@@ -126,24 +144,8 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				// TODO rScript clean up 
 				throw new IllegalArgumentException("No results found");
 			}
-			Set<String> dbList = xray.getEngineList();
-			Hashtable edgesTable = new Hashtable();
-			Hashtable conceptsTable = new Hashtable();
-			for (String db : dbList) {
-				Boolean existingMetamodel = new Boolean(((Map) config.get("parameters")).get("metamodel").toString());
-				Map<String, Object> metamodelObject = MasterDatabaseUtility.getXrayExisitingMetamodelRDBMS(db);
-				Hashtable edgesList1 = (Hashtable) metamodelObject.get("edges");
-				Hashtable concepts = (Hashtable) metamodelObject.get("nodes");
-				if (existingMetamodel) {
-					edgesTable.putAll(edgesList1);
-				}
-				conceptsTable.putAll(concepts);
-			}
 
 			String delim = "-";
-			List<Map<String, Object>> edgesList = new Vector(edgesTable.values());
-			// this does not need to be modified maybe flush out only important concepts???????
-			List<Map<String, Object>> concepts2 = new Vector(conceptsTable.values());
 			for (Map map : jsonMap) {
 				Map<String, Object> edgeMap = new HashMap<>();
 				String sourceDB = (String) map.get("Source_Database");
@@ -201,20 +203,22 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			cleanUpScript.append("rm(" + countFrame + ");");
 			cleanUpScript.append("gc();");
 			this.rJavaTranslator.runR(cleanUpScript.toString());
-			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("edges", edgesList);
-			retMap.put("nodes", conceptsTable.values());
-			return new NounMetadata(retMap, PixelDataType.MAP);
+
 		}
-		// clean up r temp variables
-		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + rFrameName + ");");
-		cleanUpScript.append("gc();");
-		this.rJavaTranslator.runR(cleanUpScript.toString());
-		NounMetadata noun = new NounMetadata("Unable to obtain X-ray results", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-		SemossPixelException exception = new SemossPixelException(noun);
-		exception.setContinueThreadOfExecution(false);
-		throw exception;
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("edges", edgesList);
+		retMap.put("nodes", conceptsTable.values());
+		return new NounMetadata(retMap, PixelDataType.MAP);
+		
+//		// clean up r temp variables
+//		StringBuilder cleanUpScript = new StringBuilder();
+//		cleanUpScript.append("rm(" + rFrameName + ");");
+//		cleanUpScript.append("gc();");
+//		this.rJavaTranslator.runR(cleanUpScript.toString());
+//		NounMetadata noun = new NounMetadata("Unable to obtain X-ray results", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+//		SemossPixelException exception = new SemossPixelException(noun);
+//		exception.setContinueThreadOfExecution(false);
+//		throw exception;
 	}
 
 }
