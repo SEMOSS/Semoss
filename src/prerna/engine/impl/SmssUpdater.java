@@ -178,27 +178,31 @@ public class SmssUpdater {
 			// replace owl
 			{
 				String owl = prop.getProperty(Constants.OWL);
-				if(owl.contains("@engine@")) {
-					System.out.println("UPDATE SMSS OWL VALUE");
-					String newOwl = owl.replace("@engine@", "@ENGINE@");
-					Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.OWL, newOwl);
-				} else if(!owl.contains("@ENGINE@")) {
-					System.out.println("UPDATE SMSS OWL VALUE");
-					String newOwl = "db/@ENGINE@/" + owl.substring(owl.lastIndexOf("/")+1);
-					Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.OWL, newOwl);
+				if(owl != null) {
+					if(owl.contains("@engine@")) {
+						System.out.println("UPDATE SMSS OWL VALUE");
+						String newOwl = owl.replace("@engine@", "@ENGINE@");
+						Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.OWL, newOwl);
+					} else if(!owl.contains("@ENGINE@")) {
+						System.out.println("UPDATE SMSS OWL VALUE");
+						String newOwl = "db/@ENGINE@/" + owl.substring(owl.lastIndexOf("/")+1);
+						Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.OWL, newOwl);
+					}
 				}
 			}
 			// replace rdbms
 			{
-				String rdmbs = prop.getProperty(Constants.RDBMS_INSIGHTS);
-				if(rdmbs.contains("@engine@")) {
-					System.out.println("UPDATE SMSS RDMBS INSIGHTS VALUE");
-					String newRdbms = rdmbs.replace("@engine@", "@ENGINE@");
-					Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.RDBMS_INSIGHTS, newRdbms);
-				} else if(!rdmbs.contains("@ENGINE@")) {
-					System.out.println("UPDATE SMSS RDMBS INSIGHTS VALUE");
-					String newRdbms = "db/@ENGINE@/" + rdmbs.substring(rdmbs.lastIndexOf("/")+1);
-					Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.RDBMS_INSIGHTS, newRdbms);
+				String rdbms = prop.getProperty(Constants.RDBMS_INSIGHTS);
+				if(rdbms != null) {
+					if(rdbms.contains("@engine@")) {
+						System.out.println("UPDATE SMSS RDMBS INSIGHTS VALUE");
+						String newRdbms = rdbms.replace("@engine@", "@ENGINE@");
+						Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.RDBMS_INSIGHTS, newRdbms);
+					} else if(!rdbms.contains("@ENGINE@")) {
+						System.out.println("UPDATE SMSS RDMBS INSIGHTS VALUE");
+						String newRdbms = "db/@ENGINE@/" + rdbms.substring(rdbms.lastIndexOf("/")+1);
+						Utility.changePropMapFileValue(smss.getAbsolutePath(), Constants.RDBMS_INSIGHTS, newRdbms);
+					}
 				}
 			}
 			
