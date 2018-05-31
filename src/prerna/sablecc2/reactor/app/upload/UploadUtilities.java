@@ -581,10 +581,10 @@ public class UploadUtilities {
 
 	/**
 	 * Add explore an instance to the insights database
-	 * @param appName
+	 * @param appId
 	 * @param insightEngine
 	 */
-	public static void addExploreInstanceInsight(String appName, IEngine insightEngine) {
+	public static void addExploreInstanceInsight(String appId, IEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "Explore an instance of a selected node type";
 		String layout = "Graph";
@@ -596,7 +596,7 @@ public class UploadUtilities {
 				newPixel += new String(Files.readAllBytes(exploreF.toPath()))
 						.replaceAll("\n|\r|\t", "")
 						.replaceAll("\\s\\s+", "")
-						.replace("<<ENGINE>>", appName);
+						.replace("<<ENGINE>>", appId);
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = {newPixel};
 				admin.addInsight(insightName, layout, pkqlRecipeToSave);
