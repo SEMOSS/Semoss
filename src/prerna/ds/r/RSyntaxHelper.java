@@ -1,5 +1,6 @@
 package prerna.ds.r;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
+import prerna.util.Utility;
 
 public class RSyntaxHelper {
 	
@@ -26,7 +28,7 @@ public class RSyntaxHelper {
 		javaRDatTimeTranslationMap.put("M1", "%m"); 	//Numerical month
 		javaRDatTimeTranslationMap.put("M2", "%m"); 	//Numerical month
 		javaRDatTimeTranslationMap.put("M3", "%b"); 	//Abbreviated month name
-		javaRDatTimeTranslationMap.put("M5", "%B"); 	//Full month name
+		javaRDatTimeTranslationMap.put("M+", "%B"); 	//Full month name
 		javaRDatTimeTranslationMap.put("d", "%d"); 		//Day in month
 		javaRDatTimeTranslationMap.put("D", "%j"); 		//Day in year
 //		javaRDatTimeTranslationMap.put("w", value); 	//Week in year
@@ -218,13 +220,43 @@ public class RSyntaxHelper {
 	}
 	
 	public static String alterColumnTypeToDate(String tableName, String format, List<String> cols) {
+		StringBuilder builder = new StringBuilder();
 		//parse out the milliseconds options
 		String[] parsedFormat = format.split("\\|");
-		StringBuilder builder = new StringBuilder();
+		
 		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
 				+ "lapply(.SD, function(x) as.Date(x, format='" + parsedFormat[0] + "')), "
 				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
 		return builder.toString();
+	}
+	
+	public static List<String> alterColumnTypeToDate_Excel(String tableName, List<String> cols) {
+		List<String> dateExcelR= new ArrayList<String>();
+		StringBuilder builder = new StringBuilder();
+		String convertedDateCols_R = "convertedDateCols" + Utility.getRandomString(6);
+		String convertedDateColsList_R = "convertedDateColsList" + Utility.getRandomString(6);
+		
+		//append the function that will handle dates that have been translated into a numerical value during read.xlsx2 upload
+		builder.append("clean_convertToDate_function <- function(x){	cleanCol <- gsub('^\\\\s*$', 'NA', " + tableName + "[[x]]) "
+				+ "%>% .[!is.na(.) & . != 'NA' & . != 'null' & . != 'NULL'];" 
+				+ "if (all(!is.na(as.numeric(cleanCol)))) as.Date('1900-01-01') + as.numeric(" + tableName + "[[x]]) - 2 else 'NOTHING' };");
+		//call the function above and sort columns by whether they were handled by the function
+		builder.append(convertedDateCols_R + " <- lapply(c('" + StringUtils.join(cols, "','") + "'), clean_convertToDate_function);");
+		builder.append(convertedDateColsList_R + " <- c('" + StringUtils.join(cols,"','") + "')[-grep('NOTHING'," + convertedDateCols_R + ")];");
+		//update columns via the outputs of the function
+		builder.append("if (length(" + convertedDateColsList_R + ") > 0) "
+				+ tableName + "[, (" + convertedDateColsList_R + ") := lapply("
+				+ "setdiff(seq(1,length(" + convertedDateCols_R + ")), grep('NOTHING'," + convertedDateCols_R + ")), "
+				+ "function(x) unlist(" + convertedDateCols_R + "[[x]] ))];");
+		
+		//clean up variables/functions
+		builder.append("rm(clean_convertToDate_function," + convertedDateCols_R + "); gc()");
+		
+		//prep return list
+		dateExcelR.add(builder.toString());
+		dateExcelR.add(convertedDateColsList_R);
+		
+		return dateExcelR;
 	}
 
 	public static String alterColumnTypeToDateTime(String tableName, String format,String colName) {
@@ -237,7 +269,6 @@ public class RSyntaxHelper {
 	}
 	
 	public static String alterColumnTypeToDateTime(String tableName, String format, List<String> cols) {
-		//TODO need to gsub any delimiter that's not a period between second and millisecond if %OS
 		//parse out the milliseconds options
 		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
@@ -246,6 +277,38 @@ public class RSyntaxHelper {
 				+ "lapply(.SD, function(x) as.POSIXct(fast_strptime(x, format='" + parsedFormat[0] + "'))), "
 				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
 		return builder.toString();
+	}
+	
+	public static List<String> alterColumnTypeToDateTime_Excel(String tableName, List<String> cols) {
+		List<String> dateTimeExcelR= new ArrayList<String>();
+		StringBuilder builder = new StringBuilder();
+		String convertedDTCols_R = "convertedDTCols" + Utility.getRandomString(6);
+		String convertedDTColsList_R = "convertedDTColsList" + Utility.getRandomString(6);
+		
+		//TODO need to make this based on an input parameter instead of being hardcoded
+		builder.append("options(digits.secs = 3);");
+		
+		//append the function that will handle datetimes that have been translated into a numerical value during read.xlsx2 upload
+		builder.append("clean_convertToPOSIXct_function <- function(x){ cleanCol <- gsub('^\\\\s*$', 'NA', " + tableName + "[[x]]) "
+				+ "%>% .[!is.na(.) & . != 'NA' & . != 'null' & . != 'NULL'];"
+				+ "if (all(!is.na(as.numeric(cleanCol)))) as.POSIXct(as.numeric(" + tableName + "[[x]])*86400, origin = '1899-12-30', tz='UTC') else 'NOTHING' };");
+		//call the function above and sort columns by whether they were handled by the function
+		builder.append(convertedDTCols_R + " <- lapply(c('" + StringUtils.join(cols, "','") + "'), clean_convertToPOSIXct_function);");
+		builder.append(convertedDTColsList_R + " <- c('" + StringUtils.join(cols,"','") + "')[-grep('NOTHING'," + convertedDTCols_R + ")];");
+		//update columns via the outputs of the function
+		builder.append("if (length(" + convertedDTColsList_R + ") > 0) "
+				+ tableName + "[, (" + convertedDTColsList_R + ") := lapply("
+				+ "setdiff(seq(1,length(" + convertedDTCols_R + ")), grep('NOTHING'," + convertedDTCols_R + ")), "
+				+ "function(x) unlist(" + convertedDTCols_R + "[[x]] ))];");
+		
+		//clean up variables/functions
+		builder.append("rm(clean_convertToDate_function," + convertedDTCols_R + "); gc()");
+		
+		//prep return list
+		dateTimeExcelR.add(builder.toString());
+		dateTimeExcelR.add(convertedDTColsList_R);
+		
+		return dateTimeExcelR;
 	}
 	
 	/**
@@ -272,9 +335,15 @@ public class RSyntaxHelper {
 		return builder.toString();
 	}
 
-	public static String getExcelReadSheetSyntax(String tableName, String absolutePath, String sheetName) {
+	public static String getExcelReadSheetSyntax(String tableName, String absolutePath, int sheetIndex, List<Integer> colIndices, boolean uploadSubset) {
 		StringBuilder builder = new StringBuilder();
-		builder.append(tableName).append(" <- as.data.table(read.xlsx2(\"").append(absolutePath.replace("\\", "/")).append("\", sheetName=\"").append(sheetName).append("\"))");
+		builder.append(tableName).append(" <- as.data.table(read.xlsx2(\"").append(absolutePath.replace("\\", "/"))
+		.append("\", sheetIndex=").append(sheetIndex).append(", colClasses = c(rep('character',").append(colIndices.size())
+		.append(")), stringsAsFactors=FALSE");
+		if (uploadSubset) {
+			builder.append(", colIndex = c(").append(StringUtils.join(colIndices,",")).append(")");
+		}
+		builder.append("))");
 		return builder.toString();
 	}
 
@@ -578,7 +647,7 @@ public class RSyntaxHelper {
 		String substr = "";
 		String optionsMiliSeconds = "";
 		
-		String datetimeRegex = "[GyYMDdEuaHhmsSZX]";
+		String datetimeRegex = "[yYMDdEuaHhmsSZX]";
 		int lastIndxSubstr = 0;
 		for (int i = 0; i < javaFormat.length(); i++){
 			String ch = (i == javaFormat.length()-1) ? javaFormat.substring(i) : javaFormat.substring(i, i + 1);
@@ -612,33 +681,46 @@ public class RSyntaxHelper {
 					} else {
 						rFormat += substr.substring(1, substr.length()-1).replaceAll("''","'");
 					}
-				} else if (ch.equalsIgnoreCase("y") || ch.equals("M") || ch.equals("E")) {
-					//for these ch, it needs to be concatenated with the length of the substr to identify the appropriate R syntax
-					int lengthSubstr = substr.length();
-					if (ch.equalsIgnoreCase("e") && lengthSubstr != 3){
-						rFormat += javaRDatTimeTranslationMap.get("E");
-					} else if (javaRDatTimeTranslationMap.get(ch + lengthSubstr) != null) {
-						rFormat += javaRDatTimeTranslationMap.get(ch + lengthSubstr);
+				} else {
+					//check if there are any other characters in the substr other than the character (ch)
+					for (int j = 1; j < substr.length(); j++) {
+						char ch_substr = substr.toCharArray()[j];
+						if (!String.valueOf(ch_substr).equals(ch)) {
+							substr = substr.substring(0, j);
+							lastIndxSubstr = i + j - 1;
+							break;
+						}
+					}
+					if (ch.equalsIgnoreCase("y") || ch.equals("M") || ch.equals("E")) {
+						// for these ch, it needs to be concatenated with the length of the substr to identify the appropriate R syntax
+						int lengthSubstr = substr.length();
+						if (ch.equalsIgnoreCase("e") && lengthSubstr != 3) {
+							rFormat += javaRDatTimeTranslationMap.get("E");
+						} else if (ch.equals("M") && lengthSubstr > 3) {
+							rFormat += javaRDatTimeTranslationMap.get("M+");
+						} else if (javaRDatTimeTranslationMap.get(ch + lengthSubstr) != null) {
+							rFormat += javaRDatTimeTranslationMap.get(ch + lengthSubstr);
+						} else {
+							throw new RuntimeException("Associated R date/time format is undefined.");
+						}
+					} else if (ch.equals("S")) {
+						// need to retain how many digits the millisecond request is
+						optionsMiliSeconds = Integer.toString(substr.length());
+						// for second, need to check for millisecond to properly translate to R syntax
+						if (rFormat.indexOf("%S") > 1) {
+							rFormat = rFormat.replaceAll("%S", "%OS");
+							rFormat = rFormat.substring(0, rFormat.indexOf("%OS") + 3);
+						} else {
+							throw new RuntimeException(
+									"R timestamps cannot support milliseconds without the presence of seconds.");
+						}
+					} else if (javaRDatTimeTranslationMap.get(ch) != null) {
+						// for these ch, it can be used to directly search for the appropriate R syntax
+						rFormat += javaRDatTimeTranslationMap.get(ch);
 					} else {
 						throw new RuntimeException("Associated R date/time format is undefined.");
 					}
-				} else if (ch.equals("S")) {
-					//need to retain how many digits the millisecond request is
-					optionsMiliSeconds = Integer.toString(substr.length());
-					//for second, need to check for millisecond to properly translate to R syntax
-					if (rFormat.indexOf("%S") > 1) {
-						rFormat = rFormat.replaceAll("%S", "%OS");
-						rFormat = rFormat.substring(0, rFormat.indexOf("%OS") + 3); 
-					} else {
-						throw new RuntimeException("R timestamps cannot support milliseconds without the presence of seconds.");
-					}
-				} else if (javaRDatTimeTranslationMap.get(ch) != null){
-					//for these ch, it can be used to directly search for the appropriate R syntax
-					rFormat += javaRDatTimeTranslationMap.get(ch);
-				} else {
-					throw new RuntimeException("Associated R date/time format is undefined.");
 				}
-				
 				i = lastIndxSubstr;
 			}
 		}
@@ -651,5 +733,50 @@ public class RSyntaxHelper {
 		}		
 		
 		return rFormat;
+	}
+	
+	public static String getValueJavaRDatTimeTranslationMap(String key){
+		String value = javaRDatTimeTranslationMap.get(key);
+		return value;
+	}
+	
+	public static void main(String[] args) {
+//		// testing inner
+//		System.out.println("testing inner...");
+//		System.out.println("testing inner...");
+//		System.out.println("testing inner...");
+//		System.out.println("testing inner...");
+//		System.out.println("testing inner...");
+//
+//		String returnTable = "tableToTest";
+//		String leftTableName = "x";
+//		String rightTableName = "y";
+//		String joinType = "inner.join"; // left.outer.join, right.outer.join, outer.join
+//		List<Map<String, String>> joinCols = new Vector<Map<String, String>>();
+//		Map<String, String> join1 = new HashMap<String, String>();
+//		join1.put("", "");
+//		joinCols.add(join1);
+//
+//		// when you get to multi
+//		//		Map<String, String> join2 = new HashMap<String, String>();
+//		//		join2.put("", "");
+//		//		joinCols.add(join2);
+//
+//		System.out.println(getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols));
+//
+//		System.out.println("testing left...");
+//		System.out.println("testing left...");
+//		System.out.println("testing left...");
+//		System.out.println("testing left...");
+//		System.out.println("testing left...");
+//
+//		returnTable = "tableToTest";
+//		joinType = "left.outer.join"; // left.outer.join, right.outer.join, outer.join
+//
+//		System.out.println(getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols));
+		
+		
+		
+		
 	}
 }

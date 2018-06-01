@@ -1,9 +1,12 @@
 package prerna.query.interpreters;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
@@ -21,7 +24,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -29,6 +31,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
+	private Map<String, String> additionalTypes;
 
 	//keep track of the selectors
 	private StringBuilder selectorCriteria = new StringBuilder(); 
@@ -55,7 +58,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		if(this.colDataTypes == null) {
 			this.colDataTypes = new Hashtable<String, SemossDataType>();
 		}
-
+		if(this.additionalTypes == null) {
+			this.additionalTypes = new Hashtable<String, String>();
+		}
 		boolean isDistinct = qs.isDistinct();
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
@@ -106,24 +111,29 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		// we need to convert dates from being integer values
 		// to output as dates
 		boolean addedColToDateChange = false;
-		for(String column : this.colDataTypes.keySet()) {
-			SemossDataType thisColType = this.colDataTypes.get(column);
-			if(SemossDataType.DATE == thisColType || SemossDataType.TIMESTAMP == thisColType) {
-				if(column.contains("__")) {
-					column = column.split("__")[1];
+		for (String column : this.additionalTypes.keySet()) {
+			if (column.contains("__")) {
+				column = column.split("__")[1];
+			}
+			if (validHeaders.contains(column) && this.additionalTypes.containsKey(this.dataTableName + "__" + column)) {
+				addedColToDateChange = true;
+				String javaFormat = this.additionalTypes.get(this.dataTableName + "__" + column);
+				String[] rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat).split("\\|");
+				query.append("if (is.Date(" + tempVarName + "$" + column + ") || is.POSIXct(" + tempVarName + "$"
+						+ column + ")) {").append("options(digits.secs =" + rFormat[1] + ");")
+						.append(tempVarName + "$" + column + " <- format(" + tempVarName + "$" + column + ", format='"
+								+ rFormat[0] + "')");
+				// handle potential leading zero and second/millisecond delimiter
+				String rSubSyntax = getRSubSyntax(javaFormat, rFormat[0]);
+				if (rSubSyntax.length() > 0) {
+					query.append(" %>% " + rSubSyntax);
 				}
-				if(validHeaders.contains(column)) {
-					addedColToDateChange = true;
-					query.append(";").append(tempVarName).append("$").append(column)
-						.append("<- format(") //TODO once format is passed in, pass that into this portion
-						.append(tempVarName).append("$").append(column)
-						.append(")");
-				}
+				query.append("};");
 			}
 		}
 		
 		if(addedColToDateChange) {
-			query.append(";").append(tempVarName).append(";");
+			query.append(tempVarName).append(";");
 		}
 
 		if(query.length() > 500) {
@@ -133,6 +143,91 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		return query.toString();
 	}
+	
+	///////////////////////// helper functions to parse additional datatypes /////////////////////////
+	/**
+	 * Remove leading zeroes if instructed by the java date/time format and/or 
+	 * update delimiter separating seconds and milliseconds, if applicable
+	 * @param jFormat
+	 * @param rFormat
+	 * @return
+	 */
+	private String getRSubSyntax(String jFormat, String rFormat) {
+		StringBuilder sb = new StringBuilder();
+		//regex that correspond to values that may potentially not need a leading zero
+		String regex = "MdHm" ;
+        String firstParam = rFormat;
+        String secondParam = "";
+
+        //remove anything that is wrapped in single quotes
+        Pattern sqPattern = Pattern.compile("([\"'])(\\\\?.)*?\\1");
+        jFormat = sqPattern.matcher(jFormat).replaceAll("");
+        
+        List<String> matchedRRegex = new ArrayList<String>();
+        for (char ch: regex.toCharArray()) {
+        	Pattern pattern = Pattern.compile(String.valueOf(ch));
+            Matcher matcher = pattern.matcher(jFormat);
+            int count = 0;
+            while (matcher.find()){
+            	count++;
+            }
+            if (count == 1) {
+            	//if the character is matched once in the jFormat, then fetch corresponding r syntax 
+            	String rRegex = (String.valueOf(ch).equals("M")) ? RSyntaxHelper.getValueJavaRDatTimeTranslationMap(ch + "1") : 
+                	RSyntaxHelper.getValueJavaRDatTimeTranslationMap(String.valueOf(ch));
+            	matchedRRegex.add(rRegex);
+            }
+        }
+
+        if (matchedRRegex.size() > 0) {
+        	//if leading zero is absent, then construct the R gsub syntax
+        	int firstParamCurIndex = 0;
+            int secondParamValue = 1;
+            for (int i=0; i < rFormat.length(); i++){
+                String c = Character.toString(rFormat.charAt(i));
+                if (c.equals("%")) {
+                    String substr = (rFormat.substring(i, i+2).equals("%O")) ? rFormat.substring(i, i+3) : rFormat.substring(i, i+2);
+                    if (matchedRRegex.contains(substr)){
+                        firstParam = firstParam.replaceAll(substr, "0?(.+)");
+                        firstParamCurIndex += 6;
+                    } else {
+                        firstParam = firstParam.replaceAll(substr, "(.*)");
+                        firstParamCurIndex += 4;
+                    }
+                    secondParam += "\\\\" + secondParamValue;
+                    secondParamValue++;
+                    //increment i appropriately
+                    i = (substr.equals("%OS")) ? i+2 : i+1;
+                } else {
+                	firstParam = firstParam.substring(0, firstParamCurIndex) + "\\\\" + firstParam.substring(firstParamCurIndex);
+                	firstParamCurIndex += 3;
+                    secondParam += c;
+                }
+            }
+            
+            //if minutes is one where we have to handle leading zeros, then need to ensure "00" is left as such 
+            if (matchedRRegex.contains("%M")) {
+            	sb.append("sub('" + firstParam + "','" + secondParam + "', .) %>% gsub(':0:', ':00:', .)");
+            } else {
+            	sb.append("sub('" + firstParam + "','" + secondParam + "', .)");
+            }
+        }
+        
+        //check if delimiter between seconds and milliseconds needs to be addressed (replaced if not a period)
+        int indexSeconds = jFormat.lastIndexOf("s");
+        int indexMilliSeconds = jFormat.indexOf("S");
+        if (indexSeconds < indexMilliSeconds) {
+        	String delimiter = jFormat.substring(indexSeconds + 1,  indexMilliSeconds);
+        	if (!delimiter.equals(".")){
+        		if (sb.length() > 0) {
+        			sb.append(" %>% ");
+        		}
+        		sb.append("gsub('.([^.]+)$', '\\\\2" + delimiter + "\\\\1', .)");
+        	}
+        }
+		return sb.toString();
+	}
+	
 	
 	//////////////////////////////////// start adding selectors /////////////////////////////////////
 
@@ -568,6 +663,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	public void setColDataTypes(Map<String, SemossDataType> colDataTypes) {
 		this.colDataTypes = colDataTypes;
 	}
+	
+	public void setAdditionalTypes(Map<String, String> additionalTypes) {
+		this.additionalTypes = additionalTypes;
+	}
 
 	public StringBuilder getFilterCriteria() {
 		return this.filterCriteria;
@@ -583,41 +682,120 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	}
 
 	public static void main(String[] args) {
-		SelectQueryStruct qsTest = new SelectQueryStruct();
-		qsTest.addSelector("Title", null);
-		qsTest.addSelector("Other2", null);
-		//qsTest.addSelector("Movie_Budget", null);
+//		SelectQueryStruct qsTest = new SelectQueryStruct();
+//		qsTest.addSelector("Title", null);
+//		qsTest.addSelector("Other2", null);
+//		//qsTest.addSelector("Movie_Budget", null);
+//
+//		//Vector filterData1 = new Vector<>();
+//		//filterData1.add("American Hustle");
+//		//filterData1.add("Captain Phillips");
+//
+//		NounMetadata test1 = new NounMetadata("Title", PixelDataType.COLUMN);
+//		List<Object> values = new Vector<Object>();
+//		values.add(500);
+//		//values.add("string2");
+//		//values.add(2.3);
+//		NounMetadata test2 = new NounMetadata(values, PixelDataType.CONST_INT);
+//		NounMetadata test3 = new NounMetadata("Nominated", PixelDataType.CONST_STRING);
+//
+//		SimpleQueryFilter filter1 = new SimpleQueryFilter(test1, "=", test3);
+//		qsTest.addExplicitFilter(filter1);
+//
+//		//Vector filterData2 = new Vector<>();
+//		//filterData2.add(40000000);
+//		//qs.addFilter("Movie_Budget", ">", filterData2);
+//
+//		RInterpreter rI = new RInterpreter();
+//		rI.setQueryStruct(qsTest);
+//
+//		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
+//		colDataTypes.put("Title", SemossDataType.STRING);
+//		colDataTypes.put("Other2", SemossDataType.STRING);
+//
+//		rI.setColDataTypes(colDataTypes);
+//
+//		String query = rI.composeQuery();
+//		System.out.println(query);
+		
+//		String jFormat = "sss:SSS";
+		String jFormat = "MM-dd'T'HH:mm:ss.SSS'Z'" ;
+		//String jFormat = "M-d'T'HH:mm:ss" ;
+		//String jFormat = "M-d'T'HH:mm" ;
+		
+		String rFormat = "%m-%dT%H:%M:%OSZ";
+		
+		StringBuilder sb = new StringBuilder();
+		//regex that correspond to values that may potentially not need a leading zero
+		String regex = "MdHm" ;
+        String firstParam = rFormat;
+        String secondParam = "";
 
-		//Vector filterData1 = new Vector<>();
-		//filterData1.add("American Hustle");
-		//filterData1.add("Captain Phillips");
+        //remove anything that is wrapped in single quotes
+        Pattern sqPattern = Pattern.compile("([\"'])(\\\\?.)*?\\1");
+        jFormat = sqPattern.matcher(jFormat).replaceAll("");
+        
+        List<String> matchedRRegex = new ArrayList<String>();
+        for (char ch: regex.toCharArray()) {
+        	Pattern pattern = Pattern.compile(String.valueOf(ch));
+            Matcher matcher = pattern.matcher(jFormat);
+            int count = 0;
+            while (matcher.find()){
+            	count++;
+            }
+            if (count == 1) {
+            	//if the character is matched once in the jFormat, then fetch corresponding r syntax 
+            	String rRegex = (String.valueOf(ch).equals("M")) ? RSyntaxHelper.getValueJavaRDatTimeTranslationMap(ch + "1") : 
+                	RSyntaxHelper.getValueJavaRDatTimeTranslationMap(String.valueOf(ch));
+            	matchedRRegex.add(rRegex);
+            }
+        }
 
-		NounMetadata test1 = new NounMetadata("Title", PixelDataType.COLUMN);
-		List<Object> values = new Vector<Object>();
-		values.add(500);
-		//values.add("string2");
-		//values.add(2.3);
-		NounMetadata test2 = new NounMetadata(values, PixelDataType.CONST_INT);
-		NounMetadata test3 = new NounMetadata("Nominated", PixelDataType.CONST_STRING);
+        if (matchedRRegex.size() > 0) {
+        	//if leading zero is absent, then construct the R gsub syntax
+            int secondParamValue = 1;
+            for (int i=0; i < rFormat.length(); i++){
+                String c = Character.toString(rFormat.charAt(i));
+                if (c.equals("%")) {
+                    String substr = (rFormat.substring(i, i+2).equals("%O")) ? rFormat.substring(i, i+3) : rFormat.substring(i, i+2);
+                	System.out.println("INDEX: " + i + " ::: " + substr);
+                    if (matchedRRegex.contains(substr)){
+                        firstParam = firstParam.replaceAll(substr, "0?(.+)");
+                    } else {
+                        firstParam = firstParam.replaceAll(substr, "(.*)");
+                    }
+                    secondParam += "\\\\" + secondParamValue;
+                    secondParamValue++;
+                    //increment i appropriately
+                    i = (substr.equals("%OS")) ? i+2 : i+1;
+                } else {
+                    secondParam += c;
+                }
+            }
+            
+            //if minutes is one where we have to handle leading zeros, then need to ensure "00" is left as such 
+            if (matchedRRegex.contains("%M")) {
+            	sb.append("('" + firstParam + "','" + secondParam + "', COLUMNNAME) %>% gsub(':0:', ':00:', .)");
+            } else {
+            	sb.append("('" + firstParam + "','" + secondParam + "', COLUMNNAME)");
+            }
+        }
+        
+        //get delimiter between seconds and milliseconds, if present, from the java format
+        int indexSeconds = jFormat.lastIndexOf("s");
+        int indexMilliSeconds = jFormat.indexOf("S");
+        if (indexSeconds < indexMilliSeconds) {
+        	String delimiter = jFormat.substring(indexSeconds + 1,  indexMilliSeconds);
+        	if (!delimiter.equals(".")){
+        		sb.append(" %>% gsub('.([^.]+)$', '\\\\2" + delimiter + "\\\\1', .)");
+        	}
+        }
+        String x = sb.toString();
+        
+        System.out.println(sb.toString()==null);
+        System.out.println(sb.length());
+        
 
-		SimpleQueryFilter filter1 = new SimpleQueryFilter(test1, "=", test3);
-		qsTest.addExplicitFilter(filter1);
-
-		//Vector filterData2 = new Vector<>();
-		//filterData2.add(40000000);
-		//qs.addFilter("Movie_Budget", ">", filterData2);
-
-		RInterpreter rI = new RInterpreter();
-		rI.setQueryStruct(qsTest);
-
-		Map<String, SemossDataType> colDataTypes = new Hashtable<String, SemossDataType>();
-		colDataTypes.put("Title", SemossDataType.STRING);
-		colDataTypes.put("Other2", SemossDataType.STRING);
-
-		rI.setColDataTypes(colDataTypes);
-
-		String query = rI.composeQuery();
-		System.out.println(query);
 	}
 
 }
