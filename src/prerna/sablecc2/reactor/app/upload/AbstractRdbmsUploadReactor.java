@@ -39,9 +39,9 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * Execution methods
 	 */
 
-	public abstract void generateNewApp(String appName, String filePath, Logger logger);
+	public abstract String generateNewApp(String appName, String filePath, Logger logger);
 
-	public abstract void addToExistingApp(String appName, String filePath, Logger logger);
+	public abstract String addToExistingApp(String appName, String filePath, Logger logger);
 
 	/*
 	 * Methods that are shared

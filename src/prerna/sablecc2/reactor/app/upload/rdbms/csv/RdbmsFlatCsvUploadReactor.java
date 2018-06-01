@@ -21,6 +21,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -74,13 +75,14 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
 
+		String returnId = null;
 		if(existing) {
-			addToExistingApp(appIdOrName, filePath, logger);
+			returnId = addToExistingApp(appIdOrName, filePath, logger);
 		} else {
-			generateNewApp(appIdOrName, filePath, logger);
+			returnId = generateNewApp(appIdOrName, filePath, logger);
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
+		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	/**
@@ -89,7 +91,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * @param filePath
 	 */
 	@Override
-	public void generateNewApp(final String newAppName, final String filePath, Logger logger) {
+	public String generateNewApp(final String newAppName, final String filePath, Logger logger) {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -218,6 +220,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
 		updateDIHelper(newAppId, newAppName, engine, smssFile);
+		
+		return newAppId;
 	}
 
 	/**
@@ -226,7 +230,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * @param filePath
 	 */
 	@Override
-	public void addToExistingApp(String appId, String filePath, Logger logger) {
+	public String addToExistingApp(String appId, String filePath, Logger logger) {
+		appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
@@ -314,6 +319,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			e.printStackTrace();
 		}
 		logger.info(stepCounter + ". Complete");
+		
+		return appId;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
