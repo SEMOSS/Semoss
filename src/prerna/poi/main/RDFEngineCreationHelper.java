@@ -19,7 +19,7 @@ public class RDFEngineCreationHelper {
 	 * @param conceptualNames
 	 */
 	public static void insertSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
-		String engineName = rdfEngine.getEngineId();
+		String engineId = rdfEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdfEngine.getInsightDatabase());
 		
 		//determine the # where the new questions should start
@@ -35,9 +35,9 @@ public class RDFEngineCreationHelper {
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(" + engineName + ") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
+				recipeArray[3] = "Database(\"" + engineId + "\") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
 				
-				StringBuilder viewPixel = new StringBuilder("Frame() | Select(f$").append(conceptualName)
+				StringBuilder viewPixel = new StringBuilder("Frame() | Select(").append(conceptualName)
 						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
@@ -60,7 +60,7 @@ public class RDFEngineCreationHelper {
 	 * @param conceptualNames
 	 */
 	public static void insertNewSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
-		String engineName = rdfEngine.getEngineId();
+		String engineId = rdfEngine.getEngineId();
 		IEngine insightsDatabase = rdfEngine.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightsDatabase);
 		
@@ -89,9 +89,9 @@ public class RDFEngineCreationHelper {
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(" + engineName + ") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
+				recipeArray[3] = "Database(\"" + engineId + "\") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
 				
-				StringBuilder viewPixel = new StringBuilder("Frame() | Select(f$").append(conceptualName)
+				StringBuilder viewPixel = new StringBuilder("Frame() | Select(").append(conceptualName)
 						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
