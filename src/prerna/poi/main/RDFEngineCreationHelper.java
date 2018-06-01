@@ -71,17 +71,17 @@ public class RDFEngineCreationHelper {
 
 		String query = null;
 		try {
-			for(String conceptualName : conceptualNames) {
+			NEXT_CONCEPT : for(String conceptualName : conceptualNames) {
 				// make sure insight doesn't already exist
 				insightName = "Show first 500 records from " + conceptualName;
 
-				query = "select id where question_name='"+insightName+"'";
+				query = "select id from question_id where question_name='"+insightName+"'";
 				IRawSelectWrapper containsIt = WrapperManager.getInstance().getRawWrapper(insightsDatabase, query);
 				while(containsIt.hasNext()) {
 					// this question already exists
 					// just continue though the loop
 					containsIt.next();
-					continue;
+					continue NEXT_CONCEPT;
 				}
 				
 				layout = "Grid";
