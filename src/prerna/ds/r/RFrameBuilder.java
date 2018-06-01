@@ -107,7 +107,7 @@ public class RFrameBuilder {
 	 */
 	public void createTableViaIterator(String tableName, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		Map<String, String> additionalType = new HashMap<String,String>();
-		
+		String fileType = "";
 		/*
 		 * We have an iterator that comes for 3 main sources
 		 * 1) some kind of resultset (i.e. engine/endpoint) -> we flush this out to a csv file and load it
@@ -117,9 +117,11 @@ public class RFrameBuilder {
 		if(it instanceof CsvFileIterator) {
 			createTableViaCsvFile(tableName, (CsvFileIterator) it);
 			additionalType = ((CsvFileIterator) it).getQs().getAdditionalTypes();
+			fileType = "csv";
 		} else if(it instanceof ExcelFileIterator) {
 			createTableViaExcelFile(tableName, (ExcelFileIterator) it);
 			additionalType = ((ExcelFileIterator) it).getQs().getAdditionalTypes();
+			fileType = "excel";
 		} else {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
@@ -131,18 +133,8 @@ public class RFrameBuilder {
 			newFile.delete();
 		}	
 		
-		// ... and make sure you update the types after!
-		// the types map will have the finalized headers to their types (?) TODO check this, if not true, need to do this in csv/excel iterators
-		// prior to updating the datatypes, need an inverted form of the typesMap
-		Map<SemossDataType, List<String>> invTypesMap = new HashMap<SemossDataType, List<String>>();
-		for (String header : typesMap.keySet()){
-			SemossDataType dataType = typesMap.get(header);
-			invTypesMap.computeIfAbsent(dataType, v -> new ArrayList<String>());
-			invTypesMap.get(dataType).add(header);
-		}
-
 		// alter types
-		alterColumnTypes(tableName, typesMap, additionalType);
+		alterColumnTypes(tableName, typesMap, additionalType, fileType);
 		
 		//add indices
 		addColumnIndex(tableName, getColumnNames());
@@ -220,35 +212,39 @@ public class RFrameBuilder {
 	private void createTableViaExcelFile(String tableName, ExcelFileIterator it) {
 		ExcelQueryStruct qs = it.getQs();
 		String sheetName = qs.getSheetName();
+		int sheetIndex = it.getHelper().getSheetIndex(sheetName) + 1;
 		String[] newCleanHeaders = it.getHelper().getHeaders(sheetName);
+		
+		//given that the R read.xlsx2 function that extract a subset of columns, check if user 
+		//selected to upload the entire worksheet or only some columns
+		boolean uploadSubset = false;
+		List<String> selectors = new ArrayList<String>();
+		List<Integer> colIndices = new ArrayList<Integer>();
+		if (qs.getSelectors().size() < newCleanHeaders.length){
+			uploadSubset = true;
+			for (int i = 0; i < qs.getSelectors().size(); i++) {
+				String header = qs.getSelectors().get(i).getAlias();
+				selectors.add(header);
+				colIndices.add(Arrays.asList(newCleanHeaders).indexOf(header) + 1);
+			}
+		} 
+		
 		{
+			//load the R xlsx package
+			evalR("library(xlsx)");
 			long start = System.currentTimeMillis();
 			logger.info("Loading R table via Excel File");
-			// get you the fread notation with the csv file within the iterator
-			String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(tableName, it.getFileLocation(), sheetName);
-			evalR(loadFileRScript);
-
-			evalR("setnames(" + tableName + ", " + RSyntaxHelper.createStringRColVec(newCleanHeaders) + ")");
+			if (uploadSubset) {
+				String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(tableName, it.getFileLocation(), sheetIndex, colIndices, uploadSubset);
+				evalR(loadFileRScript);
+				evalR("setnames(" + tableName + ", names(" + tableName + "), c('" + StringUtils.join(selectors, "','") + "'))");
+			} else {
+				String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(tableName, it.getFileLocation(), sheetIndex, Arrays.asList(new Integer[newCleanHeaders.length]), uploadSubset);
+				evalR(loadFileRScript);
+				evalR("setnames(" + tableName + ", " + RSyntaxHelper.createStringRColVec(newCleanHeaders) + ")");
+			}
 			long end = System.currentTimeMillis();
 			logger.info("Loading R done in " + (end-start) + "ms");
-		}
-		
-		if (qs.getSelectors().size() < newCleanHeaders.length) {
-			long start = System.currentTimeMillis();
-			logger.info("Need to filter R table based on selected headers");
-			RInterpreter interp = new RInterpreter();
-			interp.setDataTableName(tableName);
-			interp.setQueryStruct(qs);
-			Map<String, String> strTypes = qs.getColumnTypes();
-			Map<String, SemossDataType> enumTypes = new HashMap<String, SemossDataType>();
-			for(String key : strTypes.keySet()) {
-				enumTypes.put(key, SemossDataType.convertStringToDataType(strTypes.get(key)));
-			}
-			interp.setColDataTypes(enumTypes);
-			String query = interp.composeQuery();
-			evalR(tableName + "<-" + query);
-			long end = System.currentTimeMillis();
-			logger.info("Done filter R table based on selected headers in " + (end-start) + "ms");			
 		}
 		
 		if(!qs.getExplicitFilters().isEmpty()) {
@@ -349,12 +345,14 @@ public class RFrameBuilder {
 	 * @param typesMap
 	 * @param javaDateFormatMap
 	 */
-	private void alterColumnTypes(String tableName, Map<String, SemossDataType> typesMap, Map<String, String> javaDateFormatMap) {
+	private void alterColumnTypes(String tableName, Map<String, SemossDataType> typesMap, Map<String, String> javaDateFormatMap, String fileType) {
+		List<String> excelDateNumHeaders = new ArrayList<String>();
+		List<String> excelDTNumHeaders = new ArrayList<String>();
+		
 		// go through all the headers
 		// and collect similar types
 		// so we can execute with a single r script line
 		// for performance improvements
-		
 		List<String> charColumns = new Vector<String>();
 		List<String> intColumns = new Vector<String>();
 		List<String> doubleColumns = new Vector<String>();
@@ -397,15 +395,56 @@ public class RFrameBuilder {
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, intColumns) ) );
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
+		
+		// if the original file type is excel, then need to assess if there are date/time cols that have been parsed to numbers first 
+		// and handle those separately
+		if (fileType.equals("excel")) {
+			//handle date numbers
+			if (!datesMap.isEmpty()) {
+				List<String> dateHeaders = new ArrayList<String>();
+				datesMap.values().forEach(dateHeaders::addAll);
+				List<String> dateExcelR = RSyntaxHelper.alterColumnTypeToDate_Excel(tableName, dateHeaders);
+				this.rJavaTranslator.runR(dateExcelR.get(0));
+				//retrieve cols have been converted to Date type
+				if (this.rJavaTranslator.getInt("length(" + dateExcelR.get(1) + ")") > 0) {
+					excelDateNumHeaders.addAll(Arrays.asList(this.rJavaTranslator.getStringArray(dateExcelR.get(1))));
+				}
+				//clean up the handledcol var in R
+				this.rJavaTranslator.runR("rm(" + dateExcelR.get(1) + ";gc();");
+			}
+			//handle datetime numbers
+			if (!dateTimeMap.isEmpty()) {
+				List<String> dateTimeHeaders = new ArrayList<String>();
+				dateTimeMap.values().forEach(dateTimeHeaders::addAll);
+				//TODO track millisecond digits
+				List<String> dateTimeExcelR = RSyntaxHelper.alterColumnTypeToDateTime_Excel(tableName, dateTimeHeaders);
+				this.rJavaTranslator.runR(dateTimeExcelR.get(0));
+				//retrieve cols have been converted to Date/Time type
+				if (this.rJavaTranslator.getInt("length(" + dateTimeExcelR.get(1) + ")") > 0) {
+					excelDTNumHeaders.addAll(Arrays.asList(this.rJavaTranslator.getStringArray(dateTimeExcelR.get(1))));
+				}
+				//clean up the handledcol var in R
+				this.rJavaTranslator.runR("rm(" + dateTimeExcelR.get(1) + ";gc();");
+			}
+		}
+		
 		// loop through normal dates
 		for(String format : datesMap.keySet()) {
-			String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
-			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToDate(tableName, rFormat, datesMap.get(format)) ) );
+			List<String> dateHeaders = datesMap.get(format);
+			dateHeaders.removeAll(excelDateNumHeaders);
+			if (!dateHeaders.isEmpty()){
+				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
+				this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDate(tableName, rFormat, dateHeaders) ) ;
+			}
 		}
 		// loop through time stamps dates
 		for(String format : dateTimeMap.keySet()) {
-			String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
-			this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeMap.get(format)) );
+			List<String> dateTimeHeaders = dateTimeMap.get(format);
+			dateTimeHeaders.removeAll(excelDTNumHeaders);
+			if (!dateTimeHeaders.isEmpty()){
+				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(format);
+				this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, rFormat, dateTimeHeaders) );
+			}
 		}
 	}
 	

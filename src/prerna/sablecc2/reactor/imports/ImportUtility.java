@@ -269,7 +269,7 @@ public class ImportUtility {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String csvFileName = Utility.makeAlphaNumeric(FilenameUtils.getBaseName(qs.getFilePath()));
 		Map<String, String> dataTypes = qs.getColumnTypes();
-
+		Map<String, String> additionalTypes = qs.getAdditionalTypes();
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		metaData.addVertex(frameTableName);
@@ -283,7 +283,6 @@ public class ImportUtility {
 			String alias = selector.getAlias();
 			String qsName = selector.getQueryStructName();
 			boolean isDerived = selector.isDerived();
-			String dataType = selector.getDataType();
 			
 			String uniqueHeader = frameTableName + "__" + alias;
 			metaData.addProperty(frameTableName, uniqueHeader);
@@ -291,22 +290,30 @@ public class ImportUtility {
 			metaData.setDerivedToProperty(uniqueHeader, isDerived);
 			metaData.setAliasToProperty(uniqueHeader, alias);
 
-			if(dataType == null) {
-				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
-				String table = cSelect.getTable();
-				String column = cSelect.getColumn();
-				// this only happens when we have a column selector
-				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-					metaData.setQueryStructNameToProperty(uniqueHeader, csvFileName, table);
-					String type = dataTypes.get(table);
-					metaData.setDataTypeToProperty(uniqueHeader, type);
-				} else {
-					metaData.setQueryStructNameToProperty(uniqueHeader, csvFileName, table + "__" + column);
-					String type = dataTypes.get(column);
-					metaData.setDataTypeToProperty(uniqueHeader, type);
+			QueryColumnSelector cSelect = (QueryColumnSelector) selector;
+			String table = cSelect.getTable();
+			String column = cSelect.getColumn();
+			
+			// I am just doing a check for bad inputs
+			// We want to standardize so it is always DND__CSV_COLUMN_NAME
+			// but just in case someone doesn't do DND and just passed in CSV_COLUMN_NAME
+			// the column will be defaulted to PRIM_KEY_PLACEHOLDER based on our construct
+			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				metaData.setQueryStructNameToProperty(uniqueHeader, csvFileName, table);
+				String type = dataTypes.get(table);
+				metaData.setDataTypeToProperty(uniqueHeader, type);
+				
+				if(additionalTypes.get(table) != null) {
+					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(uniqueHeader));
 				}
 			} else {
-				metaData.setDataTypeToProperty(uniqueHeader, dataType);
+				metaData.setQueryStructNameToProperty(uniqueHeader, csvFileName, table + "__" + column);
+				String type = dataTypes.get(column);
+				metaData.setDataTypeToProperty(uniqueHeader, type);
+				
+				if(additionalTypes.get(column) != null) {
+					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(column));
+				}
 			}
 		}
 	}
@@ -344,6 +351,7 @@ public class ImportUtility {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String excelFileName = Utility.makeAlphaNumeric(FilenameUtils.getBaseName(qs.getFilePath()));
 		Map<String, String> dataTypes = qs.getColumnTypes();
+		Map<String, String> additionalTypes = qs.getAdditionalTypes();
 
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
@@ -358,7 +366,6 @@ public class ImportUtility {
 			String alias = selector.getAlias();
 			String qsName = selector.getQueryStructName();
 			boolean isDerived = selector.isDerived();
-			String dataType = selector.getDataType();
 			
 			String uniqueHeader = frameTableName + "__" + alias;
 			metaData.addProperty(frameTableName, uniqueHeader);
@@ -366,22 +373,29 @@ public class ImportUtility {
 			metaData.setDerivedToProperty(uniqueHeader, isDerived);
 			metaData.setAliasToProperty(uniqueHeader, alias);
 
-			if(dataType == null) {
-				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
-				String table = cSelect.getTable();
-				String column = cSelect.getColumn();
-				// this only happens when we have a column selector
-				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-					metaData.setQueryStructNameToProperty(uniqueHeader, excelFileName, table);
-					String type = dataTypes.get(table);
-					metaData.setDataTypeToProperty(uniqueHeader, type);
-				} else {
-					metaData.setQueryStructNameToProperty(uniqueHeader, excelFileName, table + "__" + column);
-					String type = dataTypes.get(column);
-					metaData.setDataTypeToProperty(uniqueHeader, type);
+			QueryColumnSelector cSelect = (QueryColumnSelector) selector;
+			String table = cSelect.getTable();
+			String column = cSelect.getColumn();
+			// I am just doing a check for bad inputs
+			// We want to standardize so it is always DND__EXCEL_COLUMN_NAME
+			// but just in case someone doesn't do DND and just passed in EXCEL_COLUMN_NAME
+			// the column will be defaulted to PRIM_KEY_PLACEHOLDER based on our construct
+			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				metaData.setQueryStructNameToProperty(uniqueHeader, excelFileName, table);
+				String type = dataTypes.get(table);
+				metaData.setDataTypeToProperty(uniqueHeader, type);
+				
+				if(additionalTypes.get(table) != null) {
+					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(uniqueHeader));
 				}
 			} else {
-				metaData.setDataTypeToProperty(uniqueHeader, dataType);
+				metaData.setQueryStructNameToProperty(uniqueHeader, excelFileName, table + "__" + column);
+				String type = dataTypes.get(column);
+				metaData.setDataTypeToProperty(uniqueHeader, type);
+				
+				if(additionalTypes.get(column) != null) {
+					metaData.setAddtlDataTypeToProperty(uniqueHeader, additionalTypes.get(column));
+				}
 			}
 		}
 	}

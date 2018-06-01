@@ -26,6 +26,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	
 	public ExcelFileIterator(ExcelQueryStruct qs) {
 		this.qs = qs;
+		this.fileLocation = qs.getFilePath();
 		this.sheetToLoad = qs.getSheetName();
 		this.helper = new XLFileHelper();
 		this.helper.parse(qs.getFilePath());
