@@ -26,6 +26,7 @@ import prerna.algorithm.learning.matching.DomainValues;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.helper.XLFileHelper;
@@ -538,12 +539,15 @@ public class Xray {
 							String fileName = dataFolder + "\\" + engineName + ";" + table + ";" + ".txt";
 							fileName = fileName.replace("\\", "/");
 							// get instance data
-							String uri = DomainValues.getConceptURI(table, engine, true);
-							List<Object> instances;
-							if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
-								instances = DomainValues.retrieveCleanConceptValues(uri, engine);
-							} else {
-								instances = DomainValues.retrieveCleanConceptValues(table, engine);
+							SelectQueryStruct sqs = new SelectQueryStruct();
+							sqs.setEngine(engine);
+							sqs.setEngineId(engineID);
+							sqs.addSelector(table, null);
+							sqs.setDistinct(true);
+							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+							List<Object> instances = new ArrayList<Object>();
+							while(iterator.hasNext()) {
+								instances.add(iterator.next().getValues()[0]);
 							}
 							this.logger.info("Querying table " + table + " from " + engineName + " for X-ray comparison");
 							// encode and write to file
@@ -559,13 +563,15 @@ public class Xray {
 							String fileName = dataFolder + "\\" + engineName + ";" + table + ";" + column + ".txt";
 							fileName = fileName.replace("\\", "/");
 							// get instance data for property
-							String conceptUri = DomainValues.getConceptURI(table, engine, true);
-							String propUri = DomainValues.getPropertyURI(column, table, engine, false);
-							List<Object> instances;
-							if (engine.getEngineType().equals(IEngine.ENGINE_TYPE.SESAME)) {
-								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
-							} else {
-								instances = DomainValues.retrieveCleanPropertyValues(conceptUri, propUri, engine);
+							SelectQueryStruct sqs = new SelectQueryStruct();
+							sqs.setEngine(engine);
+							sqs.setEngineId(engineID);
+							sqs.addSelector(table, column);
+							sqs.setDistinct(true);
+							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+							List<Object> instances = new ArrayList<Object>(); 
+							while(iterator.hasNext()) {
+								instances.add(iterator.next().getValues()[0]);
 							}
 							this.logger.info("Querying " + column + " from " + table + " in " + engineName + " for X-ray comparison");
 							// encode and write to file
@@ -848,7 +854,8 @@ public class Xray {
 			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 			Integer count = 0;
 			if (it.hasNext()) {
-				count = ((Double) it.next().getValues()[0]).intValue();
+				Number num =(Number) it.next().getValues()[0];
+				count = num.intValue();
 			}
 			engineColumn.add(engine.getEngineName());
 			tableColumn.add(concept);
