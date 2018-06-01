@@ -453,8 +453,33 @@ public class LazyTranslation extends DepthFirstAdapter {
     	//something could be a column but not loaded into a frame yet...i.e. select pixel in import
     	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pixels one by one into the graph in any order
     	if(this.planner.hasVariable(idInput)) {
+    		NounMetadata varValue = this.planner.getVariableValue(idInput);
+    		PixelDataType varType = varValue.getNounType();
     		if(curReactor != null) {
-    			curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
+    			// we will do just a little bit of value validation
+    			// so that we only push in basic data types
+    			if(curReactor instanceof QuerySelectReactor 
+    					|| curReactor instanceof QuerySelectorExpressionAssimilator 
+    					|| curReactor instanceof QueryFilterReactor) {
+    				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
+    						|| varType == PixelDataType.CONST_DATE || varType == PixelDataType.CONST_TIMESTAMP) {
+    					// this is a basic type
+    					// so i can probably add it to the 
+    					// query to work properly
+    					curReactor.getCurRow().add(varValue);
+    				} else {
+    					// if this is not a basic type
+    					// will probably break a query
+    					// so pass in the original stuff
+    					QueryColumnSelector s = new QueryColumnSelector(idInput);
+    					curReactor.getCurRow().addColumn(s);
+    				}
+    			} else if(curReactor instanceof AbstractQueryStructReactor) {
+    				// if it is a join or an as 
+					curReactor.getCurRow().addColumn(idInput);
+    			} else {
+    				curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
+    			}
     		} else {
     			this.planner.addVariable("$RESULT", this.planner.getVariableValue(idInput));
     		}
@@ -465,16 +490,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     					|| curReactor instanceof QueryFilterReactor) {
     				// this is part of a query 
     				// add it as a proper query selector object
-    				QueryColumnSelector s = new QueryColumnSelector();
-    				if(idInput.contains("__")) {
-    					String[] split = idInput.split("__");
-    					s.setTable(split[0]);
-    					s.setColumn(split[1]);
-    				} else {
-    					s.setTable(idInput);
-    					s.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-    				}
-    				curReactor.getCurRow().addColumn(s);
+    				QueryColumnSelector s = new QueryColumnSelector(idInput);
+					curReactor.getCurRow().addColumn(s);
     			} else {
     				curReactor.getCurRow().addColumn(idInput);
     				curReactor.setProp(node.toString().trim(), idInput);
