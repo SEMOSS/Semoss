@@ -146,6 +146,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getTableName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
+		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
 		String query = interp.composeQuery();
 		RIterator2 baseIt = new RIterator2(this.builder, query, qs);
