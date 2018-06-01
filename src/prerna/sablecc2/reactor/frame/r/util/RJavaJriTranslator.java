@@ -92,6 +92,13 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				} else {
 					logger.info("Successfully loaded packages lubridate");
 				}
+				// dplyr
+				ret = retEngine.eval("library(dplyr);");
+				if(ret == null) {
+					throw new ClassNotFoundException("Package dplyr could not be found!");
+				} else {
+					logger.info("Successfully loaded packages dplyr");
+				}
 				
 				// set the rengine
 				if(this.insight != null) {
@@ -110,14 +117,16 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 						+ "2)data.table\n"
 						+ "3)reshape2\n"
 						+ "4)stringr\n"
-						+ "5)lubridate\n");
+						+ "5)lubridate\n"
+						+ "6)dplyr\n");
 				e.printStackTrace();
 				throw new IllegalArgumentException("ERROR ::: " + e.getMessage() + "\nMake sure you have all the following libraries installed:\n"
 						+ "1)splitstackshape\n"
 						+ "2)data.table\n"
 						+ "3)reshape2\n"
 						+ "4)stringr\n"
-						+ "5)lubridate\n");
+						+ "5)lubridate\n"
+						+ "6)dplyr\n");
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
