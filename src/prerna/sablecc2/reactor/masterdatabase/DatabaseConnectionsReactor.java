@@ -21,8 +21,10 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineId = getApp();
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-
+		if(engineId != null) {
+			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		}
+		
 		List<String> conceptualNames = getColumns();
 		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames, null);
 		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, engineId);
