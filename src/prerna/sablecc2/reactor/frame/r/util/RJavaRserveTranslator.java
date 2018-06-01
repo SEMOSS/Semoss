@@ -72,6 +72,9 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				// lubridate
 				retCon.eval("library(lubridate);");
 				logger.info("Loaded packages lubridate");
+				// dplyr
+				retCon.eval("library(dplyr);");
+				logger.info("Loaded packages dplyr");
 				
 				if(this.insight != null) {
 					this.insight.getVarStore().put(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
@@ -83,11 +86,11 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			} catch (Exception e) {
 				System.out.println(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
-								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate");
+								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
 				e.printStackTrace();
 				throw new IllegalArgumentException(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
-								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate");
+								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
 			}
 		}
 	}

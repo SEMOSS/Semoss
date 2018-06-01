@@ -39,7 +39,8 @@ public class OwlTemporalEngineMeta {
 	private static final String QUERY_STRUCT_PRED = "http://semoss.org/ontologies/Relation/Contains/QueryStructName";
 	private static final String ALIAS_PRED = "http://semoss.org/ontologies/Relation/Contains/Alias";
 	private static final String ORDERING_PRED = "http://semoss.org/ontologies/Relation/Contains/Ordering";
-	
+	private static final String ADDTL_DATATYPE_PRED = "http://semoss.org/ontologies/Relation/Contains/AddtlDataType";
+
 	// if opaque selector, need to store it
 	private static final String QUERY_SELECTOR_COMPLEX_PRED = "http://semoss.org/ontologies/Relation/Contains/IsComplex";
 	private static final String QUERY_SELECTOR_TYPE_PRED = "http://semoss.org/ontologies/Relation/Contains/QuerySelectorType";
@@ -109,6 +110,18 @@ public class OwlTemporalEngineMeta {
 			// ensure standardization
 			obj = (SemossDataType.convertStringToDataType(obj)).toString();
 		}
+		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
+	}
+	
+	public void setAddtlDataTypeToVertex(String vertexName, String adtlDataType) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+
+		// store the unique name as a concept
+		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
+		pred = ADDTL_DATATYPE_PRED;
+		obj = adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}");
 		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
 
@@ -261,6 +274,18 @@ public class OwlTemporalEngineMeta {
 			// ensure standardization
 			obj = (SemossDataType.convertStringToDataType(obj)).toString();
 		}
+		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
+	}
+	
+	public void setAddtlDataTypeToProperty(String propertyName, String adtlDataType) {
+		String sub = "";
+		String pred = "";
+		String obj = "";
+
+		// store the unique name as a concept
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
+		pred = ADDTL_DATATYPE_PRED;
+		obj = adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}");
 		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
 
@@ -591,6 +616,29 @@ public class OwlTemporalEngineMeta {
 		return returnMap;
 	}
 	
+	public Map<String, String> getHeaderToAdtlTypeMap() {
+		String query = "select distinct ?header ?adtlDataType where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+				+ "}"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		Map<String, String> returnMap = new HashMap<String, String>();
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			returnMap.put(row[0].toString(), row[1].toString().replace("{{REPLACEMENT_TOKEN}}", "/"));
+		}
+		
+		return returnMap;
+	}
+	
 	public SemossDataType getHeaderTypeAsEnum(String uniqueName) {
 		String parent = null;
 		if(uniqueName.contains("__")) {
@@ -662,6 +710,44 @@ public class OwlTemporalEngineMeta {
 		while(it.hasNext()) {
 			Object[] row = it.next().getValues();
 			return row[1].toString();
+		}
+		
+		return null;
+	}
+	
+	public String getHeaderAdtlTypeAsString(String uniqueName) {
+		String parent = null;
+		if(uniqueName.contains("__")) {
+			parent = uniqueName.split("__")[0];
+		}
+		return getHeaderAdtlTypeAsString(uniqueName, parent);
+	}
+	
+	public String getHeaderAdtlTypeAsString(String uniqueName, String parentUniqueName) {
+		String query = null;
+		if(parentUniqueName == null || parentUniqueName.isEmpty()) {
+			// we have a concept
+			query = "select distinct ?header ?adtlDataType where {"
+					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+					+ "}";
+		} else {
+			// we have a property
+			query = "select distinct ?header ?adtlDataType where {"
+					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+					+ "}";
+		}
+	
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			return row[1].toString().replace("{{REPLACEMENT_TOKEN}}", "/");
 		}
 		
 		return null;
