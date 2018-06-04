@@ -101,162 +101,92 @@ public class SemossDate {
 			return genDateObjContainingLetters(input);
 		}
 	}
-
+	
 	/**
 	 * Try to match with inputs that contain a /
 	 * @param input
 	 * @return
 	 */
 	private static SemossDate genDateObjContainingSlash(String input) {
-		String[] dateMatches = new String[]{
-
+		String[][] dateMatches = new String[][]{
 				/*
 				 * Block for month, day, year
 				 */
 
-				"[0-1][0-2]/[0-3][0-9]/[0-9]{4}",	// this matches MM/dd/yyyy where M > 10
-				"[0][0-9]/[0-3][0-9]/[0-9]{4}",	// this matches MM/dd/yyyy where M < 9 and start 0
-				"[0-9]/[0-3][0-9]/[0-9]{4}",	// this matches M/dd/yyyy where M < 9 and no start 0
-				"[0-9]/[0-9]/[0-9]{4}",	// this matches M/d/yyyy 
-				"[0-1][0-2]/[0-9]/[0-9]{4}",	// this matches MM/d/yyyy where M > 10 and d has no start 0
+				new String[]{"[0-1][0-2]/[0-3][0-9]/[0-9]{4}", "MM/dd/yyyy"}, 	// this matches MM/dd/yyyy where M > 10
+				new String[]{"[0][0-9]/[0-3][0-9]/[0-9]{4}", "MM/dd/yyyy"},	// this matches MM/dd/yyyy where M < 9 and start 0
+				new String[]{"[0-9]/[0-3][0-9]/[0-9]{4}", "M/dd/yyyy"},	// this matches M/dd/yyyy where M < 9 and no start 0
+				new String[]{"[0-9]/[0-9]/[0-9]{4}", "M/d/yyyy"},	// this matches M/d/yyyy 
+				new String[]{"[0-1][0-2]/[0-9]/[0-9]{4}", "MM/d/yyyy"},	// this matches MM/d/yyyy where M > 10 and d has no start 0
 
 				// same as above but only 2 y
-				"[0-1][0-2]/[0-3][0-9]/[0-9][0-9]",	// this matches MM/dd/yy where M > 10
-				"[0][0-9]/[0-3][0-9]/[0-9][0-9]",	// this matches MM/dd/yy where M < 9 and start 0
-				"[0-9]/[0-3][0-9]/[0-9][0-9]",	// this matches MM/dd/yy where M < 9 and no start 0
-				"[0-9]/[0-9]/[0-9][0-9]",	// this matches M/dd/yy where M < 9 and no start 0 and d < 9 no start 0
-				"[0-1][0-2]/[0-9]/[0-9][0-9]",	// this matches MM/d/yy where M > 10 and d has no start 0
+				new String[]{"[0-1][0-2]/[0-3][0-9]/[0-9][0-9]", "MM/dd/yy"},	// this matches MM/dd/yy where M > 10
+				new String[]{"[0][0-9]/[0-3][0-9]/[0-9][0-9]", "MM/dd/yy"},	// this matches MM/dd/yy where M < 9 and start 0
+				new String[]{"[0-9]/[0-3][0-9]/[0-9][0-9]", "M/dd/yy"},	// this matches MM/dd/yy where M < 9 and no start 0
+				new String[]{"[0-9]/[0-9]/[0-9][0-9]", "M/d/yy"},	// this matches M/dd/yy where M < 9 and no start 0 and d < 9 no start 0
+				new String[]{"[0-1][0-2]/[0-9]/[0-9][0-9]", "MM/d/yy"},	// this matches MM/d/yy where M > 10 and d has no start 0
 
 				/*
 				 * Block for day, month, year
 				 */
 
 				// if the person starts with dd
-				"[0-3][0-9]/[0-1][0-2]/[0-9]{4}",	// this matches dd/MM/yyyy where M > 10
-				"[0-3][0-9]/[0][0-2]/[0-9]{4}",	// this matches dd/MM/yyyy where M < 9 and start 0
-				"[0-3][0-9]/[0-9]/[0-9]{4}",	// this matches dd/MM/yyyy where M < 9 and no start 0
+				new String[]{"[0-3][0-9]/[0-1][0-2]/[0-9]{4}", "dd/MM/yyyy"},	// this matches dd/MM/yyyy where M > 10
+				new String[]{"[0-3][0-9]/[0][0-2]/[0-9]{4}", "dd/MM/yyyy"},	// this matches dd/MM/yyyy where M < 9 and start 0
+				new String[]{"[0-3][0-9]/[0-9]/[0-9]{4}", "dd/M/yyyy"},	// this matches dd/MM/yyyy where M < 9 and no start 0
 
 				// same as above but only 2 y
-				"[0-3][0-9]/[0-1][0-2]/[0-9][0-9]",	// this matches dd/MM/yy where M > 10
-				"[0-3][0-9]/[0][0-2]/[0-9][0-9]",	// this matches dd/MM/yy where M < 9 and start 0
-				"[0-3][0-9]/[0-9]/[0-9][0-9]",	// this matches dd/MM/yy where M < 9 and no start 0
+				new String[]{"[0-3][0-9]/[0-1][0-2]/[0-9][0-9]", "dd/MM/yy"},	// this matches dd/MM/yy where M > 10
+				new String[]{"[0-3][0-9]/[0][0-2]/[0-9][0-9]", "dd/MM/yy"},	// this matches dd/MM/yy where M < 9 and start 0
+				new String[]{"[0-3][0-9]/[0-9]/[0-9][0-9]", "dd/M/yy"}, // this matches dd/MM/yy where M < 9 and no start 0
 
 				/*
 				 * Block for year, month, day
 				 */
 
-				"[0-9]{4}/[0-1][0-2]/[0-3][0-9]",	// this matches yyyy/MM/dd where M > 10
-				"[0-9]{4}/[0][0-9]/[0-3][0-9]",	// this matches yyyy/MM/dd where M < 9 and start 0
-				"[0-9]{4}/[0-9]/[0-3][0-9]",	// this matches yyyy/M/dd where M < 9 and no start 0
-				"[0-9]{4}/[0-9]/[0-9]",	// this matches yyyy/M/d 
-				"[0-9]{4}/[0-1][0-2]/[0-9]",	// this matches yyyy/MM/d where M > 10 and d has no start 0
+				new String[]{"[0-9]{4}/[0-1][0-2]/[0-3][0-9]", "yyyy/MM/dd"},	// this matches yyyy/MM/dd where M > 10
+				new String[]{"[0-9]{4}/[0][0-9]/[0-3][0-9]", "yyyy/MM/dd"},	// this matches yyyy/MM/dd where M < 9 and start 0
+				new String[]{"[0-9]{4}/[0-9]/[0-3][0-9]", "yyyy/M/dd"},	// this matches yyyy/M/dd where M < 9 and no start 0
+				new String[]{"[0-9]{4}/[0-9]/[0-9]", "yyyy/M/d"},	// this matches yyyy/M/d 
+				new String[]{"[0-9]{4}/[0-1][0-2]/[0-9]", "yyyy/MM/d"},	// this matches yyyy/MM/d where M > 10 and d has no start 0
 
 				// same as above but only 2 y
-				"[0-9][0-9]/[0-1][0-2]/[0-3][0-9]",	// this matches yy/MM/dd where M > 10
-				"[0-9][0-9]/[0][0-9]/[0-3][0-9]",	// this matches yy/MM/dd where M < 9 and start 0
-				"[0-9][0-9]/[0-9]/[0-3][0-9]",	// this matches yy/M/dd where M < 9 and no start 0
-				"[0-9][0-9]/[0-9]/[0-9]",	// this matches yy/M/dd where M < 9 and no start 0 and d < 9 no start 0
-				"[0-9][0-9]/[0-1][0-2]/[0-9]",	// this matches yy/MM/d where M > 10 and d has no start 0
+				new String[]{"[0-9][0-9]/[0-1][0-2]/[0-3][0-9]", "yy/MM/dd"},	// this matches yy/MM/dd where M > 10
+				new String[]{"[0-9][0-9]/[0][0-9]/[0-3][0-9]", "yy/MM/dd"},	// this matches yy/MM/dd where M < 9 and start 0
+				new String[]{"[0-9][0-9]/[0-9]/[0-3][0-9]", "yy/M/dd"},	// this matches yy/M/dd where M < 9 and no start 0
+				new String[]{"[0-9][0-9]/[0-9]/[0-9]", "yy/M/d"},	// this matches yy/M/dd where M < 9 and no start 0 and d < 9 no start 0
+				new String[]{"[0-9][0-9]/[0-1][0-2]/[0-9]",	"yy/MM/d"}, // this matches yy/MM/d where M > 10 and d has no start 0
 				
 				/*
 				 * Block for month, day
 				 */
 				
-				"[0-1][0-2]/[0-3][0-9]",	// this matches MM/dd where M > 10 and d > 9
-				"[0][0-9]/[0-3][0-9]",	// this matches MM/dd where M < 9 and start 0
-				"[0-1][0-2]/[0-9]",	// this matches MM/dd where M > 10 and d < 10
-				"[0][0-9]/[0-9]",	// this matches MM/d where M < 9 and start 0 and d < 9
-				"[0-9]/[0-9]",	// this matches M/d where M < 9 and d < 9
+				new String[]{"[0-1][0-2]/[0-3][0-9]", "MM/dd"},	// this matches MM/dd where M > 10 and d > 9
+				new String[]{"[0][0-9]/[0-3][0-9]", "MM/d"}, // this matches MM/dd where M < 9 and start 0
+				new String[]{"[0-1][0-2]/[0-9]", "MM/d"},	// this matches MM/dd where M > 10 and d < 10
+				new String[]{"[0][0-9]/[0-9]", "MM/d"},	// this matches MM/d where M < 9 and start 0 and d < 9
+				new String[]{"[0-9]/[0-9]", "M/d"},	// this matches M/d where M < 9 and d < 9
 				
 				/*
 				 * Block for day, month
 				 */
 				
-				"[0-3][0-9]/[0-1][0-2]",	// this matches dd/MM where M > 10 and d > 9
-				"[0-3][0-9]/[0][0-9]",	// this matches dd/MM where M < 9 and start 0
-				"[0-9]/[0-1][0-2]",	// this matches dd/MM where M > 10 and d < 10
-				"[0-9]/[0][0-9]",	// this matches d/MM where M < 9 and start 0 and d < 9
+				new String[]{"[0-3][0-9]/[0-1][0-2]", "dd/MM"},	// this matches dd/MM where M > 10 and d > 9
+				new String[]{"[0-3][0-9]/[0][0-9]", "dd/MM"}, // this matches dd/MM where M < 9 and start 0
+				new String[]{"[0-9]/[0-1][0-2]", "d/MM"},	// this matches d/MM where M > 10 and d < 10
+				new String[]{"[0-9]/[0][0-9]", "d/MM"}	// this matches d/MM where M < 9 and start 0 and d < 9
 		};
 
-		// matches index with above
-		String[] dateFormats = new String[]{
-
-				/*
-				 * Block for month, day, year
-				 */
-
-				"MM/dd/yyyy",
-				"MM/dd/yyyy",
-				"M/dd/yyyy",
-				"M/d/yyyy",
-				"MM/d/yyyy",
-
-				// same as above but only 2 y
-				"MM/dd/yy",
-				"MM/dd/yy",
-				"M/dd/yy",
-				"M/d/yy",
-				"MM/d/yy",
-
-				/*
-				 * Block for day, month, year
-				 */
-
-				// same as above but with start dd
-				"dd/MM/yyyy",
-				"dd/MM/yyyy",
-				"dd/M/yyyy",
-
-				// same as above but only 2 y
-				"dd/MM/yy",
-				"dd/MM/yy",
-				"dd/M/yy",
-
-				/*
-				 * Block for year, month, day
-				 */
-
-				"yyyy/MM/dd",
-				"yyyy/MM/dd",
-				"yyyy/M/dd",
-				"yyyy/M/d",
-				"yyyy/MM/d",
-
-				// same as above but only 2 y
-				"yy/MM/dd",
-				"yy/MM/dd",
-				"yy/M/dd",
-				"yy/M/d",
-				"yy/MM/d",
-				
-				/*
-				 * Block for month, day
-				 */
-				
-				"MM/dd",
-				"MM/dd",
-				"MM/d",
-				"MM/d",
-				"M/d",
-				
-				/*
-				 * Block for day, month
-				 */
-				
-				"dd/MM",
-				"dd/MM",
-				"d/MM",
-				"d/MM",
-		};
 
 		SemossDate semossdate = null;
 		int numFormats = dateMatches.length;
 		FIND_DATE : for(int i = 0; i < numFormats; i++) {
-			Pattern p = Pattern.compile(dateMatches[i]);
+			String[] match = dateMatches[i];
+			Pattern p = Pattern.compile(match[0]);
 			Matcher m = p.matcher(input);
 			if(m.matches()) {
 				// yay! we found a match
-				semossdate = new SemossDate(input, dateFormats[i]);
+				semossdate = new SemossDate(input, match[1]);
 				break FIND_DATE;
 			}
 		}
@@ -270,155 +200,84 @@ public class SemossDate {
 	 * @return
 	 */
 	private static SemossDate genDateObjContainingDash(String input) {
-		String[] dateMatches = new String[]{
+		String[][] dateMatches = new String[][]{
 				/*
 				 * Block for month, day, year
 				 */
 
-				"[0-1][0-2]-[0-3][0-9]-[0-9]{4}",	// this matches MM-dd-yyyy where M > 10
-				"[0][0-9]-[0-3][0-9]-[0-9]{4}",	// this matches MM-dd-yyyy where M < 9 and start 0
-				"[0-9]-[0-3][0-9]-[0-9]{4}",	// this matches M-dd-yyyy where M < 9 and no start 0
-				"[0-9]-[0-9]-[0-9]{4}",	// this matches M-d-yyyy 
-				"[0-1][0-2]-[0-9]-[0-9]{4}",	// this matches MM-d-yyyy where M > 10 and d has no start 0
+				new String[]{"[0-1][0-2]-[0-3][0-9]-[0-9]{4}", "MM-dd-yyyy"},	// this matches MM-dd-yyyy where M > 10
+				new String[]{"[0][0-9]-[0-3][0-9]-[0-9]{4}", "MM-dd-yyyy"}, // this matches MM-dd-yyyy where M < 9 and start 0
+				new String[]{"[0-9]-[0-3][0-9]-[0-9]{4}", "M-dd-yyyy"},	// this matches M-dd-yyyy where M < 9 and no start 0
+				new String[]{"[0-9]-[0-9]-[0-9]{4}", "M-d-yyyy"},	// this matches M-d-yyyy 
+				new String[]{"[0-1][0-2]-[0-9]-[0-9]{4}", "MM-d-yyyy"},	// this matches MM-d-yyyy where M > 10 and d has no start 0
 
 				// same as above but only 2 y
-				"[0-1][0-2]-[0-3][0-9]-[0-9][0-9]",	// this matches MM-dd-yy where M > 10
-				"[0][0-9]-[0-3][0-9]-[0-9][0-9]",	// this matches MM-dd-yy where M < 9 and start 0
-				"[0-9]-[0-3][0-9]-[0-9][0-9]",	// this matches MM-dd-yy where M < 9 and no start 0
-				"[0-9]-[0-9]-[0-9][0-9]",	// this matches M-dd-yy where M < 9 and no start 0 and d < 9 no start 0
-				"[0-1][0-2]-[0-9]-[0-9][0-9]",	// this matches MM-d-yy where M > 10 and d has no start 0
+				new String[]{"[0-1][0-2]-[0-3][0-9]-[0-9][0-9]", "MM-dd-yy"},	// this matches MM-dd-yy where M > 10
+				new String[]{"[0][0-9]-[0-3][0-9]-[0-9][0-9]", "MM-dd-yy"},	// this matches MM-dd-yy where M < 9 and start 0
+				new String[]{"[0-9]-[0-3][0-9]-[0-9][0-9]", "M-dd-yy"},	// this matches MM-dd-yy where M < 9 and no start 0
+				new String[]{"[0-9]-[0-9]-[0-9][0-9]", "M-d-yy"},	// this matches M-dd-yy where M < 9 and no start 0 and d < 9 no start 0
+				new String[]{"[0-1][0-2]-[0-9]-[0-9][0-9]",	"MM-d-yy"}, // this matches MM-d-yy where M > 10 and d has no start 0
 
 				/*
 				 * Block for day, month, year
 				 */
 
 				// if the person starts with dd
-				"[0-3][0-9]-[0-1][0-2]-[0-9]{4}",	// this matches dd-MM-yyyy where M > 10
-				"[0-3][0-9]-[0][0-2]-[0-9]{4}",	// this matches dd-MM-yyyy where M < 9 and start 0
-				"[0-3][0-9]-[0-9]-[0-9]{4}",	// this matches dd-MM-yyyy where M < 9 and no start 0
+				new String[]{"[0-3][0-9]-[0-1][0-2]-[0-9]{4}", "dd-MM-yyyy"},	// this matches dd-MM-yyyy where M > 10
+				new String[]{"[0-3][0-9]-[0][0-2]-[0-9]{4}", "dd-MM-yyyy"},	// this matches dd-MM-yyyy where M < 9 and start 0
+				new String[]{"[0-3][0-9]-[0-9]-[0-9]{4}", "dd-M-yyyy"},	// this matches dd-MM-yyyy where M < 9 and no start 0
 
 				// same as above but only 2 y
-				"[0-3][0-9]-[0-1][0-2]-[0-9][0-9]",	// this matches dd-MM-yy where M > 10
-				"[0-3][0-9]-[0][0-2]-[0-9][0-9]",	// this matches dd-MM-yy where M < 9 and start 0
-				"[0-3][0-9]-[0-9]-[0-9][0-9]",	// this matches dd-MM-yy where M < 9 and no start 0
+				new String[]{"[0-3][0-9]-[0-1][0-2]-[0-9][0-9]", "dd-MM-yy"},	// this matches dd-MM-yy where M > 10
+				new String[]{"[0-3][0-9]-[0][0-2]-[0-9][0-9]", "dd-MM-yy"},	// this matches dd-MM-yy where M < 9 and start 0
+				new String[]{"[0-3][0-9]-[0-9]-[0-9][0-9]", "dd-M-yy"},	// this matches dd-MM-yy where M < 9 and no start 0
 
 				/*
 				 * Block for year, month, day
 				 */
 
-				"[0-9]{4}-[0-1][0-2]-[0-3][0-9]",	// this matches yyyy-MM-dd where M > 10
-				"[0-9]{4}-[0][0-9]-[0-3][0-9]",	// this matches yyyy-MM-dd where M < 9 and start 0
-				"[0-9]{4}-[0-9]-[0-3][0-9]",	// this matches yyyy-M-dd where M < 9 and no start 0
-				"[0-9]{4}-[0-9]-[0-9]",	// this matches yyyy-M-d 
-				"[0-9]{4}-[0-1][0-2]-[0-9]",	// this matches yyyy-MM-d where M > 10 and d has no start 0
+				new String[]{"[0-9]{4}-[0-1][0-2]-[0-3][0-9]", "yyyy-MM-dd"}, // this matches yyyy-MM-dd where M > 10
+				new String[]{"[0-9]{4}-[0][0-9]-[0-3][0-9]", "yyyy-MM-dd"},	// this matches yyyy-MM-dd where M < 9 and start 0
+				new String[]{"[0-9]{4}-[0-9]-[0-3][0-9]", "yyyy-M-dd"}, // this matches yyyy-M-dd where M < 9 and no start 0
+				new String[]{"[0-9]{4}-[0-9]-[0-9]", "yyyy-M-d"}, // this matches yyyy-M-d 
+				new String[]{"[0-9]{4}-[0-1][0-2]-[0-9]", "yyyy-MM-d"}, // this matches yyyy-MM-d where M > 10 and d has no start 0
 
 				// same as above but only 2 y
-				"[0-9][0-9]-[0-1][0-2]-[0-3][0-9]",	// this matches yy-MM-dd where M > 10
-				"[0-9][0-9]-[0][0-9]-[0-3][0-9]",	// this matches yy-MM-dd where M < 9 and start 0
-				"[0-9][0-9]-[0-9]-[0-3][0-9]",	// this matches yy-M-dd where M < 9 and no start 0
-				"[0-9][0-9]-[0-9]-[0-9]",	// this matches yy-M-dd where M < 9 and no start 0 and d < 9 no start 0
-				"[0-9][0-9]-[0-1][0-2]-[0-9]",	// this matches yy-MM-d where M > 10 and d has no start 0
+				new String[]{"[0-9][0-9]-[0-1][0-2]-[0-3][0-9]", "yy-MM-dd"}, // this matches yy-MM-dd where M > 10
+				new String[]{"[0-9][0-9]-[0][0-9]-[0-3][0-9]", "yy-MM-dd"},	// this matches yy-MM-dd where M < 9 and start 0
+				new String[]{"[0-9][0-9]-[0-9]-[0-3][0-9]",	"yy-M-dd"}, // this matches yy-M-dd where M < 9 and no start 0
+				new String[]{"[0-9][0-9]-[0-9]-[0-9]", "yy-M-d"}, // this matches yy-M-dd where M < 9 and no start 0 and d < 9 no start 0
+				new String[]{"[0-9][0-9]-[0-1][0-2]-[0-9]", "yy-MM-d"}, // this matches yy-MM-d where M > 10 and d has no start 0
 				
 				
 				/*
 				 * Block for month, day
 				 */
 				
-				"[0-1][0-2]-[0-3][0-9]",	// this matches MM-dd where M > 10 and d > 9
-				"[0][0-9]-[0-3][0-9]",	// this matches MM-dd where M < 9 and start 0
-				"[0-1][0-2]-[0-9]",	// this matches MM-dd where M > 10 and d < 10
-				"[0][0-9]-[0-9]",	// this matches MM-d where M < 9 and start 0 and d < 9
-				"[0-9]-[0-9]",	// this matches M-d where M < 9 and d < 9
+				new String[]{"[0-1][0-2]-[0-3][0-9]", "MM-dd"}, // this matches MM-dd where M > 10 and d > 9
+				new String[]{"[0][0-9]-[0-3][0-9]",	"MM-dd"}, // this matches MM-dd where M < 9 and start 0
+				new String[]{"[0-1][0-2]-[0-9]", "MM-d"}, // this matches MM-dd where M > 10 and d < 10
+				new String[]{"[0][0-9]-[0-9]", "MM-d"}, // this matches MM-d where M < 9 and start 0 and d < 9
+				new String[]{"[0-9]-[0-9]",	"M-d"}, // this matches M-d where M < 9 and d < 9
 				
 				/*
 				 * Block for day, month
 				 */
 				
-				"[0-3][0-9]-[0-1][0-2]",	// this matches dd-MM where M > 10 and d > 9
-				"[0-3][0-9]-[0][0-9]",	// this matches dd-MM where M < 9 and start 0
-				"[0-9]-[0-1][0-2]",	// this matches dd-MM where M > 10 and d < 10
-				"[0-9]-[0][0-9]",	// this matches d-MM where M < 9 and start 0 and d < 9
-		};
-
-		// matches index with above
-		String[] dateFormats = new String[]{
-
-				/*
-				 * Block for month, day, year
-				 */
-
-				"MM-dd-yyyy",
-				"MM-dd-yyyy",
-				"M-dd-yyyy",
-				"M-d-yyyy",
-				"MM-d-yyyy",
-
-				// same as above but only 2 y
-				"MM-dd-yy",
-				"MM-dd-yy",
-				"M-dd-yy",
-				"M-d-yy",
-				"MM-d-yy",
-
-				/*
-				 * Block for day, month, year
-				 */
-
-				// same as above but with start dd
-				"dd-MM-yyyy",
-				"dd-MM-yyyy",
-				"dd-M-yyyy",
-
-				// same as above but only 2 y
-				"dd-MM-yy",
-				"dd-MM-yy",
-				"dd-M-yy",
-
-				/*
-				 * Block for year, month, day
-				 */
-
-				"yyyy-MM-dd",
-				"yyyy-MM-dd",
-				"yyyy-M-dd",
-				"yyyy-M-d",
-				"yyyy-MM-d",
-
-				// same as above but only 2 y
-				"yy-MM-dd",
-				"yy-MM-dd",
-				"yy-M-dd",
-				"yy-M-d",
-				"yy-MM-d",
-				
-				/*
-				 * Block for month, day
-				 */
-				
-				"MM-dd",
-				"MM-dd",
-				"MM-d",
-				"MM-d",
-				"M-d",
-				
-				/*
-				 * Block for day, month
-				 */
-				
-				"dd-MM",
-				"dd-MM",
-				"d-MM",
-				"d-MM",
+				new String[]{"[0-3][0-9]-[0][0-9]",	"dd-MM"}, // this matches dd-MM where M < 9 and start 0
+				new String[]{"[0-9]-[0-1][0-2]", "dd-MM"}, // this matches dd-MM where M > 10 and d < 10
+				new String[]{"[0-9]-[0][0-9]", "dd-MM"}	// this matches d-MM where M < 9 and start 0 and d < 9
 		};
 
 		SemossDate semossdate = null;
 		int numFormats = dateMatches.length;
 		FIND_DATE : for(int i = 0; i < numFormats; i++) {
-			Pattern p = Pattern.compile(dateMatches[i]);
+			String[] match = dateMatches[i];
+			Pattern p = Pattern.compile(match[0]);
 			Matcher m = p.matcher(input);
 			if(m.matches()) {
 				// yay! we found a match
-				semossdate = new SemossDate(input, dateFormats[i]);
+				semossdate = new SemossDate(input, match[1]);
 				break FIND_DATE;
 			}
 		}
@@ -432,147 +291,81 @@ public class SemossDate {
 	 * @return
 	 */
 	private static SemossDate genDateObjContainingLetters(String input) {
-		String[] dateMatches = new String[] {
+		String[][] dateMatches = new String[][]{
 				/*
 				 * 12 Mar 2012
 				 */
-				"[0-3][0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", // this matches dd MMM yyyy
-				"[0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", // this matches d MMM yyyy
-				"[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", // this matches dd MMM, yyyy
-				"[0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", // this matches d MMM, yyyy
+				new String[]{"[0-3][0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", "dd MMM yyyy"}, // this matches dd MMM yyyy
+				new String[]{"[0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", "d MMM yyyy"}, // this matches d MMM yyyy
+				new String[]{"[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", "dd MMM, yyyy"}, // this matches dd MMM, yyyy
+				new String[]{"[0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", "d MMM, yyyy"}, // this matches d MMM, yyyy
 
 				/*
 				 * 12 Mar 91
 				 */
-				"[0-3][0-9]\\s*[a-zA-Z]{3}\\s*[0-9][0-9]", // this matches dd MMM yy
-				"[0-9]\\s*[a-zA-Z]{3}\\s*[0-9][0-9]", // this matches d MMM yy
-				"[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9][0-9]", // this matches dd MMM, yy
-				"[0-9]\\s*[a-zA-Z]{3},\\s*[0-9][0-9]", // this matches d MMM, yy
+				new String[]{"[0-3][0-9]\\s*[a-zA-Z]{3}\\s*[0-9][0-9]", "dd MMM yy"}, // this matches dd MMM yy
+				new String[]{"[0-9]\\s*[a-zA-Z]{3}\\s*[0-9][0-9]", "d MMM yy"}, // this matches d MMM yy
+				new String[]{"[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9][0-9]", "dd MMM, yy"}, // this matches dd MMM, yy
+				new String[]{"[0-9]\\s*[a-zA-Z]{3},\\s*[0-9][0-9]", "d MMM, yy"}, // this matches d MMM, yy
 			
 				/*
 				 * Mar 12 2012
 				 */
-				"[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9]{4}", // this matches MMM dd yyyy
-				"[a-zA-Z]{3}\\s*[0-9]\\s*[0-9]{4}", // this matches MMM d yyyy
-				"[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9]{4}", // this matches MMM dd, yyyy
-				"[a-zA-Z]{3}\\s*[0-9],\\s*[0-9]{4}", // this matches MMM d, yyyy
+				new String[]{"[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9]{4}", "MMM dd yyyy"}, // this matches MMM dd yyyy
+				new String[]{"[a-zA-Z]{3}\\s*[0-9]\\s*[0-9]{4}", "MMM d yyyy"}, // this matches MMM d yyyy
+				new String[]{"[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9]{4}", "MMM dd, yyyy"}, // this matches MMM dd, yyyy
+				new String[]{"[a-zA-Z]{3}\\s*[0-9],\\s*[0-9]{4}", "MMM d, yyyy"}, // this matches MMM d, yyyy
 				
 				/*
 				 * Mar 12 91
 				 */
-				"[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9][0-9]", // this matches MMM dd yy
-				"[a-zA-Z]{3}\\s*[0-9]\\s*[0-9][0-9]", // this matches MMM d yy
-				"[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9][0-9]", // this matches MMM dd, yy
-				"[a-zA-Z]{3}\\s*[0-9],\\s*[0-9][0-9]", // this matches MMM d, yy
+				new String[]{"[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9][0-9]", "MMM dd yy"}, // this matches MMM dd yy
+				new String[]{"[a-zA-Z]{3}\\s*[0-9]\\s*[0-9][0-9]", "MMM d yy"}, // this matches MMM d yy
+				new String[]{"[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9][0-9]", "MMM dd, yy"}, // this matches MMM dd, yy
+				new String[]{"[a-zA-Z]{3}\\s*[0-9],\\s*[0-9][0-9]", "MMM d, yy"}, // this matches MMM d, yy
 				
 				/*
 				 * Mar 12
 				 */
-				"[a-zA-Z]{3}\\s*[0-3][0-9]", // this matches MMM dd
-				"[a-zA-Z]{3}\\s*[0-9][0-9]", // this matches MMM d
+				new String[]{"[a-zA-Z]{3}\\s*[0-3][0-9]", "MMM dd"}, // this matches MMM dd
+				new String[]{"[a-zA-Z]{3}\\s*[0-9][0-9]", "MMM d"}, // this matches MMM d
 				
 				/*
 				 * Mar-12
 				 */
-				"[a-zA-Z]{3}-[0-3][0-9]", // this matches MMM-dd
-				"[a-zA-Z]{3}-[0-3][0-9]", // this matches MMM-d
+				new String[]{"[a-zA-Z]{3}-[0-3][0-9]", "MMM-dd"}, // this matches MMM-dd
+				new String[]{"[a-zA-Z]{3}-[0-3][0-9]", "MMM-d"}, // this matches MMM-d
 				
 				/*
 				 * Wed, Mar 12 2015
 				 */
-				"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-9]\\s*[0-9]{4}", // this matches EEE, MMM d yyyy
-				"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9]{4}", // this matches EEE, MMM dd yyyy
+				new String[]{	"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-9]\\s*[0-9]{4}", "EEE, MMM d yyyy"}, // this matches EEE, MMM d yyyy
+				new String[]{"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-3][0-9]\\s*[0-9]{4}", "EEE, MMM dd yyyy"}, // this matches EEE, MMM dd yyyy
 
 				// additional comma compared to above
-				"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-9],\\s*[0-9]{4}", // this matches EEE, MMM d, yyyy
-				"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9]{4}", // this matches EEE, MMM dd, yyyy
+				new String[]{"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-9],\\s*[0-9]{4}", "EEE, MMM d, yyyy"}, // this matches EEE, MMM d, yyyy
+				new String[]{"[a-zA-Z]{3},\\s*[a-zA-Z]{3}\\s*[0-3][0-9],\\s*[0-9]{4}", "EEE, MMM dd, yyyy"}, // this matches EEE, MMM dd, yyyy
 
 				/*
 				 * Wed, 12 Mar 2015
 				 */
-				"[a-zA-Z]{3},\\s*[0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", // this matches EEE, d MMM yyyy
-				"[a-zA-Z]{3},\\s*[0-3][0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", // this matches EEE, dd MMM yyyy
+				new String[]{"[a-zA-Z]{3},\\s*[0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", "EEE, d MMM yyyy"}, // this matches EEE, d MMM yyyy
+				new String[]{"[a-zA-Z]{3},\\s*[0-3][0-9]\\s*[a-zA-Z]{3}\\s*[0-9]{4}", "EEE, dd MMM yyyy"}, // this matches EEE, dd MMM yyyy
 
 				// additional comma compared to above
-				"[a-zA-Z]{3},\\s*[0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", // this matches EEE, d MMM, yyyy
-				"[a-zA-Z]{3},\\s*[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", // this matches EEE, dd MMM, yyyy
-		};
-
-		// matches index with above
-		String[] dateFormats = new String[]{
-				
-				/*
-				 * 12 Mar 2012
-				 */
-				"dd MMM yyyy",
-				"d MMM yyyy", 
-				"dd MMM, yyyy",
-				"d MMM, yyyy",
-
-				/*
-				 * 12 Mar 91
-				 */
-				"dd MMM yy",
-				"d MMM yy", 
-				"dd MMM, yy",
-				"d MMM, yy",
-				
-				/*
-				 * Mar 12 2012
-				 */
-				"MMM dd yyyy",
-				"MMM d yyyy", 
-				"MMM dd, yyyy",
-				"MMM d, yyyy",
-				
-				/*
-				 * Mar 12 91
-				 */
-				"MMM dd yy",
-				"MMM d yy", 
-				"MMM dd, yy",
-				"MMM d, yy",
-				
-				/*
-				 * Mar 12
-				 */
-				"MMM dd",
-				"MMM d",
-				
-				/*
-				 * Mar-12
-				 */
-				"MMM-dd", // this matches MMM-dd
-				"MMM-d", // this matches MMM-d
-				
-				/*
-				 * Wed, Mar 12 2015
-				 */
-				
-				"EEE, MMM d yyyy",
-				"EEE, MMM dd yyyy",
-				// additional comma compared to above
-				"EEE, MMM d, yyyy",
-				"EEE, MMM dd, yyyy",
-				
-				/*
-				 * Wed, 12 Mar 2015
-				 */
-				"EEE, d MMM yyyy",
-				"EEE, dd MMM yyyy",
-				// additional comma compared to above
-				"EEE, d MMM, yyyy",
-				"EEE, dd MMM, yyyy",
+				new String[]{"[a-zA-Z]{3},\\s*[0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", "EEE, d MMM, yyyy"}, // this matches EEE, d MMM, yyyy
+				new String[]{"[a-zA-Z]{3},\\s*[0-3][0-9]\\s*[a-zA-Z]{3},\\s*[0-9]{4}", "EEE, dd MMM, yyyy"}// this matches EEE, dd MMM, yyyy
 		};
 
 		SemossDate semossdate = null;
 		int numFormats = dateMatches.length;
 		FIND_DATE : for(int i = 0; i < numFormats; i++) {
-			Pattern p = Pattern.compile(dateMatches[i]);
+			String[] match = dateMatches[i];
+			Pattern p = Pattern.compile(match[0]);
 			Matcher m = p.matcher(input);
 			if(m.matches()) {
 				// yay! we found a match
-				semossdate = new SemossDate(input, dateFormats[i]);
+				semossdate = new SemossDate(input, match[1]);
 				break FIND_DATE;
 			}
 		}
@@ -604,51 +397,34 @@ public class SemossDate {
 			return null;
 		}
 		
-		dateMatches = new String[]{
+		dateMatches = new String[][]{
 			/*
 			 * January 1st, 2015	
 			 */
-			MONTH_REPLACEMENT + "\\s*[0-9][a-zA-z]{2},\\s*[0-9]{4}", // this matches MMMM d'%s', yyyy
-			MONTH_REPLACEMENT + "\\s*[0-3][0-9][a-zA-z]{2},\\s*[0-9]{4}", // this matches MMMM dd'%s', yyyy
+			new String[]{MONTH_REPLACEMENT + "\\s*[0-9][a-zA-z]{2},\\s*[0-9]{4}", "MMMMM d'%s', yyyy"}, // this matches MMMM d'%s', yyyy
+			new String[]{MONTH_REPLACEMENT + "\\s*[0-3][0-9][a-zA-z]{2},\\s*[0-9]{4}", "MMMMM dd'%s', yyyy"}, // this matches MMMM dd'%s', yyyy
 
 			/*
 			 * January 1, 2015	
 			 */
-			MONTH_REPLACEMENT + "\\s*[0-9],\\s*[0-9]{4}", // this matches MMMM d, yyyy
-			MONTH_REPLACEMENT + "\\s*[0-3][0-9],\\s*[0-9]{4}", // this matches MMMM dd, yyyy
+			new String[]{MONTH_REPLACEMENT + "\\s*[0-9],\\s*[0-9]{4}", "MMMMM d, yyyy"},// this matches MMMM d, yyyy
+			new String[]{MONTH_REPLACEMENT + "\\s*[0-3][0-9],\\s*[0-9]{4}", "MMMMM dd, yyyy"} // this matches MMMM dd, yyyy
 		};
-		
-		dateFormats = new String[]{
-				/*
-				 * January 1st, 2015	
-				 */ 
-				"MMMMM d'%s', yyyy",
-				"MMMMM dd'%s', yyyy",
-				/*
-				 * January 1, 2015	
-				 */
-				"MMMMM d, yyyy",
-				"MMMMM dd, yyyy",
-		};
-		
 		
 		numFormats = dateMatches.length;
 		FIND_DATE : for(int i = 0; i < numFormats; i++) {
-			Pattern p = Pattern.compile(dateMatches[i]);
+			String[] match = dateMatches[i];
+			Pattern p = Pattern.compile(match[0]);
 			Matcher m = p.matcher(input);
 			if(m.matches()) {
 				// yay! we found a match
-				// get back the original date
-				input = input.replace(MONTH_REPLACEMENT, monthUsed);
-				semossdate = new SemossDate(input, dateFormats[i]);
+				semossdate = new SemossDate(input, match[1]);
 				break FIND_DATE;
 			}
 		}
 		
 		return semossdate;
-	}
-
-	
+	}
 	
 	
 	public static void main(String[] args) {
