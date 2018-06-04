@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.test.TestUtilityMethods;
@@ -423,7 +424,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 			// get the headers from the sheet
 			sheetMeta.put(XL_HEADERS, xlHelper.getHeaders(sheetName));
 			// get the data types for the sheet
-			sheetMeta.put(XL_DATA_TYPES, xlHelper.predictRowTypes(sheetName));
+			sheetMeta.put(XL_DATA_TYPES, FileHelperUtil.generateDataTypeArrayFromPrediction(xlHelper.predictTypes(sheetName)));
 			
 			// store in excel meta
 			excelMeta.put(sheetName, sheetMeta);
@@ -564,7 +565,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		int count = 0;
 		
 		// we loop through every row of the csv
-		String[] nextRow = null;
+		Object[] nextRow = null;
 		try {
 			int[] headerIndicesToGet = this.xlHelper.getHeaderIndicies(SHEET_NAME, headers);
 			while( (nextRow  = this.xlHelper.getNextRow(SHEET_NAME, headerIndicesToGet)) != null ) {
@@ -572,7 +573,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					String type = dataTypes[colIndex];
 					if(type.equalsIgnoreCase("DATE")) {
-						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
+						java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex].toString());
 						if(value != null) {
 							ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
 						} else {
@@ -581,7 +582,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 						}
 					} else if(type.equalsIgnoreCase("DOUBLE") || type.equalsIgnoreCase("FLOAT") || type.equalsIgnoreCase("LONG")) {
 						Double value = null;
-						String val = nextRow[colIndex].trim();
+						String val = nextRow[colIndex].toString().trim();
 						try {
 							//added to remove $ and , in data and then try parsing as Double
 							int mult = 1;
@@ -601,7 +602,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 						}
 					} else {
 						if(cleanString) {
-							String value = Utility.cleanString(nextRow[colIndex], false);
+							String value = Utility.cleanString(nextRow[colIndex].toString(), false);
 							ps.setString(colIndex+1, value + "");
 						} else {
 							ps.setString(colIndex+1, nextRow[colIndex] + "");

@@ -7,6 +7,10 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.om.HeadersDataRow;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -16,6 +20,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Utility;
 
 public class ExcelFileIterator extends AbstractFileIterator {
 
@@ -69,30 +74,91 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	}
 	
 	private void setUnknownTypes() {
-		String[] strTypes = this.helper.predictRowTypes(this.sheetToLoad, this.headerIndices);
-		int numHeaders = this.headers.length;
-
+		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(this.sheetToLoad), helper.predictTypes(this.sheetToLoad, this.headerIndices));
+		this.dataTypeMap = predictionMaps[0];
+		this.additionalTypesMap = predictionMaps[1];
+		
+		// need to redo types to be only those in the selectors
 		this.types = new SemossDataType[this.headers.length];
 		this.additionalTypes = new String[this.headers.length];
-		this.dataTypeMap = new Hashtable<String, String>();
-		for(int i = 0; i < numHeaders; i++) {
-			this.dataTypeMap.put(this.headers[i], strTypes[i]);
-			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
+		for(int i = 0; i < this.headers.length; i++) {
+			this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
+			this.additionalTypes[i] = this.additionalTypesMap.get(this.headers[i]);
 		}
 	}
 	
+	@Override
+	public IHeadersDataRow next() {
+		Object[] row = nextRow;
+		getNextRow();
+
+		// couple of things to take care of here
+//		Object[] cleanRow = cleanRow(row, types, additionalTypes);
+		IHeadersDataRow nextData = new HeadersDataRow(this.headers, row, row);
+		return nextData;
+	}
 	
+//	protected Object[] cleanRow(Object[] row, SemossDataType[] types, String[] additionalTypes) {
+//		Object[] cleanRow = new Object[row.length];
+//		for(int i = 0; i < row.length; i++) {
+//			SemossDataType type = types[i];
+//			String val = row[i].toString().trim();
+//			// try to get correct type
+//			if(type == SemossDataType.INT) {
+//				try {
+//					//added to remove $ and , in data and then try parsing as Double
+//					int mult = 1;
+//					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
+//						mult = -1;
+//					val = val.replaceAll("[^0-9\\.E]", "");
+//					cleanRow[i] = mult * Integer.parseInt(val.trim());
+//				} catch(NumberFormatException ex) {
+//					//do nothing
+//					cleanRow[i] = null;
+//				}
+//			} else if(type == SemossDataType.DOUBLE) {
+//				try {
+//					//added to remove $ and , in data and then try parsing as Double
+//					int mult = 1;
+//					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
+//						mult = -1;
+//					val = val.replaceAll("[^0-9\\.E]", "");
+//					cleanRow[i] = mult * Double.parseDouble(val.trim());
+//				} catch(NumberFormatException ex) {
+//					//do nothing
+//					cleanRow[i] = null;
+//				}
+//			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+//				String additionalTypeData = additionalTypes[i];
+//				
+//				// if we have additional data format for the date
+//				// send the date object
+//				Object date = null;
+//				if(additionalTypeData != null) {
+//					date = new SemossDate(val, additionalTypeData);
+//				} else {
+//					date = val;
+//				}
+//				cleanRow[i] = date;
+//			} else {
+//				cleanRow[i] = Utility.cleanString(val, true, true, false);
+//			}
+//		}
+//		
+//		return cleanRow;
+//	}
+	
+	@Override
 	public void getNextRow() {
-		String[] row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
+		Object[] row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
 		
 		if(filters == null || filters.isEmpty()) {
 			this.nextRow = row;
 			return;
 		}
 		
-		String[] newRow = null;
+		Object[] newRow = null;
 		while (newRow == null && (row != null)) {
-
 			Set<String> allFilteredCols = this.filters.getAllFilteredColumns();
 			//isValid checks if the row meets all of the given filters 
 			boolean isValid = true;
@@ -108,27 +174,19 @@ public class ExcelFileIterator extends AbstractFileIterator {
 						NounMetadata leftComp = filter.getLComparison();
 						NounMetadata rightComp = filter.getRComparison();
 						String comparator = filter.getComparator();
-
 						if (filterType == FILTER_TYPE.COL_TO_COL) {
 							//TODO
 							//isValid = isValid && filterColToCol(leftComp, rightComp, row, comparator, rowIndex);
 						} else if (filterType == FILTER_TYPE.COL_TO_VALUES) {
 							// Genre = ['Action'] example
 							isValid = isValid && filterColToValues(leftComp, rightComp, row, comparator, rowIndex);
-
 						} else if (filterType == FILTER_TYPE.VALUES_TO_COL) {
 							// here the left and rightcomps are reversed, so send them to the method in opposite order and reverse comparator
 							// 50000 > MovieBudget gets sent as MovieBudget < 50000
 							isValid = isValid && filterColToValues(rightComp, leftComp, row, IQueryFilter.getReverseNumericalComparator(comparator), rowIndex);
-						} else if (filterType == FILTER_TYPE.VALUE_TO_VALUE) {
-							//?????????
-							
 						}
-
 					}
-
 				}
-
 			}
 
 			if (isValid) {
@@ -144,9 +202,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 
 		}
 		this.nextRow = newRow;
-
 	}
-
 
 	private void setSelectors(List<IQuerySelector> qsSelectors) {
 		if(qsSelectors.isEmpty()) {

@@ -25,6 +25,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -560,7 +561,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		// get the types
 		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
-			Map[] retMap = CSVFileHelper.generateDataTypeMapsFromPrediction(headers, helper.predictTypes());
+			Map[] retMap = FileHelperUtil.generateDataTypeMapsFromPrediction(headers, helper.predictTypes());
 			dataTypesMap = retMap[0];
 			additionalDataTypeMap = retMap[1];
 		}
