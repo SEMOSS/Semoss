@@ -127,26 +127,22 @@ public class GoogleSheetSourceReactor extends AbstractQueryStructReactor {
 		}
 
 		// get datatypes
+		CsvQueryStruct qs = new CsvQueryStruct();
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(',');
 		helper.parse(filePath);
-		String[] colNames = helper.getHeaders();
-		String[] types = helper.predictTypes();
-		// clear the helper
-		helper.clear();
-
-		CsvQueryStruct qs = new CsvQueryStruct();
-		qs.setSource(CsvQueryStruct.ORIG_SOURCE.API_CALL);
-		Map<String, String> dataTypes = new HashMap<String, String>();
-		int numHeaders = colNames.length;
-		for (int i = 0; i < numHeaders; i++) {
-			qs.addSelector("DND", colNames[i]);
-			dataTypes.put(colNames[i], types[i]);
+		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
+		Map<String, String> dataTypes = predictionMaps[0];
+		Map<String, String> additionalDataTypes = predictionMaps[1];
+		for (String key : dataTypes.keySet()) {
+			qs.addSelector("DND", key);
 		}
+		helper.clear();
 		qs.merge(this.qs);
 		qs.setFilePath(filePath);
 		qs.setDelimiter(',');
 		qs.setColumnTypes(dataTypes);
+		qs.setAdditionalTypes(additionalDataTypes);
 		return qs;
 	}
 
