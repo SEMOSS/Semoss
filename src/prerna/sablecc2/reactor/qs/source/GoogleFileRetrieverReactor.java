@@ -115,8 +115,9 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			CSVFileHelper helper = new CSVFileHelper();
 			helper.setDelimiter(',');
 			helper.parse(filePath);
-			MetaModelCreator predictor = new MetaModelCreator(helper, null);
-			Map<String, String> dataTypes = predictor.getDataTypeMap();
+			Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes2());
+			Map<String, String> dataTypes = predictionMaps[0];
+			Map<String, String> additionalDataTypes = predictionMaps[1];
 			for (String key : dataTypes.keySet()) {
 				qs.addSelector("DND", key);
 			}
@@ -125,6 +126,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			qs.setFilePath(filePath);
 			qs.setDelimiter(',');
 			qs.setColumnTypes(dataTypes);
+			qs.setAdditionalTypes(additionalDataTypes);
 			return qs;
 		} catch (IOException e) {
 			e.printStackTrace();
