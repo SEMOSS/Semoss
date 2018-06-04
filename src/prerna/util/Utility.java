@@ -2010,29 +2010,6 @@ public class Utility {
 		return returnType;
 	}
 	
-//	public static String convertDataTypeToString(SemossDataType type) {
-//		if(SemossDataType.NUMBER == type) { 
-//			return "double";
-//		} else if(SemossDataType.DATE == type) {
-//			return "date";
-//		} else {
-//			return "varchar(800)";
-//		}
-//	}
-//	
-//	public static SemossDataType convertStringToDataType(String dataType) {
-//		if(isNumericType(dataType)) {
-//			return SemossDataType.NUMBER;
-//		} else if(isDateType(dataType)) {
-//			return SemossDataType.DATE;
-//		} else if(isStringType(dataType)) {
-//			return SemossDataType.STRING;
-//		} else {
-//			LOGGER.info(" >>> COULDN'T DETERMINE THE DATA TYPE CONVERSION FOR VALUE : " + dataType);
-//			return SemossDataType.STRING;
-//		}
-//	}
-
 	public static boolean isH2DataType(String dataType) {
 		if(
 				//INT TYPE

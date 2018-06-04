@@ -108,7 +108,7 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(',');
 		helper.parse(filePath);
-		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes2());
+		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
 		Map<String, String> dataTypes = predictionMaps[0];
 		Map<String, String> additionalDataTypes = predictionMaps[1];
 		CsvQueryStruct qs = new CsvQueryStruct();
