@@ -140,9 +140,6 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 					jsonMap = new ObjectMapper().readValue(json, List.class);
 				} catch (IOException e2) {
 				}
-			} else {
-				// TODO rScript clean up 
-				throw new IllegalArgumentException("No results found");
 			}
 
 			String delim = "-";
