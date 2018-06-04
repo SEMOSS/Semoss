@@ -86,8 +86,6 @@ public class CSVFileHelper {
 		// override default values
 		settings.setMaxColumns(maxColumns);
 		settings.setMaxCharsPerColumn(maxCharsPerColumn);
-		// get the headers ?
-		//settings.setHeaderExtractionEnabled(true);
 	}
 
 	/**

@@ -1,18 +1,13 @@
 package prerna.ds.util.flatfile;
 
 import java.io.File;
-import java.util.Date;
-import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.IFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
-import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public abstract class AbstractFileIterator implements IFileIterator {
@@ -35,7 +30,6 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	protected Object[] nextRow;
 	
 	// variables set by qs
-	protected GenRowFilters filters;
 	protected Map<String, String> newHeaders;
 	protected Map<String, String> dataTypeMap;
 	protected Map<String, String> additionalTypesMap;
@@ -119,7 +113,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 					date = val;
 				}
 				cleanRow[i] = date;
-			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+			} else if(type == SemossDataType.DATE) {
 				String additionalTypeData = additionalTypes[i];
 				
 				// if we have additional data format for the date
@@ -200,147 +194,5 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	
 	public String getFileLocation() {
 		return this.fileLocation;
-	}
-	
-	protected void setFilters(GenRowFilters genRowFilters) {
-		filters = genRowFilters;
-	}
-	
-	protected boolean filterColToValues(NounMetadata leftComp, NounMetadata rightComp, Object[] row, String comparator, int rowIndex) {
-		List<Object> objects = new Vector<Object>();
-		// the filtered values will either come in as a list or a single object,
-		// convert everything to list
-		if (rightComp.getValue() instanceof List) {
-			objects.addAll((List) rightComp.getValue());
-		} else {
-			objects.add(rightComp.getValue());
-		}
-
-		boolean isValid = true;
-		String leftValue = leftComp.getValue().toString();
-		// get the data type of the filter (String, Number, or Date)
-		SemossDataType valType = SemossDataType.convertStringToDataType(dataTypeMap.get(headers[rowIndex]));
-		// Compare csv String row
-		Vector<String> stringVals = new Vector<String>();
-
-		// convert all filtered values to string to compare to csv values (which
-		// are all strings)
-		for (Object val : objects) {
-			stringVals.add(val.toString());
-		}
-		if (comparator.equals("==") || comparator.equals("=")) {
-			// equals case, see if the row value at the column index is
-			// contained in the list of filtered values
-			if (SemossDataType.convertStringToDataType(this.dataTypeMap.get(leftValue)) == SemossDataType.STRING) {
-				if (stringVals.contains(Utility.cleanString(row[rowIndex].toString(), true))) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			} else if (stringVals.contains(row[rowIndex])) {
-				// compare for non-string types
-				isValid = isValid && true;
-			} else {
-				isValid = isValid && false;
-			}
-		} else if (comparator.equals("!=")) {
-			// not equals case
-			if (SemossDataType.convertStringToDataType(this.dataTypeMap.get(leftValue)) == SemossDataType.STRING) {
-				if (!stringVals.contains(Utility.cleanString(row[rowIndex].toString(), true))) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			} else if (!stringVals.contains(row[rowIndex])) {
-				isValid = isValid && true;
-			} else {
-				isValid = isValid && false;
-			}
-		} else if (comparator.equals(">")) {
-			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
-				// parse strings (row value and filter value) into doubles for comparison
-				if (Utility.getDouble(row[rowIndex].toString()) > Utility.getDouble(filterVal)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			} else if (valType.equals(SemossDataType.STRING)) {
-				// invalid case - can't do MB > 'Test', needs to be numeric
-				isValid = false;
-			} else if (valType.equals(SemossDataType.DATE)) {
-				// get Java dates from string and compare
-				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
-				if (rowDate.after(filterDate)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			}
-		} else if (comparator.equals("<")) {
-			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
-				// parse strings (row value and filter value) into doubles for comparison
-				if (Utility.getDouble(row[rowIndex].toString()) < Utility.getDouble(filterVal)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			} else if (valType.equals(SemossDataType.STRING)) {
-				// invalid case - can't do MB > 'Test', needs to be numeric
-				isValid = false;
-			} else if (valType.equals(SemossDataType.DATE)) {
-				// get Java dates from string and compare
-				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
-				if (rowDate.before(filterDate)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			}
-		} else if (comparator.equals(">=")) {
-			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
-				if (Utility.getDouble(row[rowIndex].toString()) >= Utility.getDouble(filterVal)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			} else if (valType.equals(SemossDataType.STRING)) {
-				isValid = false;
-			} else if (valType.equals(SemossDataType.DATE)) {
-				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
-				if (rowDate.after(filterDate) || rowDate.equals(filterDate)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-
-			}
-		} else if (comparator.equals("<=")) {
-			String filterVal = stringVals.get(0);
-			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
-				if (Utility.getDouble(row[rowIndex].toString()) <= Utility.getDouble(filterVal)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			} else if (valType.equals(SemossDataType.STRING)) {
-				isValid = false;
-			} else if (valType.equals(SemossDataType.DATE)) {
-				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
-				if (rowDate.before(filterDate) || rowDate.equals(filterDate)) {
-					isValid = isValid && true;
-				} else {
-					isValid = isValid && false;
-				}
-			}
-		}
-
-		return isValid;
 	}
 }
