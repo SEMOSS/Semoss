@@ -3,6 +3,10 @@ package prerna.poi.main.helper;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -18,22 +22,18 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
-import com.ibm.icu.text.SimpleDateFormat;
-
-import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.poi.main.HeadersException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 public class XLFileHelper {
 	
 	int colStarter = 0;
 	
 	private static final int NUM_ROWS_TO_PREDICT_TYPES = 1000;
-	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-	
+
 	private	Workbook workbook = null;
 	private FileInputStream sourceFile = null;
 	private String fileLocation = null;
@@ -140,16 +140,16 @@ public class XLFileHelper {
 		}
 		// get the headers
 		int colLength = headerRow.getLastCellNum();
-		String[] sheetHeaders = getCells(headerRow, colLength);
+		Object[] sheetHeaders = getCells(headerRow, colLength);
 		// set the new start for the getNextRow for this sheet
 		sheetCounter.put(sheet.getSheetName(), counter);
 		
-		return sheetHeaders;
+		return Arrays.copyOf(sheetHeaders, sheetHeaders.length, String[].class);
 	}
 	
 	/////////////////// START ALL NEXT ROWS ///////////////////
 	
-	public String[] getNextRow(String sheetName) {
+	public Object[] getNextRow(String sheetName) {
 		Sheet thisSheet = sheetNames.get(sheetName);
 		
 		int counter = 1;
@@ -157,7 +157,7 @@ public class XLFileHelper {
 			counter = sheetCounter.get(sheetName);
 		}
 		
-		String [] thisRow = null;
+		Object[] thisRow = null;
 		while(thisRow == null && counter <= thisSheet.getLastRowNum()) {
 			thisRow = getCells(thisSheet.getRow(counter), getHeaders(sheetName).length);
 			counter++;		
@@ -177,10 +177,9 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-	private String[] getCells(Row row, int totalCol)
-	{
+	private Object[] getCells(Row row, int totalCol) {
 		int colLength = totalCol;
-		String [] cols = new String[colLength];
+		Object[] cols = new String[colLength];
 		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
 			Cell thisCell = row.getCell(colIndex);
 			cols[colIndex] = getCell(thisCell);
@@ -193,7 +192,7 @@ public class XLFileHelper {
 
 	/////////////////// START SPECIFIC HEADERS NEXT ROWS ///////////////////
 
-	public String[] getNextRow(String sheetName, String[] headersToGet) {
+	public Object[] getNextRow(String sheetName, String[] headersToGet) {
 		String[] allHeaders = clean_headers.get(sheetName);
 		if(allHeaders.length == headersToGet.length) {
 			return getNextRow(sheetName);
@@ -206,7 +205,7 @@ public class XLFileHelper {
 			counter = sheetCounter.get(sheetName);
 		}
 		
-		String [] thisRow = null;
+		Object[] thisRow = null;
 		while(thisRow == null && counter <= thisSheet.getLastRowNum()) {
 			thisRow = getCells(thisSheet.getRow(counter), allHeaders, headersToGet);
 			counter++;		
@@ -226,13 +225,13 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-	private String[] getCells(Row row, String[] sheetHeaders, String[] headersToGet) {
+	private Object[] getCells(Row row, String[] sheetHeaders, String[] headersToGet) {
 		int colLength = row.getLastCellNum();
 		return getCells(row, sheetHeaders, headersToGet, colLength);
 	}
 	
-	private String[] getCells(Row row, String[] sheetHeaders, String[] headersToGet, int colLength) {
-		List<String> cols = new Vector<String>();
+	private Object[] getCells(Row row, String[] sheetHeaders, String[] headersToGet, int colLength) {
+		List<Object> cols = new Vector<Object>();
 		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
 			String header = sheetHeaders[colIndex];
 			if(ArrayUtilityMethods.arrayContainsValue(headersToGet, header)) {
@@ -257,7 +256,7 @@ public class XLFileHelper {
 		return indicesToGet;
 	}
 	
-	public String[] getNextRow(String sheetName, int[] headerIndicesToGet) {
+	public Object[] getNextRow(String sheetName, int[] headerIndicesToGet) {
 		Sheet thisSheet = sheetNames.get(sheetName);
 		
 		int counter = 1;
@@ -265,7 +264,7 @@ public class XLFileHelper {
 			counter = sheetCounter.get(sheetName);
 		}
 		
-		String [] thisRow = null;
+		Object[] thisRow = null;
 		while(thisRow == null && counter <= thisSheet.getLastRowNum()) {			
 			thisRow = getCells(thisSheet.getRow(counter), headerIndicesToGet);
 			counter++;
@@ -285,19 +284,19 @@ public class XLFileHelper {
 		return thisRow;
 	}
 	
-	private String[] getCells(Row row, int[] headerIndicesToGet) {
+	private Object[] getCells(Row row, int[] headerIndicesToGet) {
 		int numCols = headerIndicesToGet.length;
-		List<String> cols = new Vector<String>();
+		List<Object> cols = new Vector<Object>();
 		for(int colIndex = colStarter; colIndex < numCols; colIndex++) {
 			Cell thisCell = row.getCell(headerIndicesToGet[colIndex]);
 			cols.add(getCell(thisCell));
 		}
-		return cols.toArray(new String[]{});
+		return cols.toArray(new Object[]{});
 	}
 	
 	/////////////////// END SPECIFIC HEADERS NEXT ROWS ///////////////////
 
-	private String getCell(Cell thisCell) {
+	private Object getCell(Cell thisCell) {
 		if(thisCell == null) {
 			return "";
 		}
@@ -309,9 +308,9 @@ public class XLFileHelper {
 			return thisCell.getStringCellValue();
 		} else if(type == Cell.CELL_TYPE_NUMERIC) {
 			if(DateUtil.isCellDateFormatted(thisCell)) {
-				return thisCell.getDateCellValue() + "";
+				return new SemossDate(thisCell.getDateCellValue(), thisCell.getCellStyle().getDataFormatString());
 			}
-			return thisCell.getNumericCellValue() + "";
+			return thisCell.getNumericCellValue();
 		} else if(type == Cell.CELL_TYPE_BOOLEAN) {
 			return thisCell.getBooleanCellValue() + "";
 		} else if(type == Cell.CELL_TYPE_FORMULA) {
@@ -324,143 +323,252 @@ public class XLFileHelper {
 				return thisCell.getStringCellValue();
 			} else if(formulatype == Cell.CELL_TYPE_NUMERIC) {
 				if(DateUtil.isCellDateFormatted(thisCell)) {
-					return formatter.format(thisCell.getDateCellValue());
+					return new SemossDate(thisCell.getDateCellValue(), thisCell.getCellStyle().getDataFormatString());
 				}
-				return thisCell.getNumericCellValue() + "";
+				return thisCell.getNumericCellValue();
 			} else if(formulatype == Cell.CELL_TYPE_BOOLEAN) {
-				return thisCell.getBooleanCellValue() + "";
+				return thisCell.getBooleanCellValue();
 			}
 		}
 		return "";
 	}
 	
-	public String[] predictRowTypes(String sheetName) {
-		Sheet lSheet = sheetNames.get(sheetName);
-		int numRows = lSheet.getLastRowNum() + 1;
-		
-		Row header = lSheet.getRow(0);
-		int numCells = header.getLastCellNum();
-		
-		String [] types = new String[numCells];
-		// Loop through cols, and up to 1000 rows
-		for(int i = colStarter; i < numCells; i++) {
-			String type = null;
-			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
-				Row row = lSheet.getRow(j);
-				if(row != null) {
-					Cell cell = row.getCell(i);
-					if(cell != null) {
-						String val = getCell(cell);
-						if(val.isEmpty()) {
-							continue ROW_LOOP;
-						}
-						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
-						if(newTypePred.contains("VARCHAR")) {
-							type = newTypePred;
-							break ROW_LOOP;
-						}
-						
-						// need to also add the type null check for the first row
-						if(!newTypePred.equals(type) && type != null) {
-							// this means there are multiple types in one column
-							// assume it is a string 
-							if( (type.equals("INT") || type.equals("DOUBLE")) && (newTypePred.equals("INT") || 
-									newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ) {
-								// for simplicity, make it a double and call it a day
-								// TODO: see if we want to impl the logic to choose the greater of the newest
-								// this would require more checks though
-								type = "DOUBLE";
-							} else {
-								// should only enter here when there are numbers and dates
-								// TODO: need to figure out what to handle this case
-								// for now, making assumption to put it as a string
-								type = "VARCHAR(800)";
-								break ROW_LOOP;
-							}
-						} else {
-							// type is the same as the new predicated type
-							// or type is null on first iteration
-							type = newTypePred;
-						}
-					}
-				}
+	/**
+	 * Predict the type via casting
+	 * @param value
+	 * @return
+	 */
+	private static SemossDataType getTypeByCast(Object value) {
+		if(value instanceof String) {
+			return SemossDataType.STRING;
+		} else if(value instanceof Number) {
+			// check if actually a number
+			if( ((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue()) ) {
+				return SemossDataType.INT;
 			}
-			if(type == null) {
-				// no data for column....
-				types[i] = "VARCHAR(255)";
+			return SemossDataType.DOUBLE;
+		} else if(value instanceof SemossDate) {
+			// not a perfect check by any means
+			// but quick and easy to do
+			if(hasTime( ((SemossDate) value).getDate() )) {
+				return SemossDataType.TIMESTAMP;
 			} else {
-				types[i] = type;
+				return SemossDataType.DATE;
 			}
+		} else if(value instanceof Boolean) {
+			return SemossDataType.BOOLEAN;
 		}
-
-		// need to reset all the parses
-		reset();
-		return types;
+		
+		return SemossDataType.STRING;
 	}
 	
-	public String[] predictRowTypes(String sheetName, int[] headersToSelect) {
+    /**
+     * Determines whether or not a date has any time values.
+     * @param date The date.
+     * @return true iff the date is not null and any of the date's hour, minute,
+     * seconds or millisecond values are greater than zero.
+     */
+    private static boolean hasTime(Date date) {
+        if (date == null) {
+            return false;
+        }
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        if (c.get(Calendar.HOUR_OF_DAY) > 0) {
+            return true;
+        }
+        if (c.get(Calendar.MINUTE) > 0) {
+            return true;
+        }
+        if (c.get(Calendar.SECOND) > 0) {
+            return true;
+        }
+        if (c.get(Calendar.MILLISECOND) > 0) {
+            return true;
+        }
+        return false;
+    } 
+
+	public Object[][] predictTypes(String sheetName) {
 		Sheet lSheet = sheetNames.get(sheetName);
 		int numRows = lSheet.getLastRowNum() + 1;
-		
-		int numCells = headersToSelect.length;
-		String [] types = new String[numCells];
+
+		Row header = lSheet.getRow(0);
+		int numCols = header.getLastCellNum();
+
+		Object[][] predictedTypes = new Object[numCols][3];
+		List<Map<String, Integer>> additionalFormatTracker = new Vector<Map<String, Integer>>(numCols);
+
 		// Loop through cols, and up to 1000 rows
-		for(int loopIndex = 0; loopIndex < numCells; loopIndex++) {
-			int cellIndex = headersToSelect[loopIndex];
-			String type = null;
-			ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
-				Row row = lSheet.getRow(j);
-				if(row != null) {
-					Cell cell = row.getCell(cellIndex);
-					if(cell != null) {
-						String val = getCell(cell);
-						if(val.isEmpty()) {
-							continue ROW_LOOP;
-						}
-						Object[] prediction = Utility.determineInputType(val);
-						SemossDataType newTypePrediction = (SemossDataType) prediction[1];
-						String newTypePred = newTypePrediction.toString();
-						if(newTypePred.contains("STRING")) {
-							type = newTypePred;
-							break ROW_LOOP;
-						}
-						
-						// need to also add the type null check for the first row
-						if(!newTypePred.equals(type) && type != null) {
-							// this means there are multiple types in one column
-							// assume it is a string 
-							if( (type.equals("INT") || type.equals("DOUBLE")) && (newTypePred.equals("INT") || 
-									newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ) {
-								// for simplicity, make it a double and call it a day
-								// TODO: see if we want to impl the logic to choose the greater of the newest
-								// this would require more checks though
-								type = "DOUBLE";
-							} else {
-								// should only enter here when there are numbers and dates
-								// TODO: need to figure out what to handle this case
-								// for now, making assumption to put it as a string
-								type = "STRING";
-								break ROW_LOOP;
-							}
-						} else {
-							// type is the same as the new predicated type
-							// or type is null on first iteration
-							type = newTypePred;
-						}
-					}
-				}
-			}
-			if(type == null) {
-				// no data for column....
-				types[loopIndex] = "STRING";
-			} else {
-				types[loopIndex] = type;
-			}
+		for(int colIndex = colStarter; colIndex < numCols; colIndex++) {
+			predictTypesLoop(lSheet, numRows, predictedTypes, additionalFormatTracker, colIndex);
 		}
 
 		// need to reset all the parses
 		reset();
-		return types;
+		return predictedTypes;
+	}
+	
+    public Object[][] predictTypes(String sheetName, int[] headersToSelect) {
+    	Sheet lSheet = sheetNames.get(sheetName);
+    	int numRows = lSheet.getLastRowNum() + 1;
+    	int numCols = headersToSelect.length;
+
+    	Object[][] predictedTypes = new Object[numCols][3];
+    	List<Map<String, Integer>> additionalFormatTracker = new Vector<Map<String, Integer>>(numCols);
+
+    	// Loop through cols, and up to 1000 rows
+    	for(int cellHeader = colStarter; cellHeader < numCols; cellHeader++) {
+    		int colIndex = headersToSelect[cellHeader];
+    		predictTypesLoop(lSheet, numRows, predictedTypes, additionalFormatTracker, colIndex);
+    	}
+
+    	// need to reset all the parses
+    	reset();
+    	return predictedTypes;
+    }
+
+	private void predictTypesLoop(Sheet lSheet, int numRows, Object[][] predictedTypes, List<Map<String, Integer>> additionalFormatTracker, int colIndex) {
+		SemossDataType type = null;
+		Map<String, Integer> formatTracker = new HashMap<String, Integer>();
+		additionalFormatTracker.add(colIndex, formatTracker);
+		
+		ROW_LOOP : for(int j = 1; j < numRows && j < NUM_ROWS_TO_PREDICT_TYPES; j++) {
+			Row row = lSheet.getRow(j);
+			if(row != null) {
+				Object value = getCell(row.getCell(colIndex));
+				if(value instanceof String && value.toString().isEmpty()) {
+					continue ROW_LOOP;
+				}
+				
+				SemossDataType newTypePrediction = getTypeByCast(value);
+				String additionalFormatting = null;
+				if(value instanceof SemossDate) {
+					additionalFormatting = ((SemossDate) value).getPattern();
+				}
+				
+				// handle the additional formatting
+				if(additionalFormatting != null) {
+					if(formatTracker.containsKey(additionalFormatting)) {
+						// increase counter by 1
+						formatTracker.put(additionalFormatting, new Integer(formatTracker.get(additionalFormatting) + 1));
+					} else {
+						formatTracker.put(additionalFormatting, new Integer(1));
+					}
+				}
+				
+				// if we hit a string
+				// we are done
+				if(newTypePrediction == SemossDataType.STRING || newTypePrediction == SemossDataType.BOOLEAN) {
+					Object[] columnPrediction = new Object[2];
+					columnPrediction[0] = SemossDataType.STRING;
+					predictedTypes[colIndex] = columnPrediction;
+					break ROW_LOOP;
+				}
+				
+				if(type == null) {
+					// this is the first time we go through
+					// just set the type and we are done
+					// we only need to go through when we hit a difference
+					type = newTypePrediction;
+					continue;
+				}
+				
+				if(type == newTypePrediction) {
+					// well, nothing for us to do if its the same
+					// again, we handle additional formatting
+					// at the top
+					continue;
+				}
+				
+				// if we hit an integer
+				else if(newTypePrediction == SemossDataType.INT) {
+					if(type == SemossDataType.DOUBLE) {
+						// the type stays as double
+						type = SemossDataType.DOUBLE;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break ROW_LOOP;
+					}
+				}
+				
+				// if we hit a double
+				else if(newTypePrediction == SemossDataType.DOUBLE) {
+					if(type == SemossDataType.INT) {
+						// the type stays as double
+						type = SemossDataType.DOUBLE;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break ROW_LOOP;
+					}
+				}
+				
+				// if we hit a date
+				else if(newTypePrediction == SemossDataType.DATE) {
+					if(type == SemossDataType.TIMESTAMP) {
+						// stick with timestamp
+						type = SemossDataType.TIMESTAMP;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break ROW_LOOP;
+					}
+				}
+				
+				// if we hit a timestamp
+				else if(newTypePrediction == SemossDataType.TIMESTAMP) {
+					if(type == SemossDataType.DATE) {
+						// stick with timestamp
+						type = SemossDataType.TIMESTAMP;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break ROW_LOOP;
+					}
+				}
+			}
+		}
+
+		// if an entire column is empty, type will be null
+		// why someone has a csv file with an empty column, i do not know...
+		if(type == null) {
+			type = SemossDataType.STRING;
+		}
+
+		// if format tracking is empty
+		// just add the type to the matrix
+		// and continue
+		if(formatTracker.isEmpty()) {
+			Object[] columnPrediction = new Object[2];
+			columnPrediction[0] = type;
+			predictedTypes[colIndex] = columnPrediction;
+		} else {
+			// format tracker is not empty
+			// need to figure out the date situation
+			if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+				Object[] results = SemossDate.determineDateFormatting(type, formatTracker);
+				predictedTypes[colIndex] = results;
+			} else {
+				// UGH... how did you get here if you are not a date???
+				Object[] columnPrediction = new Object[2];
+				columnPrediction[0] = type;
+				predictedTypes[colIndex] = columnPrediction;
+			}
+		}
 	}
 	
 	public Map<String, Map<String, String>> getChangedHeaders() {
@@ -680,7 +788,7 @@ public class XLFileHelper {
 		System.out.println((after - before)/1000000);
 	}
 
-	private void printRow(String[] nextRow) {
+	private void printRow(Object[] nextRow) {
 		if(nextRow != null) {
 			System.out.println(Arrays.toString(nextRow));
 		}

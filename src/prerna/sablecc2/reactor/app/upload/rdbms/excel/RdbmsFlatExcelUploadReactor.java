@@ -21,6 +21,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -225,20 +226,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		 * We need to go to the sheet level and determine it
 		 */
 		
-		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
-			String[] sheetNames = helper.getTables();
-			for(String sheet : sheetNames) {
-				String[] headers = helper.getHeaders(sheet);
-				String[] types = helper.predictRowTypes(sheet);
-				Map<String, String> innerMap = new HashMap<String, String>();
-				int numHeaders = headers.length;
-				for(int i = 0; i < numHeaders; i++) {
-					innerMap.put(headers[i], types[i]);
-				}
-				dataTypesMap.put(sheet, innerMap);
-			}
-		}
-		
 		OWLER owler = new OWLER(engine, engine.getOWL());
 		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, clean, logger);
 
@@ -279,16 +266,17 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	 */
 	private void processExcelSheets(IEngine engine, OWLER owler, XLFileHelper helper, Map<String, Map<String, String>> dataTypesMap, Map<String, Map<String, String>> additionalDataTypeMap, boolean clean, Logger logger) {
 		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			dataTypesMap = new HashMap<String, Map<String, String>>();
+			additionalDataTypeMap = new HashMap<String, Map<String, String>>();
+			
 			String[] sheetNames = helper.getTables();
 			for(String sheet : sheetNames) {
-				String[] headers = helper.getHeaders(sheet);
-				String[] types = helper.predictRowTypes(sheet);
-				Map<String, String> innerMap = new HashMap<String, String>();
-				int numHeaders = headers.length;
-				for(int i = 0; i < numHeaders; i++) {
-					innerMap.put(headers[i], types[i]);
-				}
-				dataTypesMap.put(sheet, innerMap);
+				Map[] retMap = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(sheet), helper.predictTypes(sheet));
+				 Map<String, String> sheetDataMap = retMap[0];
+				 Map<String, String> sheetAdditionalDataMap = retMap[1];
+				
+				dataTypesMap.put(sheet, sheetDataMap);
+				additionalDataTypeMap.put(sheet, sheetAdditionalDataMap);
 			}
 		}
 
@@ -367,7 +355,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("Start inserting data into table");
 		// we loop through every row of the sheet
-		String[] nextRow = null;
+		Object[] nextRow = null;
 		try {
 			while( (nextRow = helper.getNextRow(SHEET_NAME)) != null ) {
 				// we need to loop through every value and cast appropriately
@@ -384,7 +372,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					// strings
 					if(type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
 						if(clean) {
-							String value = Utility.cleanString(nextRow[colIndex], false);
+							String value = Utility.cleanString(nextRow[colIndex].toString(), false);
 							ps.setString(colIndex+1, value + "");
 						} else {
 							ps.setString(colIndex+1, nextRow[colIndex] + "");
@@ -393,7 +381,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					// int
 					else if(type == SemossDataType.INT) {
 						Integer value = null;
-						String val = nextRow[colIndex].trim();
+						String val = nextRow[colIndex].toString().trim();
 						try {
 							//added to remove $ and , in data and then try parsing as Double
 							int mult = 1;
@@ -415,7 +403,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					// doubles
 					else if(type == SemossDataType.DOUBLE) {
 						Double value = null;
-						String val = nextRow[colIndex].trim();
+						String val = nextRow[colIndex].toString().trim();
 						try {
 							//added to remove $ and , in data and then try parsing as Double
 							int mult = 1;
@@ -439,7 +427,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						// can I get a format?
 						String format = additionalTypes[colIndex];
 						if(format != null && !format.isEmpty()) {
-							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
+							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex].toString(), format);
 							if(value != null) {
 								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
 							} else {
@@ -447,7 +435,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 								ps.setObject(colIndex+1, null);
 							}
 						} else {
-							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
+							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex].toString());
 							if(value != null) {
 								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
 							} else {
@@ -461,7 +449,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						// can I get a format?
 						String format = additionalTypes[colIndex];
 						if(format != null && !format.isEmpty()) {
-							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
+							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex].toString(), format);
 							if(value != null) {
 								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
 							} else {
@@ -469,7 +457,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 								ps.setObject(colIndex+1, null);
 							}
 						} else {
-							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex]);
+							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex].toString());
 							if(value != null) {
 								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
 							} else {
@@ -541,15 +529,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		String[] additionalTypes = new String[numHeaders];
 
 		// get the types
-		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
-			for(int i = 0; i < numHeaders; i++) {
-				types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
-			}
-		} else {
-			String[] predictedTypes = helper.predictRowTypes(sheetName);
-			for(int i = 0; i < predictedTypes.length; i++) {
-				types[i] = SemossDataType.convertStringToDataType(predictedTypes[i]);
-			}
+		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			Map[] retMap = FileHelperUtil.generateDataTypeMapsFromPrediction(headers, helper.predictTypes(sheetName));
+			dataTypesMap = retMap[0];
+			additionalDataTypeMap = retMap[1];
+		}
+		
+		for(int i = 0; i < numHeaders; i++) {
+			types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
 		}
 
 		// get additional type information

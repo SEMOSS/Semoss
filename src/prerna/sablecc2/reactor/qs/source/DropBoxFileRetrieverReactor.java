@@ -17,6 +17,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User2;
 import prerna.om.RemoteItem;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -108,7 +109,7 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(',');
 		helper.parse(filePath);
-		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
+		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
 		Map<String, String> dataTypes = predictionMaps[0];
 		Map<String, String> additionalDataTypes = predictionMaps[1];
 		CsvQueryStruct qs = new CsvQueryStruct();

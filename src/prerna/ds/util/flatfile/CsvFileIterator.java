@@ -7,6 +7,7 @@ import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -73,7 +74,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 	 * @param fileIterator
 	 */
 	private void setUnknownTypes() {
-		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
+		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
 		this.dataTypeMap = predictionMaps[0];
 		this.additionalTypesMap = predictionMaps[1];
 		
@@ -86,6 +87,7 @@ public class CsvFileIterator extends AbstractFileIterator {
 		}
 	}
 	
+	@Override
 	public void getNextRow() {
 		String[] row = helper.getNextRow();
 		if(filters == null || filters.isEmpty()) {
@@ -95,7 +97,6 @@ public class CsvFileIterator extends AbstractFileIterator {
 		
 		String[] newRow = null;
 		while (newRow == null && (row != null)) {
-
 			Set<String> allFilteredCols = this.filters.getAllFilteredColumns();
 			//isValid checks if the row meets all of the given filters 
 			boolean isValid = true;
@@ -111,21 +112,16 @@ public class CsvFileIterator extends AbstractFileIterator {
 						NounMetadata leftComp = filter.getLComparison();
 						NounMetadata rightComp = filter.getRComparison();
 						String comparator = filter.getComparator();
-
 						if (filterType == FILTER_TYPE.COL_TO_COL) {
 							//TODO
 							//isValid = isValid && filterColToCol(leftComp, rightComp, row, comparator, rowIndex);
 						} else if (filterType == FILTER_TYPE.COL_TO_VALUES) {
 							// Genre = ['Action'] example
 							isValid = isValid && filterColToValues(leftComp, rightComp, row, comparator, rowIndex);
-
 						} else if (filterType == FILTER_TYPE.VALUES_TO_COL) {
 							// here the left and rightcomps are reversed, so send them to the method in opposite order and reverse comparator
 							// 50000 > MovieBudget gets sent as MovieBudget < 50000
 							isValid = isValid && filterColToValues(rightComp, leftComp, row, IQueryFilter.getReverseNumericalComparator(comparator), rowIndex);
-						} else if (filterType == FILTER_TYPE.VALUE_TO_VALUE) {
-							//?????????
-							
 						}
 					}
 				}
