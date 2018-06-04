@@ -312,6 +312,9 @@ public class ImportDataProcessor {
 			Gson gson = new GsonBuilder().create();
 			String json = gson.toJson(typeMap);
 			String mapProp = "TYPE_MAP" + "\t" + json + "\n";
+			Map<String, String> nameMap = ((TinkerEngine) engine).getNameMap();
+			json = gson.toJson(nameMap);
+			mapProp += "NAME_MAP" + "\t" + json + "\n";
 			try {
 				Files.write(Paths.get(options.getSMSSLocation()), mapProp.getBytes(), StandardOpenOption.APPEND);
 			} catch (IOException e) {
