@@ -227,14 +227,10 @@ public class POIReader extends AbstractFileReader {
 		// check to make sure parent column is in the correct column
 		if (!parentNode.equalsIgnoreCase("parent")) {
 			throw new IOException("Error with Subclass Sheet.\nError in parent node column.");
-			//			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-			//			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in parent node column.</html>");
 		}
 		// check to make sure child column is in the correct column
 		if (!childNode.equalsIgnoreCase("child")) {
 			throw new IOException("Error with Subclass Sheet.\nError in child node column.");
-			//			JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
-			//			JOptionPane.showMessageDialog(playPane, "<html>Error with Subclass Sheet.<br>Error in child node column.</html>");
 		}
 		// loop through and create all the triples for subclassing
 		int lastRow = subclassSheet.getLastRowNum();
@@ -247,9 +243,6 @@ public class POIReader extends AbstractFileReader {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{childURI, pred, parentURI, true});
 			// add triples to OWL
 			owler.addSubclass(childNode, parentNode);
-			//			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, parentNode, true});
-			//			baseEngCreator.addToBaseEngine(new Object[]{childNode, pred, semossNodeURI, true});
-			//			baseEngCreator.addToBaseEngine(new Object[]{parentNode, pred, semossNodeURI, true});
 		}
 		engine.commit();
 		owler.commit();

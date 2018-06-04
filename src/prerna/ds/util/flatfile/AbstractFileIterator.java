@@ -32,7 +32,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	protected String[] headers;
 	protected SemossDataType[] types;
 	protected String[] additionalTypes;
-	protected String[] nextRow;
+	protected Object[] nextRow;
 	
 	// variables set by qs
 	protected GenRowFilters filters;
@@ -68,20 +68,20 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	
 	@Override
 	public IHeadersDataRow next() {
-		String[] row = nextRow;
+		Object[] row = nextRow;
 		getNextRow();
 
 		// couple of things to take care of here
-		Object[] cleanRow = cleanRow(row, types);
+		Object[] cleanRow = cleanRow(row, types, additionalTypes);
 		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, cleanRow);
 		return nextData;
 	}
 	
-	protected Object[] cleanRow(String[] row, SemossDataType[] types) {
+	protected Object[] cleanRow(Object[] row, SemossDataType[] types, String[] additionalTypes) {
 		Object[] cleanRow = new Object[row.length];
 		for(int i = 0; i < row.length; i++) {
 			SemossDataType type = types[i];
-			String val = row[i].trim();
+			String val = row[i].toString().trim();
 			// try to get correct type
 			if(type == SemossDataType.INT) {
 				try {
@@ -108,7 +108,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 					cleanRow[i] = null;
 				}
 			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
-				String additionalTypeData = this.additionalTypes[i];
+				String additionalTypeData = additionalTypes[i];
 				
 				// if we have additional data format for the date
 				// send the date object
@@ -180,10 +180,9 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	
 	protected void setFilters(GenRowFilters genRowFilters) {
 		filters = genRowFilters;
-		
 	}
 	
-	protected boolean filterColToValues(NounMetadata leftComp, NounMetadata rightComp, String[] row, String comparator, int rowIndex) {
+	protected boolean filterColToValues(NounMetadata leftComp, NounMetadata rightComp, Object[] row, String comparator, int rowIndex) {
 		List<Object> objects = new Vector<Object>();
 		// the filtered values will either come in as a list or a single object,
 		// convert everything to list
@@ -206,11 +205,10 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			stringVals.add(val.toString());
 		}
 		if (comparator.equals("==") || comparator.equals("=")) {
-
 			// equals case, see if the row value at the column index is
 			// contained in the list of filtered values
 			if (SemossDataType.convertStringToDataType(this.dataTypeMap.get(leftValue)) == SemossDataType.STRING) {
-				if (stringVals.contains(Utility.cleanString(row[rowIndex], true))) {
+				if (stringVals.contains(Utility.cleanString(row[rowIndex].toString(), true))) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
@@ -224,8 +222,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		} else if (comparator.equals("!=")) {
 			// not equals case
 			if (SemossDataType.convertStringToDataType(this.dataTypeMap.get(leftValue)) == SemossDataType.STRING) {
-
-				if (!stringVals.contains(Utility.cleanString(row[rowIndex], true))) {
+				if (!stringVals.contains(Utility.cleanString(row[rowIndex].toString(), true))) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
@@ -239,7 +236,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			String filterVal = stringVals.get(0);
 			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
 				// parse strings (row value and filter value) into doubles for comparison
-				if (Utility.getDouble(row[rowIndex]) > Utility.getDouble(filterVal)) {
+				if (Utility.getDouble(row[rowIndex].toString()) > Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
@@ -250,20 +247,18 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			} else if (valType.equals(SemossDataType.DATE)) {
 				// get Java dates from string and compare
 				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
 				if (rowDate.after(filterDate)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
 				}
-
 			}
-
 		} else if (comparator.equals("<")) {
 			String filterVal = stringVals.get(0);
 			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
 				// parse strings (row value and filter value) into doubles for comparison
-				if (Utility.getDouble(row[rowIndex]) < Utility.getDouble(filterVal)) {
+				if (Utility.getDouble(row[rowIndex].toString()) < Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
@@ -274,18 +269,17 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			} else if (valType.equals(SemossDataType.DATE)) {
 				// get Java dates from string and compare
 				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
 				if (rowDate.before(filterDate)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
 				}
-
 			}
 		} else if (comparator.equals(">=")) {
 			String filterVal = stringVals.get(0);
 			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
-				if (Utility.getDouble(row[rowIndex]) >= Utility.getDouble(filterVal)) {
+				if (Utility.getDouble(row[rowIndex].toString()) >= Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
@@ -294,7 +288,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 				isValid = false;
 			} else if (valType.equals(SemossDataType.DATE)) {
 				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
 				if (rowDate.after(filterDate) || rowDate.equals(filterDate)) {
 					isValid = isValid && true;
 				} else {
@@ -305,7 +299,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		} else if (comparator.equals("<=")) {
 			String filterVal = stringVals.get(0);
 			if (valType.equals(SemossDataType.INT) || valType.equals(SemossDataType.DOUBLE)) {
-				if (Utility.getDouble(row[rowIndex]) <= Utility.getDouble(filterVal)) {
+				if (Utility.getDouble(row[rowIndex].toString()) <= Utility.getDouble(filterVal)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
@@ -314,13 +308,12 @@ public abstract class AbstractFileIterator implements IFileIterator {
 				isValid = false;
 			} else if (valType.equals(SemossDataType.DATE)) {
 				Date filterDate = Utility.getDateAsDateObj(filterVal);
-				Date rowDate = Utility.getDateAsDateObj(row[rowIndex]);
+				Date rowDate = Utility.getDateAsDateObj(row[rowIndex].toString());
 				if (rowDate.before(filterDate) || rowDate.equals(filterDate)) {
 					isValid = isValid && true;
 				} else {
 					isValid = isValid && false;
 				}
-
 			}
 		}
 

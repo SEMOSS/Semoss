@@ -28,7 +28,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -274,8 +273,8 @@ public class Xray {
 		xl.parse(excelFile);
 		String sheetName = (String) connectorData.get("worksheet");
 		// put all row data into a List<String[]>
-		List<String[]> rowData = new ArrayList<String[]>();
-		String[] row = null;
+		List<Object[]> rowData = new ArrayList<Object[]>();
+		Object[] row = null;
 		while ((row = xl.getNextRow(sheetName)) != null) {
 			rowData.add(row);
 		}
