@@ -559,15 +559,14 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		String[] additionalTypes = new String[numHeaders];
 
 		// get the types
-		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
-			for(int i = 0; i < numHeaders; i++) {
-				types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
-			}
-		} else {
-			String[] predictedTypes = helper.predictTypes();
-			for(int i = 0; i < predictedTypes.length; i++) {
-				types[i] = SemossDataType.convertStringToDataType(predictedTypes[i]);
-			}
+		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			Map[] retMap = CSVFileHelper.generateDataTypeMapsFromPrediction(headers, helper.predictTypes());
+			dataTypesMap = retMap[0];
+			additionalDataTypeMap = retMap[1];
+		}
+		
+		for(int i = 0; i < numHeaders; i++) {
+			types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
 		}
 
 		// get additional type information
