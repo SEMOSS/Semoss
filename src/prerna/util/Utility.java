@@ -102,6 +102,7 @@ import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -110,8 +111,8 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
 import prerna.ui.components.api.IPlaySheet;
@@ -1545,8 +1546,51 @@ public class Utility {
 //		return finalUri;
 //	}
 
-
-
+	/**
+	 * Return Object[] with prediction of the data type
+	 * Index 0 -> return the casted object
+	 * Index 1 -> return the pixel data type
+	 * Index 2 -> return the additional formatting
+	 * @param input
+	 * @return
+	 */
+	public Object[] determineInputType(String input) {
+		Object [] retObject = new Object[3];
+		if(input != null) {
+			Object retO = null;
+			// is it a boolean ?
+			if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")) {
+				retObject[0] = Boolean.parseBoolean(input);
+				retObject[1] = PixelDataType.BOOLEAN;
+			}
+			// is it a date ?
+			else if( (retO = SemossDate.genDateObj(input)) != null)
+			{
+				retObject[0] = retO;
+				retObject[1] = PixelDataType.CONST_DATE;
+				retObject[2] = ((SemossDate) retO).getPattern();
+			}
+			//TODO: is it a timestamp ?
+			
+			// is it an integer ?
+			else if( (retO = getInteger(input.replaceAll("[^0-9\\.E]", ""))) != null) {
+				retObject[0] = retO;
+				retObject[1] = PixelDataType.CONST_INT;
+			}
+			// is it a double ?
+			else if( (retO = getDouble(input.replaceAll("[^0-9\\.E]", ""))) != null) {
+				retObject[0] = retO;
+				retObject[1] = PixelDataType.CONST_DECIMAL;
+			}
+			// well, i guess it is a string
+			else {
+				retObject[0] = input;
+				retObject[1] = PixelDataType.CONST_STRING;
+			}
+		}
+		return retObject;
+	}
+		
 	public static Object[] findTypes(String input)
 	{
 		//System.out.println("String that came in.. " + input);
