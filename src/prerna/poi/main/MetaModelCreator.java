@@ -63,7 +63,7 @@ public class MetaModelCreator {
 		this.dataTypeMap = new LinkedHashMap<String, SemossDataType>();
 		this.additionalDataTypeMap = new LinkedHashMap<String, String>();
 
-		Object[][] dataTypes = helper.predictTypes2();
+		Object[][] dataTypes = helper.predictTypes();
 		
 		int size = columnHeaders.length;
 		for(int colIdx = 0; colIdx < size; colIdx++) {

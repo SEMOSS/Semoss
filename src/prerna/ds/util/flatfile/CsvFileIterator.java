@@ -1,8 +1,8 @@
 package prerna.ds.util.flatfile;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
@@ -73,19 +73,16 @@ public class CsvFileIterator extends AbstractFileIterator {
 	 * @param fileIterator
 	 */
 	private void setUnknownTypes() {
-		this.dataTypeMap = new HashMap<String, String>();
-		String[] allHeaders = this.helper.getAllCSVHeaders();
-		String[] strTypes = this.helper.predictTypes();
-		
-		for(int i = 0; i < strTypes.length; i++) {
-			this.dataTypeMap.put(allHeaders[i], strTypes[i]);
-		}
+		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
+		this.dataTypeMap = predictionMaps[0];
+		this.additionalTypesMap = predictionMaps[1];
 		
 		// need to redo types to be only those in the selectors
 		this.types = new SemossDataType[this.headers.length];
 		this.additionalTypes = new String[this.headers.length];
 		for(int i = 0; i < this.headers.length; i++) {
 			this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
+			this.additionalTypes[i] = this.additionalTypesMap.get(this.headers[i]);
 		}
 	}
 	

@@ -12,7 +12,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import prerna.algorithm.api.SemossDataType;
 
@@ -47,9 +46,8 @@ public class GraphUtility {
 					boolean next = true;
 					while (testType.hasNext() && next) {
 						Object value = testType.next();
-						Object[] valueType = Utility.findTypes(value.toString());
-						SemossDataType smssType = SemossDataType
-								.convertStringToDataType(valueType[0].toString().toUpperCase());
+						Object[] prediction = Utility.determineInputType(value.toString());
+						SemossDataType smssType = (SemossDataType) prediction[1];
 						if (smssType == SemossDataType.STRING) {
 							isString = true;
 							break;

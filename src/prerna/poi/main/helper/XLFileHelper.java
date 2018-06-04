@@ -21,6 +21,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import com.ibm.icu.text.SimpleDateFormat;
 
 import cern.colt.Arrays;
+import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -416,8 +417,10 @@ public class XLFileHelper {
 						if(val.isEmpty()) {
 							continue ROW_LOOP;
 						}
-						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
-						if(newTypePred.contains("VARCHAR")) {
+						Object[] prediction = Utility.determineInputType(val);
+						SemossDataType newTypePrediction = (SemossDataType) prediction[1];
+						String newTypePred = newTypePrediction.toString();
+						if(newTypePred.contains("STRING")) {
 							type = newTypePred;
 							break ROW_LOOP;
 						}
@@ -436,7 +439,7 @@ public class XLFileHelper {
 								// should only enter here when there are numbers and dates
 								// TODO: need to figure out what to handle this case
 								// for now, making assumption to put it as a string
-								type = "VARCHAR(800)";
+								type = "STRING";
 								break ROW_LOOP;
 							}
 						} else {
@@ -449,7 +452,7 @@ public class XLFileHelper {
 			}
 			if(type == null) {
 				// no data for column....
-				types[loopIndex] = "VARCHAR(255)";
+				types[loopIndex] = "STRING";
 			} else {
 				types[loopIndex] = type;
 			}
