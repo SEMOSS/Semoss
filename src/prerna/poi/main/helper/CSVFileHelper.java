@@ -4,16 +4,22 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
 import cern.colt.Arrays;
+import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -329,34 +335,241 @@ public class CSVFileHelper {
 		reset(true);
 		return types;
 	}
+	
+	/**
+	 * Loop through all the data to see what the data types are for each column
+	 * @return
+	 */
+	public Object[][] predictTypes2() {
+		int numCols = newUniqueCSVHeaders.size();
+		Object[][] predictedTypes = new Object[numCols][3];
+		List<Map<String, Integer>> additionalFormatTracker = new Vector<Map<String, Integer>>(numCols);
+		// loop through cols, and up to 1000 rows
+		for(int counter = 0; counter < numCols; counter++) {
+			// grab the column
+			String col = newUniqueCSVHeaders.get(counter);
+			parseColumns(new String[]{col});
 
-//	public String getHTMLBasedHeaderChanges() {
-//		StringBuilder htmlStr = new StringBuilder();
-//		htmlStr.append("Errors Found in Column Headers For File " + Utility.getOriginalFileName(this.fileLocation) + ". Performed the following changes to enable upload:<br>");
-//		htmlStr.append("<br>");
-//		htmlStr.append("COLUMN INDEX | OLD CSV NAME | NEW CSV NAME");
-//
-//		boolean isChange = false;
-//
-//		// loop through and find changes
-//		int numCols = allCsvHeaders.length;
-//		for(int colIdx = 0; colIdx < numCols; colIdx++) {
-//			String origHeader = allCsvHeaders[colIdx];
-//			String newHeader = newUniqueCSVHeaders.get(colIdx);
-//
-//			if(!origHeader.equalsIgnoreCase(newHeader)) {
-//				isChange = true;
-//				htmlStr.append("<br>");
-//				htmlStr.append( (colIdx+1) + ") " + origHeader + " | " + newHeader);
-//			}
-//		}
-//
-//		if(isChange) {
-//			return htmlStr.toString();
-//		} else {
-//			return null;
-//		}
-//	}
+			int rowCounter = 0;
+			SemossDataType type = null;
+			Map<String, Integer> formatTracker = new HashMap<String, Integer>();
+			additionalFormatTracker.add(counter, formatTracker);
+			
+			String[] row = null;
+			WHILE_LOOP : while(rowCounter < NUM_ROWS_TO_PREDICT_TYPES && ( row = parser.parseNext()) != null) {
+				String val = row[0];
+				if(val.isEmpty()) {
+					continue;
+				}
+				Object[] prediction = Utility.determineInputType(val);
+				SemossDataType newTypePrediction = (SemossDataType) prediction[1];
+				
+				// handle the additional formatting
+				if(prediction[2] != null) {
+					String fValue = prediction[2] + "";
+					if(formatTracker.containsKey(fValue)) {
+						// increase counter by 1
+						formatTracker.put(fValue, new Integer(formatTracker.get(fValue) + 1));
+					} else {
+						formatTracker.put(fValue, new Integer(1));
+					}
+				}
+				
+				// if we hit a string
+				// we are done
+				if(newTypePrediction == SemossDataType.STRING || newTypePrediction == SemossDataType.BOOLEAN) {
+					Object[] columnPrediction = new Object[2];
+					columnPrediction[0] = SemossDataType.STRING;
+					predictedTypes[counter] = columnPrediction;
+					break WHILE_LOOP;
+				}
+				
+				if(type == null) {
+					// this is the first time we go through
+					// just set the type and we are done
+					// we only need to go through when we hit a difference
+					type = newTypePrediction;
+					continue;
+				}
+				
+				if(type == newTypePrediction) {
+					// well, nothing for us to do if its the same
+					// again, we handle additional formatting
+					// at the top
+					continue;
+				}
+				
+				// if we hit an integer
+				else if(newTypePrediction == SemossDataType.INT) {
+					if(type == SemossDataType.DOUBLE) {
+						// the type stays as double
+						type = SemossDataType.DOUBLE;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break WHILE_LOOP;
+					}
+				}
+				
+				// if we hit a double
+				else if(newTypePrediction == SemossDataType.DOUBLE) {
+					if(type == SemossDataType.INT) {
+						// the type stays as double
+						type = SemossDataType.DOUBLE;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break WHILE_LOOP;
+					}
+				}
+				
+				// if we hit a date
+				else if(newTypePrediction == SemossDataType.DATE) {
+					if(type == SemossDataType.TIMESTAMP) {
+						// stick with timestamp
+						type = SemossDataType.TIMESTAMP;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break WHILE_LOOP;
+					}
+				}
+				
+				// if we hit a timestamp
+				else if(newTypePrediction == SemossDataType.TIMESTAMP) {
+					if(type == SemossDataType.DATE) {
+						// stick with timestamp
+						type = SemossDataType.TIMESTAMP;
+					} else {
+						// we have a number and something else we dont know
+						// default to string
+						type = SemossDataType.STRING;
+						// clear the tracker so we dont send additional format logic
+						formatTracker.clear();
+						break WHILE_LOOP;
+					}
+				}
+				
+				rowCounter++;
+			}
+			// if an entire column is empty, type will be null
+			// why someone has a csv file with an empty column, i do not know...
+			if(type == null) {
+				type = SemossDataType.STRING;
+			}
+			
+			// if format tracking is empty
+			// just add the type to the matrix
+			// and continue
+			if(formatTracker.isEmpty()) {
+				Object[] columnPrediction = new Object[2];
+				columnPrediction[0] = type;
+				predictedTypes[counter] = columnPrediction;
+			} else {
+				// format tracker is not empty
+				// need to figure out the date situation
+				if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+					Object[] results = determineDateFormatting(type, formatTracker);
+					predictedTypes[counter] = results;
+				} else {
+					// UGH... how did you get here if you are not a date???
+					Object[] columnPrediction = new Object[2];
+					columnPrediction[0] = type;
+					predictedTypes[counter] = columnPrediction;
+				}
+			}
+		}
+
+		reset(true);
+		return predictedTypes;
+	}
+
+	/**
+	 * Determine date additional formatting
+	 * @param type
+	 * @param formatTracker
+	 * @return
+	 */
+	private Object[] determineDateFormatting(SemossDataType type, Map<String, Integer> formatTracker) {
+		Object[] result = new Object[2];
+		result[0] = type;
+		if(formatTracker.size() == 1) {
+			result[1] = formatTracker.keySet().iterator().next();
+		} else {
+			// trying to figure out the best match for the format
+			// taking into consideration formats that are basically the same
+			// but may contain 2 value (i.e. 11th day) vs 1 value (i.e. 1st day)
+			// which matches to different patterns
+			if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
+				reconcileDateFormats(formatTracker);
+			}
+			
+			// now just choose the most occuring one
+			String mostOccuringFormat = Collections.max(formatTracker.entrySet(), Comparator.comparingInt(Map.Entry::getValue)).getKey();
+			result[1] = mostOccuringFormat;
+		}
+		return result;
+	}
+	
+	/**
+	 * Try to reconcile different date formats
+	 * @param formats
+	 * @return
+	 */
+	public void reconcileDateFormats(Map<String, Integer> formats) {
+		int numFormats = formats.size();
+		if(numFormats == 1) {
+			return;
+		}
+
+		// loop and compare every format to every other format
+		// once we have a match, we will recalculate
+		String[] formatPaterns = formats.keySet().toArray(new String[numFormats]);
+		char[] charsToFind = new char[]{'M', 'd', 'H', 'h', 'm', 's'};
+		
+		for(int i = 0; i < numFormats; i++) {
+			String thisFormat = formatPaterns[i];
+			// get the regex form of this
+			String regexThisFormat = thisFormat;
+			for(char c : charsToFind) {
+				if(!regexThisFormat.contains(c + "")) {
+					continue;
+				}
+				// trim the format first
+				// so MM or dd becomes just M or d
+				regexThisFormat = regexThisFormat.replaceAll(c + "{1,2}", c + "");
+				int indexToFind = regexThisFormat.lastIndexOf(c);
+				int len = regexThisFormat.length();
+				regexThisFormat = regexThisFormat.substring(0, indexToFind+1) + "{1,2}" + regexThisFormat.substring(indexToFind+1, len);
+			}
+			
+			Pattern p = Pattern.compile(regexThisFormat);
+			for(int j = i+1; j < numFormats; j++) {
+				String otherFormat = formatPaterns[j];
+
+				Matcher matcher = p.matcher(otherFormat);
+				if(matcher.find()) {
+					// they are equivalent
+					String largerFormat = thisFormat.length() > otherFormat.length() ? thisFormat : otherFormat;
+					int c1 = formats.remove(thisFormat);
+					int c2 = formats.remove(otherFormat);
+					formats.put(largerFormat, c1+c2);
+					// recursively go back and recalculate
+					reconcileDateFormats(formats);
+					return;
+				}
+			}
+		}
+	}
 	
 	public Map<String, String> getChangedHeaders() {
 		Map<String, String> modHeaders = new Hashtable<String, String>();
@@ -424,69 +637,20 @@ public class CSVFileHelper {
 
 	///// TESTING CODE STARTS HERE /////
 
-	public static void main(String [] args) throws Exception
-	{
+	public static void main(String [] args) throws Exception {
 		// ugh, need to load this in for the header exceptions
 		// this contains all the sql reserved words
 		TestUtilityMethods.loadDIHelper();
 
-
-		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		long before, after;
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/consumer_complaints.csv";
-		//fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
-		//fileName = "C:/Users/mahkhalil/Desktop/messedUpMovie.csv";
-		before = System.nanoTime();
+		String fileName = "C:/Users/SEMOSS/Desktop/data.csv";
 		CSVFileHelper test = new CSVFileHelper();
 		
 		test.parse(fileName);
 		test.getHeaders();
-		test.printRow(test.predictTypes());
-		test.printRow(test.allCsvHeaders);
-		System.out.println(test.newUniqueCSVHeaders);
-
-		test.printRow(test.getNextRow());
-		test.parseColumns(new String[]{"Title"});
-		test.printRow(test.getNextRow());
-		test.printRow(test.getNextRow());
-		test.printRow(test.getNextRow());
-		test.printRow(test.getNextRow());
-
-
-		//		test.allHeaders = null;
-		//		test.reset(false);
-		//		test.printRow(test.allHeaders);
-		//		System.out.println(test.countLines());
-		//		String [] columns = {"Title"};
-		//		test.parseColumns(columns);
-		//		test.printRow(test.getNextRow());
-		//		test.printRow(test.getNextRow());
-		//		test.printRow(test.getNextRow());
-		//		System.out.println(test.countLines());
-		//		test.reset(false);
-		//		//test.printRow(test.getRow());
-		//		after = System.nanoTime();
-		//		System.out.println((after - before)/1000000);
-	}
-
-	private int countLines() {
-		int count = 0;
-		while(getNextRow() != null) {
-			count++;
+		Object[][] predictions = test.predictTypes2();
+		for(Object[] r : predictions) {
+			System.out.println(Arrays.toString(r));
 		}
-		return count;
+		
 	}
-
-	private void printRow(String[] nextRow) {
-		System.out.println(Arrays.toString(nextRow));
-	}
-
-	//	public String[] cleanHeaders(String[] headers) {
-	//		String[] cleanHeaders = new String[headers.length];
-	//		for(int i = 0; i < headers.length; i++) {
-	//			cleanHeaders[i] = Utility.cleanVariableString(headers[i]);
-	//		}
-	//		return cleanHeaders;
-	//	}
-
 }
