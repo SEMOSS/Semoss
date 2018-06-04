@@ -16,7 +16,6 @@ import com.univocity.parsers.csv.CsvParserSettings;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
-import prerna.date.SemossDate;
 import prerna.poi.main.HeadersException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -411,7 +410,7 @@ public class CSVFileHelper {
 				// format tracker is not empty
 				// need to figure out the date situation
 				if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
-					Object[] results = SemossDate.determineDateFormatting(type, formatTracker);
+					Object[] results = FileHelperUtil.determineDateFormatting(type, formatTracker);
 					predictedTypes[colIndex] = results;
 				} else {
 					// UGH... how did you get here if you are not a date???

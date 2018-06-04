@@ -93,60 +93,92 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		getNextRow();
 
 		// couple of things to take care of here
-//		Object[] cleanRow = cleanRow(row, types, additionalTypes);
-		IHeadersDataRow nextData = new HeadersDataRow(this.headers, row, row);
+		Object[] cleanRow = cleanRow(row, types, additionalTypes);
+		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, cleanRow);
 		return nextData;
 	}
 	
-//	protected Object[] cleanRow(Object[] row, SemossDataType[] types, String[] additionalTypes) {
-//		Object[] cleanRow = new Object[row.length];
-//		for(int i = 0; i < row.length; i++) {
-//			SemossDataType type = types[i];
-//			String val = row[i].toString().trim();
-//			// try to get correct type
-//			if(type == SemossDataType.INT) {
-//				try {
-//					//added to remove $ and , in data and then try parsing as Double
-//					int mult = 1;
-//					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
-//						mult = -1;
-//					val = val.replaceAll("[^0-9\\.E]", "");
-//					cleanRow[i] = mult * Integer.parseInt(val.trim());
-//				} catch(NumberFormatException ex) {
-//					//do nothing
-//					cleanRow[i] = null;
-//				}
-//			} else if(type == SemossDataType.DOUBLE) {
-//				try {
-//					//added to remove $ and , in data and then try parsing as Double
-//					int mult = 1;
-//					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
-//						mult = -1;
-//					val = val.replaceAll("[^0-9\\.E]", "");
-//					cleanRow[i] = mult * Double.parseDouble(val.trim());
-//				} catch(NumberFormatException ex) {
-//					//do nothing
-//					cleanRow[i] = null;
-//				}
-//			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
-//				String additionalTypeData = additionalTypes[i];
-//				
-//				// if we have additional data format for the date
-//				// send the date object
-//				Object date = null;
-//				if(additionalTypeData != null) {
-//					date = new SemossDate(val, additionalTypeData);
-//				} else {
-//					date = val;
-//				}
-//				cleanRow[i] = date;
-//			} else {
-//				cleanRow[i] = Utility.cleanString(val, true, true, false);
-//			}
-//		}
-//		
-//		return cleanRow;
-//	}
+	protected Object[] cleanRow(Object[] row, SemossDataType[] types, String[] additionalTypes) {
+		Object[] cleanRow = new Object[row.length];
+		for(int i = 0; i < row.length; i++) {
+			Object val = row[i];
+			SemossDataType type = types[i];
+			String additionalFormatting = additionalTypes[i];
+			
+			// try to get correct type
+			if(type == SemossDataType.STRING) {
+				cleanRow[i] = Utility.cleanString(val.toString(), true, true, false);
+			} else if(type == SemossDataType.INT) {
+				if(val instanceof Number) {
+					cleanRow[i] = ((Number) val).intValue();
+				} else {
+					String strVal = val.toString();
+					try {
+						//added to remove $ and , in data and then try parsing as Double
+						int mult = 1;
+						if(strVal.startsWith("(") || strVal.startsWith("-")) { // this is a negativenumber
+							mult = -1;
+						}
+						strVal = strVal.replaceAll("[^0-9\\.E]", "");
+						cleanRow[i] = mult * Integer.parseInt(strVal.trim());
+					} catch(NumberFormatException ex) {
+						//do nothing
+						cleanRow[i] = null;
+					}
+				}
+			} else if(type == SemossDataType.DOUBLE) {
+				if(val instanceof Number) {
+					cleanRow[i] = ((Number) val).doubleValue();
+				} else {
+					String strVal = val.toString();
+					try {
+						//added to remove $ and , in data and then try parsing as Double
+						int mult = 1;
+						if(strVal.startsWith("(") || strVal.startsWith("-")) { // this is a negativenumber
+							mult = -1;
+						}
+						strVal = strVal.replaceAll("[^0-9\\.E]", "");
+						cleanRow[i] = mult * Double.parseDouble(strVal.trim());
+					} catch(NumberFormatException ex) {
+						//do nothing
+						cleanRow[i] = null;
+					}
+				}
+			} else if(type == SemossDataType.DATE) {
+				if(val instanceof SemossDate) {
+					if(additionalFormatting != null) {
+						cleanRow[i] = new SemossDate(((SemossDate) val).getDate(), additionalFormatting);
+					} else {
+						cleanRow[i] = val;
+					}
+				} else {
+					String strVal = val.toString();
+					if(additionalFormatting != null) {
+						cleanRow[i] = new SemossDate(strVal, additionalFormatting);
+					} else {
+						cleanRow[i] = SemossDate.genDateObj(strVal);
+					}
+				}
+			} else if(type == SemossDataType.TIMESTAMP) {
+				if(val instanceof SemossDate) {
+					if(additionalFormatting != null) {
+						cleanRow[i] = new SemossDate(((SemossDate) val).getDate(), additionalFormatting);
+					} else {
+						cleanRow[i] = val;
+					}
+				} else {
+					String strVal = val.toString();
+					if(additionalFormatting != null) {
+						cleanRow[i] = new SemossDate(strVal, additionalFormatting);
+					} else {
+						cleanRow[i] = SemossDate.genDateObj(strVal);
+					}
+				}
+			}
+		}
+		
+		return cleanRow;
+	}
 	
 	@Override
 	public void getNextRow() {
