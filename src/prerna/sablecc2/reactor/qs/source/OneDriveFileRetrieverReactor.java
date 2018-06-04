@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User2;
-import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -98,8 +97,9 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			CSVFileHelper helper = new CSVFileHelper();
 			helper.setDelimiter(',');
 			helper.parse(filePath);
-			MetaModelCreator predictor = new MetaModelCreator(helper, null);
-			Map<String, String> dataTypes = predictor.getDataTypeMap();
+			Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes2());
+			Map<String, String> dataTypes = predictionMaps[0];
+			Map<String, String> additionalDataTypes = predictionMaps[1];
 			for (String key : dataTypes.keySet()) {
 				qs.addSelector("DND", key);
 			}
@@ -108,7 +108,7 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor{
 			qs.setFilePath(filePath);
 			qs.setDelimiter(',');
 			qs.setColumnTypes(dataTypes);
-			return qs;
+			qs.setAdditionalTypes(additionalDataTypes);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
