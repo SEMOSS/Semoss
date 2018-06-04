@@ -389,7 +389,11 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String[] headers = csvHelper.getHeaders();
 		LOGGER.info("Found headers: " + Arrays.toString(headers));
 		
-		String[] dataTypes = csvHelper.predictTypes();
+		Object[][] typePredictions = csvHelper.predictTypes();
+		String[] dataTypes = new String[typePredictions.length];
+		for(int i = 0; i < typePredictions.length; i++) {
+			dataTypes[i] = typePredictions[i][1].toString();
+		}
 		LOGGER.info("Found data types: " + Arrays.toString(dataTypes));
 
 		Map<String, String[]> csvMeta = new Hashtable<String, String[]>();

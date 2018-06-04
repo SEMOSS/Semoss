@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.algorithms.xray;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -13,6 +13,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetCSVSchemaReactor extends AbstractReactor {
+	
 	public GetCSVSchemaReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DELIMITER.getKey() };
 	}
@@ -34,9 +35,9 @@ public class GetCSVSchemaReactor extends AbstractReactor {
 		cv.setDelimiter(delimiter.charAt(0));
 		cv.parse(filePath);
 		String[] headers = cv.getAllCSVHeaders();
-		String[] types = cv.predictTypes();
+		Object[][] typePredictions = cv.predictTypes();
 
-		HashMap<String, Object> ret = new HashMap<String, Object>();
+		Map<String, Object> ret = new HashMap<String, Object>();
 		// generate db name
 		String[] parts = filePath.split("\\\\");
 		String dbName = parts[parts.length - 1].replace(".", "_");
@@ -44,22 +45,21 @@ public class GetCSVSchemaReactor extends AbstractReactor {
 		ret.put("databaseName", dbName);
 
 		// construct empty relationship map (assuming flat table)
-		HashMap<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
-		for (String concept : headers) {
+		Map<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
+		for(String concept : headers) {
 			relationshipMap.put(concept, new ArrayList<String>());
 		}
-
 		ret.put("relationships", relationshipMap);
 
 		// add column details
 		// since it's a flat table we don't need to worry about concept/property
 		// relationships
-		HashMap<String, HashMap> tableDetails = new HashMap<String, HashMap>();
+		Map<String, Map> tableDetails = new HashMap<String, Map>();
 		for (int i = 0; i < headers.length; i++) {
-			HashMap<String, String> colDetails = new HashMap<String, String>();
+			Map<String, String> colDetails = new HashMap<String, String>();
 			colDetails.put("name", headers[i]);
-			String dataType = SemossDataType.convertStringToDataType(types[i]).toString();
-			colDetails.put("type", dataType);
+			// index 1 is the data type as an enum
+			colDetails.put("type", typePredictions[i][1].toString());
 			tableDetails.put(headers[i], colDetails);
 		}
 
