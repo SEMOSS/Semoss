@@ -1,10 +1,8 @@
 package prerna.ds.util.flatfile;
 
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -13,12 +11,8 @@ import prerna.om.HeadersDataRow;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.ExcelQueryStruct;
-import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
@@ -44,9 +38,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 			excelHeaderNames.put(this.sheetToLoad, this.newHeaders);
 			this.helper.modifyCleanedHeaders(excelHeaderNames);
 		}
-		
 		setSelectors(qs.getSelectors());
-		setFilters(qs.getExplicitFilters());
 		
 		// now that I have set the headers from the setSelectors
 		this.headers = this.helper.getHeaders(this.sheetToLoad);
@@ -183,57 +175,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	@Override
 	public void getNextRow() {
 		Object[] row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
-		
-		if(filters == null || filters.isEmpty()) {
-			this.nextRow = row;
-			return;
-		}
-		
-		Object[] newRow = null;
-		while (newRow == null && (row != null)) {
-			Set<String> allFilteredCols = this.filters.getAllFilteredColumns();
-			//isValid checks if the row meets all of the given filters 
-			boolean isValid = true;
-			for (String col : allFilteredCols) {
-				int rowIndex = Arrays.asList(headers).indexOf(col);
-				// check valid index
-				if (rowIndex >= 0) {
-					//list of all filters on a given column
-					List<SimpleQueryFilter> nextSet = this.filters.getAllSimpleQueryFiltersContainingColumn(col);
-					for (SimpleQueryFilter filter : nextSet) {
-						//get all filter information
-						FILTER_TYPE filterType = filter.getFilterType();
-						NounMetadata leftComp = filter.getLComparison();
-						NounMetadata rightComp = filter.getRComparison();
-						String comparator = filter.getComparator();
-						if (filterType == FILTER_TYPE.COL_TO_COL) {
-							//TODO
-							//isValid = isValid && filterColToCol(leftComp, rightComp, row, comparator, rowIndex);
-						} else if (filterType == FILTER_TYPE.COL_TO_VALUES) {
-							// Genre = ['Action'] example
-							isValid = isValid && filterColToValues(leftComp, rightComp, row, comparator, rowIndex);
-						} else if (filterType == FILTER_TYPE.VALUES_TO_COL) {
-							// here the left and rightcomps are reversed, so send them to the method in opposite order and reverse comparator
-							// 50000 > MovieBudget gets sent as MovieBudget < 50000
-							isValid = isValid && filterColToValues(rightComp, leftComp, row, IQueryFilter.getReverseNumericalComparator(comparator), rowIndex);
-						}
-					}
-				}
-			}
-
-			if (isValid) {
-				newRow = row;
-				break;
-			} else {
-				newRow = null;
-			}
-
-			if (newRow == null) {
-				row = this.helper.getNextRow(this.sheetToLoad, this.headerIndices);
-			}
-
-		}
-		this.nextRow = newRow;
+		this.nextRow = row;
 	}
 
 	private void setSelectors(List<IQuerySelector> qsSelectors) {
