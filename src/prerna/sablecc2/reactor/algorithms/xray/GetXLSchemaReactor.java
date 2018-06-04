@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
 
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,7 +45,7 @@ public class GetXLSchemaReactor extends AbstractReactor {
 		Map<String, Map<String, String>> dataTypes = new Hashtable<String, Map<String, String>>();
 		Map<String, String> sheetDataMap = new LinkedHashMap<String, String>();
 		String[] columnHeaders = helper.getHeaders(sheetName);
-		String[] predicatedDataTypes = helper.predictRowTypes(sheetName);
+		String[] predicatedDataTypes = FileHelperUtil.generateDataTypeArrayFromPrediction(helper.predictTypes(sheetName));
 		HashMap<String, List<String>> relationshipMap = new HashMap<String, List<String>>();
 		for (String concept : columnHeaders) {
 			relationshipMap.put(concept, new ArrayList<String>());
