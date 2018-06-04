@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -360,9 +361,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 			while( (nextRow = helper.getNextRow(SHEET_NAME)) != null ) {
 				// we need to loop through every value and cast appropriately
 				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+					Object value = nextRow[colIndex];
 					// nulls get added as null
 					// not interesting...
-					if(nextRow[colIndex] == null) {
+					if(value == null) {
 						ps.setObject(colIndex+1, null);
 						continue;
 					}
@@ -370,98 +372,106 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					// yay, actual data
 					SemossDataType type = types[colIndex];
 					// strings
-					if(type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
+					if(type == SemossDataType.STRING) {
 						if(clean) {
-							String value = Utility.cleanString(nextRow[colIndex].toString(), false);
+							value = Utility.cleanString(nextRow[colIndex].toString(), false);
 							ps.setString(colIndex+1, value + "");
 						} else {
-							ps.setString(colIndex+1, nextRow[colIndex] + "");
+							ps.setString(colIndex+1, value + "");
 						}
 					} 
 					// int
 					else if(type == SemossDataType.INT) {
-						Integer value = null;
-						String val = nextRow[colIndex].toString().trim();
-						try {
-							//added to remove $ and , in data and then try parsing as Double
-							int mult = 1;
-							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
-								mult = -1;
-							val = val.replaceAll("[^0-9\\.E]", "");
-							value = mult * Integer.parseInt(val.trim());
-						} catch(NumberFormatException ex) {
-							//do nothing
-						}
-
-						if(value != null) {
-							ps.setInt(colIndex+1, value);
+						if(value instanceof Number) {
+							ps.setInt(colIndex+1, ((Number) value).intValue());
 						} else {
-							// set default as null
-							ps.setObject(colIndex+1, null);
-						}
-					}
-					// doubles
-					else if(type == SemossDataType.DOUBLE) {
-						Double value = null;
-						String val = nextRow[colIndex].toString().trim();
-						try {
-							//added to remove $ and , in data and then try parsing as Double
-							int mult = 1;
-							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
-								mult = -1;
-							val = val.replaceAll("[^0-9\\.E]", "");
-							value = mult * Double.parseDouble(val.trim());
-						} catch(NumberFormatException ex) {
-							//do nothing
-						}
-
-						if(value != null) {
-							ps.setDouble(colIndex+1, value);
-						} else {
-							// set default as null
-							ps.setObject(colIndex+1, null);
-						}
-					} 
-					// dates
-					else if(type == SemossDataType.DATE) {
-						// can I get a format?
-						String format = additionalTypes[colIndex];
-						if(format != null && !format.isEmpty()) {
-							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex].toString(), format);
-							if(value != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							Integer intValue = null;
+							String strValue = nextRow[colIndex].toString().trim();
+							try {
+								//added to remove $ and , in data and then try parsing as Double
+								int mult = 1;
+								if(strValue.startsWith("(") || strValue.startsWith("-")) { // this is a negativenumber
+									mult = -1;
+								}
+								strValue = strValue.replaceAll("[^0-9\\.E]", "");
+								intValue = mult * Integer.parseInt(strValue.trim());
+							} catch(NumberFormatException ex) {
+								//do nothing
+							}
+							if(intValue != null) {
+								ps.setInt(colIndex+1, intValue);
 							} else {
 								// set default as null
 								ps.setObject(colIndex+1, null);
 							}
+						}
+					}
+					// doubles
+					else if(type == SemossDataType.DOUBLE) {
+						if(value instanceof Number) {
+							ps.setDouble(colIndex+1, ((Number) value).doubleValue());
 						} else {
-							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex].toString());
-							if(value != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
+							Double doubleValue = null;
+							String strValue = nextRow[colIndex].toString().trim();
+							try {
+								//added to remove $ and , in data and then try parsing as Double
+								int mult = 1;
+								if(strValue.startsWith("(") || strValue.startsWith("-")) { // this is a negativenumber
+									mult = -1;
+								}
+								strValue = strValue.replaceAll("[^0-9\\.E]", "");
+								doubleValue = mult * Double.parseDouble(strValue.trim());
+							} catch(NumberFormatException ex) {
+								//do nothing
+							}
+							if(doubleValue != null) {
+								ps.setDouble(colIndex+1, doubleValue);
 							} else {
 								// set default as null
+								ps.setObject(colIndex+1, null);
+							}
+						}
+					} 
+					// dates
+					else if(type == SemossDataType.DATE) {
+						if(value instanceof SemossDate) {
+							ps.setDate(colIndex+1, new java.sql.Date(((SemossDate) value).getDate().getTime()));
+						} else {
+							// can I get a format?
+							java.util.Date dateValue = null;
+							String strVal = value.toString();
+							String format = additionalTypes[colIndex];
+							if(format != null && !format.isEmpty()) {
+								dateValue = new SemossDate(strVal, format).getDate();
+							} else {
+								dateValue = SemossDate.genDateObj(strVal).getDate();
+							}
+							
+							if(dateValue != null) {
+								ps.setDate(colIndex+1, new java.sql.Date(dateValue.getTime()));
+							} else {
 								ps.setObject(colIndex+1, null);
 							}
 						}
 					}
 					// timestamps
 					else if(type == SemossDataType.TIMESTAMP) {
-						// can I get a format?
-						String format = additionalTypes[colIndex];
-						if(format != null && !format.isEmpty()) {
-							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex].toString(), format);
-							if(value != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
-							} else {
-								// set default as null
-								ps.setObject(colIndex+1, null);
-							}
+						if(value instanceof SemossDate) {
+							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(((SemossDate) value).getDate().getTime()));
 						} else {
-							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex].toString());
-							if(value != null) {
-								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
+							// can I get a format?
+							java.util.Date dateValue = null;
+							String strVal = value.toString();
+							String format = additionalTypes[colIndex];
+							if(format != null && !format.isEmpty()) {
+								dateValue = new SemossDate(strVal, format).getDate();
 							} else {
-								// set default as null
+								dateValue = SemossDate.genDateObj(strVal).getDate();
+							}
+							
+							if(dateValue != null) {
+								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dateValue.getTime()));
+							} else {
 								ps.setObject(colIndex+1, null);
 							}
 						}
