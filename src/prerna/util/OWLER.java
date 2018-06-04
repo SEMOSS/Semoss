@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.openrdf.model.vocabulary.RDF;
@@ -15,14 +16,11 @@ import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.BaseDatabaseCreator;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -607,67 +605,75 @@ public class OWLER {
 	 * This method will calculate the unique values in each column/property
 	 * and add it to the owl file.
 	 * 
-	 * @param table
-	 * @param column
 	 * @param engine
 	 */
-	public void addUniqueCounts(String table, String column, IEngine engine){
-		String concept = table;
-		String className = null;
-		RDFFileSesameEngine owlEngine = null;
-		ENGINE_TYPE engineType = engine.getEngineType();
-
-		if (engineType.equals(ENGINE_TYPE.RDBMS)){
-			RDBMSNativeEngine engineRDB = (RDBMSNativeEngine) engine;
-			owlEngine = engineRDB.getBaseDataEngine();
-		} else if (engineType.equals(ENGINE_TYPE.TINKER)){
-			// tinker query always returns null
-			TinkerEngine engineRDB = (TinkerEngine) engine;
-			owlEngine = engineRDB.getBaseDataEngine();
-		} else if (engineType.equals(ENGINE_TYPE.SESAME)){
-			// sparql query always throws error
-			BigDataEngine engineRDB = (BigDataEngine) engine;
-			owlEngine = engineRDB.getBaseDataEngine();
-		} else {
-			// if the database is anything else then dont tracking
-			// we dont want to track for big data by accident
-			return;
-		}
-
-		// get class name
-		className = Utility.getClassName(column);
+	public void addUniqueCounts(IEngine engine){
+		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engine.getEngineId());
+		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
-		// if column isnt a string then end here
-		String dataType = MasterDatabaseUtility.getBasicDataType(engine.getEngineId(), className, null);
-		if (dataType == null || !dataType.equalsIgnoreCase("STRING")){
-			return;
-		}
-		
-		// query for unique column values and dont 
-		// store it if it returns null
-		SelectQueryStruct qs2 = new SelectQueryStruct();
-		QueryFunctionSelector newSelector = new QueryFunctionSelector();
-		newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
-		newSelector.setDistinct(true);
-		QueryColumnSelector innerSelector = new QueryColumnSelector();
-		innerSelector.setTable(table);
-		innerSelector.setColumn(className);
-		newSelector.addInnerSelector(innerSelector);
-		qs2.addSelector(newSelector);
-		
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
-		if (!it.hasNext()) {
-			return;
-		}
-		long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
+		for (String tab : concepts){
+			// query for unique column values and dont 
+			// store it if it returns null
+			SelectQueryStruct qs2 = new SelectQueryStruct();
+			QueryFunctionSelector newSelector = new QueryFunctionSelector();
+			newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
+			newSelector.setDistinct(true);
+			QueryColumnSelector innerSelector = new QueryColumnSelector();
+			innerSelector.setTable(tab);
+			innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+			newSelector.addInnerSelector(innerSelector);
+			qs2.addSelector(newSelector);
+			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+			
+			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			if (!it.hasNext()) {
+				continue;
+			}
+			long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
+			String baseUri = engine.getNodeBaseUri();
+			String conceptUri = baseUri + tab + "/" + Utility.getInstanceName(tab);
+			String prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
+			owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+			owlEngine.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+			
+			List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(tab, engine.getEngineId());
+			for (int i = 0; i < properties.size() ; i++){
+				if (properties.get(i).equals(tab)){
+					continue;
+				}
+				
+				String dataType = MasterDatabaseUtility.getBasicDataType(engine.getEngineId(), properties.get(i), null);
+				if (dataType == null || !dataType.equalsIgnoreCase("STRING")){
+					continue;
+				}
+				
+				// query for unique column values and dont 
+				// store it if it returns null
+				qs2 = new SelectQueryStruct();
+				newSelector = new QueryFunctionSelector();
+				newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
+				newSelector.setDistinct(true);
+				innerSelector = new QueryColumnSelector();
+				innerSelector.setTable(tab);
+				innerSelector.setColumn(properties.get(i));
+				newSelector.addInnerSelector(innerSelector);
+				qs2.addSelector(newSelector);
+				qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+				
+				it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+				if (!it.hasNext()) {
+					continue;
+				}
+				uniqueRows = ((Number) it.next().getValues()[0]).longValue();
+			
+				// update the owl file and export it
+				conceptUri = baseUri + properties.get(i) + "/" + Utility.getInstanceName(tab);
+				prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
+				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+				owlEngine.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+			}
 
-		// update the owl file and export it
-		String baseUri = engine.getNodeBaseUri();
-		String conceptUri = baseUri + className + "/" + Utility.getInstanceName(concept);
-	
-		String prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
-		owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
-		owlEngine.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+		}
 		owlEngine.commit();
 		try {
 			owlEngine.exportDB();
