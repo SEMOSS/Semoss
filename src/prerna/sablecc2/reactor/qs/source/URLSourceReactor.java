@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.qs.source;
 
 import java.util.Map;
 
-import prerna.poi.main.MetaModelCreator;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -40,13 +39,12 @@ public class URLSourceReactor extends AbstractQueryStructReactor {
 
 		// get datatypes
 		CSVFileHelper helper = new CSVFileHelper();
-		helper.setDelimiter(delim);
+		helper.setDelimiter(',');
 		helper.parse(filePath);
-		MetaModelCreator predictor = new MetaModelCreator(helper, null);
-		Map<String, String> dataTypes = predictor.getDataTypeMap();
-		// assume file is csv
+		Map[] predictionMaps = CSVFileHelper.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes2());
+		Map<String, String> dataTypes = predictionMaps[0];
+		Map<String, String> additionalDataTypes = predictionMaps[1];
 		CsvQueryStruct qs = new CsvQueryStruct();
-		
 		for (String key : dataTypes.keySet()) {
 			qs.addSelector("DND", key);
 		}
@@ -55,7 +53,7 @@ public class URLSourceReactor extends AbstractQueryStructReactor {
 		qs.setFilePath(filePath);
 		qs.setDelimiter(delim);
 		qs.setColumnTypes(dataTypes);
-
+		qs.setAdditionalTypes(additionalDataTypes);
 		return qs;
 	}
 
