@@ -4,6 +4,7 @@ import prerna.util.Utility;
 
 public enum SemossDataType {
 
+	BOOLEAN,
 	INT,
 	DOUBLE,
 	STRING, 
@@ -12,7 +13,9 @@ public enum SemossDataType {
 	FACTOR;
 	
 	public static String convertDataTypeToString(SemossDataType type) {
-		if(SemossDataType.INT == type) { 
+		if(SemossDataType.BOOLEAN == type) { 
+			return "boolean";
+		} else if(SemossDataType.INT == type) { 
 			return "int";
 		} else if(SemossDataType.DOUBLE == type) { 
 			return "double";

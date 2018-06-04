@@ -112,7 +112,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
 import prerna.ui.components.api.IPlaySheet;
@@ -1554,20 +1553,19 @@ public class Utility {
 	 * @param input
 	 * @return
 	 */
-	public Object[] determineInputType(String input) {
+	public static Object[] determineInputType(String input) {
 		Object [] retObject = new Object[3];
 		if(input != null) {
 			Object retO = null;
 			// is it a boolean ?
 			if(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")) {
 				retObject[0] = Boolean.parseBoolean(input);
-				retObject[1] = PixelDataType.BOOLEAN;
+				retObject[1] = SemossDataType.BOOLEAN;
 			}
 			// is it a date ?
-			else if( (retO = SemossDate.genDateObj(input)) != null)
-			{
+			else if( (retO = SemossDate.genDateObj(input)) != null) {
 				retObject[0] = retO;
-				retObject[1] = PixelDataType.CONST_DATE;
+				retObject[1] = SemossDataType.DATE;
 				retObject[2] = ((SemossDate) retO).getPattern();
 			}
 			//TODO: is it a timestamp ?
@@ -1575,17 +1573,17 @@ public class Utility {
 			// is it an integer ?
 			else if( (retO = getInteger(input.replaceAll("[^0-9\\.E]", ""))) != null) {
 				retObject[0] = retO;
-				retObject[1] = PixelDataType.CONST_INT;
+				retObject[1] = SemossDataType.INT;
 			}
 			// is it a double ?
 			else if( (retO = getDouble(input.replaceAll("[^0-9\\.E]", ""))) != null) {
 				retObject[0] = retO;
-				retObject[1] = PixelDataType.CONST_DECIMAL;
+				retObject[1] = SemossDataType.DOUBLE;
 			}
 			// well, i guess it is a string
 			else {
 				retObject[0] = input;
-				retObject[1] = PixelDataType.CONST_STRING;
+				retObject[1] = SemossDataType.STRING;
 			}
 		}
 		return retObject;
@@ -1826,7 +1824,7 @@ public class Utility {
 	public static Integer getInteger(String input) {
 		// try to do some basic clean up if it fails and try again
 		try {
-			Integer num = new BigDecimal(input).intValue();
+			Integer num = Integer.parseInt(input);
 			return num;
 		} catch(NumberFormatException e) {
 			return null;
