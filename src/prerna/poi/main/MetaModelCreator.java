@@ -14,9 +14,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Utility;
 
 /**
  * This class is used to build a suggested metamodel from a file, currently only works with CSV 
@@ -26,7 +26,9 @@ public class MetaModelCreator {
 
 	// column headers
 	private String[] columnHeaders;
-	private Map<String, String> dataTypeMap;
+	private Map<String, SemossDataType> dataTypeMap;
+	private Map<String, String> additionalDataTypeMap;
+
 	private int[] processOrder; //order in which to process columns 
 	private CreatorMode mode;
 
@@ -58,12 +60,18 @@ public class MetaModelCreator {
 		this.mode = setting;
 		this.columnHeaders = helper.getHeaders();
 
-		this.dataTypeMap = new LinkedHashMap<String, String>();
-		String[] dataTypes = helper.predictTypes();
+		this.dataTypeMap = new LinkedHashMap<String, SemossDataType>();
+		this.additionalDataTypeMap = new LinkedHashMap<String, String>();
+
+		Object[][] dataTypes = helper.predictTypes2();
 		
 		int size = columnHeaders.length;
 		for(int colIdx = 0; colIdx < size; colIdx++) {
-			dataTypeMap.put(columnHeaders[colIdx], Utility.getCleanDataType(dataTypes[colIdx]));
+			Object[] prediction = dataTypes[colIdx];
+			dataTypeMap.put(columnHeaders[colIdx], (SemossDataType) prediction[0]);
+			if(prediction[1] != null) {
+				additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
+			}
 		}
 		
 		// if the mode is not set
@@ -103,7 +111,7 @@ public class MetaModelCreator {
 		this.columnHeaders = helper.getHeaders();
 		int size = columnHeaders.length;
 
-		this.dataTypeMap = new LinkedHashMap<String, String>();
+		this.dataTypeMap = new LinkedHashMap<String, SemossDataType>();
 		
 		// use the prop file to get the data types
 		for(int colIdx = 0; colIdx < size; colIdx++) {
@@ -111,7 +119,7 @@ public class MetaModelCreator {
 			if(dataType == null) {
 				dataType = "STRING";
 			}
-			dataTypeMap.put(columnHeaders[colIdx], dataType);
+			dataTypeMap.put(columnHeaders[colIdx], SemossDataType.convertStringToDataType(dataType));
 		}
 		
 		// if the mode is not set
@@ -150,21 +158,16 @@ public class MetaModelCreator {
 	 * auto generate the meta model
 	 */
 	private void autoGenerateMetaModel() {
-
 		//need to sort columns by number of unique instances
-
 		//track which columns should be properties
 		matches = new HashMap<>(columnHeaders.length);
-		//		populateData();
 		populateProcessOrder();
 		populateColumnPropMap();
 
 		//run comparisons for strings
 		for(int i = 0; i < columnHeaders.length; i++) {
-
-			//			DATA_TYPES datatype = frame.getDataType(columnHeaders[i]);
-			String datatype = this.dataTypeMap.get(columnHeaders[i]).toUpperCase();
-			if(datatype.equals("STRING")) {
+			SemossDataType datatype = this.dataTypeMap.get(columnHeaders[i]);
+			if(datatype == SemossDataType.STRING) {
 				//run all comparisons
 				runAllComparisons(columnHeaders, i);
 			}
@@ -172,9 +175,8 @@ public class MetaModelCreator {
 
 		//run comparisons for non strings
 		for(int i = 0; i < columnHeaders.length; i++) {
-			//			DATA_TYPES datatype = frame.getDataType(columnHeaders[i]);
-			String datatype = this.dataTypeMap.get(columnHeaders[i]).toUpperCase();
-			if(!datatype.equals("STRING")) {
+			SemossDataType datatype = this.dataTypeMap.get(columnHeaders[i]);
+			if(datatype != SemossDataType.STRING) {
 				//run all comparisons
 				runAllComparisons(columnHeaders, i);
 			}
@@ -188,14 +190,13 @@ public class MetaModelCreator {
 		for(String subject : matches.keySet()) {
 			Set<String> set = matches.get(subject);
 			for(String object : set) {
-				//				DATA_TYPES dataType = frame.getDataType(object);
-				String dataType = this.dataTypeMap.get(object).toUpperCase();
+				SemossDataType datatype = this.dataTypeMap.get(object);
 				Map<String, Object> predMap = new HashMap<>();
 
 				String[] subjectArr = {subject};
 				String[] objectArr = {object};
 
-				if(dataType.equals("STRING")) {
+				if(datatype == SemossDataType.STRING) {
 					String predHolder = subject + "_" + object;
 					predMap.put("sub", subjectArr);
 					predMap.put("pred", predHolder);
@@ -204,8 +205,7 @@ public class MetaModelCreator {
 				} else {
 					predMap.put("sub", subjectArr);
 					predMap.put("prop", objectArr);
-					dataType = dataType == "DOUBLE" ? "NUMBER" : dataType;
-					predMap.put("dataType", dataType);
+					predMap.put("dataType", datatype);
 					this.propFileData.get("propFileNodeProp").add(predMap);
 				}
 			}
@@ -333,7 +333,7 @@ public class MetaModelCreator {
 						predMap.put("sub", subjectArr);
 						predMap.put("prop", objectArr);
 
-						String dataType = this.dataTypeMap.get(object);
+						SemossDataType dataType = this.dataTypeMap.get(object);
 						predMap.put("dataType", dataType);
 						this.propFileData.get("propFileNodeProp").add(predMap);
 					}
@@ -386,15 +386,12 @@ public class MetaModelCreator {
 	 * @param firstColIndex - the column which we are comparing to other columns
 	 */
 	private void runAllComparisons(String[] columnHeaders, int firstColIndex) {
-
 		for(int i = 0; i < columnHeaders.length; i++) {
-
 			//don't compare a column to itself
 			if(i == firstColIndex) continue;
 
 			String firstColumn = columnHeaders[firstColIndex];
 			String secondColumn = columnHeaders[i];
-
 
 			//need to make sure second column does not have first column as a a property already
 			if(!matches.containsKey(secondColumn) || !matches.get(secondColumn).contains(firstColumn)) {
@@ -406,9 +403,8 @@ public class MetaModelCreator {
 					if(firstColIndexInCSV > secondColIndexInCSV) {
 						//try to see if inverse order is better
 						//but first, check to make sure the second column in not a double or date
-						//						DATA_TYPES datatype = frame.getDataType(secondColumn);
-						String datatype = dataTypeMap.get(secondColumn).toUpperCase();
-						if(datatype.equals("STRING")) {
+						SemossDataType dataType = dataTypeMap.get(secondColumn);
+						if(dataType == SemossDataType.STRING) {
 							if(!columnPropMap.get(firstColumn) && compareCols(i, firstColIndex)) {
 								//use reverse order
 								useInverse = true;
@@ -533,10 +529,13 @@ public class MetaModelCreator {
 		return this.additionalInfo;
 	}
 	
-	public Map<String, String> getDataTypeMap() {
+	public Map<String, SemossDataType> getDataTypeMap() {
 		return this.dataTypeMap;
 	}
 
+	public Map<String, String> getAdditionalDataTypeMap() {
+		return this.additionalDataTypeMap;
+	}
 	
 	//Use this to test metamodel creator
 	public static void main(String[] args) {
