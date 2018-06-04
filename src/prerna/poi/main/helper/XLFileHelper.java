@@ -179,7 +179,7 @@ public class XLFileHelper {
 	
 	private Object[] getCells(Row row, int totalCol) {
 		int colLength = totalCol;
-		Object[] cols = new String[colLength];
+		Object[] cols = new Object[colLength];
 		for(int colIndex = colStarter; colIndex < colLength; colIndex++) {
 			Cell thisCell = row.getCell(colIndex);
 			cols[colIndex] = getCell(thisCell);
@@ -239,7 +239,7 @@ public class XLFileHelper {
 				cols.add(getCell(thisCell));
 			}
 		}
-		return cols.toArray(new String[]{});
+		return cols.toArray(new Object[]{});
 	}	
 	
 	public int[] getHeaderIndicies(String sheetName, String[] headers) {
@@ -560,7 +560,7 @@ public class XLFileHelper {
 			// format tracker is not empty
 			// need to figure out the date situation
 			if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
-				Object[] results = SemossDate.determineDateFormatting(type, formatTracker);
+				Object[] results = FileHelperUtil.determineDateFormatting(type, formatTracker);
 				predictedTypes[colIndex] = results;
 			} else {
 				// UGH... how did you get here if you are not a date???
