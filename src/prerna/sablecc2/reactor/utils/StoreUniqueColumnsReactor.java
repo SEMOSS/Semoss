@@ -1,11 +1,9 @@
 package prerna.sablecc2.reactor.utils;
 
-import java.util.List;
-import java.util.Vector;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -36,27 +34,10 @@ public class StoreUniqueColumnsReactor extends AbstractReactor {
 		// only executes for rdbms, tinker, and rdf
 		ENGINE_TYPE engineType = engine.getEngineType();
 		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME) || engineType.equals(ENGINE_TYPE.TINKER)) {
-			Vector<String> concepts = engine.getConcepts(false);
 			OWLER owl = new OWLER(engine, owlPath);
-			for (int i = 0; i < concepts.size(); i++) {
-				String thisConcept = concepts.get(i);
-				String base = "http://semoss.org/ontologies/Relation/Contains/" + Utility.getInstanceName(thisConcept)
-						+ "/" + Utility.getInstanceName(thisConcept);
-				
-				// add unique count for concepts
-				if (Utility.getInstanceName(base).equals(Utility.getClassName(base))){
-					owl.addUniqueCounts(thisConcept, base, engine);
-				}
-				
-				// iterate properties of concept and add unique
-				// values for each to the owl file
-				List<String> properties = engine.getProperties4Concept(thisConcept, true);
-				for (int j = 0; j < properties.size(); j++) {
-					owl.addUniqueCounts(thisConcept, properties.get(j), engine);
-				}
-			}
+			owl.addUniqueCounts(engine);
 		}
-		return null;
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 }
