@@ -47,6 +47,7 @@ viz_history<-function(df){
 									}
 								} else{
 									# old format
+									uniqueValues=0
 									db<-row[1,1]
 									tbl<-row[1,2]
 									col<-row[1,3]
@@ -68,6 +69,10 @@ viz_history<-function(df){
 			})
 		}
 	}
+	
+	r<-z[z$uniquevalues == 0,]
+	u<-unique(r$unit)
+	z<-z[!(z$unit %in% u),]
 	rm(n,user,viz)
 	gc()
 	return(z)
