@@ -75,7 +75,7 @@ public class JavaReactor extends AbstractReactor {
 			
 			// the configuration of JRI vs. RServe
 			// is now encapsulated within Abstract + RJavaTranslator
-			cc.setSuperclass(pool.get("prerna.sablecc2.reactor.runtime.AbstractBaseRClass"));
+			cc.setSuperclass(pool.get(AbstractBaseRClass.class.getName()));
 
 			String content = code;
 			if(content.contains("runR")) {
