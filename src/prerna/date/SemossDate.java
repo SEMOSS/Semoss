@@ -7,8 +7,13 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 public class SemossDate {
 
+	private static final Logger LOGGER = LogManager.getLogger(SemossDate.class);
+	
 	/*
 	 * So we do not recalculate all these combinations every time
 	 */
@@ -78,7 +83,7 @@ public class SemossDate {
 			try {
 				this.date = formatter.parse(this.dateVal);
 			} catch (ParseException e) {
-				throw new IllegalArgumentException("Could not parse the date " + this.dateVal + " with the format " + formatter.toPattern());
+				LOGGER.error("Could not parse the date " + this.dateVal + " with the format " + formatter.toPattern());
 			}
 		}
 		return this.date;
