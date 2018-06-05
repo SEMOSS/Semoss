@@ -210,6 +210,10 @@ public class RSyntaxHelper {
 	 * @return						The r script to execute
 	 */
 	public static String alterColumnTypeToDate(String tableName, String format, String colName) {
+		if(format == null) {
+			format = "%y-%m-%d";
+		}
+		
 		// will generate a string similar to
 		// "datatable$Birthday <- as.Date(as.character(datatable$Birthday), format = '%m/%d/%Y')"
 		String[] parsedFormat = format.split("\\|");
@@ -220,10 +224,13 @@ public class RSyntaxHelper {
 	}
 	
 	public static String alterColumnTypeToDate(String tableName, String format, List<String> cols) {
+		if(format == null) {
+			format = "%y-%m-%d";
+		}
+		
 		StringBuilder builder = new StringBuilder();
 		//parse out the milliseconds options
 		String[] parsedFormat = format.split("\\|");
-		
 		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
 				+ "lapply(.SD, function(x) as.Date(x, format='" + parsedFormat[0] + "')), "
 				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
@@ -260,19 +267,33 @@ public class RSyntaxHelper {
 	}
 
 	public static String alterColumnTypeToDateTime(String tableName, String format,String colName) {
+		if(format == null) {
+			format = "%y-%m-%d %H:%M:%S";
+		}
 		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
-		builder.append("options(digits.secs =" + parsedFormat[1] + ");");
+		if(parsedFormat.length == 1) {
+			builder.append("options(digits.secs=0);");
+		} else {
+			builder.append("options(digits.secs=" + parsedFormat[1] + ");");
+		}
 		builder.append(tableName + "$" + colName + "<- as.POSIXct(fast_strptime(" 
 				+ tableName + "$" + colName + ", format = '" + parsedFormat[0] +"'))");
 		return builder.toString();
 	}
 	
 	public static String alterColumnTypeToDateTime(String tableName, String format, List<String> cols) {
+		if(format == null) {
+			format = "%y-%m-%d %H:%M:%S";
+		}
 		//parse out the milliseconds options
 		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
-		builder.append("options(digits.secs =" + parsedFormat[1] + ");");
+		if(parsedFormat.length == 1) {
+			builder.append("options(digits.secs=0);");
+		} else {
+			builder.append("options(digits.secs=" + parsedFormat[1] + ");");
+		}
 		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
 				+ "lapply(.SD, function(x) as.POSIXct(fast_strptime(x, format='" + parsedFormat[0] + "'))), "
 				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");

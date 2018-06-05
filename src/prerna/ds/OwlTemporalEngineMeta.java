@@ -1721,7 +1721,7 @@ public class OwlTemporalEngineMeta {
 			
 			if(predUri.equals(IS_PRIM_KEY_PRED) || predUri.equals(IS_DERIVED_PRED) ||
 					predUri.equals(QUERY_STRUCT_PRED) || predUri.equals(ALIAS_PRED) ||
-					predUri.equals(OWL.DATATYPEPROPERTY.toString())) 
+					predUri.equals(OWL.DATATYPEPROPERTY.toString()) || predUri.equals(ADDTL_DATATYPE_PRED) ) 
 			{
 				obj = cleanRow[2].toString();
 				isConcept = false;
