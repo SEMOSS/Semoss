@@ -235,14 +235,14 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 			String propURI = basePropURI + "/" + Utility.cleanString(key, true);
 			// logger.info("Processing Property " + key + " for " + instanceURI);
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { propURI, RDF.TYPE, basePropURI, true });
-			if (propHash.get(key).getClass() == new Double(1).getClass()) {
-				Double value = (Double) propHash.get(key);
+			if (propHash.get(key) instanceof Number) {
+				Double value = ((Number) propHash.get(key)).doubleValue();
 				// logger.info("Processing Double value " + value);
 				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.doubleValue(), false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DOUBLE");
 				}
-			} else if (propHash.get(key).getClass() == new Date(1).getClass()) {
+			} else if (propHash.get(key) instanceof Date) {
 				Date value = (Date) propHash.get(key);
 				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String date = df.format(value);
@@ -258,7 +258,7 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DATE");
 				}
-			} else if (propHash.get(key).getClass() == new Boolean(true).getClass()) {
+			} else if (propHash.get(key) instanceof Boolean) {
 				Boolean value = (Boolean) propHash.get(key);
 				// logger.info("Processing Boolean value " + value);
 				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value.booleanValue(), false });
