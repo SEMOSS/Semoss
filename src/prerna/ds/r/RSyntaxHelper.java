@@ -214,11 +214,12 @@ public class RSyntaxHelper {
 			format = "%Y-%m-%d";
 		}
 		
+		String[] parsedFormat = format.split("\\|");
 		// will generate a string similar to
 		// "datatable$Birthday <- as.Date(as.character(datatable$Birthday), format = '%m/%d/%Y')"
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName + "$" + colName +  "<- as.Date(" 
-				+ tableName + "$" + colName + ", format = '" + format +"')");
+				+ tableName + "$" + colName + ", format = '" + parsedFormat[0] +"')");
 		return builder.toString();
 	}
 	
@@ -227,10 +228,11 @@ public class RSyntaxHelper {
 			format = "%Y-%m-%d";
 		}
 		
+		String[] parsedFormat = format.split("\\|");
 		StringBuilder builder = new StringBuilder();
 		//parse out the milliseconds options
 		builder.append(tableName + "[,(c('" + StringUtils.join(cols,"','") + "')) := "
-				+ "lapply(.SD, function(x) as.Date(x, format='" + format + "')), "
+				+ "lapply(.SD, function(x) as.Date(x, format='" + parsedFormat[0] + "')), "
 				+ ".SDcols = c('" + StringUtils.join(cols,"','") + "')]");
 		return builder.toString();
 	}
