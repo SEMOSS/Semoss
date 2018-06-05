@@ -44,9 +44,9 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 				for(int i = 0; i < cGrs.size(); i++) {
 					String value = cGrs.get(0).toString();
 					if(value.contains("__")) {
-						columns.add(value.split("__")[1]);
+						columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
 					} else {
-						columns.add(value);
+						columns.add(value.replaceAll("\\s+", "_"));
 					}
 				}
 				return columns;
@@ -58,9 +58,9 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 		for(int i = 0; i < this.curRow.size(); i++) {
 			String value = this.curRow.get(i).toString();
 			if(value.contains("__")) {
-				columns.add(value.split("__")[1]);
+				columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
 			} else {
-				columns.add(value);
+				columns.add(value.replaceAll("\\s+", "_"));
 			}
 		}
 		return columns;
