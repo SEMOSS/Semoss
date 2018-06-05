@@ -104,8 +104,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		addOrderBy(tempVarName);
 		// append order by at the end
 		String order = this.orderBys.toString();
+		query.append(";");
 		if(!order.isEmpty()) {
-			query.append(";").append(order).append("; ");
+			query.append(order).append("; ");
 		}
 		
 		// we need to convert dates from being integer values
