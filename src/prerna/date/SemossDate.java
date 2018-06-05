@@ -113,68 +113,84 @@ public class SemossDate {
 				 * Block for month, day, year
 				 */
 
-				new String[]{"[0-1][0-2]/[0-3][0-9]/[0-9]{4}", "MM/dd/yyyy"}, 	// this matches MM/dd/yyyy where M > 10
-				new String[]{"[0][0-9]/[0-3][0-9]/[0-9]{4}", "MM/dd/yyyy"},	// this matches MM/dd/yyyy where M < 9 and start 0
-				new String[]{"[0-9]/[0-3][0-9]/[0-9]{4}", "M/dd/yyyy"},	// this matches M/dd/yyyy where M < 9 and no start 0
-				new String[]{"[0-9]/[0-9]/[0-9]{4}", "M/d/yyyy"},	// this matches M/d/yyyy 
-				new String[]{"[0-1][0-2]/[0-9]/[0-9]{4}", "MM/d/yyyy"},	// this matches MM/d/yyyy where M > 10 and d has no start 0
+				new String[]{"[1][0-2]/[1-3][0-9]/[0-9]{4}",	"M/d/yyyy"}, 		// 10/19/2018
+				new String[]{"[1][0-2]/[0][1-9]/[0-9]{4}", 		"M/dd/yyyy"}, 		// 10/09/2018
+				new String[]{"[0][1-9]/[1-3][0-9]/[0-9]{4}", 	"MM/d/yyyy"},		// 09/19/2018
+				new String[]{"[0][1-9]/[0][1-9]/[0-9]{4}",		"MM/dd/yyyy"},		// 09/09/2018
+				new String[]{"[1-9]/[1-3][0-9]/[0-9]{4}", 		"M/d/yyyy"},		//  3/19/2018
+				new String[]{"[1-9]/[0][1-9]/[0-9]{4}", 		"M/dd/yyyy"},		//  3/09/2018
+				new String[]{"[1-9]/[1-9]/[0-9]{4}", 			"M/d/yyyy"},		//   3/9/2018
+				new String[]{"[1][0-2]/[1-9]/[0-9]{4}", 		"M/d/yyyy"},		//  10/9/2018
 
 				// same as above but only 2 y
-				new String[]{"[0-1][0-2]/[0-3][0-9]/[0-9][0-9]", "MM/dd/yy"},	// this matches MM/dd/yy where M > 10
-				new String[]{"[0][0-9]/[0-3][0-9]/[0-9][0-9]", "MM/dd/yy"},	// this matches MM/dd/yy where M < 9 and start 0
-				new String[]{"[0-9]/[0-3][0-9]/[0-9][0-9]", "M/dd/yy"},	// this matches MM/dd/yy where M < 9 and no start 0
-				new String[]{"[0-9]/[0-9]/[0-9][0-9]", "M/d/yy"},	// this matches M/dd/yy where M < 9 and no start 0 and d < 9 no start 0
-				new String[]{"[0-1][0-2]/[0-9]/[0-9][0-9]", "MM/d/yy"},	// this matches MM/d/yy where M > 10 and d has no start 0
+				new String[]{"[1][0-2]/[1-3][0-9]/[0-9]{2}", 	"M/d/yy"}, 			// 10/19/18
+				new String[]{"[1][0-2]/[0][1-9]/[0-9]{2}", 		"M/dd/yy"}, 		// 10/09/18
+				new String[]{"[0][1-9]/[1-3][0-9]/[0-9]{2}", 	"MM/d/yy"},			// 09/19/18
+				new String[]{"[0][1-9]/[0][1-9]/[0-9]{2}",		"MM/dd/yy"},		// 09/09/18
+				new String[]{"[1-9]/[1-3][0-9]/[0-9]{2}", 		"M/d/yy"},			//  3/19/18
+				new String[]{"[1-9]/[0][0-9]/[0-9]{2}", 		"M/dd/yy"},			//  3/09/18
+				new String[]{"[1-9]/[1-9]/[0-9]{2}", 			"M/d/yy"},			//   3/9/18
+				new String[]{"[1][0-2]/[1-9]/[0-9]{2}", 		"M/d/yy"},			//  10/9/18
 
 				/*
 				 * Block for day, month, year
 				 */
 
 				// if the person starts with dd
-				new String[]{"[0-3][0-9]/[0-1][0-2]/[0-9]{4}", "dd/MM/yyyy"},	// this matches dd/MM/yyyy where M > 10
-				new String[]{"[0-3][0-9]/[0][0-2]/[0-9]{4}", "dd/MM/yyyy"},	// this matches dd/MM/yyyy where M < 9 and start 0
-				new String[]{"[0-3][0-9]/[0-9]/[0-9]{4}", "dd/M/yyyy"},	// this matches dd/MM/yyyy where M < 9 and no start 0
-
+				new String[]{"[1-3][0-9]/[1][0-2]/[0-9]{4}", 	"d/MM/yyyy"},		// this matches d/MM/yyyy where M > 10
+				new String[]{"[0][1-9]/[1][0-2]/[0-9]{4}", 		"dd/M/yyyy"},		// this matches dd/M/yyyy where M > 10
+				new String[]{"[1-3][0-9]/[0][1-9]/[0-9]{4}", 	"d/MM/yyyy"},		// this matches d/MM/yyyy where M < 9 and start 0
+				new String[]{"[0][1-9]/[0][1-9]/[0-9]{4}", 		"dd/MM/yyyy"},		// this matches dd/MM/yyyy where M < 9 and start 0
+				new String[]{"[1-3][0-9]/[1-9]/[0-9]{4}", 		"d/M/yyyy"},		// this matches d/M/yyyy where M < 9 and no start 0
+				new String[]{"[0][1-9]/[1-9]/[0-9]{4}", 		"dd/M/yyyy"},		// this matches dd/M/yyyy where M < 9 and no start 0
+				
 				// same as above but only 2 y
-				new String[]{"[0-3][0-9]/[0-1][0-2]/[0-9][0-9]", "dd/MM/yy"},	// this matches dd/MM/yy where M > 10
-				new String[]{"[0-3][0-9]/[0][0-2]/[0-9][0-9]", "dd/MM/yy"},	// this matches dd/MM/yy where M < 9 and start 0
-				new String[]{"[0-3][0-9]/[0-9]/[0-9][0-9]", "dd/M/yy"}, // this matches dd/MM/yy where M < 9 and no start 0
+				new String[]{"[1-3][0-9]/[1][0-2]/[0-9]{2}", 	"d/MM/yy"},			// this matches d/MM/yyyy where M > 10
+				new String[]{"[0][1-9]/[1][0-2]/[0-9]{2}", 		"dd/M/yy"},			// this matches dd/MM/yyyy where M > 10
+				new String[]{"[1-3][0-9]/[0][1-9]/[0-9]{2}", 	"d/MM/yy"},			// this matches d/MM/yyyy where M < 9 and start 0
+				new String[]{"[0][1-9]/[0][1-9]/[0-9]{2}", 		"dd/MM/yy"},		// this matches dd/MM/yyyy where M < 9 and start 0
+				new String[]{"[1-3][0-9]/[1-9]/[0-9]{2}",		"d/M/yy"},			// this matches d/MM/yyyy where M < 9 and no start 0
+				new String[]{"[0][1-9]/[1-9]/[0-9]{2}", 		"dd/M/yy"},			// this matches dd/MM/yyyy where M < 9 and no start 0
 
 				/*
 				 * Block for year, month, day
 				 */
 
-				new String[]{"[0-9]{4}/[0-1][0-2]/[0-3][0-9]", "yyyy/MM/dd"},	// this matches yyyy/MM/dd where M > 10
-				new String[]{"[0-9]{4}/[0][0-9]/[0-3][0-9]", "yyyy/MM/dd"},	// this matches yyyy/MM/dd where M < 9 and start 0
-				new String[]{"[0-9]{4}/[0-9]/[0-3][0-9]", "yyyy/M/dd"},	// this matches yyyy/M/dd where M < 9 and no start 0
-				new String[]{"[0-9]{4}/[0-9]/[0-9]", "yyyy/M/d"},	// this matches yyyy/M/d 
-				new String[]{"[0-9]{4}/[0-1][0-2]/[0-9]", "yyyy/MM/d"},	// this matches yyyy/MM/d where M > 10 and d has no start 0
+				new String[]{"[0-9]{4}/[1][0-2]/[1-3][0-9]", 	"yyyy/M/d"},		// this matches yyyy/M/d where M > 10
+				new String[]{"[0-9]{4}/[1][0-2]/[0][1-9]", 		"yyyy/M/dd"},		// this matches yyyy/MM/dd where M > 10
+				new String[]{"[0-9]{4}/[0][1-9]/[1-3][0-9]", 	"yyyy/MM/d"},		// this matches yyyy/MM/d where M < 9 and start 0
+				new String[]{"[0-9]{4}/[0][1-9]/[0][1-9]", 		"yyyy/MM/dd"},		// this matches yyyy/MM/dd where M < 9 and start 0
+				new String[]{"[0-9]{4}/[1-9]/[0][0-9]", 		"yyyy/M/dd"},		// this matches yyyy/M/dd where M < 9 and no start 0
+				new String[]{"[0-9]{4}/[1-9]/[1-3][0-9]", 		"yyyy/M/d"},		// this matches yyyy/M/d where M < 9 and no start 0
+
+				new String[]{"[0-9]{4}/[1-9]/[0-9]", 			"yyyy/M/d"},		// this matches yyyy/M/d 
+				new String[]{"[0-9]{4}/[0-1][0-2]/[0-9]", 		"yyyy/MM/d"},		// this matches yyyy/MM/d where M > 10 and d has no start 0
 
 				// same as above but only 2 y
-				new String[]{"[0-9][0-9]/[0-1][0-2]/[0-3][0-9]", "yy/MM/dd"},	// this matches yy/MM/dd where M > 10
-				new String[]{"[0-9][0-9]/[0][0-9]/[0-3][0-9]", "yy/MM/dd"},	// this matches yy/MM/dd where M < 9 and start 0
-				new String[]{"[0-9][0-9]/[0-9]/[0-3][0-9]", "yy/M/dd"},	// this matches yy/M/dd where M < 9 and no start 0
-				new String[]{"[0-9][0-9]/[0-9]/[0-9]", "yy/M/d"},	// this matches yy/M/dd where M < 9 and no start 0 and d < 9 no start 0
-				new String[]{"[0-9][0-9]/[0-1][0-2]/[0-9]",	"yy/MM/d"}, // this matches yy/MM/d where M > 10 and d has no start 0
+				new String[]{"[0-9][0-9]/[0-1][0-2]/[0-3][0-9]",	"yy/MM/dd"},	// this matches yy/MM/dd where M > 10
+				new String[]{"[0-9][0-9]/[0][0-9]/[0-3][0-9]",		"yy/MM/dd"},	// this matches yy/MM/dd where M < 9 and start 0
+				new String[]{"[0-9][0-9]/[0-9]/[0-3][0-9]",			"yy/M/dd"},		// this matches yy/M/dd where M < 9 and no start 0
+				new String[]{"[0-9][0-9]/[0-9]/[0-9]",				"yy/M/d"},		// this matches yy/M/dd where M < 9 and no start 0 and d < 9 no start 0
+				new String[]{"[0-9][0-9]/[0-1][0-2]/[0-9]",			"yy/MM/d"}, 	// this matches yy/MM/d where M > 10 and d has no start 0
 				
 				/*
 				 * Block for month, day
 				 */
 				
-				new String[]{"[0-1][0-2]/[0-3][0-9]", "MM/dd"},	// this matches MM/dd where M > 10 and d > 9
-				new String[]{"[0][0-9]/[0-3][0-9]", "MM/d"}, // this matches MM/dd where M < 9 and start 0
-				new String[]{"[0-1][0-2]/[0-9]", "MM/d"},	// this matches MM/dd where M > 10 and d < 10
-				new String[]{"[0][0-9]/[0-9]", "MM/d"},	// this matches MM/d where M < 9 and start 0 and d < 9
-				new String[]{"[0-9]/[0-9]", "M/d"},	// this matches M/d where M < 9 and d < 9
+				new String[]{"[0-1][0-2]/[0-3][0-9]", 	"MM/dd"},			// this matches MM/dd where M > 10 and d > 9
+				new String[]{"[0][0-9]/[0-3][0-9]", 	"MM/d"}, 			// this matches MM/dd where M < 9 and start 0
+				new String[]{"[0-1][0-2]/[0-9]", 		"MM/d"},			// this matches MM/dd where M > 10 and d < 10
+				new String[]{"[0][0-9]/[0-9]",			"MM/d"},			// this matches MM/d where M < 9 and start 0 and d < 9
+				new String[]{"[0-9]/[0-9]", 			"M/d"},				// this matches M/d where M < 9 and d < 9
 				
 				/*
 				 * Block for day, month
 				 */
 				
-				new String[]{"[0-3][0-9]/[0-1][0-2]", "dd/MM"},	// this matches dd/MM where M > 10 and d > 9
-				new String[]{"[0-3][0-9]/[0][0-9]", "dd/MM"}, // this matches dd/MM where M < 9 and start 0
-				new String[]{"[0-9]/[0-1][0-2]", "d/MM"},	// this matches d/MM where M > 10 and d < 10
-				new String[]{"[0-9]/[0][0-9]", "d/MM"}	// this matches d/MM where M < 9 and start 0 and d < 9
+				new String[]{"[0-3][0-9]/[0-1][0-2]", 	"dd/MM"},			// this matches dd/MM where M > 10 and d > 9
+				new String[]{"[0-3][0-9]/[0][0-9]", 	"dd/MM"}, 			// this matches dd/MM where M < 9 and start 0
+				new String[]{"[0-9]/[0-1][0-2]", 		"d/MM"},			// this matches d/MM where M > 10 and d < 10
+				new String[]{"[0-9]/[0][0-9]", 			"d/MM"}				// this matches d/MM where M < 9 and start 0 and d < 9
 		};
 
 
@@ -426,6 +442,97 @@ public class SemossDate {
 		return semossdate;
 	}
 	
+	private static String[][] constructDateFormats(String separator) {
+		String[][] dateMatches = new String[][]{
+			/*
+			 * Block for month, day, year
+			 */
+
+			new String[]{"[1][0-2]" + separator + "[1-3][0-9]" + separator + "[0-9]{4}",	"M" + separator + "d" + separator + "yyyy"}, 		// 10/19/2018
+			new String[]{"[1][0-2]" + separator + "[0][1-9]" + separator + "[0-9]{4}", 		"M" + separator + "dd" + separator + "yyyy"}, 		// 10/09/2018
+			new String[]{"[0][1-9]" + separator + "[1-3][0-9]" + separator + "[0-9]{4}", 	"MM" + separator + "d" + separator + "yyyy"},		// 09/19/2018
+			new String[]{"[0][1-9]" + separator + "[0][1-9]" + separator + "[0-9]{4}",		"MM" + separator + "dd" + separator + "yyyy"},		// 09/09/2018
+			new String[]{"[1-9]" + separator + "[1-3][0-9]" + separator + "[0-9]{4}", 		"M" + separator + "d" + separator + "yyyy"},		//  3/19/2018
+			new String[]{"[1-9]" + separator + "[0][1-9]" + separator + "[0-9]{4}", 		"M" + separator + "dd" + separator + "yyyy"},		//  3/09/2018
+			new String[]{"[1-9]" + separator + "[1-9]" + separator + "[0-9]{4}", 			"M" + separator + "d" + separator + "yyyy"},		//   3/9/2018
+			new String[]{"[1][0-2]" + separator + "[1-9]" + separator + "[0-9]{4}", 		"M" + separator + "d" + separator + "yyyy"},		//  10/9/2018
+
+			// same as above but only 2 y
+			new String[]{"[1][0-2]" + separator + "[1-3][0-9]" + separator + "[0-9]{2}", 	"M" + separator + "d" + separator + "yy"}, 			// 10/19/18
+			new String[]{"[1][0-2]" + separator + "[0][1-9]" + separator + "[0-9]{2}", 		"M" + separator + "dd" + separator + "yy"}, 		// 10/09/18
+			new String[]{"[0][1-9]" + separator + "[1-3][0-9]" + separator + "[0-9]{2}", 	"MM" + separator + "d" + separator + "yy"},			// 09/19/18
+			new String[]{"[0][1-9]" + separator + "[0][1-9]" + separator + "[0-9]{2}",		"MM" + separator + "dd" + separator + "yy"},		// 09/09/18
+			new String[]{"[1-9]" + separator + "[1-3][0-9]" + separator + "[0-9]{2}", 		"M" + separator + "d" + separator + "yy"},			//  3/19/18
+			new String[]{"[1-9]" + separator + "[0][0-9]" + separator + "[0-9]{2}", 		"M" + separator + "dd" + separator + "yy"},			//  3/09/18
+			new String[]{"[1-9]" + separator + "[1-9]" + separator + "[0-9]{2}", 			"M" + separator + "d" + separator + "yy"},			//   3/9/18
+			new String[]{"[1][0-2]" + separator + "[1-9]" + separator + "[0-9]{2}", 		"M" + separator + "d" + separator + "yy"},			//  10/9/18
+
+			/*
+			 * Block for day, month, year
+			 */
+
+			// if the person starts with dd
+			new String[]{"[1-3][0-9]" + separator + "[1][0-2]" + separator + "[0-9]{4}", 	"d" + separator + "MM" + separator + "yyyy"},		// 10/19/2018
+			new String[]{"[0][1-9]" + separator + "[1][0-2]" + separator + "[0-9]{4}", 		"dd" + separator + "M" + separator + "yyyy"},		// 09/12/2018
+			new String[]{"[1-3][0-9]" + separator + "[0][1-9]" + separator + "[0-9]{4}", 	"d" + separator + "MM" + separator + "yyyy"},		// 19/02/2018
+			new String[]{"[0][1-9]" + separator + "[0][1-9]" + separator + "[0-9]{4}", 		"dd" + separator + "MM" + separator + "yyyy"},		// 09/09/2018
+			new String[]{"[1-3][0-9]" + separator + "[1-9]" + separator + "[0-9]{4}", 		"d" + separator + "M" + separator + "yyyy"},		// 19/2/2018
+			new String[]{"[0][1-9]" + separator + "[1-9]" + separator + "[0-9]{4}", 		"dd" + separator + "M" + separator + "yyyy"},		// 09/2/2018
+			
+			// same as above but only 2 y
+			new String[]{"[1-3][0-9]" + separator + "[1][0-2]" + separator + "[0-9]{2}", 	"d" + separator + "MM" + separator + "yy"},			// 10/19/18
+			new String[]{"[0][1-9]" + separator + "[1][0-2]" + separator + "[0-9]{2}", 		"dd" + separator + "M" + separator + "yy"},			// 09/12/18
+			new String[]{"[1-3][0-9]" + separator + "[0][1-9]" + separator + "[0-9]{2}", 	"d" + separator + "MM" + separator + "yy"},			// 19/02/18
+			new String[]{"[0][1-9]" + separator + "[0][1-9]" + separator + "[0-9]{2}", 		"dd" + separator + "MM" + separator + "yy"},		// 09/09/18
+			new String[]{"[1-3][0-9]" + separator + "[1-9]" + separator + "[0-9]{2}",		"d" + separator + "M" + separator + "yy"},			// 19/2/18
+			new String[]{"[0][1-9]" + separator + "[1-9]" + separator + "[0-9]{2}", 		"dd" + separator + "M" + separator + "yy"},			// 09/2/18
+
+			/*
+			 * Block for year, month, day
+			 */
+
+			new String[]{"[0-9]{4}" + separator + "[1][0-2]" + separator + "[1-3][0-9]", 	"yyyy" + separator + "M" + separator + "d"},		// this matches yyyy/M/d where M > 10
+			new String[]{"[0-9]{4}" + separator + "[1][0-2]" + separator + "[0][1-9]", 		"yyyy" + separator + "M" + separator + "dd"},		// this matches yyyy/MM/dd where M > 10
+			new String[]{"[0-9]{4}" + separator + "[0][1-9]" + separator + "[1-3][0-9]", 	"yyyy" + separator + "MM" + separator + "d"},		// this matches yyyy/MM/d where M < 9 and start 0
+			new String[]{"[0-9]{4}" + separator + "[0][1-9]" + separator + "[0][1-9]", 		"yyyy" + separator + "MM" + separator + "dd"},		// this matches yyyy/MM/dd where M < 9 and start 0
+			new String[]{"[0-9]{4}" + separator + "[1-9]" + separator + "[0][0-9]", 		"yyyy" + separator + "M" + separator + "dd"},		// this matches yyyy/M/dd where M < 9 and no start 0
+			new String[]{"[0-9]{4}" + separator + "[1-9]" + separator + "[1-3][0-9]", 		"yyyy" + separator + "M" + separator + "d"},		// this matches yyyy/M/d where M < 9 and no start 0
+
+			new String[]{"[0-9]{4}" + separator + "[1-9]" + separator + "[0-9]", 			"yyyy" + separator + "M" + separator + "d"},		// this matches yyyy/M/d 
+			new String[]{"[0-9]{4}" + separator + "[0-1][0-2]" + separator + "[0-9]", 		"yyyy" + separator + "MM" + separator + "d"},		// this matches yyyy/MM/d where M > 10 and d has no start 0
+
+			// same as above but only 2 y
+			new String[]{"[0-9][0-9]" + separator + "[0-1][0-2]" + separator + "[0-3][0-9]",	"yy" + separator + "MM" + separator + "dd"},	// this matches yy/MM/dd where M > 10
+			new String[]{"[0-9][0-9]" + separator + "[0][0-9]" + separator + "[0-3][0-9]",		"yy" + separator + "MM" + separator + "dd"},	// this matches yy/MM/dd where M < 9 and start 0
+			new String[]{"[0-9][0-9]" + separator + "[0-9]" + separator + "[0-3][0-9]",			"yy" + separator + "M" + separator + "dd"},		// this matches yy/M/dd where M < 9 and no start 0
+			new String[]{"[0-9][0-9]" + separator + "[0-9]" + separator + "[0-9]",				"yy" + separator + "M" + separator + "d"},		// this matches yy/M/dd where M < 9 and no start 0 and d < 9 no start 0
+			new String[]{"[0-9][0-9]" + separator + "[0-1][0-2]" + separator + "[0-9]",			"yy" + separator + "MM" + separator + "d"}, 	// this matches yy/MM/d where M > 10 and d has no start 0
+			
+			/*
+			 * Block for month, day
+			 */
+			
+			new String[]{"[0-1][0-2]" + separator + "[0-3][0-9]", 	"MM" + separator + "dd"},			// this matches MM/dd where M > 10 and d > 9
+			new String[]{"[0][0-9]" + separator + "[0-3][0-9]", 	"MM" + separator + "d"}, 			// this matches MM/dd where M < 9 and start 0
+			new String[]{"[0-1][0-2]" + separator + "[0-9]", 		"MM" + separator + "d"},			// this matches MM/dd where M > 10 and d < 10
+			new String[]{"[0][0-9]" + separator + "[0-9]",			"MM" + separator + "d"},			// this matches MM/d where M < 9 and start 0 and d < 9
+			new String[]{"[0-9]" + separator + "[0-9]", 			"M" + separator + "d"},				// this matches M/d where M < 9 and d < 9
+			
+			/*
+			 * Block for day, month
+			 */
+			
+			new String[]{"[0][1-9]" + separator + "[1][0-2]", 		"dd" + separator + "M"},			// 01/10
+			new String[]{"[0][1-9]" + separator + "[0][0-9]", 		"dd" + separator + "MM"}, 			// 01/01
+			new String[]{"[1-9]" + separator + "[1][0-2]", 			"d" + separator + "M"},				// 1/10
+			new String[]{"[1-9]" + separator + "[0][1-9]", 			"d" + separator + "MM"},			// 1/01
+			new String[]{"[1-3][0-9]" + separator + "[1][0-2]", 	"d" + separator + "M"},				// 21/10
+			new String[]{"[1-3][0-9]" + separator + "[0][1-9]", 	"d" + separator + "MM"}				// 21/01
+		};
+		
+		return dateMatches;
+	}
+	
 	
 	public static void main(String[] args) throws Exception {
 		String d = "11/5/1991";
@@ -434,7 +541,7 @@ public class SemossDate {
 		d = "1/5/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
 		
-		d = "1/22/1991";
+		d = "01/22/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
 		
 		d = "13/12/1991";
