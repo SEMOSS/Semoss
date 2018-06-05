@@ -26,31 +26,23 @@ public class DatabaseQueryTranslator extends AbstractReactor {
 		organizeKeys();
 		String query = this.keyValue.get(this.keysToGet[0]);
 		query = Utility.decodeURIComponent(query);
-		String sourceDB = this.keyValue.get(this.keysToGet[1]);
-		String targetDB = this.keyValue.get(this.keysToGet[2]);
+		String sourceDbId = this.keyValue.get(this.keysToGet[1]);
+		String targetDbId = this.keyValue.get(this.keysToGet[2]);
+		sourceDbId = MasterDatabaseUtility.testEngineIdIfAlias(sourceDbId);
+		targetDbId = MasterDatabaseUtility.testEngineIdIfAlias(targetDbId);
+		
 		// get physical to physical translation from sourceDB to targetDB
-		// TODO need to figure out how to interpret 1-many maps
-		Map<String, List<String>> translation = MasterDatabaseUtility.databaseTranslator(sourceDB, targetDB);
+		Map<String, List<String>> translation = MasterDatabaseUtility.databaseTranslator(sourceDbId, targetDbId);
 		// process query components using translation map
 		SqlTranslator translator = new SqlTranslator(translation);
 		SelectQueryStruct translatedQs;
 		try {
 			translatedQs = translator.processQuery(query);
-			IEngine targetEngine = Utility.getEngine(targetDB);
+			IEngine targetEngine = Utility.getEngine(targetDbId);
 			IQueryInterpreter interpreter = targetEngine.getQueryInterpreter();
 			interpreter.setQueryStruct(translatedQs);
 			String translatedQuery = interpreter.composeQuery(); 
-
-			// return string query for now
-			String colName = "Query";
-			String[] types = new String[] { "STRING" };
-			String[] headers = new String[] { colName };
-			H2Frame frame = new H2Frame(headers);
-			String tableName = frame.getTableName();
-			String[] cells = new String[] { translatedQuery };
-			frame.addRow(tableName, cells, headers, types);
-			this.insight.setDataMaker(frame);
-			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+			return new NounMetadata(translatedQuery, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
