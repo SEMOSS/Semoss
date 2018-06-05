@@ -52,7 +52,7 @@ public class RDBMSEngineCreationHelper {
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				StringBuilder importPixel = new StringBuilder("Database(" + engineName + ") | Select(");
+				StringBuilder importPixel = new StringBuilder("Database(\"" + engineName + "\") | Select(");
 				Map<String, String> colToTypes = existingMetaModel.get(newTable);
 				Set<String> columnNames = colToTypes.keySet();
 				int size = columnNames.size();
