@@ -26,9 +26,12 @@ viz_history<-function(df){
 									col<-row[1,3]
 									type<-row[1,4]
 									comp<-row[1,5]
+									message(type)
 									if("uniqueValues" %in% colnames(row)){
 										uniqueValues<-row[1,6]
+										message(uniqueValues)
 										if(uniqueValues <= LM){
+											message("again")
 											type<-paste0(type,"?L")
 										}else if(uniqueValues <= MH){
 											type<-paste0(type,"?M")
@@ -43,6 +46,7 @@ viz_history<-function(df){
 										semantic<-row[1,l]
 										if(semantic != ""){
 											z<-rbindlist(list(z,list(i,j,db,tbl,col,type,semantic,comp,uniqueValues,chart,user)))
+											# message(z)
 										}
 									}
 								} else{
@@ -62,17 +66,21 @@ viz_history<-function(df){
 				}
 			}, warning = function(w) {
 				#warning-handler-code
+				message("warning")
 			}, error = function(e) {
 				#error-handler-code
+				message("error")
 			}, finally = {
 				#cleanup-code
+				#message("clean")
 			})
 		}
 	}
+	message(nrow(z))
 	
-	r<-z[z$uniquevalues == 0,]
-	u<-unique(r$unit)
-	z<-z[!(z$unit %in% u),]
+	#r<-z[z$uniquevalues == 0,]
+	#u<-unique(r$unit)
+	#z<-z[!(z$unit %in% u),]
 	rm(n,user,viz)
 	gc()
 	return(z)
