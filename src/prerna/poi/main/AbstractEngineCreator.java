@@ -11,6 +11,7 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -305,6 +306,15 @@ public class AbstractEngineCreator {
 		sqlHash.put("NUMBER", "FLOAT");
 		sqlHash.put("INTEGER", "FLOAT");
 		sqlHash.put("BOOLEAN", "BOOLEAN");
+		
+		// TODO: standardized set of values
+		sqlHash.put(SemossDataType.BOOLEAN.toString(), "BOOLEAN");
+		sqlHash.put(SemossDataType.INT.toString(), "INT");
+		sqlHash.put(SemossDataType.DOUBLE.toString(), "FLOAT");
+		sqlHash.put(SemossDataType.STRING.toString(), "VARCHAR(2000)");
+		sqlHash.put(SemossDataType.DATE.toString(), "DATE");
+		sqlHash.put(SemossDataType.TIMESTAMP.toString(), "TIMESTAMP");
+
 	}
 	
 	protected IEngine createNewInsightsDatabase(String appName, String appId) {
