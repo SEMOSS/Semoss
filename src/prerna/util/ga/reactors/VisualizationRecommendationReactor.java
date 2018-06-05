@@ -11,12 +11,8 @@ import com.google.gson.reflect.TypeToken;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -94,21 +90,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 				
 				// get unique column values
 				IEngine engine = Utility.getEngine(db);
-				ENGINE_TYPE type = engine.getEngineType();
-				RDFFileSesameEngine owlEngine = null;
-				if (type.equals(ENGINE_TYPE.RDBMS)) {
-					RDBMSNativeEngine eng = (RDBMSNativeEngine) engine;
-					owlEngine = eng.getBaseDataEngine();
-				} else if (type.equals(ENGINE_TYPE.TINKER)) {
-					TinkerEngine eng = (TinkerEngine) engine;
-					owlEngine = eng.getBaseDataEngine();
-				} else if (type.equals(ENGINE_TYPE.SESAME)) {
-					BigDataEngine eng = (BigDataEngine) engine;
-					owlEngine = eng.getBaseDataEngine();
-				} else if (type.equals(ENGINE_TYPE.JENA)){
-					RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
-					owlEngine = eng.getBaseDataEngine();					
-				}
+				RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 
 				// get unique values for string columns, if it doesnt exist
 				long uniqueValues = 0;
