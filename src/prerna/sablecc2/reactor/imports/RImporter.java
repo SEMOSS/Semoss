@@ -108,7 +108,11 @@ public class RImporter implements IImporter {
 				if(jSelector.contains("__")) {
 					jSelector = jSelector.split("__")[1];
 				}
-				joinColMapping.put(jSelector, joinItem.getQualifier());
+				String jQualifier = joinItem.getQualifier();
+				if(jQualifier.contains("__")) {
+					jQualifier = jQualifier.split("__")[1];
+				}
+				joinColMapping.put(jSelector, jQualifier);
 				joinCols.add(joinColMapping);
 			}
 			
