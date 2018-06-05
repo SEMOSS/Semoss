@@ -3,10 +3,12 @@ package prerna.sablecc2.reactor.frame.r;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -101,6 +103,15 @@ public class PivotReactor extends AbstractRFrameReactor {
 
 		String aggregateString = "";
 		if (aggregateFunction != null && aggregateFunction.length() > 0) {
+			// check data type of values col 
+			SemossDataType dataType = frame.getMetaData().getHeaderTypeAsEnum(table + "__" + valuesCol);
+			if (!(dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE)) {
+				NounMetadata noun = new NounMetadata("Unable to aggregate on non-numeric column :" + valuesCol, PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException exception = new SemossPixelException(noun);
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
 		}
 		
