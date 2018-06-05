@@ -1,7 +1,6 @@
 package prerna.util.gson;
 
 import java.io.IOException;
-import java.util.Date;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -9,7 +8,6 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.date.SemossDate;
-import prerna.util.Utility;
 
 public class SemossDateAdapter extends TypeAdapter<SemossDate> {
 
@@ -21,15 +19,11 @@ public class SemossDateAdapter extends TypeAdapter<SemossDate> {
 		}
 		
 		String dateStr = in.nextString();
-		Date d = Utility.getDateAsDateObj(dateStr);
-		if(d != null) {
-			return new SemossDate(d);
+		SemossDate date = SemossDate.genDateObj(dateStr);
+		if(date == null) {
+			date = SemossDate.genTimeStampDateObj(dateStr);
 		}
-		d = Utility.getTimeStampAsDateObj(dateStr);
-		if(d != null) {
-			return new SemossDate(d, "yyyy-MM-dd hh:mm:ss");
-		}
-		return null;
+		return date;
 	}
 
 	@Override 

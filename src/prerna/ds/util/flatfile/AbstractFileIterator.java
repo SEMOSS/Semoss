@@ -134,7 +134,7 @@ public abstract class AbstractFileIterator implements IFileIterator {
 				if(additionalTypeData != null) {
 					date = new SemossDate(val, additionalTypeData);
 				} else {
-					date = SemossDate.genDateObj(val);
+					date = SemossDate.genTimeStampDateObj(val);
 				}
 				cleanRow[i] = date;
 			} else {
