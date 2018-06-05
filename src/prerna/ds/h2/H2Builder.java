@@ -197,7 +197,7 @@ public class H2Builder {
 						if(nextRow[colIndex] instanceof SemossDate) {
 							ps.setDate(colIndex + 1, new java.sql.Date( ((SemossDate) nextRow[colIndex]).getDate().getTime() ) );
 						} else {
-							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex] + "");
+							java.util.Date value = SemossDate.genDateObj(nextRow[colIndex] + "").getDate();
 							if (value != null) {
 								ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
 							} else {
@@ -208,7 +208,7 @@ public class H2Builder {
 						if(nextRow[colIndex] instanceof SemossDate) {
 							ps.setTimestamp(colIndex + 1, new java.sql.Timestamp( ((SemossDate) nextRow[colIndex]).getDate().getTime() ) );
 						} else {
-							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex] + "");
+							java.util.Date value = SemossDate.genTimeStampDateObj(nextRow[colIndex] + "").getDate();
 							if (value != null) {
 								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(value.getTime()));
 							} else {

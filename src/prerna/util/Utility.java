@@ -1568,8 +1568,12 @@ public class Utility {
 				retObject[1] = SemossDataType.DATE;
 				retObject[2] = ((SemossDate) retO).getPattern();
 			}
-			//TODO: is it a timestamp ?
-			
+			// is it a timestamp ?
+			else if( (retO = SemossDate.genTimeStampDateObj(input)) != null) {
+				retObject[0] = retO;
+				retObject[1] = SemossDataType.TIMESTAMP;
+				retObject[2] = ((SemossDate) retO).getPattern();
+			}
 			// is it an integer ?
 			else if( (retO = getInteger(input.replaceAll("[^0-9\\.E]", ""))) != null) {
 				retObject[0] = retO;
@@ -1588,7 +1592,8 @@ public class Utility {
 		}
 		return retObject;
 	}
-		
+	
+	@Deprecated
 	public static Object[] findTypes(String input)
 	{
 		//System.out.println("String that came in.. " + input);
@@ -1645,6 +1650,7 @@ public class Utility {
 		return retObject;
 	}
 
+	@Deprecated
 	public static String getDate(String input)
 	{
 		String[] date_formats = {
@@ -1711,6 +1717,7 @@ public class Utility {
 		return output_date;	
 	}
 
+	@Deprecated
 	public static String getTimeStamp(String input)
 	{
 		String[] date_formats = {
@@ -1745,6 +1752,7 @@ public class Utility {
 		return output_date;	
 	}
 
+	@Deprecated
 	public static Date getDateAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
 		String output_date = getDate(input);
@@ -1762,6 +1770,7 @@ public class Utility {
 		return outDate;
 	}
 	
+	@Deprecated
 	public static Date getDateObjFromStringFormat(String input, String curFormat) {
 		SimpleDateFormat sdf = new SimpleDateFormat(curFormat);
 		Date mydate = null;
@@ -1773,6 +1782,7 @@ public class Utility {
 		return mydate;
 	}
 	
+	@Deprecated
 	public static Date getTimeStampAsDateObj(String input) {
 		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.ssss");
 		String output_date = getTimeStamp(input);
@@ -1790,6 +1800,7 @@ public class Utility {
 		return outDate;
 	}
 	
+	@Deprecated
 	public static Object getCurrency(String input)
 	{
 		//COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS, NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
@@ -1837,6 +1848,7 @@ public class Utility {
 	//    	return input.matches("(\\d+)\\Q.\\E?(\\d+)?"); 
 	//    }
 
+	@Deprecated
 	public static String[] castToTypes(String [] thisOutput, String [] types)
 	{
 		String [] values = new String[thisOutput.length];
@@ -1890,6 +1902,7 @@ public class Utility {
 		return values;
 	}
 
+	@Deprecated
 	public static String castToTypes(String thisOutput, String type)
 	{
 		String values = "";
