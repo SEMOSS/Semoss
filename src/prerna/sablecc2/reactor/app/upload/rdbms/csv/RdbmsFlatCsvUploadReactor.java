@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -165,7 +166,15 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Done parsing file metadata");
 
 		logger.info("Create table...");
-		String tableName = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath)).toUpperCase();
+		String fileName = FilenameUtils.getBaseName(filePath);
+		if(fileName.contains("_____UNIQUE")) {
+			// ... yeah, this is not intuitive at all,
+			// but I add a timestamp at the end to make sure every file is unique
+			// but i want to remove it so things are "pretty"
+			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
+		}
+		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
+		
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
 
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
@@ -440,45 +449,36 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 					// dates
 					else if(type == SemossDataType.DATE) {
 						// can I get a format?
+						SemossDate dateValue = null;
 						String format = additionalTypes[colIndex];
 						if(format != null && !format.isEmpty()) {
-							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
-							if(value != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
-							} else {
-								// set default as null
-								ps.setObject(colIndex+1, null);
-							}
+							dateValue = new SemossDate(nextRow[colIndex], format);
 						} else {
-							java.util.Date value = Utility.getDateAsDateObj(nextRow[colIndex]);
-							if(value != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(value.getTime()));
-							} else {
-								// set default as null
-								ps.setObject(colIndex+1, null);
-							}
+							dateValue = SemossDate.genDateObj(nextRow[colIndex]);
 						}
+						
+						if(dateValue != null) {
+							ps.setDate(colIndex+1, new java.sql.Date(dateValue.getDate().getTime()));
+						} else {
+							ps.setObject(colIndex+1, null);
+						}
+						
 					}
 					// timestamps
 					else if(type == SemossDataType.TIMESTAMP) {
 						// can I get a format?
+						SemossDate dateValue = null;
 						String format = additionalTypes[colIndex];
 						if(format != null && !format.isEmpty()) {
-							java.util.Date value = Utility.getDateObjFromStringFormat(nextRow[colIndex], format);
-							if(value != null) {
-								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
-							} else {
-								// set default as null
-								ps.setObject(colIndex+1, null);
-							}
+							dateValue = new SemossDate(nextRow[colIndex], format);
 						} else {
-							java.util.Date value = Utility.getTimeStampAsDateObj(nextRow[colIndex]);
-							if(value != null) {
-								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(value.getTime()));
-							} else {
-								// set default as null
-								ps.setObject(colIndex+1, null);
-							}
+							dateValue = SemossDate.genTimeStampDateObj(nextRow[colIndex]);
+						}
+						
+						if(dateValue != null) {
+							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dateValue.getDate().getTime()));
+						} else {
+							ps.setObject(colIndex+1, null);
 						}
 					}
 				}
