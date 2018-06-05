@@ -180,18 +180,26 @@ public class H2Builder {
 				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					SemossDataType type = types[colIndex];
 					if (type == SemossDataType.INT) {
-						Integer value = Utility.getInteger(nextRow[colIndex] + "");
-						if (value != null) {
-							ps.setInt(colIndex + 1, value);
+						if(nextRow[colIndex] instanceof Number) {
+							ps.setInt(colIndex + 1, ((Number) nextRow[colIndex]).intValue());
 						} else {
-							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+							Integer value = Utility.getInteger(nextRow[colIndex] + "");
+							if (value != null) {
+								ps.setInt(colIndex + 1, value);
+							} else {
+								ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+							}
 						}
 					} else if(type == SemossDataType.DOUBLE) {
-						Double value = Utility.getDouble(nextRow[colIndex] + "");
-						if (value != null) {
-							ps.setDouble(colIndex + 1, value);
+						if(nextRow[colIndex] instanceof Number) {
+							ps.setDouble(colIndex + 1, ((Number) nextRow[colIndex]).doubleValue());
 						} else {
-							ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+							Double value = Utility.getDouble(nextRow[colIndex] + "");
+							if (value != null) {
+								ps.setDouble(colIndex + 1, value);
+							} else {
+								ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+							}
 						}
 					} else if (type == SemossDataType.DATE) {
 						if(nextRow[colIndex] instanceof SemossDate) {
