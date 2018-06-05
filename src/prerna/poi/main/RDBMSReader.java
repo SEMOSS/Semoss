@@ -21,11 +21,10 @@ import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
@@ -1148,7 +1147,19 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		// here we need to grab the value and cast it based on the type
 		Object retObj = null;
 
-		if(type.equals("FLOAT")) {
+		if(type.equals("INT")) {
+			try {
+				//added to remove $ and , in data and then try parsing as Double
+				int mult = 1;
+				if(strVal.startsWith("(") || strVal.startsWith("-")) // this is a negativenumber
+					mult = -1;
+				strVal = strVal.replaceAll("[^0-9\\.]", "");
+				return mult * Integer.parseInt(strVal.trim());
+			} catch(NumberFormatException ex) {
+				//do nothing
+				return null;
+			}
+		} else if(type.equals("FLOAT")) {
 			try {
 				//added to remove $ and , in data and then try parsing as Double
 				int mult = 1;
@@ -1161,12 +1172,11 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				return null;
 			}
 		} else if(type.equals("DATE")) {
-			retObj = Utility.getDate(strVal);
-		} 
-		//		else if(type.equals("TIMESTAMP")) {
-		//			retObj = Utility.getTimeStamp(strVal);
-		//		}
-		else {
+			retObj = SemossDate.genDateObj(strVal).getDate();
+		}
+		else if(type.equals("TIMESTAMP")){
+			retObj = SemossDate.genDateObj(strVal).getDate();
+		} else {
 			retObj = strVal;
 		}
 
