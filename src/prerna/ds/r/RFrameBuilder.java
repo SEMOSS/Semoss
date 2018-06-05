@@ -137,7 +137,7 @@ public class RFrameBuilder {
 		alterColumnTypes(tableName, typesMap, additionalType, fileType);
 		
 		//add indices
-		addColumnIndex(tableName, getColumnNames());
+		addColumnIndex(tableName, typesMap.keySet().toArray(new String[]{}));
 	}
 	
 	private void createTableViaCsvFile(String tableName, CsvFileIterator it) {
@@ -479,14 +479,24 @@ public class RFrameBuilder {
 			logger.info("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN(S) = " + StringUtils.join(colNamesSet,", "));
 			try {
 				rIndex = "CREATE INDEX ON " + tableName + "(" + StringUtils.join(colNamesSet,", ") + ")";
-				this.rJavaTranslator.executeEmptyR(
-						"invisible(lapply(c('" + StringUtils.join(colNamesSet,"','") + "')" + ", setindexv, x= " + tableName + "));");
-				List<String> confirmedIndices = Arrays.asList(this.rJavaTranslator.getStringArray("indices(" + tableName + ");"));
+				this.rJavaTranslator.executeEmptyR("invisible(lapply(c('" + StringUtils.join(colNamesSet,"','") + "')" + ", setindexv, x= " + tableName + "));");
+				
+				// get the current indices
+				List<String> confirmedIndices = null;
+				String[] indices = this.rJavaTranslator.getStringArray("indices(" + tableName + ");");
+				if(indices != null && indices.length > 0) {
+					confirmedIndices = Arrays.asList(indices);
+				} else {
+					confirmedIndices = new Vector<String>();
+				}
+				
+				// add if not a current index
 				for (String c : colNamesSet) {
 					if (confirmedIndices.contains(c)) {
 						columnIndexSet.add(tableName + "+++" + c);
 					}
 				}
+				
 				long end = System.currentTimeMillis();
 				logger.info("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
 			} catch (Exception e) {
