@@ -223,7 +223,7 @@ public class MasterDatabaseUtility {
 		// this will give me all the tables that have the logical name or 
 		// have a column with the logical name 
 		
-		String query = "select ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId,"
+		String query = "select distinct ec.parentphysicalid as table, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId,"
 				+ " c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName, ec.pk as pk" 
 				+ " from engineconcept ec, engineconcept ec2, concept c, concept c2"
 				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"

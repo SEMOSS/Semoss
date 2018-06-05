@@ -1839,7 +1839,7 @@ public class Utility {
 			return num;
 		} catch(NumberFormatException e) {
 			Double db = getDouble(input);
-			if(db == db.intValue()) {
+			if(db != null && db == db.intValue()) {
 				return db.intValue();
 			}
 			return null;
