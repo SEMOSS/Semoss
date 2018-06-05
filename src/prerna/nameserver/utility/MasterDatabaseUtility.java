@@ -1733,9 +1733,9 @@ public class MasterDatabaseUtility {
 					+ "targetEngine, targetConceptual, targetPhysical from engine e, engineconcept ec, concept c  "
 					+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
 					+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
-					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '"
+					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = '"
 					+ targetDB + "' " + "and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
-					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.engineName = '" + sourceDB
+					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = '" + sourceDB
 					+ "' and c.conceptualName != c.logicalName";
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
