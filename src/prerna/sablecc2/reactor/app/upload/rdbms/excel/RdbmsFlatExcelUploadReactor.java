@@ -466,7 +466,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 							if(format != null && !format.isEmpty()) {
 								dateValue = new SemossDate(strVal, format).getDate();
 							} else {
-								dateValue = SemossDate.genDateObj(strVal).getDate();
+								dateValue = SemossDate.genTimeStampDateObj(strVal).getDate();
 							}
 							
 							if(dateValue != null) {
