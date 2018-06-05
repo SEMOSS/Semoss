@@ -163,7 +163,7 @@ public class ExcelFileIterator extends AbstractFileIterator {
 					if(additionalFormatting != null) {
 						cleanRow[i] = new SemossDate(strVal, additionalFormatting);
 					} else {
-						cleanRow[i] = SemossDate.genDateObj(strVal);
+						cleanRow[i] = SemossDate.genTimeStampDateObj(strVal);
 					}
 				}
 			}
