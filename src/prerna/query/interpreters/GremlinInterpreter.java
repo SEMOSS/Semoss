@@ -541,10 +541,12 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 			ORDER_BY_DIRECTION sortDirection = orderSelector.getSortDir();
 			//order by for vector
 			if (columnName.contains("PRIM_KEY_PLACEHOLDER")) {
-				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
-					gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
-				} else {
-					gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
+				if(this.selectors.contains(tableName)) {
+					if(sortDirection == ORDER_BY_DIRECTION.ASC) {
+						gt = gt.select(tableName).order().by(getNodeName(tableName), Order.incr);
+					} else {
+						gt = gt.select(tableName).order().by(getNodeName(tableName), Order.decr);
+					}
 				}
 			}
 			//order by for property
