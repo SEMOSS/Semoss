@@ -14,6 +14,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -101,30 +102,29 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 				} else if (type.equals(ENGINE_TYPE.TINKER)) {
 					TinkerEngine eng = (TinkerEngine) engine;
 					owlEngine = eng.getBaseDataEngine();
-				} else if (type.equals(ENGINE_TYPE.JENA)) {
-					RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
+				} else if (type.equals(ENGINE_TYPE.SESAME)) {
+					BigDataEngine eng = (BigDataEngine) engine;
 					owlEngine = eng.getBaseDataEngine();
+				} else if (type.equals(ENGINE_TYPE.JENA)){
+					RDFFileSesameEngine eng = (RDFFileSesameEngine) engine;
+					owlEngine = eng.getBaseDataEngine();					
 				}
 
 				// get unique values for string columns, if it doesnt exist
-				// or isnt a string then it is defaulted to zero
 				long uniqueValues = 0;
-				if (dataType != null && dataType.equals("STRING")) {
-					String queryCol = column;
-					// prim key placeholder cant be queried in the owl
-					// so we convert it back to the display name of the concept
-					if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-						queryCol = table;
-					}
-					String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
-							+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table
-							+ "> AS ?concept)"
-							+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-					IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
-					while (it.hasNext()) {
-						Object[] row = it.next().getValues();
-						uniqueValues = Long.parseLong(row[1].toString());
-					}
+				String queryCol = column;
+				// prim key placeholder cant be queried in the owl
+				// so we convert it back to the display name of the concept
+				if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					queryCol = table;
+				}
+				String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
+						+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table + "> AS ?concept)"
+						+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
+				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+				while (it.hasNext()) {
+					Object[] row = it.next().getValues();
+					uniqueValues = Long.parseLong(row[1].toString());
 				}
 
 				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$")
@@ -155,8 +155,6 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 		// combine script pieces and execute in R
 		String script = dfStart + builder + runPredictScripts;
-		System.out.println(script);
-		System.out.println(script);
 		this.rJavaTranslator.runR(script);
 
 		// receive json string from R
