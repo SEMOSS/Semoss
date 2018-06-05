@@ -99,7 +99,7 @@ public class SemossDate {
 			return genBasicDateObj(input, DatePatternGenerator.getBasicDateFormats("-"));
 		} else {
 			// this is checking that it doesn't only contain numbers and / and -
-			return genDateObjContainingLetters(input);
+			return genBasicDateObj(input, DatePatternGenerator.getComplexMonth());
 		}
 	}
 	
