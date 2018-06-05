@@ -78,9 +78,9 @@ public class DatePatternGenerator {
 			// year, month, day
 			genSimpleCombinations(retValues, year, month, day, "\\s*");
 			// day, month
-			genSimpleCombinations(retValues, month, day, "\\s*");
+			genSimpleCombinations(retValues, day, month, "\\s*");
 			// day, month
-			genSimpleCombinations(retValues, month, day, "-");
+			genSimpleCombinations(retValues, day, month, "-");
 		}
 		
 		return retValues;
