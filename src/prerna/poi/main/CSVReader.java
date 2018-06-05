@@ -38,6 +38,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
@@ -529,8 +530,7 @@ public class CSVReader extends AbstractCSVFileReader {
 	private Object createObject(String object, String[] values, String[] dataTypes, Map<String, Integer> colNameToIndex)
 	{
 		// if it contains a plus sign, it is a concatenation
-		if(object.contains("+"))
-		{
+		if(object.contains("+")) {
 			StringBuilder strBuilder = new StringBuilder();
 			String[] objList = object.split("\\+");
 			for(int i = 0; i < objList.length; i++){
@@ -545,15 +545,15 @@ public class CSVReader extends AbstractCSVFileReader {
 
 		String type = dataTypes[colIndex];
 		String strVal = values[colIndex];
-		if(type.equals("NUMBER")) {
+		if(type.equals("INT")) {
+			retObj = Utility.getInteger(strVal);
+		} else if(type.equals("NUMBER") || type.equals("DOUBLE")) {
 			retObj = Utility.getDouble(strVal);
 		} else if(type.equals("DATE")) {
-			retObj = Utility.getDateAsDateObj(strVal);
-		} 
-		//		else if(type.equals("TIMESTAMP")) {
-		//			retObj = Utility.getTimeStamp(strVal);
-		//		}
-		else {
+			retObj = SemossDate.genDateObj(strVal).getDate();
+		} else if(type.equals("TIMESTAMP")) {
+			retObj = SemossDate.genTimeStampDateObj(strVal).getDate();
+		} else {
 			retObj = strVal;
 		}
 
