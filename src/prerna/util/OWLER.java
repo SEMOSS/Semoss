@@ -642,11 +642,6 @@ public class OWLER {
 					continue;
 				}
 				
-				String dataType = MasterDatabaseUtility.getBasicDataType(engine.getEngineId(), properties.get(i), null);
-				if (dataType == null || !dataType.equalsIgnoreCase("STRING")){
-					continue;
-				}
-				
 				// query for unique column values and dont 
 				// store it if it returns null
 				qs2 = new SelectQueryStruct();
