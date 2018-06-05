@@ -455,7 +455,6 @@ public abstract class AbstractReactor implements IReactor {
 	public Logger getLogger(String className)
 	{
 		NounMetadata job = planner.getVariable("$JOB_ID");
-		NounMetadata insight = planner.getVariable("$INSIGHT_ID");
 		if(job != null) {
 			this.jobId = job.getValue() +"";
 			Logger retLogger = new InMemoryConsole(this.jobId, className);
