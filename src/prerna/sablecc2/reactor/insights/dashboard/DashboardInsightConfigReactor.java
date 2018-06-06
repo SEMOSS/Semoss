@@ -60,6 +60,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			// without waiting on a new id to come back
 			Insight newInsight = new Insight();
 			InsightStore.getInstance().put(newInsight);
+			InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 			insightMap.put("newId", newInsight.getInsightId());
 			
 			// add to list
