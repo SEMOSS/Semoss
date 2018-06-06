@@ -56,6 +56,7 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
+import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.ga.GATracker;
@@ -706,6 +707,9 @@ public class Insight {
 		// have too much in memory
 		Set<String> keys = this.varStore.getKeys();
 		for(String key : keys) {
+			if(key.equals(JobReactor.JOB_KEY) || key.equals(JobReactor.SESSION_KEY) || key.equals(JobReactor.INSIGHT_KEY)) {
+				continue;
+			}
 			NounMetadata noun = this.varStore.get(key);
 			if(noun.getValue() instanceof H2Frame) {
 				H2Frame frame = (H2Frame) noun.getValue();
@@ -714,6 +718,8 @@ public class Insight {
 					frame.dropOnDiskTemporalSchema();
 				}
 			}
+			// now remove the key
+			this.varStore.remove(key);
 		}
 		
 		// copy over the recipe to a new list
@@ -722,8 +728,6 @@ public class Insight {
 		newList.addAll(this.pixelList);
 		this.pixelList.clear();
 		
-		// clear the var store
-		this.varStore.clear();
 		// clear the panels
 		this.insightPanels.clear();
 		
