@@ -24,6 +24,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.job.JobReactor;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -454,7 +455,7 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public Logger getLogger(String className)
 	{
-		NounMetadata job = planner.getVariable("$JOB_ID");
+		NounMetadata job = planner.getVariable(JobReactor.JOB_KEY);
 		if(job != null) {
 			this.jobId = job.getValue() +"";
 			Logger retLogger = new InMemoryConsole(this.jobId, className);
@@ -462,6 +463,18 @@ public abstract class AbstractReactor implements IReactor {
 		} else {
 			return LogManager.getLogger(className);
 		}
+	}
+	
+	/**
+	 * Get the session id set in the job
+	 * @return
+	 */
+	protected String getSessionId() {
+		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
+		if(session != null) {
+			return session.getValue() +"";
+		}
+		return null;
 	}
 	
 	public void checkMin(int numKey) {
