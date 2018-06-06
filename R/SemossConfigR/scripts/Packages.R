@@ -54,7 +54,8 @@ install.packages("LSAfun")
 install.packages("text2vec")
 
 # Google Analytics
-install.packages("RGoogleAnalytics")
+url <- "https://cran.r-project.org/src/contrib/Archive/RGoogleAnalytics/RGoogleAnalytics_0.1.1.tar.gz"
+install.packages(url, repos=NULL)
 install.packages("lubridate")
 
 # Edit Rules
