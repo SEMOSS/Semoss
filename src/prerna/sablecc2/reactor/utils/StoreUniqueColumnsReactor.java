@@ -21,6 +21,8 @@ public class StoreUniqueColumnsReactor extends AbstractReactor {
 		organizeKeys();
 		// get inputs - engine
 		String engineName = this.keyValue.get(this.keysToGet[0]);
+		// TODO: bug fix
+		engineName = engineName.replace(" ", "_");
 		engineName = MasterDatabaseUtility.testEngineIdIfAlias(engineName);
 
 		IEngine engine = Utility.getEngine(engineName);
