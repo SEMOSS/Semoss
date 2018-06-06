@@ -48,10 +48,8 @@ public abstract class AbstractFormBuilder {
 		generateEngineAuditLog(this.auditLogTableName);
 	}
 	
-	public void commitFormData(Map<String, Object> engineHash) throws IOException {
-		if(engineHash.containsKey("user")) {
-			this.user = engineHash.get("user").toString();
-		}
+	public void commitFormData(Map<String, Object> engineHash, String user) throws IOException {
+		this.user = user;
 		
 		if(engineHash.containsKey("tagCols") && engineHash.containsKey("tagValues")) {
 			this.tagCols = (List<String>) engineHash.get("tagCols");
