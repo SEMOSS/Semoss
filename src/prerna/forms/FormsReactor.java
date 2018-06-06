@@ -3,6 +3,9 @@ package prerna.forms;
 import java.io.IOException;
 import java.util.Map;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User2;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -13,20 +16,30 @@ import prerna.util.Utility;
 public class FormsReactor extends AbstractReactor {
 
 	private static final String FORM_DATA = "form_input";
-	
+
 	public FormsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), FORM_DATA};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
+		String userId = null;
+		User2 user = this.insight.getUser2();
+		AccessToken token = user.getAccessToken(AuthProvider.CAC.toString());
+		if(token != null) {
+			userId = token.getName();
+		}
+		if(userId == null) {
+			throw new IllegalArgumentException("Could not identify user");
+		}
+		
 		String databaseName = this.store.getNoun(this.keysToGet[0]).get(0) + "";
 		Map<String, Object> engineHash = (Map<String, Object>) this.store.getNoun(FORM_DATA).get(0);
-		
+
 		IEngine engine = Utility.getEngine(databaseName);
 		AbstractFormBuilder formbuilder = FormFactory.getFormBuilder(engine);
 		try {
-			formbuilder.commitFormData(engineHash);
+			formbuilder.commitFormData(engineHash, userId);
 		} catch (IOException e) {
 			e.printStackTrace();
 			return new NounMetadata(false, PixelDataType.BOOLEAN);
