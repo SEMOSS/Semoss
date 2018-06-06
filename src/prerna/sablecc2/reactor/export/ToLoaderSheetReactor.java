@@ -1,8 +1,13 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -13,14 +18,17 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -46,20 +54,27 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(engineId == null) {
-			throw new IllegalArgumentException("Must define which database to get a loader sheet from");
+		String app = this.keyValue.get(this.keysToGet[0]);
+		if(app == null) {
+			throw new IllegalArgumentException("Need to specify the app to export");
 		}
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-
-		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + engineId + "_Loader_Sheet_Export.xlsx";
+		String appId = MasterDatabaseUtility.testEngineIdIfAlias(app);
+		IEngine engine = Utility.getEngine(appId);
+		if(engine == null) {
+			throw new IllegalArgumentException("Cannot find the specified app");
+		}
+		String propFileLoc = DIHelper.getInstance().getProperty(appId + "_" + Constants.STORE);
+		Properties prop = Utility.loadProperties(propFileLoc);
+		
+		Date date = new Date();
+		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(date);
+		String fileLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + SmssUtilities.getUniqueName(prop) + "_" + modifiedDate + "_Loader_Sheet_Export.xlsx";
 		File f = new File(fileLoc);
 		if(f.exists()) {
 			f.delete();
 		}
 		Workbook workbook = new XSSFWorkbook();
 		
-		IEngine engine = Utility.getEngine(engineId);
 		// get a list of all the tables and properties
 		Vector<String> concepts = engine.getConcepts(true);
 
@@ -101,37 +116,35 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			writeNodePropSheet(engine, workbook, iterator, conceptualName, properties);
 			logger.info("Finsihed node sheet for concept = " + conceptualName);
-			
-			break;
 		}
 		
-//		// now i need all the relationships
-//		Vector<String[]> rels = engine.getRelationships(true);
-//		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
-//			for(String[] rel : rels) {
-//				logger.info("Start rel sheet for " + Arrays.toString(rel));
-//				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
-//				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
-//				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
-//				writeRelationshipSheet(engine, workbook, iterator, rel, edgeProps);
-//				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
-//			}
-//		} else {
-//			for(String[] rel : rels) {
-//				SelectQueryStruct qs = new SelectQueryStruct();
-//				qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-//				qs.setEngine(engine);
-//				qs.addSelector(new QueryColumnSelector(rel[0]));
-//				qs.addSelector(new QueryColumnSelector(rel[1]));
-//				qs.addRelation(rel[0], "inner.join", rel[1]);
-//				qs.addOrderBy(new QueryColumnOrderBySelector(rel[0]));
-//
-//				logger.info("Start rel sheet for " + Arrays.toString(rel));
-//				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-//				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
-//				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
-//			}
-//		}
+		// now i need all the relationships
+		Vector<String[]> rels = engine.getRelationships(true);
+		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
+			for(String[] rel : rels) {
+				logger.info("Start rel sheet for " + Arrays.toString(rel));
+				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
+				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
+				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+				writeRelationshipSheet(engine, workbook, iterator, rel, edgeProps);
+				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
+			}
+		} else {
+			for(String[] rel : rels) {
+				SelectQueryStruct qs = new SelectQueryStruct();
+				qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+				qs.setEngine(engine);
+				qs.addSelector(new QueryColumnSelector(rel[0]));
+				qs.addSelector(new QueryColumnSelector(rel[1]));
+				qs.addRelation(rel[0], "inner.join", rel[1]);
+				qs.addOrderBy(new QueryColumnOrderBySelector(rel[0]));
+
+				logger.info("Start rel sheet for " + Arrays.toString(rel));
+				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
+				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
+			}
+		}
 		
 		logger.info("Start writing loader sheet");
 		writeLoader(workbook);
@@ -139,7 +152,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 		logger.info("Start exporting");
 		Utility.writeWorkbook(workbook, fileLoc);
-		logger.info("Done exporting worksheet for engine = " + engineId);
+		logger.info("Done exporting worksheet for engine = " + app);
 
 		String randomKey = UUID.randomUUID().toString();
 		this.insight.addExportFile(randomKey, fileLoc);
