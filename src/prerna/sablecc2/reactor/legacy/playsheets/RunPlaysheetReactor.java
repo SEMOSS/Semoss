@@ -18,6 +18,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.insights.GlobalInsightCountUpdater;
 import prerna.ui.helpers.OldInsightProcessor;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public class RunPlaysheetReactor extends AbstractReactor {
 	
@@ -32,6 +33,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		String insightId = this.keyValue.get(this.keysToGet[1]);
 		IEngine engine = Utility.getEngine(app);
 		Insight insightObj = engine.getInsight(insightId).get(0);
+		InsightUtility.transferDefaultVars(this.insight, insightObj);
 
 		// Get the Insight, grab its ID
 		// set the user id into the insight

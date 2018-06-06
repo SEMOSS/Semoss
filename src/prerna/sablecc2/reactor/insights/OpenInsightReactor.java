@@ -18,6 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.ga.GATracker;
+import prerna.util.insight.InsightUtility;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
@@ -53,7 +54,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		List<Insight> in = engine.getInsight(rdbmsId + "");
 		Insight newInsight = in.get(0);
-
+		InsightUtility.transferDefaultVars(this.insight, newInsight);
+		
 		// OLD INSIGHT
 		if(newInsight instanceof OldInsight) {
 			Map<String, Object> insightMap = new HashMap<String, Object>();
