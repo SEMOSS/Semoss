@@ -18,6 +18,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public class DashboardInsightConfigReactor extends AbstractReactor {
 	
@@ -59,6 +60,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			// this is used so they can automatically update the config 
 			// without waiting on a new id to come back
 			Insight newInsight = new Insight();
+			InsightUtility.transferDefaultVars(this.insight, newInsight);
 			InsightStore.getInstance().put(newInsight);
 			InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 			insightMap.put("newId", newInsight.getInsightId());

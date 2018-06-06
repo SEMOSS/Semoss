@@ -9,11 +9,26 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.sablecc2.reactor.job.JobReactor;
 
 public class InsightUtility {
 
 	private InsightUtility() {
 		
+	}
+	
+	/**
+	 * Used to transfer important properties when creating an insight within an insight
+	 * @param origInsight
+	 * @param newInsight
+	 */
+	public static void transferDefaultVars(Insight origInsight, Insight newInsight) {
+		String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY};
+		for(String key : keys) {
+			if(origInsight.getVarStore().containsKey(key)) {
+				newInsight.getVarStore().put(key, origInsight.getVarStore().get(key));
+			}
+		}
 	}
 	
 	/**
