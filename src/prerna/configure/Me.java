@@ -317,14 +317,18 @@ public class Me {
 									"SMSSWatcher_DIR", 
 									"CSVInsightsWebWatcher_DIR", 
 									"INSIGHT_CACHE_DIR",
-									"SOLR_BASE_URL"};
+									"SOLR_BASE_URL",
+									"ADDITIONAL_REACTORS",
+									"SOCIAL"};
 		String [] stringToReplaceWith = {homePath, 
 										 homePath + "/log4j.prop", 
 										 homePath + "/db", 
 										 homePath + "/db",
 										 homePath + "/InsightCache/CSV_Insights",
 										 homePath + "/InsightCache",
-										 "http://localhost:" + port + "/solr"}; 
+										 "http://localhost:" + port + "/solr",
+										 homePath + "/reactors.json",
+										 homePath + "/social.properties"}; 
 		
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
 		
