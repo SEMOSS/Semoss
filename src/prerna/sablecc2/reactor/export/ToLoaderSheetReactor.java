@@ -1,8 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +13,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -24,7 +21,6 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -79,52 +75,63 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			qs.addSelector(new QueryColumnSelector(conceptualName));
 			
 			List<String> properties = engine.getProperties4Concept(concept, true);
-			for(String property : properties) {
+			List<Integer> positionsToRemove = new Vector<Integer>();
+			for(int i = 0; i < properties.size(); i++) {
+				String property = properties.get(i);
 				// THIS IS BECAUSE THERE ARE OTHER ERRORS!!!
 				// Since RDF properties do not contain the table name
 				// The properties query can give me the same property name
 				// that appears on 2 different nodes
 				String conceptConceptual = Utility.getInstanceName(property);
 				if(!conceptConceptual.equals(conceptualName)) {
+					positionsToRemove.add(i);
 					continue;
 				}
 				String propertyConceptual = Utility.getClassName(property);
 				qs.addSelector(new QueryColumnSelector(conceptualName + "__" + propertyConceptual));
 			}
 			
+			// loop through the end to start and remove indices
+			for(int i = positionsToRemove.size()-1; i >= 0; i--) {
+				properties.remove(positionsToRemove.get(i).intValue());
+			}
+			
+			
 			logger.info("Start node sheet for concept = " + conceptualName);
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			writeNodePropSheet(engine, workbook, iterator, conceptualName, properties);
 			logger.info("Finsihed node sheet for concept = " + conceptualName);
+			
+			break;
 		}
 		
-		// now i need all the relationships
-		Vector<String[]> rels = engine.getRelationships(true);
-		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
-			for(String[] rel : rels) {
-				logger.info("Start rel sheet for " + Arrays.toString(rel));
-				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
-				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
-				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
-				writeRelationshipSheet(engine, workbook, iterator, rel, edgeProps);
-				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
-			}
-		} else {
-			for(String[] rel : rels) {
-				SelectQueryStruct qs = new SelectQueryStruct();
-				qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-				qs.setEngine(engine);
-				qs.addSelector(new QueryColumnSelector(rel[0]));
-				qs.addSelector(new QueryColumnSelector(rel[1]));
-				qs.addRelation(rel[0], "inner.join", rel[1]);
-				qs.addOrderBy(new QueryColumnOrderBySelector(rel[0]));
-
-				logger.info("Start rel sheet for " + Arrays.toString(rel));
-				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
-				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
-			}
-		}
+//		// now i need all the relationships
+//		Vector<String[]> rels = engine.getRelationships(true);
+//		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
+//			for(String[] rel : rels) {
+//				logger.info("Start rel sheet for " + Arrays.toString(rel));
+//				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
+//				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
+//				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, query);
+//				writeRelationshipSheet(engine, workbook, iterator, rel, edgeProps);
+//				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
+//			}
+//		} else {
+//			for(String[] rel : rels) {
+//				SelectQueryStruct qs = new SelectQueryStruct();
+//				qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+//				qs.setEngine(engine);
+//				qs.addSelector(new QueryColumnSelector(rel[0]));
+//				qs.addSelector(new QueryColumnSelector(rel[1]));
+//				qs.addRelation(rel[0], "inner.join", rel[1]);
+//				qs.addOrderBy(new QueryColumnOrderBySelector(rel[0]));
+//
+//				logger.info("Start rel sheet for " + Arrays.toString(rel));
+//				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+//				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
+//				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
+//			}
+//		}
 		
 		logger.info("Start writing loader sheet");
 		writeLoader(workbook);
