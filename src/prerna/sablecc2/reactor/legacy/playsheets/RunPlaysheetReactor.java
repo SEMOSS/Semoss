@@ -43,6 +43,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		((OldInsight) insightObj).setParamHash(params);
 		// store in insight store
 		InsightStore.getInstance().put(insightObj);
+		InsightStore.getInstance().addToSessionHash(getSessionId(), insightObj.getInsightId());
 
 		// TODO: why did we allow the FE to still require this when
 		// we already pass a boolean that says this is not pkql....

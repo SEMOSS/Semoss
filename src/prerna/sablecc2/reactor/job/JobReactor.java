@@ -12,6 +12,10 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class JobReactor extends AbstractReactor {
 	
+	public static final String JOB_KEY = "$JOB_ID";
+	public static final String SESSION_KEY = "$SESSION_ID";
+	public static final String INSIGHT_KEY = "$INSIGHT_ID";
+	
 	private static final String CLASS_NAME = JobReactor.class.getName();
 	
 	public JobReactor() {
@@ -25,19 +29,19 @@ public class JobReactor extends AbstractReactor {
 		if(curRow.size() > 0) {
 			String jobId = this.curRow.get(0).toString();
 			logger.debug("Job ID = " + jobId);
-			planner.addVariable("$JOB_ID", new NounMetadata(jobId, PixelDataType.CONST_STRING));
+			planner.addVariable(JOB_KEY, new NounMetadata(jobId, PixelDataType.CONST_STRING));
 		}
 		
 		if(curRow.size() > 1) {
 			String insightId = this.curRow.get(1).toString();
 			logger.debug("Insight ID = " + insightId);
-			planner.addVariable("$INSIGHT_ID", new NounMetadata(insightId, PixelDataType.CONST_STRING));
+			planner.addVariable(INSIGHT_KEY, new NounMetadata(insightId, PixelDataType.CONST_STRING));
 		}
 		
 		if(curRow.size() > 2) {
 			String sessionId = this.curRow.get(2).toString();
 			logger.debug("Session ID = " + sessionId);
-			planner.addVariable("$SESSION_ID", new NounMetadata(sessionId, PixelDataType.CONST_STRING));
+			planner.addVariable(SESSION_KEY, new NounMetadata(sessionId, PixelDataType.CONST_STRING));
 		}
 
 		return new NounMetadata(jobId, PixelDataType.CONST_STRING);
