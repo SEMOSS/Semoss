@@ -13,6 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 	
@@ -24,6 +25,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 	public NounMetadata execute() {
 		// create a new empty insight
 		Insight newInsight = new Insight();
+		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		InsightStore.getInstance().put(newInsight);
 		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set the user in the insight
