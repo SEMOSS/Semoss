@@ -75,6 +75,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// yay... not legacy
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
+		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set user 
 		newInsight.setUser(this.insight.getUser());
 		newInsight.setUser2(this.insight.getUser2());

@@ -25,6 +25,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		// create a new empty insight
 		Insight newInsight = new Insight();
 		InsightStore.getInstance().put(newInsight);
+		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set the user in the insight
 		newInsight.setUser(this.insight.getUser());
 		newInsight.setUser2(this.insight.getUser2());
