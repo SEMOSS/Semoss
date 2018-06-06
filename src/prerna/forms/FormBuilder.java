@@ -158,13 +158,9 @@ public final class FormBuilder {
 	 * @param form
 	 * @throws IOException 
 	 */
-	public static void commitFormData(IEngine engine, Map<String, Object> engineHash) throws IOException {
+	public static void commitFormData(IEngine engine, Map<String, Object> engineHash, String user) throws IOException {
 		if(engine == null) {
 			throw new IOException("Engine cannot be found");
-		}
-		String user = "";
-		if(engineHash.containsKey("user")) {
-			user = engineHash.get("user").toString();
 		}
 		
 		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
