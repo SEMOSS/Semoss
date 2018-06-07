@@ -31,7 +31,7 @@ public class SemossDate {
 		timeStampsWithDash = DatePatternGenerator.getDateTimeFormats("-", ":");
 	}
 	
-	private String dateVal;
+	private String strDate;
 	private String pattern;
 
 	private transient Date date;
@@ -52,9 +52,15 @@ public class SemossDate {
 	}
 
 	public SemossDate(String dateVal, String pattern) {
-		this.dateVal = dateVal;
+		this.strDate = dateVal;
 		this.pattern = pattern;
 		getDate();
+	}
+	
+	public SemossDate(Long time, String pattern) {
+		this.date = new Date(time);
+		this.pattern = pattern;
+		getFormattedDate();
 	}
 
 	public String getPattern() {
@@ -66,11 +72,11 @@ public class SemossDate {
 	 * @return
 	 */
 	public String getFormattedDate() {
-		if(this.dateVal == null) {
+		if(this.strDate == null) {
 			SimpleDateFormat formatter = new SimpleDateFormat(this.pattern);
-			this.dateVal = formatter.format(this.date);
+			this.strDate = formatter.format(this.date);
 		}
-		return this.dateVal;
+		return this.strDate;
 	}
 
 	/**
@@ -81,9 +87,9 @@ public class SemossDate {
 		if(this.date == null) {
 			SimpleDateFormat formatter = new SimpleDateFormat(this.pattern);
 			try {
-				this.date = formatter.parse(this.dateVal);
+				this.date = formatter.parse(this.strDate);
 			} catch (ParseException e) {
-				LOGGER.error("Could not parse the date " + this.dateVal + " with the format " + formatter.toPattern());
+				LOGGER.error("Could not parse the date " + this.strDate + " with the format " + formatter.toPattern());
 			}
 		}
 		return this.date;
@@ -99,8 +105,116 @@ public class SemossDate {
 	 * @return
 	 */
 	public String testToString() {
-		return this.dateVal + " ::: " + this.pattern;
+		return this.strDate + " ::: " + this.pattern;
 	}
+	
+	
+	//////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////
+
+	/*
+	 * Static methods for manipulation
+	 */
+	
+	/**
+	 * Try to prase the date and get the time for it
+	 * @param strInput
+	 * @param format
+	 * @return
+	 */
+	public static Long getTimeForDate(String strInput, String format) {
+		SemossDate dateValue = null;
+		if(format != null && !format.isEmpty()) {
+			dateValue = new SemossDate(strInput, format);
+		} else {
+			dateValue = SemossDate.genDateObj(strInput);
+		}
+		
+		return getTimeForDate(dateValue);
+	}
+	
+	/**
+	 * Try to parse the date and get the time for it
+	 * @param strInput
+	 * @return
+	 */
+	public static Long getTimeForDate(String strInput) {
+		SemossDate d = genDateObj(strInput);
+		if(d != null) {
+			if(d.getDate() != null) {
+				return d.getDate().getTime();
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Get the date and get the time for it
+	 * @param d
+	 * @return
+	 */
+	public static Long getTimeForDate(SemossDate d) {
+		if(d != null) {
+			if(d.getDate() != null) {
+				return d.getDate().getTime();
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Try to prase the timestamp and get the time for it
+	 * @param strInput
+	 * @param format
+	 * @return
+	 */
+	public static Long getTimeForTimestamp(String strInput, String format) {
+		SemossDate dateValue = null;
+		if(format != null && !format.isEmpty()) {
+			dateValue = new SemossDate(strInput, format);
+		} else {
+			dateValue = SemossDate.genTimeStampDateObj(strInput);
+		}
+		
+		return getTimeForTimestamp(dateValue);
+	}
+	
+	/**
+	 * Try to parse the date and get the time for it
+	 * @param strInput
+	 * @return
+	 */
+	public static Long getTimeForTimestamp(String strInput) {
+		SemossDate d = genDateObj(strInput);
+		if(d != null) {
+			if(d.getDate() != null) {
+				return d.getDate().getTime();
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Get the date and get the time for it
+	 * @param d
+	 * @return
+	 */
+	public static Long getTimeForTimestamp(SemossDate d) {
+		if(d != null) {
+			if(d.getDate() != null) {
+				return d.getDate().getTime();
+			}
+		}
+		
+		return null;
+	}
+	
 
 	/**
 	 * Method to get a semoss date from string input
@@ -177,6 +291,13 @@ public class SemossDate {
 	}
 
 	public static void main(String[] args) throws Exception {
+		Object d2 = null;
+		if(d2 instanceof SemossDate) {
+			System.out.println("no way");
+		} else {
+			System.out.println("didn't break");
+		}
+		
 		String d = "11/5/1991";
 		System.out.println(SemossDate.genDateObj(d).testToString());
 		
