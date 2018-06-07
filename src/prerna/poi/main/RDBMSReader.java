@@ -1172,10 +1172,15 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				return null;
 			}
 		} else if(type.equals("DATE")) {
-			retObj = SemossDate.genDateObj(strVal).getDate();
-		}
-		else if(type.equals("TIMESTAMP")){
-			retObj = SemossDate.genDateObj(strVal).getDate();
+			SemossDate semossDate = SemossDate.genDateObj(strVal);
+			if(semossDate != null) {
+				retObj = new SemossDate(semossDate.getDate(), "yyyy-MM-dd");
+			}
+		} else if(type.equals("TIMESTAMP")){
+			SemossDate semossDate = SemossDate.genTimeStampDateObj(strVal);
+			if(semossDate != null) {
+				retObj = new SemossDate(semossDate.getDate(), "yyyy-MM-dd HH:mm:ss");
+			}
 		} else {
 			retObj = strVal;
 		}
