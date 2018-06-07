@@ -76,6 +76,15 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 
+	/**
+	 * This method is used to set the memory limit of R
+	 */
+	protected void setMemoryLimit() {
+		String script = "memory.limit(" + RJavaTranslatorFactory.rMemory + ");";
+		this.runR(script);
+		
+	}
+	
 	protected String encapsulateForEnv(String rScript) {
 		return rScript;
 //		String newRScript = "with(" + this.env + ", {" + rScript + "});";

@@ -83,6 +83,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				
 				// initialize the r environment
 				initREnv();
+				setMemoryLimit();
 			} catch (Exception e) {
 				System.out.println(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
