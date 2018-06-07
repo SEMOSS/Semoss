@@ -210,9 +210,9 @@ public class H2Builder {
 								ps.setNull(colIndex + 1, java.sql.Types.DATE);
 							}
 						} else {
-							java.util.Date value = SemossDate.genDateObj(nextRow[colIndex] + "").getDate();
+							SemossDate value = SemossDate.genDateObj(nextRow[colIndex] + "");
 							if (value != null) {
-								ps.setDate(colIndex + 1, new java.sql.Date(value.getTime()));
+								ps.setDate(colIndex + 1, new java.sql.Date(value.getDate().getTime()));
 							} else {
 								ps.setNull(colIndex + 1, java.sql.Types.DATE);
 							}
@@ -226,9 +226,9 @@ public class H2Builder {
 								ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 							}
 						} else {
-							java.util.Date value = SemossDate.genTimeStampDateObj(nextRow[colIndex] + "").getDate();
+							SemossDate value = SemossDate.genDateObj(nextRow[colIndex] + "");
 							if (value != null) {
-								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(value.getTime()));
+								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(value.getDate().getTime()));
 							} else {
 								ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 							}
