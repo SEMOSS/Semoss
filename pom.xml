@@ -1915,17 +1915,17 @@
 		</dependency>
 		<!-- SPARK DEPENDENCIES -->
 		<!-- http://mvnrepository.com/artifact/org.apache.spark/spark-core_2.10 -->
-		<dependency>
+		<!--dependency>
 			<groupId>org.apache.spark</groupId>
 			<artifactId>spark-core_2.10</artifactId>
 			<version>1.4.0</version>
-		</dependency>
+		</dependency-->
 		<!-- http://mvnrepository.com/artifact/org.apache.spark/spark-sql_2.10 -->
-		<dependency>
+		<!--dependency>
 			<groupId>org.apache.spark</groupId>
 			<artifactId>spark-sql_2.10</artifactId>
 			<version>1.4.0</version>
-		</dependency>
+		</dependency-->
 		<!-- http://mvnrepository.com/artifact/org.apache.spark/spark-streaming_2.10 -->
 		<!-- cleanup -->
 		<!--dependency>
@@ -2351,6 +2351,12 @@
 			<groupId>au.com.bytecode</groupId>
 			<artifactId>opencsv</artifactId>
 			<version>2.4</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.jodd/jodd-core -->
+		<dependency>
+			<groupId>org.jodd</groupId>
+			<artifactId>jodd-core</artifactId>
+			<version>3.6.2</version>
 		</dependency>
 	</dependencies>
 </project>
