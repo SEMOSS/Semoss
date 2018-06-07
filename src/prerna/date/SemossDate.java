@@ -108,6 +108,9 @@ public class SemossDate {
 	 * @return
 	 */
 	public static SemossDate genDateObj(String input) {
+		if(input == null) {
+			return null;
+		}
 		input = input.trim();
 
 		// this does a check for anything that 
@@ -131,6 +134,9 @@ public class SemossDate {
 	 * @return
 	 */
 	public static SemossDate genTimeStampDateObj(String input) {
+		if(input == null) {
+			return null;
+		}
 		input = input.trim();
 
 		// this does a check for anything that 

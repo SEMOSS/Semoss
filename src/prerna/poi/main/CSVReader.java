@@ -550,9 +550,15 @@ public class CSVReader extends AbstractCSVFileReader {
 		} else if(type.equals("NUMBER") || type.equals("DOUBLE")) {
 			retObj = Utility.getDouble(strVal);
 		} else if(type.equals("DATE")) {
-			retObj = SemossDate.genDateObj(strVal).getDate();
+			SemossDate sd = SemossDate.genDateObj(strVal);
+			if(sd != null) {
+				retObj = sd.getDate();
+			}
 		} else if(type.equals("TIMESTAMP")) {
-			retObj = SemossDate.genTimeStampDateObj(strVal).getDate();
+			SemossDate sd = SemossDate.genTimeStampDateObj(strVal);
+			if(sd != null) {
+				retObj = sd.getDate();
+			}
 		} else {
 			retObj = strVal;
 		}
