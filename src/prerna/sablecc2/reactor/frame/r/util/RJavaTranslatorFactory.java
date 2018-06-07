@@ -16,6 +16,8 @@ public class RJavaTranslatorFactory {
 	// either JRI version or RServe version
 	private static Class translatorClass = null;
 	
+	public static String rMemory; 
+	
 	private RJavaTranslatorFactory() {
 		
 	}
@@ -25,10 +27,18 @@ public class RJavaTranslatorFactory {
 	 */
 	private static void init() {
 		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
+		String rMemory = DIHelper.getInstance().getProperty(Constants.R_MEM_LIMIT);
 		boolean useJri = false;
 		if(useJriStr != null) {
 			useJri = Boolean.valueOf(useJriStr);
 		}
+		
+		if(rMemory != null) {
+			RJavaTranslatorFactory.rMemory = rMemory; 
+		} else {
+			RJavaTranslatorFactory.rMemory = "4096"; 
+		}
+		
 		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
 		String className = null;
 		if(useJri) {
