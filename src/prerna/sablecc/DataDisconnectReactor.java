@@ -9,7 +9,7 @@ import java.util.Iterator;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.shared.AbstractTableDataFrame;
-import prerna.ds.spark.SparkDataFrame;
+//import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.meta.IPkqlMetadata;
 
 public class DataDisconnectReactor  extends AbstractReactor{
@@ -42,10 +42,11 @@ public class DataDisconnectReactor  extends AbstractReactor{
 		}else if(frame instanceof TinkerFrame){
 			myStore.put("data.disconnect", "JDBC URL not available for TinkerFrame");
 			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
-		}else if(frame instanceof SparkDataFrame){
-			myStore.put("data.disconnect", "JDBC URL not available for SparkDataFrame");
-			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
 		}
+//		else if(frame instanceof SparkDataFrame){
+//			myStore.put("data.disconnect", "JDBC URL not available for SparkDataFrame");
+//			myStore.put("STATUS", PKQLRunner.STATUS.ERROR);
+//		}
 		return null;
 	}
 
