@@ -564,6 +564,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.guava/guava-collections -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava-collections</artifactId>
+			<version>r03</version>
+		</dependency>
 		<dependency>
 			<groupId>com.github.spullara.mustache.java</groupId>
 			<artifactId>compiler</artifactId>
@@ -2020,11 +2026,12 @@
 			<version>3.8.1</version>
 			<scope>test</scope>
 		</dependency-->
-		<dependency>
+		<!-- cleanup -->
+		<!--dependency>
 			<groupId>org.apache.storm</groupId>
 			<artifactId>storm-core</artifactId>
 			<version>1.0.2</version>
-		</dependency>
+		</dependency-->
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>org.apache.storm</groupId>
@@ -2046,11 +2053,12 @@
 			<artifactId>mail</artifactId>
 			<version>1.4</version>
 		</dependency>
-		<dependency>
+		<!-- cleanup -->
+		<!--dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-clients</artifactId>
 			<version>0.10.1.0</version>
-		</dependency>
+		</dependency-->
 		<!-- sql database connectors -->
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
