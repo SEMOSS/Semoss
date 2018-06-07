@@ -107,6 +107,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				
 				// initialize the r environment
 				this.engine = retEngine;
+				setMemoryLimit();
 			} catch(NullPointerException e) {
 				e.printStackTrace();
 				System.out.println("Could not connect to R JRI.  Please make sure paths are accurate");

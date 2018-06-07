@@ -498,6 +498,9 @@ public class Constants {
 	// which type of R connection to use
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 	
+	// how much R memory to allocate
+	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
+	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_HOME = "GOOGLE_CHROME_HOME";
 	
