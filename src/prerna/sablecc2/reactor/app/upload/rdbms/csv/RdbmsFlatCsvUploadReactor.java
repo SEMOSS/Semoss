@@ -449,36 +449,21 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 					// dates
 					else if(type == SemossDataType.DATE) {
 						// can I get a format?
-						SemossDate dateValue = null;
-						String format = additionalTypes[colIndex];
-						if(format != null && !format.isEmpty()) {
-							dateValue = new SemossDate(nextRow[colIndex], format);
+						Long dTime = SemossDate.getTimeForDate(nextRow[colIndex], additionalTypes[colIndex]);
+						if(dTime != null) {
+							ps.setDate(colIndex+1, new java.sql.Date(dTime));
 						} else {
-							dateValue = SemossDate.genDateObj(nextRow[colIndex]);
+							ps.setNull(colIndex+1, java.sql.Types.DATE);
 						}
-						
-						if(dateValue != null) {
-							ps.setDate(colIndex+1, new java.sql.Date(dateValue.getDate().getTime()));
-						} else {
-							ps.setObject(colIndex+1, null);
-						}
-						
 					}
 					// timestamps
 					else if(type == SemossDataType.TIMESTAMP) {
 						// can I get a format?
-						SemossDate dateValue = null;
-						String format = additionalTypes[colIndex];
-						if(format != null && !format.isEmpty()) {
-							dateValue = new SemossDate(nextRow[colIndex], format);
+						Long dTime = SemossDate.getTimeForTimestamp(nextRow[colIndex], additionalTypes[colIndex]);
+						if(dTime != null) {
+							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dTime));
 						} else {
-							dateValue = SemossDate.genTimeStampDateObj(nextRow[colIndex]);
-						}
-						
-						if(dateValue != null) {
-							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dateValue.getDate().getTime()));
-						} else {
-							ps.setObject(colIndex+1, null);
+							ps.setNull(colIndex+1, java.sql.Types.TIMESTAMP);
 						}
 					}
 				}

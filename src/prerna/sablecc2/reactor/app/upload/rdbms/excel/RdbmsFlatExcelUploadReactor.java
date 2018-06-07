@@ -434,46 +434,30 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					} 
 					// dates
 					else if(type == SemossDataType.DATE) {
+						Long dTime = null;
 						if(value instanceof SemossDate) {
-							ps.setDate(colIndex+1, new java.sql.Date(((SemossDate) value).getDate().getTime()));
+							dTime = SemossDate.getTimeForDate( (SemossDate) value);
 						} else {
-							// can I get a format?
-							java.util.Date dateValue = null;
-							String strVal = value.toString();
-							String format = additionalTypes[colIndex];
-							if(format != null && !format.isEmpty()) {
-								dateValue = new SemossDate(strVal, format).getDate();
-							} else {
-								dateValue = SemossDate.genDateObj(strVal).getDate();
-							}
-							
-							if(dateValue != null) {
-								ps.setDate(colIndex+1, new java.sql.Date(dateValue.getTime()));
-							} else {
-								ps.setObject(colIndex+1, null);
-							}
+							dTime = SemossDate.getTimeForDate(value.toString(), additionalTypes[colIndex]);
+						}
+						if(dTime != null) {
+							ps.setDate(colIndex+1, new java.sql.Date(dTime));
+						} else {
+							ps.setNull(colIndex+1, java.sql.Types.DATE);
 						}
 					}
 					// timestamps
 					else if(type == SemossDataType.TIMESTAMP) {
+						Long dTime = null;
 						if(value instanceof SemossDate) {
-							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(((SemossDate) value).getDate().getTime()));
+							dTime = SemossDate.getTimeForTimestamp( (SemossDate) value);
 						} else {
-							// can I get a format?
-							java.util.Date dateValue = null;
-							String strVal = value.toString();
-							String format = additionalTypes[colIndex];
-							if(format != null && !format.isEmpty()) {
-								dateValue = new SemossDate(strVal, format).getDate();
-							} else {
-								dateValue = SemossDate.genTimeStampDateObj(strVal).getDate();
-							}
-							
-							if(dateValue != null) {
-								ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dateValue.getTime()));
-							} else {
-								ps.setObject(colIndex+1, null);
-							}
+							dTime = SemossDate.getTimeForTimestamp(value.toString(), additionalTypes[colIndex]);
+						}
+						if(dTime != null) {
+							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dTime));
+						} else {
+							ps.setNull(colIndex+1, java.sql.Types.TIMESTAMP);
 						}
 					}
 				}
