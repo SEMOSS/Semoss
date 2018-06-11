@@ -141,7 +141,7 @@ public class DatePatternGenerator {
 	private static String[][] getMonth() {
 		return new String[][]{
 			new String[]{"[1-9]", 			"M"},
-			new String[]{"[1][0-9]", 		"M"},
+			new String[]{"[1][0-2]", 		"M"},
 			new String[]{"[0][1-9]", 		"MM"}
 		};
 	}
