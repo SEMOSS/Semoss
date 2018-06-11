@@ -23,8 +23,8 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.interpreters.sql.SqlInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -232,6 +232,14 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.builder.dropColumn(columnHeader);
 		this.metaData.dropProperty(tableName + "__" + columnHeader, tableName);
 		syncHeaders();
+	}
+	
+	@Override
+	public long size(String tableName) {
+		if(this.builder.isEmpty(tableName)) {
+			return 0;
+		}
+		return this.builder.getNumRecords(getTableName());
 	}
 
 	@Override
@@ -481,12 +489,6 @@ public class H2Frame extends AbstractTableDataFrame {
 			meta.setDataTypeToProperty(tableName + "__" + newHeaders[i], types[i]);
 		}
 	}
-	
-	
-	
-	
-	
-	
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////

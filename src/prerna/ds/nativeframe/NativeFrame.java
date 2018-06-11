@@ -152,6 +152,12 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
+	public long size(String tableName) {
+		// nothing is held in memory...
+		return 0;
+	}
+	
+	@Override
 	public boolean isEmpty() {
 		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), this.qs);
 		return iterator.hasNext();
