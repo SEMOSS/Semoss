@@ -39,7 +39,7 @@ import org.h2.tools.DeleteDbFiles;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
-import prerna.ds.r.RIterator2;
+import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -180,7 +180,7 @@ public class RNativeEngine extends AbstractEngine {
 	public Vector<Object> getCleanSelect(String query){
 		Vector <Object> retObject = null;
 
-		RIterator2 it = (RIterator2) dt.query(query);
+		RIterator it = (RIterator) dt.query(query);
 		if(it.getHeaders() != null && it.getHeaders().length > 0)
 		{
 			String headerName = it.getHeaders()[0];
