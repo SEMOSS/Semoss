@@ -11,8 +11,6 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
-import com.ibm.icu.util.Calendar;
-
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -105,7 +103,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	private IHeadersDataRow getNextRow() throws SQLException {
-		Calendar cal = Calendar.getInstance();
 		if(rs.next()) {
 			Object[] row = new Object[numColumns];
 			// iterate through all the columns to get the appropriate data types
@@ -128,11 +125,9 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					if(dVal == null) {
 						val = null;
 					} else {
-						cal.setTimeInMillis(dVal.getTime());
-						val = new SemossDate(cal.getTime(), "yyyy-MM-dd HH:mm:ss");
+						val = new SemossDate(dVal.getTime(), true);
 					}
-				}
-				else if(type == Types.CLOB) {
+				} else if(type == Types.CLOB) {
 					val = rs.getClob(colNum);
 				} else if(type == Types.ARRAY) {
 					Array arrVal = rs.getArray(colNum);
@@ -141,8 +136,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					}
 				} else if(type == Types.BOOLEAN) {
 					val = rs.getBoolean(colNum);
-				}
-				else {
+				} else {
 					val = rs.getString(colNum);
 				}
 

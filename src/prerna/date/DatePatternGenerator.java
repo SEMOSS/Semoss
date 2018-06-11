@@ -97,8 +97,12 @@ public class DatePatternGenerator {
 		String[][] hr = getHour();
 		String[][] min = getMinute();
 		String[][] sec = getSecond();
+		String[][] ms = getMilliSecond();
 		// hr, min, sec
 		genSimpleCombinations(retValues, hr, min, sec, separator);
+
+		// hr, min, sec, ms
+		genSimpleCombinations(retValues, hr, min, sec, ms, separator, "\\.");
 
 		// hr, min
 		genSimpleCombinations(retValues, hr, min, separator);
@@ -221,6 +225,15 @@ public class DatePatternGenerator {
 		};
 	}
 	
+	private static String[][] getMilliSecond() {
+		return new String[][]{
+			new String[]{"[0-9]{4}", 				"S"},
+			new String[]{"[0][0-9]{3}", 			"SS"},
+			new String[]{"[0][0][0-9]{2}", 			"SSS"},
+			new String[]{"[0][0][0][0-9]{1}", 		"SSSS"}
+		};
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -290,6 +303,56 @@ public class DatePatternGenerator {
 
 					// add value
 					retValues.add(new String[]{regexMatch.toString(), pattern.toString()});
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Loop through and combine all the possibilities
+	 * @param retValues
+	 * @param comb1
+	 * @param comb2
+	 * @param comb3
+	 * @param separator
+	 */
+	private static void genSimpleCombinations(List<String[]> retValues, 
+			String[][] comb1, 
+			String[][] comb2, 
+			String[][] comb3, 
+			String[][] comb4, 
+			String separator, 
+			String finalSeparator) {
+		String patternSep = separator;
+		String finalPSep = finalSeparator;
+		if(patternSep.equals("\\s*")) {
+			patternSep = " ";
+		}
+		if(finalSeparator.equals("\\.")) {
+			finalPSep = ".";
+		}
+		int size1 = comb1.length;
+		int size2 = comb2.length;
+		int size3 = comb3.length;
+		int size4 = comb4.length;
+		
+		for(int i = 0; i < size1; i++) {
+			String[] val1 = comb1[i];
+			for(int j = 0; j < size2; j++) {
+				String[] val2 = comb2[j];
+				for(int k = 0; k < size3; k++) {
+					String[] val3 = comb3[k];
+					for(int l = 0; l < size4; l++) {
+						String[] val4 = comb4[l];
+						StringBuilder regexMatch = new StringBuilder();
+						regexMatch.append(val1[0]).append(separator).append(val2[0]).append(separator).append(val3[0]).append(finalPSep).append(val4[0]);
+
+						StringBuilder pattern = new StringBuilder();
+						pattern.append(val1[1]).append(patternSep).append(val2[1]).append(patternSep).append(val3[1]).append(finalPSep).append(val4[1]);
+
+						// add value
+						retValues.add(new String[]{regexMatch.toString(), pattern.toString()});
+					}
 				}
 			}
 		}

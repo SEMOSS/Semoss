@@ -15,6 +15,8 @@ import org.openrdf.rio.rdfxml.RDFXMLWriter;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IExplorable;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -395,7 +397,7 @@ public class MetaHelper implements IExplorable {
 	
 	@Override
 	public String getPhysicalUriFromConceptualUri(String propertyName, String parentName) {
-		String conceptualURI = "http://semoss.org/ontologies/Concept/" + propertyName;
+		String conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + propertyName;
 		if(parentName != null && !parentName.isEmpty()) {
 			conceptualURI += "/" + parentName;
 		}
@@ -464,6 +466,52 @@ public class MetaHelper implements IExplorable {
 			
 //			retMap.put(getTransformedNodeName(node, true), type);
 			retMap.put(node, type);
+		}
+		
+		return retMap;
+	}
+	
+	@Override
+	public String getAdtlDataTypes(String uri){
+		String cleanUri = uri;
+		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { {<" + cleanUri + "> <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} }";
+			
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		String adtlType = null;
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			adtlType = row.getValues()[0].toString().replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "''").replace("((SPACE))", " ");
+		}
+		
+		return adtlType;
+	}
+	
+	@Override
+	public Map<String, String> getAdtlDataTypes(String... uris){
+		Map<String, String> retMap = new Hashtable<String, String>();
+		String bindings = "";
+		for(String uri : uris) {
+			String cleanUri = uri;
+			bindings += "(<" + cleanUri + ">)";	
+		}
+		String query = null;
+		if(!bindings.isEmpty()) {
+			query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} } BINDINGS ?NODE {" + bindings + "}";
+			
+		} else {
+			// if no bindings, return everything
+			query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <http://semoss.org/ontologies/Relation/Contains/AdtlDataType> ?ADTLTYPE} }";
+		}
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			String node = row.getRawValues()[0].toString();
+			String type = row.getValues()[1].toString();
+			if (type != null && type != "") {
+				String conceptName = node.substring(node.lastIndexOf("/") + 1);
+				type = type.replace("ADTLTYPE:", "").replace("((REPLACEMENT_TOKEN))", "/").replace("((SINGLE_QUOTE))", "'").replace("((SPACE))", " ");
+				retMap.put(conceptName + "__" + Utility.getClassName(node), type);
+			}
 		}
 		
 		return retMap;

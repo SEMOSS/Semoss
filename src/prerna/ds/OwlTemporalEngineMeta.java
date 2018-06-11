@@ -121,7 +121,7 @@ public class OwlTemporalEngineMeta {
 		// store the unique name as a concept
 		sub = SEMOSS_CONCEPT_PREFIX + "/" + vertexName;
 		pred = ADDTL_DATATYPE_PRED;
-		obj = adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}");
+		obj = adtlDataType.replace("/", "((REPLACEMENT_TOKEN))");
 		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
 
@@ -285,7 +285,7 @@ public class OwlTemporalEngineMeta {
 		// store the unique name as a concept
 		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		pred = ADDTL_DATATYPE_PRED;
-		obj = adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}");
+		obj = adtlDataType.replace("/", "((REPLACEMENT_TOKEN))");
 		this.myEng.addStatement(new Object[] { sub, pred, obj, false });
 	}
 
@@ -633,7 +633,7 @@ public class OwlTemporalEngineMeta {
 		Map<String, String> returnMap = new HashMap<String, String>();
 		while(it.hasNext()) {
 			Object[] row = it.next().getValues();
-			returnMap.put(row[0].toString(), row[1].toString().replace("{{REPLACEMENT_TOKEN}}", "/"));
+			returnMap.put(row[0].toString(), row[1].toString().replace("((REPLACEMENT_TOKEN))", "/"));
 		}
 		
 		return returnMap;
@@ -747,7 +747,7 @@ public class OwlTemporalEngineMeta {
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		while(it.hasNext()) {
 			Object[] row = it.next().getValues();
-			return row[1].toString().replace("{{REPLACEMENT_TOKEN}}", "/");
+			return row[1].toString().replace("((REPLACEMENT_TOKEN))", "/");
 		}
 		
 		return null;
