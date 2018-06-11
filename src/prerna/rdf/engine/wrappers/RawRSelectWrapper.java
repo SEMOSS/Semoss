@@ -1,17 +1,17 @@
 package prerna.rdf.engine.wrappers;
 
-import prerna.ds.r.RIterator2;
+import prerna.ds.r.RIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 
 public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
-	private RIterator2 output = null;
+	private RIterator output = null;
 	private String[] colTypeNames = null;
 
 	@Override
 	public void execute() {
-		this.output = (RIterator2) this.engine.execQuery(query);
+		this.output = (RIterator) this.engine.execQuery(query);
 		setDefaults();
 	}
 
@@ -45,7 +45,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 		// need to add this
 	}
 	
-	public void directExecution(RIterator2 output) {
+	public void directExecution(RIterator output) {
 		this.output = output;
 		setDefaults();
 	}
