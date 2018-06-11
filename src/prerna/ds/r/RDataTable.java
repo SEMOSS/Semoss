@@ -133,7 +133,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		RIterator2 baseIt = new RIterator2(builder, query);
+		RIterator baseIt = new RIterator(builder, query);
 		RawRSelectWrapper it = new RawRSelectWrapper();
 		it.directExecution(baseIt);
 		return it;
@@ -149,7 +149,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
 		String query = interp.composeQuery();
-		RIterator2 baseIt = new RIterator2(this.builder, query, qs);
+		RIterator baseIt = new RIterator(this.builder, query, qs);
 		RawRSelectWrapper it = new RawRSelectWrapper();
 		it.directExecution(baseIt);
 		return it;
