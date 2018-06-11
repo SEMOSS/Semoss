@@ -355,7 +355,6 @@ public class ReactorFactory {
 		nativeFrameHash = new HashMap<String, Class>();
 		populateNativeFrameHash(nativeFrameHash);
 		
-		
 		String additionalReactorsPath = "";
 		try {
 			additionalReactorsPath = DIHelper.getInstance().getProperty("ADDITIONAL_REACTORS");	
@@ -370,7 +369,6 @@ public class ReactorFactory {
 			// hopefully you dont have anything in a prop file you care about
 			// or update the var directly
 		}
-		
 	}
 	
 	// populates the frame agnostic reactors used by pixel
@@ -816,6 +814,7 @@ public class ReactorFactory {
 		// frame stats
 		rFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.r.ColumnCountReactor.class);
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
+		rFrameHash.put("SummaryStats", prerna.sablecc2.reactor.frame.r.SummaryStatsReactor.class);
 		rFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.r.HistogramReactor.class);
 		
 		// rules
