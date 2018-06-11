@@ -1,6 +1,7 @@
 package prerna.query.interpreters;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -71,6 +72,11 @@ public class JsonInterpreter implements IQueryInterpreter{
 	public void setLogger(Logger logger) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public void setAdditionalTypes(Map<String, String> additionalTypes) {
+		// TODO Auto-generated method stub
 	}
 	
 	 /* Loops through the selectors defined in the QS to add them to the selector string

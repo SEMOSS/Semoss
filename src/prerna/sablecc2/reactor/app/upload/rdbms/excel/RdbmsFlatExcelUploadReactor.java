@@ -332,7 +332,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 			e.printStackTrace();
 		}
 
-		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes);
+		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 	}
 
 	private void bulkInsertSheet(IEngine engine, XLFileHelper helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,

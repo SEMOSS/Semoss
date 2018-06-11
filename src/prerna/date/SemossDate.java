@@ -2,6 +2,7 @@ package prerna.date;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -41,22 +42,86 @@ public class SemossDate {
 	 * so we can store the pattern with the date
 	 */
 
+	/**
+	 * Default date with enforced format
+	 * @param date
+	 */
 	public SemossDate(Date date) {
 		this(date, "yyyy-MM-dd");
 	}
 
+	/**
+	 * Default date with format
+	 * @param date
+	 */
 	public SemossDate(Date date, String pattern) {
 		this.date = date;
 		this.pattern = pattern;
 		getFormattedDate();
 	}
 
+	/**
+	 * String date + format to parse
+	 * @param date
+	 */
 	public SemossDate(String dateVal, String pattern) {
 		this.strDate = dateVal;
 		this.pattern = pattern;
 		getDate();
 	}
 	
+	/**
+	 * Date from time in ms
+	 * @param time
+	 */
+	public SemossDate(Long time) {
+		this.date = new Date(time);
+		Calendar c = Calendar.getInstance();
+		c.setTime(this.date);
+		if(c.get(Calendar.HOUR) > 0
+				|| c.get(Calendar.MINUTE) > 0
+				|| c.get(Calendar.SECOND) > 0 ) {
+			// we have a time stamp... do we have milliseconds?
+			if(c.get(Calendar.MILLISECOND) > 0) {
+				this.pattern = "yyyy-MM-dd HH:mm:ss";
+			} else {
+				this.pattern = "yyyy-MM-dd HH:mm:ss.S";
+			}
+		} else {
+			this.pattern = "yyyy-MM-dd";
+		}
+		getFormattedDate();
+	}
+	
+	/**
+	 * Date from time in ms with enforcement on timestamp
+	 * @param time
+	 * @param timestamp
+	 */
+	public SemossDate(Long time, boolean timestamp) {
+		this.date = new Date(time);
+		Calendar c = Calendar.getInstance();
+		c.setTime(this.date);
+		if(timestamp || (c.get(Calendar.HOUR) > 0
+				|| c.get(Calendar.MINUTE) > 0
+				|| c.get(Calendar.SECOND) > 0 )) {
+			// we have a time stamp... do we have milliseconds?
+			if(c.get(Calendar.MILLISECOND) > 0) {
+				this.pattern = "yyyy-MM-dd HH:mm:ss.S";
+			} else {
+				this.pattern = "yyyy-MM-dd HH:mm:ss";
+			}
+		} else {
+			this.pattern = "yyyy-MM-dd";
+		}
+		getFormattedDate();
+	}
+	
+	/**
+	 * Date from time in ms with format
+	 * @param time
+	 * @param timestamp
+	 */
 	public SemossDate(Long time, String pattern) {
 		this.date = new Date(time);
 		this.pattern = pattern;
@@ -256,7 +321,7 @@ public class SemossDate {
 		// this does a check for anything that 
 		// number, a slash, or a dash
 		// not exactly contians alpha, but most likely...
-		boolean containsAlpha = !input.matches("[0-9/-:\\s]+");
+		boolean containsAlpha = !input.matches("[0-9/-:.\\s]+");
 		
 		if(!containsAlpha && input.contains("/")) {
 			return testCombinations(input, timeStampsWithSlash);
