@@ -37,7 +37,6 @@ public class OWLER {
 	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
 	public static final String PHYSICAL_NAME = "http://semoss.org/ontologies/physical/property";
 	public static final String PHYSICAL_TABLE = "http://semoss.org/ontologies/physical/table";
-	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
 	public static final String DEFAULT_COMPOSITE_CLASS = "Composite";
 	
@@ -524,10 +523,11 @@ public class OWLER {
 	 * 								For RDBMS: This is the name of the column which contains the concept instances
 	 * @param propertyCol			This will be the name of the property
 	 * @param dataType				The dataType for the property
+	 * @param adtlDataType			Additional data type for the property 
 	 * @return						Returns the physical URI for the node
 	 * 								TODO: RDF databases end up constructing the prop URI regardless.. need them to take this return
 	 */
-	public String addProp(String tableName, String colName, String propertyCol, String dataType)
+	public String addProp(String tableName, String colName, String propertyCol, String dataType, String adtlDataType)
 	{
 		// since RDF uses this multiple times, don't create it each time and just store it in a hash to send back
 		if(!propHash.containsKey(tableName + "%" + propertyCol)) {
@@ -570,6 +570,13 @@ public class OWLER {
 			String typeObject = "TYPE:" + dataType;
 			String dataTypeUri = RDFS.CLASS.stringValue();
 			engine.addToBaseEngine(property, dataTypeUri, typeObject);
+			
+			// 4) adding the property additional data type, if available
+			if (adtlDataType != null && !adtlDataType.isEmpty()) {
+				String adtlTypeObject = "ADTLTYPE:" + adtlDataType.replace("/", "{{REPLACEMENT_TOKEN}}").replace("'", "((SINGLE_QUOTE))").replace(" ", "((SPACE))");
+				String adtlTypeUri = BASE_URI + DEFAULT_PROP_CLASS + "/AdtlDataType";
+				engine.addToBaseEngine(property, adtlTypeUri, adtlTypeObject);
+			}
 						
 			// 4) now lets add the physical property to the conceptual property
 			// one of the advantages of the conceptual URI is that we can specify a property in a database even 
@@ -595,10 +602,15 @@ public class OWLER {
 	 * 									doesn't exist, it is assumed the column name of the concept is the same as the table name
 	 * @param propertyCol			This will be the name of the property
 	 * @param dataType				The dataType for the property
+	 * @param adtlDataType			Additional data type for the property 
 	 * @return						Returns the physical URI for the node
 	 */
+	public String addProp(String tableName, String propertyCol, String dataType, String adtlDataType) {
+		return addProp(tableName, "", propertyCol, dataType, adtlDataType);
+	}
+	
 	public String addProp(String tableName, String propertyCol, String dataType) {
-		return addProp(tableName, "", propertyCol, dataType);
+		return addProp(tableName, "", propertyCol, dataType, null);
 	}
 	
 	/**

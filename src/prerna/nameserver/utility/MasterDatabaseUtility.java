@@ -47,8 +47,8 @@ public class MasterDatabaseUtility {
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engine", colNames, types));
 		
 		// engine concept table
-		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
+		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type", "Additional_Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)", "varchar(800)", "varchar(800)"};
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engineconcept", colNames, types));
 		
 		// concept table
@@ -1127,6 +1127,50 @@ public class MasterDatabaseUtility {
 			{
 				String dataType = rs.getString(1);
 				return dataType;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return null;
+	}
+	
+	public static String getAdditionalDataType(String engineId, String conceptualName, String parentConceptualName) {
+		String query = null;
+		if(parentConceptualName == null || parentConceptualName.isEmpty()) {
+			query = "select distinct ec.additional_type "
+					+ "from engineconcept ec "
+					+ "inner join concept c on ec.localconceptid = c.localconceptid "
+					+ "where ec.engine = '" + engineId + "' and c.conceptualname = '" + conceptualName + "'";
+		} else {
+			query = "select distinct ec.additional_type "
+					+ "from engine e "
+					+ "inner join engineconcept ec on e.id = ec.engine "
+					+ "inner join concept c on ec.localconceptid = c.localconceptid "
+					+ "where ec.engine = '" + engineId + "' and "
+					+ "c.conceptualname = '" + conceptualName + "' and "
+					+ "ec.parentphysicalid in "
+					+ "(select distinct ec.physicalnameid "
+					+ "from engineconcept ec "
+					+ "inner join concept c on c.localconceptid = ec.localconceptid "
+					+ "where ec.engine = '" + engineId + "' and "
+					+ "c.conceptualname = '" + parentConceptualName + "')";
+		}
+		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next())
+			{
+				String adtlType = rs.getString(1);
+				return adtlType;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

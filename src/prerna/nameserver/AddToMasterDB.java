@@ -225,14 +225,16 @@ public class AddToMasterDB {
 		String engineConceptGuid = UUID.randomUUID().toString();
 		// grab the data type of the concept
 		String[] dataTypes = getDataType(conceptPhysicalUri, helper);
+		// grab the data type of the concept
+		String adtlDataType = getAdtlDataType(conceptPhysicalUri, helper);
 		// get the physical name
 		String conceptPhysicalInstance = Utility.getInstanceName(conceptPhysicalUri); 
 		// get the engine id
 		String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
 		
-		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
-		String [] conceptInstanceData = {engineId, conceptPhysicalInstance, engineConceptGuid, engineConceptGuid, conceptGuid, "TRUE", "FALSE", dataTypes[0], dataTypes[1]};
+		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type", "Additional_Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)","varchar(800)"};
+		String [] conceptInstanceData = {engineId, conceptPhysicalInstance, engineConceptGuid, engineConceptGuid, conceptGuid, "TRUE", "FALSE", dataTypes[0], dataTypes[1], adtlDataType};
 		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 		
 		// store it in the hash, we will need this for the engine relationships
@@ -303,6 +305,8 @@ public class AddToMasterDB {
 		String enginePropertyGuid = UUID.randomUUID().toString();
 		// grab the data type of the concept
 		String[] dataTypes = getDataType(propertyPhysicalUri, helper);
+		// grab the data type of the concept
+		String adtlDataType = getAdtlDataType(propertyPhysicalUri, helper);
 		// get the physical name
 		// need to account for differences in how this is stored between
 		// rdbms vs. graph databases
@@ -316,9 +320,9 @@ public class AddToMasterDB {
 		// get the engine id
 		String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
 		
-		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)"};
-		String [] conceptInstanceData = {engineId, propertyPhysicalInstance, parentEngineConceptGuid, enginePropertyGuid, propertyGuid, "FALSE", "TRUE", dataTypes[0], dataTypes[1]};
+		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type","Additional_Type"};
+		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)","varchar(800)"};
+		String [] conceptInstanceData = {engineId, propertyPhysicalInstance, parentEngineConceptGuid, enginePropertyGuid, propertyGuid, "FALSE", "TRUE", dataTypes[0], dataTypes[1], adtlDataType};
 		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 	}
 	
@@ -355,6 +359,13 @@ public class AddToMasterDB {
 		}
 		
 		return new String[]{originalType, dataType};
+	}
+	
+	private String getAdtlDataType(String physicalUri, MetaHelper helper) {
+		if(helper != null) {
+			return helper.getAdtlDataTypes(physicalUri);
+		}
+		return null;
 	}
 	
 	/**

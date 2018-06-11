@@ -164,6 +164,10 @@ public interface IExplorable {
 	 */
 	// REFAC: Change this to engine - this should be local master
 	Map<String, String> getDataTypes(String... uris);
+	
+	String getAdtlDataTypes(String uri);
+	
+	Map<String, String> getAdtlDataTypes(String... uris);
 
 	// REFAC: this has no meaning.. sorry
 	String getParentOfProperty(String property);

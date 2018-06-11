@@ -191,7 +191,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("6. Start generating engine metadata...");
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes);
+		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		owler.commit();
 		try {
 			owler.export();
@@ -293,7 +293,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 			logger.info(stepCounter + ". Start generating engine metadata...");
 			OWLER owler = new OWLER(engine, engine.getOWL());
-			generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes);
+			generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
 			owler.commit();
 			try {
 				owler.export();
@@ -508,10 +508,10 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		CSVFileHelper csvHelper = new CSVFileHelper();
 		csvHelper.setDelimiter(delimiter.charAt(0));
 		csvHelper.parse(filePath);
-
+		
 		// specify the columns to use
 		// default will include all
-		if(dataTypesMap != null && dataTypesMap.isEmpty()) {
+		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
 			Set<String> headersToUse = new TreeSet<String>(dataTypesMap.keySet());
 			csvHelper.parseColumns(headersToUse.toArray(new String[]{}));
 		}
