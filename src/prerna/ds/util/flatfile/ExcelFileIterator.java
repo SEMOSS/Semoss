@@ -233,10 +233,6 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		return this.helper;
 	}
 	
-	public int getSheetIndex() {
-		return this.helper.getSheetIndex(this.sheetToLoad);
-	}
-	
 	public ExcelQueryStruct getQs() {
 		return this.qs;
 	}
