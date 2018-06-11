@@ -17,11 +17,11 @@ import prerna.util.ga.GATracker;
 
 /**
  * This reactor updates determines the outliers for a set of values in an instance column based on the selected attribute columns
- * The result is a new column added to the data frame with values between 0 and 1 for each row
- * Higher values indicate that that row of data is MORE of an OUTLIER
+ * The result is a new column added to the data frame with values of TRUE (is an outlier) or FALSE (not an outlier)
  * The inputs to the reactor are: 
  * 1) the instance column
  * 2) the attribute columns
+ * 3) whether each row should be treated as a unique instance (Yes or No)
  * 
  */
 
@@ -29,17 +29,17 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 	
 	private static final String CLASS_NAME = ROutlierAlgorithmReactor.class.getName();
 	
-	private static final String NUMRUNS_KEY = "numRuns";
-	private static final String SUBSETSIZE_KEY = "subsetSize";
+	private static final String ALPHA = "alpha";
+	private static final String UNIQUE_INSTANCE_PER_ROW= "uniqInstPerRow";
 	
 	public ROutlierAlgorithmReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), UNIQUE_INSTANCE_PER_ROW};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
-		String[] packages = new String[] {"data.table", "dplyr"};
+		String[] packages = new String[] {"data.table", "HDoutliers"};
 		this.rJavaTranslator.checkPackages(packages);
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
@@ -51,6 +51,8 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		String instanceColumn = getInstanceCol();
 		List<String> attributeNamesList = getAttributeNames(instanceColumn);
 		String[] attributeNames = attributeNamesList.toArray(new String[]{});
+		String alpha = getAlpha();
+		String uniqInstPerRowStr = getUniqInstPerRow();
 		
 		// determine the name for the new similarity column to avoid adding columns with same name
 		String[] allColNames = dataFrame.getColumnHeaders();
@@ -63,7 +65,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		
 		// get the data from the outlier algorithm
 		logger.info("Start iterating through data to determine outliers");
-		runROutlierAlgorithm(frameName, instanceColumn, attributeNames, newColName);
+		runROutlierAlgorithm(frameName, instanceColumn, attributeNames, newColName, alpha, uniqInstPerRowStr);
 		logger.info("Done iterating through data to determine outliers");
 
 		// track GA data
@@ -72,7 +74,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		// create the new frame meta
 		meta.addProperty(frameName, frameName + "__" + newColName);
 		meta.setAliasToProperty(frameName + "__" + newColName, newColName);
-		meta.setDataTypeToProperty(frameName + "__" + newColName, "DOUBLE");
+		meta.setDataTypeToProperty(frameName + "__" + newColName, "STRING");
 		
 		// now return this object
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
@@ -85,7 +87,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 	 * @param attributeNames
 	 * @param newColName
 	 */
-	private void runROutlierAlgorithm(String frameName, String instanceColumn, String[] attributeNames, String newColName) {
+	private void runROutlierAlgorithm(String frameName, String instanceColumn, String[] attributeNames, String newColName, String alpha, String uniqInstPerRowStr) {
 		
 		// create a column vector to pass as an input into our R script
 		String colVector = RSyntaxHelper.createStringRColVec(attributeNames);
@@ -96,11 +98,11 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		// create a stringbuilder for our r syntax
 		StringBuilder rsb = new StringBuilder();
 		// source the r script that will run the numerical correlation routine
-		String correlationScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\MatrixOutliers.R";
+		String correlationScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\HDoutliers.R";
 		correlationScriptFilePath = correlationScriptFilePath.replace("\\", "/");
 		rsb.append("source(\"" + correlationScriptFilePath + "\");");
-        // R syntax for the routine: ResultsTableName <- GetMatrixOutliers(frameName, "Title", c("col1", "col2"), "outlierColumnName")
-		rsb.append(resultsFrameName + "<- GetMatrixOutliers(" + frameName + ", " + "\"" + instanceColumn + "\"" + ", " + colVector + ", " + "\"" + newColName + "\"" + ");");
+        // R syntax for the routine: ResultsTableName <- DetermineHDOutliers(frameName, "Title", c("col1", "col2"), alpha, "outlierColumnName", TRUE)
+		rsb.append(resultsFrameName + "<- DetermineHDoutliers(" + frameName + ", " + "\"" + instanceColumn + "\"" + ", " + colVector + ", " + alpha + ", " +  "\"" + newColName + "\"" + ", " + uniqInstPerRowStr + ");");
 		rsb.append(frameName +  " <- " + resultsFrameName);
 
 		// run the script
@@ -159,15 +161,42 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		return instanceCol;
 	}
 	
+	private String getAlpha() {
+		GenRowStruct alphaGrs = this.store.getNoun(ALPHA);
+		if (alphaGrs != null) {
+			if (alphaGrs.size() > 0) {
+				return alphaGrs.get(0).toString();
+			}
+		}
+		// default to .10
+		return ".10";
+	} 
+	
+	private String getUniqInstPerRow() {
+		// see if defined as individual key
+		GenRowStruct columnGrs = this.store.getNoun(UNIQUE_INSTANCE_PER_ROW);
+		if (columnGrs != null) {
+			if (columnGrs.size() > 0) {
+				String value = columnGrs.get(0).toString().toUpperCase();
+				if (value.equals("YES")) {
+					return "TRUE";
+				} else if (value.equals("NO")) {
+					return "FALSE";
+				}
+			}
+		} else {
+			return "FALSE";
+		}
+		return null;
+	}
+	
 	
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(SUBSETSIZE_KEY)) {
-			return "The subset size";
-		} else if (key.equals(NUMRUNS_KEY)) {
-			return "The number of runs";
+		if (key.equals(UNIQUE_INSTANCE_PER_ROW)) {
+			return "YES or NO indicator of whether each instance should be treated as unique or if non-unique instances should be grouped";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
