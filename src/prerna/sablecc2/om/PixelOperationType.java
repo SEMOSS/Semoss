@@ -123,6 +123,7 @@ public enum PixelOperationType {
 	OPERATION,
 	WARNING,
 	
+	FRAME_SIZE_LIMIT_EXCEEDED,
 	ERROR,
 	
 	USER_INPUT_REQUIRED,
