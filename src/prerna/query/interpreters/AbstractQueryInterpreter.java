@@ -1,5 +1,7 @@
 package prerna.query.interpreters;
 
+import java.util.Map;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -12,6 +14,7 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 	protected int performCount;
 	protected SelectQueryStruct qs;
 	protected boolean isDistinct;
+	protected Map<String, String> additionalTypes;
 
 	public AbstractQueryInterpreter() {
 		logger = LogManager.getLogger(this.getClass().getName());
@@ -38,4 +41,10 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 			this.logger = logger;
 		}
 	}
+	
+	@Override
+	public void setAdditionalTypes(Map<String, String> additionalTypes){
+		this.additionalTypes = additionalTypes;
+	}
+	
 }
