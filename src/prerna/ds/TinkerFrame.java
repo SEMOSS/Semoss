@@ -751,6 +751,24 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 	}
 
+	@Override
+	public long size(String tableName) {
+		long numV = 0;
+		long numE = 0;
+		GraphTraversal<Vertex, Long> itV = g.traversal().V().count();
+		if(itV.hasNext()) {
+			numV = itV.next();
+		}
+		GraphTraversal<Edge, Long> itE = g.traversal().E().count();
+		if(itE.hasNext()) {
+			numE = itE.next();
+		}
+		
+		if(numE > 0) {
+			return numV * numE;
+		}
+		return numV;
+	}
 	
 	public boolean isOrphan(String type, String data)
 	{
@@ -1385,6 +1403,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //      long time4 = System.currentTimeMillis();
 //      LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
   }
+
+
 	
 	
 	

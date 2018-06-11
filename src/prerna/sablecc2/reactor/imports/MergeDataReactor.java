@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -28,6 +29,7 @@ import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -42,6 +44,16 @@ public class MergeDataReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute()  {
 		ITableDataFrame frame = getFrame();
+		// check size is reasonable
+		if(!AbstractTableDataFrame.sizeWithinLimit((AbstractTableDataFrame) frame)) {
+			SemossPixelException exception = new SemossPixelException(
+				new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+						PixelDataType.CONST_STRING, 
+						PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		
 		// set the logger into the frame
 		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);

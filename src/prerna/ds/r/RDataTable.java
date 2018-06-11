@@ -224,6 +224,14 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.setTableName(tableVarName);
 	}
 	
+	@Override
+	public long size(String tableName) {
+		if(this.builder.isEmpty(tableName)) {
+			return 0;
+		}
+		return this.builder.getFrameSize(tableName);
+	}
+	
 	public int getNumRows(String varName) {
 		return this.builder.getNumRows(varName);
 	}

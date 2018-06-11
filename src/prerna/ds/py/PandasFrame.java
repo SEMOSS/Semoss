@@ -160,6 +160,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 		f.delete();
 	}
 	
+	@Override
+	public long size(String tableName) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////
 	
 	
@@ -198,5 +204,4 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-
 }
