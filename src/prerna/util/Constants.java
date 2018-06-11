@@ -492,14 +492,16 @@ public class Constants {
 	public static final String MARIADB_PORT = "MARIADB_PORT";
 	public static final String SQL_Server_PORT = "SQLServer_PORT";
 	
-	// h2 frame limit size
+	// all frame limit
+	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
+	
+	// h2 frame limit size before going on disk
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
+	// how much R memory to allocate
+	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
 	
 	// which type of R connection to use
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
-	
-	// how much R memory to allocate
-	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
 	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_HOME = "GOOGLE_CHROME_HOME";

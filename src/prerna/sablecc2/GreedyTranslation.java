@@ -3,10 +3,13 @@ package prerna.sablecc2;
 import java.util.ArrayList;
 import java.util.List;
 
+import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.om.Insight;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
@@ -166,6 +169,19 @@ public class GreedyTranslation extends LazyTranslation {
 	    	// ( ex. Select(Studio, Sum(Movie_Budget) where the Sum is a child of the Select reactor )
 	    	
 	    	if(output != null) {
+	    		// size check
+	    		if(output.getNounType() == PixelDataType.FRAME) {
+	    			AbstractTableDataFrame frame = (AbstractTableDataFrame) output.getValue();
+	    			if(!AbstractTableDataFrame.sizeWithinLimit(frame)) {
+	    				SemossPixelException exception = new SemossPixelException(
+	    					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+	    							PixelDataType.CONST_STRING, 
+	    							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
+	    				exception.setContinueThreadOfExecution(false);
+	    				throw exception;
+	    			}
+	    		}
+	    		
 	    		if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	    			// add the value to the parent's curnoun
 	    			curReactor.getCurRow().add(output);

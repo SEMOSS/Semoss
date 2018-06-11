@@ -258,6 +258,12 @@ public class RiGraph extends AbstractTableDataFrame {
 	}
 	
 	@Override
+	public long size(String tableName) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	@Override
 	public String getDataMakerName() {
 		return DATA_MAKER_NAME;
 	}

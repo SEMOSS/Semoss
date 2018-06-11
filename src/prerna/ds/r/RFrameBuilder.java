@@ -535,6 +535,10 @@ public class RFrameBuilder {
 		return this.rJavaTranslator.getNumRows(varName);
 	}
 	
+	public int getFrameSize(String varName) {
+		return this.rJavaTranslator.getInt("nrow(" + varName + ") * ncol(" + varName + ");");
+	}
+	
 	public String[] getColumnNames() {
 		return getColumnNames(this.dataTableName);
 	}

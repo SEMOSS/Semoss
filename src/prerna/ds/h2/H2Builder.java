@@ -264,7 +264,7 @@ public class H2Builder {
 		}
 
 		// shift to on disk if number of records is getting large
-		if (isInMem && getNumRecords() > LIMIT_SIZE) {
+		if (isInMem && getNumRecords(tableName) > LIMIT_SIZE) {
 			// let the method determine where the new schema will be
 			convertFromInMemToPhysical(null);
 		}
@@ -1610,8 +1610,8 @@ public class H2Builder {
 		}
 	}
 
-	public int getNumRecords() {
-		String query = "SELECT COUNT(*) * " + getHeaders(this.tableName).length + " FROM " + this.tableName;
+	public int getNumRecords(String tableName) {
+		String query = "SELECT COUNT(*) * " + getHeaders(tableName).length + " FROM " + tableName;
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
