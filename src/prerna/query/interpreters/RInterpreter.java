@@ -31,7 +31,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 
 	private String dataTableName = null;
 	private Map<String, SemossDataType> colDataTypes;
-	private Map<String, String> additionalTypes;
 
 	//keep track of the selectors
 	private StringBuilder selectorCriteria = new StringBuilder(); 
@@ -142,6 +141,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		} else {
 			logger.info("R QUERY....  " + query);
 		}
+
 		return query.toString();
 	}
 	
@@ -663,10 +663,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 
 	public void setColDataTypes(Map<String, SemossDataType> colDataTypes) {
 		this.colDataTypes = colDataTypes;
-	}
-	
-	public void setAdditionalTypes(Map<String, String> additionalTypes) {
-		this.additionalTypes = additionalTypes;
 	}
 
 	public StringBuilder getFilterCriteria() {

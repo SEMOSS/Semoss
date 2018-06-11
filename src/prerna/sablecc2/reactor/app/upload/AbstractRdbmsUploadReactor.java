@@ -73,13 +73,13 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param headers
 	 * @param sqlTypes
 	 */
-	protected void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes) {
+	protected void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
 		// add the main column
 		owler.addConcept(tableName, uniqueRowId, OWLER.BASE_URI, "LONG");
 		// add the props
 		for(int i = 0; i < headers.length; i++) {
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-			owler.addProp(tableName, uniqueRowId, headers[i], sqlTypes[i+1]);
+			owler.addProp(tableName, uniqueRowId, headers[i], sqlTypes[i+1], additionalTypes[i]);
 		}
 	}
 

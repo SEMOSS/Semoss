@@ -62,11 +62,26 @@ public class RdbmsQueryBuilder {
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
 			retString.append(" , " + colNames[colIndex]);
 		}
-		String prefix = "'";
+		String type = types[0];
+		String prefix = "";
+		if(type.toLowerCase().contains("varchar") || type.toLowerCase().contains("timestamp") || type.toLowerCase().contains("date")) {
+			if(data[0] != null) {
+				prefix = "'";
+			} else {
+				prefix = "";
+			}
+		} else {
+			prefix = "";
+		}
 		retString.append(") VALUES (" + prefix + data[0] + prefix);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			if(types[colIndex].contains("varchar") || types[colIndex].toLowerCase().contains("timestamp") || types[colIndex].toLowerCase().contains("date")) {
-				prefix = "'";
+			type = types[colIndex];
+			if(type.toLowerCase().contains("varchar") || type.toLowerCase().contains("timestamp") || type.toLowerCase().contains("date")) {
+				if(data[colIndex] != null) {
+					prefix = "'";
+				} else {
+					prefix = "";
+				}
 			} else {
 				prefix = "";
 			}
