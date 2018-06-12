@@ -5,7 +5,7 @@ import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,7 +24,7 @@ public class FormsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		String userId = null;
-		User2 user = this.insight.getUser2();
+		User user = this.insight.getUser();
 		AccessToken token = user.getAccessToken(AuthProvider.CAC);
 		if(token != null) {
 			userId = token.getName();
