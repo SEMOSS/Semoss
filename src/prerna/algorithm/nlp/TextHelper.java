@@ -29,7 +29,6 @@ package prerna.algorithm.nlp;
 
 import prerna.util.ArrayUtilityMethods;
 
-
 public final class TextHelper {
 	
 	private TextHelper() {
