@@ -24,7 +24,7 @@ public class GoogleProfile implements IConnectorIOp{
 		if(params == null)
 			params = new Hashtable();
 		// TODO Auto-generated method stub
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE.name());
+		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
 				
 		String accessToken = googToken.getAccess_token();
 		

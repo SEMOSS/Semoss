@@ -32,36 +32,29 @@ import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.mindrot.jbcrypt.BCrypt;
+
 import com.google.gson.internal.StringMap;
+
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.auth.User;
 
 public class UserPermissionsMasterDB {
 	private RDBMSNativeEngine securityDB;
@@ -270,22 +263,6 @@ public class UserPermissionsMasterDB {
     }
 	
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * 
-	 * @param userName	String representing the name of the user to add
-	 */
-	public Boolean addUser(User newUser) {
-		ISelectWrapper sjsw = Utility.processQuery(securityDB, "SELECT NAME FROM USER WHERE ID='" + newUser.getId() + "';");
-		if(!sjsw.hasNext()) {			
-			String query = "INSERT INTO User (id, name, email, type, admin) VALUES ('" + newUser.getId() + "', '"+ newUser.getName() + "', '" + newUser.getEmail() + "', '" + newUser.getLoginType() + "', '" + newUser.isAdmin() + "');";
-			securityDB.insertData(query);
-			securityDB.commit();
-		}
-		
-		return true;
-	}
-	
-	/**
 	 * Check if the user is an admin
 	 * 
 	 * @param userId	String representing the id of the user to check
@@ -307,10 +284,10 @@ public class UserPermissionsMasterDB {
 	 * @param userId		ID of user being made owner
 	 * @return				true or false for successful addition
 	 */
-	public Boolean addEngineAndOwner(String engineName, String userId) {
+	public Boolean addEngineAndOwner(String engineID, String engineName, String userId) {
 		//Add the engine to the ENGINE table
-		String engineID = UUID.randomUUID().toString();
-		String query = "INSERT INTO Engine VALUES ('" + engineName + "','" + engineID + "');";
+		//String engineID = UUID.randomUUID().toString();
+		String query = "INSERT INTO Engine(NAME, ID) VALUES ('" + engineName + "','" + engineID + "');";
 		Statement stmt = securityDB.execUpdateAndRetrieveStatement(query, false);
 		int id = -1;
 		ResultSet rs = null;
@@ -546,26 +523,23 @@ public class UserPermissionsMasterDB {
 		ArrayList<String[]> engines = new ArrayList<>();
 		
 		if(!isAdmin){
-			query = "SELECT e.id AS DB_ID, e.name AS DB_NAME, ep.permission AS DB_PERMISSION, ep.visibility AS VISIBILITY "
+			query = "SELECT e.id AS DB_ID, e.name AS DB_NAME, e.public AS PUBLIC, ep.permission AS DB_PERMISSION, ep.visibility AS VISIBILITY "
 					+ "FROM ENGINEPERMISSION ep JOIN ENGINE e ON(ep.engine = e.id)  "
 					+ "WHERE ep.user = '?1'";
 			query = query.replace("?1", userId);
 			
 			engines = runQuery(query);
-			
-			query = "SELECT ge.engine AS DB_ID, e.name AS DB_NAME, ge.permission AS DB_PERMISSION "
-				  + "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) ";
 				  		
-			if(!isAdmin){
-				query = "SELECT ge.engine AS DB_ID, e.name AS DB_NAME, ge.permission AS DB_PERMISSION, v.visibility AS VISIBILITY "
-						+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) "
-						+ "JOIN ENGINEGROUPMEMBERVISIBILITY v ON(gm.id = v.groupmembersid AND ge.id = groupenginepermissionid)  "
-						+ "WHERE gm.memberid = '?1'";
-				query = query.replace("?1", userId);
-			}
+			query = "SELECT ge.engine AS DB_ID, e.name AS DB_NAME, e.public AS PUBLIC, ge.permission AS DB_PERMISSION, v.visibility AS VISIBILITY "
+					+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) "
+					+ "JOIN ENGINEGROUPMEMBERVISIBILITY v ON(gm.id = v.groupmembersid AND ge.id = groupenginepermissionid)  "
+					+ "WHERE gm.memberid = '?1'";
+			query = query.replace("?1", userId);
 			engines.addAll(runQuery(query));
+			
+			engines.addAll(getPublicEngines(engines, null));
 		} else {
-			query = "SELECT e.id AS DB_ID, e.name AS DB_NAME "
+			query = "SELECT e.id AS DB_ID, e.name AS DB_NAME, e.public AS PUBLIC "
 					+ "FROM ENGINE e "
 					+ "WHERE e.ID != '1'";
 			
@@ -577,15 +551,70 @@ public class UserPermissionsMasterDB {
 			
 			dbProp.put("db_id", engine[0]);
 			dbProp.put("db_name", engine[1]);
+			dbProp.put("db_public", engine[2]);
 			if(!isAdmin){
-				dbProp.put("db_permission", EnginePermission.getPermissionValueById(engine[2]));
-				dbProp.put("db_visibility", engine[3]);
+				if(engine[3] == null){
+					dbProp.put("db_permission", EnginePermission.EDIT.getPermission());
+				} else {
+					dbProp.put("db_permission", EnginePermission.getPermissionValueById(engine[3]));
+				}
+				dbProp.put("db_visibility", engine[4]);
 			}
 			ret.add(dbProp);
 		}
 		return ret;
 	}
 	
+	/**
+	 * Get only the public engines that the user don't have a straight relationship established 
+	 * @param engines other engines the user is related to
+	 * @return public engines
+	 */
+	private List<String[]> getPublicEngines(ArrayList<String[]> engines, String userId) {
+		
+		String query = "";
+		ArrayList<String> allEngines = new ArrayList<>();
+		for(String[] engine : engines){
+			allEngines.add(engine[0]);
+		}
+		
+		if(userId != null){
+			
+			query = "SELECT e.ID FROM ENGINEPERMISSION ep JOIN ENGINE e ON (e.id = ep.engine) WHERE ep.user = '?1' AND ep.visibility = FALSE AND e.public =TRUE";
+			query = query.replace("?1", userId);
+			
+			List<Object[]> publicHiddenEngines = runQuery2(query);
+			
+			query = "SELECT ENGINE_ID FROM (SELECT e.ID AS ENGINE_ID, gep.ID AS ID1, temp.AID AS ID2 FROM GROUPENGINEPERMISSION gep JOIN ENGINE e ON (gep.engine = e.id) JOIN (SELECT ID AS AID, GROUPID FROM GROUPMEMBERS WHERE MEMBERID = '?1') temp ON (gep.groupid = temp.GROUPID) WHERE ENGINE = '?1' AND e.PUBLIC = TRUE)  b JOIN ENGINEGROUPMEMBERVISIBILITY v ON (b.id1 = v.GROUPENGINEPERMISSIONID AND b.id2 = v.GROUPMEMBERSID) WHERE v.visibility = FALSE;";
+			query = query.replace("?1", userId);
+			publicHiddenEngines.addAll(runQuery2(query));
+			
+			for(Object[] p : publicHiddenEngines){
+				String[] engine = Arrays.stream(p).map(Object::toString).
+		                   toArray(String[]::new);
+				allEngines.add(engine[0]);
+			}
+			
+		}
+		
+		//TAP_Site_Data
+		allEngines.add("1");
+		query = "";
+		
+		query = "SELECT e.id AS ID, e.name AS NAME, e.public AS PUBLIC, 'Edit' AS PERMISSIONS, 'true' AS VISIBILITY FROM ENGINE e WHERE e.id NOT IN ?1 AND PUBLIC = TRUE";	
+		
+		query = query.replace("?1", "(" + convertArrayToDbString(allEngines, true) + ")");
+		
+		List<Object[]> res = runQuery2(query);
+		List<String[]> resPrimitive = new ArrayList<>();
+		for(Object[] r : res){
+			String[] engine = Arrays.stream(r).map(Object::toString).
+	                   toArray(String[]::new);
+			resPrimitive.add(engine);
+		}
+		return resPrimitive;
+	}
+
 	public StringMap<ArrayList<StringMap<String>>> getDatabaseUsersAndGroups(String userId, String engineId, boolean isAdmin){
 		
 		StringMap<ArrayList<StringMap<String>>> ret = new StringMap<>();
@@ -1495,22 +1524,28 @@ public class UserPermissionsMasterDB {
 	 * @param engineName
 	 * @return 
 	 */
-	public boolean isUserAllowedToUseEngine(String userId, String engineName){
+	public boolean isUserAllowedToUseEngine(String userId, String engineId){
 		/*if(isUserAdmin(userId)){
 			return true;
 		}*/
 		
-		String query = "SELECT e.ID FROM ENGINEPERMISSION ep "
-				+ "JOIN ENGINE e ON(ep.engine = e.id) WHERE USER = '?1' AND e.name = '?2' AND (ep.permission = '1'  OR ep.permission = '3') "
+		String query = "SELECT e.ID FROM ENGINE e WHERE e.name = '?3' AND e.public = TRUE ";
+		List<Object[]> res = runQuery2(query);
+		if(!res.isEmpty()){
+			return true;
+		}
+		
+		query = "SELECT e.ID FROM ENGINEPERMISSION ep "
+				+ "JOIN ENGINE e ON(ep.engine = e.id) WHERE USER = '?1' AND e.id = '?2' AND (ep.permission = '1'  OR ep.permission = '3') "
 				+ "UNION "
 				+ "SELECT gep.engine "
 				+ "FROM GROUPENGINEPERMISSION gep JOIN GROUPMEMBERS gm ON (gep.groupid = gm.groupid) JOIN engine e ON (e.id = gep.engine) "
-				+ "WHERE e.name = '?2'  AND gm.memberid = '?1' AND (gep.PERMISSION = '1' OR  gep.PERMISSION = '3')";
+				+ "WHERE e.id = '?2'  AND gm.memberid = '?1' AND (gep.PERMISSION = '1' OR  gep.PERMISSION = '3')";
 		
 		query = query.replace("?1", userId);
-		query = query.replace("?2", engineName);
+		query = query.replace("?2", engineId);
 		
-		List<Object[]> res = runQuery2(query);
+		res = runQuery2(query);
 		return !res.isEmpty();
 	}
 	
@@ -1981,21 +2016,31 @@ public class UserPermissionsMasterDB {
 			return;
 		}
 		
+		Boolean isVisible = Boolean.parseBoolean(visibility);
+		
+		if(!isVisible){
+			query = "INSERT INTO ENGINEPERMISSION (ID, USER, ENGINE) VALUES (NULL, '?1', '?2')";
+			query = query.replace("?1", userId);
+			query = query.replace("?2", engineId);
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+		} else {
+			query = "DELETE FROM ENGINEPERMISSION WHERE USER = '?1' AND ENGINE = '?2' AND PERMISSION IS NULL ";
+			query = query.replace("?1", userId);
+			query = query.replace("?2", engineId);
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+		}
 	}
 	
 	/**
 	 * Remove a database and all the permissions related to it.
 	 * @param engineName
 	 */
-	public void removeDb(String engineName){
-		
-		String query = "SELECT ID FROM ENGINE WHERE NAME = '?1'";
-		query = query.replace("?1", engineName);
-		ArrayList<String[]> rows = runQuery(query);
-		String engineId = rows.get(0)[0];
-		
+	public void removeDb(String engineId){
+				
 		//DELETE USERPERMISSIONS
-		query = "DELETE FROM ENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM ENGINE WHERE ID = '?1'";
+		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM ENGINE WHERE ID = '?1'";
 		query = query.replace("?1", engineId);
 		
 		System.out.println("Executing security query: " + query);
@@ -2016,11 +2061,11 @@ public class UserPermissionsMasterDB {
 		//boolean isAdmin = isUserAdmin(userId);
 		boolean isAdmin = false;
 		
-		String query = "SELECT e.name AS DB_NAME "
+		String query = "SELECT e.id AS ID "
 				+ "FROM ENGINEPERMISSION ep JOIN ENGINE e ON(ep.engine = e.id) ";
 		
 		if(!isAdmin){
-			query = "SELECT e.name AS DB_NAME "
+			query = "SELECT e.id AS ID "
 					+ "FROM ENGINEPERMISSION ep JOIN ENGINE e ON(ep.engine = e.id)  "
 					+ "WHERE ep.user = '?1' AND ep.visibility = 'TRUE'";
 			query = query.replace("?1", userId);
@@ -2028,23 +2073,27 @@ public class UserPermissionsMasterDB {
 		
 		ArrayList<String[]> dbEngines = runQuery(query);
 		
-		query = "SELECT e.name AS DB_NAME "
+		query = "SELECT e.id AS ID "
 			  + "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) ";
 			  		
 		if(!isAdmin){
-			query = "SELECT e.name AS DB_NAME "
+			query = "SELECT e.id AS ID "
 					+ "FROM GROUPMEMBERS gm JOIN GROUPENGINEPERMISSION ge ON (ge.groupid = gm.groupid) JOIN ENGINE e ON (ge.engine = e.id) "
 					+ "JOIN ENGINEGROUPMEMBERVISIBILITY v ON(gm.id = v.groupmembersid AND ge.id = groupenginepermissionid)  "
 					+ "WHERE gm.memberid = '?1' AND v.visibility = 'TRUE'";
 			query = query.replace("?1", userId);
 		}
 		
-		
 		dbEngines.addAll(runQuery(query));
+		
+		dbEngines.addAll(getPublicEngines(dbEngines, userId));
 		
 		for(String[] engine : dbEngines) {
 
-			engines.add(engine[0]);
+			if(!engines.contains(engine[0])){
+				engines.add(engine[0]);
+			}
+			
 		}
 		
 		return engines;
@@ -2146,5 +2195,36 @@ public class UserPermissionsMasterDB {
 		return groupList;
 	}
 	
+	/**
+	 * Change the the public visibility of a database
+	 * @param userId
+	 * @param engineId
+	 * @param visibility
+	 */
+	public void setDbPublic(String userId, String engineId, String isP, boolean isAdmin){
+		
+		Boolean isPublic = Boolean.parseBoolean(isP);
+		String query = "UPDATE ENGINE SET PUBLIC = '?1' WHERE ID = '?2'";
+		
+		if(isAdmin && !isUserAdmin(userId)){
+			throw new IllegalArgumentException("The user doesn't have the permission to access this resource.");
+		}
+		
+		if(!isAdmin && !isUserDatabaseOwner(userId, engineId)){
+			throw new IllegalArgumentException("The user isn't owner of the database.");
+		}
+
+		query = query.replace("?1", isPublic.toString());
+		query = query.replace("?2", engineId);
+		securityDB.execUpdateAndRetrieveStatement(query, true);
+		securityDB.commit();
+		
+		if(isPublic){
+			query = "DELETE FROM ENGINEPERMISSION WHERE ENGINE = '?1' AND PERMISSION IS NULL";
+			query = query.replace("?1", engineId);
+			securityDB.execUpdateAndRetrieveStatement(query, true);
+			securityDB.commit();
+		}
+	}
 	
 }

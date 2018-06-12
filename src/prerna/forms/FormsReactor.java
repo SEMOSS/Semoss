@@ -25,7 +25,7 @@ public class FormsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String userId = null;
 		User2 user = this.insight.getUser2();
-		AccessToken token = user.getAccessToken(AuthProvider.CAC.toString());
+		AccessToken token = user.getAccessToken(AuthProvider.CAC);
 		if(token != null) {
 			userId = token.getName();
 		}

@@ -58,7 +58,7 @@ public class GoogleUploaderReactor extends TaskBuilderReactor {
 			throwLoginError(retMap);
 		}
 		else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE.name());
+				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
 				accessToken=msToken.getAccess_token();
 			}
 		}

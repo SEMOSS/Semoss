@@ -26,7 +26,7 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 			params = new Hashtable();
 		}
 
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP.name());
+		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
 		String accessToken = googToken.getAccess_token();
 		// you fill what you want to send on the API call
 		// the other thing it needs is an address
