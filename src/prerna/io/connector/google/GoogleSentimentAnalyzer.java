@@ -23,7 +23,7 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 		if(params == null) {
 			params = new Hashtable();
 		}
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE.name());
+		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
 		String accessToken = googToken.getAccess_token();
 		
 		// make the API call

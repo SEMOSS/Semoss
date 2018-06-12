@@ -58,7 +58,7 @@ public class GoogleListFilesReactor extends AbstractReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE.name());
+				AccessToken googleToken = user.getAccessToken(AuthProvider.GOOGLE);
 				accessToken=googleToken.getAccess_token();
 			}
 		}

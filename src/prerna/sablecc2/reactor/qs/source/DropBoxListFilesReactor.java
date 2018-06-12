@@ -49,7 +49,7 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken dropToken = user.getAccessToken(AuthProvider.DROPBOX.name());
+				AccessToken dropToken = user.getAccessToken(AuthProvider.DROPBOX);
 				accessToken=dropToken.getAccess_token();
 			}
 		}

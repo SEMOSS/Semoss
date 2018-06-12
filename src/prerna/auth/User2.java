@@ -6,20 +6,20 @@ import java.util.List;
 
 import prerna.om.AbstractValueObject;
 
-public class User2 extends AbstractValueObject{
+public class User2 extends AbstractValueObject {
 	
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
-	Hashtable<String, AccessToken> accessTokens = new Hashtable<String, AccessToken>();
-	List<String> loggedInProfiles = new ArrayList<String>();
+	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
+	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
 	
 	/**
 	 * Set the access token for a given provider
 	 * @param value
 	 */
 	public void setAccessToken(AccessToken value) {
-		String name = value.getProvider();
+		AuthProvider name = value.getProvider();
 		if(!loggedInProfiles.contains(name)) {
 			loggedInProfiles.add(name);
 		}
@@ -31,7 +31,7 @@ public class User2 extends AbstractValueObject{
 	 * @param name
 	 * @return
 	 */
-	public AccessToken getAccessToken(String name) {
+	public AccessToken getAccessToken(AuthProvider name) {
 		return accessTokens.get(name);
 	}
 	
@@ -56,7 +56,7 @@ public class User2 extends AbstractValueObject{
 	 * Get the list of logged in profiles
 	 * @return
 	 */
-	public List<String> getLogins() {
+	public List<AuthProvider> getLogins() {
 		return loggedInProfiles;
 	}
 
