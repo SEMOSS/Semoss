@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,7 +44,7 @@ public class DropBoxUploaderReactor extends TaskBuilderReactor {
 		
 		//get access token
 				String accessToken = null;
-				User2 user = this.insight.getUser2();
+				User user = this.insight.getUser();
 				try{
 				if(user==null){
 					Map<String, Object> retMap = new HashMap<String, Object>();

@@ -5,7 +5,7 @@ import java.util.List;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.RemoteItem;
 import prerna.security.AbstractHttpHelper;
@@ -33,7 +33,7 @@ public class GoogleListFiles implements IConnectorIOp{
 	String url_str = "https://www.googleapis.com/drive/v3/files";
 
 	@Override
-	public Object execute(User2 user, Hashtable params) {
+	public Object execute(User user, Hashtable params) {
 		
 		if(params == null)
 			params = new Hashtable();

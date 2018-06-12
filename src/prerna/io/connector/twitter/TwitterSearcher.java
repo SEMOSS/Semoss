@@ -4,7 +4,7 @@ import java.util.Hashtable;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.Viewpoint;
 import prerna.security.AbstractHttpHelper;
@@ -28,7 +28,7 @@ public class TwitterSearcher implements IConnectorIOp{
 	// max_id, since_id - low level control in terms of the id to get
 
 	@Override
-	public Object execute(User2 user, Hashtable params) {
+	public Object execute(User user, Hashtable params) {
 		if(params == null) {
 			params = new Hashtable();
 		}

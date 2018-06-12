@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.task.lambda.flatmap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.engine.api.IHeadersDataRow;
 
 public interface IFlatMapLambda {
@@ -32,7 +32,7 @@ public interface IFlatMapLambda {
 	/**
 	 * Set the user within the transformation
 	 */
-	void setUser2(User2 user);
+	void setUser(User user);
 	
 	/**
 	 * Sets other params to be utilized for twitter etc. 
