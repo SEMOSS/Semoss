@@ -39,7 +39,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.auth.User;
+import prerna.auth.AuthProvider;
 import prerna.auth.User2;
 import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
@@ -71,7 +71,6 @@ public class Insight {
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
 	protected String insightId;
-	protected User user;
 
 	// new user object
 	protected User2 user2;
@@ -367,26 +366,18 @@ public class Insight {
 		this.insightId = insightId;
 	}
 
-	public String getUser2Id(String type) {
+	public String getUser2Id(AuthProvider provider) {
 		if(this.user2 == null) {
 			return "-1";
 		}
-		return user2.getAccessToken(type).getId();
+		return user2.getAccessToken(provider).getId();
 	}
 	
 	public String getUserId() {
-		if(this.user == null) {
+		if(this.user2 == null) {
 			return "-1";
 		}
-		return user.getId();
-	}
-
-	public User getUser() {
-		return this.user;
-	}
-	
-	public void setUser(User user) {
-		this.user = user;
+		return user2.getAccessToken(user2.getLogins().get(0)).getId();
 	}
 
 	public void setUser2(User2 user2) {

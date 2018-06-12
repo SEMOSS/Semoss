@@ -1,8 +1,6 @@
 package prerna.auth;
 
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Vector;
 
 import prerna.om.AbstractValueObject;
 
@@ -12,38 +10,29 @@ public class AppTokens extends AbstractValueObject{
 	
 	public static AppTokens app = new AppTokens();
 	
-	private AppTokens()
-	{
+	private AppTokens() {
 		
 	}
 	
-	public static AppTokens getInstance()
-	{
+	public static AppTokens getInstance() {
 		return app;
 	}
 	
 	// need to have an access token store
-	Hashtable <String, AccessToken> accessTokens = new Hashtable<String, AccessToken>();
+	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	
 	
-	public void setAccessToken(AccessToken value)
-	{
-		String name = value.getProvider();
+	public void setAccessToken(AccessToken value) {
+		AuthProvider name = value.getProvider();
 		accessTokens.put(name, value);
 	}
 	
-
-	public AccessToken getAccessToken(String name)
-	{
+	public AccessToken getAccessToken(String name) {
 		return accessTokens.get(name);
 	}
 	
-	public void dropAccessToken(String name)
-	{
+	public void dropAccessToken(String name) {
 		accessTokens.remove(name);
 	}
-	
-	
-	
 
 }

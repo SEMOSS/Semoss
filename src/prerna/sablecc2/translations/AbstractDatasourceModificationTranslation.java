@@ -13,7 +13,7 @@ import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.map.AbstractMapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
-import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
+import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
 
 public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 
@@ -52,7 +52,7 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
     	}
     	// need to merge qs
     	else if(prevReactor != null && prevReactor instanceof AbstractQueryStructReactor) {
-    		if(prevReactor instanceof GoogleSheetSourceReactor || prevReactor instanceof WithReactor) {
+    		if(prevReactor instanceof GoogleFileRetrieverReactor || prevReactor instanceof WithReactor) {
     			//TODO: need to figure out google sheets!!!!
     			//TODO: need to figure out google sheets!!!!
     			//TODO: need to figure out google sheets!!!!

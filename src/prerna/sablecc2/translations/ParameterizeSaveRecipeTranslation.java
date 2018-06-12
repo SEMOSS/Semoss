@@ -48,7 +48,7 @@ import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
-import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
+import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
 
 public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	
@@ -196,7 +196,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 		super.inAOperation(node);
 		
 		if(this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileSourceReactor
-				|| this.curReactor instanceof GoogleSheetSourceReactor || this.curReactor instanceof FrameReactor) {
+				|| this.curReactor instanceof GoogleFileRetrieverReactor || this.curReactor instanceof FrameReactor) {
 			this.sourceStr = node.toString().trim();
 		}
 		else if(this.curReactor instanceof ImportDataReactor || this.curReactor instanceof MergeDataReactor) {

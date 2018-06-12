@@ -228,10 +228,7 @@ import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleListFilesReactor;
-import prerna.sablecc2.reactor.qs.source.GoogleSheetSourceReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
-import prerna.sablecc2.reactor.qs.source.ListGoogleDriveFilesReactor;
-import prerna.sablecc2.reactor.qs.source.ListGoogleSheetsReactor;
 import prerna.sablecc2.reactor.qs.source.OneDriveFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.OneDriveListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointDriveSelectorReactor;
@@ -466,9 +463,6 @@ public class ReactorFactory {
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
-		reactorHash.put("GoogleSheetSource", GoogleSheetSourceReactor.class);
-		reactorHash.put("ListGoogleSheets", ListGoogleSheetsReactor.class);
-		reactorHash.put("ListGoogleDriveFiles", ListGoogleDriveFilesReactor.class);
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
 		reactorHash.put("DropBoxFileRetriever", DropBoxFileRetrieverReactor.class);
@@ -755,8 +749,6 @@ public class ReactorFactory {
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
 		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
-		
-//		reactorHash.put("TestingCACTempReactorToUse", TestingCACTempReactorToUse.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
