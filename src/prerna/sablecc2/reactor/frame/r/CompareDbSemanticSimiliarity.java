@@ -5,7 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
@@ -19,56 +20,81 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.task.lambda.flatmap.FlatMapLambdaTask;
-import prerna.sablecc2.reactor.task.lambda.map.GoogleEntityAnalyzerLambda;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+
+/**
+ * This reactor builds an index of the semantic meaning of each column. It
+ * generates a descriptions using wiki and google of a sample of the data, then
+ * adds it to the local master index. The index is used to compare columns
+ * against each other based on semantic meaning. 
+ * 
+ * There are two options:
+ * 
+ * 1.) Generate descriptions, add them to the index, then create a frame to make
+ * the visualizations. Takes about 3 seconds a column 
+ * 2.) If the database was
+ * already indexed and hasnt changed we just create the frame for visualizing.
+ * 
+ */
 public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 	
-	public static final String DATABASES = "databases";
+	private static final String CLASS_NAME = CompareDbSemanticSimiliarity.class.getName();
 	public static final String UPDATED_BOOL = "updatedBool";
 
 	public CompareDbSemanticSimiliarity(){
-		this.keysToGet = new String[]{DATABASES, UPDATED_BOOL};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), UPDATED_BOOL};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		List<String> databaseList = getDatabases();
-		
+		Logger logger = getLogger(CLASS_NAME);
+		String database = this.keyValue.get(this.keysToGet[0]);
+		database = database.replace(" ", "_");
 		// check if packages are installed
-		String[] packages = { "lsa", "data.table", "WikidataR", "LSAfun", "text2vec","plyr", "stringdist", "XML", "RCurl" };
+		String[] packages = { "lsa", "data.table", "WikidataR", "LSAfun", "text2vec","plyr", "stringdist" };
 		this.rJavaTranslator.checkPackages(packages);
 		
-		//		String frame = this.getFrame().getTableName();
-		String rMasterTable1 = "semanticMasterTable1";
-		String rTempTable = "semanticTempTable";
-		String resultsTable = "semanticResults";
-		// source all scripts
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String wrkDir = "setwd(\"" + DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\SemanticSimilarity\");";
-		wrkDir = wrkDir.replace("\\", "/");
-		this.rJavaTranslator.runR(wrkDir);
-		String sourceScript = "source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\column_doc.r\") ; ";
-		sourceScript = sourceScript.replace("\\", "/");
-		this.rJavaTranslator.runR(sourceScript);
-		String sourceScript2 = "source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\lsi_dataitem.r\") ; ";
-		sourceScript2 = sourceScript2.replace("\\", "/");
-		this.rJavaTranslator.runR(sourceScript2);
-		ArrayList<String> failedColArray = new ArrayList<String>();
-		boolean addFlag = getUpdatedBool();
+        String rMasterTable1 = "semanticMasterTable1";
+        String rTempTable = "semanticTempTable";
+        String resultsTable = "semResults";
+        String finalResultFrame = "semanticResults";
+        StringBuilder rsb = new StringBuilder();
+
+        // clean previous tables if re-running
+        rsb.append("rm(" + rMasterTable1 + ", " + rTempTable + "," + resultsTable + ", " + finalResultFrame + ");\n");
+
+        // source all scripts
+        String wd = this.rJavaTranslator.getString("getwd()");
+        String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+        String wrkDir = "setwd(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\");\n";
+        wrkDir = wrkDir.replace("\\", "/");
+        rsb.append(wrkDir);
+        String sourceScript = "source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\column_doc.r\");\n";
+        sourceScript = sourceScript.replace("\\", "/");
+        rsb.append(sourceScript);
+        String sourceScript2 = "source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\lsi_dataitem.r\");\n";
+        sourceScript2 = sourceScript2.replace("\\", "/");
+        rsb.append(sourceScript2);
+        this.rJavaTranslator.runR(rsb.toString());
+        ArrayList<String> failedColArray = new ArrayList<String>();
+        
+        // indexing: skip if user already indexed this db and doesnt want to update the data
+        boolean addFlag = getUpdatedBool();
 		if(addFlag){
-			for (String database : databaseList) {
-				IEngine engine = Utility.getEngine(database);
+				String dbAlias = MasterDatabaseUtility.testEngineIdIfAlias(database);
+				IEngine engine = Utility.getEngine(dbAlias);
 				List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engine.getEngineId());
 
-				// iterate this and if table changes then execute and do R updates
+				// iterate all columns in db and run R script to generate 
+				// description and add to local master index
 				int count = 0;
 				for (Object[] tableCol : allTableCols) {
 					SelectQueryStruct qs = new SelectQueryStruct();
@@ -82,133 +108,198 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							QueryColumnSelector colSelector = new QueryColumnSelector();
 							colSelector.setTable(table);
 							colSelector.setColumn(col);
-							colSelector.setAlias(engine.getEngineId() + "$" + table + "$" + col);
+							colSelector.setAlias(engine.getEngineName() + "$" + table + "$" + col);
 							typesMap.put(col, dataType);
 							qs.addSelector(colSelector);
-							// only values that arnent null
+							
+							// select only non-null values from database
 							SimpleQueryFilter nulls = new SimpleQueryFilter(
 									new NounMetadata(colSelector, PixelDataType.COLUMN), "!=",
 									new NounMetadata("null", PixelDataType.NULL_VALUE));
 							qs.addExplicitFilter(nulls);
-
-							// execute query and run r stuff
 							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 							if(!iterator.hasNext()){
 								// all values are null in this column
-								failedColArray.add(engine.getEngineId() + "$" + table + "$" + col );
+								failedColArray.add(database + "$" + table + "$" + col );
 								continue;
 							}
-							// write to csv and read to R
+							StringBuilder sb = new StringBuilder();
+
+							// write to csv and read into R
 							String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 							File newFile = Utility.writeResultToFile(newFileLoc, iterator, typesMap, "\t");
-							String loadFileRScript = rTempTable + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
-							this.rJavaTranslator.runR(loadFileRScript);
+							String loadFileRScript = rTempTable + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");\n";
+							sb.append(loadFileRScript);
 							newFile.delete();
 
-							// get random subset
-							this.rJavaTranslator.runR(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),20),c(\"" + engine.getEngineId() + "$" + table + "$" + col + "\")]");
-							
-							/// update run individually for each column
-							this.rJavaTranslator.runR(rMasterTable1 + "<-as.data.frame(" + rMasterTable1 + ");");
-							this.rJavaTranslator.runR("errorResults <- column_doc_mgr(" + rMasterTable1 + ",\"column-desc-set\", googleSearch=FALSE);");
+							// get random subset of column data
+							sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),20),c(");
+							sb.append("\"" + database + "$" + table + "$" + col + "\"");
+							sb.append(")];\n");
+
+							// execute script to get descriptions for this column
+							sb.append(rTempTable + "<-as.data.frame(" + rTempTable + ");\n");
+							logger.info("Adding " + col + " from table " + table + " and database " + database + " to the local master index...");
+							sb.append("errorResults <- column_doc_mgr(" + rTempTable + ",\"column-desc-set\");\n");
+							this.rJavaTranslator.runR(sb.toString());
 							String checkNull = "is.null(errorResults)";
 							boolean nullResults = true; 
 							nullResults = this.rJavaTranslator.getBoolean(checkNull);
 							this.rJavaTranslator.runR("rm(errorResults)");
+							
+							// keep track of any columns that fail
 							if (nullResults){
-								// TODO: run Google NLP
-								failedColArray.add(engine.getEngineId() + "$" + table + "$" + col );
+								failedColArray.add(database + "$" + table + "$" + col );							
 							}
 						}
-					} else {
-						throw new IllegalArgumentException("The source data isnt good!!!!!");
-					}
+					} 
 				}
-				if (count == 0){
-					throw new IllegalArgumentException("There were no String values to use for exploring!");
-				}
-				count = 0;
+			if (count == 0) {
+				this.rJavaTranslator.runR("setwd('" + wd + "');\n");
+				this.rJavaTranslator.runR("rm(apply_tfidf, build_query_tdm, col2db,column_doc_mgr, "
+						+ "compute_column_desc_sim, find_columns_bydesc, "
+						+ "get_sim_query, lsi_mgr, build_query_doc, build_tdm, col2tbl, "
+						+ "column_lsi_mgr, compute_entity_sim, create_column_doc, "
+						+ "find_exist_columns_bydesc, get_similar_doc, match_desc, "
+						+ "table_lsi_mgr,construct_column_doc, constructName,  discover_column_desc, "
+						+ "get_column_desc,get_column_desc_alt, getSearchURL);");
+				NounMetadata noun = new NounMetadata("There were no String values to use for exploring!", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException exception = new SemossPixelException(noun);
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
 			}
 
-			////////// run georges scripts
-			this.rJavaTranslator.runR(rMasterTable1 + "<-as.data.frame(" + rMasterTable1 + ");");
+			// run lsi scripts to build index
+			this.rJavaTranslator.runR(rTempTable + "<-as.data.frame(" + rTempTable + ");");
 			this.rJavaTranslator.runR("column_lsi_mgr(\"column-desc-set\",\"X4\",\"score\",0.8)");
 			this.rJavaTranslator.runR("compute_column_desc_sim(\"column-desc-set\")");
-			System.out.println("THESE COLUMNS FAILED!!! :::::::" + failedColArray);
+			logger.debug("THESE COLUMNS FAILED!!! " + failedColArray);
 		}
-		this.rJavaTranslator.runR(resultsTable + "<-readRDS(\"column-desc-set-sim.rds\");");
-		
-		// starts with DB
-		String test6 = resultsTable + "<-" + resultsTable + "[grep(\"^" + databaseList.get(0) + "\",rownames(" + resultsTable + ")),]";
-		this.rJavaTranslator.runR(test6);
-		this.rJavaTranslator.runR("library(data.table); " + resultsTable + "<-as.data.table(as.table(" + resultsTable + "));");
 
-		// remove all values less than zero
-		this.rJavaTranslator.runR(resultsTable + "[" + resultsTable + "< 0,]= 0");
+		// The scripts creates 3 separate files one for columns vs LM, tables vs LM,
+		// and database vs LM. So we have to read them and create one final frame to
+		// visualize off of.
 		
-		// update header names
-		this.rJavaTranslator.runR(resultsTable + "$" + databaseList.get(0) + "<-" + resultsTable + "$V1");
-		this.rJavaTranslator.runR(resultsTable + "$LocalMaster<-" + resultsTable + "$V2");
-		this.rJavaTranslator.runR(resultsTable + " <- " + resultsTable + "[,-c(\"V1\",\"V2\")]");
-	
-		// TABLES
-		String tablesResults = "semanticResultsTables";
-		this.rJavaTranslator.runR("compute_entity_sim(\"column-desc-set\",\"table-desc-set\", sep=\"$\")");
-		String test11 = tablesResults + "<-readRDS(\"table-desc-set-sim.rds\")";
-		this.rJavaTranslator.runR(test11);
-		this.rJavaTranslator.runR("library(data.table); " + tablesResults + "<-as.data.table(as.table(" + tablesResults + "));");
-		String test13 = tablesResults + "[" + tablesResults + "< 0,]= 0";
-		this.rJavaTranslator.runR(test13);
-		this.rJavaTranslator.runR(tablesResults + "$" + databaseList.get(0) + "<-" + tablesResults + "$V1");
-		this.rJavaTranslator.runR(tablesResults + "$LocalMaster<-" + tablesResults + "$V2");
-		this.rJavaTranslator.runR(tablesResults + " <- " + tablesResults + "[,-c(\"V1\",\"V2\")]");
-		//remove NaN values
-		this.rJavaTranslator.runR(tablesResults + "$N[" + tablesResults + "$N==\"NaN\"] <- 0");
-		// clean up the decimal places
-		this.rJavaTranslator.runR(tablesResults + "$" + databaseList.get(0) + "<-gsub(\"$\",\"\"," + tablesResults+ "$" + databaseList.get(0) + ")");
-		
-		// create an R datatable
-		String dbResults = "semanticResultsDb";
-		String databaseScript = "compute_entity_sim(\"column-desc-set\",\"database-desc-set\",\"database\", sep=\"$\")";
-		this.rJavaTranslator.runR(databaseScript);
-		String test14 = dbResults + "<-readRDS(\"database-desc-set-sim.rds\")";
-		this.rJavaTranslator.runR(test14);
-		// removes rows that arent from current db we are viewing
-		this.rJavaTranslator.runR("library(data.table); " + dbResults + "<-as.data.table(as.table(" + dbResults + "));");
-		String test16 = dbResults + "[" + dbResults + "< 0,]= 0";
-		this.rJavaTranslator.runR(test16);
-		this.rJavaTranslator.runR(dbResults + "$" + databaseList.get(0) + "<-" + dbResults + "$V1");
-		this.rJavaTranslator.runR(dbResults + "$LocalMaster<-" + dbResults + "$V2");
-		this.rJavaTranslator.runR(dbResults + " <- " + dbResults + "[,-c(\"V1\",\"V2\")]");
-		this.rJavaTranslator.runR(dbResults + "$N[" + dbResults + "$N==\"NaN\"] <- 0");
-		// make whole number
-		this.rJavaTranslator.runR(dbResults + "$N<-" + dbResults +"$N * 100");
+		// read index files and generate frame for the visualizations.
+		String rSemanticResultsMatrix = "semMatrix";
 
-		// if this is the only entry then throw a warning
-		int rows = this.rJavaTranslator.getInt("nrow(" + dbResults + ");");
-		if (rows < 2){
-			throw new IllegalArgumentException("Only one entry to compare, run again to view your results!");
-		}
-		
-		// clean garbage
-		this.rJavaTranslator.runR("rm(apply_tfidf, build_query_tdm, col2db,column_doc_mgr, compute_column_desc_sim, find_columns_bydesc, "
-				+ "get_sim_query, lsi_mgr, build_query_doc, build_tdm, col2tbl, column_lsi_mgr, compute_entity_sim, create_column_doc, "
-				+ "find_exist_columns_bydesc, get_similar_doc, match_desc, table_lsi_mgr);");
-		
-		// return 3 frames
-		RDataTable returnTable = createFrameFromVaraible(resultsTable);
-		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
-		this.insight.getVarStore().put(resultsTable, retNoun);
+        // create results frame r code
+        rsb = new StringBuilder();
+        rsb.append(rSemanticResultsMatrix + "<-readRDS(\"column-desc-set-sim.rds\");\n");
+        
+        // only keep columns from database we are looking at
+        rsb.append(rSemanticResultsMatrix + "<-" + rSemanticResultsMatrix + "[grep(\"^" + database + "\",rownames(" + rSemanticResultsMatrix + ")),];\n");
+        rsb.append("library(data.table);\n" + resultsTable + "<-as.data.table(as.table(" + rSemanticResultsMatrix + "));\n");
+        
+        // check if resultsTable exists
+        rsb.append("if(exists('" + resultsTable + "')) {\n");
 
-		RDataTable tablesRet = createFrameFromVaraible(tablesResults);
-		NounMetadata retNounT = new NounMetadata(tablesRet, PixelDataType.FRAME);
-		this.insight.getVarStore().put(tablesResults, retNounT);
+        // set all values less than zero to zero
+        rsb.append(resultsTable + "[" + resultsTable + "< 0,]= 0;\n");
+        
+        // update header names
+        rsb.append("colnames("+resultsTable+")[1] <- \"" + database + "\";\n");
+        rsb.append("colnames("+resultsTable+")[2] <-\"LocalMasterColumns"+ "\";\n");
+        
+        // compute and read in similar tables set
+        String tablesResults = "semanticResultsTables";
+        rsb.append("\n\n");
+        rsb.append("compute_entity_sim(\"column-desc-set\",\"table-desc-set\", sep=\"$\");\n");
+        String rTableRDS = "tableRDS";
+        rsb.append(rTableRDS + "<-readRDS(\"table-desc-set-sim.rds\");\n");
+        rsb.append(tablesResults + "<-as.data.table(as.table(" + rTableRDS + "));\n");
+        
+        // check if tablesResults exists
+        rsb.append("if(exists('" + tablesResults + "')) {\n");
 
-		RDataTable dbRet = createFrameFromVaraible(dbResults);
-		NounMetadata retNounD = new NounMetadata(dbRet, PixelDataType.FRAME);
-		this.insight.getVarStore().put(dbResults, retNounD);
+        // rename column names
+        rsb.append("colnames(" + tablesResults + ")[1] <- \"" + database + "\";\n");
+        rsb.append("colnames(" + tablesResults + ")[2] <- \"" + "LocalMasterTables" + "\";\n");
+        rsb.append(tablesResults + "[" + tablesResults + "< 0,]= 0;\n");
+        
+        // remove NaN values
+        rsb.append(tablesResults + "$N[" + tablesResults + "$N==\"NaN\"] <- 0;\n");
+        
+        // clean up dollar sign from end of database name
+        rsb.append(tablesResults + "$" + database + "<-gsub(\"$\",\"\"," + tablesResults + "$" + database + ");\n");
+        rsb.append("\n\n");
+        
+        // compute and read in similar databases set
+        String dbResults = "semanticResultsDb";
+        String rDbRDS = "dbRDS";
+        String databaseScript = "compute_entity_sim(\"column-desc-set\",\"database-desc-set\",\"database\", sep=\"$\");\n";
+        rsb.append(databaseScript);
+        rsb.append(rDbRDS + "<-readRDS(\"database-desc-set-sim.rds\");\n");
+        
+        // removes rows that arent from current db we are viewing
+        rsb.append(dbResults + "<-as.data.table(as.table(" + rDbRDS + "));\n");
+        rsb.append("if(exists('" + dbResults + "')) {\n");
+        
+        // filter table using db
+        rsb.append(dbResults+" <-" + dbResults + "[which(" + dbResults + "$V1 == '" + database + "')];\n");
+        
+        // change column headers for dbResults
+        rsb.append("colnames(" + dbResults + ")[1] <- \"" + database + "\";\n");
+        rsb.append("colnames(" + dbResults + ")[2] <- \""+"LocalMasterDatabases"+"\";\n");
+        
+        // clean data for dbResults
+        rsb.append(dbResults + "[" + dbResults + "< 0,]= 0;\n");
+        rsb.append(dbResults + "$N[" + dbResults + "$N==\"NaN\"] <- 0;\n");
+        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"LocalMasterColumns\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
+        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + database + "\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
+        rsb.append("colnames("+resultsTable+")[4] <- \""+"LocalMasterDatabases"+"\";\n");
+        
+        // create unique ids so we can merge together the 3 result 
+        // frames (column data, table data, and database data)
+        rsb.append(resultsTable + "$tableid1 <- apply( " + resultsTable + "[ , c('LocalMasterDatabases','LocalMasterColumns_2') ] , 1 , paste , collapse = \"$\" );\n");
+        rsb.append(resultsTable + "$tableid2 <- apply( " + resultsTable + "[ , c('" + database + "_1','" + database + "_2') ] , 1 , paste , collapse = \"$\" );\n");
+        rsb.append(resultsTable + "$tableid <- apply( " + resultsTable + "[ , c('tableid1','tableid2') ] , 1 , paste , collapse = \"===\" );\n");
+        rsb.append("colnames("+resultsTable+")[3] <- \""+"NCol"+"\";\n");
+        rsb.append(resultsTable + " <- " + resultsTable + "[,c('NCol','" + database + "','LocalMasterColumns', 'tableid', 'LocalMasterDatabases')];\n");
 
-		return new NounMetadata(failedColArray, PixelDataType.VECTOR);
+        rsb.append("colnames(" + tablesResults + ")[3] <- \"" + "NTable" + "\";\n");
+        rsb.append("colnames(" + tablesResults + ")[1] <- \"" + database + "Table" + "\";\n");
+        rsb.append(tablesResults + "$tableid <- apply( " + tablesResults + "[ , c('LocalMasterTables','" + database + "Table') ] , 1 , paste , collapse = \"===\" );\n");
+
+        // rename db table colnames
+        rsb.append("colnames(" + dbResults + ")[3] <- \"" + "NDb" + "\";\n");
+        rsb.append("colnames(" + dbResults + ")[1] <- \"" + database + "Db" + "\";\n");
+        
+        // merge all three frames togther using the unique ids
+        rsb.append(resultsTable + "<- merge(" + resultsTable + "," + tablesResults + ", by='tableid');\n");
+        rsb.append(resultsTable + "<- merge(" + resultsTable + "," + dbResults + ", by='LocalMasterDatabases');\n");
+
+        // keep only the columns we need for the visualizations
+        rsb.append(finalResultFrame + " <- " + resultsTable + "[,c('NCol','NDb','NTable','" + database + "','" + database + "Table','" + database + "Db','LocalMasterColumns', 'LocalMasterTables', 'LocalMasterDatabases')];\n");
+        rsb.append("}\n");
+        rsb.append("}\n");
+        rsb.append("}\n");
+        rsb.append("setwd('"+wd+"');\n");
+        // clean garbage
+        rsb.append("rm(apply_tfidf, build_query_tdm, col2db,column_doc_mgr, "
+                    + "compute_column_desc_sim, find_columns_bydesc, "
+                    + "get_sim_query, lsi_mgr, build_query_doc, build_tdm, col2tbl, "
+                    + "column_lsi_mgr, compute_entity_sim, create_column_doc, "
+                    + "find_exist_columns_bydesc, get_similar_doc, match_desc, "
+                    + "table_lsi_mgr,construct_column_doc, constructName,  discover_column_desc, "
+                    + "get_column_desc,get_column_desc_alt, getSearchURL, " + rDbRDS + ","
+                    + tablesResults + ", " + rSemanticResultsMatrix + ", " + rTableRDS + ", " + resultsTable + ", " + dbResults + ");");
+        this.rJavaTranslator.runR(rsb.toString());
+
+        // check if process failed or if its the first entry in the 
+        // index, in which case we cant visualize it yet
+        String frameExists = "exists('" + finalResultFrame + "')";
+        boolean nullResults = this.rJavaTranslator.getBoolean(frameExists);
+        if (!nullResults) {
+			NounMetadata noun = new NounMetadata("Unable to view your results. Must have more than one database indexed.", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+        	SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+        }
+
+        RDataTable returnTable = createFrameFromVaraible(finalResultFrame);
+        this.insight.setDataMaker(returnTable);
+        return new NounMetadata(returnTable, PixelDataType.FRAME);
 	}
 	
 	private boolean getUpdatedBool() {
@@ -220,19 +311,5 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 			}
 		}
 		return true;
-	}
-
-	private List<String> getDatabases() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(DATABASES);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<String> values = columnGrs.getAllStrValues();
-				return values;
-			}
-		}
-		// else, we assume it is values in the curRow
-		List<String> values = this.curRow.getAllStrValues();
-		return values;
 	}
 }
