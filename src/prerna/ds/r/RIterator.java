@@ -184,5 +184,9 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	public void setColTypes(String[] colTypes) {
 		this.colTypes = colTypes;
 	}
+	
+	public int getNumRows() {
+		return this.numRows;
+	}
 
 }
