@@ -62,7 +62,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	public static boolean sizeWithinLimit(AbstractTableDataFrame frame, String varName) {
-		if(frame.size(varName) > LIMIT_SIZE) {
+		if( (LIMIT_SIZE != Integer.MAX_VALUE) && frame.size(varName) > LIMIT_SIZE) {
 			return false;
 		}
 		return true;
