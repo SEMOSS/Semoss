@@ -9,7 +9,7 @@ import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.om.RemoteItem;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -40,7 +40,7 @@ public class DropBoxListFilesReactor extends AbstractReactor{
 
 		//get access token
 		String accessToken = null;
-		User2 user = this.insight.getUser2();
+		User user = this.insight.getUser();
 		try{
 			if(user==null){
 				Map<String, Object> retMap = new HashMap<String, Object>();

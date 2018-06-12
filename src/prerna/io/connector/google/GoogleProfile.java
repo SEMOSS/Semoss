@@ -4,7 +4,7 @@ import java.util.Hashtable;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
@@ -19,7 +19,7 @@ public class GoogleProfile implements IConnectorIOp{
 	String jsonPattern = "[name, gender, locale]";
 	
 	@Override
-	public String execute(User2 user, Hashtable params) 
+	public String execute(User user, Hashtable params) 
 	{
 		if(params == null)
 			params = new Hashtable();
