@@ -425,7 +425,7 @@ public class OldInsight extends Insight {
 					}
 				}
 			}
-			this.dataMaker.setUserId(this.user.getId());
+			this.dataMaker.setUserId(this.getUserId());
 		}
 		return this.dataMaker;
 	}
@@ -451,7 +451,7 @@ public class OldInsight extends Insight {
 	public void setDataMaker(IDataMaker dataMaker) {
 		this.dataMaker = dataMaker;
 		if(this.dataMaker.getUserId() == null) {
-			this.dataMaker.setUserId(this.user.getId());
+			this.dataMaker.setUserId(this.getUserId());
 		}
 		this.dataMakerName = dataMaker.getDataMakerName();
 	}
@@ -982,21 +982,4 @@ public class OldInsight extends Insight {
 	public int hashCode() {
 		return this.insightId.hashCode();
 	}
-	
-   public Insight emptyCopyForSave() {
-       OldInsight insightCopy = new OldInsight(this.mainEngine,this.dataMakerName, this.layout);
-       insightCopy.paramHash = this.paramHash;
-       insightCopy.user = this.user;
-       insightCopy.makeupEngine = this.makeupEngine;
-       insightCopy.playSheet = this.playSheet;
-       insightCopy.dataTableAlign = this.dataTableAlign;
-       insightCopy.dataMaker = this.dataMaker;
-       insightCopy.dataMakerName = this.dataMakerName;
-       insightCopy.dmComponents = new ArrayList<>();
-       insightCopy.paramHash = this.paramHash; // the parameters selected by user for filtering on insights
-       insightCopy.uiOptions = this.uiOptions;
-       insightCopy.insightId = this.insightId;
-       
-       return insightCopy;
-   }
 }

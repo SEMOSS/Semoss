@@ -37,7 +37,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 
 		// Get the Insight, grab its ID
 		// set the user id into the insight
-		insightObj.setUser(this.insight.getUser());
+		insightObj.setUser2(this.insight.getUser2());
 		Map<String, List<Object>> params = getParamMap();
 		if(!insightObj.isOldInsight()) {
 			throw new IllegalArgumentException("This is a legacy pixel that should only be used for old insights");
