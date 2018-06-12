@@ -42,9 +42,10 @@ public class User extends AbstractValueObject {
 	 */
 	public boolean dropAccessToken(String name) {
 		// remove from token map
-		AccessToken token = accessTokens.remove(name);
+		AuthProvider tokenKey = AuthProvider.valueOf(name);
+		AccessToken token = accessTokens.remove(tokenKey);
 		// remove from profiles list
-		loggedInProfiles.remove(name);
+		loggedInProfiles.remove(tokenKey);
 		// return false if the token actually wasn't found
 		if(token == null) {
 			return false;
