@@ -30,7 +30,7 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 		if(mapLambda == null) {
 			throw new IllegalArgumentException("Unknown transformation type");
 		}
-		mapLambda.setUser2(this.insight.getUser2());
+		mapLambda.setUser(this.insight.getUser());
 		mapLambda.init(this.task.getHeaderInfo(), columns);
 		
 		// create a new task and add to stores

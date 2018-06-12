@@ -4,7 +4,7 @@ import java.util.Hashtable;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.GeoLocation;
 import prerna.security.AbstractHttpHelper;
@@ -20,7 +20,7 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 	String jsonPattern = "results[*].geometry.location.[lat, lng][]";
 	
 	@Override
-	public Object execute(User2 user, Hashtable params) 
+	public Object execute(User user, Hashtable params) 
 	{
 		if(params == null) {
 			params = new Hashtable();
