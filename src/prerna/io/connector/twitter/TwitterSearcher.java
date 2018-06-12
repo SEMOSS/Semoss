@@ -33,7 +33,7 @@ public class TwitterSearcher implements IConnectorIOp{
 			params = new Hashtable();
 		}
 		
-		AccessToken twitToken = user.getAccessToken(AuthProvider.TWITTER.name());
+		AccessToken twitToken = user.getAccessToken(AuthProvider.TWITTER);
 		String accessToken = twitToken.getAccess_token();
 				
 		// make the API call

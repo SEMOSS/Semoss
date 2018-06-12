@@ -2,7 +2,7 @@ package prerna.auth;
 
 public class AccessToken {
 
-	String provider = null;
+	AuthProvider provider = null;
 	
 	String id = null;
 	String username = null;
@@ -43,11 +43,11 @@ public class AccessToken {
 		startTime = System.currentTimeMillis();
 	}
 
-	public String getProvider() {
+	public AuthProvider getProvider() {
 		return provider;
 	}
 
-	public void setProvider(String provider) {
+	public void setProvider(AuthProvider provider) {
 		this.provider = provider;
 	}
 
