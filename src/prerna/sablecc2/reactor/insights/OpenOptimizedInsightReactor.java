@@ -83,7 +83,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		InsightStore.getInstance().put(newInsight);
 		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set user 
-		newInsight.setUser2(this.insight.getUser2());
+		newInsight.setUser(this.insight.getUser());
 		// get the insight output
 		PixelRunner runner = null;
 		// add additional pixels if necessary

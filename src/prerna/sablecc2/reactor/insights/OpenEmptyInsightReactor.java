@@ -29,7 +29,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		InsightStore.getInstance().put(newInsight);
 		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set the user in the insight
-		newInsight.setUser2(this.insight.getUser2());
+		newInsight.setUser(this.insight.getUser());
 
 		List<String> recipe = Arrays.asList(getRecipe());
 		List<String> newRecipe = new Vector<String>();

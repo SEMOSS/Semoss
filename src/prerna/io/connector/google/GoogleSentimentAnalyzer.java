@@ -4,7 +4,7 @@ import java.util.Hashtable;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.SentimentAnalysis;
 import prerna.security.AbstractHttpHelper;
@@ -18,7 +18,7 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 	String jsonPattern = "sentences[].{sentence: text.content, magnitude: sentiment.magnitude, score:sentiment.score}";
 	
 	@Override
-	public Object execute(User2 user, Hashtable params) {
+	public Object execute(User user, Hashtable params) {
 		// if no input, unsure what you will get...
 		if(params == null) {
 			params = new Hashtable();

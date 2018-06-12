@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -51,7 +51,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 
 		//get access token
 		String accessToken=null;
-		User2 user = this.insight.getUser2();
+		User user = this.insight.getUser();
 		try {
 			if(user==null){
 				Map<String, Object> retMap = new HashMap<String, Object>();

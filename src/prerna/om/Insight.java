@@ -40,7 +40,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
@@ -73,7 +73,7 @@ public class Insight {
 	protected String insightId;
 
 	// new user object
-	protected User2 user2;
+	protected User user;
 	protected String insightName;
 
 	// if this is a saved insight
@@ -366,26 +366,26 @@ public class Insight {
 		this.insightId = insightId;
 	}
 
-	public String getUser2Id(AuthProvider provider) {
-		if(this.user2 == null) {
+	public String getUserId(AuthProvider provider) {
+		if(this.user == null) {
 			return "-1";
 		}
-		return user2.getAccessToken(provider).getId();
+		return user.getAccessToken(provider).getId();
 	}
 	
 	public String getUserId() {
-		if(this.user2 == null) {
+		if(this.user == null) {
 			return "-1";
 		}
-		return user2.getAccessToken(user2.getLogins().get(0)).getId();
+		return user.getAccessToken(user.getLogins().get(0)).getId();
 	}
 
-	public void setUser2(User2 user2) {
-		this.user2 = user2;
+	public void setUser(User user) {
+		this.user = user;
 	}
 
-	public User2 getUser2() {
-		return this.user2;
+	public User getUser() {
+		return this.user;
 	}
 
 	public String getRdbmsId() {

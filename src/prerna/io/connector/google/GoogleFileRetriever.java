@@ -7,14 +7,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Hashtable;
 
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.security.AbstractHttpHelper;
 
 public class GoogleFileRetriever implements IConnectorIOp{
 
 	@Override
-	public Object execute(User2 user, Hashtable params) {
+	public Object execute(User user, Hashtable params) {
 		
 		
 		String fileName = (String)params.remove("target");
