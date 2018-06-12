@@ -15,11 +15,10 @@ import prerna.util.Utility;
 
 public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 	// pixel input keys
-	public static final String OVERRIDE = "override";
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
 
 	public ExtractAlphaCharsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), OVERRIDE };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
@@ -94,7 +93,7 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getOverride() {
-		GenRowStruct grs = this.store.getNoun(OVERRIDE);
+		GenRowStruct grs = this.store.getNoun(keysToGet[1]);
 		boolean override = false;
 		NounMetadata noun;
 		if (grs != null) {
@@ -104,14 +103,4 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 		return override;
 	}
 
-	///////////////////////// KEYS /////////////////////////////////////
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(OVERRIDE)) {
-			return "Indicates if the existing column will be overridden or if a new column will be created with \"_ALPHA\" appended";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
 }

@@ -14,11 +14,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class ExtractNumbersReactor extends AbstractRFrameReactor {
-	public static final String OVERRIDE = "override";
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";
 	
 	public ExtractNumbersReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), OVERRIDE};
+		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
 	}
 
 	@Override
@@ -77,7 +76,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		Vector<String> columns = new Vector<String>();
 		NounMetadata noun;
 		if (grs != null) {
@@ -95,7 +94,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getOverride() {
-		GenRowStruct grs = this.store.getNoun(OVERRIDE);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		boolean override = false;
 		NounMetadata noun;
 		if (grs != null) {
@@ -104,15 +103,5 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		}
 		return override;
 	}
-
-	///////////////////////// KEYS /////////////////////////////////////
 	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(OVERRIDE)) {
-			return "Indicates if the existing column will be overridden or if a new column will be created with \"_NUMERIC\" appended";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
 }
