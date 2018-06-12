@@ -8,7 +8,7 @@ import org.kohsuke.github.GitHub;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User2;
+import prerna.auth.User;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -34,7 +34,7 @@ public class UpdateAssetReactor extends AbstractReactor {
 		
 		organizeKeys();
 		
-		User2 user = insight.getUser2();
+		User user = insight.getUser();
 		String oauth = null;
 		AccessToken gitAccess = user.getAccessToken(AuthProvider.GIT);
 		
