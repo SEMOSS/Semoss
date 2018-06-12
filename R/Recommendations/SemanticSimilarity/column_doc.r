@@ -1,23 +1,38 @@
-column_doc_mgr<-function(df,fileroot,googleSearch=TRUE){
+column_doc_mgr<-function(df,fileroot,choice="both"){
 	library(XML)
 	library(RCurl)
 	library(stringr)
 	n<-ncol(df)
+	r<-data.frame()
+	#tempName<-Reduce("paste0",sample(letters,26))
+	tempName<-constructName()
 	for(i in 1:n){
+		# save original column name in case it has special characters
 		colname<-colnames(df)[i]
-		values<-as.character(df[,colname])
-		if(googleSearch){
-			t<-construct_column_doc(colname,values)
-		}else{
+		# Operate with temporary column name
+		colnames(df)[i]<-tempName
+		cmd<-paste0("values<-as.character(df$",tempName,")")
+		eval(parse( text=cmd ))
+		colnames(df)[i]<-colname
+		if(tolower(choice) == "both"){
 			t<-create_column_doc(colname,values)
-		}
-		if(i == 1){
-			r<-t
-		}else{
-			if(nrow(t) >0){
-				r<-rbind(r,t)
+			if(nrow(t) == 0){
+				t<-construct_column_doc(colname,values)
 			}
+		}else if(tolower(choice) == "wiki"){
+			t<-create_column_doc(colname,values)
+		}else{
+			t<-construct_column_doc(colname,values)
 		}
+		if(nrow(t) > 0){
+			if(i == 1){
+				r<-t
+			}else{
+				if(nrow(t) >0){
+					r<-rbind(r,t)
+				}
+			}
+		}	
 	}
 	filename<-paste0(fileroot,".rds")
 	if(file.exists(filename)){
@@ -31,6 +46,14 @@ column_doc_mgr<-function(df,fileroot,googleSearch=TRUE){
 	gc()
 }
 
+constructName<-function(n=1,size=26){
+	name <- c(1:n) 
+	for (i in 1:n){
+		name[i]<-paste(sample(c(0:9,letters,LETTERS),size,replace=TRUE),collapse="")
+	}
+	return(name)
+}
+
 getSearchURL <- function(searchTerm, domain = '.com', quotes=TRUE) {
 	searchTerm <- gsub(' ', '%20', searchTerm)
 	if(quotes) search.term <- paste('%22', searchTerm, '%22', sep='') 
@@ -38,11 +61,44 @@ getSearchURL <- function(searchTerm, domain = '.com', quotes=TRUE) {
 	return(searchURL)
 }
 
+discover_column_desc<-function(searchTerm){
+	EXCLUDE<-"Advanced searchSearch Help Send feedback"
+	EXCLUDE1<-"In order to show you the most relevant results"
+	searchURL<-getSearchURL(searchTerm=searchTerm)
+	doc.html <- getURL(searchURL, httpheader = c("User-Agent" = "R(2.10.0)"))
+	doc.html<-htmlTreeParse(doc.html,useInternal = TRUE)
+	doc.nodes <- getNodeSet(doc.html, "//h3[@class='r']//a")
+	col.desc<-NULL
+	if(length(doc.nodes) > 0){
+		doc.desc<-unlist(xpathApply(doc.nodes[[1]], '//p', xmlValue))
+		doc.desc<-str_trim(gsub('\\n', ' ', doc.desc),"both")
+		n<-length(doc.desc)
+		doc.desc<-doc.desc[!(doc.desc==EXCLUDE)]
+		doc.desc<-doc.desc[!(substr(doc.desc,1,nchar(EXCLUDE1))==EXCLUDE1)]
+		if(length(doc.desc) > 0){
+			col.desc<-doc.desc[1]
+		}	
+	}
+	return(col.desc)
+}
+
+get_column_desc_alt<-function(searchTerm){
+	EXCLUDE<-"Advanced searchSearch Help Send feedback"
+	EXCLUDE1<-"In order to show you the most relevant results"
+	searchURL<-getSearchURL(searchTerm=searchTerm)
+	doc.html <- getURL(searchURL, httpheader = c("User-Agent" = "R(2.10.0)"))
+	doc.html<-htmlTreeParse(doc.html,useInternal = TRUE)
+	doc.text<-unlist(xpathApply(doc.html, '//p', xmlValue))
+	doc.text<-str_trim(gsub('\\n', ' ', doc.text),"both")
+	doc.text<-doc.text[!(doc.text==EXCLUDE)]
+	doc.text<-doc.text[!(substr(doc.text,1,nchar(EXCLUDE1))==EXCLUDE1)]
+	return(doc.text)
+}
 get_column_desc<-function(searchTerm){
 	EXCLUDE<-"Advanced searchSearch Help Send feedback"
 	EXCLUDE1<-"In order to show you the most relevant results"
 	searchURL<-getSearchURL(searchTerm=searchTerm)
-	doc.html<-htmlTreeParse(getURL(searchURL),useInternal = TRUE)
+	doc.html<-htmlTreeParse(searchURL,useInternal = TRUE)
 	doc.text<-unlist(xpathApply(doc.html, '//p', xmlValue))
 	doc.text<-str_trim(gsub('\\n', ' ', doc.text),"both")
 	doc.text<-doc.text[!(doc.text==EXCLUDE)]
@@ -51,21 +107,30 @@ get_column_desc<-function(searchTerm){
 }
 
 construct_column_doc<-function(colname,values){
-	SAMPLE_SIZE=5
+	SAMPLE_SIZE=1
 	d<-data.frame()
 	n<-length(values)
 	for(i in 1:n){
-		a<-get_column_desc(values[i])
-		m<-min(length(a),SAMPLE_SIZE)
-		a<-a[sample(length(a),m)]
-		if(length(a) > 0){
-			b<-as.data.frame(a)
-			names(b)<-"X4"
-			b$score=nrow(b)-row(b)+1
-			b$score<-b$score/sum(row(b))
-			b$Original_Column<-colname
-			b<-b[,c(3,1,2)]
-			d<-rbind(d,b)
+		a<-tryCatch({
+			discover_column_desc(values[i])
+		},error=function(e){
+			NULL
+		})
+		#a<-discover_column_desc(values[i])
+		if(!is.null(a)){
+			m<-min(length(a),SAMPLE_SIZE)
+			a<-a[sample(length(a),m)]
+			if(length(a) > 0){
+				b<-as.data.frame(a)
+				names(b)<-"X4"
+				b$score=nrow(b)-row(b)+1
+				if(nrow(b) > 1){
+					b$score<-b$score/sum(row(b))
+				}
+				b$Original_Column<-colname
+				b<-b[,c(3,1,2)]
+				d<-rbind(d,b)
+			}
 		}
 	}
 	return(d)
@@ -146,6 +211,8 @@ create_column_doc<-function(colname,values){
 		if(length(a) > 0){
 			b<-data.frame(Reduce("rbind",lapply(a,function(x) cbind(x$title,x$label,x$pageid,ifelse(length(x$description)==0,NA,x$description)))))
 			if(nrow(b) > 0){
+				b$X4<-as.character(b$X4)
+				b[is.na(b$X4),"X4"]<-as.character(b[is.na(b$X4),"X2"])
 				b<-b[!(is.na(b$X4)),]
 				if(nrow(b) > 0){
 					if(nrow(d) > 0){
@@ -165,6 +232,8 @@ create_column_doc<-function(colname,values){
 			}else{
 				d$score<-abs(mean(d$X3))/(abs(d$X3-mean(d$X3))/sd(d$X3)+1)
 			}
+		}else{
+			d$score<-d$X3
 		}
 		d$score<-d$score/sum(d$score)
 		d<-d[order(-d$score),c("X4","score")]
