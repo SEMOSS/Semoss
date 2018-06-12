@@ -643,6 +643,7 @@ public class ReactorFactory {
 		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
 		reactorHash.put("GetExternalSchema", GetExternalDBSchemaReactor.class);
 		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
+		reactorHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
 		
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
@@ -777,6 +778,7 @@ public class ReactorFactory {
 
 	private static void populateRFrameHash(Map<String, Class> rFrameHash) {
 		rFrameHash.put("AddColumn", prerna.sablecc2.reactor.frame.r.AddColumnReactor.class);
+		rFrameHash.put("AutoCleanColumn", prerna.sablecc2.reactor.frame.r.AutoCleanColumnReactor.class);
 		rFrameHash.put("ChangeColumnType", prerna.sablecc2.reactor.frame.r.ChangeColumnTypeReactor.class);
 		rFrameHash.put("CountIf", prerna.sablecc2.reactor.frame.r.CountIfReactor.class);
 		rFrameHash.put("Collapse", prerna.sablecc2.reactor.frame.r.CollapseReactor.class);

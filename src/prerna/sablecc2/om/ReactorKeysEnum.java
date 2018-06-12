@@ -68,6 +68,7 @@ public enum ReactorKeysEnum {
 	OFFSET("offset", 										"Offset to add for the query results"),
 	OPTIONS("options", 										"Map of option values"),
 	ORNAMENTS_KEY("ornaments", 								"Panel ornaments"),
+	OVERRIDE("override", 									"Indicates if the existing value will be overridden or if a new value will be created"),
 	PANEL("panel", 											"Id of the panel"),
 	PANEL_COLOR_RULE_ID("panelCbv",							"Id of the color by value rule in the panel"), 								
 	PANEL_LABEL_KEY("panelLabel", 							"Label for the panel"),
