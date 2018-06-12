@@ -61,7 +61,7 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX.name());
+				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX);
 				accessToken=msToken.getAccess_token();
 			}
 		}
