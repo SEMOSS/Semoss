@@ -49,18 +49,18 @@ public class GraphFormatter extends AbstractFormatter {
 	private List<Integer[]> indexConnections;
 
 	// used for edge map
-	private static final String EDGES = "edges";
+	public static final String EDGES = "edges";
 	private static final String SOURCE = "source";
 	private static final String TARGET = "target";
 
 	// used for node map
-	private static final String NODES = "nodes";
+	public static final String NODES = "nodes";
 	private static final String VERTEX_TYPE_PROPERTY = "VERTEX_TYPE_PROPERTY";
 	private static final String VERTEX_COLOR_PROPERTY = "VERTEX_COLOR_PROPERTY";
 	private static final String VERTEX_LABEL_PROPERTY = "VERTEX_LABEL_PROPERTY";
 
 	private static final String PROP_HASH = "propHash";
-	private static final String GRAPH_META = "graphMeta";
+	public static final String GRAPH_META = "graphMeta";
 	static final String URI = "uri";
 
 	public GraphFormatter() {
