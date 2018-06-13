@@ -71,14 +71,24 @@ public class SqlJoinStruct {
 		targetTableAlias = tempTargetTableAlias;
 		targetCol = tempTargetCol;
 		
+		joinType = getReverseJoinType();
+	}
+	
+	/**
+	 * Get the reverse join type
+	 * @return
+	 */
+	public String getReverseJoinType() {
 		// if left -> switch to right
 		// if right -> switch to left
 		// else -> stay same
 		if(joinType.contains("left")) {
-			joinType = "right outer join";
+			return "right outer join";
 		} else if(joinType.contains("right")) {
-			joinType = "left outer join";
+			return "left outer join";
 		}
+		
+		return joinType;
 	}
 	
 	/////////////////////////////////////////////////////////////////////
