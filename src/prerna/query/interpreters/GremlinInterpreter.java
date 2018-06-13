@@ -37,6 +37,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	protected GenRowFilters allFilters;
 	
 	// the gremlin traversal being created
+	protected GraphTraversalSource g;
 	protected GraphTraversal gt;
 	// the list of variables being returned within the traversal
 	protected List<String> selectors;
@@ -47,18 +48,20 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	// identify the name for the vertex label
 	protected Map<String, String> nameMap;
 		
-	public GremlinInterpreter(GraphTraversalSource gt, Map<String, String> typeMap, Map<String, String> nameMap) {
-		this.gt = gt.V();
+	public GremlinInterpreter(GraphTraversalSource g, Map<String, String> typeMap, Map<String, String> nameMap) {
+		this.g = g;
+		this.gt = g.V();
 		this.typeMap = typeMap;
 		this.nameMap = nameMap;
 	}
 	
-	public GremlinInterpreter(GraphTraversalSource gt, OwlTemporalEngineMeta meta) {
-		this.gt = gt.V();
+	public GremlinInterpreter(GraphTraversalSource g, OwlTemporalEngineMeta meta) {
+		this.g = g;
+		this.gt = g.V();
 		this.meta = meta;
 	}
 
-	public Iterator composeIterator() {
+	public GraphTraversal composeIterator() {
 		this.allFilters = this.qs.getCombinedFilters();
 		generateSelectors();
 		traverseRelations();
@@ -605,4 +608,30 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	public String composeQuery() {
 		return null;
 	}
+	
+	//////////////////////////////////////////////////////////
+	
+	/**
+	 * Get the names of the nodes
+	 * @return
+	 */
+	public Map<String, String> getNameMap() {
+		return this.nameMap;
+	}
+	
+	public void reset() {
+		this.gt = g.V();
+	}
+	
+	public GremlinInterpreter copy() {
+		GremlinInterpreter interp = null;
+		if(this.meta != null) {
+			interp = new GremlinInterpreter(this.g, this.meta);
+		} else {
+			interp = new GremlinInterpreter(this.g, this.typeMap, this.nameMap);
+		}
+		interp.setQueryStruct(this.qs);
+		return interp;
+	}
+	
 }
