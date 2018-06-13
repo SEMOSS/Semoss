@@ -101,6 +101,7 @@ import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
+import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
 import prerna.sablecc2.reactor.frame.r.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.RNumericalCorrelationReactor;
 import prerna.sablecc2.reactor.frame.r.ROutlierAlgorithmReactor;
@@ -644,6 +645,8 @@ public class ReactorFactory {
 		reactorHash.put("GetExternalSchema", GetExternalDBSchemaReactor.class);
 		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
 		reactorHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
+		reactorHash.put("SemanticDescription", GetSemanticDescription.class);
+
 		
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
