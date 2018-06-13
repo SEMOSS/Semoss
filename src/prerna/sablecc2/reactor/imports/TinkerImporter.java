@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -96,12 +97,47 @@ public class TinkerImporter implements IImporter {
 		
 		// get the edge hash from the qs
 		Map<String, Set<String>> edgeHash = ImportUtility.getEdgeHash(this.qs);
+		processEdgeHash(edgeHash, joins);
 		// determine if there are loops
 		List<String[]> loopRels = getLoopRels(edgeHash, existingRels);
 		if(loopRels.isEmpty()) {
 			return processMerge(edgeHash, joinMods);
 		} else {
 			return processLoop(loopRels, joinMods, joins);
+		}
+	}
+	
+	/**
+	 * When we try to join via properties and never add a concept
+	 * The edge hash will be incomplete
+	 * @param edgeHash
+	 * @param joins
+	 */
+	private void processEdgeHash(Map<String, Set<String>> edgeHash, List<Join> joins) {
+		Set<String> availableKeys = new HashSet<String>();
+		for(String k : edgeHash.keySet()) {
+			if(!edgeHash.get(k).isEmpty()) {
+				// we have a valid edge hash
+				// just return 
+				return;
+			}
+			availableKeys.add(k);
+		}
+		
+		// if we got to this point
+		// the edge hash needs to be readjsuted
+		for(Join j : joins) {
+			String frameValue = j.getSelector();
+			String newValue = j.getQualifier();
+			if(newValue.contains("__")) {
+				newValue = newValue.split("__")[1];
+			}
+			// if both values are returned
+			// set them up as a relationship
+			// from frame to new
+			if(availableKeys.contains(frameValue) && availableKeys.contains(newValue)) {
+				edgeHash.get(frameValue).addAll(availableKeys.stream().filter(p -> !p.equals(frameValue)).collect(Collectors.toList()));
+			}
 		}
 	}
 	
