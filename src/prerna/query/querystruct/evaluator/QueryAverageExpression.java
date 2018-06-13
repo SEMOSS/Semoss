@@ -16,6 +16,9 @@ public class QueryAverageExpression implements IQueryStructExpression {
 	
 	@Override
 	public Object getOutput() {
+		if(this.count == 0) {
+			return 0;
+		}
 		return this.sum / this.count;
 	}
 
