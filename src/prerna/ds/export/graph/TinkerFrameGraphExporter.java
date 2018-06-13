@@ -59,7 +59,16 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		if(this.vertsIt == null) {
 			createVertsIt();
 		}
-		return this.vertsIt.hasNext();
+		if(this.vertsIt.hasNext()) {
+			return true;
+		} else {
+			try {
+				this.vertsIt.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return false;
+		}
 	}
 	
 	@Override
@@ -160,7 +169,16 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		if(this.edgesIt == null) {
 			createEdgesIt();
 		}
-		return this.edgesIt.hasNext();
+		if(this.edgesIt.hasNext()) {
+			return true;
+		} else {
+			try {
+				this.edgesIt.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return false;
+		}
 	}
 	
 	@Override
