@@ -62,12 +62,18 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 		String[] packages = { "lsa", "data.table", "WikidataR", "LSAfun", "text2vec","plyr", "stringdist" };
 		this.rJavaTranslator.checkPackages(packages);
 		
+		//r temp variables
         String rMasterTable1 = "semanticMasterTable1";
         String rTempTable = "semanticTempTable";
         String resultsTable = "semResults";
+        // frame name
         String finalResultFrame = "semanticResults";
+        // frame column names
+        String lmColumns = "LocalMasterColumns";
+        String lmTables = "LocalMasterTables";
+        String lmDatabases = "LocalMasterDatabases";
+        
         StringBuilder rsb = new StringBuilder();
-
         // clean previous tables if re-running
         rsb.append("rm(" + rMasterTable1 + ", " + rTempTable + "," + resultsTable + ", " + finalResultFrame + ");\n");
 
@@ -199,7 +205,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         
         // update header names
         rsb.append("colnames("+resultsTable+")[1] <- \"" + database + "\";\n");
-        rsb.append("colnames("+resultsTable+")[2] <-\"LocalMasterColumns"+ "\";\n");
+        rsb.append("colnames("+resultsTable+")[2] <-\"" + lmColumns + "\";\n");
         
         // compute and read in similar tables set
         String tablesResults = "semanticResultsTables";
@@ -214,7 +220,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 
         // rename column names
         rsb.append("colnames(" + tablesResults + ")[1] <- \"" + database + "\";\n");
-        rsb.append("colnames(" + tablesResults + ")[2] <- \"" + "LocalMasterTables" + "\";\n");
+        rsb.append("colnames(" + tablesResults + ")[2] <- \"" + lmTables + "\";\n");
         rsb.append(tablesResults + "[" + tablesResults + "< 0,]= 0;\n");
         
         // remove NaN values
@@ -240,26 +246,26 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         
         // change column headers for dbResults
         rsb.append("colnames(" + dbResults + ")[1] <- \"" + database + "\";\n");
-        rsb.append("colnames(" + dbResults + ")[2] <- \""+"LocalMasterDatabases"+"\";\n");
+        rsb.append("colnames(" + dbResults + ")[2] <- \"" + lmDatabases +"\";\n");
         
         // clean data for dbResults
         rsb.append(dbResults + "[" + dbResults + "< 0,]= 0;\n");
         rsb.append(dbResults + "$N[" + dbResults + "$N==\"NaN\"] <- 0;\n");
-        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"LocalMasterColumns\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
+        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + lmColumns + "\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
         rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + database + "\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
-        rsb.append("colnames("+resultsTable+")[4] <- \""+"LocalMasterDatabases"+"\";\n");
+        rsb.append("colnames("+resultsTable+")[4] <- \"" + lmDatabases + "\";\n");
         
         // create unique ids so we can merge together the 3 result 
         // frames (column data, table data, and database data)
-        rsb.append(resultsTable + "$tableid1 <- apply( " + resultsTable + "[ , c('LocalMasterDatabases','LocalMasterColumns_2') ] , 1 , paste , collapse = \"$\" );\n");
+        rsb.append(resultsTable + "$tableid1 <- apply( " + resultsTable + "[ , c('" + lmDatabases + "','" + lmColumns + "_2') ] , 1 , paste , collapse = \"$\" );\n");
         rsb.append(resultsTable + "$tableid2 <- apply( " + resultsTable + "[ , c('" + database + "_1','" + database + "_2') ] , 1 , paste , collapse = \"$\" );\n");
         rsb.append(resultsTable + "$tableid <- apply( " + resultsTable + "[ , c('tableid1','tableid2') ] , 1 , paste , collapse = \"===\" );\n");
         rsb.append("colnames("+resultsTable+")[3] <- \""+"NCol"+"\";\n");
-        rsb.append(resultsTable + " <- " + resultsTable + "[,c('NCol','" + database + "','LocalMasterColumns', 'tableid', 'LocalMasterDatabases')];\n");
+        rsb.append(resultsTable + " <- " + resultsTable + "[,c('NCol','" + database + "','" + lmColumns + "', 'tableid', '" + lmDatabases + "')];\n");
 
         rsb.append("colnames(" + tablesResults + ")[3] <- \"" + "NTable" + "\";\n");
         rsb.append("colnames(" + tablesResults + ")[1] <- \"" + database + "Table" + "\";\n");
-        rsb.append(tablesResults + "$tableid <- apply( " + tablesResults + "[ , c('LocalMasterTables','" + database + "Table') ] , 1 , paste , collapse = \"===\" );\n");
+        rsb.append(tablesResults + "$tableid <- apply( " + tablesResults + "[ , c('" + lmTables + "','" + database + "Table') ] , 1 , paste , collapse = \"===\" );\n");
 
         // rename db table colnames
         rsb.append("colnames(" + dbResults + ")[3] <- \"" + "NDb" + "\";\n");
@@ -267,10 +273,10 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         
         // merge all three frames togther using the unique ids
         rsb.append(resultsTable + "<- merge(" + resultsTable + "," + tablesResults + ", by='tableid');\n");
-        rsb.append(resultsTable + "<- merge(" + resultsTable + "," + dbResults + ", by='LocalMasterDatabases');\n");
+        rsb.append(resultsTable + "<- merge(" + resultsTable + "," + dbResults + ", by='" + lmDatabases + "');\n");
 
         // keep only the columns we need for the visualizations
-        rsb.append(finalResultFrame + " <- " + resultsTable + "[,c('NCol','NDb','NTable','" + database + "','" + database + "Table','" + database + "Db','LocalMasterColumns', 'LocalMasterTables', 'LocalMasterDatabases')];\n");
+        rsb.append(finalResultFrame + " <- " + resultsTable + "[,c('NCol','NDb','NTable','" + database + "','" + database + "Table','" + database + "Db','" + lmColumns + "', '" + lmTables + "', '" + lmDatabases + "')];\n");
         rsb.append("}\n");
         rsb.append("}\n");
         rsb.append("}\n");
