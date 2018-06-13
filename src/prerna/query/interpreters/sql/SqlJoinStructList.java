@@ -1,10 +1,7 @@
 package prerna.query.interpreters.sql;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -42,253 +39,66 @@ public class SqlJoinStructList {
 	 * @return
 	 */
 	public String getJoinSyntax() {
-		// we will start by creating the from
-		// and then traverse down
-		// until all the joins have had the required tables defined
-		// and we define them
-		
-		Set<String> definedAlias = new HashSet<String>();
 		int numJoins = joins.size();
-		Set<Integer> jIndexAdded = new HashSet<Integer>();
-		
 		StringBuilder jSyntax = new StringBuilder();
 		jSyntax.append("FROM ");
-		List<String[]> froms = determineFromTables();
-		int numFroms = froms.size();
-		if(numFroms == 0) {
-			throw new IllegalArgumentException("Join Information in query is not a valid path.");
-		} else if(numFroms > 1) {
-			// we need to modify the joins
-			// so that we only have 1 from
-			froms = modfiyJoinsForSingleFrom(froms);
-			numFroms = froms.size();
-		}
 		
-		// THIS SHOULD BE SIZE 1
-		// Not sure about all sql
-		// but it is very likely this will not work
-		for(int i = 0; i < numFroms; i++) {
-			String[] f = froms.get(i);
-			if(i != 0) {
-				jSyntax.append(", ");
-			}
-			jSyntax.append(f[0]).append(" ").append(f[1]);
+		Set<String> definedTables = new HashSet<String>();
+		for(int i = 0; i < numJoins; i++) {
+			// get the joins in the order they were defined
+			SqlJoinStruct j = joins.get(i);
+			String sourceTable = j.getSourceTable();
+			String sourceTableAlias = j.getSourceTableAlias();
+			String sourceCol = j.getSourceCol();
 			
-			// add the alias that we can now use
-			definedAlias.add(f[1]);
-		}
-		
-		// now we need to go through and find all the paths for the join
-		// we need to make sure we have defined the appropriate tables
-		// it may take a few iterations
-		// to make sure we have gone through everything
-		RESTART : while(jIndexAdded.size() < numJoins) {
+			String targetTable = j.getTargetTable();
+			String targetTableAlias = j.getTargetTableAlias();
+			String targetCol = j.getTargetCol();
 			
-			for(int i = 0; i < numJoins; i++) {
-				if(jIndexAdded.contains(new Integer(i))) {
-					continue;
-				}
+			String jType = j.getJoinType();
+			
+			if(i == 0) {
+				// we gotta define the first from
+				jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
+				jSyntax.append(" ").append(jType).append(" ");
+				jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+
+				jSyntax.append(" on ")
+				.append(sourceTableAlias).append(".").append(sourceCol)
+				.append("=")
+				.append(targetTableAlias).append(".").append(targetCol);
 				
-				SqlJoinStruct j = joins.get(i);
+				definedTables.add(sourceTable);
+				definedTables.add(targetTable);
 				
-				// target is the required alias
-				// that must be defined
-				// we will define the source
-				String targetTableAlias = j.getTargetTableAlias();
-				if(definedAlias.contains(targetTableAlias)) {
-					// we can add this guy
-					
-					String jType = j.getJoinType();
-					// get source info
-					String souceTable = j.getSourceTable();
-					String sourceTableAlias = j.getSourceTableAlias();
-					String sourceColumn = j.getSourceCol();
-					// get target info
-					// remember, the target table is already defined
-					String targetColumn = j.getTargetCol();
-					
-					// add the inner join portion
-					// define the source if we need to
+			} else {
+				// the join order matters
+				// so the next join needs to have at least one of its tables
+				// already defined
+				// either the source or the target
+				if(!definedTables.contains(sourceTable)) {
+					// need to define the source
+					// if the source is not defined
+					// i need to reverse the join type
+					// if it is right to left
+					// or left to right
+					jSyntax.append(" ").append(j.getReverseJoinType()).append(" ");
+					jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
+				} else {
+					// need to define the target
 					jSyntax.append(" ").append(jType).append(" ");
-					if(!definedAlias.contains(sourceTableAlias)) {
-						jSyntax.append(souceTable).append(" ").append(sourceTableAlias);
-					}
-					jSyntax.append(" on ")
-						.append(sourceTableAlias).append(".").append(sourceColumn)
-						.append("=")
-						.append(targetTableAlias).append(".").append(targetColumn);
-					
-					// add the source as a new defined alias
-					jIndexAdded.add(new Integer(i));
-					definedAlias.add(sourceTableAlias);
-					
-					// we start the loop starting at the first index
-					// since our otherJoin map always has smallest index to largest
-					continue RESTART;
+					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
 				}
+				
+				// define the rest of the join portion
+				jSyntax.append(" on ")
+				.append(sourceTableAlias).append(".").append(sourceCol)
+				.append("=")
+				.append(targetTableAlias).append(".").append(targetCol);
 			}
 		}
 		
 		return jSyntax.toString();
-	}
-	
-
-	private List<String[]> modfiyJoinsForSingleFrom(List<String[]> froms) {
-		// we need to rearrange the joins
-		// to account for a single from
-		
-		// we need to loop through again
-		// and see number of times what alias are defined 
-		// this is the set of source aliases we have
-		int numJoins = joins.size();
-		Map<String, Integer> definedAlias = getDefinedAliasCount();
-		
-		// i will find the table that has the most definitions
-		// and i will switch it
-		// and try to recalculate
-		
-		int tryCount = 0;
-		final int tryLimit = 100;
-		REPEAT : while(froms.size() > 1 && tryCount < tryLimit) {
-			// find largest index
-			int largest = 1;
-			String aliasToTry = null;
-			for(String definedTable : definedAlias.keySet()) {
-				int val = definedAlias.get(definedTable);
-				if(val > largest) {
-					aliasToTry = definedTable;
-					largest = val;
-				}
-			}
-			
-			if(aliasToTry == null) {
-				break;
-			}
-			
-			// now loop through
-			// and try to switch a join
-			// if the source isn't defined
-			SqlJoinStruct attemptRandomSwitch = null;
-			
-			for(int i = 0; i < numJoins; i++) {
-				SqlJoinStruct j = joins.get(i);
-				// we need to modify this join
-				// if the from reflects the target that isn't defined
-				String sourceTableAlias = j.getSourceTableAlias();
-				if(sourceTableAlias.equals(aliasToTry)) {
-					// is the target defined
-					String targetTableAlias = j.getTargetTableAlias();
-					// if it is not, try to switch it
-					if(!definedAlias.containsKey(targetTableAlias)) {
-						// candidate to switch
-						j.reverse();
-						froms = determineFromTables();
-						definedAlias = getDefinedAliasCount();
-						
-						// update the count
-						tryCount++;
-						continue REPEAT;
-					} else {
-						attemptRandomSwitch = j;
-					}
-				}
-			}
-			
-			// at this point
-			if(attemptRandomSwitch != null) {
-				attemptRandomSwitch.reverse();
-				froms = determineFromTables();
-				definedAlias = getDefinedAliasCount();
-			}
-			
-			// update the count
-			tryCount++;
-		}
-		
-		return froms;
-	}
-
-	/**
-	 * Determine the from tables that must be defined in the join syntax
-	 * @return
-	 */
-	public List<String[]> determineFromTables() {
-		Set<String> fromAlias = new HashSet<String>();
-		List<String[]> fromTables = new Vector<String[]>();
-		
-		/*
-		 * We go through each join
-		 * When we go through the joins
-		 * so for every join
-		 * we define the source
-		 * and need the target
-		 * so we need to go through and see what is not defined
-		 */
-
-		int size = joins.size();
-		if(size == 1) {
-			SqlJoinStruct joinStruct = joins.get(0);
-			fromTables.add(new String[]{joinStruct.getTargetTable(), joinStruct.getTargetTableAlias()});
-		} else {
-			Set<String> requiredAlias = new HashSet<String>();
-			Set<String> definedAlias = new HashSet<String>();
-			for(int i = 0; i < size; i++) {
-				SqlJoinStruct joinStruct = joins.get(i);
-				
-				String sourceAlias = joinStruct.getSourceTableAlias();
-				String targetAlias = joinStruct.getTargetTableAlias();
-				
-				// again, required is target
-				// defined is source
-				requiredAlias.add(targetAlias);
-				definedAlias.add(sourceAlias);
-			}
-			
-			// now that i have all the required and defined
-			// remove all the required that are defined
-			// so required alias is really the alias that still need
-			// to be defined
-			requiredAlias.removeAll(definedAlias);
-	
-			// now loop through the required alias list
-			// and add the joins that we need
-			for(int i = 0; i < size; i++) {
-				SqlJoinStruct joinStruct = joins.get(i);
-				
-				String targetTable = joinStruct.getTargetTable();
-				String targetTableAlias = joinStruct.getTargetTableAlias();
-				
-				if(!fromAlias.contains(targetTableAlias) && requiredAlias.contains(targetTableAlias)) {
-					fromTables.add(new String[]{targetTable, targetTableAlias});
-					fromAlias.add(targetTableAlias);
-				}
-			}
-		}
-			
-		return fromTables;
-	}
-	
-	/**
-	 * Get the count of which alias is defined based on the joins
-	 * @return
-	 */
-	private Map<String, Integer> getDefinedAliasCount() {
-		int numJoins = joins.size();
-		Map<String, Integer> definedAlias = new HashMap<String, Integer>();
-		for(int i = 0; i < numJoins; i++) {
-			SqlJoinStruct joinStruct = joins.get(i);
-			
-			String sourceAlias = joinStruct.getSourceTableAlias();
-			// defined is source
-			if(definedAlias.containsKey(sourceAlias)) {
-				int curNum = definedAlias.get(sourceAlias);
-				curNum++;
-				definedAlias.put(sourceAlias, new Integer(curNum));
-			} else {
-				definedAlias.put(sourceAlias, new Integer(1));
-			}
-		}
-		return definedAlias;
 	}
 	
 	public boolean isEmpty() {
@@ -344,10 +154,10 @@ public class SqlJoinStructList {
 		j3.setTargetCol("customerNumber");
 		jList.addJoin(j3);
 		
-		List<String[]> froms = jList.determineFromTables();
-		for(String[] f : froms) {
-			System.out.println(Arrays.toString(f));
-		}
+//		List<String[]> froms = jList.determineFromTables();
+//		for(String[] f : froms) {
+//			System.out.println(Arrays.toString(f));
+//		}
 		
 		System.out.println(jList.getJoinSyntax());
 	}
