@@ -4,19 +4,30 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public class RDatasourceIterator extends AbstractDatasourceIterator {
 
 	private RDataTable dt;
 	private RIterator output;
+	private SelectQueryStruct qs;
 	
 	public RDatasourceIterator(RDataTable dt) {
 		this.dt = dt;
 	}
 	
+	public RDatasourceIterator(RDataTable dt, SelectQueryStruct qs) {
+		this.dt = dt;
+		this.qs = qs;
+	}
+	
 	@Override
 	public void execute() {
-		this.output = new RIterator(this.dt.getBuilder(), query);
+		if(this.qs == null) {
+			this.output = new RIterator(this.dt.getBuilder(), this.query);
+		} else {
+			this.output = new RIterator(this.dt.getBuilder(), this.query, this.qs);
+		}
 		this.headers = output.getHeaders();
 		this.rawHeaders = this.headers;
 		this.numColumns = this.rawHeaders.length;

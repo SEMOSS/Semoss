@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import prerna.engine.api.IHeadersDataRow;
@@ -15,21 +16,21 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow> {
 
 	private SelectQueryStruct qs;
-	private Iterator baseIterator;
+	private GraphTraversal baseIterator;
 	private String[] header;
 	private String[] headerAlias;
 	private String[] headerOrdering;
 	private String[] types;
 	private Map<String,String> nameMap;
 
-	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, Map<String, String> nameMap) {
+	public TinkerHeadersDataRowIteratorMap(GraphTraversal composeIterator, SelectQueryStruct qs, Map<String, String> nameMap) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		this.nameMap = nameMap;
 		flushOutHeaders(this.qs.getSelectors(), null);
 	}
 	
-	public TinkerHeadersDataRowIteratorMap(Iterator composeIterator, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
+	public TinkerHeadersDataRowIteratorMap(GraphTraversal composeIterator, SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
 		this.baseIterator = composeIterator;
 		this.qs = qs;
 		flushOutHeaders(this.qs.getSelectors(), meta);
@@ -38,6 +39,13 @@ public class TinkerHeadersDataRowIteratorMap implements Iterator<IHeadersDataRow
 	@Override
 	public boolean hasNext() {
 		boolean ret = baseIterator.hasNext();
+		if(!ret) {
+			try {
+				this.baseIterator.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		return ret;
 	}
 
