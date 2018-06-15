@@ -49,6 +49,7 @@ import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphPropertiesReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.UploadTinkerEngine;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
@@ -411,6 +412,7 @@ public class ReactorFactory {
 		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
 		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
 		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDBReactor.class);
+		reactorHash.put("UploadGraph", UploadTinkerEngine.class);
 		
 		// Semantic blending
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
