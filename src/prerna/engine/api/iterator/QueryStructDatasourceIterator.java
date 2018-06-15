@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
