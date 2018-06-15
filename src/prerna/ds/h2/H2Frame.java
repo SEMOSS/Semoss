@@ -23,12 +23,12 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.iterator.RdbmsDatasourceIterator;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.reactor.imports.H2Importer;
@@ -205,11 +205,17 @@ public class H2Frame extends AbstractTableDataFrame {
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
 		long start = System.currentTimeMillis();
-		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
-		it.directExecutionViaConnection(this.builder.getConnection(), query, false);
+		RdbmsDatasourceIterator it = new RdbmsDatasourceIterator(this.builder.getConnection());
+		it.setQuery(query);
+		it.execute();
 		long end = System.currentTimeMillis();
 		logger.info("Time to execute query on H2FRAME = " + (end-start) + "ms");
 		return it;
+//		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
+//		it.directExecutionViaConnection(this.builder.getConnection(), query, false);
+//		long end = System.currentTimeMillis();
+//		logger.info("Time to execute query on H2FRAME = " + (end-start) + "ms");
+//		return it;
 	}
 	
 	@Override

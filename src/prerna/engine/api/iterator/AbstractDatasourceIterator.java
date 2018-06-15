@@ -1,6 +1,7 @@
 package prerna.engine.api.iterator;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IDatasourceIterator;
 
 public abstract class AbstractDatasourceIterator implements IDatasourceIterator {
 

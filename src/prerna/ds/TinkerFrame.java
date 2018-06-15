@@ -29,13 +29,14 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.iterator.GremlinDatasourceIterator;
+import prerna.engine.api.iterator.QueryStructDatasourceIterator;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -1111,7 +1112,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
-		return new QueryStructExpressionIterator(new TinkerHeadersDataRowIteratorMap(interp.composeIterator(), qs, this.metaData), qs);
+		GremlinDatasourceIterator gdi = new GremlinDatasourceIterator(interp, qs);
+		gdi.execute();
+		QueryStructDatasourceIterator qsd = new QueryStructDatasourceIterator(gdi, qs);
+		qsd.execute();
+		return qsd;
 	}
 	
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
