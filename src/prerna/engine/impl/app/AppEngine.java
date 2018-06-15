@@ -4,8 +4,10 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -93,5 +95,17 @@ public class AppEngine extends AbstractEngine {
 		// TODO Auto-generated method stub
 		
 	}
+
+//	@Override
+//	public IDatasourceIterator query(String query) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+//
+//	@Override
+//	public IDatasourceIterator query(SelectQueryStruct qs) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 
 }
