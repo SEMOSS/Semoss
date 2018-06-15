@@ -32,6 +32,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -57,17 +58,17 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	private static final String CLASS_NAME = RdbmsFlatExcelUploadReactor.class.getName();
 
 	public RdbmsFlatExcelUploadReactor() {
-		this.keysToGet = new String[]{APP, FILE_PATH, DATA_TYPE_MAP, NEW_HEADERS, 
-				ADDITIONAL_TYPES, CLEAN_STRING_VALUES, REMOVE_DUPLICATE_ROWS, ADD_TO_EXISTING};
+		this.keysToGet = new String[]{UploadInputUtility.APP, UploadInputUtility.FILE_PATH, DATA_TYPE_MAP, NEW_HEADERS, 
+				ADDITIONAL_TYPES, UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 
-		final String appIdOrName = getAppName();
-		final boolean existing = getExisting();
-		final String filePath = getFilePath();
+		final String appIdOrName = UploadInputUtility.getAppName(this.store);
+		final boolean existing = UploadInputUtility.getExisting(this.store);
+		final String filePath = UploadInputUtility.getFilePath(this.store);
 		final File file = new File(filePath);
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
@@ -101,7 +102,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		Map<String, Map<String, String>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, String>> newHeaders = getNewHeaders();
 		Map<String, Map<String, String>> additionalDataTypeMap = getAdditionalTypes();
-		final boolean clean = getClean();
+		final boolean clean = UploadInputUtility.getClean(this.store);
 
 		// now that I have everything, let us go through and insert
 
@@ -172,8 +173,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("7. Process app metadata to allow for traversing across apps	");
 		try {
-			updateLocalMaster(newAppId);
-			updateSolr(newAppId);
+			UploadUtilities.updateLocalMaster(newAppId);
+			UploadUtilities.updateSolr(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -190,7 +191,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
-		updateDIHelper(newAppId, newAppName, engine, smssFile);
+		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
 		
 		return newAppId;
 	}
@@ -209,7 +210,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		Map<String, Map<String, String>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, String>> newHeaders = getNewHeaders();
 		Map<String, Map<String, String>> additionalDataTypeMap = getAdditionalTypes();
-		final boolean clean = getClean();
+		final boolean clean = UploadInputUtility.getClean(this.store);
 		
 		logger.info("Get existing database schema...");
 		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
@@ -245,8 +246,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			updateLocalMaster(appId);
-			updateSolr(appId);
+			UploadUtilities.updateLocalMaster(appId);
+			UploadUtilities.updateSolr(appId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
