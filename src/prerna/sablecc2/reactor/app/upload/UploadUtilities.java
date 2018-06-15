@@ -10,10 +10,13 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -23,10 +26,14 @@ import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.poi.main.helper.CSVFileHelper;
+import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.solr.SolrIndexEngine;
+import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SQLQueryUtil;
 
@@ -40,6 +47,39 @@ public class UploadUtilities {
 	
 	private UploadUtilities() {
 
+	}
+	
+	/**
+	 * Used to update DIHelper
+	 * Should only be used when making new app
+	 * @param newAppName
+	 * @param engine
+	 * @param smssFile
+	 */
+	public static void updateDIHelper(String newAppId, String newAppName, IEngine engine, File smssFile) {
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setLocalProperty(newAppId, engine);
+		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+		engineNames = engineNames + ";" + newAppId;
+		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+	}
+	
+	/**
+	 * Update local master
+	 * @param appId
+	 */
+	public static void updateLocalMaster(String appId) {
+		Utility.synchronizeEngineMetadata(appId);
+	}
+
+	/**
+	 * Update solr
+	 * @param appId
+	 * @throws Exception
+	 */
+	public static void updateSolr(String appId) throws Exception {
+		SolrUtility.addToSolrInsightCore(appId);
+		SolrUtility.addAppToSolr(appId);
 	}
 	
 	/**
@@ -288,6 +328,76 @@ public class UploadUtilities {
 		
 		return appTempSmss;
 	}
+	
+	/**
+	 * Create a temporary smss file for a rdbms engine
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param tinkerDriverType
+	 * @return
+	 * @throws IOException
+	 */
+	public static File generateTemporaryTinkerSmss(String appId, String appName, File owlFile,
+			TINKER_DRIVER tinkerDriverType) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		// also write the base properties
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			File newFile = new File(appTempSmssLoc);
+			writer = new FileWriter(newFile);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
+
+			// tinker-specific properties
+			// neo4j does not have an extension
+			// basefolder/db/engine/engine
+			String tinkerPath = " @BaseFolder@" + System.getProperty("file.separator") + "db"
+					+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
+					+ "@ENGINE@";
+
+			if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
+				bufferedWriter.write(Constants.TINKER_FILE + tinkerPath + "\n");
+			} else {
+				// basefolder/db/engine/engine.driverTypeExtension
+				bufferedWriter.write(Constants.TINKER_FILE + tinkerPath + "." + tinkerDriverType + "\n");
+			}
+			bufferedWriter.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new IOException("Could not generate app smss file");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return appTempSmss;
+	}
+
+	
 	
 	/**
 	 * Generate a tinker smss
@@ -605,6 +715,81 @@ public class UploadUtilities {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Parse the file
+	 * @param filePath
+	 * @param delimiter
+	 * @param dataTypesMap
+	 * @param newHeaders
+	 * @return
+	 */
+	public static CSVFileHelper getHelper(final String filePath, final String delimiter, 
+			Map<String, String> dataTypesMap, Map<String, String> newHeaders) {
+		CSVFileHelper csvHelper = new CSVFileHelper();
+		csvHelper.setDelimiter(delimiter.charAt(0));
+		csvHelper.parse(filePath);
+		
+		// specify the columns to use
+		// default will include all
+		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
+			Set<String> headersToUse = new TreeSet<String>(dataTypesMap.keySet());
+			csvHelper.parseColumns(headersToUse.toArray(new String[]{}));
+		}
+
+		// if the user has cleaned any headers
+		if(newHeaders != null && !newHeaders.isEmpty()) {
+			csvHelper.modifyCleanedHeaders(newHeaders);
+		}
+
+		return csvHelper;
+	}
+
+	/**
+	 * Figure out the types and how to use them
+	 * Will return an object[]
+	 * Index 0 of the return is an array of the headers
+	 * Index 1 of the return is an array of the types
+	 * Index 2 of the return is an array of the additional type information
+	 * The 3 arrays all match based on index
+	 * @param helper
+	 * @param dataTypesMap
+	 * @param additionalDataTypeMap
+	 * @return
+	 */
+	public static Object[] getHeadersAndTypes(CSVFileHelper helper, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) {
+		String[] headers = helper.getHeaders();
+		int numHeaders = headers.length;
+		// we want types
+		// and we want additional types
+		SemossDataType[] types = new SemossDataType[numHeaders];
+		String[] additionalTypes = new String[numHeaders];
+
+		// get the types
+		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			Map[] retMap = FileHelperUtil.generateDataTypeMapsFromPrediction(headers, helper.predictTypes());
+			dataTypesMap = retMap[0];
+			additionalDataTypeMap = retMap[1];
+		}
+		
+		for(int i = 0; i < numHeaders; i++) {
+			types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
+		}
+
+		// get additional type information
+		if(additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+			for(int i = 0 ; i < numHeaders; i++) {
+				additionalTypes[i] = additionalDataTypeMap.get(headers[i]);
+			}
+		}
+
+		return new Object[]{headers, types, additionalTypes};
 	}
 
 }

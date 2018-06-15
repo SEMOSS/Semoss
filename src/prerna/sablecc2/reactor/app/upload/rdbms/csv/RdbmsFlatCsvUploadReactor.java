@@ -35,6 +35,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -61,17 +62,17 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	private static final String CLASS_NAME = RdbmsFlatCsvUploadReactor.class.getName();
 
 	public RdbmsFlatCsvUploadReactor() {
-		this.keysToGet = new String[]{APP, FILE_PATH, DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, 
-				ADDITIONAL_TYPES, CLEAN_STRING_VALUES, REMOVE_DUPLICATE_ROWS, ADD_TO_EXISTING};
+		this.keysToGet = new String[]{UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, 
+				ADDITIONAL_TYPES, UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 
-		final String appIdOrName = getAppName();
-		final boolean existing = getExisting();
-		final String filePath = getFilePath();
+		final String appIdOrName = UploadInputUtility.getAppName(this.store);
+		final boolean existing = UploadInputUtility.getExisting(this.store);
+		final String filePath = UploadInputUtility.getFilePath(this.store);
 		final File file = new File(filePath);
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
@@ -107,11 +108,11 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		 */
 
 		String newAppId = UUID.randomUUID().toString();
-		final String delimiter = getDelimiter();
+		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = getDataTypeMap();
 		Map<String, String> newHeaders = getNewHeaders();
 		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
-		final boolean clean = getClean();
+		final boolean clean = UploadInputUtility.getClean(this.store);
 
 		// now that I have everything, let us go through and insert
 
@@ -158,8 +159,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("5. Start loading data..");
 		logger.info("Parsing file metadata...");
-		CSVFileHelper helper = getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
@@ -211,8 +212,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("8. Process app metadata to allow for traversing across apps	");
 		try {
-			updateLocalMaster(newAppId);
-			updateSolr(newAppId);
+			UploadUtilities.updateLocalMaster(newAppId);
+			UploadUtilities.updateSolr(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -229,7 +230,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
-		updateDIHelper(newAppId, newAppName, engine, smssFile);
+		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
 		
 		return newAppId;
 	}
@@ -250,17 +251,17 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
 
-		final String delimiter = getDelimiter();
+		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = getDataTypeMap();
 		Map<String, String> newHeaders = getNewHeaders();
 		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
-		final boolean clean = getClean();
+		final boolean clean = UploadInputUtility.getClean(this.store);
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Parsing file metadata...");
-		CSVFileHelper helper = getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
@@ -323,8 +324,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			updateLocalMaster(appId);
-			updateSolr(appId);
+			UploadUtilities.updateLocalMaster(appId);
+			UploadUtilities.updateSolr(appId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -495,75 +496,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 	}
 
-	/**
-	 * Parse the file
-	 * @param filePath
-	 * @param delimiter
-	 * @param dataTypesMap
-	 * @param newHeaders
-	 * @return
-	 */
-	private CSVFileHelper getHelper(final String filePath, final String delimiter, 
-			Map<String, String> dataTypesMap, Map<String, String> newHeaders) {
-		CSVFileHelper csvHelper = new CSVFileHelper();
-		csvHelper.setDelimiter(delimiter.charAt(0));
-		csvHelper.parse(filePath);
-		
-		// specify the columns to use
-		// default will include all
-		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
-			Set<String> headersToUse = new TreeSet<String>(dataTypesMap.keySet());
-			csvHelper.parseColumns(headersToUse.toArray(new String[]{}));
-		}
 
-		// if the user has cleaned any headers
-		if(newHeaders != null && !newHeaders.isEmpty()) {
-			csvHelper.modifyCleanedHeaders(newHeaders);
-		}
-
-		return csvHelper;
-	}
-
-	/**
-	 * Figure out the types and how to use them
-	 * Will return an object[]
-	 * Index 0 of the return is an array of the headers
-	 * Index 1 of the return is an array of the types
-	 * Index 2 of the return is an array of the additional type information
-	 * The 3 arrays all match based on index
-	 * @param helper
-	 * @param dataTypesMap
-	 * @param additionalDataTypeMap
-	 * @return
-	 */
-	private Object[] getHeadersAndTypes(CSVFileHelper helper, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) {
-		String[] headers = helper.getHeaders();
-		int numHeaders = headers.length;
-		// we want types
-		// and we want additional types
-		SemossDataType[] types = new SemossDataType[numHeaders];
-		String[] additionalTypes = new String[numHeaders];
-
-		// get the types
-		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
-			Map[] retMap = FileHelperUtil.generateDataTypeMapsFromPrediction(headers, helper.predictTypes());
-			dataTypesMap = retMap[0];
-			additionalDataTypeMap = retMap[1];
-		}
-		
-		for(int i = 0; i < numHeaders; i++) {
-			types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
-		}
-
-		// get additional type information
-		if(additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
-			for(int i = 0 ; i < numHeaders; i++) {
-				additionalTypes[i] = additionalDataTypeMap.get(headers[i]);
-			}
-		}
-
-		return new Object[]{headers, types, additionalTypes};
-	}
 
 	private String determineExistingTableToInsert(Map<String, Map<String, String>> existingRDBMSStructure, String[] headers, SemossDataType[] types) {
 		String existingTableNameToInsert = null;
