@@ -8,12 +8,12 @@ public interface IDatasource {
 	 * Get a select iterator for a given query
 	 * @return
 	 */
-	IDatasourceIterator getIterator(String query);
+	IDatasourceIterator query(String query);
 	
 	/**
 	 * Get the iterator that we will set
 	 * @return
 	 */
-	IDatasourceIterator getIterator(SelectQueryStruct qs);
+	IDatasourceIterator query(SelectQueryStruct qs);
 	
 }
