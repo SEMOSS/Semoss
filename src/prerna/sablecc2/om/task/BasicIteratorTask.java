@@ -1,17 +1,21 @@
 package prerna.sablecc2.om.task;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ExcelFileIterator;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -85,6 +89,13 @@ public class BasicIteratorTask extends AbstractTask {
 			String[] types = null;
 			if(this.iterator instanceof IRawSelectWrapper) {
 				types = ((IRawSelectWrapper) this.iterator).getTypes();
+			} else if(this.iterator instanceof IDatasourceIterator) {
+				SemossDataType[] sTypes = ((IDatasourceIterator) this.iterator).getTypes();
+				types = Arrays.asList(sTypes).stream()
+						.map(p -> p == null ? "STRING" : p)
+						.map(p -> p.toString())
+						.map(p -> (p.equals("DOUBLE") || p.equals("INT") ? "NUMBER" : p))
+						.collect(Collectors.toList()).toArray(new String[]{});
 			}
 			if(types != null) {
 				for(int i = 0; i < headerInfo.size(); i++) {
