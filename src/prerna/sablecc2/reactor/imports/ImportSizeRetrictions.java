@@ -89,5 +89,30 @@ public class ImportSizeRetrictions {
 		// we passed!
 		return true;
 	}
+	
+	/**
+	 * Is frame with imports within size limits
+	 * @param frame
+	 * @param it
+	 * @return
+	 */
+	public static boolean mergeWithinLimit(ITableDataFrame frame, long additionalRecords) {
+		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
+			// no restriction
+			// or
+			// native frame - since nothing is stored in mem
+			return true;
+		}
+
+		long curFrameSize = frame.size(frame.getTableName());
+
+		// we can increase performance since
+		if(additionalRecords + curFrameSize > LIMIT_SIZE) {
+			return false;
+		}
+		
+		// we passed!
+		return true;
+	}
 
 }
