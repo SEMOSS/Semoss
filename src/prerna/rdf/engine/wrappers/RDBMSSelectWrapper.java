@@ -99,14 +99,14 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			{
 				stmt = new SelectStatement();
 
-				for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
+				for(int colIndex = 0;colIndex < headers.length;colIndex++)
 				{
-					Object value = rs.getObject(displayVar[colIndex]);
+					Object value = rs.getObject(headers[colIndex]);
 					if(value == null) {
 						value = "";
 					}
-					stmt.setVar(displayVar[colIndex], value);
-					stmt.setRawVar(displayVar[colIndex], getRawValue(value, displayVar[colIndex]));
+					stmt.setVar(headers[colIndex], value);
+					stmt.setRawVar(headers[colIndex], getRawValue(value, headers[colIndex]));
 				}
 			}
 		} catch (SQLException e) {
@@ -134,8 +134,8 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
 
-			var = new String[numColumns];
-			displayVar = new String[numColumns];
+			rawHeaders = new String[numColumns];
+			headers = new String[numColumns];
 
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
@@ -164,15 +164,15 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 				//		columnLabel = deriveTableName(columnLabel, columnLabel);
 				// }
 
-				var[colIndex-1] = colName;
-				displayVar[colIndex-1] = logName;
+				rawHeaders[colIndex-1] = colName;
+				headers[colIndex-1] = logName;
 
 				int type = rsmd.getColumnType(colIndex);
-				columnTypes.put(displayVar[colIndex-1], type);
+				columnTypes.put(headers[colIndex-1], type);
 
 				if(logName != null && logName.length() != 0) // will use this to find what is the type to strap it together
 				{
-					columnTables.put(displayVar[colIndex-1], logName);
+					columnTables.put(headers[colIndex-1], logName);
 				}
 			}
 		} catch (SQLException e) {
@@ -183,19 +183,19 @@ public class RDBMSSelectWrapper extends AbstractWrapper implements ISelectWrappe
 	@Override
 	public String[] getVariables() {
 		// get the result set metadata to get the column names
-		return displayVar;
+		return headers;
 	}
 
 	@Override
 	public String[] getDisplayVariables() {
 		// get the result set metadata to get the column names
-		return displayVar;
+		return headers;
 	}
 
 	@Override
 	public String[] getPhysicalVariables() {
 		// get the result set metadata to get the column names
-		return var;
+		return rawHeaders;
 	}
 
 	private Object getRawValue(Object value, String header){

@@ -62,7 +62,7 @@ public class RemoteSesameConstructWrapper extends AbstractWrapper implements ICo
 		if(ris == null)
 		{
 			Hashtable params = new Hashtable<String,String>();
-			params.put("id", remoteWrapperProxy.getRemoteID());
+			params.put("id", remoteWrapperProxy.getRemoteId());
 			ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
 		}					
 			Object myObject = ris.readObject();
