@@ -49,9 +49,7 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.iterator.RdbmsDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -765,16 +763,5 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-	}
-
-	@Override
-	public IDatasourceIterator query(String query) {
-		long start = System.currentTimeMillis();
-		RdbmsDatasourceIterator it = new RdbmsDatasourceIterator(this.engineConn);
-		it.setQuery(query);
-		it.execute();
-		long end = System.currentTimeMillis();
-		logger.debug("Time to execute query on rdbms engine = " + (end-start) + "ms");
-		return it;
 	}
 }

@@ -28,16 +28,15 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.shared.AbstractTableDataFrame;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.iterator.GremlinDatasourceIterator;
-import prerna.engine.api.iterator.QueryStructDatasourceIterator;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -569,7 +568,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add filters
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
-			TinkerHeadersDataRowIteratorMap it = new TinkerHeadersDataRowIteratorMap(interp.composeIterator(), qs, this.metaData);
+			RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
+			it.execute();
 			List<Object> columnList = new ArrayList<>();
 			while(it.hasNext()) {
 				columnList.add(it.next().getValues()[0]);
@@ -1107,21 +1107,21 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public IDatasourceIterator query(String query) {
+	public IRawSelectWrapper query(String query) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 	
 	@Override
-	public IDatasourceIterator query(SelectQueryStruct qs) {
+	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
-		GremlinDatasourceIterator gdi = new GremlinDatasourceIterator(interp, qs);
+		RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interp, qs);
 		gdi.execute();
-		QueryStructDatasourceIterator qsd = new QueryStructDatasourceIterator(gdi, qs);
+		QueryStructExpressionIterator qsd = new QueryStructExpressionIterator(gdi, qs);
 		qsd.execute();
 		return qsd;
 	}

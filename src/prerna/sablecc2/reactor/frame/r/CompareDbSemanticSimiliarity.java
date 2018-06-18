@@ -10,12 +10,13 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -122,7 +123,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 									new NounMetadata(colSelector, PixelDataType.COLUMN), "!=",
 									new NounMetadata("null", PixelDataType.NULL_VALUE));
 							qs.addExplicitFilter(nulls);
-							IDatasourceIterator iterator = engine.query(qs);
+							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 							if(!iterator.hasNext()){
 								// all values are null in this column
 								failedColArray.add(database + "$" + table + "$" + col );

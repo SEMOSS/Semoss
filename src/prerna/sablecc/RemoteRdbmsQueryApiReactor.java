@@ -151,7 +151,7 @@ public class RemoteRdbmsQueryApiReactor extends AbstractReactor {
 		}
 		// determine the edge hash
 		// create a prim key
-		String[] headers = it.getDisplayVariables();
+		String[] headers = it.getHeaders();
 //		Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headers);
 //		this.put("EDGE_HASH", edgeHash);
 

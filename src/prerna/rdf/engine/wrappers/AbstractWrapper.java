@@ -27,9 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.engine.wrappers;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -43,7 +40,6 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	
 	protected transient IEngine engine = null;
 	protected transient String query = null;
-//	protected transient QueryStruct qs;
 
 	protected String ID = null;
 	protected String api = null;
@@ -58,23 +54,6 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	@Override
 	public void setRemoteID(String id) {
 		this.ID = id;
-	}
-
-	@Override
-	public Map<String, Object> getResponseMeta() {
-		Map<String, Object> resp = new HashMap<String, Object>();
-		if(engine != null) {
-			resp.put("engine", engine.getEngineId());
-		}
-		if(query != null){
-			// if super long... only show first 500 values
-			if(query.length() > 500) {
-				resp.put("query", query.substring(0, 500) + " ...");
-			} else {
-				resp.put("query", query);
-			}
-		}
-		return resp;
 	}
 
 	@Override
@@ -102,11 +81,6 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 		this.query = query;
 	}
 	
-//	@Override
-//	public void setQueryStruct(QueryStruct qs) {
-//		this.qs = qs;
-//	}
-
 	@Override
 	public void setEngine(IEngine engine) {
 		LOGGER.debug("Set the engine to " + engine.getEngineId());
