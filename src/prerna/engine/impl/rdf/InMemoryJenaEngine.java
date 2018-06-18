@@ -36,13 +36,14 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.update.UpdateAction;
 
-import prerna.engine.api.IEngine;
+import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.iterator.JenaDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 
 /**
  * Holds the database in memory, and uses the Jena API to facilitate querying of RDF data sources.
  */
-public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
+public class InMemoryJenaEngine extends AbstractEngine {
 
 	Model jenaModel = null;
 
@@ -156,4 +157,13 @@ public class InMemoryJenaEngine extends AbstractEngine implements IEngine {
 		// This does nothing
 		
 	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new JenaDatasourceIterator(this.jenaModel);
+		it.setQuery(query);
+		it.execute();
+		return it;
+	}
+
 }

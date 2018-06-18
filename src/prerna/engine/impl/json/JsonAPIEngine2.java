@@ -1,9 +1,5 @@
 package prerna.engine.impl.json;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -12,16 +8,19 @@ import java.util.Hashtable;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine.ENGINE_TYPE;
-import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.JsonInterpreter;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.NullNode;
+
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.jackson.JacksonRuntime;
+import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.iterator.JmesDatasourceIterator;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.JsonInterpreter;
 
 public class JsonAPIEngine2 extends JsonAPIEngine {
 	
@@ -260,5 +259,11 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 		return prerna.engine.api.IEngine.ENGINE_TYPE.JSON2;
 	}
 
-
+	@Override
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new JmesDatasourceIterator(this);
+		it.setQuery(query);
+		it.execute();
+		return it;
+	}
 }

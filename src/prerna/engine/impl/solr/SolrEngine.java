@@ -36,10 +36,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SolrInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.OWLER;
@@ -412,6 +414,18 @@ public class SolrEngine extends AbstractEngine {
 		SolrEngine solr = new SolrEngine();
 		solr.openDB(null);
 		solr.setEngineId("insightCore");
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public IDatasourceIterator query(SelectQueryStruct qs) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
