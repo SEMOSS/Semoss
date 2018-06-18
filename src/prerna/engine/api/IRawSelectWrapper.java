@@ -11,10 +11,10 @@ public interface IRawSelectWrapper extends IEngineWrapper, Iterator<IHeadersData
 	 */
 	String[] getHeaders();
 	
-	//TODO: move to pixel data type
 	/**
 	 * Get the types for each return
 	 */
+	//TODO: move to pixel data type
 	SemossDataType[] getTypes();
 
 	/**

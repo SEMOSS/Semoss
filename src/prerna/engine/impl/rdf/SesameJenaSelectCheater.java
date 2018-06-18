@@ -191,7 +191,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 				if(ris == null)
 				{
 					Hashtable params = new Hashtable<String,String>();
-					params.put("id", proxy.getRemoteID());
+					params.put("id", proxy.getRemoteId());
 					ris = new ObjectInputStream(Utility.getStream(proxy.getRemoteAPI() + "/next", params));
 				}	
 

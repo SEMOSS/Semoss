@@ -98,31 +98,31 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 		try {
 			if(rs.next()){
 				stmt = new ConstructStatement();
-				subject = rs.getObject(var[0]) + "" ;
+				subject = rs.getObject(rawHeaders[0]) + "" ;
 				predicate = "" ;
 
 				// var[2] might be empty String for SQL Server because of rs metadata error - if so, get the header by index instead
-				if(!var[2].equals("")){
-					object  = rs.getObject(var[2]) + "";
+				if(!rawHeaders[2].equals("")){
+					object  = rs.getObject(rawHeaders[2]) + "";
 				} else {
 					object = rs.getObject(3).toString();
 				}
-				if(rs.getObject(var[0]) != null && columnTables.contains(var[0].toUpperCase()))
+				if(rs.getObject(rawHeaders[0]) != null && columnTables.contains(rawHeaders[0].toUpperCase()))
 				{
-					String displayName = displayVar[0];
+					String displayName = headers[0];
 					//					subjectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
 					subject = Constants.CONCEPT_URI + displayName + "/"  + subject + ""; 
 				}
-				if(rs.getObject(var[2]) != null && columnTables.contains(var[2].toUpperCase()))
+				if(rs.getObject(rawHeaders[2]) != null && columnTables.contains(rawHeaders[2].toUpperCase()))
 				{
-					String displayName = displayVar[2];
+					String displayName = headers[2];
 					//					objectParent = engine.getTransformedNodeName(Constants.DISPLAY_URI + displayName, false);
 					object = Constants.CONCEPT_URI + displayName + "/"  + object + ""; 
 				}
-				if(rs.getObject(var[1]) != null)
+				if(rs.getObject(rawHeaders[1]) != null)
 				{
-					if(!var[1].equals("")){
-						predicate = rs.getObject(var[1]) + "";
+					if(!rawHeaders[1].equals("")){
+						predicate = rs.getObject(rawHeaders[1]) + "";
 					} else {
 						predicate = rs.getObject(2) + "";
 					}
@@ -198,8 +198,8 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int numColumns = rsmd.getColumnCount();
 
-			var = new String[numColumns];
-			displayVar = new String[numColumns];
+			rawHeaders = new String[numColumns];
+			headers = new String[numColumns];
 
 			for(int colIndex = 1;colIndex <= numColumns;colIndex++)
 			{
@@ -235,15 +235,15 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 					logName = logSplit[1].toUpperCase();
 				}
 
-				var[colIndex-1] = logName;
-				displayVar[colIndex-1] = logName;
+				rawHeaders[colIndex-1] = logName;
+				headers[colIndex-1] = logName;
 
 				int type = rsmd.getColumnType(colIndex);
-				columnTypes.put(displayVar[colIndex-1], type);
+				columnTypes.put(headers[colIndex-1], type);
 
 				if(logName != null && logName.length() != 0) // will use this to find what is the type to strap it together
 				{
-					columnTables.put(displayVar[colIndex-1], logName);
+					columnTables.put(headers[colIndex-1], logName);
 				}
 			}
 		} catch (SQLException e) {

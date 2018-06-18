@@ -42,7 +42,6 @@ public class FileHelperUtil {
 	
 	/**
 	 * Convenience method to just return the data types
-	 * @param headers
 	 * @param predictions
 	 * @return
 	 */

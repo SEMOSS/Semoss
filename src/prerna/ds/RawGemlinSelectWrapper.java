@@ -31,9 +31,6 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	private GraphTraversal baseIterator;
 	
-	private int numColumns;
-	private SemossDataType[] types;
-	
 	public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs) {
 		this.interp = interp;
 		this.qs = qs;
@@ -52,8 +49,8 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		
 		List<IQuerySelector> selectors = this.qs.getSelectors();
 		this.numColumns = selectors.size();
-		this.var = new String[numColumns];
-		this.displayVar = new String[numColumns];
+		this.rawHeaders = new String[numColumns];
+		this.headers = new String[numColumns];
 		this.types = new SemossDataType[numColumns];
 		
 		int index = 0;
@@ -62,8 +59,8 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 				String alias = header.getAlias();
 				String qsName = header.getQueryStructName();
 
-				this.var[index] = qsName;
-				this.displayVar[index] = getNodeAlias(meta, alias);
+				this.rawHeaders[index] = qsName;
+				this.headers[index] = getNodeAlias(meta, alias);
 				this.types[index] = getTypes(meta, qsName);
 			}
 			else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
@@ -73,8 +70,8 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 						String alias = innerSelector.getAlias();
 						String qsName = innerSelector.getQueryStructName();
 						
-						this.var[index] = qsName;
-						this.displayVar[index] = getNodeAlias(meta, alias);
+						this.rawHeaders[index] = qsName;
+						this.headers[index] = getNodeAlias(meta, alias);
 						this.types[index] = SemossDataType.convertStringToDataType(((QueryFunctionSelector) header).getDataType());
 					}
 				}
@@ -127,10 +124,10 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 			retObject = new Object[this.numColumns];
 
 			for(int colIndex = 0; colIndex < this.numColumns; colIndex++) {
-				Object vertOrProp = mapData.get(this.var[colIndex]);
+				Object vertOrProp = mapData.get(this.rawHeaders[colIndex]);
 				Object value = null;
 				if (vertOrProp instanceof Vertex) {
-					String node = this.var[colIndex];
+					String node = this.rawHeaders[colIndex];
 					String name = getNodeName(node);
 					value = ((Vertex) vertOrProp).value(name);
 				} else {
@@ -144,7 +141,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 			// for right now, assuming it is just a single vertex to return
 			if(data instanceof Vertex) {
 				Vertex vertex = (Vertex) data;
-				String node = this.var[0];
+				String node = this.rawHeaders[0];
 				String name = getNodeName(node);
 				retObject = new Object[]{vertex.value(name)};
 			} else {
@@ -153,7 +150,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 			}
 		}
 
-		HeadersDataRow nextData = new HeadersDataRow(this.displayVar, this.var, retObject);
+		HeadersDataRow nextData = new HeadersDataRow(this.headers, this.rawHeaders, retObject);
 		return nextData;
 	}
 	
@@ -207,7 +204,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	
 	@Override
 	public String[] getHeaders() {
-		return this.var;
+		return this.rawHeaders;
 	}
 
 	@Override
