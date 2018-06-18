@@ -763,9 +763,7 @@ public class ReactorFactory {
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
-		// this merge will not try to modify the filters on the QS since we are most
-		// likely dealing with large data
-		nativeFrameHash.put("Merge", prerna.sablecc2.reactor.frame.nativeframe.NativeFrameMergeDataReactor.class);
+
 	}
 
 	private static void populateH2FrameHash(Map<String, Class> h2FrameHash) {
