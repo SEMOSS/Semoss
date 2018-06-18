@@ -51,9 +51,7 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.iterator.JenaDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -238,11 +236,4 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 		
 	}
 
-	@Override
-	public IDatasourceIterator query(String query) {
-		IDatasourceIterator it = new JenaDatasourceIterator(this.jenaModel);
-		it.setQuery(query);
-		it.execute();
-		return it;
-	}
 }

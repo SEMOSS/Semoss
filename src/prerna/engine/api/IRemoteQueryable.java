@@ -29,13 +29,13 @@ package prerna.engine.api;
 
 public interface IRemoteQueryable {
 
-	public void setRemoteID(String id);
+	void setRemoteID(String id);
 	
-	public String getRemoteID();
+	String getRemoteID();
 	
 	// this is the remote URL to get the next etc from
-	public void setRemoteAPI(String engine);
+	void setRemoteAPI(String engine);
 	
-	public String getRemoteAPI();
+	String getRemoteAPI();
 	
 }

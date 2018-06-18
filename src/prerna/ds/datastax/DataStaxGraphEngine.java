@@ -13,14 +13,9 @@ import com.datastax.driver.dse.DseSession;
 import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 
-import prerna.engine.api.IDatasourceIterator;
-import prerna.engine.api.iterator.GremlinDatasourceIterator;
-import prerna.engine.api.iterator.QueryStructDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
-import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -102,30 +97,12 @@ public class DataStaxGraphEngine extends AbstractEngine {
 		return ENGINE_TYPE.DATASTAX_GRAPH;
 	}
 	
-	@Override
-	public IDatasourceIterator query(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public IDatasourceIterator query(SelectQueryStruct qs) {
-		IQueryInterpreter interp = getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		GremlinDatasourceIterator gdi = new GremlinDatasourceIterator((GremlinInterpreter) interp, qs);
-		gdi.execute();
-		QueryStructDatasourceIterator qsd = new QueryStructDatasourceIterator(gdi, qs);
-		qsd.execute();
-		return qsd;
-	}
 	
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 	
-	
-
 	@Override
 	public Object execQuery(String query) {
 		// TODO Auto-generated method stub

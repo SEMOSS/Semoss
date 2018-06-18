@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -20,22 +21,22 @@ import prerna.util.ConnectionUtils;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
-	private Connection conn = null;
-	private Statement stmt = null;
-	private ResultSet rs = null;
-	private boolean closedConnection = false;
+	protected Connection conn = null;
+	protected Statement stmt = null;
+	protected ResultSet rs = null;
+	protected boolean closedConnection = false;
 	
-	private int numColumns = 0;
-	private String[] colTypeNames = null;
-	private int[] colTypes = null;
+	protected int numColumns = 0;
+	protected int[] colTypes = null;
+	protected SemossDataType[] types;
 
-	private IHeadersDataRow currRow = null;
+	protected IHeadersDataRow currRow = null;
 
 	// this is used so we do not close the engine connection
-	private boolean useEngineConnection = false;
+	protected boolean useEngineConnection = false;
 
 	// use this if we want to close the connection once the iterator is done
-	private boolean closeConnectionAfterExecution = false;
+	protected boolean closeConnectionAfterExecution = false;
 	
 	@Override
 	public void execute() {
@@ -155,7 +156,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 
-	private void setVariables(){
+	protected void setVariables(){
 		try {
 			// get the result set metadata
 			ResultSetMetaData rsmd = rs.getMetaData();
@@ -164,7 +165,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// create the arrays to store the column types,
 			// the physical variable names and the display variable names
 			colTypes = new int[numColumns];
-			colTypeNames = new String[numColumns];
+			types = new SemossDataType[numColumns];
 			var = new String[numColumns];
 			displayVar = new String[numColumns];
 
@@ -172,7 +173,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				var[colIndex-1] = rsmd.getColumnName(colIndex);
 				displayVar[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
-				colTypeNames[colIndex-1] = rsmd.getColumnTypeName(colIndex);
+				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -180,18 +181,13 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public String[] getDisplayVariables() {
+	public String[] getHeaders() {
 		return displayVar;
 	}
 
 	@Override
-	public String[] getPhysicalVariables() {
-		return var;
-	}
-	
-	@Override
-	public String[] getTypes() {
-		return colTypeNames;
+	public SemossDataType[] getTypes() {
+		return types;
 	}
 
 	public ResultSetMetaData getMetaData() throws SQLException {
@@ -202,28 +198,6 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		this.closeConnectionAfterExecution = closeConnectionAfterExecution;
 	}
 	
-	/**
-	 * This method allows me to perform the execution of a query on a given connection
-	 * without having to go through a formal RDBMSNativeEngine construct
-	 * i.e. the naked engine ;)
-	 * @param conn
-	 * @param query
-	 */
-	public void directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) {
-		try {
-			this.conn = conn;
-			this.stmt = this.conn.createStatement();
-			this.rs = this.stmt.executeQuery(query);
-			setVariables();
-		} catch(Exception e) {
-			e.printStackTrace();
-			if(closeIfFail) {
-				ConnectionUtils.closeAllConnections(conn, rs, stmt);
-			}
-			throw new IllegalArgumentException(e.getMessage());
-		}
-	}
-
 	@Override
 	public void cleanUp() {
 		if(this.closedConnection) {
@@ -253,5 +227,74 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 		}
 		this.closedConnection = true;
+	}
+	
+	@Override
+	public long getNumRecords() {
+		String query = "select (count(*) * " + this.numColumns + ") from (" + this.query + ")";
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = this.conn.createStatement();
+			rs = stmt.executeQuery(query);
+			if(rs.next()) {
+				return rs.getLong(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return 0;
+	}
+	
+	@Override
+	public void reset() {
+		// close current stuff
+		// but we shouldn't close the connection
+		// so store whatever that boolean is as temp
+		// and then reasign after we re-execute
+		boolean temp = this.closeConnectionAfterExecution;
+		this.closeConnectionAfterExecution = false;
+		cleanUp();
+		this.closeConnectionAfterExecution = temp;
+		// execute again
+		execute();
+	}
+	
+	/**
+	 * This method allows me to perform the execution of a query on a given connection
+	 * without having to go through a formal RDBMSNativeEngine construct
+	 * i.e. the naked engine ;)
+	 * @param conn
+	 * @param query
+	 */
+	public void directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) {
+		try {
+			this.conn = conn;
+			this.stmt = this.conn.createStatement();
+			this.rs = this.stmt.executeQuery(query);
+			setVariables();
+		} catch(Exception e) {
+			e.printStackTrace();
+			if(closeIfFail) {
+				ConnectionUtils.closeAllConnections(conn, rs, stmt);
+			}
+			throw new IllegalArgumentException(e.getMessage());
+		}
 	}
 }

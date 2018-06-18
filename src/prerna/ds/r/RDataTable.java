@@ -14,12 +14,12 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.iterator.RDatasourceIterator;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -133,15 +133,15 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public IDatasourceIterator query(String query) {
-		IDatasourceIterator it = new RDatasourceIterator(this);
-		it.setQuery(query);
-		it.execute();
+	public IRawSelectWrapper query(String query) {
+		RIterator output = new RIterator(this.builder, query);
+		RawRSelectWrapper it = new RawRSelectWrapper();
+		it.directExecution(output);
 		return it;
 	}
 
 	@Override
-	public IDatasourceIterator query(SelectQueryStruct qs) {
+	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
@@ -151,9 +151,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		String query = interp.composeQuery();
 		
-		IDatasourceIterator it = new RDatasourceIterator(this, qs);
-		it.setQuery(query);
-		it.execute();
+		RIterator output = new RIterator(this.builder, query, qs);
+		RawRSelectWrapper it = new RawRSelectWrapper();
+		it.directExecution(output);
 		return it;
 	}
 	
