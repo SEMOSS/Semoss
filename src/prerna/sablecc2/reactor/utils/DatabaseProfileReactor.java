@@ -10,9 +10,9 @@ import java.util.Vector;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -61,24 +61,12 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			List<String> conceptList = getConceptList();
 			// get concept properties from local master
 			Map<String, HashMap> dbMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
-			HashMap<String, ArrayList<String>> conceptMap = dbMap.get(engineId);
-			for (int i = 0; i < conceptList.size(); i++) {
+			HashMap<String, ArrayList<String>> conceptMap = dbMap.get(engine.getEngineName());
+			for (String concept : conceptList) {
 				// first add concept profile data
-				String concept = conceptList.get(i);
-				String primKey = null;
+				String primKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
 				String conceptDataType = null;
-				// determine concept prim key if applicable and dataType
-				ENGINE_TYPE engineType = engine.getEngineType();
-				if (engineType.equals(ENGINE_TYPE.SESAME)) {
-					conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId, concept, null);
-					primKey = concept;
-				} else if (engineType.equals(ENGINE_TYPE.RDBMS)) {
-					// get primary key for concept
-					String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
-					String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
-					primKey = Utility.getClassName(tableURI);
-					conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId, primKey, concept);
-				}
+				conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId,  concept, null);
 				// concept data type now get profile data based on type
 				if (Utility.isNumericType(conceptDataType)) {
 					String[] row = getNumericalProfileData(engine, concept, primKey);
@@ -91,22 +79,21 @@ public class DatabaseProfileReactor extends AbstractReactor {
 				}
 
 				// now get property profile data
-				if (conceptMap != null && conceptMap.containsKey(concept)) {
-					ArrayList<String> properties = conceptMap.get(concept);
-					for (String prop : properties) {
-						// check property data type
-						String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
-						if (Utility.isNumericType(dataType)) {
-							String[] cells = getNumericalProfileData(engine, concept, prop);
+				List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(concept, engineId);
+				for (String prop : properties) {
+					// check property data type
+					String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
+					if (Utility.isNumericType(dataType)) {
+						String[] cells = getNumericalProfileData(engine, concept, prop);
+						frame.addRow(tableName, cells, headers, dataTypes);
+					} else {
+						if (Utility.isStringType(dataType)) {
+							String[] cells = getStringProfileData(engine, concept, prop);
 							frame.addRow(tableName, cells, headers, dataTypes);
-						} else {
-							if (Utility.isStringType(dataType)) {
-								String[] cells = getStringProfileData(engine, concept, prop);
-								frame.addRow(tableName, cells, headers, dataTypes);
-							}
 						}
 					}
 				}
+
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
@@ -144,16 +131,22 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			qs_nulls.addExplicitFilter(nulls);
 		}
 		// get blank values count
-		Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
-		long blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
+		Iterator<IHeadersDataRow> blankIt = engine.query(qs2);
+		long blankCount = 0;
+		if (blankIt.hasNext()) {
+			blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
+		}
 		retRow[2] = blankCount + "";
-		
+
 		// num of unique vals
 		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
 
 		// get null values count
-		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
-		long nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		Iterator<IHeadersDataRow> nullIt = engine.query(qs_nulls);
+		long nullCount = 0;
+		if (nullIt.hasNext()) {
+			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
+		}
 		retRow[8] = nullCount + "";
 		return retRow;
 	}
@@ -199,18 +192,11 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			sum.setFunction(QueryFunctionHelper.SUM);
 			sum.addInnerSelector(innerSelector);
 			qs2.addSelector(sum);
-			// nulls
-			QueryFunctionSelector countNullsSelector = new QueryFunctionSelector();
-			countNullsSelector.setFunction(QueryFunctionHelper.COUNT);
-			qs_nulls.addSelector(countNullsSelector);
-			SimpleQueryFilter nulls = new SimpleQueryFilter(
-					new NounMetadata(innerSelector, PixelDataType.COLUMN), "==",
-					new NounMetadata("null", PixelDataType.NULL_VALUE));
-			qs_nulls.addExplicitFilter(nulls);
+
 
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+		Iterator<IHeadersDataRow> it = engine.query(qs2);
 		while (it.hasNext()) {
 			IHeadersDataRow iRow = it.next();
 			Object[] values = iRow.getValues();
@@ -225,10 +211,31 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			// sum
 			retRow[7] = values[4] + "";
 		}
+		// nulls
+		qs_nulls = new SelectQueryStruct();
+		{
+			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
+			uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
+			QueryColumnSelector innerSelector = new QueryColumnSelector();
+			innerSelector.setTable(concept);
+			innerSelector.setColumn(prop);
+			uniqueCountSelector.addInnerSelector(innerSelector);
+			qs2.addSelector(uniqueCountSelector);
+			QueryColumnSelector col = new QueryColumnSelector();
+			col.setTable(concept);
+			col.setColumn(prop);
+
+			// nulls
+			qs_nulls.addSelector(uniqueCountSelector);
+			SimpleQueryFilter nulls = new SimpleQueryFilter(
+					new NounMetadata(col, PixelDataType.COLUMN), "==",
+					new NounMetadata("null", PixelDataType.NULL_VALUE));
+			qs_nulls.addExplicitFilter(nulls);
+		}
 		// get null values count
 		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
 		long nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
-		retRow[8] = nullCount + "";
+		retRow[8] = "" + nullCount;
 		return retRow;
 	}
 
@@ -245,7 +252,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			qs2.addSelector(funSelector);
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+		Iterator<IHeadersDataRow> it = engine.query(qs2);
 		Object value = it.next().getValues()[0];
 		return value;
 	}
