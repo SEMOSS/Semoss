@@ -129,6 +129,12 @@ public interface ITableDataFrame extends IDataMaker, IDatasource {
 	 */
 	void save(String fileName);
 	
+	/**
+	 * Get the number of rows for the frame
+	 * @param tableName
+	 * @return
+	 */
+	long size(String tableName);
 	
 	/**
 	 * Deserialize the dataframe
