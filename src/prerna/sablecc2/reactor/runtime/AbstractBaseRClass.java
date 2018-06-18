@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,15 +26,17 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.H2Importer;
+import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.sablecc2.reactor.imports.RImporter;
 import prerna.util.ArrayUtilityMethods;
@@ -301,7 +302,16 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getTableName(), rVarName);
 
 		} else if(dataframe instanceof NativeFrame) {
-			Iterator<IHeadersDataRow> it = dataframe.iterator();
+			IRawSelectWrapper it = dataframe.iterator();
+			if(!ImportSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+			
 			RImporter importer = new RImporter(table, dataframe.getMetaData().getFlatTableQs(), it);
 			importer.insertData();
 
