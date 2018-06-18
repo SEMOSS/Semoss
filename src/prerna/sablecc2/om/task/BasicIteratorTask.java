@@ -27,7 +27,6 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
 public class BasicIteratorTask extends AbstractTask {
@@ -126,9 +125,8 @@ public class BasicIteratorTask extends AbstractTask {
 	
 	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) {
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
-		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || 
-				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			iterator = qs.retrieveQueryStructEngine().query(qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			iterator = new CsvFileIterator((CsvQueryStruct) qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
