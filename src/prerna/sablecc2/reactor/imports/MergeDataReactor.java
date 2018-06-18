@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -58,7 +59,9 @@ public class MergeDataReactor extends AbstractReactor {
 		
 		ITableDataFrame mergeFrame = null;
 		SelectQueryStruct qs = getQueryStruct();
-		if(qs != null) {
+		if(frame instanceof NativeFrame) {
+			mergeFrame = mergeNative(frame, qs, joins);
+		} else if(qs != null) {
 			IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
 			// we need to account for the join column not adding 
 			// additional records
@@ -83,6 +86,9 @@ public class MergeDataReactor extends AbstractReactor {
 			}
 		}
 		
+		// clear cached info after merge
+		frame.clearCachedInfo();
+
 		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		noun.addAdditionalReturn(new NounMetadata(mergeFrame.getMetaData().getTableHeaderObjects(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
 		// in case we generated a new frame
@@ -90,7 +96,8 @@ public class MergeDataReactor extends AbstractReactor {
 		if(mergeFrame != frame) {
 			if(frame.getTableName() != null) {
 				this.insight.getVarStore().put(frame.getTableName(), noun);
-			} else if(frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY)) {
+			} 
+			if(frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
 				this.insight.setDataMaker(mergeFrame);
 			}
 		}
@@ -98,6 +105,16 @@ public class MergeDataReactor extends AbstractReactor {
 		return noun;
 	}
 	
+	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
+		// track GA data
+		GATracker.getInstance().trackDataImport(this.insight, qs);
+		IImporter importer = ImportFactory.getImporter(frame, qs);
+		// we reassign the frame because it might have changed
+		// this only happens for native frame
+		frame = importer.mergeData(joins);
+		return frame;
+	}
+
 	/**
 	 * Merge via a QS that we will execute into an iterator
 	 * @param frame
@@ -169,7 +186,6 @@ public class MergeDataReactor extends AbstractReactor {
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
-		frame.clearCachedInfo();
 		
 		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
@@ -205,8 +221,6 @@ public class MergeDataReactor extends AbstractReactor {
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
-		// need to clear the unique col count used by FE for determining the need for math
-		frame.clearCachedInfo();
 		
 		return frame;
 	}
