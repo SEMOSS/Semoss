@@ -141,7 +141,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				qs.addOrderBy(new QueryColumnOrderBySelector(rel[0]));
 
 				logger.info("Start rel sheet for " + Arrays.toString(rel));
-				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+				IDatasourceIterator iterator = engine.query(qs);
 				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
 			}
