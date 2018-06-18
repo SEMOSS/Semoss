@@ -53,8 +53,8 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 	public void execute() {
 		System.out.println("Trying to get the wrapper remotely now");
 		remoteWrapperProxy = (SesameSelectWrapper)engine.execQuery(query);
-		this.displayVar = remoteWrapperProxy.displayVar;
-		this.var = remoteWrapperProxy.var;
+		this.headers = remoteWrapperProxy.headers;
+		this.rawHeaders = remoteWrapperProxy.rawHeaders;
 				
 //		var = remoteWrapperProxy.getVariables();
 //		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
@@ -73,7 +73,7 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 			if(ris == null)
 			{
 				Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteID());
+				params.put("id", remoteWrapperProxy.getRemoteId());
 				ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
 			}	
 			Object myObject = ris.readObject();
@@ -106,15 +106,15 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 	@Override
 	public String[] getVariables() {
 		// TODO Auto-generated method stub
-		var = remoteWrapperProxy.getVariables();
+		rawHeaders = remoteWrapperProxy.getVariables();
 		System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
-		return var;
+		return rawHeaders;
 	}
 	
 	public String [] getDisplayVariables() {
-		if(displayVar == null)
+		if(headers == null)
 		{
-			displayVar = remoteWrapperProxy.displayVar;
+			headers = remoteWrapperProxy.headers;
 			/*
 			try {
 				ObjectInputStream displayStream;
@@ -130,18 +130,18 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 				e.printStackTrace();
 			}*/
 		}
-		return displayVar;
+		return headers;
 	}
 	
 	protected ISelectStatement getSelectFromBinding(BindingSet bs)
 	{
 		getDisplayVariables();
-		String [] variableArr = displayVar;
+		String [] variableArr = headers;
 		
 		ISelectStatement sjss = new SelectStatement();
 		for(int colIndex = 0;colIndex < variableArr.length;colIndex++)
 		{
-			Object val = bs.getValue(displayVar[colIndex]);
+			Object val = bs.getValue(headers[colIndex]);
 			Object parsedVal = getRealValue(val);
 
 			sjss.setVar(variableArr[colIndex], parsedVal);

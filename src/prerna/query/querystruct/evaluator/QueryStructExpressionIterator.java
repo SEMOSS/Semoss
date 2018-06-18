@@ -40,9 +40,6 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	private IRawSelectWrapper subIt;
 	private SelectQueryStruct qs;
 
-	private int numColumns;
-	private SemossDataType[] types;
-
 	public QueryStructExpressionIterator(IRawSelectWrapper subIt, SelectQueryStruct qs) {
 		this.subIt = subIt;
 		this.qs = qs;
@@ -81,8 +78,8 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 		if(!mathIndex.isEmpty()) {
 			// we need to process through this iterator to get our results
 			calculateProcessedData(headers, uniqueSelectorNames, mathIndex, mathOperation, groupByIndex);
-			this.var = headers;
-			this.displayVar = headers;
+			this.rawHeaders = headers;
+			this.headers = headers;
 			this.numColumns = headers.length;
 			this.types = new SemossDataType[this.numColumns];
 			SemossDataType[] origTypes = this.subIt.getTypes();
@@ -213,10 +210,10 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 
 	@Override
 	public String[] getHeaders() {
-		if(this.displayVar == null) {
+		if(this.headers == null) {
 			return this.subIt.getHeaders();
 		}
-		return this.displayVar;
+		return this.headers;
 	}
 
 	@Override

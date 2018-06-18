@@ -47,6 +47,10 @@ public interface IHeadersDataRow{
 	 */
 	void addFields(String[] addHeaders, Object[] addValues);
 	
+	/**
+	 * Copy the headers row
+	 * @return
+	 */
 	IHeadersDataRow copy();
 	
 	

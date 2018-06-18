@@ -32,20 +32,20 @@ public class RawImpalaSelectWrapper extends RawRDBMSSelectWrapper {
 			// the physical variable names and the display variable names
 			colTypes = new int[numColumns];
 			types = new SemossDataType[numColumns];
-			var = new String[numColumns];
-			displayVar = new String[numColumns];
+			rawHeaders = new String[numColumns];
+			headers = new String[numColumns];
 
 			for(int colIndex = 1; colIndex <= numColumns; colIndex++) {
-				var[colIndex-1] = rsmd.getColumnName(colIndex);
-				displayVar[colIndex-1] = rsmd.getColumnLabel(colIndex);
+				rawHeaders[colIndex-1] = rsmd.getColumnName(colIndex);
+				headers[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				//IMPALA EDITS
 				//Remove the front appended math function and re-add it to address case issue due to impala returning lowercase only
 				if(qs != null && !(qs instanceof HardSelectQueryStruct)) {
 					if((qs.getSelectors().get(colIndex-1).getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION)){
 						QueryFunctionSelector currentSelect= (QueryFunctionSelector) qs.getSelectors().get(colIndex-1);
 						String aggregate = currentSelect.getFunction();
-						var[colIndex-1]=var[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
-						displayVar[colIndex-1]=displayVar[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
+						rawHeaders[colIndex-1]=rawHeaders[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
+						headers[colIndex-1]=headers[colIndex-1].replaceFirst((aggregate.toLowerCase()), aggregate);
 					}
 				}
 				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);

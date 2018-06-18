@@ -33,8 +33,6 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.ssss'Z'");
 
 	private TupleQueryResult tqr = null;
-	private int numColumns = 0;
-	private SemossDataType[] types;
 
 	@Override
 	public void execute() {
@@ -65,16 +63,15 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 			Object[] rawRow = new Object[numColumns];
 
 			BindingSet bindSet = tqr.next();
-			for(int colIndex = 0;colIndex < numColumns; colIndex++)
-			{
-				Object val = bindSet.getValue(var[colIndex]);
+			for(int colIndex = 0;colIndex < numColumns; colIndex++) {
+				Object val = bindSet.getValue(rawHeaders[colIndex]);
 				// raw value is the straight return from the binding set
 				rawRow[colIndex] = val;
 				// get the real value in the clean row
 				cleanRow[colIndex] = getRealValue(val);
 			}
 
-			return new HeadersDataRow(displayVar, cleanRow, rawRow);
+			return new HeadersDataRow(headers, cleanRow, rawRow);
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
 		}
@@ -96,9 +93,9 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 			// we technically need the concept and prop name
 			// this is already what we have via the names binding
 			// when it is created through query builder
-			var = names.toArray(new String[]{});
+			rawHeaders = names.toArray(new String[]{});
 
-			displayVar = new String[numColumns];
+			headers = new String[numColumns];
 			for(int colIndex = 0; colIndex < numColumns; colIndex++){
 				// for the display, if we encounter a "__", we want to 
 				// split and get the second part of the string
@@ -108,7 +105,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					String[] splitColAndTable = columnLabel.split("__");
 					columnLabel = splitColAndTable[1];
 				}
-				displayVar[colIndex] = columnLabel;
+				headers[colIndex] = columnLabel;
 			}
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
@@ -118,7 +115,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public String[] getHeaders() {
-		return displayVar;
+		return headers;
 	}
 
 	private Object getRealValue(Object val){
@@ -187,7 +184,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 
 				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
-					if(aggregationValues.contains(this.var[i])) {
+					if(aggregationValues.contains(this.rawHeaders[i])) {
 						this.types[i] = SemossDataType.DOUBLE;
 					} else {
 						this.types[i] = SemossDataType.STRING;

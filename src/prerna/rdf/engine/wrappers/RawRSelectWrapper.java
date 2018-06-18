@@ -8,7 +8,6 @@ import prerna.engine.api.IRawSelectWrapper;
 public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private RIterator output = null;
-	private SemossDataType[] types;
 
 	@Override
 	public void execute() {
@@ -33,7 +32,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 
 	@Override
 	public String[] getHeaders() {
-		return var;
+		return rawHeaders;
 	}
 
 	@Override
@@ -42,12 +41,12 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	}
 
 	private void setDefaults() {
-		this.var = output.getHeaders();
-		this.displayVar = this.var;
+		this.rawHeaders = output.getHeaders();
+		this.headers = this.rawHeaders;
 		
 		String[] strTypes = output.getColTypes();
-		this.types = new SemossDataType[this.var.length];
-		for(int i = 0; i < this.var.length; i++) {
+		this.types = new SemossDataType[this.rawHeaders.length];
+		for(int i = 0; i < this.rawHeaders.length; i++) {
 			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
 		}
 	}
