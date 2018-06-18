@@ -42,12 +42,6 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
-
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
@@ -56,6 +50,14 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.util.FileManager;
+
+import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.JenaDatasourceIterator;
+import prerna.engine.impl.AbstractEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * References the RDF source and uses the Jena API to query a database stored in an RDF file (.jnl file).
@@ -234,5 +236,13 @@ public class RDFFileJenaEngine extends AbstractEngine implements IEngine {
 	public void commit() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new JenaDatasourceIterator(this.jenaModel);
+		it.setQuery(query);
+		it.execute();
+		return it;
 	}
 }

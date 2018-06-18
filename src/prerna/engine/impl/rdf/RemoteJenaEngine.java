@@ -42,18 +42,20 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.AbstractEngine;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.Utility;
-
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
+
+import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.JenaDatasourceIterator;
+import prerna.engine.impl.AbstractEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * References the RDF source from a remote engine and uses the Jena API to query a database stored in an RDF file (.jnl file).
@@ -245,6 +247,15 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 	public void deleteDB(){
 		// this does nothing
 		logger.info("cannot delete remote engine");
+	}
+
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new JenaDatasourceIterator(this.jenaModel);
+		it.setQuery(query);
+		it.execute();
+		return it;
 	}
 
 }

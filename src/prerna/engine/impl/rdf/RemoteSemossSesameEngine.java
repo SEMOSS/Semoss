@@ -50,6 +50,9 @@ import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
+import com.google.gson.Gson;
+
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
@@ -57,14 +60,11 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.RemoteSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.SesameSelectWrapper;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.H2QueryUtil;
-
-import com.google.gson.Gson;
 
 public class RemoteSemossSesameEngine extends AbstractEngine {
 
@@ -422,6 +422,12 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	public void commit() {
 		// this does nothing
 		logger.info("cannot commit remote engine");
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }
