@@ -14,6 +14,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.iterator.RDatasourceIterator;
 import prerna.query.interpreters.RInterpreter;
@@ -132,19 +133,15 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(String query) {
-		RDatasourceIterator it = new RDatasourceIterator(this);
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new RDatasourceIterator(this);
 		it.setQuery(query);
 		it.execute();
 		return it;
-//		RIterator baseIt = new RIterator(builder, query);
-//		RawRSelectWrapper it = new RawRSelectWrapper();
-//		it.directExecution(baseIt);
-//		return it;
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
+	public IDatasourceIterator query(SelectQueryStruct qs) {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
@@ -154,15 +151,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		String query = interp.composeQuery();
 		
-		RDatasourceIterator it = new RDatasourceIterator(this, qs);
+		IDatasourceIterator it = new RDatasourceIterator(this, qs);
 		it.setQuery(query);
 		it.execute();
 		return it;
-//		
-//		RIterator baseIt = new RIterator(this.builder, query, qs);
-//		RawRSelectWrapper it = new RawRSelectWrapper();
-//		it.directExecution(baseIt);
-//		return it;
 	}
 	
 	@Override
