@@ -202,7 +202,9 @@ public class H2Builder {
 							}
 						}
 					} else if (type == SemossDataType.DATE) {
-						if(nextRow[colIndex] instanceof SemossDate) {
+						if (nextRow[colIndex] == null) {
+							ps.setNull(colIndex + 1, java.sql.Types.DATE);
+						} else if(nextRow[colIndex] instanceof SemossDate) {
 							Date d = ((SemossDate) nextRow[colIndex]).getDate();
 							if(d != null) {
 								ps.setDate(colIndex + 1, new java.sql.Date( d.getTime() ) );
@@ -218,7 +220,9 @@ public class H2Builder {
 							}
 						}
 					} else if (type == SemossDataType.TIMESTAMP) {
-						if(nextRow[colIndex] instanceof SemossDate) {
+						if (nextRow[colIndex] == null) {
+							ps.setNull(colIndex + 1, java.sql.Types.DATE);
+						} else if(nextRow[colIndex] instanceof SemossDate) {
 							Date d = ((SemossDate) nextRow[colIndex]).getDate();
 							if(d != null) {
 								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp( d.getTime() ) );
