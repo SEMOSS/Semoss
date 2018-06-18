@@ -65,8 +65,8 @@ public class RImporter implements IImporter {
 		RFrameBuilder builder = this.dataframe.getBuilder();
 		String tableName = this.dataframe.getTableName();
 		
-		System.out.println(Arrays.toString(builder.getColumnNames()));
-		System.out.println(Arrays.toString(builder.getColumnTypes()));
+//		System.out.println(Arrays.toString(builder.getColumnNames()));
+//		System.out.println(Arrays.toString(builder.getColumnTypes()));
 		
 		// define new temporary table with random name
 		// we will flush out the iterator into a CSV file
@@ -88,8 +88,8 @@ public class RImporter implements IImporter {
 			this.dataframe.executeRScript(alterTable);
 		} else {
 			
-			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
-			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
+//			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
+//			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
 			
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getTableName();
@@ -122,8 +122,8 @@ public class RImporter implements IImporter {
 			this.dataframe.executeRScript(mergeString);
 			this.dataframe.syncHeaders();
 			
-			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
-			System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
+//			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
+//			System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));
 			
 			// clean r temp table name
 			this.dataframe.executeRScript("rm("+tempTableName+")");
