@@ -114,8 +114,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		this.logger = LogManager.getLogger(this.getClass().getName());
 	}
 	
-	protected abstract long size(String tableName);
-	
 	@Override
 	public OwlTemporalEngineMeta getMetaData() {
 		return this.metaData;
