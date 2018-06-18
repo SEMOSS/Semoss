@@ -13,7 +13,6 @@ import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
-import javassist.NotFoundException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.sablecc.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -129,11 +128,8 @@ public class JavaReactor extends AbstractReactor {
 			throw e;
 		} catch (CannotCompileException e) {
 			e.printStackTrace();
-		} catch (NotFoundException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+			throw new IllegalArgumentException("Code had syntax errors which could not be compiled for execution: " + e.getMessage());
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
