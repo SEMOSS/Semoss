@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.iterator.GremlinDatasourceIterator;
 import prerna.engine.api.iterator.QueryStructDatasourceIterator;
@@ -1106,7 +1107,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
+	public IDatasourceIterator query(String query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public IDatasourceIterator query(SelectQueryStruct qs) {
 		qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
@@ -1160,13 +1167,6 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		return true;
 	}
 
-	@Override
-	public Iterator<IHeadersDataRow> query(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	
 	@Override
 	protected Boolean calculateIsUnqiueColumn(String columnName) {
 		// This reactor checks for duplicates
