@@ -126,12 +126,12 @@ public class CsvFileIterator extends AbstractFileIterator {
 	}
 
 	@Override
-	public void resetHelper() {
+	public void reset() {
 		this.helper.reset(false);
 	}
 
 	@Override
-	public void clearHelper() {
+	public void cleanUp() {
 		this.helper.clear();
 	}
 

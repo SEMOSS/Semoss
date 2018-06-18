@@ -30,44 +30,9 @@ import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
-	/**
-	 * Restrictions set on the size of the frame
-	 */
-	public static int LIMIT_SIZE;
-	static {
-		String limitSize = (String) DIHelper.getInstance().getProperty(Constants.FRAME_SIZE_LIMIT);
-		if (limitSize == null) {
-			LIMIT_SIZE = Integer.MAX_VALUE;
-		} else {
-			try {
-				int val = Integer.parseInt(limitSize.trim());
-				if(val < 0) {
-					LIMIT_SIZE = Integer.MAX_VALUE;
-				} else {
-					LIMIT_SIZE = Integer.parseInt(limitSize.trim());
-				}
-			} catch(Exception e) {
-				LIMIT_SIZE = 10_000;
-			}
-		}
-	}
-	
-	public static boolean sizeWithinLimit(AbstractTableDataFrame frame) {
-		return sizeWithinLimit(frame, frame.getTableName());
-	}
-	
-	public static boolean sizeWithinLimit(AbstractTableDataFrame frame, String varName) {
-		if( (LIMIT_SIZE != Integer.MAX_VALUE) && frame.size(varName) > LIMIT_SIZE) {
-			return false;
-		}
-		return true;
-	}
-	
 	@Deprecated
 	public static final String SELECTORS = "selectors";
 	@Deprecated
