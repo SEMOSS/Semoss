@@ -14,8 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import net.minidev.json.JSONArray;
-
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
@@ -30,6 +28,13 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+
+import net.minidev.json.JSONArray;
+import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.iterator.JsonPathDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -38,10 +43,6 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
 
 public class JsonAPIEngine extends AbstractEngine {
 	
@@ -780,6 +781,14 @@ public class JsonAPIEngine extends AbstractEngine {
 	@Override
 	public IQueryInterpreter getQueryInterpreter(){
 		return new JsonInterpreter(this);
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new JsonPathDatasourceIterator(this);
+		it.setQuery(query);
+		it.execute();
+		return it;
 	}
 
 }

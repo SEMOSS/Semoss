@@ -25,13 +25,17 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.GremlinDatasourceIterator;
+import prerna.engine.api.iterator.QueryStructDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Constants;
 import prerna.util.MyGraphIoRegistry;
 import prerna.util.Utility;
@@ -266,5 +270,22 @@ public class TinkerEngine extends AbstractEngine {
 	
 	public Map<String, String> getNameMap() {
 		return this.nameMap;
+	}
+	
+	@Override
+	public IDatasourceIterator query(String query) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public IDatasourceIterator query(SelectQueryStruct qs) {
+		IQueryInterpreter interp = getQueryInterpreter();
+		interp.setQueryStruct(qs);
+		GremlinDatasourceIterator gdi = new GremlinDatasourceIterator((GremlinInterpreter) interp, qs);
+		gdi.execute();
+		QueryStructDatasourceIterator qsd = new QueryStructDatasourceIterator(gdi, qs);
+		qsd.execute();
+		return qsd;
 	}
 }
