@@ -1,13 +1,12 @@
 package prerna.sablecc2.reactor.imports;
 
-import java.util.Iterator;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.parsers.OpaqueSqlParser;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -15,6 +14,10 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class NativeFrameImporter implements IImporter {
@@ -84,13 +87,32 @@ public class NativeFrameImporter implements IImporter {
 		SelectQueryStruct nativeQs = this.dataframe.getQueryStruct();
 		// need to convert the native QS to properly form the RDataTable
 		nativeQs = QSAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
-		Iterator<IHeadersDataRow> nativeFrameIt = this.dataframe.query(nativeQs);
+		IRawSelectWrapper nativeFrameIt = this.dataframe.query(nativeQs);
+		if(!ImportSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+							PixelDataType.CONST_STRING, 
+							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		
 		RDataTable rFrame = new RDataTable(Utility.getRandomString(8));
 		RImporter rImporter = new RImporter(rFrame, nativeQs, nativeFrameIt);
 		rImporter.insertData();
 		
 		// now, we want to merge this new data into it
-		rImporter = new RImporter(rFrame, this.qs, this.dataframe.query(this.qs));
+		IRawSelectWrapper mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
+		if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt.getNumRecords())) {
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+							PixelDataType.CONST_STRING, 
+							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		
+		rImporter = new RImporter(rFrame, this.qs, mergeFrameIt);
 		rImporter.mergeData(joins);
 		return rFrame;
 	}
