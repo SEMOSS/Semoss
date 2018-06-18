@@ -87,12 +87,12 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 
 	protected ISelectStatement getSelectFromBinding(BindingSet bs)
 	{
-		String [] variableArr = displayVar;
+		String [] variableArr = headers;
 		
 		ISelectStatement sjss = new SelectStatement();
 		for(int colIndex = 0;colIndex < variableArr.length;colIndex++)
 		{
-			Object val = bs.getValue(displayVar[colIndex]);
+			Object val = bs.getValue(headers[colIndex]);
 			Object parsedVal = getRealValue(val);
 
 			sjss.setVar(variableArr[colIndex], parsedVal);
@@ -164,10 +164,10 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 	
 	@Override
 	public String[] getDisplayVariables() {
-		if(displayVar == null){
+		if(headers == null){
 			try {
 
-				displayVar = new String[tqr.getBindingNames().size()];
+				headers = new String[tqr.getBindingNames().size()];
 				List<String> names = tqr.getBindingNames();
 				for (int colIndex = 0; colIndex < names.size(); colIndex++){
 					String columnLabel = names.get(colIndex);
@@ -195,7 +195,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 						columnLabel = tableLabel;
 					}
 					
-					displayVar[colIndex] = columnLabel;
+					headers[colIndex] = columnLabel;
 				}
 					
 			} catch (QueryEvaluationException e) {
@@ -203,16 +203,16 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 				e.printStackTrace();
 			}
 		}
-		return displayVar;
+		return headers;
 	}
 	
 	@Override
 	public String[] getPhysicalVariables() {
-		if(var == null){
+		if(rawHeaders == null){
 			try {
-				var = new String[tqr.getBindingNames().size()];
+				rawHeaders = new String[tqr.getBindingNames().size()];
 				List<String> names = tqr.getBindingNames();
-				for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names
+				for (int colIndex = 0; colIndex < names.size(); rawHeaders[colIndex] = names
 						.get(colIndex), colIndex++)
 					;
 			} catch (QueryEvaluationException e) {
@@ -220,7 +220,7 @@ public class SesameSelectWrapper extends AbstractWrapper implements ISelectWrapp
 				e.printStackTrace();
 			}
 		}
-		return var;
+		return rawHeaders;
 	}
 
 	@Override

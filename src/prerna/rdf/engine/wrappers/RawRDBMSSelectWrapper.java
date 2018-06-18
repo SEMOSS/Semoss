@@ -145,7 +145,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 
 			// return the header row
-			return new HeadersDataRow(displayVar, var, row, row);
+			return new HeadersDataRow(headers, rawHeaders, row, row);
 		} else {
 			cleanUp();
 		}
@@ -166,12 +166,12 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			// the physical variable names and the display variable names
 			colTypes = new int[numColumns];
 			types = new SemossDataType[numColumns];
-			var = new String[numColumns];
-			displayVar = new String[numColumns];
+			rawHeaders = new String[numColumns];
+			headers = new String[numColumns];
 
 			for(int colIndex = 1; colIndex <= numColumns; colIndex++) {
-				var[colIndex-1] = rsmd.getColumnName(colIndex);
-				displayVar[colIndex-1] = rsmd.getColumnLabel(colIndex);
+				rawHeaders[colIndex-1] = rsmd.getColumnName(colIndex);
+				headers[colIndex-1] = rsmd.getColumnLabel(colIndex);
 				colTypes[colIndex-1] = rsmd.getColumnType(colIndex);
 				types[colIndex-1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 			}
@@ -182,7 +182,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public String[] getHeaders() {
-		return displayVar;
+		return headers;
 	}
 
 	@Override
