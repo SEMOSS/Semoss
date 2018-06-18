@@ -30,6 +30,7 @@ package prerna.rdf.engine.wrappers;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IRemoteQueryable;
@@ -41,29 +42,35 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	protected transient IEngine engine = null;
 	protected transient String query = null;
 
-	protected String ID = null;
+	/*
+	 * Remote queryable class variables
+	 */
+	protected String id = null;
 	protected String api = null;
 	protected boolean remote = false;
-	protected String[] var = null;
-	protected String[] displayVar = null;
-
-	public abstract void execute();
-
-	public abstract boolean hasNext();
+	
+	/*
+	 * Engine wrapper class variables
+	 */
+	protected String[] headers = null;
+	protected String[] rawHeaders = null;
+	//TODO: move to pixel data type
+	protected SemossDataType[] types = null;
+	protected int numColumns;
 	
 	@Override
-	public void setRemoteID(String id) {
-		this.ID = id;
+	public void setRemoteId(String id) {
+		this.id = id;
 	}
 
 	@Override
-	public String getRemoteID() {
-		return this.ID;
+	public String getRemoteId() {
+		return this.id;
 	}
 
 	@Override
-	public void setRemoteAPI(String engine) {
-		this.api = engine;
+	public void setRemoteAPI(String api) {
+		this.api = api;
 	}
 
 	@Override
@@ -71,8 +78,14 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 		return this.api;
 	}
 	
+	@Override
 	public void setRemote(boolean remote) {
 		this.remote = remote;
+	}
+	
+	@Override
+	public boolean isRemote() {
+		return this.remote;
 	}
 
 	@Override

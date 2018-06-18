@@ -37,14 +37,15 @@ import org.openrdf.model.Statement;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.QueryEvaluationException;
 
-import prerna.engine.api.IEngine;
-import prerna.util.Utility;
-
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
+
+import prerna.engine.api.IEngine;
+import prerna.rdf.engine.wrappers.AbstractWrapper;
+import prerna.util.Utility;
 
 /**
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes CONSTRUCT statements. 
@@ -172,7 +173,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 				if(ris == null)
 				{
 					Hashtable params = new Hashtable<String,String>();
-					params.put("id", remoteWrapperProxy.getRemoteID());
+					params.put("id", remoteWrapperProxy.getRemoteId());
 					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
 				}					
 				try {
@@ -339,6 +340,12 @@ public class SesameJenaConstructWrapper extends AbstractWrapper{
 		System.out.println(st.getSubject());
 		
 		//System.out.println(" var " + sjcw.getVariables());
+		
+	}
+
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
 		
 	}
 	
