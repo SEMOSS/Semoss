@@ -165,13 +165,13 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(String query) {
+	public IDatasourceIterator query(String query) {
 		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(query);
 		return it;
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
+	public IDatasourceIterator query(SelectQueryStruct qs) {
 		// we need to merge everything with the current qs
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
