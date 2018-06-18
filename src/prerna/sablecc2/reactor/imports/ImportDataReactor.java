@@ -45,14 +45,17 @@ public class ImportDataReactor extends AbstractReactor {
 		// set the logger into the frame
 		frame.setLogger(logger);
 		
-		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
-		if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-							PixelDataType.CONST_STRING, 
-							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		IRawSelectWrapper it = null;
+		if(!(frame instanceof NativeFrame)) {
+			it = ImportUtility.generateIterator(qs, frame);
+			if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 		}
 		
 		// insert the data

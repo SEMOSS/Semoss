@@ -37,7 +37,9 @@ public class ImportFactory {
 			return new RImporter((RDataTable) frame, qs, it);
 		} else if(frame instanceof PandasFrame) {
 			return new PandasImporter((PandasFrame) frame, qs, it);
-		} 
+		} else if(frame instanceof NativeFrame) {
+			return new NativeFrameImporter((NativeFrame) frame, qs);
+		}
 		return null;
 	}
 }

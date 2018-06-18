@@ -125,6 +125,8 @@ public class JavaReactor extends AbstractReactor {
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		} catch (RuntimeException e) {
 			e.printStackTrace();
+			// we will throw runtime exceptions
+			throw e;
 		} catch (CannotCompileException e) {
 			e.printStackTrace();
 		} catch (NotFoundException e) {
