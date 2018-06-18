@@ -105,9 +105,26 @@ public class ImportSizeRetrictions {
 		}
 
 		long curFrameSize = frame.size(frame.getTableName());
-
-		// we can increase performance since
 		if(additionalRecords + curFrameSize > LIMIT_SIZE) {
+			return false;
+		}
+		
+		// we passed!
+		return true;
+	}
+	
+	/**
+	 * Is the value larger than expected
+	 * @param frame
+	 * @param it
+	 * @return
+	 */
+	public static boolean sizeWithinLimit(long size) {
+		if(!SIZE_RESTRICTED) {
+			return true;
+		}
+		
+		if(size > LIMIT_SIZE) {
 			return false;
 		}
 		

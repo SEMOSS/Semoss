@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -192,7 +191,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	
 	@Deprecated
-	Iterator<IHeadersDataRow> iterator();
+	IRawSelectWrapper iterator();
 	
 	@Deprecated
 	List<Object[]> getData();

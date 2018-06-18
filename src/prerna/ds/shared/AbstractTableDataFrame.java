@@ -19,6 +19,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -482,7 +483,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> iterator() {
+	public IRawSelectWrapper iterator() {
 		// get a flat QS
 		// which contains all the selectors 
 		// and all the joins as inner 
