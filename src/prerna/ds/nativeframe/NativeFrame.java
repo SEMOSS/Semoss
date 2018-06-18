@@ -9,8 +9,8 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -18,7 +18,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -159,14 +158,16 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), this.qs);
-		return iterator.hasNext();
+		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(this.qs);
+		boolean empty = it.hasNext();
+		it.cleanUp();
+		return empty;
 	}
 	
 	@Override
 	public Iterator<IHeadersDataRow> query(String query) {
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
-		return iterator;
+		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(query);
+		return it;
 	}
 
 	@Override
@@ -196,8 +197,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 		}
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
-		return iterator;
+		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(qs);
+		return it;
 	}
 	
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
