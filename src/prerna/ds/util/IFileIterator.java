@@ -1,8 +1,8 @@
 package prerna.ds.util;
 
-import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.IRawSelectWrapper;
 
-public interface IFileIterator extends IDatasourceIterator {
+public interface IFileIterator extends IRawSelectWrapper {
 
 	boolean getNumRecordsOverSize(long limitSize);
 

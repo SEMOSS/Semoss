@@ -3,15 +3,14 @@ package prerna.engine.impl.web;
 import java.util.Hashtable;
 import java.util.List;
 
-import net.minidev.json.JSONArray;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.json.JsonWrapper;
 import prerna.om.HeadersDataRow;
 
 public class WebWrapper extends JsonWrapper {
 
-	List <String [] >rows = null;
-	String [] headers = null;
+	private List<String[]> rows = null;
 	
 	@Override
 	public void execute() {
@@ -20,16 +19,17 @@ public class WebWrapper extends JsonWrapper {
 		rows = (List)output.get("ROWS");
 		headers = (String [])output.get("HEADERS");
 		numRows = rows.size();
-		if(output.containsKey("TYPES"))
-			types = (String [])output.get("TYPES");
+		String[] strTypes = (String[]) output.get("TYPES");
+		this.types = new SemossDataType[this.numColumns];
+		for(int i = 0; i < this.numColumns; i++) {
+			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
+		}
 	}
 	
 	@Override
 	public IHeadersDataRow next() {
-		
 		IHeadersDataRow retRow = new HeadersDataRow(headers, rows.get(curRow));
-
-		curRow = curRow + 1;
+		curRow++;
 		return retRow;
 	}
 	

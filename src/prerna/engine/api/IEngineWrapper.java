@@ -27,19 +27,28 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Map;
-
 public interface IEngineWrapper {
 
+	/**
+	 * This method needs to be called to actually run the query
+	 */
 	void execute();
 
-	boolean hasNext();
-
+	/**
+	 * Set the query
+	 * @param query
+	 */
 	void setQuery(String query);
 	
-	void setEngine(IEngine engine);
-	
-	Map<String, Object> getResponseMeta();
-	
+	/**
+	 * Clean up the data source
+	 */
 	void cleanUp();
+	
+	/**
+	 * Set the engine
+	 * @param engine
+	 */
+	void setEngine(IEngine engine);
+
 }

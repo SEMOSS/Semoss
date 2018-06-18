@@ -146,4 +146,5 @@ public class CsvFileIterator extends AbstractFileIterator {
 	public void setQs(CsvQueryStruct qs) {
 		this.qs = qs;
 	}
+
 }

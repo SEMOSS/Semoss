@@ -12,6 +12,7 @@ import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
@@ -23,7 +24,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	
 	private ResultSet rs = null;
 	private int numColumns = 0;
-	private String[] types;
+	private SemossDataType[] types;
 
 	@Override
 	public void execute() {
@@ -87,13 +88,8 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public String[] getDisplayVariables() {
+	public String[] getHeaders() {
 		return displayVar;
-	}
-
-	@Override
-	public String[] getPhysicalVariables() {
-		return var;
 	}
 
 	private Object getRealValue(RDFNode node){
@@ -107,7 +103,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public String[] getTypes() {
+	public SemossDataType[] getTypes() {
 		if(this.types == null) {
 			try {
 				SPARQLParser parser = new SPARQLParser();
@@ -117,16 +113,20 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 				parsedQuery.getTupleExpr().visit(aggregationVisitor);
 				Set<String> aggregationValues = aggregationVisitor.getValue();
 				
-				this.types = new String[this.numColumns];
+				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
-					if(aggregationValues.contains(this.displayVar[i])) {
-						this.types[i] = "NUMBER";
+					if(aggregationValues.contains(this.var[i])) {
+						this.types[i] = SemossDataType.DOUBLE;
 					} else {
-						this.types[i] = "STRING";
+						this.types[i] = SemossDataType.STRING;
 					}
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
+				this.types = new SemossDataType[this.numColumns];
+				for(int i = 0; i < this.numColumns; i++) {
+					this.types[i] = SemossDataType.STRING;
+				}
 			}
 		}
 		return this.types;
@@ -135,7 +135,28 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	@Override
 	public void cleanUp() {
 		// TODO Auto-generated method stub
-		
+		// there is no close on this rs object...
+	}
+	
+	@Override
+	public long getNumRecords() {
+		String query = "select (count(*) * " + this.numColumns + " as ?count) where { " + this.query + "}";
+		ResultSet rs = (ResultSet) engine.execQuery(query);
+		if(rs.hasNext()) {
+			QuerySolution row = rs.next();
+			RDFNode node = row.get("count");
+			Object cleanValue = getRealValue(node);
+			if(cleanValue instanceof Number) {
+				return ((Number) cleanValue).longValue();
+			}
+		}
+		return 0;
+	}
+	
+	@Override
+	public void reset() {
+		cleanUp();
+		execute();
 	}
 
 }

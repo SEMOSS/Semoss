@@ -64,9 +64,7 @@ import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.iterator.SesameDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -419,14 +417,6 @@ public class InMemorySesameEngine extends AbstractEngine {
 			e.printStackTrace();
 			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
-	}
-
-	@Override
-	public IDatasourceIterator query(String query) {
-		SesameDatasourceIterator it = new SesameDatasourceIterator(this.rc);
-		it.setQuery(query);
-		it.execute();
-		return it;
 	}
 	
 }
