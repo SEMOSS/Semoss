@@ -767,22 +767,14 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
-//	@Override
-//	public IDatasourceIterator query(String query) {
-//		long start = System.currentTimeMillis();
-//		RdbmsDatasourceIterator it = new RdbmsDatasourceIterator(this.engineConn);
-//		it.setQuery(query);
-//		it.execute();
-//		long end = System.currentTimeMillis();
-//		logger.info("Time to execute query on H2FRAME = " + (end-start) + "ms");
-//		return it;
-//	}
-//
-//	@Override
-//	public IDatasourceIterator query(SelectQueryStruct qs) {
-//		IQueryInterpreter interp = getQueryInterpreter();
-//		interp.setQueryStruct(qs);
-//		String iteratorQuery = interp.composeQuery();
-//		return query(iteratorQuery);
-//	} 
+	@Override
+	public IDatasourceIterator query(String query) {
+		long start = System.currentTimeMillis();
+		RdbmsDatasourceIterator it = new RdbmsDatasourceIterator(this.engineConn);
+		it.setQuery(query);
+		it.execute();
+		long end = System.currentTimeMillis();
+		logger.debug("Time to execute query on rdbms engine = " + (end-start) + "ms");
+		return it;
+	}
 }

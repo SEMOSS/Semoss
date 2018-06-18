@@ -26,7 +26,6 @@ import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -46,11 +45,11 @@ public class ImportUtility {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
+			return qs.retrieveQueryStructEngine().query(qs);
 		} 
 		// engine with hard coded query
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardSelectQueryStruct) qs).getQuery());
+			return qs.retrieveQueryStructEngine().query(((HardSelectQueryStruct) qs).getQuery());
 		} 
 		// frame with qs
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
