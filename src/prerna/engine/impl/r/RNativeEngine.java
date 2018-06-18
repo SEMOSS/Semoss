@@ -41,11 +41,14 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.RDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.util.AbstractQueryParser;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -244,5 +247,24 @@ public class RNativeEngine extends AbstractEngine {
 		}
 		retInterp.setDataTableName(rvarName);
 		return retInterp;
-	} 
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		IDatasourceIterator it = new RDatasourceIterator(this.dt);
+		it.setQuery(query);
+		it.execute();
+		return it;
+	}
+	
+	@Override
+	public IDatasourceIterator query(SelectQueryStruct qs) {
+		IQueryInterpreter interp = getQueryInterpreter();
+		interp.setQueryStruct(qs);
+		String query = interp.composeQuery();
+		IDatasourceIterator it = new RDatasourceIterator(this.dt, qs);
+		it.setQuery(query);
+		it.execute();
+		return it;
+	}
 }

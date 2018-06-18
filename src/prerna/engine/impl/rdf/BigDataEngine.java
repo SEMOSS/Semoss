@@ -65,7 +65,9 @@ import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.SesameDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
@@ -455,5 +457,13 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			File jnlFile = new File(jnlLoc);
 			jnlFile.delete();
 		}		
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		SesameDatasourceIterator it = new SesameDatasourceIterator(this.rc);
+		it.setQuery(query);
+		it.execute();
+		return it;
 	}
 }

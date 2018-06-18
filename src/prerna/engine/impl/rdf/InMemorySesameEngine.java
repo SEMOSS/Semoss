@@ -64,7 +64,9 @@ import org.openrdf.sail.SailException;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.SesameDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -73,7 +75,7 @@ import prerna.util.Utility;
 /**
  * Holds the database in memory, and uses the Sesame API to facilitate querying of RDF data sources.
  */
-public class InMemorySesameEngine extends AbstractEngine implements IEngine {
+public class InMemorySesameEngine extends AbstractEngine {
 
 	private static final Logger logger = LogManager.getLogger(InMemorySesameEngine.class.getName());
 	RepositoryConnection rc = null;
@@ -417,6 +419,14 @@ public class InMemorySesameEngine extends AbstractEngine implements IEngine {
 			e.printStackTrace();
 			throw new RDFHandlerException("Could not export base relationships from OWL database");
 		}
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		SesameDatasourceIterator it = new SesameDatasourceIterator(this.rc);
+		it.setQuery(query);
+		it.execute();
+		return it;
 	}
 	
 }

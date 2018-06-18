@@ -44,7 +44,6 @@ import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.NumericLiteralImpl;
 import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.query.BooleanQuery;
 import org.openrdf.query.GraphQuery;
@@ -61,15 +60,17 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
+import com.bigdata.rdf.model.BigdataLiteralImpl;
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.remote.BigdataSailRemoteRepository;
+
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.iterator.SesameDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.bigdata.rdf.model.BigdataLiteralImpl;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.remote.BigdataSailRemoteRepository;
 
 /**
  * Connects the database to the java engine, except database (.jnl file) is sitting on a server (or the web).
@@ -429,5 +430,13 @@ public class RemoteBigdataEngine extends AbstractEngine implements IEngine {
 	public void deleteDB(){
 		// this does nothing
 		logger.info("cannot delete remote engine");
+	}
+
+	@Override
+	public IDatasourceIterator query(String query) {
+		SesameDatasourceIterator it = new SesameDatasourceIterator(this.rc);
+		it.setQuery(query);
+		it.execute();
+		return it;
 	}
 }
