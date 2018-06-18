@@ -90,7 +90,9 @@ public class NativeFrameMergeDataReactor extends AbstractReactor {
 			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 		}
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		noun.addAdditionalReturn(new NounMetadata(frame.getMetaData().getTableHeaderObjects(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
+		return noun;
 	}
 	
 	///////////////////////////////////////////////////////////////////////
