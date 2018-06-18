@@ -131,7 +131,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			qs_nulls.addExplicitFilter(nulls);
 		}
 		// get blank values count
-		Iterator<IHeadersDataRow> blankIt = engine.query(qs2);
+		Iterator<IHeadersDataRow> blankIt = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		long blankCount = 0;
 		if (blankIt.hasNext()) {
 			blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
@@ -142,7 +142,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
 
 		// get null values count
-		Iterator<IHeadersDataRow> nullIt = engine.query(qs_nulls);
+		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
 		long nullCount = 0;
 		if (nullIt.hasNext()) {
 			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
@@ -196,7 +196,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		Iterator<IHeadersDataRow> it = engine.query(qs2);
+		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		while (it.hasNext()) {
 			IHeadersDataRow iRow = it.next();
 			Object[] values = iRow.getValues();
@@ -252,7 +252,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 			qs2.addSelector(funSelector);
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
-		Iterator<IHeadersDataRow> it = engine.query(qs2);
+		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 		Object value = it.next().getValues()[0];
 		return value;
 	}

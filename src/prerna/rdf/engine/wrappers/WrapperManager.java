@@ -29,8 +29,7 @@ package prerna.rdf.engine.wrappers;
 
 import org.apache.log4j.Logger;
 
-import prerna.ds.TinkerHeadersDataRowIteratorMap;
-import prerna.ds.datastax.DataStaxGraphEngine;
+import prerna.ds.RawGemlinSelectWrapper;
 import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -39,7 +38,6 @@ import prerna.engine.impl.json.JsonWrapper;
 import prerna.engine.impl.json.JsonWrapper2;
 import prerna.engine.impl.solr.SolrEngine;
 import prerna.engine.impl.solr.SolrIterator;
-import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.engine.impl.web.WebWrapper;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -114,7 +112,7 @@ public class WrapperManager {
 			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
-					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((TinkerEngine) engine).getNameMap()),
+					new RawGemlinSelectWrapper(interpreter, qs),
 					qs);
 			break;
 		}
@@ -125,7 +123,7 @@ public class WrapperManager {
 			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
 			returnWrapper = new QueryStructExpressionIterator(
-					new TinkerHeadersDataRowIteratorMap(interpreter.composeIterator(), qs, ((DataStaxGraphEngine) engine).getNameMap()),
+					new RawGemlinSelectWrapper(interpreter, qs),
 					qs);
 			break;
 		}

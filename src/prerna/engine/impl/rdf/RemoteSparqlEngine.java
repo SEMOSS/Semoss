@@ -60,9 +60,7 @@ import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.iterator.SesameDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -313,11 +311,4 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 		logger.info("cannot delete remote engine");
 	}
 
-	@Override
-	public IDatasourceIterator query(String query) {
-		SesameDatasourceIterator it = new SesameDatasourceIterator(this.rc);
-		it.setQuery(query);
-		it.execute();
-		return it;
-	}
 }

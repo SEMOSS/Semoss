@@ -6,13 +6,14 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.engine.api.IDatasource;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
-public interface ITableDataFrame extends IDataMaker, IDatasource {
+public interface ITableDataFrame extends IDataMaker {
 	
 	/**
 	 * Adds a row to the data-frame
@@ -144,6 +145,10 @@ public interface ITableDataFrame extends IDataMaker, IDatasource {
 	 */
 	ITableDataFrame open(String fileName, String userId);
 
+	IRawSelectWrapper query(String query);
+	
+	IRawSelectWrapper query(SelectQueryStruct qs);
+	
 	// gets the table name
 	String getTableName();
 	

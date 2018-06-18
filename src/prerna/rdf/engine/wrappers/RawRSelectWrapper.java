@@ -1,5 +1,6 @@
 package prerna.rdf.engine.wrappers;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -7,11 +8,16 @@ import prerna.engine.api.IRawSelectWrapper;
 public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private RIterator output = null;
-	private String[] colTypeNames = null;
+	private SemossDataType[] types;
 
 	@Override
 	public void execute() {
-		this.output = (RIterator) this.engine.execQuery(query);
+		this.output = (RIterator) this.engine.execQuery(this.query);
+		setDefaults();
+	}
+	
+	public void directExecution(RIterator output) {
+		this.output = output;
 		setDefaults();
 	}
 
@@ -26,33 +32,39 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	}
 
 	@Override
-	public String[] getDisplayVariables() {
-		return displayVar;
-	}
-
-	@Override
-	public String[] getPhysicalVariables() {
+	public String[] getHeaders() {
 		return var;
 	}
 
 	@Override
-	public String[] getTypes() {
-		return colTypeNames;
+	public SemossDataType[] getTypes() {
+		return this.types;
+	}
+
+	private void setDefaults() {
+		this.var = output.getHeaders();
+		this.displayVar = this.var;
+		
+		String[] strTypes = output.getColTypes();
+		this.types = new SemossDataType[this.var.length];
+		for(int i = 0; i < this.var.length; i++) {
+			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
+		}
+	}
+	
+	@Override
+	public void reset() {
+		this.output = (RIterator) this.engine.execQuery(this.query);
 	}
 
 	@Override
 	public void cleanUp() {
-		// need to add this
+		// TODO Auto-generated method stub
+		
 	}
 	
-	public void directExecution(RIterator output) {
-		this.output = output;
-		setDefaults();
-	}
-	
-	private void setDefaults() {
-		this.var = output.getHeaders();
-		this.displayVar = output.getHeaders();
-		this.colTypeNames = output.getColTypes();
+	@Override
+	public long getNumRecords() {
+		return this.output.getNumRows();
 	}
 }

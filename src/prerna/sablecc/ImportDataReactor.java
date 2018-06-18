@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 import cern.colt.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -741,35 +740,9 @@ public abstract class ImportDataReactor extends AbstractReactor {
 		// push this into the iterators
 
 		String nodeStr = (String)myStore.get(PKQLEnum.EXPR_TERM);
-		// if the iterator is the return from an engine
-		// get the query return response to send back
-		if(it instanceof IEngineWrapper) {
-			myStore.put(nodeStr, createResponseString((IEngineWrapper)it));
-		} else {
-			// this is just from a file
-			// create a boring response string
-			myStore.put(nodeStr, createResponseString(headers));
-		}
-	}
-
-	/**
-	 * Create the return response from a engine wrapper
-	 * @param it				The iterator used to insert data
-	 * @return					String returning the response
-	 */
-	protected String createResponseString(IEngineWrapper it){
-		// get map containing the response metadata from the iterator
-		Map<String, Object> map = it.getResponseMeta();
-		// format fields from meta data map into a string
-		String mssg = "";
-		for(String key : map.keySet()){
-			if(!mssg.isEmpty()){
-				mssg = mssg + " \n";
-			}
-			mssg = mssg + key + ": " + map.get(key).toString();
-		}
-		String retStr = "Sucessfully added data using : \n" + mssg;
-		return retStr;
+		// this is just from a file
+		// create a boring response string
+		myStore.put(nodeStr, createResponseString(headers));
 	}
 
 	/**

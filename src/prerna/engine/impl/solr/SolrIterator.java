@@ -1,19 +1,21 @@
 package prerna.engine.impl.solr;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.rdf.engine.wrappers.AbstractWrapper;
 
-public class SolrIterator implements Iterator<IHeadersDataRow> {
+public class SolrIterator extends AbstractWrapper implements IRawSelectWrapper {
 	
 	private SolrDocumentList list = null;
 	private long totalCount = 0;
@@ -95,4 +97,36 @@ public class SolrIterator implements Iterator<IHeadersDataRow> {
 		return returnHeaders;
 	}
 
+	@Override
+	public String[] getHeaders() {
+		return this.headers;
+	}
+
+	@Override
+	public SemossDataType[] getTypes() {
+		return new SemossDataType[this.headers.length];
+	}
+
+	@Override
+	public long getNumRecords() {
+		return this.returnSize * this.headers.length;
+	}
+
+	@Override
+	public void reset() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void execute() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
+		
+	}
 }

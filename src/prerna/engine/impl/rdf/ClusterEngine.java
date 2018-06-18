@@ -36,11 +36,9 @@ import org.apache.log4j.Logger;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.util.Constants;
 import prerna.util.sql.H2QueryUtil;
 
@@ -190,15 +188,4 @@ public class ClusterEngine extends AbstractEngine {
 		return prop;
 	}
 
-	@Override
-	public IDatasourceIterator query(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public IDatasourceIterator query(SelectQueryStruct qs) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

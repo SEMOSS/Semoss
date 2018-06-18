@@ -9,8 +9,8 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -18,6 +18,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -158,20 +159,21 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(this.qs);
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(
+				this.qs.retrieveQueryStructEngine(), this.qs);
 		boolean empty = it.hasNext();
 		it.cleanUp();
 		return empty;
 	}
 	
 	@Override
-	public IDatasourceIterator query(String query) {
-		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(query);
+	public IRawSelectWrapper query(String query) {
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
 		return it;
 	}
 
 	@Override
-	public IDatasourceIterator query(SelectQueryStruct qs) {
+	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		// we need to merge everything with the current qs
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
@@ -197,7 +199,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		}
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		IDatasourceIterator it = this.qs.retrieveQueryStructEngine().query(qs);
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return it;
 	}
 	

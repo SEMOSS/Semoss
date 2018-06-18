@@ -49,9 +49,7 @@ import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.iterator.JenaDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -247,15 +245,6 @@ public class RemoteJenaEngine extends AbstractEngine implements IEngine {
 	public void deleteDB(){
 		// this does nothing
 		logger.info("cannot delete remote engine");
-	}
-
-
-	@Override
-	public IDatasourceIterator query(String query) {
-		IDatasourceIterator it = new JenaDatasourceIterator(this.jenaModel);
-		it.setQuery(query);
-		it.execute();
-		return it;
 	}
 
 }

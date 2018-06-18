@@ -6,7 +6,6 @@ import java.util.Map;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -88,7 +87,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 
 		// exec query
-		IDatasourceIterator it2 = newColEngine.query(qs);
+		IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
 
 		// write to file
 		File newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");

@@ -6,11 +6,7 @@ import java.util.Vector;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrQuery.ORDER;
 
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.solr.SolrEngine;
-import prerna.engine.impl.solr.SolrIterator;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -161,34 +157,4 @@ public class SolrInterpreter extends AbstractQueryInterpreter {
 		}
 		this.query.setFields(selectorValues.toArray(new String[] {}));
 	}
-
-	public static void main(String[] args) {
-		String solrBaseURL = "http://localhost:8080/solr/";
-		String coreName = "insightCore";
-		SolrEngine engine = new SolrEngine(solrBaseURL, coreName);
-		engine.setEngineId("insightCore");
-		// solr.openDB(null);
-		System.out.println("Active " + engine.serverActive());
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector("id", null);
-		qs.addSelector("id", "core_engine");
-		qs.addSelector("id", "layout");
-
-		// test filter
-		NounMetadata test2 = new NounMetadata("core_engine", PixelDataType.COLUMN);
-		NounMetadata test3 = new NounMetadata("movie", PixelDataType.CONST_STRING);
-		SimpleQueryFilter filter1 = new SimpleQueryFilter(test2, "=", test3);
-		qs.addExplicitFilter(filter1);
-		// qs.addFilter("view_count", ">=", Arrays.asList(new Object[]{10}));
-
-		SolrInterpreter solrInterp = new SolrInterpreter();
-		solrInterp.setQueryStruct(qs);
-		SolrQuery query = solrInterp.composeSolrQuery();
-
-		IRawSelectWrapper solrWrapper = new QueryStructExpressionIterator(new SolrIterator(((SolrEngine) engine).execSolrQuery(query), qs), qs);
-		while (solrWrapper.hasNext()) {
-			System.out.println(solrWrapper.next());
-		}
-	}
-
 }
