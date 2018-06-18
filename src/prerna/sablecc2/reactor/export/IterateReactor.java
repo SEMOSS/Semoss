@@ -70,7 +70,7 @@ public class IterateReactor extends AbstractReactor {
 			Iterator<IHeadersDataRow> iterator = null;
 			if(queryStruct.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
 					queryStruct.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				iterator = WrapperManager.getInstance().getRawWrapper(queryStruct.retrieveQueryStructEngine(), queryStruct);
+				iterator = queryStruct.retrieveQueryStructEngine().query(queryStruct);
 			} else {
 				ITableDataFrame frame = queryStruct.getFrame();
 				if(frame == null) {

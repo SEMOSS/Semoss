@@ -17,6 +17,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
@@ -113,7 +114,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			
 			
 			logger.info("Start node sheet for concept = " + conceptualName);
-			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			IDatasourceIterator iterator = engine.query(qs);
 			writeNodePropSheet(engine, workbook, iterator, conceptualName, properties);
 			logger.info("Finsihed node sheet for concept = " + conceptualName);
 		}

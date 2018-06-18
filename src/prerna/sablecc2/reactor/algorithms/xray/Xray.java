@@ -22,11 +22,10 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
 import au.com.bytecode.opencsv.CSVReader;
-import prerna.algorithm.learning.matching.DomainValues;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -34,12 +33,12 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Xray {
+	public static final String ENGINE_CONCEPT_PROPERTY_DELIMETER = ";";
 	private AbstractRJavaTranslator rJavaTranslator = null;
 	private String baseFolder = null;
 	private Logger logger = null;
@@ -190,7 +189,7 @@ public class Xray {
 		if (dataMode) {
 			rsb.append(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + dataFolder + "\", " + nMinhash
 					+ ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-					+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
+					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + outputXrayDataFolder + "\");");
 		}
 		this.logger.info("Comparing data from datasources for X-ray data mode...");
@@ -211,7 +210,7 @@ public class Xray {
 			semanticOutputFolder = semanticOutputFolder.replace("\\", "/");
 			rsb.append(semanticComparisonFrame + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + semanticFolder + "\", "
 					+ nMinhash + ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
-					+ DomainValues.ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
+					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + semanticOutputFolder + "\");");
 
 			// join data xray df with semantic xray df if dataComparison frame
@@ -543,7 +542,7 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, null);
 							sqs.setDistinct(true);
-							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+							IDatasourceIterator iterator = engine.query(sqs);
 							List<Object> instances = new ArrayList<Object>();
 							while(iterator.hasNext()) {
 								instances.add(iterator.next().getValues()[0]);
@@ -567,7 +566,7 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, column);
 							sqs.setDistinct(true);
-							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
+							IDatasourceIterator iterator = engine.query(sqs);
 							List<Object> instances = new ArrayList<Object>(); 
 							while(iterator.hasNext()) {
 								instances.add(iterator.next().getValues()[0]);
@@ -850,7 +849,7 @@ public class Xray {
 			}
 			qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
-			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			Iterator<IHeadersDataRow> it = engine.query(qs2);
 			Integer count = 0;
 			if (it.hasNext()) {
 				Number num =(Number) it.next().getValues()[0];
