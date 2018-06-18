@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -42,24 +42,21 @@ public class ImportDataReactor extends AbstractReactor {
 			logger.info("No frame is defined. Generating a defualt of native frame");
 			frame = new NativeFrame();
 		}
-		// check size is reasonable
-		if(!AbstractTableDataFrame.sizeWithinLimit((AbstractTableDataFrame) frame)) {
+		// set the logger into the frame
+		frame.setLogger(logger);
+		
+		IDatasourceIterator it = ImportUtility.generateIterator(qs, frame);
+		if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
 			SemossPixelException exception = new SemossPixelException(
-				new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-						PixelDataType.CONST_STRING, 
-						PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
+					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+							PixelDataType.CONST_STRING, 
+							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-
-		// set the logger into the frame
-		frame.setLogger(logger);
-				
-		// track GA data
-		GATracker.getInstance().trackDataImport(this.insight, qs);
 		
 		// insert the data
-		IImporter importer = ImportFactory.getImporter(frame, qs);
+		IImporter importer = ImportFactory.getImporter(frame, qs, it);
 		importer.insertData();
 		// need to clear the unique col count used by FE for determining the need for math
 		frame.clearCachedInfo();
@@ -70,6 +67,9 @@ public class ImportDataReactor extends AbstractReactor {
 			storeExcelFileMeta((ExcelQueryStruct) qs);
 		}
 		
+		// track GA data
+		GATracker.getInstance().trackDataImport(this.insight, qs);
+
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		retNoun.addAdditionalReturn(new NounMetadata(frame.getMetaData().getTableHeaderObjects(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
 		return retNoun;

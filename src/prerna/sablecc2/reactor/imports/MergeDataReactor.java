@@ -44,15 +44,15 @@ public class MergeDataReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute()  {
 		ITableDataFrame frame = getFrame();
-		// check size is reasonable
-		if(!AbstractTableDataFrame.sizeWithinLimit((AbstractTableDataFrame) frame)) {
-			SemossPixelException exception = new SemossPixelException(
-				new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-						PixelDataType.CONST_STRING, 
-						PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+//		// check size is reasonable
+//		if(!AbstractTableDataFrame.sizeWithinLimit((AbstractTableDataFrame) frame)) {
+//			SemossPixelException exception = new SemossPixelException(
+//				new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+//						PixelDataType.CONST_STRING, 
+//						PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
+//			exception.setContinueThreadOfExecution(false);
+//			throw exception;
+//		}
 		
 		// set the logger into the frame
 		Logger logger = getLogger(frame.getClass().getName());
