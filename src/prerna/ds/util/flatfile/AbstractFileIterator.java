@@ -134,12 +134,12 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 
 	@Override
-	public boolean numberRowsOverLimit(long limit) {
+	public boolean getNumRecordsOverSize(long limit) {
 		boolean overLimit = false;
 		long counter = 0;
 		while(this.hasNext()) {
 			this.getNextRow();
-			counter++;
+			counter += this.headers.length;
 			if(counter > limit) {
 				overLimit = true;
 				break;
@@ -169,6 +169,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		return this.headers;
 	}
 	
+	@Override
+	public long getNumRecords() {
+		return this.numRecords;
+	}
+	
 	public void deleteFile() {
 		cleanUp();
 		File file = new File(this.fileLocation);
@@ -178,7 +183,6 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	public String getFileLocation() {
 		return this.fileLocation;
 	}
-	
 	
 	@Override
 	public void execute() {
@@ -190,9 +194,5 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	public void setQuery(String query) {
 		// TODO Auto-generated method stub
 		
-	}
-	@Override
-	public long getNumRecords() {
-		return this.numRecords;
 	}
 }
