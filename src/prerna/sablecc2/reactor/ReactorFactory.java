@@ -19,7 +19,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.forms.FormsReactor;
-import prerna.query.querystruct.update.reactors.ExecUpdateReactor;
+import prerna.query.querystruct.delete.QueryDeleteReactor;
 import prerna.query.querystruct.update.reactors.QueryUpdateReactor;
 import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
 import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
@@ -193,6 +193,7 @@ import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
 import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.DistinctReactor;
+import prerna.sablecc2.reactor.qs.ExecQueryReactor;
 import prerna.sablecc2.reactor.qs.GroupByReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
@@ -200,6 +201,7 @@ import prerna.sablecc2.reactor.qs.OffsetReactor;
 import prerna.sablecc2.reactor.qs.OrderByReactor;
 import prerna.sablecc2.reactor.qs.OverrideImplicitFiltersReactor;
 import prerna.sablecc2.reactor.qs.QueryAllReactor;
+import prerna.sablecc2.reactor.qs.QueryInsertReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
@@ -451,8 +453,11 @@ public class ReactorFactory {
 		reactorHash.put("ImplicitFilterOverride", OverrideImplicitFiltersReactor.class);
 		reactorHash.put("QueryAll", QueryAllReactor.class);
 
+		// modifications to database
+		reactorHash.put("Insert", QueryInsertReactor.class);
+		reactorHash.put("Delete", QueryDeleteReactor.class);
 		reactorHash.put("Update", QueryUpdateReactor.class);
-		reactorHash.put("ExecQuery", ExecUpdateReactor.class);
+		reactorHash.put("ExecQuery", ExecQueryReactor.class);
 		
 		// If is in its own category
 		reactorHash.put("if", IfReactor.class);
