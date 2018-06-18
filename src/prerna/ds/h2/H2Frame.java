@@ -22,6 +22,7 @@ import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.iterator.RdbmsDatasourceIterator;
 import prerna.query.interpreters.sql.SqlInterpreter;
@@ -203,7 +204,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(String query) {
+	public IDatasourceIterator query(String query) {
 		long start = System.currentTimeMillis();
 		RdbmsDatasourceIterator it = new RdbmsDatasourceIterator(this.builder.getConnection());
 		it.setQuery(query);
@@ -211,15 +212,10 @@ public class H2Frame extends AbstractTableDataFrame {
 		long end = System.currentTimeMillis();
 		logger.info("Time to execute query on H2FRAME = " + (end-start) + "ms");
 		return it;
-//		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
-//		it.directExecutionViaConnection(this.builder.getConnection(), query, false);
-//		long end = System.currentTimeMillis();
-//		logger.info("Time to execute query on H2FRAME = " + (end-start) + "ms");
-//		return it;
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
+	public IDatasourceIterator query(SelectQueryStruct qs) {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		SqlInterpreter interp = new SqlInterpreter(this);
 		interp.setQueryStruct(qs);
