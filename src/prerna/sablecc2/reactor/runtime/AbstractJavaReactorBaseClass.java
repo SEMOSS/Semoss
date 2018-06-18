@@ -37,7 +37,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 		try {
 			execute();
 		} catch(Exception ex) {
-			throw new IllegalArgumentException(ex.getMessage());
+			throw ex;
 		}
 	}
 	
