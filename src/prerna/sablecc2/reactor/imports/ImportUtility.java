@@ -15,7 +15,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ExcelFileIterator;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -27,6 +26,7 @@ import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -42,16 +42,16 @@ public class ImportUtility {
 	 * @param qs
 	 * @return
 	 */
-	public static IDatasourceIterator generateIterator(SelectQueryStruct qs, ITableDataFrame frame) {
+	public static IRawSelectWrapper generateIterator(SelectQueryStruct qs, ITableDataFrame frame) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-			return qs.retrieveQueryStructEngine().query(qs);
+			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} 
 		// engine with hard coded query
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			return qs.retrieveQueryStructEngine().query(((HardSelectQueryStruct) qs).getQuery());
-		} 
+			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardSelectQueryStruct) qs).getQuery());
+		}
 		// frame with qs
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			ITableDataFrame qsFrame = qs.getFrame();
@@ -194,8 +194,8 @@ public class ImportUtility {
 	}
 	
 	private static void parseRawQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, IRawSelectWrapper it, String source) {
-		String[] types = it.getTypes();
-		String[] columns = it.getDisplayVariables();
+		SemossDataType[] types = it.getTypes();
+		String[] columns = it.getHeaders();
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		metaData.addVertex(frameTableName);
@@ -206,7 +206,7 @@ public class ImportUtility {
 		int numSelectors = columns.length;
 		for(int i = 0; i < numSelectors; i++) {
 			String alias = columns[i];
-			String dataType = Utility.getCleanDataType(types[i]);
+			String dataType = types[i].toString();
 			
 			String uniqueHeader = frameTableName + "__" + alias;
 			metaData.addProperty(frameTableName, uniqueHeader);
@@ -980,8 +980,8 @@ public class ImportUtility {
 	}
 
 	private static void parseRawQsToFlatTableWithJoin(ITableDataFrame dataframe, String frameTableName, IRawSelectWrapper it, List<Join> joins, String source) {
-		String[] types = it.getTypes();
-		String[] columns = it.getDisplayVariables();
+		SemossDataType[] types = it.getTypes();
+		String[] columns = it.getHeaders();
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		metaData.addVertex(frameTableName);
@@ -1004,7 +1004,7 @@ public class ImportUtility {
 				}
 			}
 			
-			String dataType = Utility.getCleanDataType(types[i]);
+			String dataType = types[i].toString();
 			String uniqueHeader = frameTableName + "__" + alias;
 			metaData.addProperty(frameTableName, uniqueHeader);
 			metaData.setQueryStructNameToProperty(uniqueHeader, source, "CUSTOM_ENGINE_QUERY");

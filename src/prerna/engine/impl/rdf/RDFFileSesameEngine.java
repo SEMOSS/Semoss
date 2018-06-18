@@ -74,9 +74,7 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.iterator.SesameDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
@@ -655,13 +653,5 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 				}
 			}
 		}
-	}
-
-	@Override
-	public IDatasourceIterator query(String query) {
-		SesameDatasourceIterator it = new SesameDatasourceIterator(this.rc);
-		it.setQuery(query);
-		it.execute();
-		return it;
 	}
 }

@@ -1,21 +1,28 @@
 package prerna.query.querystruct.evaluator;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.TinkerHeadersDataRowIteratorMap;
+import prerna.algorithm.api.SemossDataType;
+import prerna.ds.RawGemlinSelectWrapper;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.om.HeadersDataRow;
+import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
+import prerna.test.TestUtilityMethods;
+import prerna.util.DIHelper;
 
 public class QueryStructExpressionIterator extends AbstractWrapper implements IRawSelectWrapper {
 
@@ -29,100 +36,81 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	private List<IHeadersDataRow> processedData;
 	private int processedDataSize;
 	private int processedDataPosition;
-	
-	private Iterator<IHeadersDataRow> mainIterator;
+
+	private IRawSelectWrapper subIt;
 	private SelectQueryStruct qs;
-	
-	// keep track of the math that is needed
-	private List<String> uniqueSelectorNames;
-	private List<Integer> mathIndex;
-	private List<String> mathOperation;
-	private List<Integer> groupByIndex;
-	private String[] headers;
-	private String[] types;
-	
-	/**
-	 * Constructor
-	 */
-	public QueryStructExpressionIterator(Iterator<IHeadersDataRow> mainIterator, SelectQueryStruct qs) {
-		this.mainIterator = mainIterator;
-		if(mainIterator instanceof TinkerHeadersDataRowIteratorMap) {
-			this.types = ((TinkerHeadersDataRowIteratorMap) mainIterator).getTypes();
-		}
+
+	private int numColumns;
+	private SemossDataType[] types;
+
+	public QueryStructExpressionIterator(IRawSelectWrapper subIt, SelectQueryStruct qs) {
+		this.subIt = subIt;
 		this.qs = qs;
-		init();
-	}
-	
-	@Override
-	public boolean hasNext() {
-		if(processedData == null) {
-			return this.mainIterator.hasNext();
-		} else {
-			if(processedDataPosition + 1 > processedDataSize) {
-				return false;
-			}
-			return true;
-		}
 	}
 
 	@Override
-	public IHeadersDataRow next() {
-		if(processedData == null) {
-			return this.mainIterator.next();
-		} else {
-			IHeadersDataRow nextRow = processedData.get(processedDataPosition);
-			processedDataPosition++;
-			return nextRow;
-		}
-	}
-	
-	public void init() {
+	public void execute() {
 		// first, see that there is math that is needed
 		List<IQuerySelector> selectors = this.qs.getSelectors();
 		int numSelectors = selectors.size();
-				
-		this.uniqueSelectorNames = new ArrayList<String>(numSelectors);
-		this.mathIndex = new ArrayList<Integer>(numSelectors);
-		this.mathOperation = new ArrayList<String>(numSelectors);
-		this.groupByIndex = new ArrayList<Integer>(numSelectors);
-		this.headers = new String[numSelectors];
-		
+
+		List<String> uniqueSelectorNames = new ArrayList<String>(numSelectors);
+		List<Integer> mathIndex = new ArrayList<Integer>(numSelectors);
+		List<String> mathOperation = new ArrayList<String>(numSelectors);
+		List<Integer> groupByIndex = new ArrayList<Integer>(numSelectors);
+		String[] headers = new String[numSelectors];
+
 		for(int i = 0; i < numSelectors; i++) {
 			IQuerySelector selector = selectors.get(i);
 			if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				QueryFunctionSelector mSelector = (QueryFunctionSelector) selector;
-				this.mathIndex.add(i);
-				this.mathOperation.add(mSelector.getFunction());
+				mathIndex.add(i);
+				mathOperation.add(mSelector.getFunction());
 			}
-			//TODO: doing the base caseO
-			this.uniqueSelectorNames.add(selector.getQueryStructName());
-			this.headers[i] = selector.getAlias();
+			uniqueSelectorNames.add(selector.getQueryStructName());
+			headers[i] = selector.getAlias();
 		}
-		
+
 		List<QueryColumnSelector> groups = this.qs.getGroupBy();
 		int numGroups = groups.size();
 		for(int i = 0; i < numGroups; i++) {
 			QueryColumnSelector gSelector = groups.get(i);
-			this.groupByIndex.add(this.uniqueSelectorNames.indexOf(gSelector.getQueryStructName()));
+			groupByIndex.add(uniqueSelectorNames.indexOf(gSelector.getQueryStructName()));
 		}
-		
-		if(!this.mathIndex.isEmpty()) {
+
+		if(!mathIndex.isEmpty()) {
 			// we need to process through this iterator to get our results
-			calculateProcessedData();
+			calculateProcessedData(headers, uniqueSelectorNames, mathIndex, mathOperation, groupByIndex);
+			this.var = headers;
+			this.displayVar = headers;
+			this.numColumns = headers.length;
+			this.types = new SemossDataType[this.numColumns];
+			SemossDataType[] origTypes = this.subIt.getTypes();
+			for(int i = 0; i < this.numColumns; i++) {
+				if(groupByIndex.contains(new Integer(i))) {
+					this.types[i] = SemossDataType.DOUBLE;
+				} else {
+					this.types[i] = origTypes[i];
+				}
+			}
 		}
 	}
-
-	private void calculateProcessedData() {
+	
+	private void calculateProcessedData(String[] retHeaders,
+			List<String> uniqueSelectorNames, 
+			List<Integer> mathIndex, 
+			List<String> mathOperation, 
+			List<Integer> groupByIndex) {
 		this.processedData = new Vector<IHeadersDataRow>();
-		int numSelectors = this.uniqueSelectorNames.size();
-		int numMathIndex = this.mathIndex.size();
-		int numGroups = this.groupByIndex.size();
+		int numSelectors = uniqueSelectorNames.size();
+		int numMathIndex = mathIndex.size();
+		int numGroups = groupByIndex.size();
 
 		// need to use a map so i can group things
 		Map<String, List<IQueryStructExpression>> store = new LinkedHashMap<String, List<IQueryStructExpression>>();
-		while(this.mainIterator.hasNext()) {
-			Object[] dataRow = mainIterator.next().getValues();
-			String gStr = groupByStr(dataRow, numGroups);
+		while(subIt.hasNext()) {
+			Object[] dataRow = subIt.next().getValues();
+			String gStr = groupByStr(dataRow, numGroups, groupByIndex);
 			
 			List<IQueryStructExpression> valuesStore = null;
 			if(store.containsKey(gStr)) {
@@ -130,7 +118,7 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 			} else {
 				valuesStore = new ArrayList<IQueryStructExpression>();
 				for(int i = 0; i < numMathIndex; i++) {
-					valuesStore.add(IQueryStructExpression.getExpression(this.mathOperation.get(i)));
+					valuesStore.add(IQueryStructExpression.getExpression(mathOperation.get(i)));
 				}
 				store.put(gStr, valuesStore);
 			}
@@ -146,30 +134,30 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 			// add the group by indices
 			Object[] row = new Object[numSelectors];
 			if(numGroups == 1) {
-				row[this.groupByIndex.get(0)] = groupByStr;
+				row[groupByIndex.get(0)] = groupByStr;
 			} else {
 				String[] split = groupByStr.split("\\+\\+\\+");
 				for(int i = 0; i < numGroups; i++) {
-					row[this.groupByIndex.get(i)] = split[i];
+					row[groupByIndex.get(i)] = split[i];
 				}
 			}
 			
 			List<IQueryStructExpression> calculations = store.get(groupByStr);
 			// add the columns which had derivations
 			for(int i = 0; i < numMathIndex; i++) {
-				row[this.mathIndex.get(i)] = calculations.get(i).getOutput();
+				row[mathIndex.get(i)] = calculations.get(i).getOutput();
 			}
 			
 			// add to processed data
-			this.processedData.add(new HeadersDataRow(this.headers, row));
+			this.processedData.add(new HeadersDataRow(retHeaders, row));
 		}
 		this.processedDataSize = this.processedData.size();
 	}
 	
-	private String groupByStr(Object[] dataRow, int numGroups) {
+	private String groupByStr(Object[] dataRow, int numGroups, List<Integer> groupByIndex) {
 		StringBuilder gStr = new StringBuilder();
 		for(int i = 0; i < numGroups; i++) {
-			int index = this.groupByIndex.get(i);
+			int index = groupByIndex.get(i);
 			if(i == 0) {
 				gStr.append(dataRow[index]);
 			} else {
@@ -179,40 +167,121 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 		}
 		return gStr.toString();
 	}
-	
-	@Override
-	public void execute() {
 
+	@Override
+	public boolean hasNext() {
+		if(processedData == null) {
+			return this.subIt.hasNext();
+		} else {
+			if(processedDataPosition + 1 > processedDataSize) {
+				return false;
+			}
+			return true;
+		}
 	}
-	
+
+	@Override
+	public IHeadersDataRow next() {
+		if(processedData == null) {
+			return this.subIt.next();
+		} else {
+			IHeadersDataRow nextRow = processedData.get(processedDataPosition);
+			processedDataPosition++;
+			return nextRow;
+		}
+	}
+
+	@Override
+	public long getNumRecords() {
+		if(processedData == null) {
+			return this.subIt.getNumRecords();
+		}
+		return processedDataSize;
+	}
+
 	@Override
 	public void cleanUp() {
-		
+		this.subIt.cleanUp();
 	}
 
 	@Override
-	public String[] getDisplayVariables() {
-		return this.headers;
+	public void reset() {
+		cleanUp();
+		this.subIt.reset();
+		execute();
 	}
 
 	@Override
-	public String[] getPhysicalVariables() {
-		return this.headers;
+	public String[] getHeaders() {
+		if(this.displayVar == null) {
+			return this.subIt.getHeaders();
+		}
+		return this.displayVar;
 	}
 
 	@Override
-	public String[] getTypes() {
-		int size = this.headers.length;
+	public SemossDataType[] getTypes() {
 		if(this.types == null) {
-			this.types = new String[size];
+			return this.subIt.getTypes();
 		}
-		for(int i = 0; i < size; i++) {
-			if(this.mathIndex.contains(new Integer(i))) {
-				this.types[i] = "NUMBER";
-			} else if(types[i] == null){
-				types[i] = "STRING";
-			}
-		}
-		return types;
+		return this.types;
 	}
+
+	@Override
+	public void setQuery(String query) {
+		// this class doesn't set a query
+		// it uses an existing datsource iterator
+	}
+
+	
+	
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+
+	/*
+	 * Main for testing
+	 */
+	
+	public static void main(String[] args) {
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+		{
+			String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+			IEngine coreEngine = new RDBMSNativeEngine();
+			coreEngine.setEngineId("LocalMasterDatabase");
+			coreEngine.openDB(engineProp);
+			coreEngine.setEngineId("LocalMasterDatabase");
+			DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+		}
+		
+	
+		String testEngine = "TinkerThis__cc2a91eb-548d-4970-91c3-7a043b783841";
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\" + testEngine + ".smss";
+		TinkerEngine coreEngine = new TinkerEngine();
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty(testEngine, coreEngine);
+		
+		
+		GremlinInterpreter interp = new GremlinInterpreter(coreEngine.getGraph().traversal(), 
+				coreEngine.getTypeMap(), coreEngine.getNameMap());
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("Studio"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.MEAN);
+		fun.addInnerSelector(new QueryColumnSelector("Title__MovieBudget"));
+		qs.addSelector(fun);
+		qs.addGroupBy(new QueryColumnSelector("Studio"));
+		qs.addRelation("Title", "Studio", "inner.join");
+		
+		RawGemlinSelectWrapper subIt = new RawGemlinSelectWrapper(interp, qs);
+		subIt.execute();
+		
+		QueryStructExpressionIterator it = new QueryStructExpressionIterator(subIt, qs);
+		it.execute();
+		while(it.hasNext()) {
+			System.out.println(it.next());
+		}
+	}
+	
 }

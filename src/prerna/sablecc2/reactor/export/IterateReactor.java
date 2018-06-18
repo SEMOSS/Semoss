@@ -46,7 +46,7 @@ public class IterateReactor extends AbstractReactor {
 		// ... not everything has a qs
 		// ... primarily a key-value pair
 		// ... TODO: should figure out a better way to bifurcate
-		SelectQueryStruct queryStruct = getQueryStruct();
+		SelectQueryStruct qs = getQueryStruct();
 		boolean useFrameFilters = useFrameFilters();
 		
 		// try to get an in memory store being used
@@ -68,26 +68,26 @@ public class IterateReactor extends AbstractReactor {
 			// okay, we want to query an engine or a frame
 			// do this based on if the key is defined in the QS
 			Iterator<IHeadersDataRow> iterator = null;
-			if(queryStruct.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
-					queryStruct.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-				iterator = queryStruct.retrieveQueryStructEngine().query(queryStruct);
+			if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
+					qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+				iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 			} else {
-				ITableDataFrame frame = queryStruct.getFrame();
+				ITableDataFrame frame = qs.getFrame();
 				if(frame == null) {
 					frame = (ITableDataFrame) this.insight.getDataMaker();
 				}
 				if(useFrameFilters) {
-					queryStruct.mergeImplicitFilters(frame.getFrameFilters());
+					qs.mergeImplicitFilters(frame.getFrameFilters());
 				}
 				Logger logger = getLogger(frame.getClass().getName());
 				frame.setLogger(logger);
 				
-				iterator = frame.query(queryStruct);
+				iterator = frame.query(qs);
 			}
-			this.task = new BasicIteratorTask(queryStruct, iterator);
-			this.task.setHeaderInfo(queryStruct.getHeaderInfo());
-			this.task.setSortInfo(queryStruct.getSortInfo());
-			this.task.setFilterInfo(queryStruct.getExplicitFilters());
+			this.task = new BasicIteratorTask(qs, iterator);
+			this.task.setHeaderInfo(qs.getHeaderInfo());
+			this.task.setSortInfo(qs.getSortInfo());
+			this.task.setFilterInfo(qs.getExplicitFilters());
 			this.insight.getTaskStore().addTask(this.task);
 		}
 		

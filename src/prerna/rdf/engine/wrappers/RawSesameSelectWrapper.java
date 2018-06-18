@@ -20,6 +20,7 @@ import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -29,13 +30,12 @@ import prerna.util.Utility;
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger LOGGER = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
-	
 	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.ssss'Z'");
-	
+
 	private TupleQueryResult tqr = null;
 	private int numColumns = 0;
-	private String[] types;
-	
+	private SemossDataType[] types;
+
 	@Override
 	public void execute() {
 		tqr = (TupleQueryResult) engine.execQuery(query);
@@ -56,7 +56,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		}
 		return retBool;
 	}
-	
+
 	@Override
 	public IHeadersDataRow next() {
 		try {
@@ -73,7 +73,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				// get the real value in the clean row
 				cleanRow[colIndex] = getRealValue(val);
 			}
-			
+
 			return new HeadersDataRow(displayVar, cleanRow, rawRow);
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
@@ -82,12 +82,12 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		return null;
 	}
 
-	
+
 	private void setVariables() {
 		try {
 			// this makes the assumption that the query is constructed
 			// using the logic within the SPARQL Query Builder
-			
+
 			// get the vars from the tuple result 
 			List<String> names = tqr.getBindingNames();
 			numColumns = names.size();
@@ -113,19 +113,14 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
 		}
-		
-	}
-	
-	@Override
-	public String[] getDisplayVariables() {
-		return displayVar;
+
 	}
 
 	@Override
-	public String[] getPhysicalVariables() {
-		return var;
+	public String[] getHeaders() {
+		return displayVar;
 	}
-	
+
 	private Object getRealValue(Object val){
 		try
 		{
@@ -168,7 +163,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				LOGGER.debug("Class is " + val.getClass());
 				return new Double(((Literal)val).doubleValue());
 			}
-			
+
 			if(val!=null){
 				String value = val+"";
 				return Utility.getInstanceName(value);
@@ -180,7 +175,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 
 	@Override
-	public String[] getTypes() {
+	public SemossDataType[] getTypes() {
 		if(this.types == null) {
 			try {
 				SPARQLParser parser = new SPARQLParser();
@@ -189,20 +184,20 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				CustomSparqlAggregationParser aggregationVisitor = new CustomSparqlAggregationParser();
 				parsedQuery.getTupleExpr().visit(aggregationVisitor);
 				Set<String> aggregationValues = aggregationVisitor.getValue();
-				
-				this.types = new String[this.numColumns];
+
+				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
-					if(aggregationValues.contains(this.displayVar[i])) {
-						this.types[i] = "NUMBER";
+					if(aggregationValues.contains(this.var[i])) {
+						this.types[i] = SemossDataType.DOUBLE;
 					} else {
-						this.types[i] = "STRING";
+						this.types[i] = SemossDataType.STRING;
 					}
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				this.types = new String[this.numColumns];
+				this.types = new SemossDataType[this.numColumns];
 				for(int i = 0; i < this.numColumns; i++) {
-					this.types[i] = "STRING";
+					this.types[i] = SemossDataType.STRING;
 				}
 			}
 		}
@@ -216,5 +211,32 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		} catch (QueryEvaluationException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public long getNumRecords() {
+		String query = "select (count(*) * " + this.numColumns + " as ?count) where { " + this.query + "}";
+		TupleQueryResult tqr = (TupleQueryResult) engine.execQuery(query);
+
+		try {
+			if(tqr.hasNext()) {
+				BindingSet bindSet = tqr.next();
+				Object val = bindSet.getValue("count");
+				Object cleanValue = getRealValue(val);
+				if(cleanValue instanceof Number) {
+					return ((Number) cleanValue).longValue();
+				}
+			}
+		} catch (QueryEvaluationException e) {
+			e.printStackTrace();
+		}
+
+		return 0;
+	}
+
+	@Override
+	public void reset() {
+		cleanUp();
+		execute();
 	}
 }

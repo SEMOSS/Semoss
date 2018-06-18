@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.AbstractApiReactor;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 
@@ -53,7 +54,7 @@ public class QueryApiReactor extends AbstractApiReactor {
 //		} else {
 			// return the raw wrapper
 			long startTime = System.currentTimeMillis();
-			thisIterator = engine.query(this.qs);
+			thisIterator = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
 			long endTime = System.currentTimeMillis();
 			
 			System.out.println("Query execution time = " + (endTime - startTime) + " ms");

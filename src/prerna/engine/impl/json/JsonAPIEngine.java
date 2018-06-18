@@ -33,8 +33,6 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 
 import net.minidev.json.JSONArray;
-import prerna.engine.api.IDatasourceIterator;
-import prerna.engine.api.iterator.JsonPathDatasourceIterator;
 import prerna.engine.impl.AbstractEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -782,13 +780,4 @@ public class JsonAPIEngine extends AbstractEngine {
 	public IQueryInterpreter getQueryInterpreter(){
 		return new JsonInterpreter(this);
 	}
-
-	@Override
-	public IDatasourceIterator query(String query) {
-		IDatasourceIterator it = new JsonPathDatasourceIterator(this);
-		it.setQuery(query);
-		it.execute();
-		return it;
-	}
-
 }

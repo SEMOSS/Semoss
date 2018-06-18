@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
-import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -45,7 +45,7 @@ public class ImportDataReactor extends AbstractReactor {
 		// set the logger into the frame
 		frame.setLogger(logger);
 		
-		IDatasourceIterator it = ImportUtility.generateIterator(qs, frame);
+		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
 		if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
 			SemossPixelException exception = new SemossPixelException(
 					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 

@@ -35,12 +35,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.BindingSet;
 
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.util.Utility;
 
-public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper, IRawSelectWrapper {
+public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements ISelectWrapper {
 
 	private static final Logger LOGGER = LogManager.getLogger(RemoteSesameSelectWrapper.class.getName());
 	
@@ -152,11 +151,5 @@ public class RemoteSesameSelectWrapper extends SesameSelectWrapper implements IS
 			LOGGER.debug("Binding Name " + variableArr[colIndex]);
 		}
 		return sjss;
-	}
-
-	@Override
-	public String[] getTypes() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

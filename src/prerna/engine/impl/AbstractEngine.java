@@ -57,7 +57,6 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.openrdf.model.vocabulary.RDFS;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -287,14 +286,6 @@ public abstract class AbstractEngine implements IEngine {
 			lOGGER.debug("closing its insight engine ");
 			this.insightRDBMS.closeDB();
 		}
-	}
-	
-	@Override
-	public IDatasourceIterator query(SelectQueryStruct qs) {
-		IQueryInterpreter interp = getQueryInterpreter();
-		interp.setQueryStruct(qs);
-		String query = interp.composeQuery();
-		return query(query);
 	}
 	
 	@Override

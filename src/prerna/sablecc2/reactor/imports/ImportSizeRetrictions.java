@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.imports;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.util.IFileIterator;
-import prerna.engine.api.IDatasourceIterator;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -62,7 +62,7 @@ public class ImportSizeRetrictions {
 	 * @param it
 	 * @return
 	 */
-	public static boolean importWithinLimit(ITableDataFrame frame, IDatasourceIterator it) {
+	public static boolean importWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) {
 		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
 			// no restriction
 			// or
