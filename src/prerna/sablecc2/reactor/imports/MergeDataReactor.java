@@ -13,8 +13,8 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -44,16 +44,6 @@ public class MergeDataReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute()  {
 		ITableDataFrame frame = getFrame();
-//		// check size is reasonable
-//		if(!AbstractTableDataFrame.sizeWithinLimit((AbstractTableDataFrame) frame)) {
-//			SemossPixelException exception = new SemossPixelException(
-//				new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-//						PixelDataType.CONST_STRING, 
-//						PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
-//			exception.setContinueThreadOfExecution(false);
-//			throw exception;
-//		}
-		
 		// set the logger into the frame
 		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);
@@ -69,6 +59,20 @@ public class MergeDataReactor extends AbstractReactor {
 		ITableDataFrame mergeFrame = null;
 		SelectQueryStruct qs = getQueryStruct();
 		if(qs != null) {
+			IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
+			// we need to account for the join column not adding 
+			// additional records
+			int numColumns = it.getHeaders().length;
+			long modifiedSize = (long) ( ((double) (numColumns-1) / numColumns) * it.getNumRecords());
+			if(!ImportSizeRetrictions.mergeWithinLimit(frame, modifiedSize)) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+								PixelDataType.CONST_STRING, 
+								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+			
 			mergeFrame = mergeFromQs(frame, qs, joins);
 		} else {
 			ITask task = getTask();
