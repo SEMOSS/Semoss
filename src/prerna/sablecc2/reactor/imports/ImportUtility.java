@@ -15,6 +15,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ExcelFileIterator;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -41,7 +42,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @return
 	 */
-	public static Iterator<IHeadersDataRow> generateIterator(SelectQueryStruct qs, ITableDataFrame frame) {
+	public static IDatasourceIterator generateIterator(SelectQueryStruct qs, ITableDataFrame frame) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
