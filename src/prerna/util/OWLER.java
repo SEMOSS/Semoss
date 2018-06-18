@@ -637,7 +637,7 @@ public class OWLER {
 			qs2.addSelector(newSelector);
 			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 			
-			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			Iterator<IHeadersDataRow> it = engine.query(qs2);
 			if (!it.hasNext()) {
 				continue;
 			}
