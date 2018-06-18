@@ -220,12 +220,12 @@ public class ExcelFileIterator extends AbstractFileIterator {
 	}
 
 	@Override
-	public void resetHelper() {
+	public void reset() {
 		this.helper.reset();
 	}
 
 	@Override
-	public void clearHelper() {
+	public void cleanUp() {
 		this.helper.clear();
 	}
 	

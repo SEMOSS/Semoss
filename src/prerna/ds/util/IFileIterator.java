@@ -1,17 +1,9 @@
 package prerna.ds.util;
 
-import java.util.Iterator;
+import prerna.engine.api.IDatasourceIterator;
 
-import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IHeadersDataRow;
+public interface IFileIterator extends IDatasourceIterator {
 
-public interface IFileIterator extends Iterator<IHeadersDataRow> {
+	boolean numberRowsOverLimit(long limitSize);
 
-	String[] getHeaders();
-
-	SemossDataType[] getTypes();
-
-	boolean numberRowsOverLimit(int limitSize);
-
-	int getNumRecords();
 }
