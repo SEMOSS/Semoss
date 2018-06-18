@@ -3,7 +3,7 @@ package prerna.sablecc2;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
@@ -17,6 +17,7 @@ import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.expression.IfError;
+import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
 
 public class GreedyTranslation extends LazyTranslation {
 
@@ -171,14 +172,14 @@ public class GreedyTranslation extends LazyTranslation {
 	    	if(output != null) {
 	    		// size check
 	    		if(output.getNounType() == PixelDataType.FRAME) {
-	    			AbstractTableDataFrame frame = (AbstractTableDataFrame) output.getValue();
-	    			if(!AbstractTableDataFrame.sizeWithinLimit(frame)) {
+	    			ITableDataFrame frame = (ITableDataFrame) output.getValue();
+	    			if(!ImportSizeRetrictions.frameWithinLimits(frame)) {
 	    				SemossPixelException exception = new SemossPixelException(
-	    					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-	    							PixelDataType.CONST_STRING, 
-	    							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED));
-	    				exception.setContinueThreadOfExecution(false);
-	    				throw exception;
+		    					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+		    							PixelDataType.CONST_STRING, 
+		    							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+		    				exception.setContinueThreadOfExecution(false);
+		    				throw exception;
 	    			}
 	    		}
 	    		

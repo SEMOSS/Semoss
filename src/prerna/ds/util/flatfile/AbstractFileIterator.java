@@ -34,27 +34,15 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	protected Map<String, String> dataTypeMap;
 	protected Map<String, String> additionalTypesMap;
 
-	protected int numRecords = -1;
+	protected long numRecords = -1;
 	
 	public abstract void getNextRow();
-	
-	/**
-	 * Reset the connection to the file
-	 * As if no iterating through
-	 * the file has ever occurred
-	 */
-	public abstract void resetHelper();
-	
-	/**
-	 * Drop the connection to the file
-	 */
-	public abstract void clearHelper();
 	
 	@Override
 	public boolean hasNext() {
 		if(nextRow == null) {
 			// drops the file connection
-			clearHelper();
+			cleanUp();
 			return false;
 		}
 		return true;
@@ -146,9 +134,9 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 
 	@Override
-	public boolean numberRowsOverLimit(int limit) {
+	public boolean numberRowsOverLimit(long limit) {
 		boolean overLimit = false;
-		int counter = 0;
+		long counter = 0;
 		while(this.hasNext()) {
 			this.getNextRow();
 			counter++;
@@ -166,14 +154,9 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		}
 		
 		// reset so we get the values again
-		resetHelper();
+		reset();
 		getNextRow();
 		return overLimit;
-	}
-	
-	@Override
-	public int getNumRecords() {
-		return this.numRecords;
 	}
 	
 	@Override
@@ -187,12 +170,29 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 	
 	public void deleteFile() {
-		clearHelper();
+		cleanUp();
 		File file = new File(this.fileLocation);
 		file.delete();
 	}
 	
 	public String getFileLocation() {
 		return this.fileLocation;
+	}
+	
+	
+	@Override
+	public void execute() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public long getNumRecords() {
+		return this.numRecords;
 	}
 }
