@@ -11,7 +11,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,9 +22,8 @@ import org.apache.log4j.Logger;
 
 import au.com.bytecode.opencsv.CSVReader;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -33,6 +31,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -542,7 +541,7 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, null);
 							sqs.setDistinct(true);
-							IDatasourceIterator iterator = engine.query(sqs);
+							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
 							List<Object> instances = new ArrayList<Object>();
 							while(iterator.hasNext()) {
 								instances.add(iterator.next().getValues()[0]);
@@ -566,7 +565,7 @@ public class Xray {
 							sqs.setEngineId(engineID);
 							sqs.addSelector(table, column);
 							sqs.setDistinct(true);
-							IDatasourceIterator iterator = engine.query(sqs);
+							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, sqs);
 							List<Object> instances = new ArrayList<Object>(); 
 							while(iterator.hasNext()) {
 								instances.add(iterator.next().getValues()[0]);
@@ -849,7 +848,7 @@ public class Xray {
 			}
 			qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
-			Iterator<IHeadersDataRow> it = engine.query(qs2);
+			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 			Integer count = 0;
 			if (it.hasNext()) {
 				Number num =(Number) it.next().getValues()[0];

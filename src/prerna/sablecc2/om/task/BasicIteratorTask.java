@@ -15,7 +15,6 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ExcelFileIterator;
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -27,6 +26,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
 public class BasicIteratorTask extends AbstractTask {
@@ -87,9 +87,7 @@ public class BasicIteratorTask extends AbstractTask {
 		if(this.headerInfo != null) {
 			String[] types = null;
 			if(this.iterator instanceof IRawSelectWrapper) {
-				types = ((IRawSelectWrapper) this.iterator).getTypes();
-			} else if(this.iterator instanceof IDatasourceIterator) {
-				SemossDataType[] sTypes = ((IDatasourceIterator) this.iterator).getTypes();
+				SemossDataType[] sTypes = ((IRawSelectWrapper) this.iterator).getTypes();
 				types = Arrays.asList(sTypes).stream()
 						.map(p -> p == null ? "STRING" : p)
 						.map(p -> p.toString())
@@ -126,7 +124,7 @@ public class BasicIteratorTask extends AbstractTask {
 	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) {
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			iterator = qs.retrieveQueryStructEngine().query(qs);
+			iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			iterator = new CsvFileIterator((CsvQueryStruct) qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {

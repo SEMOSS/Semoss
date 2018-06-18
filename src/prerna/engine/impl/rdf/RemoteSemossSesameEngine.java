@@ -52,7 +52,6 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import com.google.gson.Gson;
 
-import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
@@ -423,11 +422,4 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		// this does nothing
 		logger.info("cannot commit remote engine");
 	}
-
-	@Override
-	public IDatasourceIterator query(String query) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 }

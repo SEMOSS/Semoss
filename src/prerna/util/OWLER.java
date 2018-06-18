@@ -25,6 +25,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class OWLER {
 
@@ -636,7 +637,7 @@ public class OWLER {
 			qs2.addSelector(newSelector);
 			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 			
-			Iterator<IHeadersDataRow> it = engine.query(qs2);
+			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 			if (!it.hasNext()) {
 				continue;
 			}
@@ -666,7 +667,7 @@ public class OWLER {
 				qs2.addSelector(newSelector);
 				qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 				
-				it = engine.query(qs2);
+				it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
 				if (!it.hasNext()) {
 					continue;
 				}

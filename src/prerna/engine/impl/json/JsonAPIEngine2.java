@@ -17,8 +17,6 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
-import prerna.engine.api.IDatasourceIterator;
-import prerna.engine.api.iterator.JmesDatasourceIterator;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
 
@@ -255,15 +253,7 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 	
 	@Override
 	public ENGINE_TYPE getEngineType() {
-		// TODO Auto-generated method stub
 		return prerna.engine.api.IEngine.ENGINE_TYPE.JSON2;
 	}
 
-	@Override
-	public IDatasourceIterator query(String query) {
-		IDatasourceIterator it = new JmesDatasourceIterator(this);
-		it.setQuery(query);
-		it.execute();
-		return it;
-	}
 }

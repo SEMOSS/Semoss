@@ -26,7 +26,7 @@ public class LoadGraphClient extends AbstractLoadClient {
 		LazyTranslation plannerT = new LazyTranslation();
 		// get the iterator we are loading
 		IRawSelectWrapper iterator = (IRawSelectWrapper) getIterator();
-		String[] headers = iterator.getDisplayVariables();
+		String[] headers = iterator.getHeaders();
 
 		int[] assignmentIndices = getAssignmentIndices(headers);
 		int valIndex = getValueIndex(headers);
