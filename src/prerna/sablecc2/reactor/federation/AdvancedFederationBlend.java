@@ -11,6 +11,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -226,7 +227,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 		}
 
 		// write iterator data to csv, then read csv into R table as trg
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+		IDatasourceIterator it = newColEngine.query(qs);
 		String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 		File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 		String loadFileRScript = RSyntaxHelper.getFReadSyntax(trg, newFile.getAbsolutePath(), "\\t");
