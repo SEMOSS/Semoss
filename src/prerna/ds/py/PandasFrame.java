@@ -14,6 +14,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.ds.util.flatfile.ExcelFileIterator;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -125,13 +126,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> query(String query) {
+	public IDatasourceIterator query(String query) {
 		System.out.println(this.jep.eval(query));
 		return null;
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
+	public IDatasourceIterator query(SelectQueryStruct qs) {
 		PandasInterpreter interp = new PandasInterpreter();
 		interp.setDataTableName(this.tableName);
 		String query = interp.composeQuery();

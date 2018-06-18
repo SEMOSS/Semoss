@@ -16,6 +16,7 @@ import org.apache.log4j.LogManager;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.ICache;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IDatasourceIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -318,13 +319,13 @@ public class RiGraph extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(String query) {
+	public IDatasourceIterator query(String query) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> query(SelectQueryStruct qs) {
+	public IDatasourceIterator query(SelectQueryStruct qs) {
 		// TODO Auto-generated method stub
 		return null;
 	}
