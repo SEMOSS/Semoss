@@ -76,7 +76,7 @@ public class ImportSizeRetrictions {
 		// a file requires us to loop through
 		// we will just subtract the curFrame size
 		if(it instanceof IFileIterator) {
-			if(	((IFileIterator) it).numberRowsOverLimit(LIMIT_SIZE - curFrameSize) ) {
+			if(	((IFileIterator) it).getNumRecordsOverSize(LIMIT_SIZE - curFrameSize) ) {
 				return false;
 			}
 		} else {
