@@ -1038,7 +1038,21 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					}
 					relList.add(fromConcept);
 					relations.put(toConcept, relList);
-				} 
+					
+					// add FK as property
+//					String dataType = null;
+//					if(csvColumnToIndex.containsKey(toConcept)) {
+//						dataType = dataTypes[csvColumnToIndex.get(toConcept)];
+//					} else if(objectTypeMap.containsKey(toConcept)) {
+//						// If not contained in the csv, go with type from the objectTypeMap
+//						dataType = retrieveSqlType(objectTypeMap.get(toConcept));
+//					} else {
+//						// Default to string
+//						dataType = "VARCHAR(800)";
+//					}
+//					owler.addProp(cleanToConceptTableName, cleanToConceptTableName, cleanFromConceptTableName + FK, dataType, null);
+					
+				}
 				// if it is fromConcept has* toConcept
 				// then fromConcept has the FK for toConcept
 				else if(rel.endsWith("*")) {
@@ -1053,7 +1067,20 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					// the predicate string is different from the default defined
 					predicate = cleanToConceptTableName + "." + cleanToConceptTableName 
 							+ "." + cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
-
+					
+					// add FK as property
+//					String dataType = null;
+//					if(csvColumnToIndex.containsKey(toConcept)) {
+//						dataType = dataTypes[csvColumnToIndex.get(toConcept)];
+//					} else if(objectTypeMap.containsKey(toConcept)) {
+//						// If not contained in the csv, go with type from the objectTypeMap
+//						dataType = retrieveSqlType(objectTypeMap.get(toConcept));
+//					} else {
+//						// Default to string
+//						dataType = "VARCHAR(800)";
+//					}
+//					owler.addProp(cleanFromConceptTableName, cleanFromConceptTableName, cleanToConceptTableName + FK, dataType, null);
+					
 				} else {
 					// do it based on relationship format
 					// TODO: build it out to do it based on
@@ -1065,6 +1092,19 @@ public class RDBMSReader extends AbstractCSVFileReader {
 					}
 					relList.add(fromConcept);
 					relations.put(toConcept, relList);
+					
+//					// add FK as property
+//					String dataType = null;
+//					if(csvColumnToIndex.containsKey(toConcept)) {
+//						dataType = dataTypes[csvColumnToIndex.get(toConcept)];
+//					} else if(objectTypeMap.containsKey(toConcept)) {
+//						// If not contained in the csv, go with type from the objectTypeMap
+//						dataType = retrieveSqlType(objectTypeMap.get(toConcept));
+//					} else {
+//						// Default to string
+//						dataType = "VARCHAR(800)";
+//					}
+//					owler.addProp(cleanToConceptTableName, cleanToConceptTableName, cleanFromConceptTableName + FK, dataType, null);
 				}
 
 				owler.addRelation(cleanFromConceptTableName, cleanToConceptTableName, predicate);
