@@ -57,14 +57,14 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	{
 		ISelectStatement thisSt = new SelectStatement();
 	    QuerySolution row = rs.nextSolution();
-		for(int colIndex = 0;colIndex < displayVar.length;colIndex++)
+		for(int colIndex = 0;colIndex < headers.length;colIndex++)
 		{
-			String value = row.get(var[colIndex])+"";
-			RDFNode node = row.get(var[colIndex]);
+			String value = row.get(rawHeaders[colIndex])+"";
+			RDFNode node = row.get(rawHeaders[colIndex]);
 			
-			thisSt.setVar(displayVar[colIndex], getRealValue(node));
-			thisSt.setRawVar(displayVar[colIndex], value);
-			LOGGER.debug("Binding Name " + var[colIndex]);
+			thisSt.setVar(headers[colIndex], getRealValue(node));
+			thisSt.setRawVar(headers[colIndex], value);
+			LOGGER.debug("Binding Name " + rawHeaders[colIndex]);
 			LOGGER.debug("Binding Value " + value);
 		}	
 		return thisSt;
@@ -77,7 +77,7 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 	
 	@Override
 	public String[] getDisplayVariables() {
-		displayVar = new String[rs.getResultVars().size()];
+		headers = new String[rs.getResultVars().size()];
 		List <String> names = rs.getResultVars();
 		for (int colIndex = 0; colIndex < names.size(); colIndex++){
 			String columnLabel = names.get(colIndex);
@@ -103,18 +103,18 @@ public class JenaSelectWrapper extends AbstractWrapper implements ISelectWrapper
 				columnLabel = tableLabel;
 			}
 			
-			displayVar[colIndex] = columnLabel;
+			headers[colIndex] = columnLabel;
 		}
-		return displayVar;
+		return headers;
 	}
 	
 	@Override
 	public String[] getPhysicalVariables() {
 		// get the result set metadata to get the column names
-		var = new String[rs.getResultVars().size()];
+		rawHeaders = new String[rs.getResultVars().size()];
 		List <String> names = rs.getResultVars();
-		for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
-		return var;
+		for(int colIndex = 0;colIndex < names.size();rawHeaders[colIndex] = names.get(colIndex), colIndex++);
+		return rawHeaders;
 	}
 
 	@Override

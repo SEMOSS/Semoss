@@ -42,13 +42,14 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
-import prerna.engine.api.IEngine;
-import prerna.util.Utility;
-
 import com.google.gson.Gson;
 import com.hp.hpl.jena.query.QuerySolution;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.RDFNode;
+
+import prerna.engine.api.IEngine;
+import prerna.rdf.engine.wrappers.AbstractWrapper;
+import prerna.util.Utility;
 
 /**
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes SELECT statements. 
@@ -181,7 +182,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				if(ris == null)
 				{
 					Hashtable params = new Hashtable<String,String>();
-					params.put("id", remoteWrapperProxy.getRemoteID());
+					params.put("id", remoteWrapperProxy.getRemoteId());
 					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
 				}	
 				Object myObject = ris.readObject();
@@ -394,8 +395,8 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 				// I need to pull from remote
 				// this is just so stupid to call its own
 				Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteID());
-				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteID());
+				params.put("id", remoteWrapperProxy.getRemoteId());
+				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteId());
 				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/bvnext", params);
 				Gson gson = new Gson();
 				retSt = gson.fromJson(output, SesameJenaSelectStatement.class); // cleans up automatically at the remote end				
@@ -464,6 +465,18 @@ public class SesameJenaSelectWrapper extends AbstractWrapper{
 		System.out.println(st.propHash);
 		
 		//System.out.println(" var " + sjcw.getVariables());
+		
+	}
+
+	@Override
+	public void execute() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void cleanUp() {
+		// TODO Auto-generated method stub
 		
 	}
 
