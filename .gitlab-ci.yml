@@ -10,7 +10,8 @@ cache:
   paths:
     - target/
     - .m2/repository/
-
+  key: ${CI_COMMIT_REF_SLUG}
+  
 build:
   stage: build
   script:
