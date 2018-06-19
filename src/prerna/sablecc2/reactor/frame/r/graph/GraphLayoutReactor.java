@@ -24,7 +24,7 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = GraphLayoutReactor.class.getName();
 
 	public GraphLayoutReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GRAPH_LAYOUT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.GRAPH_LAYOUT.getKey(), "yMin", "yMax", "xMin", "xMax"};
 	}
 
 	@Override
@@ -41,6 +41,16 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 			logger.info("Determining vertex positions...");
 			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);
 			this.rJavaTranslator.executeR("" + tempOutputLayout + " <- " + inputLayout + "(" + graphName + ")");
+			// default normalization scale
+			String yMin = "-50";
+			yMin = this.keyValue.get(this.keysToGet[1]);
+			String yMax = "50";
+			yMax = this.keyValue.get(this.keysToGet[2]);
+			String xMin = "-50";
+			xMin = this.keyValue.get(this.keysToGet[3]);
+			String xMax = "50";
+			xMax = this.keyValue.get(this.keysToGet[4]);
+			this.rJavaTranslator.executeR(tempOutputLayout + "<-layout.norm("+tempOutputLayout+", ymin="+yMin+", ymax="+yMax+", xmin="+xMin+", xmax="+xMax+")");
 			logger.info("Done calculating positions...");
 			synchronizeXY(tempOutputLayout);
 			// clean up temp variable
@@ -65,8 +75,7 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 		} else if (memberships[0].length == 3) {
 			axis = new String[] { "X", "Y", "Z" };
 		}
-		String[] IDs = this.rJavaTranslator
-				.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
+		String[] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
 		for (int memIndex = 0; memIndex < memberships.length; memIndex++) {
 			String thisID = IDs[memIndex];
 			Vertex retVertex = null;
