@@ -93,6 +93,7 @@ import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentSimple;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
+import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
@@ -474,6 +475,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     					QueryColumnSelector s = new QueryColumnSelector(idInput);
     					curReactor.getCurRow().addColumn(s);
     				}
+    			} else if(curReactor instanceof FrameReactor && varType == PixelDataType.FRAME) {
+    				// add the frame based on the variable
+    				curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
     			} else if(curReactor instanceof AbstractQueryStructReactor) {
     				// if it is a join or an as 
 					curReactor.getCurRow().addColumn(idInput);
