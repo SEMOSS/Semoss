@@ -10,9 +10,13 @@ cache:
   paths:
     - target/
     - .m2/repository/
-  key: ${CI_COMMIT_REF_SLUG}
+  key: ${CI_BUILD_REF_NAME}
   
 build:
   stage: build
   script:
     - mvn clean install
+  artifacts:
+    paths:
+      - target/
+      - .m2/repository/
