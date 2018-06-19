@@ -1,0 +1,13 @@
+image: maven:latest
+
+stages:
+  - build
+
+cache:
+  paths:
+    - target/
+
+build:
+  stage: build
+  script:
+    - mvn clean install
