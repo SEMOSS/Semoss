@@ -455,18 +455,29 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		 * Add the filter syntax here once we have the correct physical names
 		 */
 		
+		String lSelector = processSelector(leftSelector, tableName, true, useAlias);
+		String rSelector = processSelector(rightSelector, tableName, true, useAlias);
+		
 		StringBuilder filterBuilder = new StringBuilder();
 		if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-			filterBuilder.append("!( ").append(processSelector(leftSelector, tableName, true, useAlias)).append(" ")
-			.append(" == ").append(processSelector(rightSelector, tableName, true, useAlias)).append(")");
+			filterBuilder.append("( !(").append(lSelector).append(" == ").append(rSelector)
+			// account for NA
+			.append(") | ( is.na(").append(lSelector).append(") & !is.na(").append(rSelector)
+			.append(") ) | ( !is.na(").append(lSelector).append(") & is.na(").append(rSelector).append(")) )");
 		} else if(thisComparator.equals("?like")) {
 			// some operation
-			filterBuilder.append("as.character(").append(processSelector(leftSelector, tableName, true, useAlias)).append(") %like% as.character(")
-			.append(processSelector(rightSelector, tableName, true, useAlias)).append(")");
+			filterBuilder.append("as.character(").append(lSelector)
+			.append(") %like% as.character(").append(rSelector).append(")");
 		} else {
-			// some operation
-			filterBuilder.append(processSelector(leftSelector, tableName, true, useAlias)).append(" ").append(thisComparator)
-			.append(" ").append(processSelector(rightSelector, tableName, true, useAlias));
+			if(thisComparator.equals("==")) {
+				filterBuilder.append("(").append(lSelector).append(" == ").append(rSelector)
+				// account for NA
+				.append(" | is.na(").append(lSelector).append(") & is.na(").append(rSelector).append(") )");
+			} else {
+				// other op
+				filterBuilder.append(lSelector).append(" ").append(thisComparator)
+				.append(" ").append(rSelector);
+			}
 		}
 		
 		return filterBuilder;
