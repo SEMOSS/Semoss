@@ -20,10 +20,6 @@ cache:
 build:
   stage: build
   script:
-    - echo $JAVA_HOME
-    - ls $JAVA_HOME
-    - ls $JAVA_HOME/lib/
-    - ls /usr/lib/jvm/
     - mvn $MAVEN_CLI_OPTS clean install
   artifacts:
     paths:
