@@ -458,7 +458,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		StringBuilder filterBuilder = new StringBuilder();
 		if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
 			filterBuilder.append("!( ").append(processSelector(leftSelector, tableName, true, useAlias)).append(" ")
-			.append(" == ").append(tableName).append("$").append(processSelector(rightSelector, tableName, true, useAlias)).append(")");
+			.append(" == ").append(processSelector(rightSelector, tableName, true, useAlias)).append(")");
 		} else if(thisComparator.equals("?like")) {
 			// some operation
 			filterBuilder.append("as.character(").append(processSelector(leftSelector, tableName, true, useAlias)).append(") %like% as.character(")
