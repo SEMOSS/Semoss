@@ -17,9 +17,9 @@ build:
   stage: build
   script:
     - echo $JAVA_HOME
+    - ls $JAVA_HOME
     - ls $JAVA_HOME/lib/
-    - echo $JDK_HOME
-    - ls $JDK_HOME/lib/
+    - ls /usr/lib/
     - mvn $MAVEN_CLI_OPTS clean install
   artifacts:
     paths:
