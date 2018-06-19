@@ -1,8 +1,12 @@
-image: maven:3-jdk-8-alpine
+image: maven:3.5-jdk-8
 
 stages:
   - build
 
+before_script:
+  - apt-get update
+  - apt-get install -y openjfx
+  
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
   MAVEN_CLI_OPTS: "--batch-mode"
@@ -19,7 +23,6 @@ build:
     - echo $JAVA_HOME
     - ls $JAVA_HOME
     - ls $JAVA_HOME/lib/
-    - ls /usr/lib/
     - ls /usr/lib/jvm/
     - mvn $MAVEN_CLI_OPTS clean install
   artifacts:
