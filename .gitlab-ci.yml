@@ -3,9 +3,13 @@ image: maven:latest
 stages:
   - build
 
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  
 cache:
   paths:
     - target/
+    - .m2/repository/
 
 build:
   stage: build
