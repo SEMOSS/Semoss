@@ -103,13 +103,18 @@ public class ImportSizeRetrictions {
 	 * @param it
 	 * @return
 	 */
-	public static boolean mergeWithinLimit(ITableDataFrame frame, long additionalRecords) {
+	public static boolean mergeWithinLimit(ITableDataFrame frame, IRawSelectWrapper it) {
 		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
 			// no restriction
 			// or
 			// native frame - since nothing is stored in mem
 			return true;
 		}
+		
+		// we need to account for the join column not adding 
+		// additional records
+		int numColumns = it.getHeaders().length;
+		long additionalRecords = (long) ( ((double) (numColumns-1) / numColumns) * it.getNumRecords());
 
 		long curFrameSize = frame.size(frame.getTableName());
 		if(additionalRecords + curFrameSize > LIMIT_SIZE) {
