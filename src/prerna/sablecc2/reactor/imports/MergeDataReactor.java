@@ -63,11 +63,7 @@ public class MergeDataReactor extends AbstractReactor {
 			mergeFrame = mergeNative(frame, qs, joins);
 		} else if(qs != null) {
 			IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
-			// we need to account for the join column not adding 
-			// additional records
-			int numColumns = it.getHeaders().length;
-			long modifiedSize = (long) ( ((double) (numColumns-1) / numColumns) * it.getNumRecords());
-			if(!ImportSizeRetrictions.mergeWithinLimit(frame, modifiedSize)) {
+			if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
 				SemossPixelException exception = new SemossPixelException(
 						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 								PixelDataType.CONST_STRING, 
