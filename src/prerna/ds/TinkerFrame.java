@@ -755,21 +755,43 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	@Override
 	public long size(String tableName) {
-		long numV = 0;
-		long numE = 0;
-		GraphTraversal<Vertex, Long> itV = g.traversal().V().count();
-		if(itV.hasNext()) {
-			numV = itV.next();
-		}
-		GraphTraversal<Edge, Long> itE = g.traversal().E().count();
-		if(itE.hasNext()) {
-			numE = itE.next();
+		// get a flat QS
+		// which contains all the selectors 
+		// and all the joins as inner 
+		SelectQueryStruct qs = this.metaData.getFlatTableQs();
+		if(qs.getSelectors().isEmpty()) {
+			return 0;
 		}
 		
-		if(numE > 0) {
-			return numV * numE;
+		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
+		interp.setLogger(this.logger);
+		interp.setQueryStruct(qs);
+		
+		// this will count all V's
+		GraphTraversal it = interp.composeIterator().count();
+		if(it.hasNext()) {
+			return ((Number) it.next()).longValue() / qs.getSelectors().size();
 		}
-		return numV;
+
+		return 0;
+//		// this is an approximate
+//		// i am using since it is faster
+//		// than flushing fully
+//		long numV = 0;
+//		long numE = 0;
+//		GraphTraversal<Vertex, Long> itV = g.traversal().V().count();
+//		if(itV.hasNext()) {
+//			numV = itV.next();
+//		}
+//		GraphTraversal<Edge, Long> itE = g.traversal().E().count();
+//		if(itE.hasNext()) {
+//			numE = itE.next();
+//		}
+//		
+//		if(numE > 0) {
+//			return numV + numE;
+//		}
+//		return numV;
 	}
 	
 	public boolean isOrphan(String type, String data)
