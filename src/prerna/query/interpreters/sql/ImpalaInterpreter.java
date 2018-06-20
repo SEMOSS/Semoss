@@ -1,6 +1,7 @@
 package prerna.query.interpreters.sql;
 
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -129,7 +130,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		StringBuilder query = new StringBuilder("SELECT ");
 		String distinct = "";
 		if(this.qs.isDistinct()) {
-			distinct = "DISTINCT ";
+			//distinct = "DISTINCT ";
 		}
 		if(this.engine != null && !engine.isBasic() && joinStructList.isEmpty()) {
 			// if there are no joins, we know we are querying from a single table
