@@ -49,6 +49,13 @@ public class ImportSizeRetrictions {
 	 * @return
 	 */
 	public static boolean frameWithinLimits(ITableDataFrame frame) {
+		if(!SIZE_RESTRICTED || frame instanceof NativeFrame) {
+			// no restriction
+			// or
+			// native frame - since nothing is stored in mem
+			return true;
+		}
+		
 		long frameSize = frame.size(frame.getTableName());
 		if(frameSize > LIMIT_SIZE) {
 			return false;
