@@ -602,10 +602,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
 				filterBuilder = new StringBuilder();
-				filterBuilder.append("(").append(leftSelectorExpression).append(") IS NULL ");
+				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NULL ");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
 				filterBuilder = new StringBuilder();
-				filterBuilder.append("(").append(leftSelectorExpression).append(") IS NOT NULL ");
+				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NOT NULL ");
 			}
 		}
 		// if there are other instances as well
@@ -661,6 +661,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					filterBuilder.append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 				}
 			}
+		}
+		
+		if(addNullCheck) {
+			filterBuilder.append(" )");
 		}
 		
 		return filterBuilder;
