@@ -103,7 +103,7 @@ public class NativeFrameImporter implements IImporter {
 		
 		// now, we want to merge this new data into it
 		IRawSelectWrapper mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
-		if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt.getNumRecords())) {
+		if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt)) {
 			SemossPixelException exception = new SemossPixelException(
 					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
 							PixelDataType.CONST_STRING, 
