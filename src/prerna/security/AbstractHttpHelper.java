@@ -1,9 +1,5 @@
 package prerna.security;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -13,12 +9,14 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.http.Consts;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
@@ -27,164 +25,172 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-
-import prerna.auth.AccessToken;
+import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public abstract class AbstractHttpHelper 
-{
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.jackson.JacksonRuntime;
+import prerna.auth.AccessToken;
 
-	static ObjectMapper mapper = new ObjectMapper();
+public abstract class AbstractHttpHelper {
 
+	private static final Logger LOGGER = Logger.getLogger(AbstractHttpHelper.class.getName());
+	private static ObjectMapper mapper = new ObjectMapper();
 	
-	// makes a request to get access token with a params hashtable
-	public static AccessToken getAccessToken(String url, Hashtable params, boolean json, boolean extract)
-	{
-		String accessToken = null;
-		AccessToken tok = new AccessToken();
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+	
+	/*
+	 * Methods for generating an access token
+	 */
+	
+	/**
+	 * Make a request to get an access token
+	 * Uses hashtable for list of params
+	 * @param url
+	 * @param params
+	 * @param json
+	 * @param extract
+	 * @return
+	 */
+	public static AccessToken getAccessToken(String url, Map<String, String> params, boolean json, boolean extract) {
+		AccessToken tok = null;
 		try {
+			// default client
 			CloseableHttpClient httpclient = HttpClients.createDefault();
+			// this is a post
 			HttpPost httppost = new HttpPost(url);
-
+			// loop through all keys and add as basic name value pair 
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-			Enumeration<String> keys = params.keys();
-			
-			int paramIndex = 0;
-			
-			while (keys.hasMoreElements()) {
-				String key = keys.nextElement();
-				String value = (String) params.get(key);
-				paramList.add(new BasicNameValuePair(key, value));
-				paramIndex++;
-			}
-
-			
+			params.keySet().stream().forEach(param -> paramList.add(new BasicNameValuePair(param, params.get(param))));
+			// set within post
 			httppost.setEntity(new UrlEncodedFormEntity(paramList));
 
-			ResponseHandler<String> handler = new BasicResponseHandler();
 			CloseableHttpResponse response = httpclient.execute(httppost);
-			
-			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
-			
 			int status = response.getStatusLine().getStatusCode();
-			
-			BufferedReader rd = new BufferedReader(
-			        new InputStreamReader(response.getEntity().getContent()));
+			LOGGER.info("Request for access token at " + url + " returned status code = " + status);
 
-			StringBuffer result = new StringBuffer();
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				result.append(line);
-			}
-			
-			System.out.println("Result ..  " + result);
-			accessToken = result.toString();
-			
-			tok.setAccess_token(accessToken);
-			
-			if(status == 200 && extract)
-			{
-				if(json)
+			String result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+			LOGGER.debug("Request response = " + result);
+
+			// this will set the token to use
+			if(status == 200 && extract) {
+				if(json) {
 					tok = getJAccessToken(result.toString());
-				else
+				} else {
 					tok = getAccessToken(result.toString());
-					
+				}
 			}
-			
-			
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (UnsupportedOperationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		System.out.println("Forcing redo");
 
+		// send back the token
 		return tok;
 	}
 	
-	public static AccessToken getAccessToken(String input)
-	{
+	/**
+	 * Get access token from a basic string
+	 * @param input
+	 * @return
+	 */
+	public static AccessToken getAccessToken(String input) {
 		return getAccessToken(input, "access_token");
 	}
 	
-	// processes to get he access token as simple
+	/**
+	 * Get access token from a basic string
+	 * Example: access_token=2577b7a6ef68c2a736bf0648ea024b0f4d10e32d&scope=public_repo%2Cuser&token_type=bearer
+	 * @param input
+	 * @param nameOfToken
+	 * @return
+	 */
 	public static AccessToken getAccessToken(String input, String nameOfToken)
 	{
 		String accessToken = null;
-		
-		// access_token=2577b7a6ef68c2a736bf0648ea024b0f4d10e32d&scope=public_repo%2Cuser&token_type=bearer
 		String [] tokens = input.split("&");
-		for(int tokenIndex = 0;tokenIndex < tokens.length;tokenIndex++)
-		{
+		for(int tokenIndex = 0;tokenIndex < tokens.length;tokenIndex++) {
 			String thisToken = tokens[tokenIndex];
-			if(thisToken.startsWith(nameOfToken))
+			if(thisToken.startsWith(nameOfToken)) {
 				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
+				break;
+			}
 		}
 		AccessToken tok = new AccessToken();
 		tok.setAccess_token(accessToken);
 		tok.init();
 		
 		return tok;
-	
 	}
 
-	public static AccessToken getJAccessToken(String input)
-	{
+	/**
+	 * Get the access token from a json
+	 * @param input
+	 * @return
+	 */
+	public static AccessToken getJAccessToken(String input) {
 		return getJAccessToken(input, "[access_token, token_type, expires_in]");
 	}
 	
-	// processes to get the access token as json
-	public static AccessToken getJAccessToken(String json, String nameOfToken)
-	{
-		JsonNode result;
-		String retString = null;
+	/**
+	 * Get the access token from a json
+	 * @param json
+	 * @param nameOfToken
+	 * @return
+	 */
+	public static AccessToken getJAccessToken(String json, String nameOfToken) {
+		AccessToken tok = new AccessToken();
+
 		try {
 			JmesPath<JsonNode> jmespath = new JacksonRuntime();
 			// Expressions need to be compiled before you can search. Compiled expressions
-			// are reusable and thread safe. Compile your expressions once, just like database
-			// prepared statements.
+			// are reusable and thread safe
+			// Compile your expressions once, just like database prepared statements.
 			Expression<JsonNode> expression = jmespath.compile(nameOfToken);
 
-			//AccessToken tok = mapper.readValue(json, AccessToken.class);
-			AccessToken tok = new AccessToken();
 			JsonNode input = mapper.readTree(json);
-			result = expression.search(input);
-			if(result.size() >= 0)
+			JsonNode result = expression.search(input);
+			if(result.size() >= 0) {
 				tok.setAccess_token(result.get(0).asText());
-			if(result.size() >= 1)
+			}
+			if(result.size() >= 1) {
 				tok.setToken_type(result.get(1).asText());
-			if(result.size() >= 2)
+			}
+			if(result.size() >= 2) {
 				tok.setExpires_in(result.get(2).asInt());
-			
+			}
 			tok.init();
-			retString = tok.getAccess_token();
-			
-			return tok;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return null;
-
+		return tok;
 	}
+	
+	
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+
+	/*
+	 * Methods for making requests using the access token
+	 */
+
 
 	// makes the call to every resource going forward with the specified keys as get
 	public static String makeGetCall(String url_str, String accessToken)
