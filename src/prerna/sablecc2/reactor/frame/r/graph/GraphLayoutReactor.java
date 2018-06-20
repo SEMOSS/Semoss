@@ -42,14 +42,10 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);
 			this.rJavaTranslator.executeR("" + tempOutputLayout + " <- " + inputLayout + "(" + graphName + ")");
 			// default normalization scale
-			String yMin = "-50";
-			yMin = this.keyValue.get(this.keysToGet[1]);
-			String yMax = "50";
-			yMax = this.keyValue.get(this.keysToGet[2]);
-			String xMin = "-50";
-			xMin = this.keyValue.get(this.keysToGet[3]);
-			String xMax = "50";
-			xMax = this.keyValue.get(this.keysToGet[4]);
+			String yMin = getYMin();
+			String yMax = getYMax();
+			String xMin = getXMin();
+			String xMax = getXMax();
 			this.rJavaTranslator.executeR(tempOutputLayout + "<-layout.norm("+tempOutputLayout+", ymin="+yMin+", ymax="+yMax+", xmin="+xMin+", xmax="+xMax+")");
 			logger.info("Done calculating positions...");
 			synchronizeXY(tempOutputLayout);
@@ -62,7 +58,7 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 		throw new IllegalArgumentException("Unable to change layout");
 
 	}
-
+	
 	private void synchronizeXY(String layout) {
 		Logger logger = getLogger(CLASS_NAME);
 		TinkerFrame frame = (TinkerFrame) getFrame();
@@ -95,5 +91,36 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 		}
 		logger.info("Done synchronizing vertex positions");
 	}
+	
+	public String getYMin() {
+		String yMin = this.keyValue.get(this.keysToGet[1]);
+		if (yMin == null) {
+			yMin = "-50";
+		}
+		return yMin;
+	}
 
+	private String getYMax() {
+		String yMin = this.keyValue.get(this.keysToGet[2]);
+		if (yMin == null) {
+			yMin = "50";
+		}
+		return yMin;
+	}
+
+	private String getXMin() {
+		String xMin = this.keyValue.get(this.keysToGet[3]);
+		if (xMin == null) {
+			xMin = "-50";
+		}
+		return xMin;
+	}
+
+	private String getXMax() {
+		String xMax = this.keyValue.get(this.keysToGet[4]);
+		if (xMax == null) {
+			xMax = "50";
+		}
+		return xMax;
+	}
 }
