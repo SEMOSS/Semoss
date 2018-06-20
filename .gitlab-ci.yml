@@ -13,7 +13,6 @@ variables:
 
 cache:
   paths:
-    - target/
     - .m2/repository/
   key: ${CI_BUILD_REF_NAME}
   
@@ -24,4 +23,3 @@ build:
   artifacts:
     paths:
       - target/
-      - .m2/repository/
