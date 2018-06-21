@@ -154,7 +154,7 @@ public class RJavaTranslatorFactory {
 								p.matches(cleanedRHome) && (new File(p).isDirectory())
 								|| p.matches(cleanedRHome + regexFileSep + "bin" + regexFileSep) && (new File(p).isDirectory())
 								|| p.matches(cleanedRLibs) && (new File(p).isDirectory())
-								|| p.matches(cleanedRLibs + regexFileSep + "rJava" + regexFileSep + "jri" + regexFileSep + "*" + regexFileSep + "jri.dll") && (new File(p).isDirectory())
+								|| p.matches(cleanedRLibs + regexFileSep + "rJava" + regexFileSep + "jri" + regexFileSep + "*" + regexFileSep) && (new File(p).isDirectory())
 								);
 						
 						if(hasAllRequiredPaths) {
