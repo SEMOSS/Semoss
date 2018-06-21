@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.File;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -149,10 +150,10 @@ public class RJavaTranslatorFactory {
 						// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
 						boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
 								.anyMatch(p -> 
-									(p.matches(cleanedRHome) && (new File(p).isDirectory()))
-									|| (p.matches(cleanedRHome + "/bin/") && (new File(p).isDirectory()))
-									|| (p.matches(cleanedRLibs) && (new File(p).isDirectory()))
-									|| (p.matches(cleanedRLibs + "/rJava/jri/") && (new File(p).isDirectory()))
+									(Pattern.compile(cleanedRHome).matcher(p).matches() && (new File(p).isDirectory()))
+									|| (Pattern.compile(cleanedRHome + "/bin/").matcher(p).matches() && (new File(p).isDirectory()))
+									|| (Pattern.compile(cleanedRLibs).matcher(p).matches() && (new File(p).isDirectory()))
+									|| (Pattern.compile(cleanedRLibs + "/rJava/jri/").matcher(p).matches() && (new File(p).isDirectory()))
 								);
 						
 						if(hasAllRequiredPaths) {
