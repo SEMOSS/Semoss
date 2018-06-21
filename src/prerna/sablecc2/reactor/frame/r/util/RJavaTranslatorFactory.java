@@ -1,5 +1,9 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -10,13 +14,28 @@ import prerna.util.DIHelper;
 
 public class RJavaTranslatorFactory {
 
+	// get the OS type
+	private static String OS = System.getProperty("os.name").toLowerCase();
+	
+	private static boolean isWin = false;
+	static {
+		isWin = (OS.indexOf("win") >= 0);
+	}
+	
 	// this is so we only grab from DIHelper once
 	private static boolean INIT = false;
 	// this will be the specific class we want
 	// either JRI version or RServe version
 	private static Class translatorClass = null;
+
+	// since JRI shuts down java
+	// need to determine if we should risk it
+	private static Boolean attemptConnection = null;
+	// boolean for using jri or not
+	private static boolean useJri = false;
 	
-	public static String rMemory; 
+	// value for r mem size
+	public static String rMemory = "4096"; 
 	
 	private RJavaTranslatorFactory() {
 		
@@ -26,17 +45,14 @@ public class RJavaTranslatorFactory {
 	 * This will determine the translator class to use (Rserve or JRI)
 	 */
 	private static void init() {
-		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
 		String rMemory = DIHelper.getInstance().getProperty(Constants.R_MEM_LIMIT);
-		boolean useJri = false;
-		if(useJriStr != null) {
-			useJri = Boolean.valueOf(useJriStr);
-		}
-		
 		if(rMemory != null) {
 			RJavaTranslatorFactory.rMemory = rMemory; 
-		} else {
-			RJavaTranslatorFactory.rMemory = "4096"; 
+		}
+		
+		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
+		if(useJriStr != null) {
+			useJri = Boolean.valueOf(useJriStr);
 		}
 		
 		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
@@ -67,6 +83,11 @@ public class RJavaTranslatorFactory {
 		if(!INIT) {
 			init();
 		}
+		
+		if(!getAttemptConnection()) {
+			throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
+		}
+		
 		try {
 			newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
 			newInstance.setLogger(logger);
@@ -89,5 +110,64 @@ public class RJavaTranslatorFactory {
 		}
 		return newInstance;
 	}
-	
+
+	private static boolean getAttemptConnection() {
+		/*
+		 * Since the FE calls this all the time
+		 * And if it hangs up and breaks an issue arises
+		 * We will be more clever for when we try to call the startR method
+		 */
+		
+		if(attemptConnection == null) {
+			if(isWin && useJri) {
+				boolean hasRHome = true;
+				// first, check if R is in the path
+				String r_home = System.getenv("R_HOME");
+				if( (r_home == null || r_home.isEmpty())) {
+					hasRHome = false;
+				}
+				
+				boolean hasRLibs = true;
+				// check for r_libs
+				String r_libs = System.getenv("R_LIBS");
+				if( (r_libs == null || r_libs.isEmpty())) {
+					hasRLibs = false;
+				}
+				
+				String path = System.getenv("Path");
+				if(hasRHome && hasRLibs) {
+					// we need R_HOME
+					// we need R_HOME\bin\x64 or R_HOME\bin\x86
+					// we need R_LIBS
+					// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+					if(!path.contains(r_home) ||
+							!path.contains(r_home + "\\bin\\") ||
+							!path.contains(r_libs) ||
+							!path.contains(r_libs + "\\rJava\\jri\\") ) {
+						attemptConnection = false;
+					} else {
+						attemptConnection = true;
+					}
+				} else {
+					List<String> potentialEntries = Stream.of(path.split(";")).filter(p -> p.contains("\\R\\")).collect(Collectors.toList());
+					if(potentialEntries.size() < 4) {
+						attemptConnection = false;
+					}
+					
+					boolean containsJri = potentialEntries.stream().anyMatch(p -> p.contains("rJava\\jri\\"));
+					if(!containsJri) {
+						attemptConnection = false;
+					}
+					
+					// if we get to this point
+					// we are good
+					attemptConnection = true;
+				}
+			} else {
+				attemptConnection = true;
+			}
+		}
+		
+		return attemptConnection;
+	}
 }
