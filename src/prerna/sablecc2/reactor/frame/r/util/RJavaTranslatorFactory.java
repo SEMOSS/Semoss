@@ -140,23 +140,28 @@ public class RJavaTranslatorFactory {
 				String path = System.getenv("Path");
 				Stream<String> sPath = Stream.of(path.split(";"));
 				if(hasRHome && hasRLibs) {
-					String cleanedRHome = r_home.replace("\\", "\\\\");
-					String cleanedRLibs = r_libs.replace("\\", "\\\\");
-					// we need R_HOME
-					// we need R_HOME\bin\x64 or R_HOME\bin\x86
-					// we need R_LIBS
-					// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-					boolean hasAllRequiredPaths = sPath.anyMatch(p -> 
-							p.matches(cleanedRHome) && (new File(p).isDirectory())
-							|| p.matches(cleanedRHome + regexFileSep + "bin" + regexFileSep) && (new File(p).isDirectory())
-							|| p.matches(cleanedRLibs) && (new File(p).isDirectory())
-							|| p.matches(cleanedRLibs + regexFileSep + "rJava" + regexFileSep + "jri" + regexFileSep + "*" + regexFileSep + "jri.dll") && (new File(p).isDirectory())
-							);
-					
-					if(hasAllRequiredPaths) {
-						attemptConnection = true;
-					} else {
+					// make sure R_HOME and R_LIBS both exist
+					if(!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory() ) {
 						attemptConnection = false;
+					} else {
+						String cleanedRHome = r_home.replace("\\", "\\\\");
+						String cleanedRLibs = r_libs.replace("\\", "\\\\");
+						// we need R_HOME
+						// we need R_HOME\bin\x64 or R_HOME\bin\x86
+						// we need R_LIBS
+						// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+						boolean hasAllRequiredPaths = sPath.anyMatch(p -> 
+								p.matches(cleanedRHome) && (new File(p).isDirectory())
+								|| p.matches(cleanedRHome + regexFileSep + "bin" + regexFileSep) && (new File(p).isDirectory())
+								|| p.matches(cleanedRLibs) && (new File(p).isDirectory())
+								|| p.matches(cleanedRLibs + regexFileSep + "rJava" + regexFileSep + "jri" + regexFileSep + "*" + regexFileSep + "jri.dll") && (new File(p).isDirectory())
+								);
+						
+						if(hasAllRequiredPaths) {
+							attemptConnection = true;
+						} else {
+							attemptConnection = false;
+						}
 					}
 				} else {
 					List<String> potentialEntries = sPath.filter(p -> p.matches(regexFileSep + "R" + regexFileSep)).collect(Collectors.toList());
