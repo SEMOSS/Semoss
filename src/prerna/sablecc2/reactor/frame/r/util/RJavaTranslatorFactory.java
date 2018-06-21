@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -143,7 +144,11 @@ public class RJavaTranslatorFactory {
 					if(!path.contains(r_home) ||
 							!path.contains(r_home + "\\bin\\") ||
 							!path.contains(r_libs) ||
-							!path.contains(r_libs + "\\rJava\\jri\\") ) {
+							!path.contains(r_libs + "\\rJava\\jri\\") ||
+							!(new File(r_home).isDirectory()) || 
+							!(new File(r_home + "\\bin\\")).isDirectory() ||
+							!(new File(r_libs)).isDirectory() || 
+							!(new File(r_libs + "\\rJava\\jri\\")).isDirectory() ) {
 						attemptConnection = false;
 					} else {
 						attemptConnection = true;
@@ -153,12 +158,12 @@ public class RJavaTranslatorFactory {
 					if(potentialEntries.size() < 4) {
 						attemptConnection = false;
 					}
-					
-					boolean containsJri = potentialEntries.stream().anyMatch(p -> p.contains("rJava\\jri\\"));
+
+					boolean containsJri = potentialEntries.stream().anyMatch(p -> p.contains("rJava\\jri\\") && !(new File(p).isDirectory()) );
 					if(!containsJri) {
 						attemptConnection = false;
 					}
-					
+
 					// if we get to this point
 					// we are good
 					attemptConnection = true;
