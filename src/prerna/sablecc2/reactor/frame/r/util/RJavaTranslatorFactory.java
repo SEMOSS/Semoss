@@ -137,6 +137,7 @@ public class RJavaTranslatorFactory {
 				}
 
 				String path = System.getenv("Path");
+				List<String> pathSplit = Stream.of(path.split(";")).map(p -> p.replace("\\", "/")).distinct().collect(Collectors.toList());
 				if(hasRHome && hasRLibs) {
 					// make sure R_HOME and R_LIBS both exist
 					if(!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory() ) {
@@ -144,36 +145,26 @@ public class RJavaTranslatorFactory {
 					} else {
 						String cleanedRHome = r_home.replace("\\", "/");
 						String cleanedRLibs = r_libs.replace("\\", "/");
-						// we need R_HOME
 						// we need R_HOME\bin\x64 or R_HOME\bin\x86
-						// we need R_LIBS
 						// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-						boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
-								.anyMatch(p -> 
-								(p.matches(Pattern.quote(cleanedRHome)) && (new File(p).isDirectory()))
-									|| (p.matches(Pattern.quote(cleanedRHome + "/bin/")) && (new File(p).isDirectory()))
-									|| (p.matches(Pattern.quote(cleanedRLibs)) && (new File(p).isDirectory()))
-									|| (p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/")) && (new File(p).isDirectory()))
-								);
+						long rHomeInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRHome) + "/bin/.*") && (new File(p).isDirectory()) ) ).count();
+						long rLibInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
 
-						if(hasAllRequiredPaths) {
+						if(rHomeInPath >= 1 && rLibInPath >= 1) {
 							attemptConnection = true;
 						} else {
 							attemptConnection = false;
 						}
 					}
 				} else {
-					List<String> potentialEntries = Stream.of(path.split(";"))
-							.map(p -> p.replace("\\", "/"))
-							.filter(p -> p.matches("/R/")).collect(Collectors.toList());
-					if(potentialEntries.size() < 4) {
-						attemptConnection = false;
-					}
-
-					boolean containsJri = potentialEntries.stream()
-							.map(p -> p.replace("\\", "/"))
-							.anyMatch(p -> p.matches("rJava/jri") && (new File(p).isDirectory()) );
-					if(!containsJri) {
+					List<String> rOrPortables = pathSplit.stream().filter(p -> 
+						( p.matches(".*/R/.*") && (new File(p).isDirectory()) ) 
+							|| ( p.matches(".*/R-Portables/.*") && (new File(p).isDirectory()) ) 
+						).collect(Collectors.toList());
+					
+					long rLibInPath = rOrPortables.stream().filter(p -> ( p.matches(".*/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
+					
+					if(rLibInPath >= 1) {
 						attemptConnection = false;
 					}
 
