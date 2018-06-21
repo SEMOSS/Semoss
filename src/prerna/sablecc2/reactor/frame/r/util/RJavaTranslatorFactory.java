@@ -146,10 +146,12 @@ public class RJavaTranslatorFactory {
 					// we need R_HOME\bin\x64 or R_HOME\bin\x86
 					// we need R_LIBS
 					// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-					boolean hasAllRequiredPaths = sPath.anyMatch(p -> p.matches(cleanedRHome) && (new File(p).isDirectory()))
-							&& sPath.anyMatch(p -> p.matches(cleanedRHome + regexFileSep + "bin" + regexFileSep) && (new File(p).isDirectory()))
-							&& sPath.anyMatch(p -> p.matches(cleanedRLibs) && (new File(p).isDirectory()))
-							&& sPath.anyMatch(p -> p.matches(cleanedRLibs + regexFileSep + "rJava" + regexFileSep + "jri" + regexFileSep) && (new File(p).isDirectory()));
+					boolean hasAllRequiredPaths = sPath.anyMatch(p -> 
+							p.matches(cleanedRHome) && (new File(p).isDirectory())
+							|| p.matches(cleanedRHome + regexFileSep + "bin" + regexFileSep) && (new File(p).isDirectory())
+							|| p.matches(cleanedRLibs) && (new File(p).isDirectory())
+							|| p.matches(cleanedRLibs + regexFileSep + "rJava" + regexFileSep + "jri" + regexFileSep + "*" + regexFileSep + "jri.dll") && (new File(p).isDirectory())
+							);
 					
 					if(hasAllRequiredPaths) {
 						attemptConnection = true;
