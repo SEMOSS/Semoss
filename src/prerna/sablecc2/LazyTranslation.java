@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -125,13 +126,20 @@ public class LazyTranslation extends DepthFirstAdapter {
 		// only the lazy implements this
 	}
 	
+	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
+		// do nothing
+		// only the lazy implements this
+	}
+	
 /********************** First is the main level operation, script chain or other script operations ******************/
 	
 	@Override
 	public void caseAConfiguration(AConfiguration node) {
         List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-        for(PRoutine e : copy)
+        int size = copy.size();
+        for(int pixelstep = 0; pixelstep < size; pixelstep++)
         {
+        	PRoutine e = copy.get(pixelstep);
         	try {
         		e.apply(this);
         	} catch(SemossPixelException ex) {
@@ -146,6 +154,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         			// if we do want to stop
         			// propogate the error up and the PixelRunner
         			// will handle grabbing the meta and returning it to the FE
+        			postRuntimeErrorProcess(e.toString(), ex.getNoun(), 
+        					copy.subList(pixelstep+1, size).stream().map(p -> p.toString()).collect(Collectors.toList()));
         			throw ex;
         		}
         	} catch(Exception ex) {
