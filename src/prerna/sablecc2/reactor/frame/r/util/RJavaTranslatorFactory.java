@@ -18,12 +18,12 @@ public class RJavaTranslatorFactory {
 
 	// get the OS type
 	private static String OS = System.getProperty("os.name").toLowerCase();
-	
+
 	private static boolean isWin = false;
 	static {
 		isWin = (OS.indexOf("win") >= 0);
 	}
-	
+
 	// this is so we only grab from DIHelper once
 	private static boolean INIT = false;
 	// this will be the specific class we want
@@ -35,14 +35,14 @@ public class RJavaTranslatorFactory {
 	private static Boolean attemptConnection = null;
 	// boolean for using jri or not
 	private static boolean useJri = false;
-	
+
 	// value for r mem size
 	public static String rMemory = "4096"; 
-	
+
 	private RJavaTranslatorFactory() {
-		
+
 	}
-	
+
 	/**
 	 * This will determine the translator class to use (Rserve or JRI)
 	 */
@@ -51,12 +51,12 @@ public class RJavaTranslatorFactory {
 		if(rMemory != null) {
 			RJavaTranslatorFactory.rMemory = rMemory; 
 		}
-		
+
 		String useJriStr = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI);
 		if(useJriStr != null) {
 			useJri = Boolean.valueOf(useJriStr);
 		}
-		
+
 		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
 		String className = null;
 		if(useJri) {
@@ -64,16 +64,16 @@ public class RJavaTranslatorFactory {
 		} else {
 			className = basePackage + "RJavaRserveTranslator";
 		}
-		
+
 		try {
 			translatorClass = Class.forName(className);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-		
+
 		INIT = true;
 	}
-	
+
 	/**
 	 * Get a new RJavaTranslator based on if we are using rserve or jri
 	 * @param insight
@@ -85,15 +85,15 @@ public class RJavaTranslatorFactory {
 		if(!INIT) {
 			init();
 		}
-		
+
 		if(!getAttemptConnection()) {
 			throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
 		}
-		
+
 		try {
 			newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
 			newInstance.setLogger(logger);
-			
+
 			// TODO: until we get everythign using this
 			// let us pass the r connection info
 			// if we have an r data table
@@ -119,7 +119,7 @@ public class RJavaTranslatorFactory {
 		 * And if it hangs up and breaks an issue arises
 		 * We will be more clever for when we try to call the startR method
 		 */
-		
+
 		if(attemptConnection == null) {
 			if(isWin && useJri) {
 				boolean hasRHome = true;
@@ -128,14 +128,14 @@ public class RJavaTranslatorFactory {
 				if( (r_home == null || r_home.isEmpty())) {
 					hasRHome = false;
 				}
-				
+
 				boolean hasRLibs = true;
 				// check for r_libs
 				String r_libs = System.getenv("R_LIBS");
 				if( (r_libs == null || r_libs.isEmpty())) {
 					hasRLibs = false;
 				}
-				
+
 				String path = System.getenv("Path");
 				if(hasRHome && hasRLibs) {
 					// make sure R_HOME and R_LIBS both exist
@@ -150,12 +150,12 @@ public class RJavaTranslatorFactory {
 						// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
 						boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
 								.anyMatch(p -> 
-									(Pattern.compile(cleanedRHome).matcher(p).matches() && (new File(p).isDirectory()))
-									|| (Pattern.compile(cleanedRHome + "/bin/").matcher(p).matches() && (new File(p).isDirectory()))
-									|| (Pattern.compile(cleanedRLibs).matcher(p).matches() && (new File(p).isDirectory()))
-									|| (Pattern.compile(cleanedRLibs + "/rJava/jri/").matcher(p).matches() && (new File(p).isDirectory()))
+								(p.matches(Pattern.quote(cleanedRHome)) && (new File(p).isDirectory()))
+									|| (p.matches(Pattern.quote(cleanedRHome + "/bin/")) && (new File(p).isDirectory()))
+									|| (p.matches(Pattern.quote(cleanedRLibs)) && (new File(p).isDirectory()))
+									|| (p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/")) && (new File(p).isDirectory()))
 								);
-						
+
 						if(hasAllRequiredPaths) {
 							attemptConnection = true;
 						} else {
@@ -185,7 +185,35 @@ public class RJavaTranslatorFactory {
 				attemptConnection = true;
 			}
 		}
-		
+
 		return attemptConnection;
+	}
+
+
+
+	public static void main(String[] args) {
+		String r_home = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable";
+		String r_libs = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library";
+
+		String path = "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable;"
+				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library;"
+				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\library\\rJava\\jri;"
+				+ "C:\\Users\\SEMOSS\\Desktop\\R-Portable\\App\\R-Portable\\bin";
+
+		String cleanedRHome = r_home.replace("\\", "/");
+		String cleanedRLibs = r_libs.replace("\\", "/");
+		// we need R_HOME
+		// we need R_HOME\bin\x64 or R_HOME\bin\x86
+		// we need R_LIBS
+		// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+		boolean hasAllRequiredPaths = Stream.of(path.split(";")).map(p -> p.replace("\\", "/"))
+				.anyMatch(p -> 
+				p.matches(Pattern.quote(cleanedRHome))
+				|| p.matches(Pattern.quote(cleanedRHome + "/bin/"))
+				|| p.matches(Pattern.quote(cleanedRLibs))
+				|| p.matches(Pattern.quote(cleanedRLibs + "/rJava/jri/"))
+				);
+
+		System.out.println(hasAllRequiredPaths);
 	}
 }
