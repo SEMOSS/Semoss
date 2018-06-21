@@ -138,7 +138,6 @@ public class RJavaTranslatorFactory {
 				String regexFileSep = "(\\\\|/)";
 				
 				String path = System.getenv("Path");
-				Stream<String> sPath = Stream.of(path.split(";"));
 				if(hasRHome && hasRLibs) {
 					// make sure R_HOME and R_LIBS both exist
 					if(!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory() ) {
@@ -150,7 +149,7 @@ public class RJavaTranslatorFactory {
 						// we need R_HOME\bin\x64 or R_HOME\bin\x86
 						// we need R_LIBS
 						// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-						boolean hasAllRequiredPaths = sPath.anyMatch(p -> 
+						boolean hasAllRequiredPaths = Stream.of(path.split(";")).anyMatch(p -> 
 								p.matches(cleanedRHome) && (new File(p).isDirectory())
 								|| p.matches(cleanedRHome + regexFileSep + "bin" + regexFileSep) && (new File(p).isDirectory())
 								|| p.matches(cleanedRLibs) && (new File(p).isDirectory())
@@ -164,7 +163,7 @@ public class RJavaTranslatorFactory {
 						}
 					}
 				} else {
-					List<String> potentialEntries = sPath.filter(p -> p.matches(regexFileSep + "R" + regexFileSep)).collect(Collectors.toList());
+					List<String> potentialEntries = Stream.of(path.split(";")).filter(p -> p.matches(regexFileSep + "R" + regexFileSep)).collect(Collectors.toList());
 					if(potentialEntries.size() < 4) {
 						attemptConnection = false;
 					}
