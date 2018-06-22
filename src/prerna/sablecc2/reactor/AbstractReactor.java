@@ -14,6 +14,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
+import prerna.auth.UserPermissionsMasterDB;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.InMemoryConsole;
@@ -25,6 +26,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -498,4 +501,60 @@ public abstract class AbstractReactor implements IReactor {
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
+	
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////
+
+	/*
+	 * Security methods on the reactors
+	 */
+
+	public boolean securityEnabled() {
+		// TODO: why is this a string and not a boolean?!?!
+		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);
+		return (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
+	}
+
+	/**
+	 * Get the list of apps this user has access to
+	 * @return
+	 */
+	public List<String> getUserAppFilters() {
+		String userId = this.insight.getUserId();
+		UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
+		return permissions.getUserEngines(userId);
+	}
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }
