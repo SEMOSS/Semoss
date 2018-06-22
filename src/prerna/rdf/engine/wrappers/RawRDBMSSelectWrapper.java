@@ -285,6 +285,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	 */
 	public void directExecutionViaConnection(Connection conn, String query, boolean closeIfFail) {
 		try {
+			this.query = query;
 			this.conn = conn;
 			this.stmt = this.conn.createStatement();
 			this.rs = this.stmt.executeQuery(query);
