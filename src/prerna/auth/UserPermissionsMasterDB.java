@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.auth;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -38,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,21 +61,10 @@ public class UserPermissionsMasterDB {
 	public UserPermissionsMasterDB() {
 		securityDB = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 	}
-	
-	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * 
-	 * @param userName	String representing the name of the user to add
-	 */
-	public boolean addEngine(String engineID, String engineName) {
-		String query = "INSERTO INTO ENGINE(ID, NAME) VALUES ('?1','?2');";
-		query = query.replace("?1", engineID);
-		query = query.replace("?2", engineName);
-		securityDB.insertData(query);
-		securityDB.commit();
-		return true;
-	}
-	
+
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * Initialize a local security engine for the UserPermissionsMasterDB object for testing purposes.
 	 * @param dbPath Security database location.
@@ -109,67 +97,60 @@ public class UserPermissionsMasterDB {
 		System.out.println(auth.logIn("manueru4", "ok2"));*/
 	}
 	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
+	public List<String> getUserEngines(String userId) {
+		String query = "SELECT ENGINE FROM ENGINEPERMISSION WHERE USER='" + userId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		return flushToListString(wrapper);
+	}
+	
+	private List<String> flushToListString(IRawSelectWrapper wrapper) {
+		List<String> engines = new Vector<String>();
+		while(wrapper.hasNext()) {
+			engines.add(wrapper.next().getValues()[0].toString());
+		}
+		return engines;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
 	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * 
 	 * @param userName	String representing the name of the user to add
 	 */
-	public Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
-		
-		validInformation(newUser, password);
-		
-		boolean isNewUser = checkUserExist(newUser.getUsername(), newUser.getEmail());
-		if(!isNewUser) {			
-			String salt = generateSalt();
-			String hashedPassword = (hash(password, salt));
-			String query = "INSERT INTO User (id, name, username, email, type, admin, password, salt) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
-					+ "'" + hashedPassword + "', '" + salt + "');";
-			
-			securityDB.insertData(query);
-			securityDB.commit();
-			return true;
-		} else {
-			return false;
-		}
-		
+	public boolean addEngine(String engineID, String engineName) {
+		String query = "INSERTO INTO ENGINE(ID, NAME) VALUES ('?1','?2');";
+		query = query.replace("?1", engineID);
+		query = query.replace("?2", engineName);
+		securityDB.insertData(query);
+		securityDB.commit();
+		return true;
 	}
 	
-	/**
-	 * Basic validation of the user information before creating it.
-	 * @param newUser
-	 * @throws IllegalArgumentException
-	 */
-	private void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
-		String error = "";
-		if(newUser.getUsername().isEmpty()){
-			error += "User name can not be empty. ";
-		}
-
-		error += validEmail(newUser.getEmail());
-		error += validPassword(password);
-		
-		if(!error.isEmpty()){
-			throw new IllegalArgumentException(error);
-		}
-	}
-	
-	private String validEmail(String email){
-		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
-			return  email + " is not a valid email address. ";
-		}
-		return "";
-	}
-	
-	private String validPassword(String password){
-		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
-        Matcher matcher = pattern.matcher(password);
-		
-		if(!matcher.lookingAt()){
-			return "Password doesn't comply with the security policies.";
-		}
-		return "";
-	}
-
 	/**
 	 * Check if a user (user name or email) exist in the security database
 	 * @param username
@@ -229,19 +210,6 @@ public class UserPermissionsMasterDB {
 			return user;
 		}
 		return user;
-	}
-	
-	/**
-	 * Just a tentative salt generation method
-	 * @return salt
-	 * @throws NoSuchAlgorithmException
-	 */
-	private byte[] generateSaltJava() throws NoSuchAlgorithmException {
-		SecureRandom random = SecureRandom.getInstance("NativePRNGBlocking");
-	    byte[] salt = new byte[32];
-	    random.nextBytes(salt);
-	    System.out.println(salt);
-	    return salt;
 	}
 	
 	/**
@@ -2225,6 +2193,72 @@ public class UserPermissionsMasterDB {
 			securityDB.execUpdateAndRetrieveStatement(query, true);
 			securityDB.commit();
 		}
+	}
+	
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+
+	/*
+	 * Native user info
+	 */
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * @param userName	String representing the name of the user to add
+	 */
+	public Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
+		validInformation(newUser, password);
+		boolean isNewUser = checkUserExist(newUser.getUsername(), newUser.getEmail());
+		if(!isNewUser) {			
+			String salt = generateSalt();
+			String hashedPassword = (hash(password, salt));
+			String query = "INSERT INTO User (id, name, username, email, type, admin, password, salt) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
+					+ "'" + hashedPassword + "', '" + salt + "');";
+			
+			securityDB.insertData(query);
+			securityDB.commit();
+			return true;
+		} else {
+			return false;
+		}
+		
+	}
+	
+	/**
+	 * Basic validation of the user information before creating it.
+	 * @param newUser
+	 * @throws IllegalArgumentException
+	 */
+	private void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
+		String error = "";
+		if(newUser.getUsername().isEmpty()){
+			error += "User name can not be empty. ";
+		}
+
+		error += validEmail(newUser.getEmail());
+		error += validPassword(password);
+		
+		if(!error.isEmpty()){
+			throw new IllegalArgumentException(error);
+		}
+	}
+	
+	private String validEmail(String email){
+		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
+			return  email + " is not a valid email address. ";
+		}
+		return "";
+	}
+	
+	private String validPassword(String password){
+		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
+        Matcher matcher = pattern.matcher(password);
+		
+		if(!matcher.lookingAt()){
+			return "Password doesn't comply with the security policies.";
+		}
+		return "";
 	}
 	
 }

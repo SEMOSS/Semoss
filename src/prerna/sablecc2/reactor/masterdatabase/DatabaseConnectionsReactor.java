@@ -25,9 +25,35 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		}
 		
+		List<String> appliedAppFilters = new Vector<String>();
+		
+		// account for security
+		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
+		List<String> appFilters = null;
+		if(this.securityEnabled()) {
+			appFilters = this.getUserAppFilters();
+			if(!appFilters.isEmpty()) {
+				if(engineId != null) {
+					// need to make sure it is a valid engine id
+					if(!appFilters.contains(engineId)) {
+						throw new IllegalArgumentException("Database does not exist or user does not have access to database");
+					}
+					// we are good
+					appliedAppFilters.add(engineId);
+				} else {
+					// set default as filters
+					appliedAppFilters = appFilters;
+				}
+			} else {
+				if(engineId != null) {
+					appliedAppFilters.add(engineId);
+				}
+			}
+		}
+		
 		List<String> conceptualNames = getColumns();
 		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames, null);
-		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, engineId);
+		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, appliedAppFilters);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
 	

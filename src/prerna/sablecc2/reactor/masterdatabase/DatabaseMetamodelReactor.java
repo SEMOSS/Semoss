@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
+import java.util.List;
 import java.util.Map;
 
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -29,8 +30,17 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Can only define one database within this call");
 		}
 		
-		String engineId = eGrs.get(0).toString();
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		String engineId = MasterDatabaseUtility.testEngineIdIfAlias(eGrs.get(0).toString());
+		
+		// account for security
+		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!	
+		List<String> appFilters = null;
+		if(this.securityEnabled()) {
+			appFilters = this.getUserAppFilters();
+			if(!appFilters.contains(engineId)) {
+				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
+			}
+		}
 		
 		Map<String, Object[]> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineId);
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);

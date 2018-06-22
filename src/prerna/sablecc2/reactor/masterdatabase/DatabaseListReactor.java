@@ -26,7 +26,7 @@ public class DatabaseListReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		List<Map<String, String>> appList = new Vector<Map<String, String>>();
-		
+
 		// get the list of databases from the solr app
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
 		builder.addReturnFields("id");
@@ -35,6 +35,19 @@ public class DatabaseListReactor extends AbstractReactor {
 		builder.addReturnFields("app_cost");
 		builder.setLimit(1000);
 		builder.setSort("app_name", "asc");
+		
+		// account for security
+		List<String> appFilters = null;
+		if(this.securityEnabled()) {
+			appFilters = this.getUserAppFilters();
+			if(!appFilters.isEmpty()) {
+				Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+				filterData.put("id", appFilters);
+				builder.setFilterOptions(filterData);
+			} else {
+				return new NounMetadata(appList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);
+			}
+		}
 		
 		SolrQuery q = builder.getSolrQuery();
 		SolrIndexEngine solrE;
