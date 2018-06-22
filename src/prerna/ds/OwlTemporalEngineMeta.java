@@ -1,5 +1,7 @@
 package prerna.ds;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +15,8 @@ import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
 
@@ -1734,6 +1738,50 @@ public class OwlTemporalEngineMeta {
 		}
 		
 		return newMeta;
+	}
+	
+	/**
+	 * Save the owl to a specific location
+	 * @param fileName
+	 */
+	public void save(String fileName) {
+		RepositoryConnection rc = this.myEng.getRepositoryConnection();
+		FileWriter fw = null;
+		try {
+			fw = new FileWriter(fileName);
+			RDFXMLWriter writer = new RDFXMLWriter(fw);
+				rc.export(writer);
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFHandlerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(fw != null) {
+				try {
+					fw.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	
+	public static void main(String[] args) {
+		String fileName = "C:\\Users\\SEMOSS\\Desktop\\test.owl";
+		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
+		meta.addVertex("v1");
+		meta.addProperty("v1", "p1");
+		meta.addProperty("v1", "p2");
+		meta.addProperty("v1", "p3");
+		meta.addProperty("v1", "p4");
+		meta.save(fileName);
 	}
 
 }
