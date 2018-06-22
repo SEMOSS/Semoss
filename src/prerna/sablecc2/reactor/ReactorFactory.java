@@ -43,6 +43,9 @@ import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
+import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
+import prerna.sablecc2.reactor.app.upload.PredictDataTypesReactor;
+import prerna.sablecc2.reactor.app.upload.PredictMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalDSEGraphDBReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalGraphDBReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphMetaModelReactor;
@@ -402,6 +405,11 @@ public class ReactorFactory {
 		reactorHash.put("CheckRPackages", CheckRPackagesReactor.class);
 		reactorHash.put("StoreUniqueValuesCount", StoreUniqueColumnsReactor.class);
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
+		
+		//Database uploading utils
+		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
+		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
+		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
 
 		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
