@@ -187,7 +187,7 @@ public class MasterDatabaseUtility {
 	 * @param engineId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames, String engineFilter) {
+	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames, List<String> engineFilter) {
 		StringBuilder sb = new StringBuilder();
 		int size = logicalNames.size();
 		for(int i = 0; i < size; i++) {
@@ -197,11 +197,17 @@ public class MasterDatabaseUtility {
 			}
 		}
 		
-		
 		// NOTE ::: IMPORTANT THAT THIS MATCHES ALL THE BELOW QUERY NAMES!!!
 		String engineFilterStr = "";
 		if(engineFilter != null && !engineFilter.isEmpty()) {
-			engineFilterStr = " and ec.engine = '" + engineFilter + "'";
+			StringBuilder b = new StringBuilder();
+			for(int i = 0; i < engineFilter.size(); i++) {
+				b.append("'").append(engineFilter.get(i)).append("'");
+				if( (i+1) != engineFilter.size()) {
+					b.append(",");
+				}
+			}
+			engineFilterStr = " and ec.engine in (" + b.toString() + ")";
 		}
 		
 		/*
