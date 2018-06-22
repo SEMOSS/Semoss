@@ -24,6 +24,16 @@ public class DatabaseTableStructureReactor extends AbstractReactor {
 		}
 		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		
+		// account for security
+		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
+		List<String> appFilters = null;
+		if(this.securityEnabled()) {
+			appFilters = this.getUserAppFilters();
+			if(!appFilters.contains(engineId)) {
+				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
+			}
+		}
+
 		List<Object[]> data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
 	}
