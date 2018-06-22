@@ -34,8 +34,25 @@ public class MyAppsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		List<Map<String, Object>> appInfo = getAppInfo();
-		Map<String, Map<String, Long>> facetInfo = getFacetInfo();
+		
+		List<Map<String, Object>> appInfo = null;
+		Map<String, Map<String, Long>> facetInfo = null;
+		
+		// account for security
+		List<String> appFilters = null;
+		if(this.securityEnabled()) {
+			appFilters = this.getUserAppFilters();
+			if(!appFilters.isEmpty()) {
+				appInfo = getAppInfo(appFilters);
+				facetInfo = getFacetInfo(appFilters);
+			} else {
+				appInfo = new Vector<Map<String, Object>>();
+				facetInfo = new HashMap<String, Map<String, Long>>();
+			}
+		} else {
+			appInfo = getAppInfo(appFilters);
+			facetInfo = getFacetInfo(appFilters);
+		}
 		
 		Map<String, Object> myApps = new HashMap<String, Object>();
 		myApps.put("appInfo", appInfo);
@@ -60,7 +77,7 @@ public class MyAppsReactor extends AbstractReactor {
 	 * }]
 	 * @return
 	 */
-	private List<Map<String, Object>> getAppInfo() {
+	private List<Map<String, Object>> getAppInfo(List<String> appFilters) {
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		String limit = this.keyValue.get(this.keysToGet[1]);
 		String offset = this.keyValue.get(this.keysToGet[2]);
@@ -91,6 +108,12 @@ public class MyAppsReactor extends AbstractReactor {
 				builder.setOffset(0);
 			} else {
 				builder.setLimit(Integer.parseInt(offset));
+			}
+			
+			if(appFilters != null) {
+				Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+				filterData.put("id", appFilters);
+				builder.setFilterOptions(filterData);
 			}
 			
 			SolrQuery q = builder.getSolrQuery();
@@ -174,7 +197,7 @@ public class MyAppsReactor extends AbstractReactor {
 	 * }
 	 * @return
 	 */
-	private Map<String, Map<String, Long>> getFacetInfo() {
+	private Map<String, Map<String, Long>> getFacetInfo(List<String> appFilters) {
 		String searchTerm = this.keyValue.get(this.keysToGet[0]);
 		
 		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
@@ -192,6 +215,12 @@ public class MyAppsReactor extends AbstractReactor {
 		builder.setFacetField(facetList);
 		builder.setFacetMinCount(1);
 		builder.setFacetSortCount(true);
+		
+		if(appFilters != null) {
+			Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+			filterData.put("id", appFilters);
+			builder.setFilterOptions(filterData);
+		}
 		
 		Map<String, Map<String, Long>> facetInfo = null;
 		

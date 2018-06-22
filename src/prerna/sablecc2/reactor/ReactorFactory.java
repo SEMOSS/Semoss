@@ -141,8 +141,6 @@ import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
-import prerna.sablecc2.reactor.masterdatabase.ConnectedConceptsReactor;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConnectionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
@@ -529,13 +527,11 @@ public class ReactorFactory {
 		reactorHash.put("ApplyFormatting", ApplyFormattingTaskReactor.class);
 
 		// Local Master Reactors
+		// TODO: remove ones no longer used
 		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
 		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
-		reactorHash.put("GetConnectedConcepts", ConnectedConceptsReactor.class);
-		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
 		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
-		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
 		
 		// NEW FEDERATE
 		reactorHash.put("GetDatabaseConnections", DatabaseConnectionsReactor.class);
@@ -543,7 +539,9 @@ public class ReactorFactory {
 		reactorHash.put("GetSpecificConceptProperties", DatabaseSpecificConceptPropertiesReactor.class);
 		reactorHash.put("FederationBlend", AdvancedFederationBlend.class);
 		reactorHash.put("FederationBestMatches", AdvancedFederationGetBestMatch.class);
-		
+
+		// local master utilities
+		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
 		// Logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
