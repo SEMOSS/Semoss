@@ -1225,7 +1225,6 @@ public abstract class AbstractEngine implements IEngine {
 
 					try {
 						SolrIndexEngine.getInstance().addInsight(this.engineId + "_" + insightIdToSave, solrInsights);
-						SolrUtility.addAppToSolr(this.engineId);
 					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
 							| IOException e1) {
 						e1.printStackTrace();
