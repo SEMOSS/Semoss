@@ -1,8 +1,7 @@
 image: maven:3.5-jdk-8
 
 stages:
-  - build_dev
-  - build_deploy
+  - build
 
 before_script:
   - apt-get update
@@ -22,9 +21,9 @@ cache:
 # Does not push to maven central
 build_dev:
   stage: build
-  
   # See https://docs.gitlab.com/ee/ci/yaml/#only-and-except-simplified
-  only: pushes
+  only:
+    - pushes
   script:
     - mvn $MAVEN_CLI_OPTS clean install
   artifacts:
@@ -34,7 +33,8 @@ build_dev:
 # Pushes to maven central
 build_deploy:
   stage: build
-  only: web
+  only:
+  - web
   script:
     - mvn $MAVEN_CLI_OPTS clean install -P deploy
   artifacts:
