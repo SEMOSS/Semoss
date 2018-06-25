@@ -36,7 +36,7 @@ build_deploy:
   only:
   - web
   script:
-    - mvn $MAVEN_CLI_OPTS clean deploy -P deploy
+    - mvn $MAVEN_CLI_OPTS nexus-staging:release -P deploy
   artifacts:
     paths:
       - target/
