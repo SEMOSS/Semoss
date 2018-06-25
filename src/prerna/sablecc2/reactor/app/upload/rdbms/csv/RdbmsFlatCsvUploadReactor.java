@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -26,7 +25,6 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.poi.main.helper.FileHelperUtil;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -212,8 +210,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("8. Process app metadata to allow for traversing across apps	");
 		try {
-			UploadUtilities.updateLocalMaster(newAppId);
-			UploadUtilities.updateSolr(newAppId);
+			UploadUtilities.updateMetadata(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -324,8 +321,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			UploadUtilities.updateLocalMaster(appId);
-			UploadUtilities.updateSolr(appId);
+			UploadUtilities.updateMetadata(appId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
