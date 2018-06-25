@@ -2,14 +2,12 @@ package prerna.sablecc2.reactor.app.upload;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.auth.SecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
@@ -17,8 +15,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.solr.SolrIndexEngine;
-import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -48,15 +44,10 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
 		// need to make sure the app is unique
-		boolean containsApp = true;
-		try {
-			containsApp = SolrIndexEngine.getInstance().containsApp(appName);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
-			e.printStackTrace();
-		}
-		if(containsApp) {
+		if(SecurityUtils.containsEngine(appName)) {
 			throw new IllegalArgumentException("App name already exists.  Please provide a unique app name");
 		}
+		
 		// need to make sure we are not overriding something that already exists in the file system
 		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -98,13 +89,9 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		}
 		logger.info("Done generating temp smss");
 
-		logger.info("Start loading into solr");
-		try {
-			SolrUtility.addAppToSolr(appId);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
-			e.printStackTrace();
-		}
-		logger.info("Done loading into solr");
+		logger.info("Add app security defaults");
+		SecurityUtils.addApp(appId);
+		logger.info("Done adding security defaults");
 
 		AppEngine appEng = new AppEngine();
 		appEng.setEngineId(appId);
