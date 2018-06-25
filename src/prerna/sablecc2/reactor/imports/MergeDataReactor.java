@@ -62,16 +62,6 @@ public class MergeDataReactor extends AbstractReactor {
 		if(frame instanceof NativeFrame) {
 			mergeFrame = mergeNative(frame, qs, joins);
 		} else if(qs != null) {
-			IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
-			if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
-				SemossPixelException exception = new SemossPixelException(
-						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
-			
 			mergeFrame = mergeFromQs(frame, qs, joins);
 		} else {
 			ITask task = getTask();
@@ -178,7 +168,17 @@ public class MergeDataReactor extends AbstractReactor {
 			}
 		}
 		
-		IImporter importer = ImportFactory.getImporter(frame, qs);
+		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
+		if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
+							PixelDataType.CONST_STRING, 
+							PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		
+		IImporter importer = ImportFactory.getImporter(frame, qs, it);
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
