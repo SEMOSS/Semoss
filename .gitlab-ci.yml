@@ -1,25 +1,42 @@
 image: maven:3.5-jdk-8
 
 stages:
-  - build
+  - build_dev
+  - build_deploy
 
 before_script:
   - apt-get update
   - apt-get install -y openjfx
+  - apt-get install -y gnupg2
+  - gpg -v --import <(echo "$GPG_PRIVATE_KEY")
   
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
-  MAVEN_CLI_OPTS: "--batch-mode"
+  MAVEN_CLI_OPTS: "-s ./settings.xml --batch-mode"
 
 cache:
   paths:
     - .m2/repository/
   key: ${CI_BUILD_REF_NAME}
-  
-build:
+
+# Does not push to maven central
+build_dev:
   stage: build
+  
+  # See https://docs.gitlab.com/ee/ci/yaml/#only-and-except-simplified
+  only: pushes
   script:
     - mvn $MAVEN_CLI_OPTS clean install
+  artifacts:
+    paths:
+      - target/
+
+# Pushes to maven central
+build_deploy:
+  stage: build
+  only: web
+  script:
+    - mvn $MAVEN_CLI_OPTS clean install -P deploy
   artifacts:
     paths:
       - target/
