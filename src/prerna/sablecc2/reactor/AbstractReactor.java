@@ -14,7 +14,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
-import prerna.auth.UserPermissionsMasterDB;
+import prerna.auth.SecurityUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.InMemoryConsole;
@@ -525,8 +525,7 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	public List<String> getUserAppFilters() {
 		String userId = this.insight.getUserId();
-		UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
-		return permissions.getUserEngines(userId);
+		return SecurityUtils.getUserEngines(userId);
 	}
 
 

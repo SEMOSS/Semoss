@@ -102,93 +102,93 @@ public final class SolrUtility {
 		LOGGER.info("UniqueID " + uniqueID + "'s INSIGHTS has been added");
 	}
 	
-	/**
-	 * Right now, this is just adding the app name
-	 * @param appName
-	 * @throws KeyStoreException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws KeyManagementException 
-	 */
-	public static void addAppToSolr(String appId) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		if(!solrE.containsApp(appId)) {
-			// get the db type
-			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
-			Properties prop = Utility.loadProperties(smssFile);
-			
-			String appName = prop.getProperty(Constants.ENGINE_ALIAS);
-			if(appName == null) {
-				appName = appId;
-			}
-			
-			LOGGER.info("Need to add app into app core");
-			Map<String, Object> fieldData = new HashMap<String, Object>();
-			fieldData.put("id", appId);
-			fieldData.put("app_name", appName);
-			fieldData.put("app_creation_date", SolrIndexEngine.getDateFormat().format(new Date()));
-			fieldData.put("app_tags", Collections.nCopies(1, appName));
-			
-			String app_type = null;
-			String app_cost = null;
-			// the whole app cost stuff is completely made up...
-			// but it will look cool so we are doing it
-			String eType = prop.getProperty(Constants.ENGINE_TYPE);
-			if(eType.equals("prerna.engine.impl.rdbms.RDBMSNativeEngine")) {
-				String rdbmsType = prop.getProperty(Constants.RDBMS_TYPE);
-				if(rdbmsType == null) {
-					rdbmsType = "H2_DB";
-				}
-				rdbmsType = rdbmsType.toUpperCase();
-				app_type = rdbmsType;
-				if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
-					app_cost = "$$";
-				} else {
-					app_cost = "";
-				}
-			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
-				app_type = "IMPALA";
-				app_cost = "$$$";
-			} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
-				app_type = "RDF";
-				app_cost = "";
-			} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
-				app_type = "RDF";
-				app_cost = "";
-			} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
-				app_type = "DATASTAX";
-				app_cost = "$$$";
-			} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
-				app_type = "SOLR";
-				app_cost = "$$";
-			} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
-				String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
-				if(tinkerDriver.equalsIgnoreCase("neo4j")) {
-					app_type = "NEO4J";
-					app_cost = "";
-				} else {
-					app_type = "TINKER";
-					app_cost = "";
-				}
-			} else if(eType.equals("prerna.engine.impl.json.JsonAPIEngine") || eType.equals("prerna.engine.impl.json.JsonAPIEngine2")) {
-				app_type = "JSON";
-				app_cost = "";
-			} else if(eType.equals("prerna.engine.impl.app.AppEngine")) {
-				app_type = "APP";
-				app_cost = "$";
-			}
-			
-			fieldData.put("app_type", app_type);
-			fieldData.put("app_cost", app_cost);
-			
-			try {
-				solrE.addApp(appId, fieldData);
-			} catch (SolrServerException | IOException e) {
-				e.printStackTrace();
-			}
-		} else {
-			LOGGER.info("App Exists in App Core!!");
-		}
-	}
+//	/**
+//	 * Right now, this is just adding the app name
+//	 * @param appName
+//	 * @throws KeyStoreException 
+//	 * @throws NoSuchAlgorithmException 
+//	 * @throws KeyManagementException 
+//	 */
+//	public static void addAppToSolr(String appId) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+//		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
+//		if(!solrE.containsApp(appId)) {
+//			// get the db type
+//			String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+//			Properties prop = Utility.loadProperties(smssFile);
+//			
+//			String appName = prop.getProperty(Constants.ENGINE_ALIAS);
+//			if(appName == null) {
+//				appName = appId;
+//			}
+//			
+//			LOGGER.info("Need to add app into app core");
+//			Map<String, Object> fieldData = new HashMap<String, Object>();
+//			fieldData.put("id", appId);
+//			fieldData.put("app_name", appName);
+//			fieldData.put("app_creation_date", SolrIndexEngine.getDateFormat().format(new Date()));
+//			fieldData.put("app_tags", Collections.nCopies(1, appName));
+//			
+//			String app_type = null;
+//			String app_cost = null;
+//			// the whole app cost stuff is completely made up...
+//			// but it will look cool so we are doing it
+//			String eType = prop.getProperty(Constants.ENGINE_TYPE);
+//			if(eType.equals("prerna.engine.impl.rdbms.RDBMSNativeEngine")) {
+//				String rdbmsType = prop.getProperty(Constants.RDBMS_TYPE);
+//				if(rdbmsType == null) {
+//					rdbmsType = "H2_DB";
+//				}
+//				rdbmsType = rdbmsType.toUpperCase();
+//				app_type = rdbmsType;
+//				if(rdbmsType.equals("TERADATA") || rdbmsType.equals("DB2")) {
+//					app_cost = "$$";
+//				} else {
+//					app_cost = "";
+//				}
+//			} else if(eType.equals("prerna.engine.impl.rdbms.ImpalaEngine")) {
+//				app_type = "IMPALA";
+//				app_cost = "$$$";
+//			} else if(eType.equals("prerna.engine.impl.rdf.BigDataEngine")) {
+//				app_type = "RDF";
+//				app_cost = "";
+//			} else if(eType.equals("prerna.engine.impl.rdf.RDFFileSesameEngine")) {
+//				app_type = "RDF";
+//				app_cost = "";
+//			} else if(eType.equals("prerna.ds.datastax.DataStaxGraphEngine")) {
+//				app_type = "DATASTAX";
+//				app_cost = "$$$";
+//			} else if(eType.equals("prerna.engine.impl.solr.SolrEngine")) {
+//				app_type = "SOLR";
+//				app_cost = "$$";
+//			} else if(eType.equals("prerna.engine.impl.tinker.TinkerEngine")) {
+//				String tinkerDriver = prop.getProperty(Constants.TINKER_DRIVER);
+//				if(tinkerDriver.equalsIgnoreCase("neo4j")) {
+//					app_type = "NEO4J";
+//					app_cost = "";
+//				} else {
+//					app_type = "TINKER";
+//					app_cost = "";
+//				}
+//			} else if(eType.equals("prerna.engine.impl.json.JsonAPIEngine") || eType.equals("prerna.engine.impl.json.JsonAPIEngine2")) {
+//				app_type = "JSON";
+//				app_cost = "";
+//			} else if(eType.equals("prerna.engine.impl.app.AppEngine")) {
+//				app_type = "APP";
+//				app_cost = "$";
+//			}
+//			
+//			fieldData.put("app_type", app_type);
+//			fieldData.put("app_cost", app_cost);
+//			
+//			try {
+//				solrE.addApp(appId, fieldData);
+//			} catch (SolrServerException | IOException e) {
+//				e.printStackTrace();
+//			}
+//		} else {
+//			LOGGER.info("App Exists in App Core!!");
+//		}
+//	}
 	
 	public static void addToSolrInsightCore(String appId) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		// get the engine name		

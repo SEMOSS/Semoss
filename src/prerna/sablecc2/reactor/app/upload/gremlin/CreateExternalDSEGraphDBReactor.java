@@ -22,7 +22,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
-import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -185,9 +184,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
 		try {
-			Utility.synchronizeEngineMetadata(newAppId);
-			SolrUtility.addToSolrInsightCore(newAppId);
-			SolrUtility.addAppToSolr(newAppId);
+			UploadUtilities.updateMetadata(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
