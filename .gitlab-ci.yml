@@ -7,9 +7,14 @@ before_script:
   - apt-get update
   - apt-get install -y openjfx
   - apt-get install -y gnupg2
+  - apt-get install -y pinentry-tty
+  # See https://github.com/keybase/keybase-issues/issues/2798
   - echo $(tty)
-  - ls /root/.gnupg
   - export GPG_TTY=$(tty)
+  # See https://unix.stackexchange.com/questions/318385/no-such-file-or-directory-when-generating-a-gpg-key
+  #- mkdir -p ~/.gnupg/private-keys-v1.d
+  #- chmod 700 ~/.gnupg/private-keys-v1.d
+  - ls ~/.gnupg/ -la
   - gpg -v --import <(echo "$GPG_PRIVATE_KEY")
   
 variables:
