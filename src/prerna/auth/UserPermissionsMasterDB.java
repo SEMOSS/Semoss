@@ -35,15 +35,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.internal.StringMap;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -56,10 +61,20 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class UserPermissionsMasterDB {
+	
+	/*
+	 * This class is used for low level operations on the database
+	 * For higher level functions, please use UserPermissionUtility
+	 */
+	
 	private RDBMSNativeEngine securityDB;
 	
 	public UserPermissionsMasterDB() {
 		securityDB = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+	}
+	
+	public IEngine getEngine() {
+		return securityDB;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -85,71 +100,218 @@ public class UserPermissionsMasterDB {
 		TestUtilityMethods.loadDIHelper();
 		String dbPath = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\security.smss";
 		UserPermissionsMasterDB auth = new UserPermissionsMasterDB(dbPath);
-		System.out.println(auth.getUserVisibleEngines("tom@gmail.com"));
-		//auth.removeDb("ManueruDB");
-		//auth.removeUserPermissionsbyDbId("", "");
-		//auth.getAllDbUsers("2018-04-03T15:46:20.930");
-		//System.out.println(auth.isUserWithAccessToGroupDb("tom@gmail.com", "500"));
-		/*User newUser = new User("okokokokoko@email.com", "manueru4", "okokokokoko@email.com", "ok2");
-		System.out.println(auth.addNativeUser(newUser));
-		User user = auth.getUserFromDatabase("manueru4");
-		System.out.println(user.toString());
-		System.out.println(auth.logIn("manueru4", "ok2"));*/
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 
+	/*
+	 * Adding data
+	 */
+	
+	/**
+	 * Add an engine into the security database
+	 * Default to set as not global
+	 */
+	public void addEngine(String engineId, String engineName, String engineType, String engineCost) {
+		addEngine(engineId, engineName, engineType, engineCost, false);
+	}
+	
+	public void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
+		String query = "INSERT INTO ENGINE (NAME, ID, TYPE, COST, GLOBAL) "
+				+ "VALUES ('" + engineName + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
+		securityDB.insertData(query);
+		securityDB.commit();
+	}
+	
+	/**
+	 * Add an insight into the security db
+	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 * @param global
+	 */
+	public void addInsight(String engineId, String insightId, String insightName, boolean global) {
+		String query = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL) "
+				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + insightName + "', " + global + ")";
+		securityDB.insertData(query);
+		securityDB.commit();
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Querying data
+	 */
+	
+	/**
+	 * Does the engine table contain the engine
+	 * @param engineId
+	 * @return
+	 */
+	public boolean containsEngine(String engineId) {
+		String query = "SELECT ID FROM ENGINE WHERE ID='" + engineId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			} else {
+				return false;
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	/**
+	 * Get the list of the engine information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public List<Map<String, String>> getUserDatabaseList(String userId) {
+		String query = "SELECT ID, NAME, TYPE, COST FROM ENGINE, ENGINEPERMISSION WHERE "
+				+ "ENGINE=ID AND (ENGINEPERMISSION.USER='" + userId + "' OR ENGINE.GLOBAL=TRUE) ORDER BY NAME";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * Get user engines + global engines 
+	 * @param userId
+	 * @return
+	 */
 	public List<String> getUserEngines(String userId) {
 		String query = "SELECT ENGINE FROM ENGINEPERMISSION WHERE USER='" + userId + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
-		return flushToListString(wrapper);
+		List<String> engineList = flushToListString(wrapper);
+		engineList.addAll(getGlobalEngineIds());
+		return engineList.stream().distinct().sorted().collect(Collectors.toList());
 	}
-	
-	private List<String> flushToListString(IRawSelectWrapper wrapper) {
-		List<String> engines = new Vector<String>();
-		while(wrapper.hasNext()) {
-			engines.add(wrapper.next().getValues()[0].toString());
-		}
-		return engines;
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	
 	
 	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * 
-	 * @param userName	String representing the name of the user to add
+	 * Get global engines
+	 * @return
 	 */
-	public boolean addEngine(String engineID, String engineName) {
-		String query = "INSERTO INTO ENGINE(ID, NAME) VALUES ('?1','?2');";
-		query = query.replace("?1", engineID);
-		query = query.replace("?2", engineName);
-		securityDB.insertData(query);
-		securityDB.commit();
-		return true;
+	public Set<String> getGlobalEngineIds() {
+		String query = "SELECT ID FROM ENGINE WHERE GLOBAL=TRUE";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		return flushToSetString(wrapper, false);
 	}
+
+	/**
+	 * Get user insights + global insights in engine
+	 * @param userId
+	 * @param engineId
+	 * @return
+	 */
+	public List<String> getUserInsightsForEngine(String userId, String engineId) {
+		String query = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + engineId + "' AND USER='" + userId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		List<String> insightList = flushToListString(wrapper);
+		insightList.addAll(getGlobalInsightIdsForEngine(engineId));
+		return insightList.stream().distinct().sorted().collect(Collectors.toList());
+	}
+	
+	public Set<String> getGlobalInsightIdsForEngine(String engineId) {
+		String query = "SELECT INSIGHTID FROM INSIGHT WHERE ENGINEID='" + engineId + "' AND GLOBAL=TRUE";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDB, query);
+		return flushToSetString(wrapper, false);
+	}
+	
+	/*
+	 * Utility methods
+	 */
+	
+	/**
+	 * Utility method to flush result set into list
+	 * Assumes single return at index 0
+	 * @param wrapper
+	 * @return
+	 */
+	private List<String> flushToListString(IRawSelectWrapper wrapper) {
+		List<String> values = new Vector<String>();
+		while(wrapper.hasNext()) {
+			values.add(wrapper.next().getValues()[0].toString());
+		}
+		return values;
+	}
+	
+	/**
+	 * Utility method to flush result set into set
+	 * Assumes single return at index 0
+	 * @param wrapper
+	 * @return
+	 */
+	private Set<String> flushToSetString(IRawSelectWrapper wrapper, boolean order) {
+		Set<String> values = null;
+		if(order) {
+			values = new TreeSet<String>();
+		} else {
+			values = new HashSet<String>();
+		}
+		while(wrapper.hasNext()) {
+			values.add(wrapper.next().getValues()[0].toString());
+		}
+		return values;
+	}
+	
+	private List<Map<String, String>> flushRsToMap(IRawSelectWrapper wrapper) {
+		List<Map<String, String>> result = new Vector<Map<String, String>>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow headerRow = wrapper.next();
+			String[] headers = headerRow.getHeaders();
+			Object[] values = headerRow.getValues();
+			Map<String, String> map = new HashMap<String, String>();
+			for(int i = 0; i < headers.length; i++) {
+				map.put(headers[i], values[i].toString());
+			}
+			result.add(map);
+		}
+		return result;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Exposing the ability to get an insert prepared statement for improved performance
+	 * @param args			Object[] where the first index is the table name
+	 * 						and every other entry are the column names
+	 * @return				PreparedStatement to perform a bulk insert
+	 */
+	public java.sql.PreparedStatement bulkInsertPreparedStatement(Object[] args) {
+		return this.securityDB.bulkInsertPreparedStatement(args);
+	}	
+	
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	/**
 	 * Check if a user (user name or email) exist in the security database

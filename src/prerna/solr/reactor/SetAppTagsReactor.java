@@ -27,19 +27,19 @@ public class SetAppTagsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-		String appName = this.keyValue.get(this.keysToGet[0]);
-		List<String> tags = getTags();
-		
-		Map<String, Object> fieldsToModify = new HashMap<String, Object>();
-		fieldsToModify.put("app_tags", tags);
-		try {
-			SolrIndexEngine.getInstance().modifyApp(appName, fieldsToModify);
-			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e1) {
-			e1.printStackTrace();
-		}
+//		organizeKeys();
+//		String appName = this.keyValue.get(this.keysToGet[0]);
+//		List<String> tags = getTags();
+//		
+//		Map<String, Object> fieldsToModify = new HashMap<String, Object>();
+//		fieldsToModify.put("app_tags", tags);
+//		try {
+//			SolrIndexEngine.getInstance().modifyApp(appName, fieldsToModify);
+//			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+//				| IOException e1) {
+//			e1.printStackTrace();
+//		}
 
 		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
 	}

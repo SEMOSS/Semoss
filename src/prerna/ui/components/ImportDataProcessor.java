@@ -49,6 +49,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;
@@ -173,7 +175,7 @@ public class ImportDataProcessor {
 				Utility.synchronizeEngineMetadata(engineID); // replacing this for engine
 				//Utility.addToLocalMaster(engine);
 				SolrUtility.addToSolrInsightCore(engineID);
-				SolrUtility.addAppToSolr(engineID);
+				SecurityUtils.addApp(engineID);
 				// Do we need this?
 				// Commenting it out for now to speed up upload until we find a better way to utilize this
 //				Utility.addToSolrInstanceCore(engine);
