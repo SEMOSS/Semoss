@@ -7,15 +7,15 @@ before_script:
   - apt-get update
   - apt-get install -y openjfx
   - apt-get install -y gnupg2
-  - apt-get install -y pinentry-tty
+  # - apt-get install -y pinentry-tty
   # See https://github.com/keybase/keybase-issues/issues/2798
-  - echo $(tty)
-  - export GPG_TTY=$(tty)
+  # - echo $(tty)
+  # - export GPG_TTY=$(tty)
   # See https://unix.stackexchange.com/questions/318385/no-such-file-or-directory-when-generating-a-gpg-key
-  #- mkdir -p ~/.gnupg/private-keys-v1.d
-  #- chmod 700 ~/.gnupg/private-keys-v1.d
-  - gpg -v --import <(echo "$GPG_PRIVATE_KEY")
-  - ls ~/.gnupg/ -la
+  # - mkdir -p ~/.gnupg/private-keys-v1.d
+  # - chmod 700 ~/.gnupg/private-keys-v1.d
+  - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
+  # - ls ~/.gnupg/ -la
   
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
