@@ -7,7 +7,7 @@ before_script:
   - apt-get update
   - apt-get install -y openjfx
   - apt-get install -y gnupg2
-  - gpg -v --import <(echo "$GPG_PRIVATE_KEY")
+  - gpg2 -v --import <(echo "$GPG_PRIVATE_KEY")
   
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
