@@ -56,15 +56,15 @@ public class SolrIndexEngine {
 
 	// two cores for the solr index engine 
 	public static enum SOLR_PATHS {
-		SOLR_INSIGHTS_PATH, SOLR_INSTANCES_PATH, SOLR_APP_PATH_NAME
+		SOLR_INSIGHTS_PATH //, SOLR_INSTANCES_PATH, SOLR_APP_PATH_NAME
 	}
 	
 	// the name of insight core
 	private static final String SOLR_INSIGHTS_PATH_NAME = "/insightCore";
 	// the name of instances core
-	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
+//	private static final String SOLR_INSTANCES_PATH_NAME = "/instancesCore";
 	// the name of the app core
-	private static final String SOLR_APP_PATH_NAME = "/appCore";
+//	private static final String SOLR_APP_PATH_NAME = "/appCore";
 
 	
 	// the solr index engine singleton
@@ -73,10 +73,10 @@ public class SolrIndexEngine {
 	private static String url;
 	// the insight solr server
 	private HttpSolrServer insightServer;
-	// the instance solr server
-	private HttpSolrServer instanceServer;
-	// the app solr server
-	private HttpSolrServer appServer;
+//	// the instance solr server
+//	private HttpSolrServer instanceServer;
+//	// the app solr server
+//	private HttpSolrServer appServer;
 
 	// search return response
 	private static final String QUERY_RESPONSE = "queryResponse";
@@ -164,8 +164,8 @@ public class SolrIndexEngine {
 
 		// create your insight and instance servers
 		insightServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSIGHTS_PATH_NAME, httpclient);
-		instanceServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSTANCES_PATH_NAME, httpclient);
-		appServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_APP_PATH_NAME, httpclient);
+//		instanceServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_INSTANCES_PATH_NAME, httpclient);
+//		appServer = new HttpSolrServer(SolrIndexEngine.url + SOLR_APP_PATH_NAME, httpclient);
 	}
 
 	/**
@@ -177,7 +177,7 @@ public class SolrIndexEngine {
 		boolean isActive = true;
 		try {
 			insightServer.ping();
-			appServer.ping();
+//			appServer.ping();
 		} catch (Exception e) {
 			isActive = false;
 		}
@@ -370,109 +370,109 @@ public class SolrIndexEngine {
 	}
 	
 	
-	/**
-	 * Modifies the specified document based on its Unique ID
-	 * @param uniqueID              ID to be modified
-	 * @param fieldsToModify        specific fields to modify
-	 */
-	public synchronized Map<String, Object> modifyApp(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
-		if (serverActive()) {
-			/*
-			 * solr doens't allow you to modify specific fields in a document that is already indexed
-			 * therefore, to modify an existing insight we need to
-			 * 1) query the solr insight core using the specific unique id for the document
-			 * 2) once you have the solr document, get the map containing the field attributes
-			 * 3) override any of the existing fields contained in the map that were received from the solr document
-			 * 		with the new values in the fieldsToModify map that was passed into the method
-			 * 4) add this new solr document back into insight core
-			 * 
-			 * note: if you add a solr document which has the same id as an existing document that was indexed
-			 * 			solr automatically overrides that index with the new one
-			 */
-			
-			
-			// 1) query to get the existing insight
-			
-			// create a solr query builder and add a filter on the specific ID to get the correct insight
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setSearchString(QUERY_ALL);
-			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
-			List<String> idList = new ArrayList<String>();
-			idList.add(uniqueID);
-			filterForId.put(ID, idList);
-			queryBuilder.setFilterOptions(filterForId);
-			// execute the query
-			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_APP_PATH_NAME);
-			// the results object is defaulted to a list.. but with the ID bind (which is unique) there should
-			// be exactly one solr document returned
-			SolrDocumentList docList = res.getResults();
-			if(docList.size() == 0) {
-				LOGGER.error("COULD NOT FIND APP WITH ID = " + uniqueID + " INSIDE SOLR TO MODIFY");
-				return null;
-			}
-			SolrDocument origDoc = docList.get(0);
-			
-			// 2) create an iterator to go through the existing fields
-			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
-			
-			// 3) we need to create a new solr document to combine the existing values and override any of those values
-			//		with those in the fieldsToModify set
-			SolrInputDocument doc = new SolrInputDocument();
-			
-			// we also need to keep a list of fields that have been added
-			// this is because the existing values in the iterator only returns those which are set
-			// but there may be values which are not set that are defined in the fieldsToModify map
-			// based on the looping, need to iterate through and make sure all are added
-			Set<String> currFieldNames = new HashSet<String>();
-			
-			// loop through existing values
-			while (iterator.hasNext()) {
-				//get the next field value in the existing map
-				Entry<String, Object> field = iterator.next();
-				// fieldName will correspond to a defined field name in the schema
-				String fieldName = field.getKey();
-				// add to the list of field names that have been added
-				currFieldNames.add(fieldName);
-				// if modified field, grab new value
-				if (fieldsToModify.containsKey(fieldName)) {
-					doc.setField(fieldName, fieldsToModify.get(fieldName));
-				} else {
-					// if not modified field, use existing value
-					doc.setField(fieldName, field.getValue());
-					// also update the map to return what all the values are
-					if(fieldName.equals("app_creation_date")) {
-						// special case for dates since they must be in a specific format
-						try {
-							Date d = getSolrDateFormat().parse(field.getValue() + "");
-							fieldsToModify.put(fieldName, getDateFormat().format(d));
-						} catch (ParseException e) {
-							e.printStackTrace();
-						}
-					} else {
-						// if not a date, just add the value as is
-						fieldsToModify.put(fieldName, field.getValue());
-					}
-				}
-			}
-			
-			// again.. since the iterator only contains the values that are set
-			// the above loop will not get any new fields defined in fieldsToModify map
-			// so loop through the map and see if any fields are defined there that need to be set
-			for (String newField : fieldsToModify.keySet()) {
-				if (!currFieldNames.contains(newField)) {
-					doc.setField(newField, fieldsToModify.get(newField));
-				}
-			}
-			
-			// when committing, automatically overrides existing field values with the new ones
-			LOGGER.info("Modifying document:  " + uniqueID);
-			appServer.add(doc);
-			appServer.commit();
-			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
-		}
-		
-		return fieldsToModify;
-	}
+//	/**
+//	 * Modifies the specified document based on its Unique ID
+//	 * @param uniqueID              ID to be modified
+//	 * @param fieldsToModify        specific fields to modify
+//	 */
+//	public synchronized Map<String, Object> modifyApp(String uniqueID, Map<String, Object> fieldsToModify) throws SolrServerException, IOException {
+//		if (serverActive()) {
+//			/*
+//			 * solr doens't allow you to modify specific fields in a document that is already indexed
+//			 * therefore, to modify an existing insight we need to
+//			 * 1) query the solr insight core using the specific unique id for the document
+//			 * 2) once you have the solr document, get the map containing the field attributes
+//			 * 3) override any of the existing fields contained in the map that were received from the solr document
+//			 * 		with the new values in the fieldsToModify map that was passed into the method
+//			 * 4) add this new solr document back into insight core
+//			 * 
+//			 * note: if you add a solr document which has the same id as an existing document that was indexed
+//			 * 			solr automatically overrides that index with the new one
+//			 */
+//			
+//			
+//			// 1) query to get the existing insight
+//			
+//			// create a solr query builder and add a filter on the specific ID to get the correct insight
+//			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+//			queryBuilder.setSearchString(QUERY_ALL);
+//			Map<String, List<String>> filterForId = new HashMap<String, List<String>>();
+//			List<String> idList = new ArrayList<String>();
+//			idList.add(uniqueID);
+//			filterForId.put(ID, idList);
+//			queryBuilder.setFilterOptions(filterForId);
+//			// execute the query
+//			QueryResponse res = getQueryResponse(queryBuilder.getSolrQuery(), SOLR_PATHS.SOLR_APP_PATH_NAME);
+//			// the results object is defaulted to a list.. but with the ID bind (which is unique) there should
+//			// be exactly one solr document returned
+//			SolrDocumentList docList = res.getResults();
+//			if(docList.size() == 0) {
+//				LOGGER.error("COULD NOT FIND APP WITH ID = " + uniqueID + " INSIDE SOLR TO MODIFY");
+//				return null;
+//			}
+//			SolrDocument origDoc = docList.get(0);
+//			
+//			// 2) create an iterator to go through the existing fields
+//			Iterator<Entry<String, Object>> iterator = origDoc.iterator();
+//			
+//			// 3) we need to create a new solr document to combine the existing values and override any of those values
+//			//		with those in the fieldsToModify set
+//			SolrInputDocument doc = new SolrInputDocument();
+//			
+//			// we also need to keep a list of fields that have been added
+//			// this is because the existing values in the iterator only returns those which are set
+//			// but there may be values which are not set that are defined in the fieldsToModify map
+//			// based on the looping, need to iterate through and make sure all are added
+//			Set<String> currFieldNames = new HashSet<String>();
+//			
+//			// loop through existing values
+//			while (iterator.hasNext()) {
+//				//get the next field value in the existing map
+//				Entry<String, Object> field = iterator.next();
+//				// fieldName will correspond to a defined field name in the schema
+//				String fieldName = field.getKey();
+//				// add to the list of field names that have been added
+//				currFieldNames.add(fieldName);
+//				// if modified field, grab new value
+//				if (fieldsToModify.containsKey(fieldName)) {
+//					doc.setField(fieldName, fieldsToModify.get(fieldName));
+//				} else {
+//					// if not modified field, use existing value
+//					doc.setField(fieldName, field.getValue());
+//					// also update the map to return what all the values are
+//					if(fieldName.equals("app_creation_date")) {
+//						// special case for dates since they must be in a specific format
+//						try {
+//							Date d = getSolrDateFormat().parse(field.getValue() + "");
+//							fieldsToModify.put(fieldName, getDateFormat().format(d));
+//						} catch (ParseException e) {
+//							e.printStackTrace();
+//						}
+//					} else {
+//						// if not a date, just add the value as is
+//						fieldsToModify.put(fieldName, field.getValue());
+//					}
+//				}
+//			}
+//			
+//			// again.. since the iterator only contains the values that are set
+//			// the above loop will not get any new fields defined in fieldsToModify map
+//			// so loop through the map and see if any fields are defined there that need to be set
+//			for (String newField : fieldsToModify.keySet()) {
+//				if (!currFieldNames.contains(newField)) {
+//					doc.setField(newField, fieldsToModify.get(newField));
+//				}
+//			}
+//			
+//			// when committing, automatically overrides existing field values with the new ones
+//			LOGGER.info("Modifying document:  " + uniqueID);
+//			appServer.add(doc);
+//			appServer.commit();
+//			LOGGER.info("UniqueID " + uniqueID + "'s doc has been modified");
+//		}
+//		
+//		return fieldsToModify;
+//	}
 	
 	
 	/**
@@ -558,66 +558,66 @@ public class SolrIndexEngine {
 
 	/////////////////// START ADDING APPS INTO SOLR ///////////////////
 
-	/**
-	 * Used to add a list of insights into the insight solr core
-	 * @param docs						The list of solr documents to index
-	 * @throws SolrServerException
-	 * @throws IOException
-	 */
-	public void addApps(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
-		if (serverActive()) {
-			LOGGER.info("Adding " + docs.size() + " documents into app server...");
-			SolrUtility.addSolrInputDocuments(appServer, docs);
-			LOGGER.info("Done adding documents in insight server.");
-		}
-	}
-	
-	/**
-	 * Uses the passed in params to add a new document into insight solr core
-	 * @param uniqueID					new id to be added
-	 * @param fieldData					fields to be added to the new Doc
-	 * @throws SolrServerException
-	 * @throws IOException
-	 */
-	public void addApp(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
-		if (serverActive()) {
-			LOGGER.info("Adding app with unique ID:  " + uniqueID);
-			SolrUtility.addSolrInputDocument(appServer, SolrIndexEngine.ID, uniqueID, fieldData);
-			LOGGER.info("UniqueID " + uniqueID + "'s app has been added");
-		}
-	}
-
-	/**
-	 * Used to verify if an app exists and has been added into solr
-	 * @param appName
-	 * @return
-	 */
-	public boolean containsApp(String appId) {
-		// check if db currently exists
-		LOGGER.info("checking if app " + appId + " needs to be added to solr");
-		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
-		Map<String, List<String>> filterData = new HashMap<String, List<String>>();
-		List<String> filterList = new Vector<String>();
-		filterList.add(appId);
-		filterData.put(SolrIndexEngine.ID, filterList);
-		builder.setFilterOptions(filterData );
-		builder.setDefaultSearchField(SolrIndexEngine.ID);
-		builder.setLimit(1);
-		
-		SolrDocumentList queryRet = null;
-		try {
-			QueryResponse res = getQueryResponse(builder.getSolrQuery(), SOLR_PATHS.SOLR_APP_PATH_NAME);
-			queryRet = res.getResults();
-		} catch (SolrServerException e) {
-			e.printStackTrace();
-		}
-		if (queryRet != null && queryRet.size() != 0) {
-			LOGGER.info("Engine " + appId + " already exists inside solr");
-		} else {
-			LOGGER.info("queryRet.size() = 0 ... so add engine");
-		}
-		return (queryRet.size() != 0);
-	}
+//	/**
+//	 * Used to add a list of insights into the insight solr core
+//	 * @param docs						The list of solr documents to index
+//	 * @throws SolrServerException
+//	 * @throws IOException
+//	 */
+//	public void addApps(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+//		if (serverActive()) {
+//			LOGGER.info("Adding " + docs.size() + " documents into app server...");
+//			SolrUtility.addSolrInputDocuments(appServer, docs);
+//			LOGGER.info("Done adding documents in insight server.");
+//		}
+//	}
+//	
+//	/**
+//	 * Uses the passed in params to add a new document into insight solr core
+//	 * @param uniqueID					new id to be added
+//	 * @param fieldData					fields to be added to the new Doc
+//	 * @throws SolrServerException
+//	 * @throws IOException
+//	 */
+//	public void addApp(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
+//		if (serverActive()) {
+//			LOGGER.info("Adding app with unique ID:  " + uniqueID);
+//			SolrUtility.addSolrInputDocument(appServer, SolrIndexEngine.ID, uniqueID, fieldData);
+//			LOGGER.info("UniqueID " + uniqueID + "'s app has been added");
+//		}
+//	}
+//
+//	/**
+//	 * Used to verify if an app exists and has been added into solr
+//	 * @param appName
+//	 * @return
+//	 */
+//	public boolean containsApp(String appId) {
+//		// check if db currently exists
+//		LOGGER.info("checking if app " + appId + " needs to be added to solr");
+//		SolrIndexEngineQueryBuilder builder = new SolrIndexEngineQueryBuilder();
+//		Map<String, List<String>> filterData = new HashMap<String, List<String>>();
+//		List<String> filterList = new Vector<String>();
+//		filterList.add(appId);
+//		filterData.put(SolrIndexEngine.ID, filterList);
+//		builder.setFilterOptions(filterData );
+//		builder.setDefaultSearchField(SolrIndexEngine.ID);
+//		builder.setLimit(1);
+//		
+//		SolrDocumentList queryRet = null;
+//		try {
+//			QueryResponse res = getQueryResponse(builder.getSolrQuery(), SOLR_PATHS.SOLR_APP_PATH_NAME);
+//			queryRet = res.getResults();
+//		} catch (SolrServerException e) {
+//			e.printStackTrace();
+//		}
+//		if (queryRet != null && queryRet.size() != 0) {
+//			LOGGER.info("Engine " + appId + " already exists inside solr");
+//		} else {
+//			LOGGER.info("queryRet.size() = 0 ... so add engine");
+//		}
+//		return (queryRet.size() != 0);
+//	}
 	
 	
 	/////////////////// END ADDING APPS INTO SOLR ///////////////////
@@ -625,44 +625,44 @@ public class SolrIndexEngine {
 	
 	/////////////////// START ADDING INSTANCES INTO SOLR ///////////////////
 
-	/*
-	 * There are two ways to add instances into solr.  
-	 * 1) add one insight at a time 
-	 * 		-> this used to be called back when we were indexing one document at a time
-	 * 2) input a collection of insights to add
-	 * 		-> this is currently being used on start up (used Utility.LoadWebEngine)
-	 * 		-> we query the entire engines rdbms insights database and then add all the documents at the same time
-	 * 		-> this is significantly faster than indexing each insight one at a time 
-	 */
-	
-	/**
-	 * Used to add a list of instances into the instance solr core
-	 * @param docs						The list of solr documents to index
-	 * @throws SolrServerException
-	 * @throws IOException
-	 */
-	public void addInstances(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
-		if (serverActive()) {
-			LOGGER.info("Adding " + docs.size() + " documents into instance server...");
-			SolrUtility.addSolrInputDocuments(instanceServer, docs);
-			LOGGER.info("Done adding documents in instance server.");
-		}
-	}
-	
-	/**
-	 * Adds a specific concept with all its instances into the instance solr core
-	 * @param uniqueID					new id to be added
-	 * @param fieldData					fields to be added to the new Doc
-	 * @throws SolrServerException
-	 * @throws IOException
-	 */
-	public void addInstance(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
-		if (serverActive()) {
-			LOGGER.info("Adding instance with unique ID:  " + uniqueID);
-			SolrUtility.addSolrInputDocument(instanceServer, ID, uniqueID, fieldData);
-			LOGGER.info("UniqueID " + uniqueID + "'s instance has been added");
-		}
-	}
+//	/*
+//	 * There are two ways to add instances into solr.  
+//	 * 1) add one insight at a time 
+//	 * 		-> this used to be called back when we were indexing one document at a time
+//	 * 2) input a collection of insights to add
+//	 * 		-> this is currently being used on start up (used Utility.LoadWebEngine)
+//	 * 		-> we query the entire engines rdbms insights database and then add all the documents at the same time
+//	 * 		-> this is significantly faster than indexing each insight one at a time 
+//	 */
+//	
+//	/**
+//	 * Used to add a list of instances into the instance solr core
+//	 * @param docs						The list of solr documents to index
+//	 * @throws SolrServerException
+//	 * @throws IOException
+//	 */
+//	public void addInstances(Collection<SolrInputDocument> docs) throws SolrServerException, IOException {
+//		if (serverActive()) {
+//			LOGGER.info("Adding " + docs.size() + " documents into instance server...");
+//			SolrUtility.addSolrInputDocuments(instanceServer, docs);
+//			LOGGER.info("Done adding documents in instance server.");
+//		}
+//	}
+//	
+//	/**
+//	 * Adds a specific concept with all its instances into the instance solr core
+//	 * @param uniqueID					new id to be added
+//	 * @param fieldData					fields to be added to the new Doc
+//	 * @throws SolrServerException
+//	 * @throws IOException
+//	 */
+//	public void addInstance(String uniqueID, Map<String, Object> fieldData) throws SolrServerException, IOException {
+//		if (serverActive()) {
+//			LOGGER.info("Adding instance with unique ID:  " + uniqueID);
+//			SolrUtility.addSolrInputDocument(instanceServer, ID, uniqueID, fieldData);
+//			LOGGER.info("UniqueID " + uniqueID + "'s instance has been added");
+//		}
+//	}
 	
 	/////////////////// END ADDING INSTANCES INTO SOLR ///////////////////
 
@@ -690,13 +690,14 @@ public class SolrIndexEngine {
 			if (path == SOLR_PATHS.SOLR_INSIGHTS_PATH) {
 				res = insightServer.query(q);
 				LOGGER.info("Querying within the insighCore");
-			} else if (path == SOLR_PATHS.SOLR_APP_PATH_NAME) {
-				res = appServer.query(q);
-				LOGGER.info("Querying within the appCore");
-			} else if (path == SOLR_PATHS.SOLR_INSTANCES_PATH) {
-				res = instanceServer.query(q);
-				LOGGER.info("Querying within the instanceCore");
 			}
+//			else if (path == SOLR_PATHS.SOLR_APP_PATH_NAME) {
+//				res = appServer.query(q);
+//				LOGGER.info("Querying within the appCore");
+//			} else if (path == SOLR_PATHS.SOLR_INSTANCES_PATH) {
+//				res = instanceServer.query(q);
+//				LOGGER.info("Querying within the instanceCore");
+//			}
 		}
 		return res;
 	}
@@ -720,25 +721,25 @@ public class SolrIndexEngine {
 			SolrQuery query = queryBuilder.getSolrQuery();
 			// execute the query on the solr insight core
 			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			// if the query return is null or has no results
-			if(res != null && res.getResults().size() == 0) {
-				/*
-				 * now we want to use the instance core
-				 * 1) we query the instance core to get an updated query search
-				 * 2) this new query search is then executed to get a new query response
-				 * 3) the results of this new query response are now returned
-				 */ 
-				
-				// 1) we query the instance core using the query previously executed
-				// look at method to see map structure
-				Map<String, Object> queryResults = executeInstanceCoreQuery(query.getQuery());
-				// 2) the query response within the returned map contains the new query to use to get results
-				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				// set the new search string and execute the query
-				query.setQuery(updatedQuerySearch);
-				// override the existing res object with the new one generated with the updated search
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-			}
+//			// if the query return is null or has no results
+//			if(res != null && res.getResults().size() == 0) {
+//				/*
+//				 * now we want to use the instance core
+//				 * 1) we query the instance core to get an updated query search
+//				 * 2) this new query search is then executed to get a new query response
+//				 * 3) the results of this new query response are now returned
+//				 */ 
+//				
+//				// 1) we query the instance core using the query previously executed
+//				// look at method to see map structure
+//				Map<String, Object> queryResults = executeInstanceCoreQuery(query.getQuery());
+//				// 2) the query response within the returned map contains the new query to use to get results
+//				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+//				// set the new search string and execute the query
+//				query.setQuery(updatedQuerySearch);
+//				// override the existing res object with the new one generated with the updated search
+//				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//			}
 			// get the results from the query response
 			// note the res is updated by reference if the original query returned no reuslts and had to be updated
 			// using the instance core
@@ -907,30 +908,30 @@ public class SolrIndexEngine {
 			Map<String, List<String>> instanceSpellCheck = null;
 
 			// this code block is only entered if the results from executing on the insight core are empty
-			if(res != null && res.getResults().size() == 0) {
-				// we now need to query the instance core
-				// 4) use the query search string used and execute it on the instance core
-				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
-				// grab the spell check response from the instance core
-				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-
-				// 5) the query response in the returned map from the execution on the instance core
-				// gives an updated query search string
-				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				
-				// note: we do not need the spell check params on this new search since it is a composite string
-				// with additions that we had added that the user did not include.. doesn't make sense to show them 
-				// to the user. we already have the spell check response from the insight and instance cores for what
-				// the user actually passed in
-				queryBuilder.removeSpellCheckParams();
-				// set the updatedQuerySearch within the builder
-				// and get a new query object with the updated information
-				queryBuilder.setSearchString(updatedQuerySearch);
-				query = queryBuilder.getSolrQuery();
-				// 6) query the insight core again with the updated query search string and get the results
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				results = res.getResults();
-			}
+//			if(res != null && res.getResults().size() == 0) {
+//				// we now need to query the instance core
+//				// 4) use the query search string used and execute it on the instance core
+//				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
+//				// grab the spell check response from the instance core
+//				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+//
+//				// 5) the query response in the returned map from the execution on the instance core
+//				// gives an updated query search string
+//				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+//				
+//				// note: we do not need the spell check params on this new search since it is a composite string
+//				// with additions that we had added that the user did not include.. doesn't make sense to show them 
+//				// to the user. we already have the spell check response from the insight and instance cores for what
+//				// the user actually passed in
+//				queryBuilder.removeSpellCheckParams();
+//				// set the updatedQuerySearch within the builder
+//				// and get a new query object with the updated information
+//				queryBuilder.setSearchString(updatedQuerySearch);
+//				query = queryBuilder.getSolrQuery();
+//				// 6) query the insight core again with the updated query search string and get the results
+//				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				results = res.getResults();
+//			}
 			
 			/*
 			 * Populate the return map with the results
@@ -1061,21 +1062,21 @@ public class SolrIndexEngine {
 			List<FacetField> facetFieldList = res.getFacetFields();
 			
 			// this code block is only entered if the results from executing on the insight core are empty
-			if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
-				// we now need to query the instance core
-				// 3) use the query search string used and execute it on the instance core
-				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
-				// 4) the query response in the returned map from the execution on the instance core
-				// gives an updated query search string
-				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				// set the updatedQuerySearch within the builder
-				// and get a new query object with the updated information
-				queryBuilder.setSearchString(updatedQuerySearch);
-				query = queryBuilder.getSolrQuery();
-				// 5) query the insight core
-				res = getQueryResponse(query, path);
-				facetFieldList = res.getFacetFields();
-			}
+//			if (facetFieldList != null && facetFieldList.get(0).getValueCount() == 0) {
+//				// we now need to query the instance core
+//				// 3) use the query search string used and execute it on the instance core
+//				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
+//				// 4) the query response in the returned map from the execution on the instance core
+//				// gives an updated query search string
+//				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+//				// set the updatedQuerySearch within the builder
+//				// and get a new query object with the updated information
+//				queryBuilder.setSearchString(updatedQuerySearch);
+//				query = queryBuilder.getSolrQuery();
+//				// 5) query the insight core
+//				res = getQueryResponse(query, path);
+//				facetFieldList = res.getFacetFields();
+//			}
 
 			// 6) now iterate through the facet results and get the relevant information to send
 			facetFieldMap = processFacetFieldMap(facetFieldList);
@@ -1309,30 +1310,30 @@ public class SolrIndexEngine {
 			// get the group by response
 			GroupResponse groupResponse = res.getGroupResponse();
 			// this code block is only entered if the results from executing on the insight core are empty
-			if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
-				// we now need to query the instance core
-				// 4) use the query search string used and execute it on the instance core
-				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
-				// grab the spell check response from the instance core
-				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
-				
-				// 5) the query response in the returned map from the execution on the instance core
-				// gives an updated query search string
-				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
-				
-				// note: we do not need the spell check params on this new search since it is a composite string
-				// with additions that we had added that the user did not include.. doesn't make sense to show them 
-				// to the user. we already have the spell check response from the insight and instance cores for what
-				// the user actually passed in
-				queryBuilder.removeSpellCheckParams();
-				// set the updatedQuerySearch within the builder
-				// and get a new query object with the updated information
-				queryBuilder.setSearchString(updatedQuerySearch);
-				query = queryBuilder.getSolrQuery();
-				// 6) query the insight core again with the updated query search string and get the results
-				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				groupResponse = res.getGroupResponse();
-			}
+//			if(groupResponse != null && groupResponse.getValues().get(0).getValues().size() == 0) {
+//				// we now need to query the instance core
+//				// 4) use the query search string used and execute it on the instance core
+//				Map<String, Object> queryResults = executeInstanceCoreQuery(query.get(CommonParams.Q));
+//				// grab the spell check response from the instance core
+//				instanceSpellCheck = (Map<String, List<String>>) queryResults.get(SPELLCHECK_RESPONSE);
+//				
+//				// 5) the query response in the returned map from the execution on the instance core
+//				// gives an updated query search string
+//				String updatedQuerySearch = (String) queryResults.get(QUERY_RESPONSE);
+//				
+//				// note: we do not need the spell check params on this new search since it is a composite string
+//				// with additions that we had added that the user did not include.. doesn't make sense to show them 
+//				// to the user. we already have the spell check response from the insight and instance cores for what
+//				// the user actually passed in
+//				queryBuilder.removeSpellCheckParams();
+//				// set the updatedQuerySearch within the builder
+//				// and get a new query object with the updated information
+//				queryBuilder.setSearchString(updatedQuerySearch);
+//				query = queryBuilder.getSolrQuery();
+//				// 6) query the insight core again with the updated query search string and get the results
+//				res = getQueryResponse(query, SOLR_PATHS.SOLR_INSIGHTS_PATH);
+//				groupResponse = res.getGroupResponse();
+//			}
 
 			// 7) format the group by response
 			/*
@@ -1381,78 +1382,78 @@ public class SolrIndexEngine {
 	/////////////////////////////////// end operation 3 - group by query /////////////////////////////////////////
 
 	
-	//////////////////////////// instance core search methods /////////////////////////////////////////////
-	/*
-	 * Querying always occurs on the insight core before the instance core
-	 * When the query on the insight core returns no results, then that search string is executed on the insight core
-	 * 
-	 * The main assumption is that the query on the insight core returns no results when the search term is a set of instances
-	 * The instance core is then queried to provide the list of concepts associated with the search term
-	 * For example: the user passes in AHLTA
-	 * Output: System (matches the system AHLTA), SystemDCSite (matches AHLTA%xyz where xyz is a DCSite), etc.
-	 * 
-	 * The output is them used as a new search term in the insight core to get insights
-	 */
-	
-	/**
-	 * Execute a query on the instance core
-	 * @param querySearch						String containing the search term used by the user
-	 * @return									Map containing the query response and the spell check response 
-	 * 											for the query.  The query response is a string containing the new
-	 * 											search term to execute on the insight core.  The spell check response
-	 * 											is in case there is a spelling mistake with a user entered instance.
-	 * @throws SolrServerException
-	 */
-	public Map<String, Object> executeInstanceCoreQuery(String querySearch) throws SolrServerException {
-		Map<String, Object> queryResults = new HashMap<String, Object>();
-		if (serverActive()) {
-			// search for instances
-			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
-			queryBuilder.setSearchString(querySearch);
-			queryBuilder.setDefaultSearchField(INSTANCES);
-			queryBuilder.setQueryType("/spell");
-			queryBuilder.setSpellCheck(true);
-			queryBuilder.setSpellCheckBuild(true);
-			queryBuilder.setSpellCheckCollate(true);
-			queryBuilder.setSpellCheckCollateExtendedResults(true);
-			queryBuilder.setSpellCheckCount(4);
-			// no need to return the entire document info, just return the concept/property which is 
-			// stored under the "value" schema name
-			queryBuilder.addReturnFields(VALUE);
-			// get the solr query
-			SolrQuery query = queryBuilder.getSolrQuery();
-			// execute the query
-			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSTANCES_PATH);
-			// the query response we want from the instance core is a new query to run on the insight
-			// core to get the instances that best matches the user input
-			String appendQuery = getUniqueConceptsForInstances(res);
-			//append the original search term with the new return
-			querySearch = querySearch + " " + appendQuery;
-			LOGGER.info("New search query will be: " + querySearch);
-			// set this as the query response
-			queryResults.put(QUERY_RESPONSE, querySearch);
-			
-			// set any spell check return
-			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
-			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
-				queryResults.put(SPELLCHECK_RESPONSE, spellCheckResponse);
-			}
-		}		
-		/*
-		 * The return map containing the instance core results
-		 * This map has the following structure
-		 * 
-		 * {
-		 * 	queryResponse: "STRING CONTAINING NEW INSIGHT CORE SEARCH"
-		 * 	spellcheckResponse : 	{
-		 * 								misspelledWord1: [possibleCorrectSpelling1, possibleCorrectSpelling2];
-		 * 								misspelledWord2: [possibleCorrectSpelling3];
-		 * 							}
-		 * }
-		 * ***However, the spellcheckResponse does not have to be present
-		 */
-		return queryResults;
-	}
+//	//////////////////////////// instance core search methods /////////////////////////////////////////////
+//	/*
+//	 * Querying always occurs on the insight core before the instance core
+//	 * When the query on the insight core returns no results, then that search string is executed on the insight core
+//	 * 
+//	 * The main assumption is that the query on the insight core returns no results when the search term is a set of instances
+//	 * The instance core is then queried to provide the list of concepts associated with the search term
+//	 * For example: the user passes in AHLTA
+//	 * Output: System (matches the system AHLTA), SystemDCSite (matches AHLTA%xyz where xyz is a DCSite), etc.
+//	 * 
+//	 * The output is them used as a new search term in the insight core to get insights
+//	 */
+//	
+//	/**
+//	 * Execute a query on the instance core
+//	 * @param querySearch						String containing the search term used by the user
+//	 * @return									Map containing the query response and the spell check response 
+//	 * 											for the query.  The query response is a string containing the new
+//	 * 											search term to execute on the insight core.  The spell check response
+//	 * 											is in case there is a spelling mistake with a user entered instance.
+//	 * @throws SolrServerException
+//	 */
+//	public Map<String, Object> executeInstanceCoreQuery(String querySearch) throws SolrServerException {
+//		Map<String, Object> queryResults = new HashMap<String, Object>();
+//		if (serverActive()) {
+//			// search for instances
+//			SolrIndexEngineQueryBuilder queryBuilder = new SolrIndexEngineQueryBuilder();
+//			queryBuilder.setSearchString(querySearch);
+//			queryBuilder.setDefaultSearchField(INSTANCES);
+//			queryBuilder.setQueryType("/spell");
+//			queryBuilder.setSpellCheck(true);
+//			queryBuilder.setSpellCheckBuild(true);
+//			queryBuilder.setSpellCheckCollate(true);
+//			queryBuilder.setSpellCheckCollateExtendedResults(true);
+//			queryBuilder.setSpellCheckCount(4);
+//			// no need to return the entire document info, just return the concept/property which is 
+//			// stored under the "value" schema name
+//			queryBuilder.addReturnFields(VALUE);
+//			// get the solr query
+//			SolrQuery query = queryBuilder.getSolrQuery();
+//			// execute the query
+//			QueryResponse res = getQueryResponse(query, SOLR_PATHS.SOLR_INSTANCES_PATH);
+//			// the query response we want from the instance core is a new query to run on the insight
+//			// core to get the instances that best matches the user input
+//			String appendQuery = getUniqueConceptsForInstances(res);
+//			//append the original search term with the new return
+//			querySearch = querySearch + " " + appendQuery;
+//			LOGGER.info("New search query will be: " + querySearch);
+//			// set this as the query response
+//			queryResults.put(QUERY_RESPONSE, querySearch);
+//			
+//			// set any spell check return
+//			Map<String, List<String>> spellCheckResponse = getSpellCheckResponse(res);
+//			if (spellCheckResponse != null && !spellCheckResponse.isEmpty()) {
+//				queryResults.put(SPELLCHECK_RESPONSE, spellCheckResponse);
+//			}
+//		}		
+//		/*
+//		 * The return map containing the instance core results
+//		 * This map has the following structure
+//		 * 
+//		 * {
+//		 * 	queryResponse: "STRING CONTAINING NEW INSIGHT CORE SEARCH"
+//		 * 	spellcheckResponse : 	{
+//		 * 								misspelledWord1: [possibleCorrectSpelling1, possibleCorrectSpelling2];
+//		 * 								misspelledWord2: [possibleCorrectSpelling3];
+//		 * 							}
+//		 * }
+//		 * ***However, the spellcheckResponse does not have to be present
+//		 */
+//		return queryResults;
+//	}
 
 	/**
 	 * This goes through the query return in instances core to get all the unique set of concepts
@@ -1791,9 +1792,9 @@ public class SolrIndexEngine {
 				insightServer.commit();
 				query = ID + ":" + appId;
 				LOGGER.info("deleted query is " + query);
-				appServer.deleteByQuery(query);
-				appServer.commit();
-				LOGGER.info("successfully removed " + appId + " from solr" + appId);
+//				appServer.deleteByQuery(query);
+//				appServer.commit();
+//				LOGGER.info("successfully removed " + appId + " from solr" + appId);
 			} catch (SolrServerException e1) {
 				e1.printStackTrace();
 			} catch (IOException e1) {
@@ -1894,12 +1895,12 @@ public class SolrIndexEngine {
 			try {
 				LOGGER.info("PREPARING TO DELETE ALL SOLR DATA");
 				insightServer.deleteByQuery(QUERY_ALL);
-				instanceServer.deleteByQuery(QUERY_ALL);
-				appServer.deleteByQuery(QUERY_ALL);
+//				instanceServer.deleteByQuery(QUERY_ALL);
+//				appServer.deleteByQuery(QUERY_ALL);
 				LOGGER.info("ALL SOLR DATA DELETED");
 				insightServer.commit();
-				instanceServer.commit();
-				appServer.commit();
+//				instanceServer.commit();
+//				appServer.commit();
 			} catch (SolrServerException ex) {
 				throw new IOException("Failed to delete data in Solr. " + ex.getMessage(), ex);
 			} catch (IOException ex) {

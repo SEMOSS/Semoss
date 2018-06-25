@@ -173,8 +173,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info("7. Process app metadata to allow for traversing across apps	");
 		try {
-			UploadUtilities.updateLocalMaster(newAppId);
-			UploadUtilities.updateSolr(newAppId);
+			UploadUtilities.updateMetadata(newAppId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -246,8 +245,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			UploadUtilities.updateLocalMaster(appId);
-			UploadUtilities.updateSolr(appId);
+			UploadUtilities.updateMetadata(appId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

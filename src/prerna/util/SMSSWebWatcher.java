@@ -43,6 +43,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
+import prerna.auth.SecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.engine.impl.SmssUpdater;
@@ -193,8 +194,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// now add to solr
 					// add instances
 					SolrUtility.addToSolrInsightCore(engineId);
-					// add app
-					SolrUtility.addAppToSolr(engineId);
+					// add to security
+					SecurityUtils.addApp(engineId);
 					LOGGER.info("Loaded Engine.. " + fileName);
 				}
 			}
@@ -279,6 +280,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			localMasterIndex = 1;
 			// let us now load the security db
 			loadExistingDB(fileNames[1]);
+			SecurityUtils.loadSecurityDatabase();
 			// update file index
 			fileIdx++;
 		}
@@ -308,10 +310,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 				LOGGER.info("Deleting the engine..... " + engine);
 				remover.deleteEngineRDBMS(engine);
+				SecurityUtils.deleteApp(engine);
 				SolrUtility.deleteFromSolr(engine);
 			}
 		}
-	
+		
 		try {
 			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
 			if(solrIndexEngine.serverActive()) {
@@ -327,29 +330,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						for(String engine : engineSet) {
 							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 								SolrUtility.deleteFromSolr(engine);
+								SecurityUtils.deleteApp(engine);
 								remover.deleteEngineRDBMS(engine);
 							}
 						}
 					}
 				}
-				// check also the app core
-				facetList = new ArrayList<String>();
-				facetList.add(SolrIndexEngine.ID);
-				facetReturn = solrIndexEngine.executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList, SOLR_PATHS.SOLR_APP_PATH_NAME);
-				if(facetReturn != null && !facetReturn.isEmpty()) {
-					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.ID);
-					if(solrEngines != null) {
-						Set<String> engineSet = solrEngines.keySet();
-						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well
-						for(String engine : engineSet) {
-							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-								SolrUtility.deleteFromSolr(engine);
-								remover.deleteEngineRDBMS(engine);
-							}
-						}
-					}
-				}
-				
 				// need to build the suggester
 				solrIndexEngine.buildSuggester();
 			}

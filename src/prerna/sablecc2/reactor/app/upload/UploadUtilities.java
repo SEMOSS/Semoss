@@ -5,9 +5,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -17,6 +14,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.SecurityUtils;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -29,7 +27,6 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.solr.SolrIndexEngine;
 import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -67,20 +64,14 @@ public class UploadUtilities {
 	/**
 	 * Update local master
 	 * @param appId
+	 * @throws Exception 
 	 */
-	public static void updateLocalMaster(String appId) {
+	public static void updateMetadata(String appId) throws Exception {
 		Utility.synchronizeEngineMetadata(appId);
+		SecurityUtils.addApp(appId);
+		SolrUtility.addToSolrInsightCore(appId);
 	}
 
-	/**
-	 * Update solr
-	 * @param appId
-	 * @throws Exception
-	 */
-	public static void updateSolr(String appId) throws Exception {
-		SolrUtility.addToSolrInsightCore(appId);
-		SolrUtility.addAppToSolr(appId);
-	}
 	
 	/**
 	 * Validate the app name
@@ -96,12 +87,7 @@ public class UploadUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
 		// need to make sure the app is unique
-		boolean containsApp = true;
-		try {
-			containsApp = SolrIndexEngine.getInstance().containsApp(appName);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
-			e.printStackTrace();
-		}
+		boolean containsApp = SecurityUtils.containsEngine(appName);
 		if(containsApp) {
 			throw new IOException("App name already exists.  Please provide a unique app name");
 		}
