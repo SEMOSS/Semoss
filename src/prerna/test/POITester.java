@@ -54,8 +54,8 @@ public class POITester {
 		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\Tax.xlsx");
 		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\SEMOSS Sprint Tasks.xlsx");
 		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\RMF.xlsx");
+		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\shifted.xlsx");
 		tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\ExcelTest.xlsx");
-		
 	}
 	
 	// get information as x and y
