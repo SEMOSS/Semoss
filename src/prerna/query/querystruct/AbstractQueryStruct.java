@@ -1,6 +1,7 @@
 package prerna.query.querystruct;
 
 import java.util.Hashtable;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,6 +63,7 @@ public abstract class AbstractQueryStruct {
 	// Movie	 InnerJoin Studio, Genre
 	//			 OuterJoin Nominated
 	protected Map<String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
+	protected Set<String[]> relationsSet = new LinkedHashSet<String[]>();
 	
 	protected boolean overrideImplicit = false;
 
@@ -207,6 +209,17 @@ public abstract class AbstractQueryStruct {
 	public Map<String, Map<String, List>> getRelations(){
 		return this.relations;
 	}
+	
+	public void addRelationToSet(String fromConcept, String toConcept, String joinType) {
+		String[] eachSet = new String[]{fromConcept, joinType, toConcept};
+		relationsSet.add(eachSet);
+	}
+	
+	
+	public Set<String[]> getRelationsSet(){
+		return this.relationsSet;
+	}
+	
 	
 	//////////////////////////////////////////// OTHERS /////////////////////////////////////////////////////
 
