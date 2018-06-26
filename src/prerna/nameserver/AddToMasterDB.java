@@ -127,9 +127,6 @@ public class AddToMasterDB {
 		} else if(propEngType.contains("Tinker")) {
 			engineType = IEngine.ENGINE_TYPE.TINKER;
 			engineTypeString = "TYPE:TINKER";
-		} else if(propEngType.contains("Solr")) {
-			engineType = IEngine.ENGINE_TYPE.SOLR;
-			engineTypeString = "TYPE:SOLR";
 		} else 	if(propEngType.contains("RNative")) {
 			engineType = IEngine.ENGINE_TYPE.R; // process it as a flat file I bet 
 			engineTypeString = "TYPE:R";
