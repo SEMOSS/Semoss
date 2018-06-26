@@ -15,7 +15,7 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -204,7 +204,7 @@ public class InsightFilesToDatabaseReader {
 			// update the engine metadata within the local master and solr
 			Utility.synchronizeEngineMetadata(engineName); 
 			SolrUtility.addToSolrInsightCore(engineName);
-			SecurityUtils.addApp(engineName);
+			SecurityUpdateUtils.addApp(engineName);
 			
 			// smss location is not null when we are making a new engine
 			// if it is null, there is no temp file or anything that we need to deal with
@@ -352,7 +352,7 @@ public class InsightFilesToDatabaseReader {
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
 			SolrUtility.addToSolrInsightCore(engineName);
-			SecurityUtils.addApp(engineName);
+			SecurityUpdateUtils.addApp(engineName);
 
 			// only after all of this is good, should we add it to DIHelper
 			DIHelper.getInstance().setLocalProperty(engineName, engine);

@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,9 +15,9 @@ public class DatabaseListReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<Map<String, String>> retList = null;
 		if(securityEnabled()) {
-			retList = SecurityUtils.getUserDatabaseList(this.insight.getUserId());
+			retList = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId());
 		} else {
-			retList = SecurityUtils.getAllDatabaseList();
+			retList = SecurityQueryUtils.getAllDatabaseList();
 		}
 		
 		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);

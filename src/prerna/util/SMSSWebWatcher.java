@@ -43,7 +43,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServerException;
 
-import prerna.auth.SecurityUtils;
+import prerna.auth.AbstractSecurityUtils;
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.engine.impl.SmssUpdater;
@@ -195,7 +196,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// add instances
 					SolrUtility.addToSolrInsightCore(engineId);
 					// add to security
-					SecurityUtils.addApp(engineId);
+					SecurityUpdateUtils.addApp(engineId);
 					LOGGER.info("Loaded Engine.. " + fileName);
 				}
 			}
@@ -280,7 +281,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			localMasterIndex = 1;
 			// let us now load the security db
 			loadExistingDB(fileNames[1]);
-			SecurityUtils.loadSecurityDatabase();
+			AbstractSecurityUtils.loadSecurityDatabase();
 			// update file index
 			fileIdx++;
 		}
@@ -310,7 +311,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 				LOGGER.info("Deleting the engine..... " + engine);
 				remover.deleteEngineRDBMS(engine);
-				SecurityUtils.deleteApp(engine);
+				SecurityUpdateUtils.deleteApp(engine);
 				SolrUtility.deleteFromSolr(engine);
 			}
 		}
@@ -330,7 +331,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						for(String engine : engineSet) {
 							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
 								SolrUtility.deleteFromSolr(engine);
-								SecurityUtils.deleteApp(engine);
+								SecurityUpdateUtils.deleteApp(engine);
 								remover.deleteEngineRDBMS(engine);
 							}
 						}
