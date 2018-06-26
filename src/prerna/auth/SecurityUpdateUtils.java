@@ -33,26 +33,49 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 */
 	public static void addApp(String appId) {
-		if(appId.equals(Constants.LOCAL_MASTER_DB_NAME) || appId.equals(Constants.SECURITY_DB)) {
+		addApp(appId, true);
+	}
+	
+	/**
+	 * Add an entire engine into the security db
+	 * @param appId
+	 */
+	public static void addApp(String appId, boolean globalApp) {
+		if(ignoreEngine(appId)) {
 			// dont add local master or security db to security db
 			return;
 		}
-		// does security db contain the engine
-		if(containsEngine(appId)) {
-			LOGGER.info("Security database already contains app");
-			return;
-		}
-		
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
+		
+		boolean reloadInsights = false;
+		if(prop.containsKey(Constants.RELOAD_INSIGHTS)) {
+			String booleanStr = prop.get(Constants.RELOAD_INSIGHTS).toString();
+			reloadInsights = Boolean.parseBoolean(booleanStr);
+		}
+		
+		
+		boolean engineExists = containsEngineId(appId);
+		if(engineExists && !reloadInsights) {
+			LOGGER.info("Security database already contains app");
+			return;
+		} else if(engineExists) {
+			// delete values if currently present
+			deleteInsightsForRecreation(appId);
+		}
+		
 		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
 		if(appName == null) {
 			appName = appId;
 		}
 		
 		// need to add engine into the security db
-		String[] typeAndCost = getAppTypeAndCost(prop);
-		addEngine(appId, appName, typeAndCost[0], typeAndCost[1], true);
+		if(!engineExists) {
+			String[] typeAndCost = getAppTypeAndCost(prop);
+			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], false);
+		} else {
+			//TODO: do i need to update the global tag ???
+		}
 		
 		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
 		String dbLocation = dbfile.getAbsolutePath();
@@ -168,7 +191,24 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		return new String[]{app_type, app_cost};
 	}
 	
+	/**
+	 * Delete just the insights for an engine
+	 * @param appId
+	 */
+	public static void deleteInsightsForRecreation(String appId) {
+		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
+		securityDb.removeData(deleteQuery);
+	}
+	
+	/**
+	 * Delete all values
+	 * @param appId
+	 */
 	public static void deleteApp(String appId) {
+		if(ignoreEngine(appId)) {
+			// dont add local master or security db to security db
+			return;
+		}
 		String deleteQuery = "DELETE FROM ENGINE WHERE ID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
@@ -177,6 +217,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINE='" + appId + "'";
 		securityDb.removeData(deleteQuery);
+		
+		//TODO: add the other tables...
 	}
 	
 	
@@ -185,7 +227,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * Adding data
+	 * Adding engine
 	 */
 	
 	/**
@@ -203,19 +245,113 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.commit();
 	}
 	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Adding Insight
+	 */
+	
 	/**
-	 * Add an insight into the security db
+	 * 
 	 * @param engineId
 	 * @param insightId
 	 * @param insightName
 	 * @param global
+	 * @param exCount
+	 * @param createdOn
+	 * @param lastModified
+	 * @param layout
 	 */
-	public static void addInsight(String engineId, String insightId, String insightName, boolean global) {
-		String query = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL) "
-				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + insightName + "', " + global + ")";
+	public static void addInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT) "
+				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + insightName + "', " + global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "')";
+		securityDb.insertData(insightQuery);
+		securityDb.commit();
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 * @param global
+	 * @param exCount
+	 * @param createdOn
+	 * @param lastModified
+	 * @param layout
+	 */
+	public static void addUserInsightCreator(String userId, String engineId, String insightId) {
+//		String checkQ = "SELECT DISTINCT USERINSIGHTPERMISSION.USERID, USERINSIGHTPERMISSION.ENGINEID, USERINSIGHTPERMISSION.INSIGHTID FROM USERINSIGHTPERMISSION WHERE "
+//				+ "USERINSIGHTPERMISSION.USERID='" + userId + "' AND USERINSIGHTPERMISSION.ENGINEID='" + engineId + "' "
+//				+ "AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, checkQ);
+//		if(wrapper.hasNext()) {
+//			wrapper.cleanUp();
+//		} else {
+			String insightQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) "
+					+ "VALUES ('" + userId + "', '" + engineId + "', '" + insightId + "', " + 1 + ");";
+			securityDb.insertData(insightQuery);
+			securityDb.commit();
+//		}
+	}
+	
+	/**
+	 * 
+ 	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 * @param global
+	 * @param exCount
+	 * @param lastModified
+	 * @param layout
+	 */
+	public static void updateInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', GLOBAL=" + global + ", LASTMODIFIEDON='" + nowString 
+				+ "', LAYOUT='" + layout + "'  WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
 		securityDb.insertData(query);
 		securityDb.commit();
 	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void deleteInsight(String engineId, String insightId) {
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		securityDb.insertData(query);
+		query = "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		securityDb.insertData(query);
+		securityDb.commit();
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void deleteInsight(String engineId, String... insightId) {
+		String insightFilter = createFilter(insightId);
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
+		securityDb.insertData(query);
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
+		securityDb.insertData(query);
+		securityDb.commit();
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Adding engine meta
+	 */
 	
 	/**
 	 * 
@@ -250,6 +386,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Update the total execution count
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void updateExecutionCount(String engineId, String insightId) {
+		String updateQuery = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "'";
+		securityDb.insertData(updateQuery);
 	}
 
 }

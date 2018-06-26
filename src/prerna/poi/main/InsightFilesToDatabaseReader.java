@@ -3,9 +3,6 @@ package prerna.poi.main;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +19,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.sablecc2.reactor.imports.FileMeta;
-import prerna.solr.SolrUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
@@ -203,7 +199,6 @@ public class InsightFilesToDatabaseReader {
 			
 			// update the engine metadata within the local master and solr
 			Utility.synchronizeEngineMetadata(engineName); 
-			SolrUtility.addToSolrInsightCore(engineName);
 			SecurityUpdateUtils.addApp(engineName);
 			
 			// smss location is not null when we are making a new engine
@@ -230,15 +225,6 @@ public class InsightFilesToDatabaseReader {
 			error = true;
 			e.printStackTrace();
 		} catch (IOException e) {
-			error = true;
-			e.printStackTrace();
-		} catch (KeyManagementException e) {
-			error = true;
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			error = true;
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
 			error = true;
 			e.printStackTrace();
 		} finally {
@@ -351,7 +337,6 @@ public class InsightFilesToDatabaseReader {
 			((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 			DIHelper.getInstance().getCoreProp().setProperty(engineName + "_" + Constants.STORE, smssLocation);
 			Utility.synchronizeEngineMetadata(engineName); // replacing this for engine
-			SolrUtility.addToSolrInsightCore(engineName);
 			SecurityUpdateUtils.addApp(engineName);
 
 			// only after all of this is good, should we add it to DIHelper
@@ -375,15 +360,6 @@ public class InsightFilesToDatabaseReader {
 			error = true;
 			e.printStackTrace();
 		} catch (IOException e) {
-			error = true;
-			e.printStackTrace();
-		} catch (KeyManagementException e) {
-			error = true;
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			error = true;
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
 			error = true;
 			e.printStackTrace();
 		} finally {
@@ -438,7 +414,7 @@ public class InsightFilesToDatabaseReader {
 			newSmssProp.delete();
 		}
 		// remove from engine from solr in case it was added
-		SolrUtility.deleteFromSolr(engineName);
+		SecurityUpdateUtils.deleteApp(engineName);
 		
 		throw new IOException("Error loading files from insight into database");
 	}

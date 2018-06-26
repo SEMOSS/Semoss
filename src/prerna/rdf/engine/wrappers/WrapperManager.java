@@ -36,12 +36,9 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.json.JsonWrapper;
 import prerna.engine.impl.json.JsonWrapper2;
-import prerna.engine.impl.solr.SolrEngine;
-import prerna.engine.impl.solr.SolrIterator;
 import prerna.engine.impl.web.WebWrapper;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.SolrInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 
@@ -125,15 +122,6 @@ public class WrapperManager {
 			returnWrapper = new QueryStructExpressionIterator(
 					new RawGemlinSelectWrapper(interpreter, qs),
 					qs);
-			break;
-		}
-		case SOLR : {
-			genQueryString = false;
-			SolrInterpreter solrInterp = new SolrInterpreter();
-			solrInterp.setQueryStruct(qs);
-			SolrEngine solrEngine = (SolrEngine) engine;
-			SolrIterator it = new SolrIterator(solrEngine.execSolrQuery(solrInterp.composeSolrQuery()), qs);
-			returnWrapper = new QueryStructExpressionIterator(it, qs);
 			break;
 		}
 		default: {

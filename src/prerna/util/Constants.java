@@ -471,13 +471,14 @@ public class Constants {
 			+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	
 	//SOLR specific
-	public static final String SOLR_RELOAD = "SOLR_RELOAD";
-	public static final String SOLR_EXPORT = "SOLR_EXPORT";
-	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
-	public static final String SOLR_HOME_DIR = "Solr";
+	public static final String RELOAD_INSIGHTS = "RELOAD_INSIGHTS";
+//	public static final String SOLR_RELOAD = "SOLR_RELOAD";
+//	public static final String SOLR_EXPORT = "SOLR_EXPORT";
+//	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
+//	public static final String SOLR_HOME_DIR = "Solr";
 	// this is used for both the index engine and solr enigne
-	public static final String SOLR_URL = "SOLR_BASE_URL";
-	public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
+//	public static final String SOLR_URL = "SOLR_BASE_URL";
+//	public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
 	
 	public static final String VALUE = "VALUE";
 	public static final String NAME = "NAME";

@@ -27,7 +27,6 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -69,7 +68,6 @@ public class UploadUtilities {
 	public static void updateMetadata(String appId) throws Exception {
 		Utility.synchronizeEngineMetadata(appId);
 		SecurityUpdateUtils.addApp(appId);
-		SolrUtility.addToSolrInsightCore(appId);
 	}
 
 	

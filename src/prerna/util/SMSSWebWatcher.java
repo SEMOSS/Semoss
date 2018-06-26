@@ -33,15 +33,11 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrServerException;
 
 import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityUpdateUtils;
@@ -50,9 +46,6 @@ import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.solr.SolrIndexEngine;
-import prerna.solr.SolrIndexEngine.SOLR_PATHS;
-import prerna.solr.SolrUtility;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
@@ -175,6 +168,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// do not add anything
 					// we return null and we will 
 					LOGGER.info("Engine " + engineId + " is a hidden database. Do not load into local master or solr.");
+					SecurityUpdateUtils.addApp(engineId, false);
 					return null;
 				} else {
 					// we want to ignore AppEngine
@@ -191,12 +185,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						// get that metadata I say
 						Utility.synchronizeEngineMetadata(engineId);
 					}
-					
-					// now add to solr
-					// add instances
-					SolrUtility.addToSolrInsightCore(engineId);
 					// add to security
-					SecurityUpdateUtils.addApp(engineId);
+					SecurityUpdateUtils.addApp(engineId, true);
 					LOGGER.info("Loaded Engine.. " + fileName);
 				}
 			}
@@ -312,42 +302,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				LOGGER.info("Deleting the engine..... " + engine);
 				remover.deleteEngineRDBMS(engine);
 				SecurityUpdateUtils.deleteApp(engine);
-				SolrUtility.deleteFromSolr(engine);
 			}
-		}
-		
-		try {
-			SolrIndexEngine solrIndexEngine = SolrIndexEngine.getInstance();
-			if(solrIndexEngine.serverActive()) {
-				// check the insight core
-				List<String> facetList = new ArrayList<String>();
-				facetList.add(SolrIndexEngine.APP_ID);
-				Map<String, Map<String, Long>> facetReturn = solrIndexEngine.executeQueryFacetResults(SolrIndexEngine.QUERY_ALL , facetList, SOLR_PATHS.SOLR_INSIGHTS_PATH);
-				if(facetReturn != null && !facetReturn.isEmpty()) {
-					Map<String, Long> solrEngines = facetReturn.get(SolrIndexEngine.APP_ID);
-					if(solrEngines != null) {
-						Set<String> engineSet = solrEngines.keySet();
-						// no reason why this can be done alongside the local master database removal. but sure let us go with this as well
-						for(String engine : engineSet) {
-							if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-								SolrUtility.deleteFromSolr(engine);
-								SecurityUpdateUtils.deleteApp(engine);
-								remover.deleteEngineRDBMS(engine);
-							}
-						}
-					}
-				}
-				// need to build the suggester
-				solrIndexEngine.buildSuggester();
-			}
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		} catch (SolrServerException e) {
-			e.printStackTrace();
 		}
 	}
 

@@ -69,7 +69,6 @@ import prerna.poi.main.TinkerCsvReader;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.IMPORT_TYPE;
 import prerna.rdf.main.ImportRDBMSProcessor;
-import prerna.solr.SolrUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -166,18 +165,12 @@ public class ImportDataProcessor {
 			// if not auto load... i.e. manually load here into DIHelper
 			if(!autoLoad) {
 				engine.setOWL(owlPath);
-//				engine.loadTransformedNodeNames();
 				if(dbType == ImportOptions.DB_TYPE.RDBMS) {
 					((AbstractEngine) engine).setPropFile(propWriter.propFileName);
 				}
 				DIHelper.getInstance().getCoreProp().setProperty(engineID + "_" + Constants.STORE, smssLocation);
 				Utility.synchronizeEngineMetadata(engineID); // replacing this for engine
-				//Utility.addToLocalMaster(engine);
-				SolrUtility.addToSolrInsightCore(engineID);
 				SecurityUpdateUtils.addApp(engineID);
-				// Do we need this?
-				// Commenting it out for now to speed up upload until we find a better way to utilize this
-//				Utility.addToSolrInstanceCore(engine);
 				
 				// only after all of this is good, should we add it to DIHelper
 				DIHelper.getInstance().setLocalProperty(engineID, engine);

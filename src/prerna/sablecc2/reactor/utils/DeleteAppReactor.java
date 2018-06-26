@@ -1,8 +1,5 @@
 package prerna.sablecc2.reactor.utils;
 
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Vector;
 
@@ -16,7 +13,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -87,21 +83,6 @@ public class DeleteAppReactor extends AbstractReactor {
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(engineId);
 		SecurityUpdateUtils.deleteApp(engineId);
-
-		SolrIndexEngine solrE;
-		try {
-			solrE = SolrIndexEngine.getInstance();
-			if (solrE.serverActive()) {
-				solrE.deleteEngine(engineId);
-			}
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyStoreException e) {
-			e.printStackTrace();
-		}
-
 		return true;
 	}
 
